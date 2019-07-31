@@ -4,6 +4,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import DatabaseAPI
 from eth.db.diff import (
     DBDiff,
     DBDiffTracker,
@@ -23,10 +24,10 @@ class BatchDB(BaseDB):
     """
     logger = logging.getLogger("eth.db.BatchDB")
 
-    wrapped_db: BaseDB = None
+    wrapped_db: DatabaseAPI = None
     _track_diff: DBDiffTracker = None
 
-    def __init__(self, wrapped_db: BaseDB, read_through_deletes: bool = False) -> None:
+    def __init__(self, wrapped_db: DatabaseAPI, read_through_deletes: bool = False) -> None:
         self.wrapped_db = wrapped_db
         self._track_diff = DBDiffTracker()
         self._read_through_deletes = read_through_deletes
@@ -48,7 +49,7 @@ class BatchDB(BaseDB):
     def commit(self, apply_deletes: bool = True) -> None:
         self.commit_to(self.wrapped_db, apply_deletes)
 
-    def commit_to(self, target_db: BaseDB, apply_deletes: bool = True) -> None:
+    def commit_to(self, target_db: DatabaseAPI, apply_deletes: bool = True) -> None:
         if apply_deletes and self._read_through_deletes:
             raise ValidationError("BatchDB should never apply deletes when reading through deletes")
         diff = self.diff()

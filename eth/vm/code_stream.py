@@ -5,15 +5,18 @@ from typing import (
     Set
 )
 
+from eth.abc import CodeStreamAPI
 from eth.validation import (
     validate_is_bytes,
 )
-from eth.vm import opcode_values
+from eth.vm.opcode_values import (
+    PUSH1,
+    PUSH32,
+    STOP,
+)
 
-PUSH1, PUSH32, STOP = opcode_values.PUSH1, opcode_values.PUSH32, opcode_values.STOP
 
-
-class CodeStream:
+class CodeStream(CodeStreamAPI):
     __slots__ = ['_length_cache', '_raw_code_bytes', 'invalid_positions', 'valid_positions', 'pc']
 
     logger = logging.getLogger('eth.vm.CodeStream')

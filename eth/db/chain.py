@@ -1,16 +1,11 @@
 import functools
 import itertools
 
-from abc import (
-    abstractmethod
-)
 from typing import (
     Dict,
     Iterable,
-    List,
     Tuple,
     Type,
-    TYPE_CHECKING,
 )
 
 from eth_typing import (
@@ -23,6 +18,15 @@ from eth_utils import (
 
 from eth_hash.auto import keccak
 
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    ChainDatabaseAPI,
+    DatabaseAPI,
+    AtomicDatabaseAPI,
+    ReceiptAPI,
+    SignedTransactionAPI,
+)
 from eth.constants import (
     EMPTY_UNCLE_HASH,
 )
@@ -31,11 +35,7 @@ from eth.exceptions import (
     ReceiptNotFound,
     TransactionNotFound,
 )
-from eth.db.header import BaseHeaderDB, HeaderDB
-from eth.db.backends.base import (
-    BaseAtomicDB,
-    BaseDB,
-)
+from eth.db.header import HeaderDB
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import (
     BlockHeader,
@@ -53,15 +53,8 @@ with catch_and_ignore_import_warning():
         HexaryTrie,
     )
     from eth_utils import (
-        to_list,
         to_tuple,
         ValidationError,
-    )
-
-if TYPE_CHECKING:
-    from eth.rlp.blocks import (  # noqa: F401
-        BaseBlock,
-        BaseTransaction
     )
 
 
@@ -72,113 +65,20 @@ class TransactionKey(rlp.Serializable):
     ]
 
 
-class BaseChainDB(BaseHeaderDB):
-    db: BaseAtomicDB = None
-
-    @abstractmethod
-    def __init__(self, db: BaseAtomicDB) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
-    # Header API
-    #
-    @abstractmethod
-    def get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
-    # Block API
-    #
-    @abstractmethod
-    def persist_block(self,
-                      block: 'BaseBlock'
-                      ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
-    # Transaction API
-    #
-    @abstractmethod
-    def add_receipt(self,
-                    block_header: BlockHeader,
-                    index_key: int, receipt: Receipt) -> Hash32:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def add_transaction(self,
-                        block_header: BlockHeader,
-                        index_key: int, transaction: 'BaseTransaction') -> Hash32:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_block_transactions(
-            self,
-            block_header: BlockHeader,
-            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[Hash32]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_receipt_by_index(self,
-                             block_number: BlockNumber,
-                             receipt_index: int) -> Receipt:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_receipts(self,
-                     header: BlockHeader,
-                     receipt_class: Type[Receipt]) -> Iterable[Receipt]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_transaction_by_index(
-            self,
-            block_number: BlockNumber,
-            transaction_index: int,
-            transaction_class: Type['BaseTransaction']) -> 'BaseTransaction':
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
-    # Raw Database API
-    #
-    @abstractmethod
-    def exists(self, key: bytes) -> bool:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get(self, key: bytes) -> bytes:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-
-class ChainDB(HeaderDB, BaseChainDB):
-    def __init__(self, db: BaseAtomicDB) -> None:
+class ChainDB(HeaderDB, ChainDatabaseAPI):
+    def __init__(self, db: AtomicDatabaseAPI) -> None:
         self.db = db
 
     #
     # Header API
     #
-    def get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
+    def get_block_uncles(self, uncles_hash: Hash32) -> Tuple[BlockHeaderAPI, ...]:
         """
         Returns an iterable of uncle headers specified by the given uncles_hash
         """
         validate_word(uncles_hash, title="Uncles Hash")
         if uncles_hash == EMPTY_UNCLE_HASH:
-            return []
+            return ()
         try:
             encoded_uncles = self.db[uncles_hash]
         except KeyError:
@@ -186,13 +86,13 @@ class ChainDB(HeaderDB, BaseChainDB):
                 "No uncles found for hash {0}".format(uncles_hash)
             )
         else:
-            return rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader))
+            return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
 
     @classmethod
     def _set_as_canonical_chain_head(cls,
-                                     db: BaseDB,
+                                     db: DatabaseAPI,
                                      block_hash: Hash32,
-                                     ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+                                     ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:  # noqa: E501
         try:
             header = cls._get_block_header_by_hash(db, block_hash)
         except HeaderNotFound:
@@ -226,7 +126,7 @@ class ChainDB(HeaderDB, BaseChainDB):
     # Block API
     #
     def persist_block(self,
-                      block: 'BaseBlock'
+                      block: BlockAPI
                       ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         """
         Persist the given block's header and uncles.
@@ -239,8 +139,8 @@ class ChainDB(HeaderDB, BaseChainDB):
     @classmethod
     def _persist_block(
             cls,
-            db: 'BaseDB',
-            block: 'BaseBlock') -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
+            db: DatabaseAPI,
+            block: BlockAPI) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         header_chain = (block.header, )
         new_canonical_headers, old_canonical_headers = cls._persist_header_chain(db, header_chain)
 
@@ -249,7 +149,7 @@ class ChainDB(HeaderDB, BaseChainDB):
                 # Most of the time this is called to persist a block whose parent is the current
                 # head, so we optimize for that and read the tx hashes from the block itself. This
                 # is specially important during a fast sync.
-                tx_hashes = [tx.hash for tx in block.transactions]
+                tx_hashes = tuple(tx.hash for tx in block.transactions)
             else:
                 tx_hashes = cls._get_block_transaction_hashes(db, header)
 
@@ -270,7 +170,7 @@ class ChainDB(HeaderDB, BaseChainDB):
 
         return new_canonical_hashes, old_canonical_hashes
 
-    def persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
+    def persist_uncles(self, uncles: Tuple[BlockHeaderAPI]) -> Hash32:
         """
         Persists the list of uncles to the database.
 
@@ -279,7 +179,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         return self._persist_uncles(self.db, uncles)
 
     @staticmethod
-    def _persist_uncles(db: BaseDB, uncles: Tuple[BlockHeader]) -> Hash32:
+    def _persist_uncles(db: DatabaseAPI, uncles: Tuple[BlockHeaderAPI]) -> Hash32:
         uncles_hash = keccak(rlp.encode(uncles))
         db.set(
             uncles_hash,
@@ -289,7 +189,9 @@ class ChainDB(HeaderDB, BaseChainDB):
     #
     # Transaction API
     #
-    def add_receipt(self, block_header: BlockHeader, index_key: int, receipt: Receipt) -> Hash32:
+    def add_receipt(self,
+                    block_header: BlockHeaderAPI,
+                    index_key: int, receipt: ReceiptAPI) -> Hash32:
         """
         Adds the given receipt to the provided block header.
 
@@ -300,9 +202,9 @@ class ChainDB(HeaderDB, BaseChainDB):
         return receipt_db.root_hash
 
     def add_transaction(self,
-                        block_header: BlockHeader,
+                        block_header: BlockHeaderAPI,
                         index_key: int,
-                        transaction: 'BaseTransaction') -> Hash32:
+                        transaction: SignedTransactionAPI) -> Hash32:
         """
         Adds the given transaction to the provided block header.
 
@@ -314,15 +216,15 @@ class ChainDB(HeaderDB, BaseChainDB):
 
     def get_block_transactions(
             self,
-            header: BlockHeader,
-            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
+            header: BlockHeaderAPI,
+            transaction_class: Type[SignedTransactionAPI]) -> Tuple[SignedTransactionAPI, ...]:
         """
         Returns an iterable of transactions for the block speficied by the
         given block header.
         """
         return self._get_block_transactions(header.transaction_root, transaction_class)
 
-    def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[Hash32]:
+    def get_block_transaction_hashes(self, block_header: BlockHeaderAPI) -> Tuple[Hash32, ...]:
         """
         Returns an iterable of the transaction hashes from the block specified
         by the given block header.
@@ -330,11 +232,11 @@ class ChainDB(HeaderDB, BaseChainDB):
         return self._get_block_transaction_hashes(self.db, block_header)
 
     @classmethod
-    @to_list
+    @to_tuple
     def _get_block_transaction_hashes(
             cls,
-            db: BaseDB,
-            block_header: BlockHeader) -> Iterable[Hash32]:
+            db: DatabaseAPI,
+            block_header: BlockHeaderAPI) -> Iterable[Hash32]:
         all_encoded_transactions = cls._get_block_transaction_data(
             db,
             block_header.transaction_root,
@@ -344,8 +246,8 @@ class ChainDB(HeaderDB, BaseChainDB):
 
     @to_tuple
     def get_receipts(self,
-                     header: BlockHeader,
-                     receipt_class: Type[Receipt]) -> Iterable[Receipt]:
+                     header: BlockHeaderAPI,
+                     receipt_class: Type[ReceiptAPI]) -> Iterable[ReceiptAPI]:
         """
         Returns an iterable of receipts for the block specified by the given
         block header.
@@ -363,7 +265,7 @@ class ChainDB(HeaderDB, BaseChainDB):
             self,
             block_number: BlockNumber,
             transaction_index: int,
-            transaction_class: Type['BaseTransaction']) -> 'BaseTransaction':
+            transaction_class: Type[SignedTransactionAPI]) -> SignedTransactionAPI:
         """
         Returns the transaction at the specified `transaction_index` from the
         block specified by `block_number` from the canonical chain.
@@ -404,7 +306,7 @@ class ChainDB(HeaderDB, BaseChainDB):
 
     def get_receipt_by_index(self,
                              block_number: BlockNumber,
-                             receipt_index: int) -> Receipt:
+                             receipt_index: int) -> ReceiptAPI:
         """
         Returns the Receipt of the transaction at specified index
         for the block header obtained by the specified block number
@@ -424,7 +326,7 @@ class ChainDB(HeaderDB, BaseChainDB):
                 "Receipt with index {} not found in block".format(receipt_index))
 
     @staticmethod
-    def _get_block_transaction_data(db: BaseDB, transaction_root: Hash32) -> Iterable[Hash32]:
+    def _get_block_transaction_data(db: DatabaseAPI, transaction_root: Hash32) -> Iterable[Hash32]:
         """
         Returns iterable of the encoded transactions for the given block header
         """
@@ -437,11 +339,11 @@ class ChainDB(HeaderDB, BaseChainDB):
                 break
 
     @functools.lru_cache(maxsize=32)
-    @to_list
+    @to_tuple
     def _get_block_transactions(
             self,
             transaction_root: Hash32,
-            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
+            transaction_class: Type[SignedTransactionAPI]) -> Iterable[SignedTransactionAPI]:
         """
         Memoizable version of `get_block_transactions`
         """
@@ -449,7 +351,7 @@ class ChainDB(HeaderDB, BaseChainDB):
             yield rlp.decode(encoded_transaction, sedes=transaction_class)
 
     @staticmethod
-    def _remove_transaction_from_canonical_chain(db: BaseDB, transaction_hash: Hash32) -> None:
+    def _remove_transaction_from_canonical_chain(db: DatabaseAPI, transaction_hash: Hash32) -> None:
         """
         Removes the transaction specified by the given hash from the canonical
         chain.
@@ -457,9 +359,9 @@ class ChainDB(HeaderDB, BaseChainDB):
         db.delete(SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash))
 
     @staticmethod
-    def _add_transaction_to_canonical_chain(db: BaseDB,
+    def _add_transaction_to_canonical_chain(db: DatabaseAPI,
                                             transaction_hash: Hash32,
-                                            block_header: BlockHeader,
+                                            block_header: BlockHeaderAPI,
                                             index: int) -> None:
         """
         :param bytes transaction_hash: the hash of the transaction to add the lookup for

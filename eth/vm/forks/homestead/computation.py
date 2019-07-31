@@ -7,7 +7,8 @@ from eth.exceptions import (
 from eth_utils import (
     encode_hex,
 )
-from eth.vm.computation import BaseComputation
+
+from eth.abc import ComputationAPI
 from eth.vm.forks.frontier.computation import (
     FrontierComputation,
 )
@@ -23,7 +24,7 @@ class HomesteadComputation(FrontierComputation):
     # Override
     opcodes = HOMESTEAD_OPCODES
 
-    def apply_create_message(self) -> BaseComputation:
+    def apply_create_message(self) -> ComputationAPI:
         snapshot = self.state.snapshot()
 
         computation = self.apply_message()
@@ -44,7 +45,7 @@ class HomesteadComputation(FrontierComputation):
                 except OutOfGas as err:
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
-                    computation._error = err
+                    computation.error = err
                     self.state.revert(snapshot)
                 else:
                     if self.logger:

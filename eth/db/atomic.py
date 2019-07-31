@@ -1,12 +1,15 @@
 from contextlib import contextmanager
 import logging
 from typing import (
-    Generator,
     Iterator,
 )
 
 from eth_utils import (
     ValidationError,
+)
+
+from eth.abc import (
+    DatabaseAPI,
 )
 
 from eth.db.diff import (
@@ -25,10 +28,10 @@ class AtomicDB(BaseAtomicDB):
     """
     logger = logging.getLogger("eth.db.AtomicDB")
 
-    wrapped_db: BaseDB = None
+    wrapped_db: DatabaseAPI = None
     _track_diff: DBDiffTracker = None
 
-    def __init__(self, wrapped_db: BaseDB = None) -> None:
+    def __init__(self, wrapped_db: DatabaseAPI = None) -> None:
         if wrapped_db is None:
             self.wrapped_db = MemoryDB()
         else:
@@ -47,7 +50,7 @@ class AtomicDB(BaseAtomicDB):
         return key in self.wrapped_db
 
     @contextmanager
-    def atomic_batch(self) -> Generator['AtomicDBWriteBatch', None, None]:
+    def atomic_batch(self) -> Iterator['AtomicDBWriteBatch']:
         with AtomicDBWriteBatch._commit_unless_raises(self) as readable_batch:
             yield readable_batch
 
@@ -59,10 +62,10 @@ class AtomicDBWriteBatch(BaseDB):
     """
     logger = logging.getLogger("eth.db.AtomicDBWriteBatch")
 
-    _write_target_db: BaseDB = None
+    _write_target_db: DatabaseAPI = None
     _track_diff: DBDiffTracker = None
 
-    def __init__(self, write_target_db: BaseDB) -> None:
+    def __init__(self, write_target_db: DatabaseAPI) -> None:
         self._write_target_db = write_target_db
         self._track_diff = DBDiffTracker()
 
@@ -113,7 +116,7 @@ class AtomicDBWriteBatch(BaseDB):
 
     @classmethod
     @contextmanager
-    def _commit_unless_raises(cls, write_target_db: BaseDB) -> Iterator['AtomicDBWriteBatch']:
+    def _commit_unless_raises(cls, write_target_db: DatabaseAPI) -> Iterator['AtomicDBWriteBatch']:
         """
         Commit all writes inside the context, unless an exception was raised.
 

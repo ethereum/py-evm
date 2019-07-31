@@ -4,21 +4,23 @@ from eth_bloom import (
     BloomFilter,
 )
 
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    ReceiptAPI,
+    StateAPI,
+    SignedTransactionAPI,
+    ComputationAPI,
+)
 from eth.constants import (
     BLOCK_REWARD,
     UNCLE_DEPTH_PENALTY_FACTOR,
     ZERO_HASH32,
 )
-
-from eth.rlp.blocks import BaseBlock
-from eth.rlp.headers import BlockHeader
 from eth.rlp.logs import Log
 from eth.rlp.receipts import Receipt
-from eth.rlp.transactions import BaseTransaction
 
 from eth.vm.base import VM
-from eth.vm.computation import BaseComputation
-from eth.vm.state import BaseState
 
 from .blocks import FrontierBlock
 from .state import FrontierState
@@ -30,9 +32,9 @@ from .headers import (
 from .validation import validate_frontier_transaction_against_header
 
 
-def make_frontier_receipt(base_header: BlockHeader,
-                          transaction: BaseTransaction,
-                          computation: BaseComputation) -> Receipt:
+def make_frontier_receipt(base_header: BlockHeaderAPI,
+                          transaction: SignedTransactionAPI,
+                          computation: ComputationAPI) -> ReceiptAPI:
     # Reusable for other forks
     # This skips setting the state root (set to 0 instead). The logic for making a state root
     # lives in the FrontierVM, so that state merkelization at each receipt is skipped at Byzantium+.
@@ -67,8 +69,8 @@ class FrontierVM(VM):
     fork: str = 'frontier'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
 
     # classes
-    block_class: Type[BaseBlock] = FrontierBlock
-    _state_class: Type[BaseState] = FrontierState
+    block_class: Type[BlockAPI] = FrontierBlock
+    _state_class: Type[StateAPI] = FrontierState
 
     # methods
     create_header_from_parent = staticmethod(create_frontier_header_from_parent)    # type: ignore
@@ -81,7 +83,7 @@ class FrontierVM(VM):
         return BLOCK_REWARD
 
     @staticmethod
-    def get_uncle_reward(block_number: int, uncle: BaseBlock) -> int:
+    def get_uncle_reward(block_number: int, uncle: BlockAPI) -> int:
         return BLOCK_REWARD * (
             UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
         ) // UNCLE_DEPTH_PENALTY_FACTOR
@@ -90,7 +92,9 @@ class FrontierVM(VM):
     def get_nephew_reward(cls) -> int:
         return cls.get_block_reward() // 32
 
-    def add_receipt_to_header(self, old_header: BlockHeader, receipt: Receipt) -> BlockHeader:
+    def add_receipt_to_header(self,
+                              old_header: BlockHeaderAPI,
+                              receipt: ReceiptAPI) -> BlockHeaderAPI:
         return old_header.copy(
             bloom=int(BloomFilter(old_header.bloom) | receipt.bloom),
             gas_used=receipt.gas_used,
@@ -99,10 +103,10 @@ class FrontierVM(VM):
 
     @staticmethod
     def make_receipt(
-            base_header: BlockHeader,
-            transaction: BaseTransaction,
-            computation: BaseComputation,
-            state: BaseState) -> Receipt:
+            base_header: BlockHeaderAPI,
+            transaction: SignedTransactionAPI,
+            computation: ComputationAPI,
+            state: StateAPI) -> ReceiptAPI:
 
         receipt_without_state_root = make_frontier_receipt(base_header, transaction, computation)
 

@@ -18,13 +18,13 @@ from eth_utils import (
 )
 
 from eth import MainnetChain
+from eth.abc import (
+    BlockAPI,
+    ChainAPI,
+    StateAPI,
+    VirtualMachineAPI,
+)
 from eth.db.atomic import AtomicDB
-from eth.rlp.blocks import (
-    BaseBlock,
-)
-from eth.chains.base import (
-    BaseChain,
-)
 from eth.chains.mainnet import (
     MainnetDAOValidatorVM,
 )
@@ -37,9 +37,6 @@ from eth.typing import (
 from eth._utils.state import (
     diff_state,
 )
-from eth.vm.base import (
-    BaseVM,
-)
 from eth.vm.forks import (
     PetersburgVM,
     ConstantinopleVM,
@@ -49,15 +46,12 @@ from eth.vm.forks import (
     HomesteadVM as BaseHomesteadVM,
     SpuriousDragonVM,
 )
-from eth.vm.state import (
-    BaseState,
-)
 
 
 #
 # State Setup
 #
-def setup_state(desired_state: AccountState, state: BaseState) -> None:
+def setup_state(desired_state: AccountState, state: StateAPI) -> None:
     for account, account_data in desired_state.items():
         for slot, value in account_data['storage'].items():
             state.set_storage(account, slot, value)
@@ -72,7 +66,7 @@ def setup_state(desired_state: AccountState, state: BaseState) -> None:
     state.persist()
 
 
-def verify_state(expected_state: AccountState, state: BaseState) -> None:
+def verify_state(expected_state: AccountState, state: StateAPI) -> None:
     diff = diff_state(expected_state, state)
     if diff:
         error_messages = []
@@ -105,7 +99,7 @@ def verify_state(expected_state: AccountState, state: BaseState) -> None:
         )
 
 
-def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[BaseVM]]]:
+def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[VirtualMachineAPI]]]:  # noqa: E501
     network = fixture['network']
 
     if network == 'Frontier':
@@ -192,7 +186,7 @@ def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def new_chain_from_fixture(fixture: Dict[str, Any],
-                           chain_cls: Type[BaseChain]=MainnetChain) -> BaseChain:
+                           chain_cls: Type[ChainAPI] = MainnetChain) -> ChainAPI:
     base_db = AtomicDB()
 
     vm_config = chain_vm_configuration(fixture)
@@ -214,8 +208,8 @@ def new_chain_from_fixture(fixture: Dict[str, Any],
 
 def apply_fixture_block_to_chain(
         block_fixture: Dict[str, Any],
-        chain: BaseChain,
-        perform_validation: bool=True) -> Tuple[BaseBlock, BaseBlock, BaseBlock]:
+        chain: ChainAPI,
+        perform_validation: bool=True) -> Tuple[BlockAPI, BlockAPI, BlockAPI]:
     """
     :return: (premined_block, mined_block, rlp_encoded_mined_block)
     """

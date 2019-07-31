@@ -1,6 +1,9 @@
 from typing import Type
-from eth.rlp.blocks import BaseBlock
-from eth.vm.state import BaseState
+
+from eth.abc import (
+    BlockAPI,
+    StateAPI,
+)
 
 from ..tangerine_whistle import TangerineWhistleVM
 
@@ -13,5 +16,5 @@ class SpuriousDragonVM(TangerineWhistleVM):
     fork: str = 'spurious-dragon'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
 
     # classes
-    block_class: Type[BaseBlock] = SpuriousDragonBlock
-    _state_class: Type[BaseState] = SpuriousDragonState
+    block_class: Type[BlockAPI] = SpuriousDragonBlock
+    _state_class: Type[StateAPI] = SpuriousDragonState

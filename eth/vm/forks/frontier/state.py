@@ -1,10 +1,18 @@
-from __future__ import absolute_import
+from typing import Type
 
 from eth_hash.auto import keccak
 from eth_utils import (
     encode_hex,
 )
 
+from eth.abc import (
+    AccountDatabaseAPI,
+    ComputationAPI,
+    SignedTransactionAPI,
+    MessageAPI,
+    TransactionContextAPI,
+    TransactionExecutorAPI,
+)
 from eth.constants import CREATE_CONTRACT_ADDRESS
 from eth.db.account import (
     AccountDB,
@@ -13,16 +21,10 @@ from eth.exceptions import (
     ContractCreationCollision,
 )
 
-from eth.typing import (
-    BaseOrSpoofTransaction,
-)
 from eth._utils.address import (
     generate_contract_address,
 )
 
-from eth.vm.computation import (
-    BaseComputation,
-)
 from eth.vm.message import (
     Message,
 )
@@ -41,16 +43,13 @@ from .validation import validate_frontier_transaction
 
 
 class FrontierTransactionExecutor(BaseTransactionExecutor):
-
-    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseOrSpoofTransaction:
+    def validate_transaction(self, transaction: SignedTransactionAPI) -> None:
 
         # Validate the transaction
         transaction.validate()
         self.vm_state.validate_transaction(transaction)
 
-        return transaction
-
-    def build_evm_message(self, transaction: BaseOrSpoofTransaction) -> Message:
+    def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
 
         gas_fee = transaction.gas * transaction.gas_price
 
@@ -103,8 +102,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         return message
 
     def build_computation(self,
-                          message: Message,
-                          transaction: BaseOrSpoofTransaction) -> BaseComputation:
+                          message: MessageAPI,
+                          transaction: SignedTransactionAPI) -> ComputationAPI:
         """Apply the message to the VM."""
         transaction_context = self.vm_state.get_transaction_context(transaction)
         if message.is_create:
@@ -116,7 +115,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 # The address of the newly created contract has *somehow* collided
                 # with an existing contract address.
                 computation = self.vm_state.get_computation(message, transaction_context)
-                computation._error = ContractCreationCollision(
+                computation.error = ContractCreationCollision(
                     "Address collision while creating contract: {0}".format(
                         encode_hex(message.storage_address),
                     )
@@ -138,8 +137,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         return computation
 
     def finalize_computation(self,
-                             transaction: BaseOrSpoofTransaction,
-                             computation: BaseComputation) -> BaseComputation:
+                             transaction: SignedTransactionAPI,
+                             computation: ComputationAPI) -> ComputationAPI:
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -186,13 +185,14 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
 
 class FrontierState(BaseState):
-    computation_class = FrontierComputation
-    transaction_context_class = FrontierTransactionContext  # Type[BaseTransactionContext]
-    account_db_class = AccountDB  # Type[BaseAccountDB]
-    transaction_executor = FrontierTransactionExecutor  # Type[BaseTransactionExecutor]
+    computation_class: Type[ComputationAPI] = FrontierComputation
+    transaction_context_class: Type[TransactionContextAPI] = FrontierTransactionContext
+    account_db_class: Type[AccountDatabaseAPI] = AccountDB
+    transaction_executor_class: Type[TransactionExecutorAPI] = FrontierTransactionExecutor
 
-    validate_transaction = validate_frontier_transaction
-
-    def execute_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseComputation:
+    def execute_transaction(self, transaction: SignedTransactionAPI) -> ComputationAPI:
         executor = self.get_transaction_executor()
         return executor(transaction)
+
+    def validate_transaction(self, transaction: SignedTransactionAPI) -> None:
+        validate_frontier_transaction(self, transaction)

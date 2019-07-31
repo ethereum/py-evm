@@ -1,8 +1,3 @@
-from abc import (
-    ABC,
-    abstractmethod
-)
-
 from cached_property import cached_property
 import rlp
 from rlp.sedes import (
@@ -15,23 +10,22 @@ from eth_typing import (
 )
 
 from eth_hash.auto import keccak
-from eth_keys.datatypes import (
-    PrivateKey
-)
 from eth_utils import (
     ValidationError,
 )
 
-from eth.rlp.sedes import (
-    address,
+from eth.abc import (
+    BaseTransactionAPI,
+    ComputationAPI,
+    SignedTransactionAPI,
+    TransactionFieldsAPI,
+    UnsignedTransactionAPI,
 )
 
-from eth.vm.computation import (
-    BaseComputation
-)
+from .sedes import address
 
 
-class BaseTransactionMethods:
+class BaseTransactionMethods(BaseTransactionAPI):
     def validate(self) -> None:
         """
         Hook called during instantiation to ensure that all transaction
@@ -46,16 +40,7 @@ class BaseTransactionMethods:
         """
         return self.get_intrinsic_gas()
 
-    @abstractmethod
-    def get_intrinsic_gas(self) -> int:
-        """
-        Compute the baseline gas cost for this transaction.  This is the amount
-        of gas needed to send this transaction (but that is not actually used
-        for computation).
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    def gas_used_by(self, computation: BaseComputation) -> int:
+    def gas_used_by(self, computation: ComputationAPI) -> int:
         """
         Return the gas used by the given computation. In Frontier,
         for example, this is sum of the intrinsic cost and the gas used
@@ -64,28 +49,35 @@ class BaseTransactionMethods:
         return self.get_intrinsic_gas() + computation.get_gas_used()
 
 
-class BaseTransactionFields(rlp.Serializable):
+BASE_TRANSACTION_FIELDS = [
+    ('nonce', big_endian_int),
+    ('gas_price', big_endian_int),
+    ('gas', big_endian_int),
+    ('to', address),
+    ('value', big_endian_int),
+    ('data', binary),
+    ('v', big_endian_int),
+    ('r', big_endian_int),
+    ('s', big_endian_int),
+]
 
-    fields = [
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('v', big_endian_int),
-        ('r', big_endian_int),
-        ('s', big_endian_int),
-    ]
+
+class BaseTransactionFields(rlp.Serializable, TransactionFieldsAPI):
+    fields = BASE_TRANSACTION_FIELDS
 
     @property
     def hash(self) -> bytes:
         return keccak(rlp.encode(self))
 
 
-class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
+class BaseTransaction(BaseTransactionFields, BaseTransactionMethods, SignedTransactionAPI):  # noqa: E501
+    # this is duplicated to make the rlp library happy, otherwise it complains
+    # about no fields being defined but inheriting from multiple `Serializable`
+    # bases.
+    fields = BASE_TRANSACTION_FIELDS
+
     @classmethod
-    def from_base_transaction(cls, transaction: 'BaseTransaction') -> 'BaseTransaction':
+    def from_base_transaction(cls, transaction: SignedTransactionAPI) -> SignedTransactionAPI:
         return rlp.decode(rlp.encode(transaction), sedes=cls)
 
     @cached_property
@@ -123,50 +115,8 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods):
         else:
             return True
 
-    @abstractmethod
-    def check_signature_validity(self) -> None:
-        """
-        Checks signature validity, raising a ValidationError if the signature
-        is invalid.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
 
-    @abstractmethod
-    def get_sender(self) -> Address:
-        """
-        Get the 20-byte address which sent this transaction.
-
-        This can be a slow operation. ``transaction.sender`` is always preferred.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    #
-    # Conversion to and creation of unsigned transactions.
-    #
-    @abstractmethod
-    def get_message_for_signing(self) -> bytes:
-        """
-        Return the bytestring that should be signed in order to create a signed transactions
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @classmethod
-    @abstractmethod
-    def create_unsigned_transaction(cls,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> 'BaseUnsignedTransaction':
-        """
-        Create an unsigned transaction.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-
-class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionMethods, ABC):
+class BaseUnsignedTransaction(BaseTransactionMethods, UnsignedTransactionAPI):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),
@@ -175,14 +125,3 @@ class BaseUnsignedTransaction(rlp.Serializable, BaseTransactionMethods, ABC):
         ('value', big_endian_int),
         ('data', binary),
     ]
-
-    #
-    # API that must be implemented by all Transaction subclasses.
-    #
-    @abstractmethod
-    def as_signed_transaction(self, private_key: PrivateKey) -> 'BaseTransaction':
-        """
-        Return a version of this transaction which has been signed using the
-        provided `private_key`
-        """
-        raise NotImplementedError("Must be implemented by subclasses")

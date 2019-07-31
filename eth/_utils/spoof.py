@@ -14,9 +14,9 @@ from eth.constants import (
     DEFAULT_SPOOF_S,
 )
 
-from eth.rlp.transactions import (
-    BaseTransaction,
-    BaseUnsignedTransaction,
+from eth.abc import (
+    SignedTransactionAPI,
+    UnsignedTransactionAPI,
 )
 
 SPOOF_ATTRIBUTES_DEFAULTS = {
@@ -31,7 +31,7 @@ T = TypeVar('T', bound='SpoofAttributes')
 class SpoofAttributes:
     def __init__(
             self,
-            spoof_target: Union[BaseTransaction, BaseUnsignedTransaction],
+            spoof_target: Union[SignedTransactionAPI, UnsignedTransactionAPI],
             **overrides: Any) -> None:
         self.spoof_target = spoof_target
         self.overrides = overrides

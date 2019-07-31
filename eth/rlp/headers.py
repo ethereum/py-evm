@@ -1,8 +1,7 @@
 import time
 from typing import (
+    Dict,
     Iterable,
-    Optional,
-    Union,
     overload,
 )
 
@@ -24,6 +23,10 @@ from eth_utils import (
     encode_hex,
 )
 
+from eth.abc import (
+    BlockHeaderAPI,
+    MiningHeaderAPI,
+)
 from eth.constants import (
     ZERO_ADDRESS,
     ZERO_HASH32,
@@ -32,7 +35,7 @@ from eth.constants import (
     GENESIS_PARENT_HASH,
     BLANK_ROOT_HASH,
 )
-
+from eth.typing import HeaderParams
 from eth.vm.execution_context import (
     ExecutionContext,
 )
@@ -45,7 +48,7 @@ from .sedes import (
 )
 
 
-class MiningHeader(rlp.Serializable):
+class MiningHeader(MiningHeaderAPI):
     fields = [
         ('parent_hash', hash32),
         ('uncles_hash', hash32),
@@ -63,10 +66,7 @@ class MiningHeader(rlp.Serializable):
     ]
 
 
-HeaderParams = Union[Optional[int], bytes, Address, Hash32]
-
-
-class BlockHeader(rlp.Serializable):
+class BlockHeader(BlockHeaderAPI):
     fields = [
         ('parent_hash', hash32),
         ('uncles_hash', hash32),
@@ -168,7 +168,7 @@ class BlockHeader(rlp.Serializable):
 
     @classmethod
     def from_parent(cls,
-                    parent: 'BlockHeader',
+                    parent: BlockHeaderAPI,
                     gas_limit: int,
                     difficulty: int,
                     timestamp: int,
@@ -176,12 +176,12 @@ class BlockHeader(rlp.Serializable):
                     nonce: bytes=None,
                     extra_data: bytes=None,
                     transaction_root: bytes=None,
-                    receipt_root: bytes=None) -> 'BlockHeader':
+                    receipt_root: bytes=None) -> BlockHeaderAPI:
         """
         Initialize a new block header with the `parent` header as the block's
         parent hash.
         """
-        header_kwargs = {
+        header_kwargs: Dict[str, HeaderParams] = {
             'parent_hash': parent.hash,
             'coinbase': coinbase,
             'state_root': parent.state_root,

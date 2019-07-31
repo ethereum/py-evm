@@ -13,6 +13,9 @@ from eth_typing import (
     Address,
 )
 
+from eth.abc import (
+    ComputationAPI,
+)
 from eth.exceptions import (
     OutOfGas,
     WriteProtection,
@@ -20,8 +23,6 @@ from eth.exceptions import (
 from eth.vm.opcode import (
     Opcode,
 )
-
-from eth.vm.computation import BaseComputation
 
 from eth._utils.address import (
     force_bytes_to_address,
@@ -34,18 +35,18 @@ CallParams = Tuple[int, int, Address, Address, Address, int, int, int, int, bool
 class BaseCall(Opcode, ABC):
     @abstractmethod
     def compute_msg_extra_gas(self,
-                              computation: BaseComputation,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def get_call_params(self, computation: BaseComputation) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         raise NotImplementedError("Must be implemented by subclasses")
 
     def compute_msg_gas(self,
-                        computation: BaseComputation,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
@@ -54,7 +55,7 @@ class BaseCall(Opcode, ABC):
         child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
         return child_msg_gas, total_fee
 
-    def __call__(self, computation: BaseComputation) -> None:
+    def __call__(self, computation: ComputationAPI) -> None:
         computation.consume_gas(
             self.gas_cost,
             reason=self.mnemonic,
@@ -155,7 +156,7 @@ class BaseCall(Opcode, ABC):
 
 class Call(BaseCall):
     def compute_msg_extra_gas(self,
-                              computation: BaseComputation,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
@@ -165,7 +166,7 @@ class Call(BaseCall):
         create_gas_fee = constants.GAS_NEWACCOUNT if not account_exists else 0
         return transfer_gas_fee + create_gas_fee
 
-    def get_call_params(self, computation: BaseComputation) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         to = force_bytes_to_address(computation.stack_pop1_bytes())
 
@@ -194,13 +195,13 @@ class Call(BaseCall):
 
 class CallCode(BaseCall):
     def compute_msg_extra_gas(self,
-                              computation: BaseComputation,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
         return constants.GAS_CALLVALUE if value else 0
 
-    def get_call_params(self, computation: BaseComputation) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         code_address = force_bytes_to_address(computation.stack_pop1_bytes())
 
@@ -232,20 +233,20 @@ class CallCode(BaseCall):
 
 class DelegateCall(BaseCall):
     def compute_msg_gas(self,
-                        computation: BaseComputation,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
         return gas, gas
 
     def compute_msg_extra_gas(self,
-                              computation: BaseComputation,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
         return 0
 
-    def get_call_params(self, computation: BaseComputation) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         code_address = force_bytes_to_address(computation.stack_pop1_bytes())
 
@@ -280,7 +281,7 @@ class DelegateCall(BaseCall):
 #
 class CallEIP150(Call):
     def compute_msg_gas(self,
-                        computation: BaseComputation,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
@@ -297,7 +298,7 @@ class CallEIP150(Call):
 
 class CallCodeEIP150(CallCode):
     def compute_msg_gas(self,
-                        computation: BaseComputation,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
@@ -314,7 +315,7 @@ class CallCodeEIP150(CallCode):
 
 class DelegateCallEIP150(DelegateCall):
     def compute_msg_gas(self,
-                        computation: BaseComputation,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
@@ -335,7 +336,7 @@ def max_child_gas_eip150(gas: int) -> int:
 
 
 def compute_eip150_msg_gas(*,
-                           computation: BaseComputation,
+                           computation: ComputationAPI,
                            gas: int,
                            extra_gas: int,
                            value: int,
@@ -362,7 +363,7 @@ def compute_eip150_msg_gas(*,
 #
 class CallEIP161(CallEIP150):
     def compute_msg_extra_gas(self,
-                              computation: BaseComputation,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
@@ -380,7 +381,7 @@ class CallEIP161(CallEIP150):
 # Byzantium
 #
 class StaticCall(CallEIP161):
-    def get_call_params(self, computation: BaseComputation) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         to = force_bytes_to_address(computation.stack_pop1_bytes())
 
@@ -407,7 +408,7 @@ class StaticCall(CallEIP161):
 
 
 class CallByzantium(CallEIP161):
-    def get_call_params(self, computation: BaseComputation) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         call_params = super().get_call_params(computation)
         value = call_params[1]
         if computation.msg.is_static and value != 0:

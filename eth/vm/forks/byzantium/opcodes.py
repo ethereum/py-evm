@@ -1,5 +1,6 @@
 import copy
 import functools
+from typing import Dict
 
 from eth_utils.toolz import merge
 
@@ -10,6 +11,7 @@ from typing import (
 
 from eth import constants
 
+from eth.abc import OpcodeAPI
 from eth.exceptions import (
     WriteProtection,
 )
@@ -128,7 +130,7 @@ UPDATED_OPCODES = {
 }
 
 
-BYZANTIUM_OPCODES = merge(
+BYZANTIUM_OPCODES: Dict[int, OpcodeAPI] = merge(
     copy.deepcopy(SPURIOUS_DRAGON_OPCODES),
     UPDATED_OPCODES,
 )

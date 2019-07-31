@@ -11,9 +11,10 @@ from eth.validation import (
 from eth._utils.numeric import (
     ceil32,
 )
+from eth.abc import MemoryAPI
 
 
-class Memory(object):
+class Memory(MemoryAPI):
     """
     VM Memory
     """

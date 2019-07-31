@@ -8,6 +8,7 @@ from typing import (
 
 from eth_utils import ValidationError
 
+from eth.abc import DatabaseAPI
 from eth.db.diff import (
     DBDiffTracker,
     DiffMissingError,
@@ -81,7 +82,7 @@ class LevelDBWriteBatch(BaseDB):
     """
     logger = logging.getLogger("eth.db.backends.LevelDBWriteBatch")
 
-    def __init__(self, original_read_db: BaseDB, write_batch: 'plyvel.WriteBatch') -> None:
+    def __init__(self, original_read_db: DatabaseAPI, write_batch: 'plyvel.WriteBatch') -> None:
         self._original_read_db = original_read_db
         self._write_batch = write_batch
         # keep track of the temporary changes made

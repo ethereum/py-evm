@@ -11,6 +11,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import DatabaseAPI
 from eth.db.backends.base import BaseDB
 from eth.db.diff import DBDiff, DBDiffTracker
 
@@ -281,7 +282,7 @@ class JournalDB(BaseDB):
     wrapped_db = None
     journal: Journal = None
 
-    def __init__(self, wrapped_db: BaseDB) -> None:
+    def __init__(self, wrapped_db: DatabaseAPI) -> None:
         self.wrapped_db = wrapped_db
         self.reset()
 

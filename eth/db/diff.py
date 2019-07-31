@@ -16,7 +16,7 @@ from eth_utils import (
     to_tuple,
 )
 
-from eth.db.backends.base import BaseDB
+from eth.abc import DatabaseAPI
 from eth.vm.interrupt import EVMMissingData
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ class DiffMissingError(KeyError):
 
 class DBDiffTracker(ABC_Mutable_Mapping):
     """
-    Records changes to a :class:`~eth.db.BaseDB`
+    Records changes to a :class:`~eth.abc.DatabaseAPI`
 
     If no value is available for a key, it could be for one of two reasons:
     - the key was never updated during tracking
@@ -182,7 +182,7 @@ class DBDiff(ABC_Mapping):
                 yield key, value  # type: ignore # value can only be DELETED or actual new value
 
     def apply_to(self,
-                 db: Union[BaseDB, ABC_Mutable_Mapping],
+                 db: Union[DatabaseAPI, ABC_Mutable_Mapping],
                  apply_deletes: bool = True) -> None:
         """
         Apply the changes in this diff to the given database.

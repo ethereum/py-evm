@@ -19,25 +19,23 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    VirtualMachineAPI,
+)
 from eth.chains.base import Chain
 from eth.chains.mainnet import MainnetChain
-from eth.rlp.blocks import (
-    BaseBlock,
-)
-from eth.rlp.headers import (
-    BlockHeader
-)
 from eth.validation import (
     validate_gte,
 )
-from eth.vm.base import BaseVM
 from eth.vm.forks.homestead import HomesteadVM
 
 
 class MaintainGasLimitMixin(object):
     @classmethod
     def create_header_from_parent(cls,
-                                  parent_header: BlockHeader,
+                                  parent_header: BlockHeaderAPI,
                                   **header_params: Any) -> 'MaintainGasLimitMixin':
         """
         Call the parent class method maintaining the same gas_limit as the
@@ -55,8 +53,8 @@ MAINNET_VMS = collections.OrderedDict(
     in MainnetChain.vm_configuration
 )
 
-ForkStartBlocks = Sequence[Tuple[int, Union[str, Type[BaseVM]]]]
-VMStartBlock = Tuple[int, Type[BaseVM]]
+ForkStartBlocks = Sequence[Tuple[int, Union[str, Type[VirtualMachineAPI]]]]
+VMStartBlock = Tuple[int, Type[VirtualMachineAPI]]
 
 
 @to_tuple
@@ -112,7 +110,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
     # Iterate over the parameters, generating a tuple of 2-tuples in the form:
     # (start_block, vm_class)
     for start_block, fork in ordered_fork_start_blocks:
-        if isinstance(fork, type) and issubclass(fork, BaseVM):
+        if isinstance(fork, type) and issubclass(fork, VirtualMachineAPI):
             vm_class = fork
         elif isinstance(fork, str):
             vm_class = MAINNET_VMS[fork]
@@ -134,7 +132,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
 
 
 class BaseMainnetTesterChain(Chain):
-    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = _generate_vm_configuration()
+    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...] = _generate_vm_configuration()
 
 
 class MainnetTesterChain(BaseMainnetTesterChain):
@@ -147,7 +145,7 @@ class MainnetTesterChain(BaseMainnetTesterChain):
     configuration of fork rules.
     """
     @classmethod
-    def validate_seal(cls, block: BaseBlock) -> None:
+    def validate_seal(cls, block: BlockAPI) -> None:
         """
         We don't validate the proof of work seal on the tester chain.
         """

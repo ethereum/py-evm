@@ -2,6 +2,7 @@ import logging
 
 from eth_typing import Address
 
+from eth.abc import MessageAPI
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
@@ -19,7 +20,7 @@ from eth.validation import (
 )
 
 
-class Message(object):
+class Message(MessageAPI):
     """
     A message for VM computation.
     """

@@ -1,13 +1,14 @@
+from typing import Type
+
 from eth_utils import (
     encode_hex,
 )
 
-from eth.typing import (
-    BaseOrSpoofTransaction,
+from eth.abc import (
+    ComputationAPI,
+    SignedTransactionAPI,
+    TransactionExecutorAPI,
 )
-
-from eth.vm.computation import BaseComputation
-
 from eth.vm.forks.homestead.state import (
     HomesteadState,
     HomesteadTransactionExecutor,
@@ -19,8 +20,8 @@ from ._utils import collect_touched_accounts
 
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
     def finalize_computation(self,
-                             transaction: BaseOrSpoofTransaction,
-                             computation: BaseComputation) -> BaseComputation:
+                             transaction: SignedTransactionAPI,
+                             computation: ComputationAPI) -> ComputationAPI:
         computation = super().finalize_computation(transaction, computation)
 
         #
@@ -44,5 +45,5 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
 
 
 class SpuriousDragonState(HomesteadState):
-    computation_class = SpuriousDragonComputation
-    transaction_executor = SpuriousDragonTransactionExecutor  # Type[BaseTransactionExecutor]
+    computation_class: Type[ComputationAPI] = SpuriousDragonComputation
+    transaction_executor_class: Type[TransactionExecutorAPI] = SpuriousDragonTransactionExecutor

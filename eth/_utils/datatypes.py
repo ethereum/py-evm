@@ -11,6 +11,8 @@ from eth_utils import (
 
 from typing import Any, Dict, Tuple, Type, TypeVar, Iterator, List
 
+from eth.abc import ConfigurableAPI
+
 
 def _is_local_prop(prop: str) -> bool:
     return len(prop.split('.')) == 1
@@ -64,7 +66,7 @@ def _get_top_level_keys(overrides: Dict[str, Any]) -> Iterator[str]:
 T = TypeVar('T')
 
 
-class Configurable(object):
+class Configurable(ConfigurableAPI):
     """
     Base class for simple inline subclassing
     """

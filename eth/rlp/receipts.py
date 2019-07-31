@@ -1,6 +1,5 @@
 import itertools
 
-import rlp
 from rlp.sedes import (
     big_endian_int,
     CountableList,
@@ -9,16 +8,18 @@ from rlp.sedes import (
 
 from eth_bloom import BloomFilter
 
+from typing import Iterable
+
+from eth.abc import ReceiptAPI
+
 from .sedes import (
     uint256,
 )
 
 from .logs import Log
 
-from typing import Iterable
 
-
-class Receipt(rlp.Serializable):
+class Receipt(ReceiptAPI):
 
     fields = [
         ('state_root', binary),

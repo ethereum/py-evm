@@ -1,8 +1,10 @@
 import copy
+from typing import Dict
 
 from eth_utils.toolz import merge
 
 from eth import constants
+from eth.abc import OpcodeAPI
 from eth.vm import mnemonics
 from eth.vm import opcode_values
 from eth.vm.logic import (
@@ -21,7 +23,7 @@ NEW_OPCODES = {
 }
 
 
-HOMESTEAD_OPCODES = merge(
+HOMESTEAD_OPCODES: Dict[int, OpcodeAPI] = merge(
     copy.deepcopy(FRONTIER_OPCODES),
     NEW_OPCODES
 )

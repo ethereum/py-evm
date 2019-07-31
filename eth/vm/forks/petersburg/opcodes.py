@@ -1,4 +1,6 @@
 import copy
+from typing import Dict
+
 from eth_utils.toolz import (
     merge
 )
@@ -6,6 +8,7 @@ from eth_utils.toolz import (
 from eth import (
     constants
 )
+from eth.abc import OpcodeAPI
 from eth.vm import (
     mnemonics,
     opcode_values,
@@ -54,7 +57,7 @@ UPDATED_OPCODES = {
     )(),
 }
 
-PETERSBURG_OPCODES = merge(
+PETERSBURG_OPCODES: Dict[int, OpcodeAPI] = merge(
     copy.deepcopy(BYZANTIUM_OPCODES),
     UPDATED_OPCODES,
 )

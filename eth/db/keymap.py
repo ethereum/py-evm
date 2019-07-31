@@ -6,6 +6,7 @@ from typing import (
     Any,
 )
 
+from eth.abc import DatabaseAPI
 from eth.db.backends.base import BaseDB
 
 
@@ -14,7 +15,7 @@ class KeyMapDB(BaseDB):
     Modify keys when accessing the database, according to the
     abstract keymap function set in the subclass.
     """
-    def __init__(self, db: BaseDB) -> None:
+    def __init__(self, db: DatabaseAPI) -> None:
         self._db = db
 
     @staticmethod

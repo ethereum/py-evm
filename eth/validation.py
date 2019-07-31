@@ -7,7 +7,6 @@ from typing import (
     Sequence,
     Tuple,
     Type,
-    TYPE_CHECKING,
     Union,
 )
 
@@ -25,6 +24,7 @@ from eth_utils.toolz import functoolz
 
 from eth_utils.toolz import itertoolz
 
+from eth.abc import VirtualMachineAPI
 from eth.constants import (
     GAS_LIMIT_ADJUSTMENT_FACTOR,
     GAS_LIMIT_MAXIMUM,
@@ -36,9 +36,6 @@ from eth.constants import (
 from eth.typing import (
     BytesOrView,
 )
-
-if TYPE_CHECKING:
-    from eth.vm.base import BaseVM      # noqa: F401
 
 
 def validate_is_bytes(value: bytes, title: str="Value") -> None:
@@ -243,7 +240,8 @@ def validate_vm_block_numbers(vm_block_numbers: Iterable[int]) -> None:
         validate_block_number(block_number)
 
 
-def validate_vm_configuration(vm_configuration: Tuple[Tuple[int, Type['BaseVM']], ...]) -> None:
+def validate_vm_configuration(vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...],
+                              ) -> None:
     validate_vm_block_numbers(tuple(
         block_number
         for block_number, _

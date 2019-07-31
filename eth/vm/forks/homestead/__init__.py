@@ -1,9 +1,11 @@
 from typing import Optional, Type
-from eth.rlp.blocks import BaseBlock
-from eth.vm.state import BaseState
 
 from eth_typing import BlockNumber
 
+from eth.abc import (
+    BlockAPI,
+    StateAPI,
+)
 from eth.vm.forks.frontier import FrontierVM
 
 from .blocks import HomesteadBlock
@@ -31,8 +33,8 @@ class HomesteadVM(MetaHomesteadVM):
     fork: str = 'homestead'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
 
     # classes
-    block_class: Type[BaseBlock] = HomesteadBlock
-    _state_class: Type[BaseState] = HomesteadState
+    block_class: Type[BlockAPI] = HomesteadBlock
+    _state_class: Type[StateAPI] = HomesteadState
 
     # method overrides
     create_header_from_parent = staticmethod(create_homestead_header_from_parent)   # type: ignore

@@ -1,13 +1,6 @@
 VM
 ==
 
-BaseVM
-------
-
-.. autoclass:: eth.vm.base.BaseVM
-  :members:
-
-
 VM
 --
 

@@ -1,7 +1,3 @@
-from abc import (
-    ABC,
-    abstractmethod
-)
 import logging
 from lru import LRU
 from typing import (
@@ -30,13 +26,15 @@ from trie import (
     exceptions as trie_exceptions,
 )
 
+from eth.abc import (
+    AccountDatabaseAPI,
+    AccountStorageDatabaseAPI,
+    AtomicDatabaseAPI,
+    DatabaseAPI,
+)
 from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
-)
-from eth.db.backends.base import (
-    BaseDB,
-    BaseAtomicDB,
 )
 from eth.db.batch import (
     BatchDB,
@@ -53,7 +51,7 @@ from eth.db.journal import (
 from eth.db.storage import (
     AccountStorageDB,
 )
-from eth.db.typing import (
+from eth.typing import (
     JournalDBCheckpoint,
 )
 from eth.vm.interrupt import (
@@ -75,142 +73,11 @@ from eth.tools.logging import (
 from .hash_trie import HashTrie
 
 
-class BaseAccountDB(ABC):
-
-    @abstractmethod
-    def __init__(self) -> None:
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
-
-    @property
-    @abstractmethod
-    def state_root(self) -> Hash32:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def has_root(self, state_root: bytes) -> bool:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    #
-    # Storage
-    #
-    @abstractmethod
-    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def set_storage(self, address: Address, slot: int, value: int) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def delete_storage(self, address: Address) -> None:
-        """
-        Delete *all* storage values in this account. This action is journaled, like set() actions.
-
-        Unlike set(), deleting storage will not cause :meth:`make_storage_roots` to emit a new
-        storage root (and therefore will not persist deletes to the base database).
-        The account's storage root must be explicitly set to the empty root.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    #
-    # Nonce
-    #
-    @abstractmethod
-    def get_nonce(self, address: Address) -> int:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def set_nonce(self, address: Address, nonce: int) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    #
-    # Balance
-    #
-    @abstractmethod
-    def get_balance(self, address: Address) -> int:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def set_balance(self, address: Address, balance: int) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    #
-    # Code
-    #
-    @abstractmethod
-    def set_code(self, address: Address, code: bytes) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def get_code(self, address: Address) -> bytes:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def get_code_hash(self, address: Address) -> Hash32:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def delete_code(self, address: Address) -> None:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    #
-    # Account Methods
-    #
-    @abstractmethod
-    def account_is_empty(self, address: Address) -> bool:
-        raise NotImplementedError("Must be implemented by subclass")
-
-    #
-    # Record and discard API
-    #
-    @abstractmethod
-    def record(self) -> JournalDBCheckpoint:
-        raise NotImplementedError("Must be implemented by subclass")
-
-    @abstractmethod
-    def discard(self, checkpoint: JournalDBCheckpoint) -> None:
-        raise NotImplementedError("Must be implemented by subclass")
-
-    @abstractmethod
-    def commit(self, checkpoint: JournalDBCheckpoint) -> None:
-        raise NotImplementedError("Must be implemented by subclass")
-
-    @abstractmethod
-    def make_state_root(self) -> Hash32:
-        """
-        Generate the state root with all the current changes in AccountDB
-
-        Current changes include every pending change to storage, as well as all account changes.
-        After generating all the required tries, the final account state root is returned.
-
-        This is an expensive operation, so should be called as little as possible. For example,
-        pre-Byzantium, this is called after every transaction, because we need the state root
-        in each receipt. Byzantium+, we only need state roots at the end of the block,
-        so we *only* call it right before persistance.
-
-        :return: the new state root
-        """
-        raise NotImplementedError("Must be implemented by subclass")
-
-    @abstractmethod
-    def persist(self) -> None:
-        """
-        Send changes to underlying database, including the trie state
-        so that it will forever be possible to read the trie from this checkpoint.
-
-        :meth:`make_state_root` must be explicitly called before this method.
-        Otherwise persist will raise a ValidationError.
-        """
-        raise NotImplementedError("Must be implemented by subclass")
-
-
-class AccountDB(BaseAccountDB):
+class AccountDB(AccountDatabaseAPI):
 
     logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.AccountDB'))
 
-    def __init__(self, db: BaseAtomicDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
+    def __init__(self, db: AtomicDatabaseAPI, state_root: Hash32=BLANK_ROOT_HASH) -> None:
         r"""
         Internal implementation details (subject to rapid change):
         Database entries go through several pipes, like so...
@@ -256,7 +123,7 @@ class AccountDB(BaseAccountDB):
         self._trie_cache = CacheDB(self._trie)
         self._journaltrie = JournalDB(self._trie_cache)
         self._account_cache = LRU(2048)
-        self._account_stores: Dict[Address, AccountStorageDB] = {}
+        self._account_stores: Dict[Address, AccountStorageDatabaseAPI] = {}
         self._dirty_accounts: Set[Address] = set()
         self._root_hash_at_last_persist = state_root
 
@@ -306,7 +173,7 @@ class AccountDB(BaseAccountDB):
         self._dirty_accounts.add(address)
         account_store.delete()
 
-    def _get_address_store(self, address: Address) -> AccountStorageDB:
+    def _get_address_store(self, address: Address) -> AccountStorageDatabaseAPI:
         if address in self._account_stores:
             store = self._account_stores[address]
         else:
@@ -315,7 +182,7 @@ class AccountDB(BaseAccountDB):
             self._account_stores[address] = store
         return store
 
-    def _dirty_account_stores(self) -> Iterable[Tuple[Address, AccountStorageDB]]:
+    def _dirty_account_stores(self) -> Iterable[Tuple[Address, AccountStorageDatabaseAPI]]:
         for address in self._dirty_accounts:
             store = self._account_stores[address]
             yield address, store
@@ -335,7 +202,7 @@ class AccountDB(BaseAccountDB):
         account = self._get_account(address)
         self._set_account(address, account.copy(storage_root=new_storage_root))
 
-    def _validate_flushed_storage(self, address: Address, store: AccountStorageDB) -> None:
+    def _validate_flushed_storage(self, address: Address, store: AccountStorageDatabaseAPI) -> None:
         if store.has_changed_root:
             actual_storage_root = self._get_storage_root(address)
             expected_storage_root = store.get_changed_root()
@@ -598,7 +465,7 @@ class AccountDB(BaseAccountDB):
                 self.account_exists(cast_deleted_address),
             )
 
-    def _apply_account_diff_without_proof(self, diff: DBDiff, trie: BaseDB) -> None:
+    def _apply_account_diff_without_proof(self, diff: DBDiff, trie: DatabaseAPI) -> None:
         """
         Apply diff of trie updates, when original nodes might be missing.
         Note that doing this naively will raise exceptions about missing nodes

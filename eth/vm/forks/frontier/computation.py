@@ -10,16 +10,17 @@ from eth.constants import (
     STACK_DEPTH_LIMIT,
 )
 
+from eth._utils.address import (
+    force_bytes_to_address,
+)
+from eth.abc import (
+    ComputationAPI,
+)
 from eth.exceptions import (
     OutOfGas,
     InsufficientFunds,
     StackDepthLimit,
 )
-
-from eth._utils.address import (
-    force_bytes_to_address,
-)
-
 from eth.vm.computation import (
     BaseComputation,
 )
@@ -44,7 +45,7 @@ class FrontierComputation(BaseComputation):
     opcodes = FRONTIER_OPCODES
     _precompiles = FRONTIER_PRECOMPILES     # type: ignore # https://github.com/python/mypy/issues/708 # noqa: E501
 
-    def apply_message(self) -> BaseComputation:
+    def apply_message(self) -> ComputationAPI:
         snapshot = self.state.snapshot()
 
         if self.msg.depth > STACK_DEPTH_LIMIT:
@@ -83,7 +84,7 @@ class FrontierComputation(BaseComputation):
 
         return computation
 
-    def apply_create_message(self) -> BaseComputation:
+    def apply_create_message(self) -> ComputationAPI:
         computation = self.apply_message()
 
         if computation.is_error:

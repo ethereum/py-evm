@@ -26,14 +26,12 @@ from eth_typing import (
 from eth import (
     constants,
 )
+from eth.abc import VirtualMachineAPI
 from eth.chains.base import (
     MiningChain,
 )
 from eth.db.backends.level import (
     LevelDB,
-)
-from eth.vm.base import (
-    BaseVM,
 )
 from eth.chains.mainnet import (
     BaseMainnetChain,
@@ -88,7 +86,7 @@ DEFAULT_GENESIS_STATE = [
 GenesisState = Iterable[Tuple[Address, Dict[str, Any]]]
 
 
-def get_chain(vm: Type[BaseVM], genesis_state: GenesisState) -> Iterable[MiningChain]:
+def get_chain(vm: Type[VirtualMachineAPI], genesis_state: GenesisState) -> Iterable[MiningChain]:
 
     with tempfile.TemporaryDirectory() as temp_dir:
         level_db_obj = LevelDB(Path(temp_dir))

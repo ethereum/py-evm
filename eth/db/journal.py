@@ -12,9 +12,11 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import DatabaseAPI
+from eth.typing import JournalDBCheckpoint
+
 from .backends.base import BaseDB
 from .diff import DBDiff, DBDiffTracker
-from .typing import JournalDBCheckpoint
 
 
 class DeletedEntry:
@@ -309,7 +311,7 @@ class JournalDB(BaseDB):
     """
     __slots__ = ['_wrapped_db', '_journal', 'record', 'commit']
 
-    def __init__(self, wrapped_db: BaseDB) -> None:
+    def __init__(self, wrapped_db: DatabaseAPI) -> None:
         self._wrapped_db = wrapped_db
         self._journal = Journal()
         self.record = self._journal.record_checkpoint
