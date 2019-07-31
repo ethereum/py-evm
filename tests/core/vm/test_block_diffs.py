@@ -15,15 +15,9 @@ BLOCK_HASH = keccak(b'one')
 
 """
 TODO: Some tests remain to be written:
-- Are we sure that old accounts are being recorded? Start from an account which already has a value
-  and check that it is saved.
-- Check that deleting an account is correctly saved.
 - Test that this behavior is trigger during block import (if Turbo-mode is enabled)
-- Test for more fields, such as account balances.
 - Test that this works even under calls to things like commit() and snapshot()
 - Test that these diffs can be applied to something and the correct resulting state obtained
-- What if you change an account's balance and also a storage item?
-- What do you do if delete_storage is called?
 """
 
 
@@ -120,7 +114,7 @@ def test_persists_state_root(account_db):
     assert new_account.storage_root == expected_root
 
 
-def test_two_changes(account_db):
+def test_two_storage_changes(account_db):
     account_db.set_storage(ACCOUNT, 1, 10)
     account_db.persist()
 
@@ -137,3 +131,38 @@ def test_two_changes(account_db):
     assert tuple(diff.changed_storage_items[ACCOUNT].keys()) == (key,)
     assert diff.changed_storage_items[ACCOUNT][key].old == bytes([10])
     assert diff.changed_storage_items[ACCOUNT][key].new == bytes([20])
+
+
+def test_account_and_storage_change(account_db):
+    account_db.set_balance(ACCOUNT, 100)
+    account_db.set_storage(ACCOUNT, 1, 10)
+
+    account_db.persist_with_block_diff(BLOCK_HASH)
+
+    diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
+    assert diff.get_changed_accounts() == (ACCOUNT, )
+
+    old_account = diff.get_decoded_account(ACCOUNT, new=False)
+    assert old_account is None
+
+    new_account = diff.get_decoded_account(ACCOUNT, new=True)
+    assert new_account.storage_root != BLANK_ROOT_HASH
+    assert new_account.balance == 100
+
+    # TODO: also verify that the storage items have changed
+
+
+def test_delete_account(account_db):
+    account_db.set_balance(ACCOUNT, 100)
+    account_db.persist()
+
+    account_db.delete_account(ACCOUNT)
+    account_db.persist_with_block_diff(BLOCK_HASH)
+
+    diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
+    assert diff.get_changed_accounts() == (ACCOUNT, )
+    old_account = diff.get_decoded_account(ACCOUNT, new=False)
+    new_account = diff.get_decoded_account(ACCOUNT, new=True)
+
+    assert old_account.balance == 100
+    assert new_account is None
