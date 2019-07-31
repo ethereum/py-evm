@@ -702,7 +702,7 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
 def _determine_slashing_penalty(total_penalties: Gwei,
                                 total_balance: Gwei,
                                 balance: Gwei,
-                                increment: int) -> Gwei:
+                                increment: Gwei) -> Gwei:
     penalty_numerator = balance // increment * min(total_penalties * 3, total_balance)
     penalty = penalty_numerator // total_balance * increment
     return Gwei(penalty)
