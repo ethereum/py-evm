@@ -47,10 +47,7 @@ class BlocksHandler(TestHandler):
             )
         )
 
-    def parse_outputs(self, test_case_data: Dict[str, Any]) -> Optional[BeaconState]:
-        if not test_case_data["post"]:
-            return None
-
+    def parse_outputs(self, test_case_data: Dict[str, Any]) -> BeaconState:
         return from_formatted_dict(
             test_case_data["post"],
             BeaconState,

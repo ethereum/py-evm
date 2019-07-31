@@ -81,7 +81,6 @@ class TestCase:
     def execute(self, *auxillary: Sequence[Any]) -> None:
         _select_bls_backend(self.bls_setting)
         inputs = self.handler.parse_inputs(self.test_case_data)
-        expected_outputs = self.handler.parse_outputs(self.test_case_data)
-
         outputs = self.handler.run_with(inputs, self.config, *auxillary)
+        expected_outputs = self.handler.parse_outputs(self.test_case_data)
         self.handler.condition(outputs, expected_outputs)
