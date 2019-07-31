@@ -68,9 +68,9 @@ async def test_multiplexer_properties():
     )
     transport = multiplexer.get_transport()
 
-    base_protocol = multiplexer.get_protocol_by_name('p2p')
-    second_protocol = multiplexer.get_protocol_by_name('second')
-    third_protocol = multiplexer.get_protocol_by_name('third')
+    base_protocol = multiplexer.get_protocol_by_type(P2PProtocol)
+    second_protocol = multiplexer.get_protocol_by_type(SecondProtocol)
+    third_protocol = multiplexer.get_protocol_by_type(ThirdProtocol)
 
     assert multiplexer.get_base_protocol() is base_protocol
     assert multiplexer.get_protocols() == (base_protocol, second_protocol, third_protocol)
@@ -79,24 +79,15 @@ async def test_multiplexer_properties():
     assert multiplexer.get_protocol_by_type(SecondProtocol) is second_protocol
     assert multiplexer.get_protocol_by_type(ThirdProtocol) is third_protocol
 
-    assert multiplexer.get_protocol_by_name('p2p') is base_protocol
-    assert multiplexer.get_protocol_by_name('second') is second_protocol
-    assert multiplexer.get_protocol_by_name('third') is third_protocol
-
-    assert multiplexer.has_protocol('p2p') is True
-    assert multiplexer.has_protocol('second') is True
-    assert multiplexer.has_protocol('third') is True
-    assert multiplexer.has_protocol('unknown') is False
+    assert multiplexer.has_protocol(P2PProtocol) is True
+    assert multiplexer.has_protocol(SecondProtocol) is True
+    assert multiplexer.has_protocol(ThirdProtocol) is True
+    assert multiplexer.has_protocol(UnknownProtocol) is False
 
     assert multiplexer.has_protocol(base_protocol) is True
     assert multiplexer.has_protocol(second_protocol) is True
     assert multiplexer.has_protocol(third_protocol) is True
     assert multiplexer.has_protocol(UnknownProtocol(transport, 16, False)) is False
-
-    assert multiplexer.has_protocol(P2PProtocol) is True
-    assert multiplexer.has_protocol(SecondProtocol) is True
-    assert multiplexer.has_protocol(ThirdProtocol) is True
-    assert multiplexer.has_protocol(UnknownProtocol) is False
 
     assert multiplexer.remote is transport.remote
 
@@ -109,8 +100,8 @@ async def test_multiplexer_only_p2p_protocol():
             alice_stream = alice_multiplexer.stream_protocol_messages(P2PProtocol)
             bob_stream = bob_multiplexer.stream_protocol_messages(P2PProtocol)
 
-            alice_p2p_protocol = alice_multiplexer.get_protocol_by_name('p2p')
-            bob_p2p_protocol = bob_multiplexer.get_protocol_by_name('p2p')
+            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocol)
+            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocol)
 
             alice_p2p_protocol.send_ping()
             cmd, _ = await asyncio.wait_for(bob_stream.asend(None), timeout=0.1)
@@ -133,11 +124,11 @@ async def test_multiplexer_p2p_and_paragon_protocol():
             alice_second_stream = alice_multiplexer.stream_protocol_messages(SecondProtocol)
             bob_second_stream = bob_multiplexer.stream_protocol_messages(SecondProtocol)
 
-            alice_p2p_protocol = alice_multiplexer.get_protocol_by_name('p2p')
-            alice_second_protocol = alice_multiplexer.get_protocol_by_name('second')
+            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocol)
+            alice_second_protocol = alice_multiplexer.get_protocol_by_type(SecondProtocol)
 
-            bob_p2p_protocol = bob_multiplexer.get_protocol_by_name('p2p')
-            bob_second_protocol = bob_multiplexer.get_protocol_by_name('second')
+            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocol)
+            bob_second_protocol = bob_multiplexer.get_protocol_by_type(SecondProtocol)
 
             alice_second_protocol.send_cmd(CommandA)
             alice_p2p_protocol.send_ping()
@@ -177,13 +168,13 @@ async def test_multiplexer_p2p_and_two_more_protocols():
             alice_third_stream = alice_multiplexer.stream_protocol_messages(ThirdProtocol)
             bob_third_stream = bob_multiplexer.stream_protocol_messages(ThirdProtocol)
 
-            alice_p2p_protocol = alice_multiplexer.get_protocol_by_name('p2p')
-            alice_second_protocol = alice_multiplexer.get_protocol_by_name('second')
-            alice_third_protocol = alice_multiplexer.get_protocol_by_name('third')
+            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocol)
+            alice_second_protocol = alice_multiplexer.get_protocol_by_type(SecondProtocol)
+            alice_third_protocol = alice_multiplexer.get_protocol_by_type(ThirdProtocol)
 
-            bob_p2p_protocol = bob_multiplexer.get_protocol_by_name('p2p')
-            bob_second_protocol = bob_multiplexer.get_protocol_by_name('second')
-            bob_third_protocol = bob_multiplexer.get_protocol_by_name('third')
+            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocol)
+            bob_second_protocol = bob_multiplexer.get_protocol_by_type(SecondProtocol)
+            bob_third_protocol = bob_multiplexer.get_protocol_by_type(ThirdProtocol)
 
             alice_second_protocol.send_cmd(CommandA)
             alice_third_protocol.send_cmd(CommandC)

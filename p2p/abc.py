@@ -290,11 +290,7 @@ class MultiplexerAPI(ABC):
     # Protocol API
     #
     @abstractmethod
-    def has_protocol(self, protocol_identifier: Union[str, ProtocolAPI, Type[ProtocolAPI]]) -> bool:
-        ...
-
-    @abstractmethod
-    def get_protocol_by_name(self, name: str) -> ProtocolAPI:
+    def has_protocol(self, protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]]) -> bool:
         ...
 
     @abstractmethod

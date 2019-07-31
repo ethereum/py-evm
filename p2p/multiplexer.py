@@ -179,19 +179,15 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
         return self._transport.is_closing
 
     def close(self) -> None:
-        # TODO: maybe graceflly close streams?
         self._transport.close()
         self.cancel_token.trigger()
 
     #
     # Protocol API
     #
-    def has_protocol(self, protocol_identifier: Union[str, ProtocolAPI, Type[ProtocolAPI]]) -> bool:
+    def has_protocol(self, protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]]) -> bool:
         try:
-            if isinstance(protocol_identifier, str):
-                self.get_protocol_by_name(protocol_identifier)
-                return True
-            elif isinstance(protocol_identifier, Protocol):
+            if isinstance(protocol_identifier, Protocol):
                 self.get_protocol_by_type(type(protocol_identifier))
                 return True
             elif isinstance(protocol_identifier, type):
@@ -204,15 +200,6 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
                 )
         except UnknownProtocol:
             return False
-
-    def get_protocol_by_name(self, name: str) -> ProtocolAPI:
-        if name == self._base_protocol.name:
-            return self._base_protocol
-
-        for protocol in self._protocols:
-            if protocol.name == name:
-                return protocol
-        raise UnknownProtocol(f"Protocol with name '{name}' not found")
 
     def get_protocol_by_type(self, protocol_class: Type[TProtocol]) -> TProtocol:
         if protocol_class is P2PProtocol:
@@ -246,7 +233,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
             raise TypeError("Unknown protocol identifier: {protocol}")
 
         if not self.has_protocol(protocol_class):
-            raise Exception(f"TODO: Unknown protocol '{protocol_class}'")
+            raise UnknownProtocol(f"Unknown protocol '{protocol_class}'")
 
         if self._protocol_locks.is_locked(protocol_class):
             raise Exception(f"Streaming lock for {protocol_class} is not free.")
