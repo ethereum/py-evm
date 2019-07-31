@@ -8,13 +8,19 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    Union,
 )
 from ruamel.yaml import (
     YAML,
 )
 
 from eth_utils import (
+    decode_hex,
     to_tuple,
+)
+from eth_typing import (
+    BLSPubkey,
+    BLSSignature,
 )
 from eth_utils.toolz import (
     assoc,
@@ -120,22 +126,36 @@ def load_from_yaml_files(root_project_dir: Path,
                          dir_path: Path,
                          config_names: Sequence[ConfigName],
                          parse_test_case_fn: Callable[..., Any]) -> Iterable[TestFile]:
-    yaml = YAML(typ="unsafe")
     entries = get_yaml_files_pathes(dir_path)
     for file_path in entries:
         file_name = os.path.basename(file_path)
+        if len(config_names) == 0:
+            yield load_from_yaml_file(root_project_dir, file_path, file_name, parse_test_case_fn)
         for config_name in config_names:
             if config_name in file_name:
-                with open(file_path, 'U') as f:
-                    new_text = f.read()
-                    data = yaml.load(new_text)
-                    test_file = get_test_file_from_dict(
-                        data,
-                        root_project_dir,
-                        file_name,
-                        parse_test_case_fn,
-                    )
-                    yield test_file
+                yield load_from_yaml_file(
+                    root_project_dir,
+                    file_path,
+                    file_name,
+                    parse_test_case_fn,
+                )
+
+
+def load_from_yaml_file(root_project_dir: Path,
+                        file_path: str,
+                        file_name: str,
+                        parse_test_case_fn: Callable[..., Any]) -> TestFile:
+    yaml = YAML(typ="unsafe")
+    with open(file_path, 'U') as f:
+        new_text = f.read()
+        data = yaml.load(new_text)
+        test_file = get_test_file_from_dict(
+            data,
+            root_project_dir,
+            file_name,
+            parse_test_case_fn,
+        )
+        return test_file
 
 
 @to_tuple
@@ -197,3 +217,31 @@ def get_operation_or_header(test_case: Dict[str, Any],
         raise NameError(
             f"Operation {handler} is not supported."
         )
+
+
+def get_input_bls_pubkeys(test_case: Dict[str, Any]) -> Dict[str, Tuple[BLSPubkey, ...]]:
+    return {'pubkeys': tuple(BLSPubkey(decode_hex(item)) for item in test_case['input'])}
+
+
+def get_input_bls_signatures(test_case: Dict[str, Any]) -> Dict[str, Tuple[BLSSignature, ...]]:
+    return {'signatures': tuple(BLSSignature(decode_hex(item)) for item in test_case['input'])}
+
+
+def get_input_bls_privkey(test_case: Dict[str, Any]) -> Dict[str, int]:
+    return {'privkey': int.from_bytes(decode_hex(test_case['input']), 'big')}
+
+
+def get_input_sign_message(test_case: Dict[str, Any]) -> Dict[str, Union[int, bytes, bytes]]:
+    return {
+        'privkey': int.from_bytes(decode_hex(test_case['input']['privkey']), 'big'),
+        'message_hash': decode_hex(test_case['input']['message']),
+        'domain': decode_hex(test_case['input']['domain']),
+    }
+
+
+def get_output_bls_pubkey(test_case: Dict[str, Any]) -> BLSPubkey:
+    return BLSPubkey(decode_hex(test_case['output']))
+
+
+def get_output_bls_signature(test_case: Dict[str, Any]) -> BLSSignature:
+    return BLSSignature(decode_hex(test_case['output']))
