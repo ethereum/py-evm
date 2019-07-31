@@ -22,6 +22,8 @@ TODO: Some tests remain to be written:
 - Test for more fields, such as account balances.
 - Test that this works even under calls to things like commit() and snapshot()
 - Test that these diffs can be applied to something and the correct resulting state obtained
+- What if you change an account's balance and also a storage item?
+- What do you do if delete_storage is called?
 """
 
 
@@ -89,7 +91,7 @@ def test_persists_storage_changes(account_db):
     # TODO: provide some interface, this shouldn't be reading items directly out of the diff
     assert ACCOUNT in diff.changed_storage_items
     assert tuple(diff.changed_storage_items[ACCOUNT].keys()) == (key,)
-    assert diff.changed_storage_items[ACCOUNT][key].old == b''
+    assert diff.changed_storage_items[ACCOUNT][key].old == bytes([0])
     assert diff.changed_storage_items[ACCOUNT][key].new == bytes([10])
 
 
@@ -116,3 +118,22 @@ def test_persists_state_root(account_db):
     assert diff.get_changed_accounts() == (ACCOUNT, )
     new_account = diff.get_decoded_account(ACCOUNT, new=True)
     assert new_account.storage_root == expected_root
+
+
+def test_two_changes(account_db):
+    account_db.set_storage(ACCOUNT, 1, 10)
+    account_db.persist()
+
+    account_db.set_storage(ACCOUNT, 1, 20)
+    account_db.persist_with_block_diff(BLOCK_HASH)
+
+    diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
+    assert diff.get_changed_accounts() == (ACCOUNT, )
+
+    key = int_to_big_endian(1)
+
+    # TODO: provide some interface, this shouldn't be reading items directly out of the diff
+    assert ACCOUNT in diff.changed_storage_items
+    assert tuple(diff.changed_storage_items[ACCOUNT].keys()) == (key,)
+    assert diff.changed_storage_items[ACCOUNT][key].old == bytes([10])
+    assert diff.changed_storage_items[ACCOUNT][key].new == bytes([20])

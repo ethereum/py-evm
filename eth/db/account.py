@@ -609,11 +609,7 @@ class AccountDB(BaseAccountDB):
             for key, new_value in diff.pending_items():
                 slot = big_endian_to_int(key)
                 old_value = store.get(slot, from_journal=False)
-                # TODO: this seems incredibly wrong
-                if old_value == 0:
-                    old_value_bytes = b''
-                else:
-                    old_value_bytes = int_to_big_endian(old_value)
+                old_value_bytes = int_to_big_endian(old_value)
                 block_diff.set_storage_changed(address, slot, old_value_bytes, new_value)
 
         old_account_values: Dict[Address, bytes] = dict()
