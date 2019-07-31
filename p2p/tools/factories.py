@@ -27,6 +27,14 @@ from p2p.p2p_proto import P2PProtocol
 from p2p.protocol import Command, Protocol, get_cmd_offsets
 from p2p.transport import Transport
 
+from p2p.discv5.packets import (
+    AuthTagPacket,
+)
+from p2p.discv5.constants import (
+    NONCE_SIZE,
+    TAG_SIZE,
+)
+
 from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.tools.memory_transport import MemoryTransport
 
@@ -399,3 +407,12 @@ class DevP2PHandshakeParamsFactory(factory.Factory):
     listen_port = 30303
     client_version_string = 'test'
     version = 5
+
+
+class AuthTagPacketFactory(factory.Factory):
+    class Meta:
+        model = AuthTagPacket
+
+    tag = b"\x00" * TAG_SIZE
+    auth_tag = b"\x00" * NONCE_SIZE
+    encrypted_message = b""
