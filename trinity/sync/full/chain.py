@@ -963,8 +963,6 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
 
     Here, the run() method will execute the sync loop forever, until our CancelToken is triggered.
     """
-    # track whether there is currently a block being imported
-    _is_importing = False
 
     def __init__(self,
                  chain: BaseAsyncChain,
@@ -997,6 +995,8 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
 
         # the queue of blocks that are downloaded and ready to be imported
         self._import_queue: 'asyncio.Queue[BaseBlock]' = asyncio.Queue(BLOCK_IMPORT_QUEUE_SIZE)
+
+        self._import_active = asyncio.Lock()
 
     async def _run(self) -> None:
         head = await self.wait(self.db.coro_get_canonical_head())
@@ -1113,17 +1113,18 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         await self.wait(self._got_first_header.wait())
         while self.is_operational:
             if self._import_queue.empty():
-                self._is_importing = False
+                if self._import_active.locked():
+                    self._import_active.release()
                 waiting_for_next_block = Timer()
 
             block = await self.wait(self._import_queue.get())
-            if not self._is_importing:
+            if not self._import_active.locked():
                 self.logger.info(
                     "Paused block import %.1fs, while collecting %s body",
                     waiting_for_next_block.elapsed,
                     block.header,
                 )
-                self._is_importing = True
+                await self._import_active.acquire()
 
             await self._import_block(block)
 
@@ -1195,7 +1196,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
                     self._block_body_tasks,
                 )],
                 "yes" if self._db_buffer_capacity.is_set() else "no",
-                self._is_importing,
+                self._import_active.locked(),
             )
 
 
