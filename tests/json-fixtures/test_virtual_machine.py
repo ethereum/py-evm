@@ -32,6 +32,7 @@ from eth.tools._utils.normalization import (
 from eth.tools._utils.hashing import (
     hash_log_entries,
 )
+from eth.vm.chain_context import ChainContext
 from eth.vm.forks import (
     HomesteadVM,
 )
@@ -187,7 +188,13 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         gas_limit=fixture['env']['currentGasLimit'],
         timestamp=fixture['env']['currentTimestamp'],
     )
-    vm = vm_class(header=header, chaindb=chaindb)
+
+    # None of the VM tests (currently) test chain ID, so the setting doesn't matter here.
+    #   When they *do* start testing ID, they will have to supply it as part of the environment.
+    #   For now, just hard-code it to something not used in practice:
+    chain_context = ChainContext(chain_id=0)
+
+    vm = vm_class(header=header, chaindb=chaindb, chain_context=chain_context)
     state = vm.state
     setup_state(fixture['pre'], state)
     code = state.get_code(fixture['exec']['address'])

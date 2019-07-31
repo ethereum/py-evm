@@ -514,6 +514,17 @@ class OpcodeAPI(ABC):
         ...
 
 
+class ChainContextAPI(ABC):
+    @abstractmethod
+    def __init__(self, chain_id: Optional[int]) -> None:
+        ...
+
+    @property
+    @abstractmethod
+    def chain_id(self) -> int:
+        ...
+
+
 class TransactionContextAPI(ABC):
     @abstractmethod
     def __init__(self, gas_price: int, origin: Address) -> None:
@@ -671,6 +682,7 @@ class ExecutionContextAPI(ABC):
     difficulty: int
     gas_limit: int
     prev_hashes: Sequence[Hash32]
+    chain_id: int
 
 
 class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
@@ -1361,7 +1373,8 @@ class VirtualMachineAPI(ConfigurableAPI):
     def build_state(cls,
                     db: AtomicDatabaseAPI,
                     header: BlockHeaderAPI,
-                    previous_hashes: Iterable[Hash32] = ()
+                    chain_context: ChainContextAPI,
+                    previous_hashes: Iterable[Hash32] = (),
                     ) -> StateAPI:
         ...
 

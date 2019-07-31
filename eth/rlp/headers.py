@@ -36,6 +36,11 @@ from eth.constants import (
     BLANK_ROOT_HASH,
 )
 from eth.typing import HeaderParams
+
+from eth.vm.chain_context import (
+    ChainContext,
+)
+
 from eth.vm.execution_context import (
     ExecutionContext,
 )
@@ -202,8 +207,9 @@ class BlockHeader(BlockHeaderAPI):
         header = cls(**header_kwargs)
         return header
 
-    def create_execution_context(
-            self, prev_hashes: Iterable[Hash32]) -> ExecutionContext:
+    def create_execution_context(self,
+                                 prev_hashes: Iterable[Hash32],
+                                 chain_context: ChainContext) -> ExecutionContext:
 
         return ExecutionContext(
             coinbase=self.coinbase,
@@ -212,6 +218,7 @@ class BlockHeader(BlockHeaderAPI):
             difficulty=self.difficulty,
             gas_limit=self.gas_limit,
             prev_hashes=prev_hashes,
+            chain_id=chain_context.chain_id,
         )
 
     @property

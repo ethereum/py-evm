@@ -28,6 +28,7 @@ from eth.abc import (
     AtomicDatabaseAPI,
     BlockAPI,
     BlockHeaderAPI,
+    ChainContextAPI,
     ChainDatabaseAPI,
     ComputationAPI,
     ReceiptAPI,
@@ -98,8 +99,12 @@ class VM(Configurable, VirtualMachineAPI):
 
     cls_logger = logging.getLogger('eth.vm.base.VM')
 
-    def __init__(self, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> None:
+    def __init__(self,
+                 header: BlockHeaderAPI,
+                 chaindb: ChainDatabaseAPI,
+                 chain_context: ChainContextAPI) -> None:
         self.chaindb = chaindb
+        self.chain_context = chain_context
         self._initial_header = header
 
     def get_header(self) -> BlockHeaderAPI:
@@ -117,13 +122,17 @@ class VM(Configurable, VirtualMachineAPI):
     @property
     def state(self) -> StateAPI:
         if self._state is None:
-            self._state = self.build_state(self.chaindb.db, self.get_header(), self.previous_hashes)
+            self._state = self.build_state(self.chaindb.db,
+                                           self.get_header(),
+                                           self.chain_context,
+                                           self.previous_hashes)
         return self._state
 
     @classmethod
     def build_state(cls,
                     db: AtomicDatabaseAPI,
                     header: BlockHeaderAPI,
+                    chain_context: ChainContextAPI,
                     previous_hashes: Iterable[Hash32] = ()
                     ) -> StateAPI:
         """
@@ -133,7 +142,7 @@ class VM(Configurable, VirtualMachineAPI):
         even if you don't have the VM initialized. This is a convenience method to do that.
         """
 
-        execution_context = header.create_execution_context(previous_hashes)
+        execution_context = header.create_execution_context(previous_hashes, chain_context)
         return cls.get_state_class()(db, execution_context, header.state_root)
 
     #
@@ -282,7 +291,10 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         # we need to re-initialize the `state` to update the execution context.
-        self._state = self.build_state(self.chaindb.db, self.get_header(), self.previous_hashes)
+        self._state = self.build_state(self.chaindb.db,
+                                       self.get_header(),
+                                       self.chain_context,
+                                       self.previous_hashes)
 
         # run all of the transactions.
         new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.get_header())
@@ -682,7 +694,10 @@ class VM(Configurable, VirtualMachineAPI):
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = itertools.chain((header.hash,), self.previous_hashes)
 
-        state = self.build_state(self.chaindb.db, temp_block.header, prev_hashes)
+        state = self.build_state(self.chaindb.db,
+                                 temp_block.header,
+                                 self.chain_context,
+                                 prev_hashes)
 
         snapshot = state.snapshot()
         yield state
