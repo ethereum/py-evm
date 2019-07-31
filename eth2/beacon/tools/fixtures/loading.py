@@ -38,6 +38,9 @@ from eth2.beacon.tools.fixtures.config_name import (
     ALL_CONFIG_NAMES,
     ConfigName,
 )
+from eth2.beacon.tools.fixtures.test_case import (
+    OperationOrBlockHeader,
+)
 from eth2.beacon.tools.fixtures.test_file import (
     TestFile,
 )
@@ -93,9 +96,9 @@ def get_test_file_from_dict(data: Dict[str, Any],
     assert config_name in ALL_CONFIG_NAMES
     config_name = ConfigName(config_name)
     config = get_config(root_project_dir, config_name)
-
+    handler = data['handler']
     parsed_test_cases = tuple(
-        parse_test_case_fn(test_case, index, config)
+        parse_test_case_fn(test_case, handler, index, config)
         for index, test_case in enumerate(data['test_cases'])
     )
     return TestFile(
@@ -183,3 +186,14 @@ def get_blocks(test_case: Dict[str, Any],
 def get_deposits(test_case: Dict[str, Any],
                  cls_deposit: Type[Deposit]) -> Tuple[Deposit, ...]:
     return tuple(from_formatted_dict(deposit, cls_deposit) for deposit in test_case['deposits'])
+
+
+def get_operation_or_header(test_case: Dict[str, Any],
+                            cls_operation_or_header: Type[OperationOrBlockHeader],
+                            handler: str) -> Tuple[OperationOrBlockHeader, ...]:
+    if handler in test_case:
+        return from_formatted_dict(test_case[handler], cls_operation_or_header)
+    else:
+        raise NameError(
+            f"Operation {handler} is not supported."
+        )

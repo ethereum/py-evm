@@ -51,10 +51,11 @@ class ShufflingTestCase(BaseTestCase):
 #
 # Helpers for generating test suite
 #
-def parse_shuffling_test_case(test_case, index, config):
+def parse_shuffling_test_case(test_case, handler, index, config):
     override_lengths(config)
 
     return ShufflingTestCase(
+        handler=handler,
         index=index,
         seed=decode_hex(test_case['seed']),
         count=test_case['count'],

@@ -26,9 +26,6 @@ from eth2.beacon.typing import (
     ValidatorIndex,
 )
 from eth2.configs import Eth2Config
-from eth2.beacon.exceptions import (
-    SignatureError,
-)
 
 
 def validate_deposit_proof(state: BeaconState,
@@ -74,17 +71,19 @@ def process_deposit(state: BeaconState,
     amount = deposit.data.amount
     validator_pubkeys = tuple(v.pubkey for v in state.validators)
     if pubkey not in validator_pubkeys:
-        # Verify the proof of possession
-        try:
-            bls.validate(
-                pubkey=pubkey,
-                message_hash=deposit.data.signing_root,
-                signature=deposit.data.signature,
-                domain=compute_domain(
-                    SignatureDomain.DOMAIN_DEPOSIT,
-                ),
-            )
-        except SignatureError:
+        # Verify the deposit signature (proof of possession) for new validators.
+        # Note: The deposit contract does not check signatures.
+        # Note: Deposits are valid across forks, thus the deposit domain
+        # is retrieved directly from `compute_domain`.
+        is_valid_proof_of_possession = bls.verify(
+            message_hash=deposit.data.signing_root,
+            pubkey=pubkey,
+            signature=deposit.data.signature,
+            domain=compute_domain(
+                SignatureDomain.DOMAIN_DEPOSIT,
+            ),
+        )
+        if not is_valid_proof_of_possession:
             return state
 
         withdrawal_credentials = deposit.data.withdrawal_credentials

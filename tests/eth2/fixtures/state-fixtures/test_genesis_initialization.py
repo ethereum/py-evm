@@ -75,7 +75,7 @@ class GenesisInitializationTestCase(BaseTestCase):
 #
 # Helpers for generating test suite
 #
-def parse_genesis_initialization_test_case(test_case, index, config):
+def parse_genesis_initialization_test_case(test_case, handler, index, config):
     override_lengths(config)
 
     bls_setting = get_bls_setting(test_case)
@@ -85,6 +85,7 @@ def parse_genesis_initialization_test_case(test_case, index, config):
     deposits = get_deposits(test_case, Deposit)
 
     return GenesisInitializationTestCase(
+        handler=handler,
         index=index,
         bls_setting=bls_setting,
         description=test_case['description'],
