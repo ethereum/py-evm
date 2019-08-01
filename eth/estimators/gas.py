@@ -1,22 +1,24 @@
-from typing import Optional
+from typing import cast, Optional
 
 from eth_utils.toolz import curry
 
 from eth.exceptions import VMError
 
-from eth.rlp.transactions import BaseTransaction
+from eth.abc import (
+    SignedTransactionAPI,
+    StateAPI,
+)
 from eth.vm.spoof import SpoofTransaction
-from eth.vm.state import BaseState
 
 
-def _get_computation_error(state: BaseState, transaction: SpoofTransaction) -> Optional[VMError]:
+def _get_computation_error(state: StateAPI, transaction: SignedTransactionAPI) -> Optional[VMError]:
 
     snapshot = state.snapshot()
 
     try:
         computation = state.execute_transaction(transaction)
         if computation.is_error:
-            return computation._error
+            return computation.error
         else:
             return None
 
@@ -25,7 +27,7 @@ def _get_computation_error(state: BaseState, transaction: SpoofTransaction) -> O
 
 
 @curry
-def binary_gas_search(state: BaseState, transaction: BaseTransaction, tolerance: int=1) -> int:
+def binary_gas_search(state: StateAPI, transaction: SignedTransactionAPI, tolerance: int=1) -> int:
     """
     Run the transaction with various gas limits, progressively
     approaching the minimum needed to succeed without an OutOfGas exception.
@@ -47,20 +49,20 @@ def binary_gas_search(state: BaseState, transaction: BaseTransaction, tolerance:
             "If sending an unsigned transaction, use SpoofTransaction and provide the",
             "sender using the 'from' parameter")
 
-    minimum_transaction = SpoofTransaction(
+    minimum_transaction = cast(SignedTransactionAPI, SpoofTransaction(
         transaction,
         gas=transaction.intrinsic_gas,
         gas_price=0,
-    )
+    ))
 
     if _get_computation_error(state, minimum_transaction) is None:
         return transaction.intrinsic_gas
 
-    maximum_transaction = SpoofTransaction(
+    maximum_transaction = cast(SignedTransactionAPI, SpoofTransaction(
         transaction,
         gas=state.gas_limit,
         gas_price=0,
-    )
+    ))
     error = _get_computation_error(state, maximum_transaction)
     if error is not None:
         raise error
@@ -69,7 +71,7 @@ def binary_gas_search(state: BaseState, transaction: BaseTransaction, tolerance:
     maximum_out_of_gas = transaction.intrinsic_gas
     while minimum_viable - maximum_out_of_gas > tolerance:
         midpoint = (minimum_viable + maximum_out_of_gas) // 2
-        test_transaction = SpoofTransaction(transaction, gas=midpoint)
+        test_transaction = cast(SignedTransactionAPI, SpoofTransaction(transaction, gas=midpoint))
         if _get_computation_error(state, test_transaction) is None:
             minimum_viable = midpoint
         else:

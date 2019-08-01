@@ -2,12 +2,14 @@ from typing import (
     Type,
 )
 
-from eth.rlp.blocks import BaseBlock
+from eth.abc import (
+    StateAPI,
+    BlockAPI,
+)
 from eth.vm.forks.byzantium import (
     ByzantiumVM,
     get_uncle_reward,
 )
-from eth.vm.state import BaseState
 
 from .blocks import PetersburgBlock
 from .constants import EIP1234_BLOCK_REWARD
@@ -24,8 +26,8 @@ class PetersburgVM(ByzantiumVM):
     fork = 'petersburg'
 
     # classes
-    block_class: Type[BaseBlock] = PetersburgBlock
-    _state_class: Type[BaseState] = PetersburgState
+    block_class: Type[BlockAPI] = PetersburgBlock
+    _state_class: Type[StateAPI] = PetersburgState
 
     # Methods
     create_header_from_parent = staticmethod(create_petersburg_header_from_parent)  # type: ignore

@@ -13,20 +13,22 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    ComputationAPI,
+    ReceiptAPI,
+    SignedTransactionAPI,
+    StateAPI,
+)
 from eth.constants import (
     MAX_UNCLE_DEPTH,
 )
-from eth.rlp.blocks import BaseBlock
-from eth.rlp.headers import BlockHeader
-from eth.rlp.receipts import Receipt
-from eth.rlp.transactions import BaseTransaction
 from eth.validation import (
     validate_lte,
 )
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
 from eth.vm.forks.frontier import make_frontier_receipt
-from eth.vm.computation import BaseComputation
-from eth.vm.state import BaseState
 
 from .blocks import ByzantiumBlock
 from .constants import (
@@ -43,7 +45,7 @@ from .state import ByzantiumState
 
 
 @curry
-def get_uncle_reward(block_reward: int, block_number: int, uncle: BaseBlock) -> int:
+def get_uncle_reward(block_reward: int, block_number: int, uncle: BlockAPI) -> int:
     block_number_delta = block_number - uncle.block_number
     validate_lte(block_number_delta, MAX_UNCLE_DEPTH)
     return (8 - block_number_delta) * block_reward // 8
@@ -60,8 +62,8 @@ class ByzantiumVM(SpuriousDragonVM):
     fork = 'byzantium'
 
     # classes
-    block_class: Type[BaseBlock] = ByzantiumBlock
-    _state_class: Type[BaseState] = ByzantiumState
+    block_class: Type[BlockAPI] = ByzantiumBlock
+    _state_class: Type[StateAPI] = ByzantiumState
 
     # Methods
     create_header_from_parent = staticmethod(create_byzantium_header_from_parent)   # type: ignore
@@ -73,7 +75,7 @@ class ByzantiumVM(SpuriousDragonVM):
     get_uncle_reward = staticmethod(get_uncle_reward)
 
     @classmethod
-    def validate_receipt(cls, receipt: Receipt) -> None:
+    def validate_receipt(cls, receipt: ReceiptAPI) -> None:
         super().validate_receipt(receipt)
         if receipt.state_root not in EIP658_STATUS_CODES:
             raise ValidationError(
@@ -89,7 +91,9 @@ class ByzantiumVM(SpuriousDragonVM):
     def get_block_reward() -> int:
         return EIP649_BLOCK_REWARD
 
-    def add_receipt_to_header(self, old_header: BlockHeader, receipt: Receipt) -> BlockHeader:
+    def add_receipt_to_header(self,
+                              old_header: BlockHeaderAPI,
+                              receipt: ReceiptAPI) -> BlockHeaderAPI:
         # Skip merkelizing the account data and persisting it to disk on every transaction.
         # Starting in Byzantium, this is no longer necessary, because the state root isn't
         # in the receipt anymore.
@@ -100,10 +104,10 @@ class ByzantiumVM(SpuriousDragonVM):
 
     @staticmethod
     def make_receipt(
-            base_header: BlockHeader,
-            transaction: BaseTransaction,
-            computation: BaseComputation,
-            state: BaseState) -> Receipt:
+            base_header: BlockHeaderAPI,
+            transaction: SignedTransactionAPI,
+            computation: ComputationAPI,
+            state: StateAPI) -> ReceiptAPI:
 
         receipt_without_state_root = make_frontier_receipt(base_header, transaction, computation)
 

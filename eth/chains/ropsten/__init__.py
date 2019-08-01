@@ -11,9 +11,9 @@ from .constants import (
 )
 from eth import constants
 
+from eth.abc import VirtualMachineAPI
 from eth.chains.base import Chain
 from eth.rlp.headers import BlockHeader
-from eth.vm.base import BaseVM
 from eth.vm.forks import (
     ByzantiumVM,
     ConstantinopleVM,
@@ -34,7 +34,7 @@ ROPSTEN_VM_CONFIGURATION = (
 
 
 class BaseRopstenChain:
-    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = ROPSTEN_VM_CONFIGURATION
+    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...] = ROPSTEN_VM_CONFIGURATION
     chain_id: int = ROPSTEN_CHAIN_ID
 
 

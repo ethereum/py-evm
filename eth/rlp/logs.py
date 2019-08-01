@@ -1,4 +1,3 @@
-import rlp
 from rlp.sedes import (
     CountableList,
     binary,
@@ -8,13 +7,15 @@ from typing import (
     Tuple,
 )
 
+from eth.abc import LogAPI
+
 from .sedes import (
     address,
     uint32,
 )
 
 
-class Log(rlp.Serializable):
+class Log(LogAPI):
     fields = [
         ('address', address),
         ('topics', CountableList(uint32)),

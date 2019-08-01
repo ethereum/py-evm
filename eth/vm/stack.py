@@ -20,6 +20,8 @@ from typing import (
     Union
 )
 
+from eth.abc import StackAPI
+
 
 def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
     return ValidationError(
@@ -30,7 +32,7 @@ def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
     )
 
 
-class Stack(object):
+class Stack(StackAPI):
     """
     VM Stack
     """

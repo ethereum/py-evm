@@ -2,13 +2,14 @@ import itertools
 
 from eth_typing import Address
 
+from eth.abc import TransactionContextAPI
 from eth.validation import (
     validate_canonical_address,
     validate_uint256,
 )
 
 
-class BaseTransactionContext:
+class BaseTransactionContext(TransactionContextAPI):
     """
     This immutable object houses information that remains constant for the entire context of the VM
     execution.

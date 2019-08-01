@@ -6,15 +6,17 @@ from eth.constants import (
     SECPK1_N,
 )
 
-from eth.typing import BaseOrSpoofTransaction
+from eth.abc import (
+    SignedTransactionAPI,
+    StateAPI,
+)
 from eth.vm.forks.frontier.validation import (
     validate_frontier_transaction,
 )
-from eth.vm.state import BaseState
 
 
-def validate_homestead_transaction(state: BaseState,
-                                   transaction: BaseOrSpoofTransaction) -> None:
+def validate_homestead_transaction(state: StateAPI,
+                                   transaction: SignedTransactionAPI) -> None:
     if transaction.s > SECPK1_N // 2 or transaction.s == 0:
         raise ValidationError("Invalid signature S value")
 

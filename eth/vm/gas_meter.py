@@ -6,6 +6,8 @@ from typing import (
 from eth_utils import (
     ValidationError,
 )
+
+from eth.abc import GasMeterAPI
 from eth.exceptions import (
     OutOfGas,
 )
@@ -31,7 +33,7 @@ def allow_negative_refund_strategy(gas_refunded_total: int, amount: int) -> int:
 RefundStrategy = Callable[[int, int], int]
 
 
-class GasMeter(object):
+class GasMeter(GasMeterAPI):
 
     start_gas: int = None
 

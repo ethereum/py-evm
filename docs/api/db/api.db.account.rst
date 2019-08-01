@@ -1,12 +1,6 @@
 Account
 ========
 
-BaseAccountDB
--------------
-
-.. autoclass:: eth.db.account.BaseAccountDB
-  :members:
-
 AccountDB
 -------------
 

@@ -1,16 +1,18 @@
 from abc import (
-    ABC,
     abstractmethod,
 )
 import itertools
 import logging
+from types import TracebackType
 from typing import (
     Any,
     Callable,
     cast,
     Dict,
     List,
+    Optional,
     Tuple,
+    Type,
     Union,
 )
 
@@ -22,6 +24,17 @@ from eth_utils import (
     encode_hex,
 )
 
+from eth.abc import (
+    MemoryAPI,
+    StackAPI,
+    GasMeterAPI,
+    MessageAPI,
+    OpcodeAPI,
+    CodeStreamAPI,
+    ComputationAPI,
+    StateAPI,
+    TransactionContextAPI,
+)
 from eth.constants import (
     GAS_MEMORY,
     GAS_MEMORY_QUADRATIC_DENOMINATOR,
@@ -62,21 +75,12 @@ from eth.vm.memory import (
 from eth.vm.message import (
     Message,
 )
-from eth.vm.opcode import (
-    Opcode
-)
 from eth.vm.stack import (
     Stack,
 )
-from eth.vm.state import (
-    BaseState,
-)
-from eth.vm.transaction_context import (
-    BaseTransactionContext
-)
 
 
-def NO_RESULT(computation: 'BaseComputation') -> None:
+def NO_RESULT(computation: ComputationAPI) -> None:
     """
     This is a special method intended for usage as the "no precompile found" result.
     The type signature is designed to match the other precompiles.
@@ -93,94 +97,7 @@ def memory_gas_cost(size_in_bytes: int) -> int:
     return total_cost
 
 
-class BaseStackManipulation:
-    @abstractmethod
-    def stack_pop_ints(self, num_items: int) -> Tuple[int, ...]:
-        """
-        Pop and return a tuple of integers of length ``num_items`` from the stack.
-
-        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
-        the stack.
-
-        Items are ordered with the top of the stack as the first item in the tuple.
-        """
-        pass
-
-    @abstractmethod
-    def stack_pop_bytes(self, num_items: int) -> Tuple[bytes, ...]:
-        """
-        Pop and return a tuple of bytes of length ``num_items`` from the stack.
-
-        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
-        the stack.
-
-        Items are ordered with the top of the stack as the first item in the tuple.
-        """
-        pass
-
-    @abstractmethod
-    def stack_pop_any(self, num_items: int) -> Tuple[Union[int, bytes], ...]:
-        """
-        Pop and return a tuple of items of length ``num_items`` from the stack.
-        The type of each element will be int or bytes, depending on whether it was
-        pushed with stack_push_bytes or stack_push_int.
-
-        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
-        the stack.
-
-        Items are ordered with the top of the stack as the first item in the tuple.
-        """
-        pass
-
-    @abstractmethod
-    def stack_pop1_int(self) -> int:
-        """
-        Pop and return an integer from the stack.
-
-        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
-        """
-        pass
-
-    @abstractmethod
-    def stack_pop1_bytes(self) -> bytes:
-        """
-        Pop and return a bytes element from the stack.
-
-        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
-        """
-        pass
-
-    @abstractmethod
-    def stack_pop1_any(self) -> Union[int, bytes]:
-        """
-        Pop and return an element from the stack.
-        The type of each element will be int or bytes, depending on whether it was
-        pushed with stack_push_bytes or stack_push_int.
-
-        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
-        """
-        pass
-
-    @abstractmethod
-    def stack_push_int(self, value: int) -> None:
-        """
-        Push ``value`` onto the stack.
-
-        Raise `eth.exceptions.StackDepthLimit` if the stack is full.
-        """
-        pass
-
-    @abstractmethod
-    def stack_push_bytes(self, value: bytes) -> None:
-        """
-        Push ``value`` onto the stack.
-
-        Raise `eth.exceptions.StackDepthLimit` if the stack is full.
-        """
-        pass
-
-
-class BaseComputation(Configurable, BaseStackManipulation, ABC):
+class BaseComputation(Configurable, ComputationAPI):
     """
     The base class for all execution computations.
 
@@ -193,35 +110,36 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
         ``_precompiles``: A mapping of contract address to the precompile function for execution
         of precompiled contracts.
     """
-    state = None
-    msg = None
-    transaction_context = None
+    state: StateAPI = None
+    msg: MessageAPI = None
+    transaction_context: TransactionContextAPI = None
 
-    _memory = None
-    _stack = None
-    _gas_meter = None
+    _memory: MemoryAPI = None
+    _stack: StackAPI = None
+    _gas_meter: GasMeterAPI = None
 
-    code = None
+    code: CodeStreamAPI = None
 
-    children: List['BaseComputation'] = None
+    children: List[ComputationAPI] = None
 
-    _output = b''
-    return_data = b''
+    _output: bytes = b''
+    return_data: bytes = b''
     _error: VMError = None
 
+    # TODO: use a NamedTuple for log entries
     _log_entries: List[Tuple[int, Address, Tuple[int, ...], bytes]] = None
     accounts_to_delete: Dict[Address, Address] = None
 
     # VM configuration
-    opcodes: Dict[int, Any] = None
-    _precompiles: Dict[Address, Callable[['BaseComputation'], 'BaseComputation']] = None
+    opcodes: Dict[int, OpcodeAPI] = None
+    _precompiles: Dict[Address, Callable[[ComputationAPI], ComputationAPI]] = None
 
     logger = cast(ExtendedDebugLogger, logging.getLogger('eth.vm.computation.Computation'))
 
     def __init__(self,
-                 state: BaseState,
-                 message: Message,
-                 transaction_context: BaseTransactionContext) -> None:
+                 state: StateAPI,
+                 message: MessageAPI,
+                 transaction_context: TransactionContextAPI) -> None:
 
         self.state = state
         self.msg = message
@@ -264,6 +182,18 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
         Return ``True`` if the computation resulted in an error.
         """
         return not self.is_success
+
+    @property
+    def error(self) -> VMError:
+        if self._error is not None:
+            return self._error
+        raise AttributeError("Computation does not have an error")
+
+    @error.setter
+    def error(self, value: VMError) -> None:
+        if self._error is not None:
+            raise AttributeError(f"Computation already has an error set: {self._error}")
+        self._error = value
 
     def raise_if_error(self) -> None:
         """
@@ -358,7 +288,7 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
     #
     # Gas Consumption
     #
-    def get_gas_meter(self) -> GasMeter:
+    def get_gas_meter(self) -> GasMeterAPI:
         return GasMeter(self.msg.gas)
 
     def consume_gas(self, amount: int, reason: str) -> None:
@@ -481,7 +411,7 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
                               value: int,
                               data: BytesOrView,
                               code: bytes,
-                              **kwargs: Any) -> Message:
+                              **kwargs: Any) -> MessageAPI:
         """
         Helper method for creating a child computation.
         """
@@ -498,7 +428,7 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
         )
         return child_message
 
-    def apply_child_computation(self, child_msg: Message) -> 'BaseComputation':
+    def apply_child_computation(self, child_msg: MessageAPI) -> ComputationAPI:
         """
         Apply the vm message ``child_msg`` as a child computation.
         """
@@ -506,7 +436,7 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
         self.add_child_computation(child_computation)
         return child_computation
 
-    def generate_child_computation(self, child_msg: Message) -> 'BaseComputation':
+    def generate_child_computation(self, child_msg: MessageAPI) -> ComputationAPI:
         if child_msg.is_create:
             child_computation = self.__class__(
                 self.state,
@@ -521,7 +451,7 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
             ).apply_message()
         return child_computation
 
-    def add_child_computation(self, child_computation: 'BaseComputation') -> None:
+    def add_child_computation(self, child_computation: ComputationAPI) -> None:
         if child_computation.is_error:
             if child_computation.msg.is_create:
                 self.return_data = child_computation.output
@@ -569,7 +499,7 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
         self._log_entries.append(
             (self.transaction_context.get_next_log_counter(), account, topics, data))
 
-    def _get_log_entries(self) -> List[Tuple[int, bytes, Tuple[int, ...], bytes]]:
+    def get_raw_log_entries(self) -> Tuple[Tuple[int, bytes, Tuple[int, ...], bytes], ...]:
         """
         Return the log entries for this computation and its children.
 
@@ -577,20 +507,20 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
         include the sequential counter as the first element of the tuple representing every entry.
         """
         if self.is_error:
-            return []
+            return ()
         else:
-            return sorted(itertools.chain(
+            return tuple(sorted(itertools.chain(
                 self._log_entries,
-                *(child._get_log_entries() for child in self.children)
-            ))
+                *(child.get_raw_log_entries() for child in self.children)
+            )))
 
     def get_log_entries(self) -> Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]:
-        return tuple(log[1:] for log in self._get_log_entries())
+        return tuple(log[1:] for log in self.get_raw_log_entries())
 
     #
     # Context Manager API
     #
-    def __enter__(self) -> 'BaseComputation':
+    def __enter__(self) -> ComputationAPI:
         if self.logger.show_debug2:
             self.logger.debug2(
                 (
@@ -607,7 +537,10 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
 
         return self
 
-    def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
+    def __exit__(self,
+                 exc_type: Optional[Type[BaseException]],
+                 exc_value: Optional[BaseException],
+                 traceback: Optional[TracebackType]) -> Union[None, bool]:
         if exc_value and isinstance(exc_value, VMError):
             if self.logger.show_debug2:
                 self.logger.debug2(
@@ -650,18 +583,20 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
                 self._gas_meter.gas_remaining,
             )
 
+        return None
+
     #
     # State Transition
     #
     @abstractmethod
-    def apply_message(self) -> 'BaseComputation':
+    def apply_message(self) -> ComputationAPI:
         """
         Execution of a VM message.
         """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def apply_create_message(self) -> 'BaseComputation':
+    def apply_create_message(self) -> ComputationAPI:
         """
         Execution of a VM message to create a new contract.
         """
@@ -669,9 +604,9 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
 
     @classmethod
     def apply_computation(cls,
-                          state: BaseState,
-                          message: Message,
-                          transaction_context: BaseTransactionContext) -> 'BaseComputation':
+                          state: StateAPI,
+                          message: MessageAPI,
+                          transaction_context: TransactionContextAPI) -> ComputationAPI:
         """
         Perform the computation that would be triggered by the VM message.
         """
@@ -709,13 +644,13 @@ class BaseComputation(Configurable, BaseStackManipulation, ABC):
     # Opcode API
     #
     @property
-    def precompiles(self) -> Dict[Address, Callable[['BaseComputation'], Any]]:
+    def precompiles(self) -> Dict[Address, Callable[[ComputationAPI], Any]]:
         if self._precompiles is None:
             return dict()
         else:
             return self._precompiles
 
-    def get_opcode_fn(self, opcode: int) -> Opcode:
+    def get_opcode_fn(self, opcode: int) -> OpcodeAPI:
         try:
             return self.opcodes[opcode]
         except KeyError:

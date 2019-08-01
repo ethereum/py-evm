@@ -1,12 +1,6 @@
 Chain
 =====
 
-BaseChainDB
-~~~~~~~~~~~
-
-.. autoclass:: eth.db.chain.BaseChainDB
-  :members:
-
 ChainDB
 ~~~~~~~
 

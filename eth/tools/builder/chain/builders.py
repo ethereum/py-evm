@@ -30,22 +30,19 @@ from eth_utils import (
 )
 
 from eth import constants
-from eth.chains.base import (
-    BaseChain,
-    MiningChain,
+from eth.abc import (
+    AtomicDatabaseAPI,
+    BlockAPI,
+    BlockHeaderAPI,
+    ChainAPI,
+    MiningChainAPI,
+    VirtualMachineAPI,
 )
 from eth.db.atomic import AtomicDB
-from eth.db.backends.base import (
-    BaseAtomicDB,
-)
 from eth.db.backends.memory import (
     MemoryDB,
 )
-from eth.rlp.blocks import (
-    BaseBlock,
-)
 from eth.rlp.headers import (
-    BlockHeader,
     HeaderParams,
 )
 from eth.tools.mining import POWMiningMixin
@@ -63,9 +60,6 @@ from eth.typing import (
 )
 from eth.validation import (
     validate_vm_configuration,
-)
-from eth.vm.base import (
-    BaseVM,
 )
 from eth.vm.forks import (
     FrontierVM,
@@ -87,7 +81,7 @@ def build(obj: Any, *applicators: Callable[..., Any]) -> Any:
     applicators will be run on a copy of the chain and thus will not mutate the
     provided chain instance.
     """
-    if isinstance(obj, BaseChain):
+    if isinstance(obj, ChainAPI):
         return pipe(obj, copy(), *applicators)
     else:
         return pipe(obj, *applicators)
@@ -97,7 +91,7 @@ def build(obj: Any, *applicators: Callable[..., Any]) -> Any:
 # Constructors (creation of chain classes)
 #
 @curry
-def name(class_name: str, chain_class: Type[BaseChain]) -> Type[BaseChain]:
+def name(class_name: str, chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
     Assign the given name to the chain class.
     """
@@ -105,7 +99,7 @@ def name(class_name: str, chain_class: Type[BaseChain]) -> Type[BaseChain]:
 
 
 @curry
-def chain_id(chain_id: int, chain_class: Type[BaseChain]) -> Type[BaseChain]:
+def chain_id(chain_id: int, chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
     Set the ``chain_id`` for the chain class.
     """
@@ -113,7 +107,9 @@ def chain_id(chain_id: int, chain_class: Type[BaseChain]) -> Type[BaseChain]:
 
 
 @curry
-def fork_at(vm_class: Type[BaseVM], at_block: int, chain_class: Type[BaseChain]) -> Type[BaseChain]:
+def fork_at(vm_class: Type[VirtualMachineAPI],
+            at_block: int,
+            chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
     Adds the ``vm_class`` to the chain's ``vm_configuration``.
 
@@ -155,7 +151,7 @@ def fork_at(vm_class: Type[BaseVM], at_block: int, chain_class: Type[BaseChain])
     return chain_class.configure(vm_configuration=vm_configuration)
 
 
-def _is_homestead(vm_class: Type[BaseVM]) -> bool:
+def _is_homestead(vm_class: Type[VirtualMachineAPI]) -> bool:
     if not issubclass(vm_class, HomesteadVM):
         # It isn't a subclass of the HomesteadVM
         return False
@@ -176,7 +172,7 @@ def _set_vm_dao_support_false(vm_configuration: VMConfiguration) -> Iterable[VMF
 
 
 @curry
-def disable_dao_fork(chain_class: Type[BaseChain]) -> Type[BaseChain]:
+def disable_dao_fork(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
     Set the ``support_dao_fork`` flag to ``False`` on the
     :class:`~eth.vm.forks.homestead.HomesteadVM`.  Requires that presence of
@@ -208,7 +204,7 @@ def _set_vm_dao_fork_block_number(dao_fork_block_number: BlockNumber,
 
 @curry
 def dao_fork_at(dao_fork_block_number: BlockNumber,
-                chain_class: Type[BaseChain]) -> Type[BaseChain]:
+                chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
     Set the block number on which the DAO fork will happen.  Requires that a
     version of the :class:`~eth.vm.forks.homestead.HomesteadVM` is present in
@@ -279,7 +275,7 @@ def _mix_in_pow_mining(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
 
 
 @curry
-def enable_pow_mining(chain_class: Type[BaseChain]) -> Type[BaseChain]:
+def enable_pow_mining(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
     Inject on demand generation of the proof of work mining seal on newly
     mined blocks into each of the chain's vms.
@@ -293,13 +289,13 @@ def enable_pow_mining(chain_class: Type[BaseChain]) -> Type[BaseChain]:
 
 class NoChainSealValidationMixin:
     @classmethod
-    def validate_seal(cls, block: BaseBlock) -> None:
+    def validate_seal(cls, block: BlockAPI) -> None:
         pass
 
 
 class NoVMSealValidationMixin:
     @classmethod
-    def validate_seal(cls, header: BlockHeader) -> None:
+    def validate_seal(cls, header: BlockHeaderAPI) -> None:
         pass
 
 
@@ -319,7 +315,7 @@ def _mix_in_disable_seal_validation(vm_configuration: VMConfiguration) -> Iterab
 
 
 @curry
-def disable_pow_check(chain_class: Type[BaseChain]) -> Type[BaseChain]:
+def disable_pow_check(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
     Disable the proof of work validation check for each of the chain's vms.
     This allows for block mining without generation of the proof of work seal.
@@ -364,10 +360,10 @@ def _fill_and_normalize_state(simple_state: GeneralState) -> AccountState:
 
 
 @curry
-def genesis(chain_class: BaseChain,
-            db: BaseAtomicDB=None,
+def genesis(chain_class: ChainAPI,
+            db: AtomicDatabaseAPI=None,
             params: Dict[str, HeaderParams]=None,
-            state: GeneralState=None) -> BaseChain:
+            state: GeneralState=None) -> ChainAPI:
     """
     Initialize the given chain class with the given genesis header parameters
     and chain state.
@@ -385,7 +381,7 @@ def genesis(chain_class: BaseChain,
         genesis_params = merge(genesis_params_defaults, params)
 
     if db is None:
-        base_db: BaseAtomicDB = AtomicDB()
+        base_db: AtomicDatabaseAPI = AtomicDB()
     else:
         base_db = db
 
@@ -396,24 +392,24 @@ def genesis(chain_class: BaseChain,
 # Builders (build actual block chain)
 #
 @curry
-def mine_block(chain: MiningChain, **kwargs: Any) -> MiningChain:
+def mine_block(chain: MiningChainAPI, **kwargs: Any) -> MiningChainAPI:
     """
     Mine a new block on the chain.  Header parameters for the new block can be
     overridden using keyword arguments.
 
     """
-    if not isinstance(chain, MiningChain):
+    if not isinstance(chain, MiningChainAPI):
         raise ValidationError('`mine_block` may only be used on MiningChain instances')
     chain.mine_block(**kwargs)
     return chain
 
 
 @curry
-def mine_blocks(num_blocks: int, chain: MiningChain) -> MiningChain:
+def mine_blocks(num_blocks: int, chain: MiningChainAPI) -> MiningChainAPI:
     """
     Variadic argument version of :func:`~eth.tools.builder.chain.mine_block`
     """
-    if not isinstance(chain, MiningChain):
+    if not isinstance(chain, MiningChainAPI):
         raise ValidationError('`mine_block` may only be used on MiningChain instances')
     for _ in range(num_blocks):
         chain.mine_block()
@@ -421,7 +417,7 @@ def mine_blocks(num_blocks: int, chain: MiningChain) -> MiningChain:
 
 
 @curry
-def import_block(block: BaseBlock, chain: BaseChain) -> BaseChain:
+def import_block(block: BlockAPI, chain: ChainAPI) -> ChainAPI:
     """
     Import the provided ``block`` into the chain.
     """
@@ -429,12 +425,12 @@ def import_block(block: BaseBlock, chain: BaseChain) -> BaseChain:
     return chain
 
 
-def import_blocks(*blocks: BaseBlock) -> Callable[[BaseChain], BaseChain]:
+def import_blocks(*blocks: BlockAPI) -> Callable[[ChainAPI], ChainAPI]:
     """
     Variadic argument version of :func:`~eth.tools.builder.chain.import_block`
     """
     @functools.wraps(import_blocks)
-    def _import_blocks(chain: BaseChain) -> BaseChain:
+    def _import_blocks(chain: ChainAPI) -> ChainAPI:
         for block in blocks:
             chain.import_block(block)
         return chain
@@ -443,12 +439,12 @@ def import_blocks(*blocks: BaseBlock) -> Callable[[BaseChain], BaseChain]:
 
 
 @curry
-def copy(chain: MiningChain) -> MiningChain:
+def copy(chain: MiningChainAPI) -> MiningChainAPI:
     """
     Make a copy of the chain at the given state.  Actions performed on the
     resulting chain will not affect the original chain.
     """
-    if not isinstance(chain, MiningChain):
+    if not isinstance(chain, MiningChainAPI):
         raise ValidationError("`at_block_number` may only be used with 'MiningChain")
     base_db = chain.chaindb.db
     if not isinstance(base_db, AtomicDB):
@@ -463,7 +459,7 @@ def copy(chain: MiningChain) -> MiningChain:
     return chain_copy
 
 
-def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[BaseChain], Iterable[BaseChain]]:   # noqa: E501
+def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[ChainAPI], Iterable[ChainAPI]]:   # noqa: E501
     """
     Construct and execute multiple concurrent forks of the chain.
 
@@ -488,7 +484,7 @@ def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[BaseChain], 
 
     @functools.wraps(chain_split)
     @to_tuple
-    def _chain_split(chain: BaseChain) -> Iterable[BaseChain]:
+    def _chain_split(chain: ChainAPI) -> Iterable[ChainAPI]:
         for split_fns in splits:
             result = build(
                 chain,
@@ -500,13 +496,13 @@ def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[BaseChain], 
 
 
 @curry
-def at_block_number(block_number: BlockNumber, chain: MiningChain) -> MiningChain:
+def at_block_number(block_number: BlockNumber, chain: MiningChainAPI) -> MiningChainAPI:
     """
     Rewind the chain back to the given block number.  Calls to things like
     ``get_canonical_head`` will still return the canonical head of the chain,
     however, you can use ``mine_block`` to mine fork chains.
     """
-    if not isinstance(chain, MiningChain):
+    if not isinstance(chain, MiningChainAPI):
         raise ValidationError("`at_block_number` may only be used with 'MiningChain")
     at_block = chain.get_canonical_block_by_number(block_number)
 

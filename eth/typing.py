@@ -5,6 +5,7 @@ from typing import (
     Generic,
     Iterable,
     List,
+    Optional,
     NewType,
     Sequence,
     Tuple,
@@ -25,12 +26,10 @@ from mypy_extensions import (
 )
 
 if TYPE_CHECKING:
-    from eth.rlp.transactions import BaseTransaction  # noqa: F401
-    from eth.vm.spoof import SpoofTransaction  # noqa: F401
-    from eth.vm.base import BaseVM  # noqa: F401
+    from eth.abc import VirtualMachineAPI  # noqa: F401
 
 
-# TODO: Move into eth_typing
+JournalDBCheckpoint = NewType('JournalDBCheckpoint', int)
 
 AccountDetails = TypedDict('AccountDetails',
                            {'balance': int,
@@ -41,8 +40,6 @@ AccountDetails = TypedDict('AccountDetails',
 AccountState = Dict[Address, AccountDetails]
 
 AccountDiff = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
-
-BaseOrSpoofTransaction = Union['BaseTransaction', 'SpoofTransaction']
 
 GeneralState = Union[
     AccountState,
@@ -74,7 +71,7 @@ TransactionDict = TypedDict('TransactionDict',
 
 TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
 
-VMFork = Tuple[BlockNumber, Type['BaseVM']]
+VMFork = Tuple[BlockNumber, Type['VirtualMachineAPI']]
 
 VMConfiguration = Sequence[VMFork]
 
@@ -96,3 +93,6 @@ class StaticMethod(Generic[TFunc]):
 
     def __set__(self, oself: Any, value: TFunc) -> None:
         self._func = value
+
+
+HeaderParams = Union[Optional[int], bytes, Address, Hash32]

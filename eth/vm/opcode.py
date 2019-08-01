@@ -1,31 +1,27 @@
 import functools
 import logging
 
-from abc import (
-    ABC,
-    abstractmethod
-)
-
 from typing import (
     Any,
     Callable,
     cast,
     Type,
     TypeVar,
-    TYPE_CHECKING,
 )
 
 from eth.tools.logging import ExtendedDebugLogger
 
 from eth._utils.datatypes import Configurable
+from eth.abc import (
+    ComputationAPI,
+    OpcodeAPI,
+)
 
-if TYPE_CHECKING:
-    from computation import BaseComputation  # noqa: F401
 
 T = TypeVar('T')
 
 
-class Opcode(Configurable, ABC):
+class Opcode(Configurable, OpcodeAPI):
     mnemonic: str = None
     gas_cost: int = None
 
@@ -34,13 +30,6 @@ class Opcode(Configurable, ABC):
             raise TypeError("Opcode class {0} missing opcode mnemonic".format(type(self)))
         if self.gas_cost is None:
             raise TypeError("Opcode class {0} missing opcode gas_cost".format(type(self)))
-
-    @abstractmethod
-    def __call__(self, computation: 'BaseComputation') -> Any:
-        """
-        Hook for performing the actual VM execution.
-        """
-        raise NotImplementedError("Must be implemented by subclasses")
 
     @property
     def logger(self) -> ExtendedDebugLogger:
@@ -51,13 +40,13 @@ class Opcode(Configurable, ABC):
     def as_opcode(cls: Type[T],
                   logic_fn: Callable[..., Any],
                   mnemonic: str,
-                  gas_cost: int) -> Type[T]:
+                  gas_cost: int) -> T:
         """
         Class factory method for turning vanilla functions into Opcode classes.
         """
         if gas_cost:
             @functools.wraps(logic_fn)
-            def wrapped_logic_fn(computation: 'BaseComputation') -> Any:
+            def wrapped_logic_fn(computation: ComputationAPI) -> Any:
                 """
                 Wrapper functionf or the logic function which consumes the base
                 opcode gas cost prior to execution.

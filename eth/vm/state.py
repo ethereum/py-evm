@@ -1,7 +1,3 @@
-from abc import (
-    ABC,
-    abstractmethod
-)
 import contextlib
 import logging
 from typing import (
@@ -9,7 +5,6 @@ from typing import (
     Iterator,
     Tuple,
     Type,
-    TYPE_CHECKING,
 )
 from uuid import UUID
 
@@ -19,57 +14,44 @@ from eth_typing import (
 )
 from eth_utils.toolz import nth
 
+from eth.abc import (
+    AccountDatabaseAPI,
+    AtomicDatabaseAPI,
+    ComputationAPI,
+    ExecutionContextAPI,
+    MessageAPI,
+    SignedTransactionAPI,
+    StateAPI,
+    TransactionContextAPI,
+    TransactionExecutorAPI,
+)
 from eth.constants import (
     BLANK_ROOT_HASH,
     MAX_PREV_HEADER_DEPTH,
-)
-from eth.db.account import (
-    BaseAccountDB,
-)
-from eth.db.backends.base import (
-    BaseAtomicDB,
 )
 from eth.exceptions import StateRootNotFound
 from eth.tools.logging import (
     ExtendedDebugLogger,
 )
-from eth.typing import (
-    BaseOrSpoofTransaction,
-)
 from eth._utils.datatypes import (
     Configurable,
 )
-from eth.vm.execution_context import (
-    ExecutionContext,
-)
-from eth.vm.message import Message
-
-if TYPE_CHECKING:
-    from eth.computation import (  # noqa: F401
-        BaseComputation,
-    )
-    from eth.rlp.transactions import (  # noqa: F401
-        BaseTransaction,
-    )
-    from eth.vm.transaction_context import (  # noqa: F401
-        BaseTransactionContext,
-    )
 
 
-class BaseState(Configurable, ABC):
+class BaseState(Configurable, StateAPI):
     """
     The base class that encapsulates all of the various moving parts related to
     the state of the VM during execution.
-    Each :class:`~eth.vm.base.BaseVM` must be configured with a subclass of the
-    :class:`~eth.vm.state.BaseState`.
+    Each :class:`~eth.abc.VirtualMachineAPI` must be configured with a subclass of the
+    :class:`~eth.abc.StateAPI`.
 
       .. note::
 
-        Each :class:`~eth.vm.state.BaseState` class must be configured with:
+        Each :class:`~eth.abc.StateAPI` class must be configured with:
 
-        - ``computation_class``: The :class:`~eth.vm.computation.BaseComputation` class for
+        - ``computation_class``: The :class:`~eth.abc.ComputationAPI` class for
           vm execution.
-        - ``transaction_context_class``: The :class:`~eth.vm.transaction_context.TransactionContext`
+        - ``transaction_context_class``: The :class:`~eth.abc.TransactionContextAPI`
           class for vm execution.
     """
     #
@@ -77,15 +59,15 @@ class BaseState(Configurable, ABC):
     #
     __slots__ = ['_db', 'execution_context', '_account_db']
 
-    computation_class: Type['BaseComputation'] = None
-    transaction_context_class: Type['BaseTransactionContext'] = None
-    account_db_class: Type['BaseAccountDB'] = None
-    transaction_executor: Type['BaseTransactionExecutor'] = None
+    computation_class: Type[ComputationAPI] = None
+    transaction_context_class: Type[TransactionContextAPI] = None
+    account_db_class: Type[AccountDatabaseAPI] = None
+    transaction_executor_class: Type[TransactionExecutorAPI] = None
 
     def __init__(
             self,
-            db: BaseAtomicDB,
-            execution_context: ExecutionContext,
+            db: AtomicDatabaseAPI,
+            execution_context: ExecutionContextAPI,
             state_root: bytes) -> None:
         self._db = db
         self.execution_context = execution_context
@@ -142,9 +124,9 @@ class BaseState(Configurable, ABC):
     # Access to account db
     #
     @classmethod
-    def get_account_db_class(cls) -> Type[BaseAccountDB]:
+    def get_account_db_class(cls) -> Type[AccountDatabaseAPI]:
         """
-        Return the :class:`~eth.db.account.BaseAccountDB` class that the
+        Return the :class:`~eth.abc.AccountDatabaseAPI` class that the
         state class uses.
         """
         if cls.account_db_class is None:
@@ -277,8 +259,8 @@ class BaseState(Configurable, ABC):
     # Computation
     #
     def get_computation(self,
-                        message: Message,
-                        transaction_context: 'BaseTransactionContext') -> 'BaseComputation':
+                        message: MessageAPI,
+                        transaction_context: TransactionContextAPI) -> ComputationAPI:
         """
         Return a computation instance for the given `message` and `transaction_context`
         """
@@ -292,7 +274,7 @@ class BaseState(Configurable, ABC):
     # Transaction context
     #
     @classmethod
-    def get_transaction_context_class(cls) -> Type['BaseTransactionContext']:
+    def get_transaction_context_class(cls) -> Type[TransactionContextAPI]:
         """
         Return the :class:`~eth.vm.transaction_context.BaseTransactionContext` class that the
         state class uses.
@@ -306,7 +288,7 @@ class BaseState(Configurable, ABC):
     #
     def apply_transaction(
             self,
-            transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
+            transaction: SignedTransactionAPI) -> ComputationAPI:
         """
         Apply transaction to the vm state
 
@@ -318,11 +300,11 @@ class BaseState(Configurable, ABC):
         else:
             return self.execute_transaction(transaction)
 
-    def get_transaction_executor(self) -> 'BaseTransactionExecutor':
-        return self.transaction_executor(self)
+    def get_transaction_executor(self) -> TransactionExecutorAPI:
+        return self.transaction_executor_class(self)
 
     def costless_execute_transaction(self,
-                                     transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
+                                     transaction: SignedTransactionAPI) -> ComputationAPI:
         with self.override_transaction_context(gas_price=transaction.gas_price):
             free_transaction = transaction.copy(gas_price=0)
             return self.execute_transaction(free_transaction)
@@ -331,60 +313,33 @@ class BaseState(Configurable, ABC):
     def override_transaction_context(self, gas_price: int) -> Iterator[None]:
         original_context = self.get_transaction_context
 
-        def get_custom_transaction_context(transaction: 'BaseTransaction') -> 'BaseTransactionContext':   # noqa: E501
+        def get_custom_transaction_context(transaction: SignedTransactionAPI) -> TransactionContextAPI:   # noqa: E501
             custom_transaction = transaction.copy(gas_price=gas_price)
             return original_context(custom_transaction)
 
-        self.get_transaction_context = get_custom_transaction_context
+        # mypy doesn't like assigning to an existing method
+        self.get_transaction_context = get_custom_transaction_context  # type: ignore
         try:
             yield
         finally:
             self.get_transaction_context = original_context     # type: ignore # Remove ignore if https://github.com/python/mypy/issues/708 is fixed. # noqa: E501
 
-    @abstractmethod
-    def execute_transaction(self, transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
-        raise NotImplementedError()
-
-    @abstractmethod
-    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> None:
-        raise NotImplementedError
-
     @classmethod
     def get_transaction_context(cls,
-                                transaction: BaseOrSpoofTransaction) -> 'BaseTransactionContext':
+                                transaction: SignedTransactionAPI) -> TransactionContextAPI:
         return cls.get_transaction_context_class()(
             gas_price=transaction.gas_price,
             origin=transaction.sender,
         )
 
 
-class BaseTransactionExecutor(ABC):
-    def __init__(self, vm_state: BaseState) -> None:
+class BaseTransactionExecutor(TransactionExecutorAPI):
+    def __init__(self, vm_state: StateAPI) -> None:
         self.vm_state = vm_state
 
-    def __call__(self, transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
-        valid_transaction = self.validate_transaction(transaction)
-        message = self.build_evm_message(valid_transaction)
-        computation = self.build_computation(message, valid_transaction)
-        finalized_computation = self.finalize_computation(valid_transaction, computation)
+    def __call__(self, transaction: SignedTransactionAPI) -> ComputationAPI:
+        self.validate_transaction(transaction)
+        message = self.build_evm_message(transaction)
+        computation = self.build_computation(message, transaction)
+        finalized_computation = self.finalize_computation(transaction, computation)
         return finalized_computation
-
-    @abstractmethod
-    def validate_transaction(self, transaction: BaseOrSpoofTransaction) -> BaseOrSpoofTransaction:
-        raise NotImplementedError
-
-    @abstractmethod
-    def build_evm_message(self, transaction: BaseOrSpoofTransaction) -> Message:
-        raise NotImplementedError()
-
-    @abstractmethod
-    def build_computation(self,
-                          message: Message,
-                          transaction: BaseOrSpoofTransaction) -> 'BaseComputation':
-        raise NotImplementedError()
-
-    @abstractmethod
-    def finalize_computation(self,
-                             transaction: BaseOrSpoofTransaction,
-                             computation: 'BaseComputation') -> 'BaseComputation':
-        raise NotImplementedError()

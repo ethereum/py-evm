@@ -5,6 +5,11 @@ from typing import (
 from eth_utils.toolz import (
     curry,
 )
+
+from eth.abc import (
+    BlockHeaderAPI,
+    VirtualMachineAPI,
+)
 from eth.constants import (
     EMPTY_UNCLE_HASH,
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
@@ -12,18 +17,12 @@ from eth.constants import (
     BOMB_EXPONENTIAL_PERIOD,
     BOMB_EXPONENTIAL_FREE_PERIODS,
 )
-from eth.rlp.headers import (
-    BlockHeader,
-)
 from eth._utils.db import (
     get_parent_header,
 )
 from eth.validation import (
     validate_gt,
     validate_header_params_for_configuration,
-)
-from eth.vm.base import (
-    BaseVM
 )
 from eth.vm.forks.frontier.headers import (
     create_frontier_header_from_parent,
@@ -37,7 +36,7 @@ from .constants import (
 @curry
 def compute_difficulty(
         bomb_delay: int,
-        parent_header: BlockHeader,
+        parent_header: BlockHeaderAPI,
         timestamp: int) -> int:
     """
     https://github.com/ethereum/EIPs/issues/100
@@ -74,9 +73,9 @@ def compute_difficulty(
 
 
 @curry
-def create_header_from_parent(difficulty_fn: Callable[[BlockHeader, int], int],
-                              parent_header: BlockHeader,
-                              **header_params: Any) -> BlockHeader:
+def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int],
+                              parent_header: BlockHeaderAPI,
+                              **header_params: Any) -> BlockHeaderAPI:
 
     if 'difficulty' not in header_params:
         header_params.setdefault('timestamp', parent_header.timestamp + 1)
@@ -89,9 +88,9 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeader, int], int],
 
 
 @curry
-def configure_header(difficulty_fn: Callable[[BlockHeader, int], int],
-                     vm: BaseVM,
-                     **header_params: Any) -> BlockHeader:
+def configure_header(difficulty_fn: Callable[[BlockHeaderAPI, int], int],
+                     vm: VirtualMachineAPI,
+                     **header_params: Any) -> BlockHeaderAPI:
     validate_header_params_for_configuration(header_params)
 
     with vm.get_header().build_changeset(**header_params) as changeset:

@@ -1,5 +1,5 @@
 import functools
-from typing import Dict, Tuple, Union
+from typing import Dict, Sequence, Tuple, Union
 
 import rlp
 from trie import (
@@ -8,13 +8,15 @@ from trie import (
 
 from eth_typing import Hash32
 
+from eth.abc import (
+    ReceiptAPI,
+    SignedTransactionAPI,
+)
 from eth.constants import (
     BLANK_ROOT_HASH,
 )
-from eth.rlp.receipts import Receipt
-from eth.rlp.transactions import BaseTransaction
 
-TransactionsOrReceipts = Union[Tuple[Receipt, ...], Tuple[BaseTransaction, ...]]
+TransactionsOrReceipts = Union[Sequence[ReceiptAPI], Sequence[SignedTransactionAPI]]
 TrieRootAndData = Tuple[Hash32, Dict[Hash32, bytes]]
 
 

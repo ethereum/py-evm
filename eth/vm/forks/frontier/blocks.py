@@ -1,6 +1,6 @@
 from typing import (
-    Iterable,
-    List,
+    Sequence,
+    Tuple,
     Type,
 )
 
@@ -19,14 +19,15 @@ from eth_typing import (
 
 from eth_hash.auto import keccak
 
+from eth.abc import (
+    BlockHeaderAPI,
+    ChainDatabaseAPI,
+    ReceiptAPI,
+    SignedTransactionAPI,
+)
 from eth.constants import (
     EMPTY_UNCLE_HASH,
 )
-
-from eth.db.chain import (
-    BaseChainDB,
-)
-
 from eth.rlp.blocks import (
     BaseBlock,
 )
@@ -35,9 +36,6 @@ from eth.rlp.headers import (
 )
 from eth.rlp.receipts import (
     Receipt,
-)
-from eth.rlp.transactions import (
-    BaseTransaction,
 )
 
 from .transactions import (
@@ -56,9 +54,9 @@ class FrontierBlock(BaseBlock):
     bloom_filter = None
 
     def __init__(self,
-                 header: BlockHeader,
-                 transactions: Iterable[BaseTransaction]=None,
-                 uncles: Iterable[BlockHeader]=None) -> None:
+                 header: BlockHeaderAPI,
+                 transactions: Sequence[SignedTransactionAPI]=None,
+                 uncles: Sequence[BlockHeaderAPI]=None) -> None:
         if transactions is None:
             transactions = []
         if uncles is None:
@@ -88,25 +86,25 @@ class FrontierBlock(BaseBlock):
     # Transaction class for this block class
     #
     @classmethod
-    def get_transaction_class(cls) -> Type[BaseTransaction]:
+    def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
         return cls.transaction_class
 
     #
     # Receipts API
     #
-    def get_receipts(self, chaindb: BaseChainDB) -> Iterable[Receipt]:
+    def get_receipts(self, chaindb: ChainDatabaseAPI) -> Tuple[ReceiptAPI, ...]:
         return chaindb.get_receipts(self.header, Receipt)
 
     #
     # Header API
     #
     @classmethod
-    def from_header(cls, header: BlockHeader, chaindb: BaseChainDB) -> BaseBlock:
+    def from_header(cls, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> "FrontierBlock":
         """
         Returns the block denoted by the given block header.
         """
         if header.uncles_hash == EMPTY_UNCLE_HASH:
-            uncles: List[BlockHeader] = []
+            uncles: Tuple[BlockHeader, ...] = ()
         else:
             uncles = chaindb.get_block_uncles(header.uncles_hash)
 
@@ -121,7 +119,7 @@ class FrontierBlock(BaseBlock):
     #
     # Execution API
     #
-    def add_uncle(self, uncle: BlockHeader) -> "FrontierBlock":
+    def add_uncle(self, uncle: BlockHeaderAPI) -> "FrontierBlock":
         self.uncles.append(uncle)
         self.header.uncles_hash = keccak(rlp.encode(self.uncles))
         return self

@@ -4,10 +4,10 @@ from eth_utils import (
 )
 
 from eth import constants
+from eth.abc import ComputationAPI
 from eth.exceptions import (
     OutOfGas,
 )
-from eth.vm.computation import BaseComputation
 from eth.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
@@ -24,7 +24,7 @@ class SpuriousDragonComputation(HomesteadComputation):
     # Override
     opcodes = SPURIOUS_DRAGON_OPCODES
 
-    def apply_create_message(self) -> BaseComputation:
+    def apply_create_message(self) -> ComputationAPI:
         snapshot = self.state.snapshot()
 
         # EIP161 nonce incrementation
@@ -39,7 +39,7 @@ class SpuriousDragonComputation(HomesteadComputation):
             contract_code = computation.output
 
             if contract_code and len(contract_code) >= EIP170_CODE_SIZE_LIMIT:
-                computation._error = OutOfGas(
+                computation.error = OutOfGas(
                     "Contract code size exceeds EIP170 limit of {0}.  Got code of "
                     "size: {1}".format(
                         EIP170_CODE_SIZE_LIMIT,
@@ -57,7 +57,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                 except OutOfGas as err:
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
-                    computation._error = err
+                    computation.error = err
                     self.state.revert(snapshot)
                 else:
                     if self.logger:

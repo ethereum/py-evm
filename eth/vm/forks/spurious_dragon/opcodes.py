@@ -1,7 +1,9 @@
 import copy
+from typing import Dict
 
 from eth_utils.toolz import merge
 
+from eth.abc import OpcodeAPI
 from eth.vm.forks.tangerine_whistle.constants import (
     GAS_SELFDESTRUCT_EIP150,
     GAS_CALL_EIP150
@@ -41,7 +43,7 @@ UPDATED_OPCODES = {
 }
 
 
-SPURIOUS_DRAGON_OPCODES = merge(
+SPURIOUS_DRAGON_OPCODES: Dict[int, OpcodeAPI] = merge(
     copy.deepcopy(TANGERINE_WHISTLE_OPCODES),
     UPDATED_OPCODES,
 )

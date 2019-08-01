@@ -21,8 +21,12 @@ from trie import (
 from eth._utils.padding import (
     pad32,
 )
+from eth.abc import (
+    AccountStorageDatabaseAPI,
+    AtomicDatabaseAPI,
+    DatabaseAPI,
+)
 from eth.db.backends.base import (
-    BaseAtomicDB,
     BaseDB,
 )
 from eth.db.batch import (
@@ -34,14 +38,14 @@ from eth.db.cache import (
 from eth.db.journal import (
     JournalDB,
 )
-from eth.db.typing import (
-    JournalDBCheckpoint,
-)
 from eth.vm.interrupt import (
     MissingStorageTrieNode,
 )
 from eth.tools.logging import (
     ExtendedDebugLogger
+)
+from eth.typing import (
+    JournalDBCheckpoint,
 )
 
 
@@ -54,7 +58,7 @@ class StorageLookup(BaseDB):
     """
     logger = cast(ExtendedDebugLogger, logging.getLogger("eth.db.storage.StorageLookup"))
 
-    def __init__(self, db: BaseDB, storage_root: Hash32, address: Address) -> None:
+    def __init__(self, db: DatabaseAPI, storage_root: Hash32, address: Address) -> None:
         self._db = db
         self._starting_root_hash = storage_root
         self._address = address
@@ -136,7 +140,7 @@ class StorageLookup(BaseDB):
         self._trie_nodes_batch = None
         self._starting_root_hash = None
 
-    def commit_to(self, db: BaseDB) -> None:
+    def commit_to(self, db: DatabaseAPI) -> None:
         """
         Trying to commit changes when nothing has been written will raise a
         ValidationError
@@ -151,14 +155,14 @@ class StorageLookup(BaseDB):
         self._clear_changed_root()
 
 
-class AccountStorageDB:
+class AccountStorageDB(AccountStorageDatabaseAPI):
     """
     Storage cache and write batch for a single account. Changes are not
     merklized until :meth:`make_storage_root` is called.
     """
     logger = cast(ExtendedDebugLogger, logging.getLogger("eth.db.storage.AccountStorageDB"))
 
-    def __init__(self, db: BaseAtomicDB, storage_root: Hash32, address: Address) -> None:
+    def __init__(self, db: AtomicDatabaseAPI, storage_root: Hash32, address: Address) -> None:
         """
         Database entries go through several pipes, like so...
 
@@ -267,7 +271,7 @@ class AccountStorageDB:
     def get_changed_root(self) -> Hash32:
         return self._storage_lookup.get_changed_root()
 
-    def persist(self, db: BaseDB) -> None:
+    def persist(self, db: DatabaseAPI) -> None:
         self._validate_flushed()
         if self._storage_lookup.has_changed_root:
             self._storage_lookup.commit_to(db)

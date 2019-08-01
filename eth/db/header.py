@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import functools
 from typing import Iterable, Tuple
 
@@ -21,6 +20,12 @@ from eth_typing import (
     BlockNumber,
 )
 
+from eth.abc import (
+    AtomicDatabaseAPI,
+    BlockHeaderAPI,
+    DatabaseAPI,
+    HeaderDatabaseAPI,
+)
 from eth.constants import (
     GENESIS_PARENT_HASH,
 )
@@ -28,10 +33,6 @@ from eth.exceptions import (
     CanonicalHeadNotFound,
     HeaderNotFound,
     ParentNotFound,
-)
-from eth.db.backends.base import (
-    BaseAtomicDB,
-    BaseDB,
 )
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import BlockHeader
@@ -41,56 +42,10 @@ from eth.validation import (
 )
 
 
-class BaseHeaderDB(ABC):
-    db: BaseAtomicDB = None
-
-    def __init__(self, db: BaseAtomicDB) -> None:
+class HeaderDB(HeaderDatabaseAPI):
+    def __init__(self, db: AtomicDatabaseAPI) -> None:
         self.db = db
 
-    #
-    # Canonical Chain API
-    #
-    @abstractmethod
-    def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_canonical_head(self) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    #
-    # Header API
-    #
-    @abstractmethod
-    def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def get_score(self, block_hash: Hash32) -> int:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def header_exists(self, block_hash: Hash32) -> bool:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def persist_header(self,
-                       header: BlockHeader
-                       ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-    @abstractmethod
-    def persist_header_chain(self,
-                             headers: Iterable[BlockHeader]
-                             ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
-        raise NotImplementedError("ChainDB classes must implement this method")
-
-
-class HeaderDB(BaseHeaderDB):
     #
     # Canonical Chain API
     #
@@ -104,7 +59,7 @@ class HeaderDB(BaseHeaderDB):
         return self._get_canonical_block_hash(self.db, block_number)
 
     @staticmethod
-    def _get_canonical_block_hash(db: BaseDB, block_number: BlockNumber) -> Hash32:
+    def _get_canonical_block_hash(db: DatabaseAPI, block_number: BlockNumber) -> Hash32:
         validate_block_number(block_number)
         number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block_number)
 
@@ -117,7 +72,7 @@ class HeaderDB(BaseHeaderDB):
         else:
             return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
 
-    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:
+    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
         """
         Returns the block header with the given number in the canonical chain.
 
@@ -129,20 +84,20 @@ class HeaderDB(BaseHeaderDB):
     @classmethod
     def _get_canonical_block_header_by_number(
             cls,
-            db: BaseDB,
-            block_number: BlockNumber) -> BlockHeader:
+            db: DatabaseAPI,
+            block_number: BlockNumber) -> BlockHeaderAPI:
         validate_block_number(block_number)
         canonical_block_hash = cls._get_canonical_block_hash(db, block_number)
         return cls._get_block_header_by_hash(db, canonical_block_hash)
 
-    def get_canonical_head(self) -> BlockHeader:
+    def get_canonical_head(self) -> BlockHeaderAPI:
         """
         Returns the current block header at the head of the chain.
         """
         return self._get_canonical_head(self.db)
 
     @classmethod
-    def _get_canonical_head(cls, db: BaseDB) -> BlockHeader:
+    def _get_canonical_head(cls, db: DatabaseAPI) -> BlockHeaderAPI:
         try:
             canonical_head_hash = db[SchemaV1.make_canonical_head_hash_lookup_key()]
         except KeyError:
@@ -152,11 +107,11 @@ class HeaderDB(BaseHeaderDB):
     #
     # Header API
     #
-    def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+    def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeaderAPI:
         return self._get_block_header_by_hash(self.db, block_hash)
 
     @staticmethod
-    def _get_block_header_by_hash(db: BaseDB, block_hash: Hash32) -> BlockHeader:
+    def _get_block_header_by_hash(db: DatabaseAPI, block_hash: Hash32) -> BlockHeaderAPI:
         """
         Returns the requested block header as specified by block hash.
 
@@ -174,7 +129,7 @@ class HeaderDB(BaseHeaderDB):
         return self._get_score(self.db, block_hash)
 
     @staticmethod
-    def _get_score(db: BaseDB, block_hash: Hash32) -> int:
+    def _get_score(db: DatabaseAPI, block_hash: Hash32) -> int:
         try:
             encoded_score = db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
         except KeyError:
@@ -186,18 +141,18 @@ class HeaderDB(BaseHeaderDB):
         return self._header_exists(self.db, block_hash)
 
     @staticmethod
-    def _header_exists(db: BaseDB, block_hash: Hash32) -> bool:
+    def _header_exists(db: DatabaseAPI, block_hash: Hash32) -> bool:
         validate_word(block_hash, title="Block Hash")
         return block_hash in db
 
     def persist_header(self,
-                       header: BlockHeader
-                       ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+                       header: BlockHeaderAPI
+                       ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         return self.persist_header_chain((header,))
 
     def persist_header_chain(self,
-                             headers: Iterable[BlockHeader]
-                             ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+                             headers: Iterable[BlockHeaderAPI]
+                             ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         """
         Return two iterable of headers, the first containing the new canonical headers,
         the second containing the old canonical headers
@@ -208,8 +163,8 @@ class HeaderDB(BaseHeaderDB):
     @classmethod
     def _set_hash_scores_to_db(
             cls,
-            db: BaseDB,
-            header: BlockHeader,
+            db: DatabaseAPI,
+            header: BlockHeaderAPI,
             score: int
     ) -> int:
         new_score = score + header.difficulty
@@ -224,9 +179,9 @@ class HeaderDB(BaseHeaderDB):
     @classmethod
     def _persist_header_chain(
             cls,
-            db: BaseDB,
-            headers: Iterable[BlockHeader]
-    ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+            db: DatabaseAPI,
+            headers: Iterable[BlockHeaderAPI]
+    ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         headers_iterator = iter(headers)
 
         try:
@@ -283,8 +238,8 @@ class HeaderDB(BaseHeaderDB):
         return tuple(), tuple()
 
     @classmethod
-    def _set_as_canonical_chain_head(cls, db: BaseDB, block_hash: Hash32
-                                     ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+    def _set_as_canonical_chain_head(cls, db: DatabaseAPI, block_hash: Hash32
+                                     ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:  # noqa: E501
         """
         Sets the canonical chain HEAD to the block header as specified by the
         given block hash.
@@ -321,7 +276,9 @@ class HeaderDB(BaseHeaderDB):
 
     @classmethod
     @to_tuple
-    def _find_new_ancestors(cls, db: BaseDB, header: BlockHeader) -> Iterable[BlockHeader]:
+    def _find_new_ancestors(cls,
+                            db: DatabaseAPI,
+                            header: BlockHeaderAPI) -> Iterable[BlockHeaderAPI]:
         """
         Returns the chain leading up from the given header until (but not including)
         the first ancestor it has in common with our canonical chain.
@@ -354,7 +311,7 @@ class HeaderDB(BaseHeaderDB):
                 h = cls._get_block_header_by_hash(db, h.parent_hash)
 
     @staticmethod
-    def _add_block_number_to_hash_lookup(db: BaseDB, header: BlockHeader) -> None:
+    def _add_block_number_to_hash_lookup(db: DatabaseAPI, header: BlockHeaderAPI) -> None:
         """
         Sets a record in the database to allow looking up this header by its
         block number.
@@ -372,14 +329,14 @@ class AsyncHeaderDB(HeaderDB):
     async def coro_get_score(self, block_hash: Hash32) -> int:
         raise NotImplementedError()
 
-    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeaderAPI:
         raise NotImplementedError()
 
-    async def coro_get_canonical_head(self) -> BlockHeader:
+    async def coro_get_canonical_head(self) -> BlockHeaderAPI:
         raise NotImplementedError()
 
     async def coro_get_canonical_block_header_by_number(
-            self, block_number: BlockNumber) -> BlockHeader:
+            self, block_number: BlockNumber) -> BlockHeaderAPI:
         raise NotImplementedError()
 
     async def coro_header_exists(self, block_hash: Hash32) -> bool:
@@ -388,11 +345,12 @@ class AsyncHeaderDB(HeaderDB):
     async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         raise NotImplementedError()
 
-    async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
+    async def coro_persist_header(self, header: BlockHeaderAPI) -> Tuple[BlockHeaderAPI, ...]:
         raise NotImplementedError()
 
     async def coro_persist_header_chain(self,
-                                        headers: Iterable[BlockHeader]) -> Tuple[BlockHeader, ...]:
+                                        headers: Iterable[BlockHeaderAPI],
+                                        ) -> Tuple[BlockHeaderAPI, ...]:
         raise NotImplementedError()
 
 
@@ -401,5 +359,5 @@ class AsyncHeaderDB(HeaderDB):
 # relatively expensive so we cache that here, but use a small cache because we *should* only
 # be looking up recent blocks.
 @functools.lru_cache(128)
-def _decode_block_header(header_rlp: bytes) -> BlockHeader:
+def _decode_block_header(header_rlp: bytes) -> BlockHeaderAPI:
     return rlp.decode(header_rlp, sedes=BlockHeader)

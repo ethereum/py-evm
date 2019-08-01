@@ -21,11 +21,14 @@ from .constants import (
 )
 from eth import constants as eth_constants
 
+from eth.abc import (
+    BlockHeaderAPI,
+    VirtualMachineAPI,
+)
 from eth.chains.base import (
     Chain,
 )
 from eth.rlp.headers import BlockHeader
-from eth.vm.base import BaseVM
 from eth.vm.forks import (
     ByzantiumVM,
     FrontierVM,
@@ -41,8 +44,8 @@ class MainnetDAOValidatorVM(HomesteadVM):
 
     @classmethod
     def validate_header(cls,
-                        header: BlockHeader,
-                        previous_header: BlockHeader,
+                        header: BlockHeaderAPI,
+                        previous_header: BlockHeaderAPI,
                         check_seal: bool=True) -> None:
 
         super().validate_header(header, previous_header, check_seal)
@@ -95,7 +98,7 @@ MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
 
 class BaseMainnetChain:
     chain_id = MAINNET_CHAIN_ID
-    vm_configuration: Tuple[Tuple[int, Type[BaseVM]], ...] = MAINNET_VM_CONFIGURATION
+    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...] = MAINNET_VM_CONFIGURATION
 
 
 class MainnetChain(BaseMainnetChain, Chain):

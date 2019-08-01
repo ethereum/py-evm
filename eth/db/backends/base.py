@@ -1,24 +1,14 @@
-from abc import (
-    ABC,
-    abstractmethod
-)
-from collections.abc import (
-    MutableMapping,
-)
-
 from typing import (
-    Any,
     Iterator,
-    TYPE_CHECKING,
 )
 
-if TYPE_CHECKING:
-    MM = MutableMapping[bytes, bytes]
-else:
-    MM = MutableMapping
+from eth.abc import (
+    AtomicDatabaseAPI,
+    DatabaseAPI,
+)
 
 
-class BaseDB(MM, ABC):
+class BaseDB(DatabaseAPI):
     """
     This is an abstract key/value lookup with all :class:`bytes` values,
     with some convenience methods for databases. As much as possible,
@@ -33,13 +23,6 @@ class BaseDB(MM, ABC):
     Subclasses may optionally implement an _exists method
     that is type-checked for key and value.
     """
-
-    @abstractmethod
-    def __init__(self) -> None:
-        raise NotImplementedError(
-            "The `init` method must be implemented by subclasses of BaseDB"
-        )
-
     def set(self, key: bytes, value: bytes) -> None:
         self[key] = value
 
@@ -66,7 +49,7 @@ class BaseDB(MM, ABC):
         raise NotImplementedError("By default, DB classes cannot return the total number of keys.")
 
 
-class BaseAtomicDB(BaseDB):
+class BaseAtomicDB(BaseDB, AtomicDatabaseAPI):
     """
     This is an abstract key/value lookup that permits batching of updates, such that the batch of
     changes are atomically saved. They are either all saved, or none are.
@@ -91,6 +74,4 @@ class BaseAtomicDB(BaseDB):
             # when exiting the context, the values are saved either key and key2 will both be saved,
             # or neither will
     """
-    @abstractmethod
-    def atomic_batch(self) -> Any:
-        raise NotImplementedError
+    pass
