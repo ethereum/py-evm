@@ -22,10 +22,16 @@ from eth.db.schema import SchemaTurbo
 from eth.rlp.accounts import Account
 
 
+"""
+TODO: Decide on the best interface for returning changes:
+- diff.get_slot_change() -> [old, new]
+- diff.get_slot_change(new=FAlse) -> old
+- diff.get_slot_change(kind=BlockDiff.OLD) -> old
+- diff.get_old_slot_value() & diff.get_new_slot_value()
+"""
+
+
 class BlockDiff:
-    """
-    TODO: I'm not sure where this class belongs
-    """
 
     def __init__(self, block_hash: Hash32) -> None:
         self.block_hash = block_hash

@@ -18,8 +18,6 @@ TODO: Some tests remain to be written:
 - Test that this behavior is trigger during block import (if Turbo-mode is enabled)
 - Test that this works even under calls to things like commit() and snapshot()
 - Test that these diffs can be applied to something and the correct resulting state obtained
-- What happens when delete_storage is called? Do all the items change?
-  Maybe just the deletion is recorded?
 """
 
 
@@ -159,3 +157,22 @@ def test_delete_account(account_db):
 
     assert old_account.balance == 100
     assert new_account is None
+
+
+def test_delete_storage(account_db):
+    """
+    This is only called before a CREATE message is processed, and CREATE messages are not
+    allowed to overwrite non-empty storage tries (search for "collisions" in EIP 1014), so
+    this operation *should* always be a no-op. Here's a quick check to ensure block diff
+    handles it gracefully.
+    """
+
+    account_db.set_balance(ACCOUNT, 10)
+    account_db.delete_storage(ACCOUNT)
+    account_db.persist_with_block_diff(BLOCK_HASH)
+
+    diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
+    assert diff.get_changed_slots(ACCOUNT) == set()
+
+    new_account = diff.get_decoded_account(ACCOUNT, new=True)
+    assert new_account.balance == 10
