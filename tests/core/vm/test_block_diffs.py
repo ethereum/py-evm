@@ -18,6 +18,8 @@ TODO: Some tests remain to be written:
 - Test that this behavior is trigger during block import (if Turbo-mode is enabled)
 - Test that this works even under calls to things like commit() and snapshot()
 - Test that these diffs can be applied to something and the correct resulting state obtained
+- What happens when delete_storage is called? Do all the items change?
+  Maybe just the deletion is recorded?
 """
 
 
@@ -53,7 +55,7 @@ def test_can_persist_changed_account(base_db):
     orig.write_to(base_db)
 
     block_diff = BlockDiff.from_db(base_db, BLOCK_HASH)
-    assert block_diff.get_changed_accounts() == (ACCOUNT,)
+    assert block_diff.get_changed_accounts() == {ACCOUNT}
     assert block_diff.get_account(ACCOUNT, new=True) == b'new'
     assert block_diff.get_account(ACCOUNT, new=False) == b'old'
 
@@ -66,7 +68,7 @@ def test_account_diffs(account_db):
     account_db.persist_with_block_diff(BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
-    assert diff.get_changed_accounts() == (ACCOUNT, )
+    assert diff.get_changed_accounts() == {ACCOUNT}
     new_account = diff.get_decoded_account(ACCOUNT, new=True)
     assert new_account.nonce == 10
 
@@ -78,15 +80,10 @@ def test_persists_storage_changes(account_db):
     account_db.persist_with_block_diff(BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
-    assert diff.get_changed_accounts() == (ACCOUNT, )
+    assert diff.get_changed_accounts() == {ACCOUNT}
 
-    key = int_to_big_endian(1)
-
-    # TODO: provide some interface, this shouldn't be reading items directly out of the diff
-    assert ACCOUNT in diff.changed_storage_items
-    assert tuple(diff.changed_storage_items[ACCOUNT].keys()) == (key,)
-    assert diff.changed_storage_items[ACCOUNT][key].old == bytes([0])
-    assert diff.changed_storage_items[ACCOUNT][key].new == bytes([10])
+    assert diff.get_changed_slots(ACCOUNT) == {1}
+    assert diff.get_slot_change(ACCOUNT, 1) == (0, 10)
 
 
 def test_persists_state_root(account_db):
@@ -109,7 +106,7 @@ def test_persists_state_root(account_db):
     # The new state root should have been included as part of the diff.
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
-    assert diff.get_changed_accounts() == (ACCOUNT, )
+    assert diff.get_changed_accounts() == {ACCOUNT}
     new_account = diff.get_decoded_account(ACCOUNT, new=True)
     assert new_account.storage_root == expected_root
 
@@ -122,15 +119,10 @@ def test_two_storage_changes(account_db):
     account_db.persist_with_block_diff(BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
-    assert diff.get_changed_accounts() == (ACCOUNT, )
+    assert diff.get_changed_accounts() == {ACCOUNT}
 
-    key = int_to_big_endian(1)
-
-    # TODO: provide some interface, this shouldn't be reading items directly out of the diff
-    assert ACCOUNT in diff.changed_storage_items
-    assert tuple(diff.changed_storage_items[ACCOUNT].keys()) == (key,)
-    assert diff.changed_storage_items[ACCOUNT][key].old == bytes([10])
-    assert diff.changed_storage_items[ACCOUNT][key].new == bytes([20])
+    assert diff.get_changed_slots(ACCOUNT) == {1}
+    assert diff.get_slot_change(ACCOUNT, 1) == (10, 20)
 
 
 def test_account_and_storage_change(account_db):
@@ -140,7 +132,7 @@ def test_account_and_storage_change(account_db):
     account_db.persist_with_block_diff(BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
-    assert diff.get_changed_accounts() == (ACCOUNT, )
+    assert diff.get_changed_accounts() == {ACCOUNT}
 
     old_account = diff.get_decoded_account(ACCOUNT, new=False)
     assert old_account is None
@@ -149,7 +141,8 @@ def test_account_and_storage_change(account_db):
     assert new_account.storage_root != BLANK_ROOT_HASH
     assert new_account.balance == 100
 
-    # TODO: also verify that the storage items have changed
+    assert diff.get_changed_slots(ACCOUNT) == {1}
+    assert diff.get_slot_change(ACCOUNT, 1) == (0, 10)
 
 
 def test_delete_account(account_db):
@@ -160,7 +153,7 @@ def test_delete_account(account_db):
     account_db.persist_with_block_diff(BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
-    assert diff.get_changed_accounts() == (ACCOUNT, )
+    assert diff.get_changed_accounts() == {ACCOUNT}
     old_account = diff.get_decoded_account(ACCOUNT, new=False)
     new_account = diff.get_decoded_account(ACCOUNT, new=True)
 

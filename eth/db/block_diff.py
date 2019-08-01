@@ -1,10 +1,9 @@
 from collections import defaultdict
 from typing import (
-    cast,
     Dict,
     Iterable,
-    NamedTuple,
     Optional,
+    Set,
     Tuple,
 )
 
@@ -12,16 +11,15 @@ from eth_typing import (
     Address,
     Hash32,
 )
+from eth_utils import (
+    big_endian_to_int,
+    to_tuple
+)
 import rlp
 
 from eth.db.backends.base import BaseDB
 from eth.db.schema import SchemaTurbo
 from eth.rlp.accounts import Account
-
-
-class Change(NamedTuple):
-    old: object
-    new: object
 
 
 class BlockDiff:
@@ -32,36 +30,56 @@ class BlockDiff:
     def __init__(self, block_hash: Hash32) -> None:
         self.block_hash = block_hash
 
-        self.changed_accounts: Dict[Address, Change] = dict()
-        self.changed_storage_items: Dict[Address, Dict[int, Change]] = defaultdict(dict)
+        self.old_account_values: Dict[Address, Optional[bytes]] = dict()
+        self.new_account_values: Dict[Address, Optional[bytes]] = dict()
 
-    def set_account_changed(self, address: Address, old: bytes, new: bytes) -> None:
-        self.changed_accounts[address] = Change(old, new)
+        SLOT_TO_VALUE = Dict[int, bytes]
+        self.old_storage_items: Dict[Address, SLOT_TO_VALUE] = defaultdict(dict)
+        self.new_storage_items: Dict[Address, SLOT_TO_VALUE] = defaultdict(dict)
 
-    def set_storage_changed(self, address: Address, slot: int, old: bytes, new: bytes) -> None:
-        self.changed_storage_items[address][slot] = Change(old, new)
+    def set_account_changed(self, address: Address, old_value: bytes, new_value: bytes) -> None:
+        self.old_account_values[address] = old_value
+        self.new_account_values[address] = new_value
 
-    def get_changed_accounts(self) -> Iterable[Address]:
-        return tuple(
-            set(self.changed_accounts.keys()) | set(self.changed_storage_items.keys())
-        )
+    def set_storage_changed(self, address: Address, slot: int,
+                            old_value: bytes, new_value: bytes) -> None:
+        self.old_storage_items[address][slot] = old_value
+        self.new_storage_items[address][slot] = new_value
 
-    def get_changed_storage_items(self) -> Iterable[Tuple[Address, int, int, int]]:
-        def storage_items_to_diff(item: Dict[int, Change]) -> Iterable[Tuple[int, int, int]]:
-            return [
-                (key, cast(int, change.old), cast(int, change.new))
-                for key, change in item.items()
-            ]
+    def get_changed_accounts(self) -> Set[Address]:
+        return set(self.old_account_values.keys()) | set(self.old_storage_items.keys())
 
-        return [
-            (acct, key, old_value, new_value)
-            for acct, value in self.changed_storage_items.items()
-            for key, old_value, new_value in storage_items_to_diff(value)
-        ]
+    @to_tuple
+    def get_changed_storage_items(self) -> Iterable[Tuple[Address, int, bytes, bytes]]:
+        for address in self.old_storage_items.keys():
+            new_items = self.new_storage_items[address]
+            old_items = self.old_storage_items[address]
+            for slot in old_items.keys():
+                yield address, slot, old_items[slot], new_items[slot]
+
+    def get_changed_slots(self, address: Address) -> Set[int]:
+        """
+        Returns which slots changed for the given account.
+        """
+        if address not in self.old_storage_items.keys():
+            return set()
+
+        return set(self.old_storage_items[address].keys())
+
+    def get_slot_change(self, address: Address, slot: int) -> Tuple[int, int]:
+        if address not in self.old_storage_items:
+            raise Exception(f'account {address} did not change')
+        old_values = self.old_storage_items[address]
+
+        if slot not in old_values:
+            raise Exception(f"{address}'s slot {slot} did not change")
+
+        new_values = self.new_storage_items[address]
+        return big_endian_to_int(old_values[slot]), big_endian_to_int(new_values[slot])
 
     def get_account(self, address: Address, new: bool = True) -> bytes:
-        change = self.changed_accounts[address]
-        return cast(bytes, change.new) if new else cast(bytes, change.old)
+        dictionary = self.new_account_values if new else self.old_account_values
+        return dictionary[address]
 
     def get_decoded_account(self, address: Address, new: bool = True) -> Optional[Account]:
         encoded = self.get_account(address, new)
@@ -86,7 +104,8 @@ class BlockDiff:
             block_diff.set_account_changed(key, old, new)
 
         for key, slot, old, new in storage_items:
-            block_diff.set_storage_changed(key, slot, old, new)
+            decoded_slot = big_endian_to_int(slot)  # rlp.encode turns our ints into bytes
+            block_diff.set_storage_changed(key, decoded_slot, old, new)
 
         return block_diff
 
@@ -95,8 +114,8 @@ class BlockDiff:
         # TODO: this should probably verify that the state roots have all been added
 
         accounts = [
-            [key, value.old, value.new]
-            for key, value in self.changed_accounts.items()
+            [address, self.old_account_values[address], self.new_account_values[address]]
+            for address in self.old_account_values.keys()
         ]
 
         storage_items = self.get_changed_storage_items()
