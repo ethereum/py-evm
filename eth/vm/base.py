@@ -679,9 +679,13 @@ class VM(BaseVM):
 
         # TODO: only do this if we're in turbo mode
         # TODO: will we always know the hash here?
-        self.state.persist_with_block_diff(block.hash)
+        block_diff = self.state.persist_returning_block_diff()
 
-        return block.copy(header=block.header.copy(state_root=self.state.state_root))
+        result = block.copy(header=block.header.copy(state_root=self.state.state_root))
+
+        basedb = self.chaindb.db
+        block_diff.write_to(basedb, result.hash)
+        return result
 
     def pack_block(self, block: BaseBlock, *args: Any, **kwargs: Any) -> BaseBlock:
         """

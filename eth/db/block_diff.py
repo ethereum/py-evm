@@ -33,9 +33,7 @@ TODO: Decide on the best interface for returning changes:
 
 class BlockDiff:
 
-    def __init__(self, block_hash: Hash32) -> None:
-        self.block_hash = block_hash
-
+    def __init__(self) -> None:
         self.old_account_values: Dict[Address, Optional[bytes]] = dict()
         self.new_account_values: Dict[Address, Optional[bytes]] = dict()
 
@@ -104,7 +102,7 @@ class BlockDiff:
 
         accounts, storage_items = diff
 
-        block_diff = cls(block_hash)
+        block_diff = cls()
 
         for key, old, new in accounts:
             block_diff.set_account_changed(key, old, new)
@@ -115,7 +113,7 @@ class BlockDiff:
 
         return block_diff
 
-    def write_to(self, db: BaseDB) -> None:
+    def write_to(self, db: BaseDB, block_hash: Hash32) -> None:
 
         # TODO: this should probably verify that the state roots have all been added
 
@@ -132,4 +130,4 @@ class BlockDiff:
         ]
 
         encoded_diff = rlp.encode(diff)
-        db[SchemaTurbo.make_block_diff_lookup_key(self.block_hash)] = encoded_diff
+        db[SchemaTurbo.make_block_diff_lookup_key(block_hash)] = encoded_diff

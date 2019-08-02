@@ -37,6 +37,7 @@ deps = {
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.18.1",
+        "vyper==0.1.0b11",
     ],
     'lint': [
         "flake8==3.5.0",

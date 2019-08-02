@@ -40,17 +40,17 @@ def test_no_such_diff_raises_key_error(base_db):
 
 
 def test_can_persist_empty_block_diff(base_db):
-    orig = BlockDiff(BLOCK_HASH)
-    orig.write_to(base_db)
+    orig = BlockDiff()
+    orig.write_to(base_db, BLOCK_HASH)
 
     block_diff = BlockDiff.from_db(base_db, BLOCK_HASH)
     assert len(block_diff.get_changed_accounts()) == 0
 
 
 def test_can_persist_changed_account(base_db):
-    orig = BlockDiff(BLOCK_HASH)
+    orig = BlockDiff()
     orig.set_account_changed(ACCOUNT, b'old', b'new')  # TODO: more realistic data
-    orig.write_to(base_db)
+    orig.write_to(base_db, BLOCK_HASH)
 
     block_diff = BlockDiff.from_db(base_db, BLOCK_HASH)
     assert block_diff.get_changed_accounts() == {ACCOUNT}
@@ -61,9 +61,14 @@ def test_can_persist_changed_account(base_db):
 # Some tests that AccountDB saves a block diff when persist()ing
 
 
+def save_block_diff(account_db, block_hash):
+    diff = account_db.persist_returning_block_diff()
+    diff.write_to(account_db._raw_store_db, block_hash)
+
+
 def test_account_diffs(account_db):
     account_db.set_nonce(ACCOUNT, 10)
-    account_db.persist_with_block_diff(BLOCK_HASH)
+    save_block_diff(account_db, BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
     assert diff.get_changed_accounts() == {ACCOUNT}
@@ -75,7 +80,7 @@ def test_account_diffs(account_db):
 
 def test_persists_storage_changes(account_db):
     account_db.set_storage(ACCOUNT, 1, 10)
-    account_db.persist_with_block_diff(BLOCK_HASH)
+    save_block_diff(account_db, BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
     assert diff.get_changed_accounts() == {ACCOUNT}
@@ -99,7 +104,7 @@ def test_persists_state_root(account_db):
 
     # Next, make the same change to out storage
     account_db.set_storage(ACCOUNT, 1, 10)
-    account_db.persist_with_block_diff(BLOCK_HASH)
+    save_block_diff(account_db, BLOCK_HASH)
 
     # The new state root should have been included as part of the diff.
 
@@ -114,7 +119,7 @@ def test_two_storage_changes(account_db):
     account_db.persist()
 
     account_db.set_storage(ACCOUNT, 1, 20)
-    account_db.persist_with_block_diff(BLOCK_HASH)
+    save_block_diff(account_db, BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
     assert diff.get_changed_accounts() == {ACCOUNT}
@@ -127,7 +132,7 @@ def test_account_and_storage_change(account_db):
     account_db.set_balance(ACCOUNT, 100)
     account_db.set_storage(ACCOUNT, 1, 10)
 
-    account_db.persist_with_block_diff(BLOCK_HASH)
+    save_block_diff(account_db, BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
     assert diff.get_changed_accounts() == {ACCOUNT}
@@ -148,7 +153,7 @@ def test_delete_account(account_db):
     account_db.persist()
 
     account_db.delete_account(ACCOUNT)
-    account_db.persist_with_block_diff(BLOCK_HASH)
+    save_block_diff(account_db, BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
     assert diff.get_changed_accounts() == {ACCOUNT}
@@ -169,7 +174,7 @@ def test_delete_storage(account_db):
 
     account_db.set_balance(ACCOUNT, 10)
     account_db.delete_storage(ACCOUNT)
-    account_db.persist_with_block_diff(BLOCK_HASH)
+    save_block_diff(account_db, BLOCK_HASH)
 
     diff = BlockDiff.from_db(account_db._raw_store_db, BLOCK_HASH)
     assert diff.get_changed_slots(ACCOUNT) == set()

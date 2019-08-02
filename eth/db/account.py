@@ -570,12 +570,12 @@ class AccountDB(BaseAccountDB):
             self._batchdb.commit_to(write_batch, apply_deletes=False)
         self._root_hash_at_last_persist = new_root_hash
 
-    def persist_with_block_diff(self, block_hash: Hash32) -> None:
+    def persist_returning_block_diff(self) -> BlockDiff:
         """
         Persists, including a diff which can be used to unwind/replay the changes this block makes.
         """
 
-        block_diff = BlockDiff(block_hash)
+        block_diff = BlockDiff()
 
         # 1. Grab all the changed accounts and their previous values
 
@@ -625,8 +625,8 @@ class AccountDB(BaseAccountDB):
             new_account_value = self._get_encoded_account(address, from_journal=False)
             block_diff.set_account_changed(address, old_account_value, new_account_value)
 
-        # 5. persist the block diff
-        block_diff.write_to(self._raw_store_db)
+        # 5. return the block diff
+        return block_diff
 
     def _changed_accounts(self) -> DBDiff:
         """

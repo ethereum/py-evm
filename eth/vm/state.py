@@ -26,6 +26,7 @@ from eth.constants import (
 from eth.db.account import (
     BaseAccountDB,
 )
+from eth.db.block_diff import BlockDiff
 from eth.db.backends.base import (
     BaseAtomicDB,
 )
@@ -253,11 +254,11 @@ class BaseState(Configurable, ABC):
     def persist(self) -> None:
         self._account_db.persist()
 
-    def persist_with_block_diff(self, block_hash: Hash32) -> None:
+    def persist_returning_block_diff(self) -> BlockDiff:
         """
         Persists all changes and also saves a record of them to the database.
         """
-        self._account_db.persist_with_block_diff(block_hash)
+        return self._account_db.persist_returning_block_diff()
 
     #
     # Access self.prev_hashes (Read-only)
