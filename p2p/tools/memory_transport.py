@@ -13,6 +13,13 @@ from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.exceptions import PeerConnectionLost
 
 
+CONNECTION_LOST_ERRORS = (
+    asyncio.IncompleteReadError,
+    ConnectionResetError,
+    BrokenPipeError,
+)
+
+
 class MemoryTransport(TransportAPI):
     def __init__(self,
                  remote: NodeAPI,
@@ -54,7 +61,7 @@ class MemoryTransport(TransportAPI):
                 self._reader.readexactly(n),
                 timeout=2,
             )
-        except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as err:
+        except CONNECTION_LOST_ERRORS as err:
             raise PeerConnectionLost from err
 
     def write(self, data: bytes) -> None:

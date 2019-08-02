@@ -1,0 +1,1 @@
+Use the ``p2p.multiplexer.Multiplexer`` within the ``BasePeer`` to handle the incoming message stream.

@@ -151,7 +151,7 @@ class BaseService(ABC, CancellableMixin):
             except OperationCancelled:
                 pass
             except Exception as e:
-                self.logger.warning("Task %s finished unexpectedly: %s", awaitable, e)
+                self.logger.warning("Task %s finished unexpectedly: %r", awaitable, e)
                 self.logger.debug("Task failure traceback", exc_info=True)
             else:
                 self.logger.debug2("Task %s finished with no errors", awaitable)
