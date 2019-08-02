@@ -20,6 +20,7 @@ from p2p import auth
 from p2p import discovery
 from p2p.abc import AddressAPI, NodeAPI, ProtocolAPI, TransportAPI, MultiplexerAPI
 from p2p.ecies import generate_privkey
+from p2p.handshake import DevP2PHandshakeParams
 from p2p.kademlia import Node, Address
 from p2p.multiplexer import Multiplexer
 from p2p.p2p_proto import P2PProtocol
@@ -389,3 +390,12 @@ def MultiplexerPairFactory(*,
         token=cancel_token,
     )
     return alice_multiplexer, bob_multiplexer
+
+
+class DevP2PHandshakeParamsFactory(factory.Factory):
+    class Meta:
+        model = DevP2PHandshakeParams
+
+    listen_port = 30303
+    client_version_string = 'test'
+    version = 5

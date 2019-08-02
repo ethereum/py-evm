@@ -1,5 +1,9 @@
 from typing import (
+    Any,
+    Iterable,
     List,
+    NamedTuple,
+    Optional,
     Tuple,
     TYPE_CHECKING,
     Union,
@@ -15,12 +19,17 @@ from eth_typing import (
     Hash32,
 )
 
+from eth_utils import (
+    to_dict,
+    ValidationError,
+)
+
 from eth.rlp.headers import BlockHeader
 
 from p2p.abc import NodeAPI
 from p2p.protocol import Protocol
+from p2p.typing import Payload
 
-from trinity.protocol.common.peer import ChainInfo
 from trinity._utils.les import gen_request_id
 
 from .commands import (
@@ -50,6 +59,57 @@ if TYPE_CHECKING:
     from .peer import LESPeer  # noqa: F401
 
 
+class LESHandshakeParams(NamedTuple):
+    version: int
+    network_id: int
+    head_td: int
+    head_hash: Hash32
+    head_num: BlockNumber
+    genesis_hash: Hash32
+    serve_headers: bool
+    serve_chain_since: Optional[BlockNumber]
+    serve_state_since: Optional[BlockNumber]
+    serve_recent_state: Optional[bool]
+    serve_recent_chain: Optional[bool]
+    tx_relay: bool
+    flow_control_bl: Optional[int]
+    flow_control_mcr: Optional[Tuple[Tuple[int, int, int], ...]]
+    flow_control_mrr: Optional[int]
+    announce_type: Optional[int]
+
+    def as_payload_dict(self, version: int) -> Payload:
+        return self._as_payload_dict(version)
+
+    @to_dict
+    def _as_payload_dict(self, version: int) -> Iterable[Tuple[str, Any]]:
+        yield 'protocolVersion', self.version
+        yield 'networkId', self.network_id
+        yield 'headTd', self.head_td
+        yield 'headHash', self.head_hash
+        yield 'headNum', self.head_num
+        yield 'genesisHash', self.genesis_hash
+        if self.serve_headers is True:
+            yield 'serveHeaders', None
+        if self.serve_chain_since is not None:
+            yield 'serveChainSince', self.serve_chain_since
+        if self.serve_state_since is not None:
+            yield 'serveStateSince', self.serve_state_since
+        if self.serve_recent_chain is not None:
+            yield 'serveRecentChain', self.serve_recent_chain
+        if self.serve_recent_state is not None:
+            yield 'serveRecentState', self.serve_recent_state
+        if self.tx_relay is True:
+            yield 'txRelay', None
+        if self.flow_control_bl is not None:
+            yield "flowControl/BL", self.flow_control_bl
+        if self.flow_control_mcr is not None:
+            yield "flowControl/MRC", self.flow_control_mcr
+        if self.flow_control_mrr is not None:
+            yield "flowControl/MRR", self.flow_control_mrr
+        if self.announce_type is not None:
+            yield "announceType", self.announce_type
+
+
 class LESProtocol(Protocol):
     name = 'les'
     version = 1
@@ -65,19 +125,13 @@ class LESProtocol(Protocol):
     cmd_length = 15
     peer: 'LESPeer'
 
-    def send_handshake(self, chain_info: ChainInfo) -> None:
-        resp = {
-            'protocolVersion': self.version,
-            'networkId': chain_info.network_id,
-            'headTd': chain_info.total_difficulty,
-            'headHash': chain_info.block_hash,
-            'headNum': chain_info.block_number,
-            'genesisHash': chain_info.genesis_hash,
-            'serveHeaders': None,
-            'serveChainSince': 0,
-            # TODO: Uncomment once we start relaying transactions.
-            # 'txRelay': None,
-        }
+    def send_handshake(self, handshake_params: LESHandshakeParams) -> None:
+        if handshake_params.version != self.version:
+            raise ValidationError(
+                f"LES protocol version mismatch: "
+                f"params:{handshake_params.version} != proto:{self.version}"
+            )
+        resp = handshake_params.as_payload_dict(version=self.version)
         cmd = Status(self.cmd_id_offset, self.snappy_support)
         self.transport.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: %s", resp)
@@ -193,19 +247,13 @@ class LESProtocolV2(LESProtocol):
     )
     cmd_length = 21
 
-    def send_handshake(self, chain_info: ChainInfo) -> None:
-        resp = {
-            'announceType': constants.LES_ANNOUNCE_SIMPLE,
-            'protocolVersion': self.version,
-            'networkId': chain_info.network_id,
-            'headTd': chain_info.total_difficulty,
-            'headHash': chain_info.block_hash,
-            'headNum': chain_info.block_number,
-            'genesisHash': chain_info.genesis_hash,
-            'serveHeaders': None,
-            'serveChainSince': 0,
-            'txRelay': None,
-        }
+    def send_handshake(self, handshake_params: LESHandshakeParams) -> None:
+        if handshake_params.version != self.version:
+            raise ValidationError(
+                f"LES protocol version mismatch: "
+                f"params:{handshake_params.version} != proto:{self.version}"
+            )
+        resp = handshake_params.as_payload_dict(version=self.version)
         cmd = StatusV2(self.cmd_id_offset, self.snappy_support)
         self.logger.debug("Sending LES/Status msg: %s", resp)
         self.transport.send(*cmd.encode(resp))
@@ -241,7 +289,7 @@ class ProxyLESProtocol:
         self._event_bus = event_bus
         self._broadcast_config = broadcast_config
 
-    def send_handshake(self, chain_info: ChainInfo) -> None:
+    def send_handshake(self, handshake_params: LESHandshakeParams) -> None:
         raise NotImplementedError("API not implemented")
 
     def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int=None) -> int:

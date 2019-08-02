@@ -60,6 +60,7 @@ from .events import (
     SendBlockHeadersEvent,
 )
 from .proto import (
+    LESHandshakeParams,
     LESProtocol,
     LESProtocolV2,
     ProxyLESProtocol,
@@ -107,7 +108,26 @@ class LESPeer(BaseChainPeer):
         super().handle_sub_proto_msg(cmd, msg)
 
     async def send_sub_proto_handshake(self) -> None:
-        self.sub_proto.send_handshake(await self._local_chain_info)
+        chain_info = await self._local_chain_info
+        handshake_params = LESHandshakeParams(
+            version=self.sub_proto.version,
+            network_id=chain_info.network_id,
+            head_td=chain_info.total_difficulty,
+            head_hash=chain_info.block_hash,
+            head_num=chain_info.block_number,
+            genesis_hash=chain_info.genesis_hash,
+            serve_headers=True,
+            tx_relay=False,
+            serve_chain_since=None,
+            serve_state_since=None,
+            serve_recent_state=None,
+            serve_recent_chain=None,
+            flow_control_bl=None,
+            flow_control_mcr=None,
+            flow_control_mrr=None,
+            announce_type=None if self.sub_proto.version < 2 else self.sub_proto.version,
+        )
+        self.sub_proto.send_handshake(handshake_params)
 
     async def process_sub_proto_handshake(
             self, cmd: CommandAPI, msg: Payload) -> None:

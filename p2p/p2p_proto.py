@@ -70,23 +70,16 @@ class Pong(Command):
     structure = ()
 
 
-class P2PProtocol(Protocol):
+class BaseP2PProtocol(Protocol):
     name = 'p2p'
-    version = 5
     _commands = (Hello, Ping, Pong, Disconnect)
     cmd_length = P2P_PROTOCOL_COMMAND_LENGTH
 
-    def __init__(self,
-                 transport: TransportAPI,
-                 snappy_support: bool) -> None:
-        # For the base protocol the cmd_id_offset is always 0.
-        # For the base protocol snappy compression should be disabled
-        super().__init__(transport, cmd_id_offset=0, snappy_support=snappy_support)
-
-    def send_handshake(self,
-                       client_version_string: str,
-                       capabilities: Capabilities,
-                       listen_port: int) -> None:
+    def send_handshake(
+            self,
+            client_version_string: str,
+            capabilities: Capabilities,
+            listen_port: int) -> None:
         self.send_hello(
             version=self.version,
             client_version_string=client_version_string,
@@ -124,3 +117,17 @@ class P2PProtocol(Protocol):
     def send_pong(self) -> None:
         header, body = Pong(self.cmd_id_offset, self.snappy_support).encode({})
         self.transport.send(header, body)
+
+
+class P2PProtocolV4(BaseP2PProtocol):
+    version = 4
+
+    def __init__(self, transport: TransportAPI) -> None:
+        super().__init__(transport, cmd_id_offset=0, snappy_support=False)
+
+
+class P2PProtocol(BaseP2PProtocol):
+    version = 5
+
+    def __init__(self, transport: TransportAPI, snappy_support: bool) -> None:
+        super().__init__(transport, cmd_id_offset=0, snappy_support=snappy_support)

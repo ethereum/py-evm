@@ -4,8 +4,8 @@ import logging
 from typing import (
     AsyncIterator,
     cast,
-    Dict,
     DefaultDict,
+    Dict,
     Sequence,
     Tuple,
     Type,
@@ -36,14 +36,14 @@ from p2p.exceptions import (
     UnknownProtocol,
     UnknownProtocolCommand,
 )
-from p2p.p2p_proto import P2PProtocol
+from p2p.p2p_proto import BaseP2PProtocol
 from p2p.protocol import Protocol
 from p2p.resource_lock import ResourceLock
 from p2p.typing import Payload
 
 
 async def stream_transport_messages(transport: TransportAPI,
-                                    base_protocol: P2PProtocol,
+                                    base_protocol: BaseP2PProtocol,
                                     *protocols: ProtocolAPI,
                                     token: CancelToken = None,
                                     ) -> AsyncIterator[Tuple[ProtocolAPI, CommandAPI, Payload]]:
@@ -101,7 +101,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
 
     def __init__(self,
                  transport: TransportAPI,
-                 base_protocol: P2PProtocol,
+                 base_protocol: BaseP2PProtocol,
                  protocols: Sequence[ProtocolAPI],
                  token: CancelToken = None,
                  max_queue_size: int = 4096) -> None:
@@ -199,7 +199,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
             return False
 
     def get_protocol_by_type(self, protocol_class: Type[TProtocol]) -> TProtocol:
-        if protocol_class is P2PProtocol:
+        if issubclass(protocol_class, BaseP2PProtocol):
             return cast(TProtocol, self._base_protocol)
 
         for protocol in self._protocols:
@@ -207,7 +207,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
                 return cast(TProtocol, protocol)
         raise UnknownProtocol(f"No protocol found with type {protocol_class}")
 
-    def get_base_protocol(self) -> P2PProtocol:
+    def get_base_protocol(self) -> BaseP2PProtocol:
         return self._base_protocol
 
     def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
@@ -216,9 +216,9 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     #
     # Streaming API
     #
-    async def stream_protocol_messages(self,
-                                       protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
-                                       ) -> AsyncIterator[Tuple[CommandAPI, Payload]]:
+    def stream_protocol_messages(self,
+                                 protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
+                                 ) -> AsyncIterator[Tuple[CommandAPI, Payload]]:
         """
         Stream the messages for the specified protocol.
         """
@@ -235,6 +235,19 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
         if self._protocol_locks.is_locked(protocol_class):
             raise Exception(f"Streaming lock for {protocol_class} is not free.")
 
+        # We do the wait_iter here so that the call sites in the handshakers
+        # that use this don't need to be aware of cancellation tokens.
+        return self.wait_iter(
+            self._stream_protocol_messages(protocol_class),
+            token=self._multiplex_token,
+        )
+
+    async def _stream_protocol_messages(self,
+                                        protocol_class: Type[Protocol],
+                                        ) -> AsyncIterator[Tuple[CommandAPI, Payload]]:
+        """
+        Stream the messages for the specified protocol.
+        """
         async with self._protocol_locks.lock(protocol_class):
             msg_queue = self._protocol_queues[protocol_class]
             if not hasattr(self, '_multiplex_token'):
