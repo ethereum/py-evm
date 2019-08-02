@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 
 from eth.exceptions import HeaderNotFound
 from lahja import ConnectionConfig, AsyncioEndpoint
@@ -154,11 +155,15 @@ async def test_beam_syncer(
         alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
         bob_headerdb=FakeAsyncHeaderDB(chaindb_churner.db))
 
+    # Need a name that will be unique per xdist-process, otherwise
+    #   lahja IPC endpoints in each process will clobber each other
+    unique_process_name = uuid.uuid4()
+
     # manually add endpoint for beam vm to make requests
-    pausing_config = ConnectionConfig.from_name("PausingEndpoint")
+    pausing_config = ConnectionConfig.from_name(f"PausingEndpoint-{unique_process_name}")
 
     # manually add endpoint for trie data gatherer to serve requests
-    gatherer_config = ConnectionConfig.from_name("GathererEndpoint")
+    gatherer_config = ConnectionConfig.from_name(f"GathererEndpoint-{unique_process_name}")
 
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
