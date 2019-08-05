@@ -580,7 +580,7 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
         """
         senders = [transaction.sender for transaction in transactions]
         recipients = [transaction.to for transaction in transactions if transaction.to]
-        addresses = set(senders + recipients)
+        addresses = set(senders + recipients + [header.coinbase])
         collected_nodes = await self._state_downloader.download_accounts(
             addresses,
             parent_state_root,
