@@ -2,9 +2,11 @@ import pytest
 
 from eth_utils import ValidationError
 
-from eth.db.backends.memory import MemoryDB
-from eth.exceptions import StateRootNotFound
-from eth.vm.forks.frontier.state import FrontierState
+from eth.vm.interrupt import MissingAccountTrieNode
+
+from tests.core.helpers import (
+    new_transaction,
+)
 
 ADDRESS = b'\xaa' * 20
 OTHER_ADDRESS = b'\xbb' * 20
@@ -28,11 +30,17 @@ def test_block_properties(chain_without_block_validation):
     assert vm.state.gas_limit == block.header.gas_limit
 
 
-def test_missing_state_root():
-    context = None
-    state = FrontierState(MemoryDB(), context, b'\x0f' * 32)
-    with pytest.raises(StateRootNotFound):
-        state.apply_transaction(None)
+def test_missing_state_root(chain_without_block_validation, funded_address):
+    valid_vm = chain_without_block_validation.get_vm()
+    tx = new_transaction(valid_vm, from_=funded_address, to=ADDRESS)
+
+    head = chain_without_block_validation.get_canonical_head()
+    header_with_bad_state_root = head.copy(state_root=b'X' * 32)
+    busted_vm = chain_without_block_validation.get_vm(header_with_bad_state_root)
+
+    # notice that the state root is missing by the raised MissingAccountTrieNode
+    with pytest.raises(MissingAccountTrieNode):
+        busted_vm.state.apply_transaction(tx)
 
 
 @pytest.mark.parametrize(
