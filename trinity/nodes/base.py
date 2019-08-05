@@ -88,7 +88,7 @@ class Node(BaseService, Generic[TPeer]):
 
     @abstractmethod
     def get_chain(self) -> BaseChain:
-        raise NotImplementedError("Node classes must implement this method")
+        ...
 
     def get_full_chain(self) -> FullChain:
         if self._full_chain is None:
@@ -102,14 +102,14 @@ class Node(BaseService, Generic[TPeer]):
         """
         Return the ``PeerPoolEventServer`` of the node
         """
-        raise NotImplementedError("Node classes must implement this method")
+        ...
 
     @abstractmethod
     def get_peer_pool(self) -> BasePeerPool:
         """
         Return the PeerPool instance of the node
         """
-        raise NotImplementedError("Node classes must implement this method")
+        ...
 
     @abstractmethod
     def get_p2p_server(self) -> BaseService:
@@ -117,7 +117,7 @@ class Node(BaseService, Generic[TPeer]):
         This is the main service that will be run, when calling :meth:`run`.
         It's typically responsible for syncing the chain, with peer connections.
         """
-        raise NotImplementedError("Node classes must implement this method")
+        ...
 
     @property
     def db_manager(self) -> BaseManager:

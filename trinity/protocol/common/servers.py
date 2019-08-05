@@ -83,7 +83,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
         """
         Identify the command, and react appropriately.
         """
-        pass
+        ...
 
 
 class BaseIsolatedRequestServer(BaseService):
@@ -134,7 +134,7 @@ class BaseIsolatedRequestServer(BaseService):
                           remote: NodeAPI,
                           cmd: CommandAPI,
                           msg: Payload) -> None:
-        pass
+        ...
 
 
 class BasePeerRequestHandler(CancellableMixin, HasExtendedDebugLogger):

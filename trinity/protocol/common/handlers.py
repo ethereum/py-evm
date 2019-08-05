@@ -27,7 +27,7 @@ class BaseExchangeHandler(ABC):
     @property
     @abstractmethod
     def _exchange_config(self) -> Dict[str, Type[BaseExchange[Any, Any, Any]]]:
-        pass
+        ...
 
     def __init__(self, peer: BasePeer) -> None:
         self._peer = peer

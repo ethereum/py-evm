@@ -212,7 +212,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     @property
     @abstractmethod
     def peer_factory_class(self) -> Type[BasePeerFactory]:
-        pass
+        ...
 
     def get_peer_factory(self) -> BasePeerFactory:
         return self.peer_factory_class(

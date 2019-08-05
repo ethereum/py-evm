@@ -11,4 +11,4 @@ class BaseBlockHeaders(Command):
 
     @abstractmethod
     def extract_headers(self, msg: Payload) -> Tuple[BlockHeader, ...]:
-        raise NotImplementedError("Must be implemented by subclasses")
+        ...

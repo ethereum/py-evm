@@ -33,39 +33,39 @@ class BaseAsyncChainDB(BaseAsyncHeaderDB):
 
     @abstractmethod
     async def coro_exists(self, key: bytes) -> bool:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get(self, key: bytes) -> bytes:
-        pass
+        ...
 
     @abstractmethod
     async def coro_persist_block(self, block: BaseBlock) -> None:
-        pass
+        ...
 
     @abstractmethod
     async def coro_persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
-        pass
+        ...
 
     @abstractmethod
     async def coro_persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_block_transactions(
             self,
             header: BlockHeader,
             transaction_class: Type[BaseTransaction]) -> Iterable[BaseTransaction]:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_receipts(
             self, header: BlockHeader, receipt_class: Type[Receipt]) -> List[Receipt]:
-        pass
+        ...
 
 
 class AsyncChainDBPreProxy(BaseAsyncChainDB):

@@ -258,7 +258,7 @@ class BaseBlockImporter(ABC):
     async def import_block(
             self,
             block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
-        pass
+        ...
 
     async def preview_transactions(
             self,
@@ -297,7 +297,7 @@ class BaseSyncBlockImporter(ABC):
     def import_block(
             self,
             block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
-        pass
+        ...
 
 
 class SyncBlockImporter(BaseSyncBlockImporter):

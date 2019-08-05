@@ -19,14 +19,14 @@ class BaseBLSBackend(ABC):
     @staticmethod
     @abstractmethod
     def privtopub(k: int) -> BLSPubkey:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def sign(message_hash: Hash32,
              privkey: int,
              domain: Domain) -> BLSSignature:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
@@ -34,17 +34,17 @@ class BaseBLSBackend(ABC):
                pubkey: BLSPubkey,
                signature: BLSSignature,
                domain: Domain) -> bool:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignature:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
@@ -52,4 +52,4 @@ class BaseBLSBackend(ABC):
                         message_hashes: Sequence[Hash32],
                         signature: BLSSignature,
                         domain: Domain) -> bool:
-        pass
+        ...

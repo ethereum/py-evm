@@ -33,39 +33,39 @@ class BaseAsyncHeaderDB(ABC):
     """
     @abstractmethod
     async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        raise NotImplementedError("ChainDB classes must implement this method")
+        ...
 
     @abstractmethod
     async def coro_get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:  # noqa: E501
-        raise NotImplementedError("ChainDB classes must implement this method")
+        ...
 
     @abstractmethod
     async def coro_get_canonical_head(self) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
+        ...
 
     #
     # Header API
     #
     @abstractmethod
     async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        raise NotImplementedError("ChainDB classes must implement this method")
+        ...
 
     @abstractmethod
     async def coro_get_score(self, block_hash: Hash32) -> int:
-        raise NotImplementedError("ChainDB classes must implement this method")
+        ...
 
     @abstractmethod
     async def coro_header_exists(self, block_hash: Hash32) -> bool:
-        raise NotImplementedError("ChainDB classes must implement this method")
+        ...
 
     @abstractmethod
     async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
-        raise NotImplementedError("ChainDB classes must implement this method")
+        ...
 
     @abstractmethod
     async def coro_persist_header_chain(self,
                                         headers: Iterable[BlockHeader]) -> Tuple[BlockHeader, ...]:
-        raise NotImplementedError("ChainDB classes must implement this method")
+        ...
 
 
 class AsyncHeaderDBPreProxy(BaseAsyncHeaderDB):

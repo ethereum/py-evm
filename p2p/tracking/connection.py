@@ -49,11 +49,11 @@ class BaseConnectionTracker(ABC):
 
     @abstractmethod
     def record_blacklist(self, remote: NodeAPI, timeout_seconds: int, reason: str) -> None:
-        pass
+        ...
 
     @abstractmethod
     async def should_connect_to(self, remote: NodeAPI) -> bool:
-        pass
+        ...
 
 
 class NoopConnectionTracker(BaseConnectionTracker):

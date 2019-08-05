@@ -171,13 +171,13 @@ class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
                               protocol: str,
                               protocol_version: int,
                               network_id: int) -> None:
-        pass
+        ...
 
     @abstractmethod
     async def get_peer_candidates(self,
                                   num_requested: int,
                                   connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
-        pass
+        ...
 
 
 class NoopEth1PeerTracker(BaseEth1PeerTracker):

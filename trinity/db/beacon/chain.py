@@ -40,7 +40,7 @@ class BaseAsyncBeaconChainDB(ABC):
             block_class: Type[BaseBeaconBlock],
             fork_choice_scoring: ForkChoiceScoringFn,
     ) -> Tuple[Tuple[bytes, ...], Tuple[bytes, ...]]:
-        pass
+        ...
 
     #
     # Canonical Chain API
@@ -48,44 +48,44 @@ class BaseAsyncBeaconChainDB(ABC):
 
     @abstractmethod
     async def coro_get_canonical_block_root(self, slot: int) -> Hash32:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_genesis_block_root(self) -> Hash32:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_canonical_block_by_slot(
             self,
             slot: int,
             block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_canonical_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_canonical_head_root(self)-> Hash32:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_block_by_root(self,
                                      block_root: Hash32,
                                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_score(self, block_root: Hash32) -> int:
-        pass
+        ...
 
     @abstractmethod
     async def coro_block_exists(self, block_root: Hash32) -> bool:
-        pass
+        ...
 
     @abstractmethod
     async def coro_persist_block_chain(
@@ -94,41 +94,41 @@ class BaseAsyncBeaconChainDB(ABC):
             block_class: Type[BaseBeaconBlock],
             fork_choice_scorings: Iterable[ForkChoiceScoringFn],
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
-        pass
+        ...
 
     #
     # Beacon State
     #
     @abstractmethod
     async def coro_get_state_by_root(self, state_root: Hash32) -> BeaconState:
-        pass
+        ...
 
     @abstractmethod
     async def coro_persist_state(self,
                                  state: BeaconState) -> None:
-        pass
+        ...
 
     #
     # Attestation API
     #
     @abstractmethod
     def coro_get_attestation_key_by_root(self, attestation_root: Hash32)-> Tuple[Hash32, int]:
-        pass
+        ...
 
     @abstractmethod
     def coro_attestation_exists(self, attestation_root: Hash32) -> bool:
-        pass
+        ...
 
     #
     # Raw Database API
     #
     @abstractmethod
     async def coro_exists(self, key: bytes) -> bool:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get(self, key: bytes) -> bytes:
-        pass
+        ...
 
 
 class AsyncBeaconChainDBPreProxy(BaseAsyncBeaconChainDB):

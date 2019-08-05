@@ -118,7 +118,7 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
         peer messages on the event bus. The handler is called for every message that is defined in
         ``self.subscription_msg_types``.
         """
-        pass
+        ...
 
     def get_peer(self, remote: NodeAPI) -> TPeer:
         """
@@ -298,7 +298,7 @@ class BaseProxyPeerPool(BaseService, Generic[TProxyPeer]):
                                    remote: NodeAPI,
                                    event_bus: EndpointAPI,
                                    broadcast_config: BroadcastConfig) -> TProxyPeer:
-        pass
+        ...
 
     async def ensure_proxy_peer(self, remote: NodeAPI) -> TProxyPeer:
 

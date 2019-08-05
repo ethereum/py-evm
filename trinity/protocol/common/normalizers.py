@@ -26,7 +26,7 @@ class BaseNormalizer(ABC, Generic[TResponsePayload, TResult]):
         """
         Convert underlying peer message to final result
         """
-        raise NotImplementedError()
+        ...
 
 
 TPassthrough = TypeVar('TPassthrough', bound=Payload)

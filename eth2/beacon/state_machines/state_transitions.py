@@ -37,4 +37,4 @@ class BaseStateTransition(Configurable, ABC):
         ``block`` takes precedence over ``future_slot``. Perform a subsequent call to this
         method without the block if you need both functionalities.
         """
-        pass
+        ...

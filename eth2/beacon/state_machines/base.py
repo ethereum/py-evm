@@ -47,31 +47,31 @@ class BaseBeaconStateMachine(Configurable, ABC):
                  attestation_pool: AttestationPool,
                  slot: Slot,
                  state: BeaconState=None) -> None:
-        pass
+        ...
 
     @classmethod
     @abstractmethod
     def get_block_class(cls) -> Type[BaseBeaconBlock]:
-        pass
+        ...
 
     @classmethod
     @abstractmethod
     def get_state_class(cls) -> Type[BeaconState]:
-        pass
+        ...
 
     @classmethod
     @abstractmethod
     def get_state_transiton_class(cls) -> Type[BaseStateTransition]:
-        pass
+        ...
 
     @property
     @abstractmethod
     def state_transition(self) -> BaseStateTransition:
-        pass
+        ...
 
     @abstractmethod
     def get_fork_choice_scoring(self) -> ForkChoiceScoringFn:
-        pass
+        ...
 
     #
     # Import block API
@@ -80,13 +80,13 @@ class BaseBeaconStateMachine(Configurable, ABC):
     def import_block(self,
                      block: BaseBeaconBlock,
                      check_proposer_signature: bool=True) -> Tuple[BeaconState, BaseBeaconBlock]:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def create_block_from_parent(parent_block: BaseBeaconBlock,
                                  block_params: FromBlockParams) -> BaseBeaconBlock:
-        pass
+        ...
 
 
 class BeaconStateMachine(BaseBeaconStateMachine):

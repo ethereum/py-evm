@@ -70,7 +70,7 @@ class BasePlugin(ABC):
     @property
     @abstractmethod
     def event_bus(self) -> EndpointAPI:
-        pass
+        ...
 
     @property
     @abstractmethod
@@ -78,7 +78,7 @@ class BasePlugin(ABC):
         """
         Describe the name of the plugin.
         """
-        pass
+        ...
 
     @property
     def normalized_name(self) -> str:
@@ -213,7 +213,7 @@ class BaseIsolatedPlugin(BasePlugin):
 
     @abstractmethod
     def _spawn_start(self) -> None:
-        pass
+        ...
 
     def stop(self) -> None:
         """
