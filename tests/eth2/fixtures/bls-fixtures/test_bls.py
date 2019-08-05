@@ -69,7 +69,7 @@ class BLSSignaturesAggregationTestCase(BaseTestCase):
 
 @dataclass
 class BLSPrivToPubTestCase(BaseTestCase):
-    input: bytes
+    input: int
     output: BLSPubkey
 
 
