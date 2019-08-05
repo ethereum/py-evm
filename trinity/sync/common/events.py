@@ -34,12 +34,13 @@ class SyncingRequest(BaseRequestResponseEvent[SyncingResponse]):
         return SyncingResponse
 
 
+@dataclass
 class MissingAccountCollected(BaseEvent):
     """
     Response to :cls:`CollectMissingAccount`, emitted only after the account has
     been downloaded from a peer, and can be retrieved in the database.
     """
-    pass
+    num_nodes_collected: int
 
 
 @dataclass
@@ -78,12 +79,13 @@ class CollectMissingBytecode(BaseRequestResponseEvent[MissingBytecodeCollected])
         return MissingBytecodeCollected
 
 
+@dataclass
 class MissingStorageCollected(BaseEvent):
     """
     Response to :cls:`CollectMissingStorage`, emitted only after the storage value has
     been downloaded from a peer, and can be retrieved in the database.
     """
-    pass
+    num_nodes_collected: int
 
 
 @dataclass

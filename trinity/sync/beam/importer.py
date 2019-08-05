@@ -36,6 +36,9 @@ from trinity.sync.common.events import (
     CollectMissingBytecode,
     CollectMissingStorage,
     DoStatelessBlockImport,
+    MissingAccountCollected,
+    MissingBytecodeCollected,
+    MissingStorageCollected,
     StatelessBlockImportDone,
 )
 
@@ -77,8 +80,8 @@ def pausing_vm_decorator(
             missing_node_hash: Hash32,
             storage_key: Hash32,
             storage_root_hash: Hash32,
-            account_address: Address) -> None:
-        await event_bus.request(CollectMissingStorage(
+            account_address: Address) -> MissingStorageCollected:
+        return await event_bus.request(CollectMissingStorage(
             missing_node_hash,
             storage_key,
             storage_root_hash,
@@ -88,15 +91,15 @@ def pausing_vm_decorator(
     async def request_missing_account(
             missing_node_hash: Hash32,
             address_hash: Hash32,
-            state_root_hash: Hash32) -> None:
-        await event_bus.request(CollectMissingAccount(
+            state_root_hash: Hash32) -> MissingAccountCollected:
+        return await event_bus.request(CollectMissingAccount(
             missing_node_hash,
             address_hash,
             state_root_hash,
         ))
 
-    async def request_missing_bytecode(bytecode_hash: Hash32) -> None:
-        await event_bus.request(CollectMissingBytecode(
+    async def request_missing_bytecode(bytecode_hash: Hash32) -> MissingBytecodeCollected:
+        return await event_bus.request(CollectMissingBytecode(
             bytecode_hash,
         ))
 
@@ -118,7 +121,7 @@ def pausing_vm_decorator(
                 try:
                     return unbound_vm_method(self, *args, **kwargs)  # type: ignore
                 except MissingAccountTrieNode as exc:
-                    future = asyncio.run_coroutine_threadsafe(
+                    account_future = asyncio.run_coroutine_threadsafe(
                         request_missing_account(
                             exc.missing_node_hash,
                             exc.address_hash,
@@ -127,18 +130,18 @@ def pausing_vm_decorator(
                         loop,
                     )
                     # TODO put in a loop to truly wait forever
-                    future.result(timeout=300)
+                    account_future.result(timeout=300)
                 except MissingBytecode as exc:
-                    future = asyncio.run_coroutine_threadsafe(
+                    bytecode_future = asyncio.run_coroutine_threadsafe(
                         request_missing_bytecode(
                             exc.missing_code_hash,
                         ),
                         loop,
                     )
                     # TODO put in a loop to truly wait forever
-                    future.result(timeout=300)
+                    bytecode_future.result(timeout=300)
                 except MissingStorageTrieNode as exc:
-                    future = asyncio.run_coroutine_threadsafe(
+                    storage_future = asyncio.run_coroutine_threadsafe(
                         request_missing_storage(
                             exc.missing_node_hash,
                             exc.requested_key,
@@ -148,7 +151,7 @@ def pausing_vm_decorator(
                         loop,
                     )
                     # TODO put in a loop to truly wait forever
-                    future.result(timeout=300)
+                    storage_future.result(timeout=300)
 
         def get_balance(self, account: bytes) -> int:
             return self._pause_on_missing_data(super().get_balance.__func__, account)

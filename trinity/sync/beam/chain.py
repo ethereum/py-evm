@@ -513,11 +513,14 @@ class MissingDataEventHandler(BaseService):
 
     async def _serve_account(self, event: CollectMissingAccount) -> None:
         await self._state_downloader.ensure_node_present(event.missing_node_hash)
-        await self._state_downloader.download_account(
+        _, num_nodes_collected = await self._state_downloader.download_account(
             event.address_hash,
             event.state_root_hash,
         )
-        await self._event_bus.broadcast(MissingAccountCollected(), event.broadcast_config())
+        await self._event_bus.broadcast(
+            MissingAccountCollected(num_nodes_collected),
+            event.broadcast_config(),
+        )
 
     async def _serve_bytecode(self, event: CollectMissingBytecode) -> None:
         await self._state_downloader.ensure_node_present(event.bytecode_hash)
@@ -525,9 +528,12 @@ class MissingDataEventHandler(BaseService):
 
     async def _serve_storage(self, event: CollectMissingStorage) -> None:
         await self._state_downloader.ensure_node_present(event.missing_node_hash)
-        await self._state_downloader.download_storage(
+        num_nodes_collected = await self._state_downloader.download_storage(
             event.storage_key,
             event.storage_root_hash,
             event.account_address,
         )
-        await self._event_bus.broadcast(MissingStorageCollected(), event.broadcast_config())
+        await self._event_bus.broadcast(
+            MissingStorageCollected(num_nodes_collected),
+            event.broadcast_config(),
+        )
