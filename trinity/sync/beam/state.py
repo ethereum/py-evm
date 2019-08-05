@@ -49,6 +49,8 @@ from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth import (
     constants as eth_constants,
 )
+from trinity.sync.beam.constants import DELAY_BEFORE_NON_URGENT_REQUEST
+
 from trinity.sync.common.peers import WaitingPeers
 
 REQUEST_BUFFER_MULTIPLIER = 16
@@ -375,7 +377,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
     async def _get_waiting_urgent_hashes(self) -> Tuple[int, Tuple[Hash32, ...]]:
         # if any predictive nodes are waiting, then time out after a short pause to grab them
         if self._allow_predictive_only and self._maybe_useful_nodes.num_pending():
-            timeout = 0.05
+            timeout = DELAY_BEFORE_NON_URGENT_REQUEST
         else:
             timeout = None
         try:
