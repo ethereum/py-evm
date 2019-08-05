@@ -1,0 +1,1 @@
+Fix ``__str__`` implementation of ``BaseProxyPeer`` to properly represent the ``p2p.kademlia.Node`` URI.
