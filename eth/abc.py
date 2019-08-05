@@ -9,7 +9,6 @@ from typing import (
     Dict,
     Iterable,
     Iterator,
-    MutableMapping,
     Optional,
     Sequence,
     Tuple,
@@ -17,7 +16,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from uuid import UUID
 
 import rlp
 
@@ -42,7 +40,11 @@ from eth.typing import (
     HeaderParams,
 )
 
-from eth.tools.logging import ExtendedDebugLogger
+from .abc_compat import (
+    ABCWithLogger,
+    ComputationAPIBase,
+    DatabaseAPIBase,
+)
 
 
 T = TypeVar('T')
@@ -254,7 +256,7 @@ class BlockAPI(rlp.Serializable, ABC):
         ...
 
 
-class DatabaseAPI(MutableMapping[bytes, bytes], ABC):
+class DatabaseAPI(DatabaseAPIBase):
     @abstractmethod
     def set(self, key: bytes, value: bytes) -> None:
         ...
@@ -411,7 +413,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
         ...
 
 
-class GasMeterAPI(ABC):
+class GasMeterAPI(ABCWithLogger):
     gas_refunded: int
     gas_remaining: int
 
@@ -484,7 +486,7 @@ class MessageAPI(ABC):
         ...
 
 
-class OpcodeAPI(ABC):
+class OpcodeAPI(ABCWithLogger):
     mnemonic: str
 
     @abstractmethod
@@ -667,9 +669,8 @@ class ExecutionContextAPI(ABC):
     prev_hashes: Sequence[Hash32]
 
 
-class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
+class ComputationAPI(StackManipulationAPI, ComputationAPIBase):
     msg: MessageAPI
-    logger: ExtendedDebugLogger
     code: CodeStreamAPI
     opcodes: Dict[int, OpcodeAPI] = None
     state: 'StateAPI'
@@ -893,7 +894,7 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
         ...
 
 
-class AccountStorageDatabaseAPI(ABC):
+class AccountStorageDatabaseAPI(ABCWithLogger):
     @abstractmethod
     def get(self, slot: int, from_journal: bool=True) -> int:
         ...
@@ -936,7 +937,7 @@ class AccountStorageDatabaseAPI(ABC):
         ...
 
 
-class AccountDatabaseAPI(ABC):
+class AccountDatabaseAPI(ABCWithLogger):
     @abstractmethod
     def __init__(self, db: AtomicDatabaseAPI, state_root: Hash32 = BLANK_ROOT_HASH) -> None:
         ...
@@ -945,6 +946,13 @@ class AccountDatabaseAPI(ABC):
     @abstractmethod
     def state_root(self) -> Hash32:
         ...
+
+    @state_root.setter
+    def state_root(self, value: Hash32) -> None:
+        # See: https://github.com/python/mypy/issues/4165
+        # Since we can't also decorate this with abstract method we want to be
+        # sure that the setter doesn't actually get used as a noop.
+        raise NotImplementedError
 
     @abstractmethod
     def has_root(self, state_root: bytes) -> bool:
@@ -1115,7 +1123,7 @@ class ConfigurableAPI(ABC):
         ...
 
 
-class StateAPI(ConfigurableAPI):
+class StateAPI(ConfigurableAPI, ABCWithLogger):
     #
     # Set from __init__
     #
@@ -1132,11 +1140,6 @@ class StateAPI(ConfigurableAPI):
             db: AtomicDatabaseAPI,
             execution_context: ExecutionContextAPI,
             state_root: bytes) -> None:
-        ...
-
-    @property
-    @abstractmethod
-    def logger(self) -> ExtendedDebugLogger:
         ...
 
     #
@@ -1260,15 +1263,15 @@ class StateAPI(ConfigurableAPI):
     # Access self._chaindb
     #
     @abstractmethod
-    def snapshot(self) -> Tuple[Hash32, UUID]:
+    def snapshot(self) -> Tuple[Hash32, JournalDBCheckpoint]:
         ...
 
     @abstractmethod
-    def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def revert(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         ...
 
     @abstractmethod
-    def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         ...
 
     @abstractmethod

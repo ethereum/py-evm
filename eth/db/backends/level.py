@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-import logging
 from pathlib import Path
 from typing import (
     Generator,
@@ -26,8 +25,6 @@ if TYPE_CHECKING:
 
 
 class LevelDB(BaseAtomicDB):
-    logger = logging.getLogger("eth.db.backends.LevelDB")
-
     # Creates db as a class variable to avoid level db lock error
     def __init__(self,
                  db_path: Path=None,
@@ -80,8 +77,6 @@ class LevelDBWriteBatch(BaseDB):
     This class fills that gap, by tracking the in-progress diff, and adding
     a read interface.
     """
-    logger = logging.getLogger("eth.db.backends.LevelDBWriteBatch")
-
     def __init__(self, original_read_db: DatabaseAPI, write_batch: 'plyvel.WriteBatch') -> None:
         self._original_read_db = original_read_db
         self._write_batch = write_batch

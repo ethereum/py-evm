@@ -1,5 +1,4 @@
 from contextlib import contextmanager
-import logging
 from typing import (
     Iterator,
 )
@@ -26,8 +25,6 @@ class AtomicDB(BaseAtomicDB):
     This is nearly the same as BatchDB, but it immediately writes out changes if they are
     not in an atomic_batch() context.
     """
-    logger = logging.getLogger("eth.db.AtomicDB")
-
     wrapped_db: DatabaseAPI = None
     _track_diff: DBDiffTracker = None
 
@@ -60,8 +57,6 @@ class AtomicDBWriteBatch(BaseDB):
     This is returned by a BaseAtomicDB during an atomic_batch, to provide a temporary view
     of the database, before commit.
     """
-    logger = logging.getLogger("eth.db.AtomicDBWriteBatch")
-
     _write_target_db: DatabaseAPI = None
     _track_diff: DBDiffTracker = None
 

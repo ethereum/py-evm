@@ -1,12 +1,9 @@
 import contextlib
-import logging
 from typing import (
-    cast,
     Iterator,
     Tuple,
     Type,
 )
-from uuid import UUID
 
 from eth_typing import (
     Address,
@@ -28,9 +25,7 @@ from eth.abc import (
 from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
 )
-from eth.tools.logging import (
-    ExtendedDebugLogger,
-)
+from eth.typing import JournalDBCheckpoint
 from eth._utils.datatypes import (
     Configurable,
 )
@@ -66,18 +61,10 @@ class BaseState(Configurable, StateAPI):
             self,
             db: AtomicDatabaseAPI,
             execution_context: ExecutionContextAPI,
-            state_root: bytes) -> None:
+            state_root: Hash32) -> None:
         self._db = db
         self.execution_context = execution_context
         self._account_db = self.get_account_db_class()(db, state_root)
-
-    #
-    # Logging
-    #
-    @property
-    def logger(self) -> ExtendedDebugLogger:
-        normal_logger = logging.getLogger('eth.vm.state.{0}'.format(self.__class__.__name__))
-        return cast(ExtendedDebugLogger, normal_logger)
 
     #
     # Block Object Properties (in opcodes)
@@ -198,7 +185,7 @@ class BaseState(Configurable, StateAPI):
     #
     # Access self._chaindb
     #
-    def snapshot(self) -> Tuple[Hash32, UUID]:
+    def snapshot(self) -> Tuple[Hash32, JournalDBCheckpoint]:
         """
         Perform a full snapshot of the current state.
 
@@ -207,7 +194,7 @@ class BaseState(Configurable, StateAPI):
         """
         return self.state_root, self._account_db.record()
 
-    def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def revert(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         """
         Revert the VM to the state at the snapshot
         """
@@ -218,7 +205,7 @@ class BaseState(Configurable, StateAPI):
         # now roll the underlying database back
         self._account_db.discard(account_snapshot)
 
-    def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         """
         Commit the journal to the point where the snapshot was taken.  This
         merges in any changes that were recorded since the snapshot.

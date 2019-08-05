@@ -1,7 +1,5 @@
-import logging
 from lru import LRU
 from typing import (
-    cast,
     Dict,
     Iterable,
     Set,
@@ -66,17 +64,11 @@ from eth.validation import (
     validate_uint256,
     validate_canonical_address,
 )
-from eth.tools.logging import (
-    ExtendedDebugLogger
-)
 
 from .hash_trie import HashTrie
 
 
 class AccountDB(AccountDatabaseAPI):
-
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.AccountDB'))
-
     def __init__(self, db: AtomicDatabaseAPI, state_root: Hash32=BLANK_ROOT_HASH) -> None:
         r"""
         Internal implementation details (subject to rapid change):

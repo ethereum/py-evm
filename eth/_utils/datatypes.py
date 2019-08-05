@@ -123,4 +123,7 @@ class Configurable(ConfigurableAPI):
             configured_sub_cls = sub_cls.configure(**sub_overrides)
             local_overrides = assoc(local_overrides, key, configured_sub_cls)
 
+        if '__qualname__' not in local_overrides:
+            local_overrides = assoc(local_overrides, '__qualname__', cls.__qualname__)
+
         return type(__name__, (cls,), local_overrides)

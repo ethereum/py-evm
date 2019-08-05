@@ -1,5 +1,3 @@
-import logging
-
 from eth_utils import (
     ValidationError,
 )
@@ -22,8 +20,6 @@ class BatchDB(BaseDB):
     the underlying database. If any error occurred before committing phase,
     we would not apply commits at all.
     """
-    logger = logging.getLogger("eth.db.BatchDB")
-
     wrapped_db: DatabaseAPI = None
     _track_diff: DBDiffTracker = None
 

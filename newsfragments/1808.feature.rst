@@ -1,0 +1,1 @@
+Remove ``eth.tools.logging`` in favor of the new logging utils available in ``eth-utils>=1.6.4``

@@ -1,15 +1,13 @@
 import pkg_resources
 import sys
 
-from eth.tools.logging import (
-    setup_extended_logging
-)
+from eth_utils import setup_DEBUG2_logging
 
 #
-#  Setup TRACE level logging.
+#  Setup DEBUG2 level logging.
 #
 # This needs to be done before the other imports
-setup_extended_logging()
+setup_DEBUG2_logging()
 
 from eth.chains import (  # noqa: F401
     Chain,

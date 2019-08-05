@@ -1,15 +1,11 @@
 import functools
-import logging
 
 from typing import (
     Any,
     Callable,
-    cast,
     Type,
     TypeVar,
 )
-
-from eth.tools.logging import ExtendedDebugLogger
 
 from eth._utils.datatypes import Configurable
 from eth.abc import (
@@ -21,6 +17,15 @@ from eth.abc import (
 T = TypeVar('T')
 
 
+def _get_qualname(value: Any) -> str:
+    if hasattr(value, '__qualname__'):
+        return value.__qualname__
+    elif isinstance(value, functools.partial):
+        return _get_qualname(value.func)
+    else:
+        raise Exception(f"Unable to extract __qualname__ from: {value!r}")
+
+
 class Opcode(Configurable, OpcodeAPI):
     mnemonic: str = None
     gas_cost: int = None
@@ -30,11 +35,6 @@ class Opcode(Configurable, OpcodeAPI):
             raise TypeError("Opcode class {0} missing opcode mnemonic".format(type(self)))
         if self.gas_cost is None:
             raise TypeError("Opcode class {0} missing opcode gas_cost".format(type(self)))
-
-    @property
-    def logger(self) -> ExtendedDebugLogger:
-        logger_obj = logging.getLogger('eth.vm.logic.{0}'.format(self.mnemonic))
-        return cast(ExtendedDebugLogger, logger_obj)
 
     @classmethod
     def as_opcode(cls: Type[T],
@@ -61,6 +61,7 @@ class Opcode(Configurable, OpcodeAPI):
 
         props = {
             '__call__': staticmethod(wrapped_logic_fn),
+            '__qualname__': _get_qualname(logic_fn),
             'mnemonic': mnemonic,
             'gas_cost': gas_cost,
         }

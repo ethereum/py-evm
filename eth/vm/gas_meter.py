@@ -1,7 +1,5 @@
-import logging
 from typing import (
     Callable,
-    cast,
 )
 from eth_utils import (
     ValidationError,
@@ -13,9 +11,6 @@ from eth.exceptions import (
 )
 from eth.validation import (
     validate_uint256,
-)
-from eth.tools.logging import (
-    ExtendedDebugLogger,
 )
 
 
@@ -40,8 +35,6 @@ class GasMeter(GasMeterAPI):
     gas_refunded: int = None
     gas_remaining: int = None
 
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.gas.GasMeter'))
-
     def __init__(self,
                  start_gas: int,
                  refund_strategy: RefundStrategy = default_refund_strategy) -> None:
@@ -52,6 +45,9 @@ class GasMeter(GasMeterAPI):
 
         self.gas_remaining = self.start_gas
         self.gas_refunded = 0
+        # saves an extra attribute lookup when checking whether to show DEBUG2
+        # level logs.
+        self._show_debug2 = self.logger.show_debug2
 
     #
     # Write API
@@ -69,7 +65,7 @@ class GasMeter(GasMeterAPI):
 
         self.gas_remaining -= amount
 
-        if self.logger.show_debug2:
+        if self._show_debug2:
             self.logger.debug2(
                 'GAS CONSUMPTION: %s - %s -> %s (%s)',
                 self.gas_remaining + amount,
@@ -84,7 +80,7 @@ class GasMeter(GasMeterAPI):
 
         self.gas_remaining += amount
 
-        if self.logger.show_debug2:
+        if self._show_debug2:
             self.logger.debug2(
                 'GAS RETURNED: %s + %s -> %s',
                 self.gas_remaining - amount,
@@ -95,7 +91,7 @@ class GasMeter(GasMeterAPI):
     def refund_gas(self, amount: int) -> None:
         self.gas_refunded = self.refund_strategy(self.gas_refunded, amount)
 
-        if self.logger.show_debug2:
+        if self._show_debug2:
             self.logger.debug2(
                 'GAS REFUND: %s + %s -> %s',
                 self.gas_refunded - amount,
