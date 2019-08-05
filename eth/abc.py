@@ -1303,9 +1303,13 @@ class StateAPI(ConfigurableAPI):
     # Execution
     #
     @abstractmethod
-    def apply_transaction(
-            self,
-            transaction: SignedTransactionAPI) -> ComputationAPI:
+    def apply_transaction(self, transaction: SignedTransactionAPI) -> ComputationAPI:
+        """
+        Apply transaction to the vm state
+
+        :param transaction: the transaction to apply
+        :return: the computation
+        """
         ...
 
     @abstractmethod
@@ -1319,10 +1323,6 @@ class StateAPI(ConfigurableAPI):
 
     @abstractmethod
     def override_transaction_context(self, gas_price: int) -> ContextManager[None]:
-        ...
-
-    @abstractmethod
-    def execute_transaction(self, transaction: SignedTransactionAPI) -> ComputationAPI:
         ...
 
     @abstractmethod

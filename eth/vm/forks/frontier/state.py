@@ -190,7 +190,7 @@ class FrontierState(BaseState):
     account_db_class: Type[AccountDatabaseAPI] = AccountDB
     transaction_executor_class: Type[TransactionExecutorAPI] = FrontierTransactionExecutor
 
-    def execute_transaction(self, transaction: SignedTransactionAPI) -> ComputationAPI:
+    def apply_transaction(self, transaction: SignedTransactionAPI) -> ComputationAPI:
         executor = self.get_transaction_executor()
         return executor(transaction)
 

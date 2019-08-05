@@ -16,7 +16,7 @@ def _get_computation_error(state: StateAPI, transaction: SignedTransactionAPI) -
     snapshot = state.snapshot()
 
     try:
-        computation = state.execute_transaction(transaction)
+        computation = state.apply_transaction(transaction)
         if computation.is_error:
             return computation.error
         else:
