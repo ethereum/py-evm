@@ -18,6 +18,7 @@ from trinity.chains.light import (
 from trinity.config import (
     TrinityConfig,
 )
+from trinity.db.eth1.chain import AsyncChainDB
 from trinity.nodes.base import Node
 from trinity.protocol.common.peer_pool_event_bus import (
     PeerPoolEventServer,
@@ -85,14 +86,13 @@ class LightNode(Node[LESPeer]):
 
     def get_p2p_server(self) -> LightServer:
         if self._p2p_server is None:
-            manager = self.db_manager
             self._p2p_server = LightServer(
                 privkey=self._nodekey,
                 port=self._port,
                 chain=self.get_full_chain(),
-                chaindb=manager.get_chaindb(),  # type: ignore
+                chaindb=AsyncChainDB(self._base_db),
                 headerdb=self.headerdb,
-                base_db=manager.get_db(),  # type: ignore
+                base_db=self._base_db,
                 network_id=self._network_id,
                 max_peers=self._max_peers,
                 bootstrap_nodes=self._bootstrap_nodes,

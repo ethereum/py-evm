@@ -10,6 +10,7 @@ from typing import (
 
 from eth.abc import AtomicDatabaseAPI
 from eth.db.backends.level import LevelDB
+from eth.db.chain import ChainDB
 
 from trinity.bootstrap import (
     main_entry,
@@ -21,10 +22,10 @@ from trinity.config import (
 from trinity.constants import (
     APP_IDENTIFIER_ETH1,
 )
-from trinity.db.eth1.manager import (
-    create_db_server_manager,
-)
+from trinity.db.manager import DBManager
 from trinity.initialization import (
+    is_database_initialized,
+    initialize_database,
     ensure_eth1_dirs,
 )
 from trinity.plugins.registry import (
@@ -42,9 +43,6 @@ from trinity._utils.mp import (
 )
 from trinity._utils.profiling import (
     setup_cprofiler,
-)
-from trinity._utils.proxy import (
-    serve_until_sigint,
 )
 
 
@@ -97,6 +95,15 @@ def run_database_process(trinity_config: TrinityConfig, db_class: Type[AtomicDat
         app_config = trinity_config.get_app_config(Eth1AppConfig)
 
         base_db = db_class(db_path=app_config.database_dir)
+        chaindb = ChainDB(base_db)
 
-        manager = create_db_server_manager(trinity_config, base_db)
-        serve_until_sigint(manager)
+        if not is_database_initialized(chaindb):
+            chain_config = app_config.get_chain_config()
+            initialize_database(chain_config, chaindb, base_db)
+
+        manager = DBManager(base_db)
+        with manager.run(trinity_config.database_ipc_path):
+            try:
+                manager.wait_stopped()
+            except KeyboardInterrupt:
+                pass

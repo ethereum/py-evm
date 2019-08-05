@@ -1,3 +1,4 @@
+import asyncio
 import bisect
 from typing import (
     Awaitable,
@@ -30,7 +31,6 @@ from trie.utils.nodes import (
     is_blank_node,
 )
 
-from trinity.db.base import BaseAsyncDB
 from trinity.exceptions import SyncRequestAlreadyProcessed
 
 
@@ -115,7 +115,7 @@ class HexaryTrieSync:
 
     def __init__(self,
                  root_hash: Hash32,
-                 db: BaseAsyncDB,
+                 db: DatabaseAPI,
                  nodes_cache: DatabaseAPI,
                  logger: ExtendedDebugLogger) -> None:
         # Nodes that haven't been requested yet.
@@ -163,7 +163,8 @@ class HexaryTrieSync:
         if node_key in self.nodes_cache:
             self.logger.debug2("Node %s already exists in db", encode_hex(node_key))
             return
-        if await self.db.coro_exists(node_key):
+        loop = asyncio.get_event_loop()
+        if await loop.run_in_executor(None, self.db.exists, node_key):
             self.nodes_cache[node_key] = b''
             self.logger.debug2("Node %s already exists in db", encode_hex(node_key))
             return
@@ -233,7 +234,8 @@ class HexaryTrieSync:
         called.
         """
         self.committed_nodes += 1
-        await self.db.coro_set(request.node_key, request.data)
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, self.db.set, request.node_key, request.data)
         self.nodes_cache[request.node_key] = b''
         self.requests.pop(request.node_key)
         for ancestor in request.parents:

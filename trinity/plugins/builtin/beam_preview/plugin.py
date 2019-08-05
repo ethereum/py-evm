@@ -10,9 +10,7 @@ from trinity.config import (
 from trinity.constants import (
     SYNC_BEAM,
 )
-from trinity.db.eth1.manager import (
-    create_db_consumer_manager
-)
+from trinity.db.manager import DBClient
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
@@ -56,12 +54,12 @@ class BeamChainPreviewPlugin(AsyncioIsolatedPlugin):
         app_config = trinity_config.get_app_config(Eth1AppConfig)
         chain_config = app_config.get_chain_config()
 
-        db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
+        base_db = DBClient.connect(trinity_config.database_ipc_path)
 
         self._beam_chain = make_pausing_beam_chain(
             chain_config.vm_configuration,
             chain_config.chain_id,
-            db_manager.get_db(),  # type: ignore
+            base_db,
             self.event_bus,
             self._loop,
             # these preview executions are lower priority than the primary block import

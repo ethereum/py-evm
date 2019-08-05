@@ -8,7 +8,9 @@ from typing import (
 from lahja import EndpointAPI
 
 from cancel_token import CancelToken
+from eth.abc import DatabaseAPI
 from eth.constants import GENESIS_PARENT_HASH, MAX_UNCLE_DEPTH
+from eth.db.backends.base import BaseAtomicDB
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -27,7 +29,6 @@ import rlp
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeerPool
@@ -86,7 +87,7 @@ class BeamSyncer(BaseService):
     def __init__(
             self,
             chain: BaseAsyncChain,
-            db: BaseAsyncDB,
+            db: BaseAtomicDB,
             chain_db: BaseAsyncChainDB,
             peer_pool: ETHPeerPool,
             event_bus: EndpointAPI,
@@ -440,7 +441,7 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
     def __init__(
             self,
             chain: BaseAsyncChain,
-            db: BaseAsyncDB,
+            db: DatabaseAPI,
             state_getter: BeamDownloader,
             event_bus: EndpointAPI,
             token: CancelToken=None) -> None:

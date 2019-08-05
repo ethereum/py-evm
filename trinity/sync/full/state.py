@@ -32,6 +32,7 @@ from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
+from eth.db.backends.base import BaseAtomicDB
 from eth.db.backends.level import LevelDB
 from eth.rlp.accounts import Account
 from eth.tools.logging import ExtendedDebugLogger
@@ -45,7 +46,6 @@ from p2p.exceptions import (
 )
 from p2p.peer import BasePeer, PeerSubscriber
 
-from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.exceptions import (
     AlreadyWaiting,
@@ -72,7 +72,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     def __init__(self,
                  chaindb: BaseAsyncChainDB,
-                 account_db: BaseAsyncDB,
+                 account_db: BaseAtomicDB,
                  root_hash: Hash32,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:

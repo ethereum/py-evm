@@ -1,15 +1,8 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
-# Typeshed definitions for multiprocessing.managers is incomplete, so ignore them for now:
-# https://github.com/python/typeshed/blob/85a788dbcaa5e9e9a62e55f15d44530cd28ba830/stdlib/3/multiprocessing/managers.pyi#L3
-from multiprocessing.managers import (  # type: ignore
-    BaseProxy,
-)
+from abc import abstractmethod
 from typing import (
     Iterable,
     Tuple,
+    TypeVar,
 )
 
 from eth_typing import (
@@ -18,16 +11,17 @@ from eth_typing import (
 )
 
 from eth.abc import (
-    AtomicDatabaseAPI,
     BlockHeaderAPI,
 )
+from eth.db.header import HeaderDB
 
-from trinity._utils.mp import (
-    async_method,
-)
+from trinity._utils.asyncio import async_thread_method
 
 
-class BaseAsyncHeaderDB(ABC):
+TReturn = TypeVar('TReturn')
+
+
+class BaseAsyncHeaderDB(HeaderDB):
     """
     Abstract base class for the async counterpart to ``HeaderDatabaseAPI``.
     """
@@ -69,28 +63,13 @@ class BaseAsyncHeaderDB(ABC):
         ...
 
 
-class AsyncHeaderDBPreProxy(BaseAsyncHeaderDB):
-    """
-    Proxy implementation of ``BaseAsyncHeaderDB`` that does not derive from
-    ``BaseProxy`` for the purpose of improved testability.
-    """
-
-    def __init__(self, db: AtomicDatabaseAPI) -> None:
-        pass
-
-    coro_get_block_header_by_hash = async_method('get_block_header_by_hash')
-    coro_get_canonical_block_hash = async_method('get_canonical_block_hash')
-    coro_get_canonical_block_header_by_number = async_method('get_canonical_block_header_by_number')
-    coro_get_canonical_head = async_method('get_canonical_head')
-    coro_get_score = async_method('get_score')
-    coro_header_exists = async_method('header_exists')
-    coro_get_canonical_block_hash = async_method('get_canonical_block_hash')
-    coro_persist_header = async_method('persist_header')
-    coro_persist_header_chain = async_method('persist_header_chain')
-
-
-class AsyncHeaderDBProxy(BaseProxy, AsyncHeaderDBPreProxy):
-    """
-    Turn ``AsyncHeaderDBPreProxy`` into an actual proxy by deriving from ``BaseProxy``
-    """
-    pass
+class AsyncHeaderDB(BaseAsyncHeaderDB):
+    coro_get_block_header_by_hash = async_thread_method(BaseAsyncHeaderDB.get_block_header_by_hash)
+    coro_get_canonical_block_hash = async_thread_method(BaseAsyncHeaderDB.get_canonical_block_hash)
+    coro_get_canonical_block_header_by_number = async_thread_method(BaseAsyncHeaderDB.get_canonical_block_header_by_number)  # noqa: E501
+    coro_get_canonical_head = async_thread_method(BaseAsyncHeaderDB.get_canonical_head)
+    coro_get_score = async_thread_method(BaseAsyncHeaderDB.get_score)
+    coro_header_exists = async_thread_method(BaseAsyncHeaderDB.header_exists)
+    coro_get_canonical_block_hash = async_thread_method(BaseAsyncHeaderDB.get_canonical_block_hash)
+    coro_persist_header = async_thread_method(BaseAsyncHeaderDB.persist_header)
+    coro_persist_header_chain = async_thread_method(BaseAsyncHeaderDB.persist_header_chain)

@@ -4,12 +4,12 @@ import time
 from cancel_token import CancelToken
 
 from eth.constants import BLANK_ROOT_HASH
+from eth.db.backends.base import BaseAtomicDB
 from eth.rlp.headers import BlockHeader
 
 from p2p.service import BaseService
 
 from trinity.chains.base import BaseAsyncChain
-from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.eth.peer import ETHPeerPool
 
@@ -20,7 +20,7 @@ from .state import StateDownloader
 
 async def ensure_state_then_sync_full(logger: logging.Logger,
                                       head: BlockHeader,
-                                      base_db: BaseAsyncDB,
+                                      base_db: BaseAtomicDB,
                                       chaindb: BaseAsyncChainDB,
                                       chain: BaseAsyncChain,
                                       peer_pool: ETHPeerPool,
@@ -49,7 +49,7 @@ class FullChainSyncer(BaseService):
     def __init__(self,
                  chain: BaseAsyncChain,
                  chaindb: BaseAsyncChainDB,
-                 base_db: BaseAsyncDB,
+                 base_db: BaseAtomicDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
@@ -80,7 +80,7 @@ class FastThenFullChainSyncer(BaseService):
     def __init__(self,
                  chain: BaseAsyncChain,
                  chaindb: BaseAsyncChainDB,
-                 base_db: BaseAsyncDB,
+                 base_db: BaseAtomicDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)

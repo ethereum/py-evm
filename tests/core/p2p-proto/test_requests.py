@@ -2,11 +2,11 @@ import pytest
 
 from p2p.exceptions import PeerConnectionLost
 
+from trinity.db.eth1.chain import AsyncChainDB
 from trinity.protocol.eth.peer import (
     ETHPeerPoolEventServer,
 )
 from tests.core.integration_test_helpers import (
-    FakeAsyncChainDB,
     run_peer_pool_event_server,
     run_proxy_peer_pool,
     run_request_server,
@@ -29,8 +29,8 @@ async def test_proxy_peer_requests(request,
     client_peer, server_peer = await get_directly_linked_peers(
         request,
         event_loop,
-        alice_headerdb=FakeAsyncChainDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncChainDB(chaindb_20.db),
+        alice_headerdb=AsyncChainDB(chaindb_fresh.db),
+        bob_headerdb=AsyncChainDB(chaindb_20.db),
     )
 
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer], event_bus=client_event_bus)
@@ -42,7 +42,7 @@ async def test_proxy_peer_requests(request,
         server_event_bus, server_peer_pool, handler_type=ETHPeerPoolEventServer
     ), run_request_server(
         server_event_bus,
-        FakeAsyncChainDB(chaindb_20.db)
+        AsyncChainDB(chaindb_20.db)
     ), run_proxy_peer_pool(
         client_event_bus
     ) as client_proxy_peer_pool, run_proxy_peer_pool(
@@ -84,8 +84,8 @@ async def test_proxy_peer_requests_with_timeouts(request,
     client_peer, server_peer = await get_directly_linked_peers(
         request,
         event_loop,
-        alice_headerdb=FakeAsyncChainDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncChainDB(chaindb_20.db),
+        alice_headerdb=AsyncChainDB(chaindb_fresh.db),
+        bob_headerdb=AsyncChainDB(chaindb_20.db),
     )
 
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer], event_bus=client_event_bus)
@@ -129,8 +129,8 @@ async def test_requests_when_peer_in_client_vanishs(request,
     client_peer, server_peer = await get_directly_linked_peers(
         request,
         event_loop,
-        alice_headerdb=FakeAsyncChainDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncChainDB(chaindb_20.db),
+        alice_headerdb=AsyncChainDB(chaindb_fresh.db),
+        bob_headerdb=AsyncChainDB(chaindb_20.db),
     )
 
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer], event_bus=client_event_bus)
@@ -142,7 +142,7 @@ async def test_requests_when_peer_in_client_vanishs(request,
         server_event_bus, server_peer_pool, handler_type=ETHPeerPoolEventServer
     ), run_request_server(
         server_event_bus,
-        FakeAsyncChainDB(chaindb_20.db)
+        AsyncChainDB(chaindb_20.db)
     ), run_proxy_peer_pool(
         client_event_bus
     ) as client_proxy_peer_pool, run_proxy_peer_pool(

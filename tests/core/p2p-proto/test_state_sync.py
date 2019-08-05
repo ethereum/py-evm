@@ -21,8 +21,6 @@ from eth.tools.logging import ExtendedDebugLogger
 from trinity.sync.full.hexary_trie import HexaryTrieSync
 from trinity.sync.full.state import StateSync, TrieNodeRequestTracker
 
-from tests.core.integration_test_helpers import FakeAsyncAtomicDB
-
 
 # produces a branch node with an extention node who's encoding is less than 32
 # bytes in length so it is inlined.
@@ -59,7 +57,7 @@ def test_trie_sync(random, event_loop):
     # like this for now. https://github.com/HypothesisWorks/hypothesis/pull/1343
     async def _test_trie_sync():
         src_trie, contents = make_random_trie(random)
-        dest_db = FakeAsyncAtomicDB()
+        dest_db = AtomicDB()
         nodes_cache = AtomicDB()
         scheduler = HexaryTrieSync(src_trie.root_hash, dest_db, nodes_cache,
                                    ExtendedDebugLogger("test"))
@@ -100,7 +98,7 @@ def make_random_state(n):
 @pytest.mark.asyncio
 async def test_state_sync():
     raw_db, state_root, contents = make_random_state(1000)
-    dest_db = FakeAsyncAtomicDB()
+    dest_db = AtomicDB()
     nodes_cache = AtomicDB()
     scheduler = StateSync(state_root, dest_db, nodes_cache, ExtendedDebugLogger('test'))
     requests = scheduler.next_batch(10)

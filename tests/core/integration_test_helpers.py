@@ -19,23 +19,17 @@ from eth.chains.base import (
     MiningChain,
 )
 from eth.db.backends.level import LevelDB
-from eth.db.backends.memory import MemoryDB
-from eth.db.atomic import AtomicDB
-from eth.db.chain import ChainDB
 from eth.tools.builder.chain import (
     build,
     enable_pow_mining,
     genesis,
     latest_mainnet_at,
 )
-from eth.db.header import HeaderDB
 from eth.vm.forks.byzantium import ByzantiumVM
 from eth.vm.forks.petersburg import PetersburgVM
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
-from trinity.db.base import BaseAsyncDB
-from trinity.db.eth1.chain import BaseAsyncChainDB
-from trinity.db.eth1.header import BaseAsyncHeaderDB
+from trinity.db.eth1.chain import AsyncChainDB
 
 from trinity.protocol.common.peer_pool_event_bus import (
     DefaultPeerPoolEventServer,
@@ -82,43 +76,6 @@ def async_passthrough(base_name):
     return passthrough_method
 
 
-class FakeAsyncAtomicDB(AtomicDB, BaseAsyncDB):
-    coro_set = async_passthrough('set')
-    coro_exists = async_passthrough('exists')
-
-
-class FakeAsyncMemoryDB(MemoryDB, BaseAsyncDB):
-    coro_set = async_passthrough('set')
-    coro_exists = async_passthrough('exists')
-
-
-class FakeAsyncLevelDB(LevelDB, BaseAsyncDB):
-    coro_set = async_passthrough('set')
-    coro_exists = async_passthrough('exists')
-
-
-class FakeAsyncHeaderDB(BaseAsyncHeaderDB, HeaderDB):
-    coro_get_canonical_block_hash = async_passthrough('get_canonical_block_hash')
-    coro_get_canonical_block_header_by_number = async_passthrough('get_canonical_block_header_by_number')  # noqa: E501
-    coro_get_canonical_head = async_passthrough('get_canonical_head')
-    coro_get_block_header_by_hash = async_passthrough('get_block_header_by_hash')
-    coro_get_score = async_passthrough('get_score')
-    coro_header_exists = async_passthrough('header_exists')
-    coro_persist_header = async_passthrough('persist_header')
-    coro_persist_header_chain = async_passthrough('persist_header_chain')
-
-
-class FakeAsyncChainDB(BaseAsyncChainDB, FakeAsyncHeaderDB, ChainDB):
-    coro_exists = async_passthrough('exists')
-    coro_persist_block = async_passthrough('persist_block')
-    coro_persist_uncles = async_passthrough('persist_uncles')
-    coro_persist_trie_data_dict = async_passthrough('persist_trie_data_dict')
-    coro_get = async_passthrough('get')
-    coro_get_block_transactions = async_passthrough('get_block_transactions')
-    coro_get_block_uncles = async_passthrough('get_block_uncles')
-    coro_get_receipts = async_passthrough('get_receipts')
-
-
 async def coro_import_block(chain, block, perform_validation=True):
     # Be nice and yield control to give other coroutines a chance to run before us as
     # importing a block is a very expensive operation.
@@ -127,14 +84,14 @@ async def coro_import_block(chain, block, perform_validation=True):
 
 
 class FakeAsyncRopstenChain(RopstenChain):
-    chaindb_class = FakeAsyncChainDB
+    chaindb_class = AsyncChainDB
     coro_import_block = coro_import_block
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
 
 
 class FakeAsyncMainnetChain(MainnetChain):
-    chaindb_class = FakeAsyncChainDB
+    chaindb_class = AsyncChainDB
     coro_get_canonical_head = async_passthrough('get_canonical_head')
     coro_import_block = coro_import_block
     coro_validate_chain = async_passthrough('validate_chain')
@@ -142,6 +99,8 @@ class FakeAsyncMainnetChain(MainnetChain):
 
 
 class FakeAsyncChain(MiningChain):
+    chaindb_class = AsyncChainDB
+
     coro_import_block = coro_import_block
     coro_get_block_by_header = async_passthrough('get_block_by_header')
     coro_get_block_header_by_hash = async_passthrough('get_block_header_by_hash')
@@ -149,7 +108,6 @@ class FakeAsyncChain(MiningChain):
     coro_get_canonical_block_by_number = async_passthrough('get_canonical_block_by_number')
     coro_validate_chain = async_passthrough('validate_chain')
     coro_validate_receipt = async_passthrough('validate_receipt')
-    chaindb_class = FakeAsyncChainDB
 
 
 class LatestTestChain(FakeAsyncChain):

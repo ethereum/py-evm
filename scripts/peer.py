@@ -23,11 +23,12 @@ from eth.tools.logging import DEBUG2_LEVEL_NUM
 from p2p import ecies
 from p2p.kademlia import Node
 
+from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
 
-from tests.core.integration_test_helpers import FakeAsyncHeaderDB, connect_to_peers_loop
+from tests.core.integration_test_helpers import connect_to_peers_loop
 
 
 def _main() -> None:
@@ -58,7 +59,7 @@ def _main() -> None:
         vm_config = ROPSTEN_VM_CONFIGURATION
         genesis = ROPSTEN_GENESIS_HEADER
 
-    headerdb = FakeAsyncHeaderDB(MemoryDB())
+    headerdb = AsyncHeaderDB(MemoryDB())
     headerdb.persist_header(genesis)
     loop = asyncio.get_event_loop()
     nodes = [Node.from_uri(args.enode)]
