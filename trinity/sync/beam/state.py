@@ -270,7 +270,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 with self._trie_db.at_root(root_hash) as snapshot:
                     account_rlp = snapshot[account_hash]
             except MissingTrieNode as exc:
-                await self.ensure_node_present(exc.missing_node_hash)
                 if predictive:
                     await self.predictive_node_present(exc.missing_node_hash)
                 else:
