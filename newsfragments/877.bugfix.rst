@@ -1,0 +1,2 @@
+Beam Sync stats: Count the extra single node that is sometimes required when downloading the nodes
+needed to look up an account or storage. (Usually because of a trie reorg)

@@ -1,0 +1,3 @@
+Immediately insert Beam Sync nodes that are "predicted" (soon to be used during parallel execution)
+This saves a round trip on live execution, when parallel execution already downloaded a node.
+Also, more aggressively make predictive requests if no urgent requests are waiting in the queue.
