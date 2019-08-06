@@ -165,10 +165,10 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             # validate that parents and children match
             pairs = tuple(zip(parents, children))
             try:
-                validate_pair_coros = [
+                validate_pair_coros = (
                     self.wait(self._chain.coro_validate_chain(parent, (child, )))
                     for parent, child in pairs
-                ]
+                )
                 await self.wait(asyncio.gather(*validate_pair_coros, loop=self.get_event_loop()))
             except ValidationError as e:
                 self.logger.warning(
