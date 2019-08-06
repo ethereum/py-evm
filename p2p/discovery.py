@@ -58,7 +58,7 @@ from eth_keys import datatypes
 
 from eth_hash.auto import keccak
 
-from eth.tools.logging import ExtendedDebugLogger, DEBUG2_LEVEL_NUM
+from eth.tools.logging import ExtendedDebugLogger
 
 from cancel_token import CancelToken, OperationCancelled
 
@@ -1349,74 +1349,3 @@ def get_v5_topic(proto: Type[protocol.Protocol], genesis_hash: Hash32) -> bytes:
         proto_id += str(proto.version)
     topic = proto_id + '@' + remove_0x_prefix(encode_hex(genesis_hash[:8]))
     return topic.encode('ascii')
-
-
-def _test() -> None:
-    import argparse
-    import signal
-    from p2p import constants
-    from p2p import ecies
-
-    loop = asyncio.get_event_loop()
-    loop.set_debug(True)
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-bootnode', type=str, help="The enode to use as bootnode")
-    parser.add_argument('-v5', action="store_true")
-    parser.add_argument('-trace', action="store_true")
-    args = parser.parse_args()
-
-    log_level = logging.DEBUG
-    if args.trace:
-        log_level = DEBUG2_LEVEL_NUM
-    logging.basicConfig(level=log_level, format='%(asctime)s %(levelname)s: %(message)s')
-
-    listen_host = '127.0.0.1'
-    # Listen on a port other than 30303 so that we can test against a local geth instance
-    # running on that port.
-    listen_port = 30304
-    privkey = ecies.generate_privkey()
-    addr = Address(listen_host, listen_port, listen_port)
-    if args.bootnode:
-        bootstrap_nodes = tuple([Node.from_uri(args.bootnode)])
-    elif args.v5:
-        bootstrap_nodes = tuple(
-            Node.from_uri(enode) for enode in constants.DISCOVERY_V5_BOOTNODES)
-    else:
-        bootstrap_nodes = tuple(
-            Node.from_uri(enode) for enode in constants.ROPSTEN_BOOTNODES)
-
-    cancel_token = CancelToken("discovery")
-    if args.v5:
-        # topic = b'LES2@41941023680923e0'  # LES2/ropsten
-        topic = b'LES2@d4e56740f876aef8'  # LES2/mainnet
-        discovery: DiscoveryProtocol = DiscoveryByTopicProtocol(
-            topic, privkey, addr, bootstrap_nodes, cancel_token)
-    else:
-        discovery = DiscoveryProtocol(privkey, addr, bootstrap_nodes, cancel_token)
-
-    async def run() -> None:
-        await loop.create_datagram_endpoint(lambda: discovery, local_addr=('0.0.0.0', listen_port))
-        try:
-            await discovery.bootstrap()
-            if args.v5:
-                while True:
-                    nodes = discovery.topic_table.get_nodes(topic)
-                    print("******* %d topic nodes found ***************" % len(nodes))
-                    print(nodes)
-                    await discovery.lookup_random()
-                    await cancel_token.cancellable_wait(asyncio.sleep(5))
-        except OperationCancelled:
-            pass
-        finally:
-            await discovery.stop()
-
-    for sig in [signal.SIGINT, signal.SIGTERM]:
-        loop.add_signal_handler(sig, discovery.cancel_token.trigger)
-
-    loop.run_until_complete(run())
-    loop.close()
-
-
-if __name__ == "__main__":
-    _test()

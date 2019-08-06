@@ -1,0 +1,1 @@
+Remove legacy tests from core application code.
