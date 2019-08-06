@@ -152,7 +152,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
         Wait until the node that is the preimage of `node_hash` is available in the database.
         If it is not available in the first check, request it from peers.
 
-        Mark this node as preductive, which reduces request priority.
+        Mark this node as predictive, which reduces request priority.
 
         :return: whether node was missing from the database on the first check
         """
@@ -325,7 +325,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
     async def _match_node_requests_to_peers(self) -> None:
         """
         Monitor TaskQueue for needed trie nodes, and request them from peers. Repeat as necessary.
-        Prefer urgent nodes over preductive ones.
+        Prefer urgent nodes over predictive ones.
         """
         while self.is_operational:
             urgent_batch_id, urgent_hashes = await self._get_waiting_urgent_hashes()
