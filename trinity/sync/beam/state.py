@@ -332,8 +332,8 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
             predictive_batch_id, predictive_hashes = self._maybe_add_predictive_nodes(urgent_hashes)
 
-            # combine to single tuple of hashes
-            node_hashes = self._combine_urgent_predictive(urgent_hashes, predictive_hashes)
+            # combine to single tuple of unique hashes
+            node_hashes = self._append_unique_hashes(urgent_hashes, predictive_hashes)
 
             if not node_hashes:
                 self.logger.warning("restarting because empty node hashes")
@@ -403,12 +403,12 @@ class BeamDownloader(BaseService, PeerSubscriber):
         else:
             return None, ()
 
-    def _combine_urgent_predictive(
-            self,
-            urgent_hashes: Tuple[Hash32, ...],
-            predictive_hashes: Tuple[Hash32, ...]) -> Tuple[Hash32, ...]:
-        non_urgent_predictive_hashes = tuple(set(predictive_hashes).difference(urgent_hashes))
-        return urgent_hashes + non_urgent_predictive_hashes
+    @staticmethod
+    def _append_unique_hashes(
+            first_hashes: Tuple[Hash32, ...],
+            non_unique_hashes: Tuple[Hash32, ...]) -> Tuple[Hash32, ...]:
+        unique_hashes_to_add = tuple(set(non_unique_hashes).difference(first_hashes))
+        return first_hashes + unique_hashes_to_add
 
     async def _get_nodes_from_peer(
             self,
