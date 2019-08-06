@@ -1,0 +1,1 @@
+Fixes issue with Trinity not shutting down when issues a ``CTRL+C``.

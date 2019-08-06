@@ -54,16 +54,20 @@ class PluginManagerService(BaseService):
             # start the background process that tracks and propagates available
             # endpoints to the other connected endpoints
             self.run_daemon_task(self._track_and_propagate_available_endpoints())
+            self.run_daemon_task(self._handle_shutdown_request())
 
             # start the plugin manager
-            plugin_manager = PluginManager(endpoint, self._plugins)
-            plugin_manager.prepare(self._boot_info)
+            self.plugin_manager = PluginManager(endpoint, self._plugins)
+            self.plugin_manager.prepare(self._boot_info)
             await self.cancellation()
 
     async def _handle_shutdown_request(self) -> None:
         req = await self._endpoint.wait_for(ShutdownRequest)
         self._kill_trinity_fn(req.reason)
         self.cancel_nowait()
+
+    async def _cleanup(self) -> None:
+        self.plugin_manager.shutdown_blocking()
 
     _available_endpoints: Tuple[ConnectionConfig, ...] = ()
 

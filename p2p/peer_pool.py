@@ -201,10 +201,13 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
             await self.wait(rate_limiter.take())
 
-            await self.wait(asyncio.gather(*(
-                self._add_peers_from_backend(backend)
-                for backend in self.peer_backends
-            )))
+            try:
+                await self.wait(asyncio.gather(*(
+                    self._add_peers_from_backend(backend)
+                    for backend in self.peer_backends
+                )))
+            except OperationCancelled:
+                break
 
     def __len__(self) -> int:
         return len(self.connected_nodes)
