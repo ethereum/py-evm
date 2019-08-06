@@ -149,7 +149,7 @@ class BaseProxyPeer(BaseService):
         super().__init__(token)
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} {self.remote.uri}"
+        return f"{self.__class__.__name__} {self.remote}"
 
     async def _run(self) -> None:
         self.logger.debug("Starting Proxy Peer %s", self)
