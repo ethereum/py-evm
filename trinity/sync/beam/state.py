@@ -2,7 +2,6 @@ import asyncio
 from concurrent.futures import CancelledError
 import itertools
 from typing import (
-    Dict,
     FrozenSet,
     Iterable,
     Set,
@@ -107,10 +106,10 @@ class BeamDownloader(BaseService, PeerSubscriber):
         self._peer_pool = peer_pool
 
         # Track node data that might be useful: hashes we bumped into while getting urgent nodes
-        self._hash_to_priority: Dict[Hash32, int] = {}
         self._maybe_useful_nodes = TaskQueue[Hash32](
             buffer_size,
-            lambda node_hash: self._hash_to_priority[node_hash],
+            # Everything is the same priority, for now
+            lambda node_hash: 0,
         )
 
         self._peers_without_full_trie: Set[ETHPeer] = set()
@@ -122,86 +121,44 @@ class BeamDownloader(BaseService, PeerSubscriber):
         #   For now, we just turn it off for all peers, for simplicity.
         self._allow_predictive_only = True
 
-    async def ensure_node_present(self, node_hash: Hash32) -> int:
+    async def ensure_nodes_present(
+            self,
+            node_hashes: Iterable[Hash32],
+            urgent: bool=True) -> int:
         """
-        Wait until the node that is the preimage of `node_hash` is available in the database.
-        If it is not available in the first check, request it from peers.
+        Wait until the nodes that are the preimages of `node_hashes` are available in the database.
+        If one is not available in the first check, request it from peers.
 
-        Mark this node as urgent and important (rather than predictive), which increases
-        request priority.
+        :param urgent: Should this node be downloaded urgently? If False, download as backfill
 
         Note that if your ultimate goal is an account or storage data, it's probably better to use
         download_account or download_storage. This method is useful for other
         scenarios, like bytecode lookups or intermediate node lookups.
 
-        :return: whether node was missing from the database on the first check
+        :return: how many nodes had to be downloaded
         """
-        if self._is_node_missing(node_hash):
-            if node_hash not in self._node_tasks:
-                await self._node_tasks.add((node_hash, ))
-            await self._node_hashes_present({node_hash})
-            return 1
+        if urgent:
+            queue = self._node_tasks
         else:
-            return 0
+            queue = self._maybe_useful_nodes
 
-    async def predictive_node_present(
-            self,
-            node_hash: Hash32,
-            priority: int = 1) -> int:
-        """
-        Wait until the node that is the preimage of `node_hash` is available in the database.
-        If it is not available in the first check, request it from peers.
+        return await self._wait_for_nodes(node_hashes, queue)
 
-        Mark this node as predictive, which reduces request priority.
-
-        :return: whether node was missing from the database on the first check
-        """
-        if self._is_node_missing(node_hash):
-            if node_hash not in self._node_tasks and node_hash not in self._maybe_useful_nodes:
-                self._hash_to_priority[node_hash] = priority
-                await self._maybe_useful_nodes.add((node_hash, ))
-            await self._node_hashes_present({node_hash})
-            return 1
-        else:
-            return 0
-
-    async def ensure_nodes_present(self, node_hashes: Iterable[Hash32]) -> int:
-        """
-        Like :meth:`ensure_node_present`, but waits for multiple nodes to be available.
-
-        :return: whether nodes had to be downloaded
-        """
-        missing_nodes = set(
-            node_hash for node_hash in node_hashes if self._is_node_missing(node_hash)
-        )
-        unrequested_nodes = tuple(
-            node_hash for node_hash in missing_nodes if node_hash not in self._node_tasks
-        )
-        await self._node_tasks.add(unrequested_nodes)
-        await self._node_hashes_present(missing_nodes)
-        return len(unrequested_nodes)
-
-    async def predictive_nodes_present(
+    async def _wait_for_nodes(
             self,
             node_hashes: Iterable[Hash32],
-            priority: int = 1) -> int:
-        """
-        Like :meth:`predictive_node_present`, but waits for multiple nodes to be available.
-
-        :return: whether nodes had to be downloaded
-        """
+            queue: TaskQueue[Hash32]) -> int:
         missing_nodes = set(
             node_hash for node_hash in node_hashes if self._is_node_missing(node_hash)
         )
         unrequested_nodes = tuple(
-            node_hash for node_hash in missing_nodes if node_hash not in self._maybe_useful_nodes
+            node_hash for node_hash in missing_nodes if node_hash not in queue
         )
-        for node_hash in unrequested_nodes:
-            self._hash_to_priority[node_hash] = priority
-
-        await self._maybe_useful_nodes.add(unrequested_nodes)
-        await self._node_hashes_present(missing_nodes)
-        return len(missing_nodes)
+        if unrequested_nodes:
+            await queue.add(unrequested_nodes)
+        if missing_nodes:
+            await self._node_hashes_present(missing_nodes)
+        return len(unrequested_nodes)
 
     def _is_node_missing(self, node_hash: Hash32) -> bool:
         if len(node_hash) != 32:
@@ -215,7 +172,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             self,
             account_addresses: Iterable[Hash32],
             root_hash: Hash32,
-            predictive: bool=False) -> int:
+            urgent: bool=True) -> int:
         """
         Like :meth:`download_account`, but waits for multiple addresses to be available.
 
@@ -236,10 +193,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
                     else:
                         completed_account_hashes.add(account_hash)
 
-            if predictive:
-                await self.predictive_nodes_present(need_nodes)
-            else:
-                await self.ensure_nodes_present(need_nodes)
+            await self.ensure_nodes_present(need_nodes, urgent)
             nodes_downloaded += len(need_nodes)
             missing_account_hashes -= completed_account_hashes
 
@@ -255,7 +209,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             self,
             account_hash: Hash32,
             root_hash: Hash32,
-            predictive: bool=False) -> Tuple[bytes, int]:
+            urgent: bool=True) -> Tuple[bytes, int]:
         """
         Check the given account address for presence in the state database.
         Wait until we have the state proof for the given address.
@@ -272,10 +226,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 with self._trie_db.at_root(root_hash) as snapshot:
                     account_rlp = snapshot[account_hash]
             except MissingTrieNode as exc:
-                if predictive:
-                    await self.predictive_node_present(exc.missing_node_hash)
-                else:
-                    await self.ensure_node_present(exc.missing_node_hash)
+                await self.ensure_nodes_present({exc.missing_node_hash}, urgent)
             else:
                 # Account is fully available within the trie
                 return account_rlp, num_downloads_required
@@ -290,7 +241,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             storage_key: Hash32,
             storage_root_hash: Hash32,
             account: Address,
-            predictive: bool=False) -> int:
+            urgent: bool=True) -> int:
         """
         Check the given storage key for presence in the account's storage database.
         Wait until we have a trie proof for the given storage key.
@@ -308,10 +259,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
                     # request the data just to see which part is missing
                     snapshot[storage_key]
             except MissingTrieNode as exc:
-                if predictive:
-                    await self.predictive_node_present(exc.missing_node_hash)
-                else:
-                    await self.ensure_node_present(exc.missing_node_hash)
+                await self.ensure_nodes_present({exc.missing_node_hash}, urgent)
             else:
                 # Account is fully available within the trie
                 return num_downloads_required
@@ -446,9 +394,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
         if urgent_batch_id is not None:
             self._node_tasks.complete(urgent_batch_id, tuple(urgent_nodes.keys()))
-
-        for node_hash in predictive_nodes.keys():
-            del self._hash_to_priority[node_hash]
 
         if predictive_batch_id is not None:
             # retire all predictions, if the responding node doesn't have them, then we don't

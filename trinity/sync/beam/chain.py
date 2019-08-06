@@ -512,28 +512,28 @@ class MissingDataEventHandler(BaseService):
             asyncio.ensure_future(self._serve_storage(event))
 
     async def _serve_account(self, event: CollectMissingAccount) -> None:
-        await self._state_downloader.ensure_node_present(event.missing_node_hash)
         _, num_nodes_collected = await self._state_downloader.download_account(
             event.address_hash,
             event.state_root_hash,
         )
+        bonus_node = await self._state_downloader.ensure_nodes_present({event.missing_node_hash})
         await self._event_bus.broadcast(
-            MissingAccountCollected(num_nodes_collected),
+            MissingAccountCollected(num_nodes_collected + bonus_node),
             event.broadcast_config(),
         )
 
     async def _serve_bytecode(self, event: CollectMissingBytecode) -> None:
-        await self._state_downloader.ensure_node_present(event.bytecode_hash)
+        await self._state_downloader.ensure_nodes_present({event.bytecode_hash})
         await self._event_bus.broadcast(MissingBytecodeCollected(), event.broadcast_config())
 
     async def _serve_storage(self, event: CollectMissingStorage) -> None:
-        await self._state_downloader.ensure_node_present(event.missing_node_hash)
         num_nodes_collected = await self._state_downloader.download_storage(
             event.storage_key,
             event.storage_root_hash,
             event.account_address,
         )
+        bonus_node = await self._state_downloader.ensure_nodes_present({event.missing_node_hash})
         await self._event_bus.broadcast(
-            MissingStorageCollected(num_nodes_collected),
+            MissingStorageCollected(num_nodes_collected + bonus_node),
             event.broadcast_config(),
         )
