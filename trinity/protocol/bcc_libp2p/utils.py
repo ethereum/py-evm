@@ -25,3 +25,6 @@ def make_tcp_ip_maddr(ip: str, port: int) -> Multiaddr:
 
 def make_rpc_protocol_id(message_name: str, schema_version: str, encoding: str) -> str:
     return f"{RPC_PROTOCOL_PREFIX}/{message_name}/{schema_version}/{encoding}"
+
+
+# TODO: Parse responses
