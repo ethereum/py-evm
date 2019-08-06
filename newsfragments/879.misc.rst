@@ -1,0 +1,1 @@
+Isolate ``trio`` based tests in their own testing module: ``./tests-trio``

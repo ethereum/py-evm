@@ -1,6 +1,7 @@
 import trio
 
 import pytest
+import pytest_trio
 
 from p2p.trio_service import (
     background_service,
@@ -13,7 +14,7 @@ from p2p.discv5.channel_services import (
 )
 
 
-@pytest.fixture
+@pytest_trio.trio_fixture
 async def socket_pair():
     sending_socket = trio.socket.socket(
         family=trio.socket.AF_INET,
@@ -29,6 +30,7 @@ async def socket_pair():
     return sending_socket, receiving_socket
 
 
+@pytest.mark.trio
 async def test_datagram_receiver(socket_pair):
     sending_socket, receiving_socket = socket_pair
     receiver_address = receiving_socket.getsockname()
@@ -47,6 +49,7 @@ async def test_datagram_receiver(socket_pair):
         assert received_datagram.sender.port == sender_address[1]
 
 
+@pytest.mark.trio
 async def test_datagram_sender(socket_pair):
     sending_socket, receiving_socket = socket_pair
     receiver_address = receiving_socket.getsockname()
