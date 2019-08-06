@@ -82,12 +82,12 @@ class BaseChainPeer(BasePeer):
     @property
     @abstractmethod
     def requests(self) -> BaseChainExchangeHandler:
-        pass
+        ...
 
     @property
     @abstractmethod
     def max_headers_fetch(self) -> int:
-        pass
+        ...
 
     @property
     def headerdb(self) -> BaseAsyncHeaderDB:

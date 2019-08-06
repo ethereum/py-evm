@@ -18,7 +18,7 @@ class BaseHeaderRequest(ABC):
     @property
     @abstractmethod
     def max_size(self) -> int:
-        pass
+        ...
 
     def generate_block_numbers(self, block_number: BlockNumber=None) -> Tuple[BlockNumber, ...]:
         if block_number is None and not self.is_numbered:

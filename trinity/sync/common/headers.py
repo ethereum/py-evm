@@ -498,7 +498,7 @@ class HeaderSyncerAPI(ABC):
 
     @abstractmethod
     def get_target_header_hash(self) -> Hash32:
-        pass
+        ...
 
 
 class ManualHeaderSyncer(HeaderSyncerAPI):
@@ -837,7 +837,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
     @property
     @abstractmethod
     def tip_monitor_class(self) -> Type[BaseChainTipMonitor]:
-        pass
+        ...
 
     async def _run(self) -> None:
         self.run_daemon(self._tip_monitor)

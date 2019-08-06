@@ -98,7 +98,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
     @abstractmethod
     def _make_peer_pool(self) -> TPeerPool:
-        pass
+        ...
 
     async def _start_tcp_listener(self) -> None:
         # TODO: Support IPv6 addresses as well.

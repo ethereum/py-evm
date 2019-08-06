@@ -88,4 +88,4 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
         """
         Issue the request to the peer for the desired data
         """
-        raise NotImplementedError('__call__ must be defined on every Exchange')
+        ...

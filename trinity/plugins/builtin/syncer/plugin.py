@@ -86,7 +86,7 @@ class BaseSyncStrategy(ABC):
     @classmethod
     @abstractmethod
     def get_sync_mode(cls) -> str:
-        pass
+        ...
 
     @abstractmethod
     async def sync(self,
@@ -96,7 +96,7 @@ class BaseSyncStrategy(ABC):
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
-        pass
+        ...
 
 
 class NoopSyncStrategy(BaseSyncStrategy):

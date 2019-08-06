@@ -22,7 +22,7 @@ class BasePeerBackend(ABC):
     async def get_peer_candidates(self,
                                   num_requested: int,
                                   connected_remotes: Set[NodeAPI]) -> Tuple[NodeAPI, ...]:
-        pass
+        ...
 
 
 TO_DISCOVERY_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=DISCOVERY_EVENTBUS_ENDPOINT)

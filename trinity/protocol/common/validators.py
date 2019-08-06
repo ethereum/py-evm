@@ -36,7 +36,7 @@ class BaseValidator(ABC, Generic[TResponse]):
     """
     @abstractmethod
     def validate_result(self, result: TResponse) -> None:
-        pass
+        ...
 
 
 class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):

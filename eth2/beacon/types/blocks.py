@@ -162,7 +162,7 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
         """
         Return the block denoted by the given block root.
         """
-        raise NotImplementedError("Must be implemented by subclasses")
+        ...
 
 
 class BeaconBlock(BaseBeaconBlock):

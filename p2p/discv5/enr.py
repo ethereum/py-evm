@@ -257,11 +257,11 @@ class BaseENR(Mapping[bytes, Any], ABC):
 
     @abstractmethod
     def __eq__(self, other: Any) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def __hash__(self) -> int:
-        pass
+        ...
 
 
 class UnsignedENR(BaseENR, ENRContentSedes):

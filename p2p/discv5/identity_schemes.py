@@ -68,17 +68,17 @@ class IdentityScheme(ABC):
     @classmethod
     @abstractmethod
     def create_signature(cls, enr: "BaseENR", private_key: bytes) -> bytes:
-        pass
+        ...
 
     @classmethod
     @abstractmethod
     def validate_signature(cls, enr: "ENR") -> None:
-        pass
+        ...
 
     @classmethod
     @abstractmethod
     def extract_node_address(cls, enr: "ENR") -> bytes:
-        pass
+        ...
 
 
 @default_identity_scheme_registry.register

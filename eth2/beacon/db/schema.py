@@ -12,12 +12,12 @@ class BaseSchema(ABC):
     @staticmethod
     @abstractmethod
     def make_head_state_slot_lookup_key() -> bytes:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def make_slot_to_state_root_lookup_key(slot: int) -> bytes:
-        pass
+        ...
 
     #
     # Block
@@ -25,32 +25,32 @@ class BaseSchema(ABC):
     @staticmethod
     @abstractmethod
     def make_canonical_head_root_lookup_key() -> bytes:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def make_block_root_to_slot_lookup_key(block_root: Hash32) -> bytes:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def make_block_slot_to_root_lookup_key(slot: int) -> bytes:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def make_block_root_to_score_lookup_key(block_root: Hash32) -> bytes:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def make_finalized_head_root_lookup_key() -> bytes:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
     def make_justified_head_root_lookup_key() -> bytes:
-        pass
+        ...
 
     #
     # Attestaion
@@ -58,7 +58,7 @@ class BaseSchema(ABC):
     @staticmethod
     @abstractmethod
     def make_attestation_root_to_block_lookup_key(attestaton_root: Hash32) -> bytes:
-        pass
+        ...
 
 
 class SchemaV1(BaseSchema):

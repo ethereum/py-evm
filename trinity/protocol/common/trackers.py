@@ -53,7 +53,7 @@ class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TRes
         case `None` should be returned.  (Specifically the `GetBlockHeaders`
         anchored to a block hash.
         """
-        pass
+        ...
 
     @abstractmethod
     def _get_result_size(self, result: TResult) -> int:
@@ -61,7 +61,7 @@ class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TRes
         The result size represents the number of *things* that were returned,
         not taking into account the sizes of individual items.
         """
-        pass
+        ...
 
     @abstractmethod
     def _get_result_item_count(self, result: TResult) -> int:
@@ -70,7 +70,7 @@ class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TRes
         response, taking into account things like the size of individual
         response items such as the number of transactions in a block.
         """
-        pass
+        ...
 
     def get_stats(self) -> str:
         """

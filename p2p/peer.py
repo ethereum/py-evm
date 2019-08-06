@@ -254,12 +254,12 @@ class BasePeer(BaseService):
 
     @abstractmethod
     async def send_sub_proto_handshake(self) -> None:
-        pass
+        ...
 
     @abstractmethod
     async def process_sub_proto_handshake(
             self, cmd: CommandAPI, msg: Payload) -> None:
-        pass
+        ...
 
     @contextlib.contextmanager
     def collect_sub_proto_messages(self) -> Iterator['MsgBuffer']:
@@ -564,7 +564,7 @@ class PeerSubscriber(ABC):
         commands are handled exclusively at the peer level and cannot be
         consumed with this API.
         """
-        pass
+        ...
 
     @functools.lru_cache(maxsize=64)
     def is_subscription_command(self, cmd_type: Type[CommandAPI]) -> bool:
@@ -579,7 +579,7 @@ class PeerSubscriber(ABC):
         The max size of messages the underlying :meth:`msg_queue` can keep before it starts
         discarding new messages. Implementers need to overwrite this to specify the maximum size.
         """
-        pass
+        ...
 
     def register_peer(self, peer: BasePeer) -> None:
         """
@@ -699,7 +699,7 @@ class BasePeerFactory(ABC):
     @property
     @abstractmethod
     def peer_class(self) -> Type[BasePeer]:
-        pass
+        ...
 
     def __init__(self,
                  privkey: datatypes.PrivateKey,

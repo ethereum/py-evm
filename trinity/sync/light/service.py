@@ -74,23 +74,23 @@ class BaseLightPeerChain(ABC):
 
     @abstractmethod
     async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_receipts(self, block_hash: Hash32) -> List[Receipt]:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_account(self, block_hash: Hash32, address: ETHAddress) -> Account:
-        pass
+        ...
 
     @abstractmethod
     async def coro_get_contract_code(self, block_hash: Hash32, address: ETHAddress) -> bytes:
-        pass
+        ...
 
 
 class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):

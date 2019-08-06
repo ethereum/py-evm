@@ -356,22 +356,22 @@ class NoPrerequisites(Enum):
 class BaseOrderedTaskPreparation(ABC, Generic[TTask, TTaskID]):
     @abstractmethod
     def set_finished_dependency(self, finished_task: TTask) -> None:
-        pass
+        ...
 
     @abstractmethod
     def register_tasks(
             self,
             tasks: Tuple[TTask, ...],
             ignore_duplicates: bool = False) -> Tuple[TTask, ...]:
-        pass
+        ...
 
     @abstractmethod
     async def ready_tasks(self, max_results: int = None) -> Tuple[TTask, ...]:
-        pass
+        ...
 
     @abstractmethod
     def has_ready_tasks(self) -> bool:
-        pass
+        ...
 
 
 class OrderedTaskPreparation(
