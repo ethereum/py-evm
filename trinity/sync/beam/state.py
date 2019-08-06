@@ -48,12 +48,13 @@ from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth import (
     constants as eth_constants,
 )
-from trinity.sync.beam.constants import DELAY_BEFORE_NON_URGENT_REQUEST
+from trinity.sync.beam.constants import (
+    DELAY_BEFORE_NON_URGENT_REQUEST,
+    REQUEST_BUFFER_MULTIPLIER,
+    EMPTY_PEER_RESPONSE_PENALTY,
+)
 
 from trinity.sync.common.peers import WaitingPeers
-
-REQUEST_BUFFER_MULTIPLIER = 16
-EMPTY_PEER_RESPONSE_PENALTY = 1
 
 
 def _is_hash(maybe_hash: bytes) -> bool:
