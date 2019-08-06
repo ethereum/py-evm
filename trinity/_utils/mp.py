@@ -32,12 +32,14 @@ def async_method(method_name: str) -> Callable[..., Any]:
             method_name,
             args,
         )
+    method.__name__ = method_name
     return method
 
 
 def sync_method(method_name: str) -> Callable[..., Any]:
     def method(self: Any, *args: Any, **kwargs: Any) -> Any:
         return self._callmethod(method_name, args, kwargs)
+    method.__name__ = method_name
     return method
 
 
