@@ -50,7 +50,6 @@ def chain(chain_without_block_validation):
     return chain_without_block_validation
 
 
-# TODO: why are many different tests run here?
 def test_import_block_saves_block_diff(chain, funded_address, funded_address_private_key):
     tx = new_transaction(
         chain.get_vm(),
@@ -74,9 +73,11 @@ def test_import_block_saves_block_diff(chain, funded_address, funded_address_pri
     # the actual test, did we write out all the changes which happened?
     base_db = chain.chaindb.db
     diff = BlockDiff.from_db(base_db, imported_block_hash)
-    assert diff.get_changed_accounts() == {
-        funded_address, CONTRACT_ADDRESS, imported_header.coinbase
-    }
+    assert len(diff.get_changed_accounts()) == 3
+    assert CONTRACT_ADDRESS in diff.get_changed_accounts()
+    assert imported_header.coinbase in diff.get_changed_accounts()
+    assert funded_address in diff.get_changed_accounts()
+
     assert diff.get_changed_slots(CONTRACT_ADDRESS) == {0}
     assert diff.get_slot_change(CONTRACT_ADDRESS, 0) == (0, 42)
 

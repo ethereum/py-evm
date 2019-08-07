@@ -194,6 +194,7 @@ class AccountStorageDB:
         self._storage_lookup = StorageLookup(db, storage_root, address)
         self._storage_cache = CacheDB(self._storage_lookup)
         self._journal_storage = JournalDB(self._storage_cache)
+        self._changes_since_last_persist = JournalDB(dict())
 
     def get(self, slot: int, from_journal: bool=True) -> int:
         key = int_to_big_endian(slot)
@@ -214,8 +215,10 @@ class AccountStorageDB:
         key = int_to_big_endian(slot)
         if value:
             self._journal_storage[key] = rlp.encode(value)
+            self._changes_since_last_persist[key] = rlp.encode(value)
         else:
             del self._journal_storage[key]
+            del self._changes_since_last_persist[key]
 
     def delete(self) -> None:
         self.logger.debug2(
@@ -224,28 +227,34 @@ class AccountStorageDB:
             keccak(self._address).hex(),
         )
         self._journal_storage.clear()
+        self._changes_since_last_persist.clear()
         self._storage_cache.reset_cache()
 
     def record(self, checkpoint: JournalDBCheckpoint) -> None:
         self._journal_storage.record(checkpoint)
+        self._changes_since_last_persist.record(checkpoint)
 
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
         self.logger.debug2('discard checkpoint %r', checkpoint)
         if self._journal_storage.has_checkpoint(checkpoint):
             self._journal_storage.discard(checkpoint)
+            self._changes_since_last_persist.discord(checkpoint)
         else:
             # if the checkpoint comes before this account started tracking,
             #    then simply reset to the beginning
             self._journal_storage.reset()
+            self._changes_since_last_persist.reset()
         self._storage_cache.reset_cache()
 
     def commit(self, checkpoint: JournalDBCheckpoint) -> None:
         if self._journal_storage.has_checkpoint(checkpoint):
             self._journal_storage.commit(checkpoint)
+            self._changes_since_last_persist.commit(checkpoint)
         else:
             # if the checkpoint comes before this account started tracking,
             #    then flatten all changes, without persisting
             self._journal_storage.flatten()
+            self._changes_since_last_persist.flatten()
 
     def make_storage_root(self) -> None:
         """
@@ -275,6 +284,8 @@ class AccountStorageDB:
         if self._storage_lookup.has_changed_root:
             self._storage_lookup.commit_to(db)
 
+        self._changes_since_last_persist.clear()
+
     def diff(self) -> DBDiff:
         """
         Returns all the changes that would be saved if persist() were called.
@@ -282,4 +293,4 @@ class AccountStorageDB:
         Note: Calling make_storage_root() wipes away changes, after it is called this method will
         return an empty diff.
         """
-        return self._journal_storage.diff()
+        return self._changes_since_last_persist.diff()

@@ -57,6 +57,7 @@ from eth.db.journal import (
 )
 from eth.db.storage import (
     AccountStorageDB,
+    StorageLookup,
 )
 from eth.db.typing import (
     JournalDBCheckpoint,
@@ -265,6 +266,9 @@ class AccountDB(BaseAccountDB):
         self._dirty_accounts: Set[Address] = set()
         self._root_hash_at_last_persist = state_root
 
+        self._dirty_account_rlps: Set[Address] = set()
+        self._deleted_accounts: Set[Address] = set()
+
     @property
     def state_root(self) -> Hash32:
         return self._trie.root_hash
@@ -441,6 +445,7 @@ class AccountDB(BaseAccountDB):
         del self._journaltrie[address]
 
         self._wipe_storage(address)
+        self._deleted_accounts.add(address)
 
     def account_exists(self, address: Address) -> bool:
         validate_canonical_address(address, title="Storage Address")
@@ -488,6 +493,8 @@ class AccountDB(BaseAccountDB):
         self._account_cache[address] = account
         rlp_account = rlp.encode(account, sedes=Account)
         self._journaltrie[address] = rlp_account
+
+        self._dirty_account_rlps.add(address)
 
     #
     # Record and discard API
@@ -560,6 +567,8 @@ class AccountDB(BaseAccountDB):
         # reset local storage trackers
         self._account_stores = {}
         self._dirty_accounts = set()
+        self._dirty_account_rlps = set()
+        self._deleted_accounts = set()
 
         # persist accounts
         self._validate_generated_root()
@@ -579,20 +588,27 @@ class AccountDB(BaseAccountDB):
 
         # 1. Grab all the changed accounts and their previous values
 
-        changed_accounts = self._changed_accounts()
-        for deleted_key in changed_accounts.deleted_keys():
+        # pre-Byzantium make_storage_root is called at the end of every transaction, and
+        # it blows away all the changes. Create an old_trie here so we can peer into the
+        # state as it was at the beginning of the block.
+
+        old_trie = CacheDB(HashTrie(HexaryTrie(
+            self._batchtrie, self._root_hash_at_last_persist, prune=False
+        )))
+
+        for deleted_address in self._deleted_accounts:
             # TODO: test that from_journal=False works
             # DBDiff gave me bytes, but I need an address here...
             deleted_address = cast(Address, deleted_key)
-            current_value = self._get_encoded_account(deleted_address, from_journal=False)
-            if current_value == b'':
-                raise Exception('a non-existant account cannot be deleted')
-            block_diff.set_account_changed(deleted_address, current_value, b'')
 
-        for key, value in changed_accounts.pending_items():
-            # TODO: key -> address
-            current_value = self._get_encoded_account(cast(Address, key), from_journal=False)
-            block_diff.set_account_changed(cast(Address, key), current_value, value)
+            # TODO: this might raise a KeyError
+            old_value = old_trie[deleted_address]
+            block_diff.set_account_changed(deleted_address, old_value, b'')
+
+        for address in self._dirty_account_rlps:
+            old_value = old_trie[address]
+            new_value = self._get_encoded_account(address, from_journal=True)
+            block_diff.set_account_changed(address, old_value, new_value)
 
         # 2. Grab all the changed storage items and their previous values.
         dirty_stores = tuple(self._dirty_account_stores())
@@ -601,15 +617,28 @@ class AccountDB(BaseAccountDB):
 
             for key in diff.deleted_keys():
                 slot = big_endian_to_int(key)
-                current_slot_value = store.get(slot, from_journal=False)
+                current_slot_value = store.get(slot)
                 current_slot_value_bytes = int_to_big_endian(current_slot_value)
-                # TODO: Is b'' a valid value for a storage slot?
-                block_diff.set_storage_changed(address, slot, b'', current_slot_value_bytes)
+                # TODO: Is b'' a valid value for a storage slot? 0 might be better
+                # TODO: this line is untested
+                block_diff.set_storage_changed(address, slot, current_slot_value_bytes, b'')
 
             for key, new_value in diff.pending_items():
                 slot = big_endian_to_int(key)
-                old_value = store.get(slot, from_journal=False)
-                old_value_bytes = int_to_big_endian(old_value)
+
+                # make a new StorageLookup because, pre-Byzantium, make_state_root is
+                # called at the end of every transaction, and making the state root blows
+                # away all changes. If we were to ask the store for the old value it would
+                # tell us the state as of the beginning of the last txn, not the state as
+                # of the beginnig of the block.
+
+                fresh_store = StorageLookup(
+                    self._raw_store_db,
+                    self._root_hash_at_last_persist,
+                    address
+                )
+                old_value_bytes = fresh_store.get(key)
+
                 block_diff.set_storage_changed(address, slot, old_value_bytes, new_value)
 
         old_account_values: Dict[Address, bytes] = dict()
