@@ -18,6 +18,7 @@ from rlp.exceptions import (
 )
 
 from eth_utils import (
+    big_endian_to_int,
     encode_hex,
     is_bytes,
     is_list_like,
@@ -46,6 +47,7 @@ from p2p.discv5.enr import (
     ENR,
 )
 from p2p.discv5.constants import (
+    AUTH_RESPONSE_VERSION,
     AUTH_SCHEME_NAME,
     ID_NONCE_SIZE,
     MAX_PACKET_SIZE,
@@ -140,11 +142,21 @@ class AuthHeaderPacket(NamedTuple):
                 f"Auth response contains bytes instead of list: {encode_hex(decoded_rlp)}"
             )
 
-        if len(decoded_rlp) != 2:
+        if len(decoded_rlp) != 3:
             raise ValidationError(
-                f"Auth response is a list of {len(decoded_rlp)} instead of two elements"
+                f"Auth response is a list of {len(decoded_rlp)} instead of three elements"
             )
-        id_nonce_signature, serialized_enr = decoded_rlp
+        version_bytes, id_nonce_signature, serialized_enr = decoded_rlp
+
+        if not is_bytes(version_bytes):
+            raise ValidationError(
+                f"Version is a list instead of big endian encoded integer: {version_bytes}"
+            )
+        version_int = big_endian_to_int(version_bytes)
+        if version_int != AUTH_RESPONSE_VERSION:
+            raise ValidationError(
+                f"Expected auth response version {AUTH_RESPONSE_VERSION}, but got {version_int}"
+            )
 
         if not is_bytes(id_nonce_signature):
             raise ValidationError(
@@ -441,9 +453,9 @@ def compute_encrypted_auth_response(auth_response_key: AES128Key,
                                     enr: Optional[ENR],
                                     ) -> bytes:
     if enr:
-        plain_text_auth_response = rlp.encode([id_nonce_signature, enr])
+        plain_text_auth_response = rlp.encode([AUTH_RESPONSE_VERSION, id_nonce_signature, enr])
     else:
-        plain_text_auth_response = rlp.encode([id_nonce_signature, []])
+        plain_text_auth_response = rlp.encode([AUTH_RESPONSE_VERSION, id_nonce_signature, []])
 
     encrypted_auth_response = aesgcm_encrypt(
         key=auth_response_key,

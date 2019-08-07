@@ -5,6 +5,7 @@ from hypothesis import (
 import rlp
 
 from eth_utils import (
+    int_to_big_endian,
     is_list_like,
 )
 
@@ -23,6 +24,7 @@ from p2p.discv5.encryption import (
     aesgcm_decrypt,
 )
 from p2p.discv5.constants import (
+    AUTH_RESPONSE_VERSION,
     AUTH_SCHEME_NAME,
     MAGIC_SIZE,
     ZERO_NONCE,
@@ -92,9 +94,10 @@ def test_auth_header_preparation(tag,
         authenticated_data=b"",
     )
     decoded_auth_response = rlp.decode(decrypted_auth_response)
-    assert is_list_like(decoded_auth_response) and len(decoded_auth_response) == 2
-    assert decoded_auth_response[0] == id_nonce_signature
-    assert ENR.deserialize(decoded_auth_response[1]) == enr
+    assert is_list_like(decoded_auth_response) and len(decoded_auth_response) == 3
+    assert decoded_auth_response[0] == int_to_big_endian(AUTH_RESPONSE_VERSION)
+    assert decoded_auth_response[1] == id_nonce_signature
+    assert ENR.deserialize(decoded_auth_response[2]) == enr
 
     decrypted_message = aesgcm_decrypt(
         key=initiator_key,
@@ -164,9 +167,10 @@ def test_auth_header_preparation_without_enr(tag,
         authenticated_data=b"",
     )
     decoded_auth_response = rlp.decode(decrypted_auth_response)
-    assert is_list_like(decoded_auth_response) and len(decoded_auth_response) == 2
-    assert decoded_auth_response[0] == id_nonce_signature
-    assert decoded_auth_response[1] == []
+    assert is_list_like(decoded_auth_response) and len(decoded_auth_response) == 3
+    assert decoded_auth_response[0] == int_to_big_endian(AUTH_RESPONSE_VERSION)
+    assert decoded_auth_response[1] == id_nonce_signature
+    assert decoded_auth_response[2] == []
 
 
 @given(
