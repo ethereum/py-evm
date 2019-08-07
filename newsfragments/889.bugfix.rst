@@ -1,0 +1,1 @@
+Add missing field `from` to the response of `RPC` calls `eth_getTransactionByBlockHashAndIndex` and `eth_getTransactionByBlockNumberAndIndex`.

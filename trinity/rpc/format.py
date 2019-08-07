@@ -12,10 +12,13 @@ from eth_utils.toolz import (
 )
 
 from eth_utils import (
+    apply_formatter_if,
     apply_formatters_to_dict,
     decode_hex,
     encode_hex,
     int_to_big_endian,
+    is_address,
+    to_checksum_address,
 )
 
 import rlp
@@ -37,18 +40,23 @@ from trinity.chains.base import BaseAsyncChain
 
 
 def transaction_to_dict(transaction: BaseTransaction) -> Dict[str, str]:
-    return dict(
-        hash=encode_hex(transaction.hash),
-        nonce=hex(transaction.nonce),
-        gas=hex(transaction.gas),
-        gasPrice=hex(transaction.gas_price),
-        to=encode_hex(transaction.to),
-        value=hex(transaction.value),
-        input=encode_hex(transaction.data),
-        r=hex(transaction.r),
-        s=hex(transaction.s),
-        v=hex(transaction.v),
-    )
+    return {
+        'hash': encode_hex(transaction.hash),
+        'nonce': hex(transaction.nonce),
+        'gas': hex(transaction.gas),
+        'gasPrice': hex(transaction.gas_price),
+        'from': to_checksum_address(transaction.sender),
+        'to': apply_formatter_if(
+            is_address,
+            to_checksum_address,
+            encode_hex(transaction.to)
+        ),
+        'value': hex(transaction.value),
+        'input': encode_hex(transaction.data),
+        'r': hex(transaction.r),
+        's': hex(transaction.s),
+        'v': hex(transaction.v),
+    }
 
 
 hexstr_to_int = functools.partial(int, base=16)

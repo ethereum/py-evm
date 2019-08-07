@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from eth_utils.toolz import (
+    compose,
     dissoc,
     identity,
     get_in,
@@ -13,10 +14,15 @@ from eth_utils.toolz import (
 
 from eth_utils import (
     add_0x_prefix,
+    is_address,
     is_hex,
     is_integer,
     is_string,
+    to_checksum_address,
     to_tuple,
+)
+from eth_utils.curried import (
+    apply_formatter_if,
 )
 
 from eth.chains.mainnet import (
@@ -164,7 +170,10 @@ RPC_TRANSACTION_NORMALIZERS = {
     'gasPrice': remove_leading_zeros,
     'value': remove_leading_zeros,
     'data': empty_to_0x,
-    'to': add_0x_prefix,
+    'to': compose(
+        apply_formatter_if(is_address, to_checksum_address),
+        add_0x_prefix
+    ),
     'r': remove_leading_zeros,
     's': remove_leading_zeros,
     'v': remove_leading_zeros,
@@ -335,6 +344,7 @@ def validate_rpc_transaction_vs_fixture(transaction, fixture):
     actual_transaction = dissoc(
         transaction,
         'hash',
+        'from',
     )
     assert actual_transaction == expected
 
