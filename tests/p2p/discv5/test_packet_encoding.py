@@ -161,15 +161,13 @@ def test_invalid_message_packet_decoding(encoded_packet):
 
 
 @given(
-    tag=tag_st,
     magic=magic_st,
     token=nonce_st,
     id_nonce=id_nonce_st,
     enr_seq=enr_seq_st,
 )
-def test_who_are_you_encoding_decoding(tag, magic, token, id_nonce, enr_seq):
+def test_who_are_you_encoding_decoding(magic, token, id_nonce, enr_seq):
     original_packet = WhoAreYouPacket(
-        tag=tag,
         magic=magic,
         token=token,
         id_nonce=id_nonce,
@@ -182,17 +180,17 @@ def test_who_are_you_encoding_decoding(tag, magic, token, id_nonce, enr_seq):
 
 @pytest.mark.parametrize("encoded_packet", (
     b"",  # empty
-    b"\x00" * (TAG_SIZE + MAGIC_SIZE),  # no payload
+    b"\x00" * MAGIC_SIZE,  # no payload
     b"\x00" * 500,  # invalid RLP payload
-    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode(b"payload"),  # payload is not a list
+    b"\x00" * MAGIC_SIZE + rlp.encode(b"payload"),  # payload is not a list
     # payload too short
-    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode((b"\x00" * NONCE_SIZE, b"")),
+    b"\x00" * MAGIC_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, b"")),
     # payload too long
-    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode((b"\x00" * NONCE_SIZE, b"", b"", b"")),
-    b"\x00" * (TAG_SIZE + MAGIC_SIZE - 1) + rlp.encode((b"\x00" * NONCE_SIZE, b"", 0)),  # too short
-    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode((b"\x00" * 11, b"", 0)),  # invalid nonce
+    b"\x00" * MAGIC_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, b"", b"", b"")),
+    b"\x00" * (MAGIC_SIZE - 1) + rlp.encode((b"\x00" * NONCE_SIZE, b"", 0)),  # too short
+    b"\x00" * MAGIC_SIZE + rlp.encode((b"\x00" * 11, b"", 0)),  # invalid nonce
     # too long
-    b"\x00" * (TAG_SIZE + MAGIC_SIZE) + rlp.encode((b"\x00" * NONCE_SIZE, b"\x00" * 2000, 0)),
+    b"\x00" * MAGIC_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, b"\x00" * 2000, 0)),
 ))
 def test_invalid_who_are_you_decoding(encoded_packet):
     with pytest.raises(ValidationError):
@@ -201,7 +199,6 @@ def test_invalid_who_are_you_decoding(encoded_packet):
 
 def test_invalid_who_are_you_encoding():
     packet = WhoAreYouPacket(
-        tag=b"\x00" * TAG_SIZE,
         magic=b"\x00" * MAGIC_SIZE,
         token=b"\x00" * NONCE_SIZE,
         id_nonce=b"\x00" * 2000,

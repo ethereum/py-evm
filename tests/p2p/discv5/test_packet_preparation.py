@@ -163,21 +163,18 @@ def test_auth_header_preparation_without_enr(tag,
 
 
 @given(
-    tag=tag_st,
     node_id=node_id_st,
     token=nonce_st,
     id_nonce=id_nonce_st,
     enr_seq=enr_seq_st,
 )
-def test_who_are_you_preparation(tag, node_id, token, id_nonce, enr_seq):
+def test_who_are_you_preparation(node_id, token, id_nonce, enr_seq):
     packet = WhoAreYouPacket.prepare(
-        tag=tag,
         destination_node_id=node_id,
         token=token,
         id_nonce=id_nonce,
         enr_sequence_number=enr_seq,
     )
-    assert packet.tag == tag
     assert packet.token == token
     assert packet.id_nonce == id_nonce
     assert packet.enr_sequence_number == enr_seq

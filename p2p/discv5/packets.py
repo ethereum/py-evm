@@ -244,7 +244,6 @@ class AuthTagPacket(NamedTuple):
 
 
 class WhoAreYouPacket(NamedTuple):
-    tag: Hash32
     magic: Hash32
     token: Nonce
     id_nonce: bytes
@@ -253,7 +252,6 @@ class WhoAreYouPacket(NamedTuple):
     @classmethod
     def prepare(cls,
                 *,
-                tag: Hash32,
                 destination_node_id: Hash32,
                 token: Nonce,
                 id_nonce: bytes,
@@ -261,7 +259,6 @@ class WhoAreYouPacket(NamedTuple):
                 ) -> "WhoAreYouPacket":
         magic = compute_who_are_you_magic(destination_node_id)
         return cls(
-            tag=tag,
             magic=magic,
             token=token,
             id_nonce=id_nonce,
@@ -276,7 +273,6 @@ class WhoAreYouPacket(NamedTuple):
         ))
 
         encoded_packet = b"".join((
-            self.tag,
             self.magic,
             message,
         ))
@@ -290,13 +286,12 @@ class WhoAreYouPacket(NamedTuple):
 #
 def validate_who_are_you_packet_size(encoded_packet: bytes) -> None:
     validate_max_packet_size(encoded_packet)
-    validate_tag_prefix(encoded_packet)
-    if len(encoded_packet) - TAG_SIZE < MAGIC_SIZE:
+    if len(encoded_packet) < MAGIC_SIZE:
         raise ValidationError(
-            f"Encoded packet is only {len(encoded_packet)} bytes, but should contain {MAGIC_SIZE} "
-            f"bytes of magic following the {TAG_SIZE} tag at the beginning."
+            f"Encoded packet is only {len(encoded_packet)} bytes, but should start with "
+            f"{MAGIC_SIZE} bytes of magic"
         )
-    if len(encoded_packet) - TAG_SIZE - MAGIC_SIZE < 1:
+    if len(encoded_packet) - MAGIC_SIZE < 1:
         raise ValidationError(
             f"Encoded packet is missing RLP encoded payload section"
         )
@@ -364,11 +359,9 @@ def decode_message_packet(encoded_packet: bytes) -> Union[AuthTagPacket, AuthHea
 def decode_who_are_you_packet(encoded_packet: bytes) -> WhoAreYouPacket:
     validate_who_are_you_packet_size(encoded_packet)
 
-    tag = _decode_tag(encoded_packet)
     magic = _decode_who_are_you_magic(encoded_packet)
     token, id_nonce, enr_seq = _decode_who_are_you_payload(encoded_packet)
     return WhoAreYouPacket(
-        tag=tag,
         magic=magic,
         token=token,
         id_nonce=id_nonce,
@@ -407,11 +400,11 @@ def _decode_auth(encoded_packet: bytes) -> Tuple[Union[AuthHeader, Nonce], int]:
 
 
 def _decode_who_are_you_magic(encoded_packet: bytes) -> Hash32:
-    return Hash32(encoded_packet[TAG_SIZE:TAG_SIZE + MAGIC_SIZE])
+    return Hash32(encoded_packet[:MAGIC_SIZE])
 
 
 def _decode_who_are_you_payload(encoded_packet: bytes) -> Tuple[Nonce, bytes, int]:
-    payload_rlp = encoded_packet[TAG_SIZE + MAGIC_SIZE:]
+    payload_rlp = encoded_packet[MAGIC_SIZE:]
 
     try:
         payload = rlp.decode(payload_rlp)
