@@ -173,7 +173,7 @@ class AccountStorageDB:
         Keys are stored as node hashes and rlp-encoded node values.
 
         _storage_lookup is itself a pair of databases: (BatchDB -> HexaryTrie),
-        writes to storage lookup *are* immeditaely applied to a trie, generating
+        writes to storage lookup *are* immediately applied to a trie, generating
         the appropriate trie nodes and and root hash (via the HexaryTrie). The
         writes are *not* persisted to db, until _storage_lookup is explicitly instructed to,
         via :meth:`StorageLookup.commit_to`
@@ -218,7 +218,12 @@ class AccountStorageDB:
             self._changes_since_last_persist[key] = rlp.encode(value)
         else:
             del self._journal_storage[key]
-            del self._changes_since_last_persist[key]
+            try:
+                del self._changes_since_last_persist[key]
+            except KeyError:
+                self._changes_since_last_persist[key] = b''
+                del self._changes_since_last_persist[key]
+
 
     def delete(self) -> None:
         self.logger.debug2(
@@ -238,7 +243,7 @@ class AccountStorageDB:
         self.logger.debug2('discard checkpoint %r', checkpoint)
         if self._journal_storage.has_checkpoint(checkpoint):
             self._journal_storage.discard(checkpoint)
-            self._changes_since_last_persist.discord(checkpoint)
+            self._changes_since_last_persist.discard(checkpoint)
         else:
             # if the checkpoint comes before this account started tracking,
             #    then simply reset to the beginning

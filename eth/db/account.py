@@ -593,14 +593,10 @@ class AccountDB(BaseAccountDB):
         # state as it was at the beginning of the block.
 
         old_trie = CacheDB(HashTrie(HexaryTrie(
-            self._batchtrie, self._root_hash_at_last_persist, prune=False
+            self._raw_store_db, self._root_hash_at_last_persist, prune=False
         )))
 
         for deleted_address in self._deleted_accounts:
-            # TODO: test that from_journal=False works
-            # DBDiff gave me bytes, but I need an address here...
-            deleted_address = cast(Address, deleted_key)
-
             # TODO: this might raise a KeyError
             old_value = old_trie[deleted_address]
             block_diff.set_account_changed(deleted_address, old_value, b'')
@@ -623,6 +619,17 @@ class AccountDB(BaseAccountDB):
                 # TODO: this line is untested
                 block_diff.set_storage_changed(address, slot, current_slot_value_bytes, b'')
 
+            encoded_account = old_trie[address]
+            if encoded_account:
+                old_account = rlp.decode(encoded_account, sedes=Account)
+            else:
+                old_account = Account()
+            fresh_store = StorageLookup(
+                self._raw_store_db,
+                old_account.storage_root,
+                address
+            )
+
             for key, new_value in diff.pending_items():
                 slot = big_endian_to_int(key)
 
@@ -632,11 +639,6 @@ class AccountDB(BaseAccountDB):
                 # tell us the state as of the beginning of the last txn, not the state as
                 # of the beginnig of the block.
 
-                fresh_store = StorageLookup(
-                    self._raw_store_db,
-                    self._root_hash_at_last_persist,
-                    address
-                )
                 old_value_bytes = fresh_store.get(key)
 
                 block_diff.set_storage_changed(address, slot, old_value_bytes, new_value)
