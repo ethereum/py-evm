@@ -43,12 +43,14 @@ from tests.p2p.discv5.strategies import (
 @given(
     tag=tag_st,
     auth_tag=nonce_st,
+    id_nonce=id_nonce_st,
     initiator_key=key_st,
     auth_response_key=key_st,
     ephemeral_pubkey=pubkey_st,
 )
 def test_auth_header_preparation(tag,
                                  auth_tag,
+                                 id_nonce,
                                  initiator_key,
                                  auth_response_key,
                                  ephemeral_pubkey):
@@ -68,6 +70,7 @@ def test_auth_header_preparation(tag,
     packet = AuthHeaderPacket.prepare(
         tag=tag,
         auth_tag=auth_tag,
+        id_nonce=id_nonce,
         message=message,
         initiator_key=initiator_key,
         id_nonce_signature=id_nonce_signature,
@@ -78,6 +81,7 @@ def test_auth_header_preparation(tag,
 
     assert packet.tag == tag
     assert packet.auth_header.auth_tag == auth_tag
+    assert packet.auth_header.id_nonce == id_nonce
     assert packet.auth_header.auth_scheme_name == AUTH_SCHEME_NAME
     assert packet.auth_header.ephemeral_pubkey == ephemeral_pubkey
 
@@ -124,12 +128,14 @@ def test_random_packet_preparation(tag, auth_tag, random_data):
 @given(
     tag=tag_st,
     auth_tag=nonce_st,
+    id_nonce=id_nonce_st,
     initiator_key=key_st,
     auth_response_key=key_st,
     ephemeral_pubkey=pubkey_st,
 )
 def test_auth_header_preparation_without_enr(tag,
                                              auth_tag,
+                                             id_nonce,
                                              initiator_key,
                                              auth_response_key,
                                              ephemeral_pubkey):
@@ -142,6 +148,7 @@ def test_auth_header_preparation_without_enr(tag,
     packet = AuthHeaderPacket.prepare(
         tag=tag,
         auth_tag=auth_tag,
+        id_nonce=id_nonce,
         message=message,
         initiator_key=initiator_key,
         id_nonce_signature=id_nonce_signature,

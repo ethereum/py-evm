@@ -21,6 +21,7 @@ from p2p.discv5.packets import (
 )
 from p2p.discv5.constants import (
     NONCE_SIZE,
+    ID_NONCE_SIZE,
     TAG_SIZE,
     MAX_PACKET_SIZE,
     AUTH_SCHEME_NAME,
@@ -74,6 +75,7 @@ def test_oversize_auth_tag_packet_encoding():
 @given(
     tag=tag_st,
     auth_tag=nonce_st,
+    id_nonce=id_nonce_st,
     ephemeral_pubkey=pubkey_st,
     encrypted_auth_response=st.binary(min_size=16, max_size=32),
     encrypted_message_size=st.integers(
@@ -83,6 +85,7 @@ def test_oversize_auth_tag_packet_encoding():
             2,  # rlp list prefix
             1 + NONCE_SIZE,  # tag
             1 + len(AUTH_SCHEME_NAME),  # auth scheme name
+            1 + ID_NONCE_SIZE,  # id nonce
             1 + 33,  # pubkey
             1 + 32,  # encrypted auth response
         ))
@@ -90,11 +93,13 @@ def test_oversize_auth_tag_packet_encoding():
 )
 def test_auth_header_packet_encoding_decoding(tag,
                                               auth_tag,
+                                              id_nonce,
                                               ephemeral_pubkey,
                                               encrypted_auth_response,
                                               encrypted_message_size):
     auth_header = AuthHeader(
         auth_tag=auth_tag,
+        id_nonce=id_nonce,
         auth_scheme_name=AUTH_SCHEME_NAME,
         ephemeral_pubkey=ephemeral_pubkey,
         encrypted_auth_response=encrypted_auth_response,
@@ -114,6 +119,7 @@ def test_auth_header_packet_encoding_decoding(tag,
 def test_oversize_auth_header_packet_encoding():
     auth_header = AuthHeader(
         auth_tag=b"\x00" * NONCE_SIZE,
+        id_nonce=b"\x00" * ID_NONCE_SIZE,
         auth_scheme_name=AUTH_SCHEME_NAME,
         ephemeral_pubkey=b"\x00" * 32,
         encrypted_auth_response=32,
@@ -135,21 +141,86 @@ def test_oversize_auth_header_packet_encoding():
     b"\x00" * TAG_SIZE,  # no auth section
     b"\x00" * 500,  # invalid RLP auth section
     # auth header with too few elements
-    b"\x00" * TAG_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, AUTH_SCHEME_NAME, b"")),
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * NONCE_SIZE,
+        b"\x00" * ID_NONCE_SIZE,
+        AUTH_SCHEME_NAME,
+        b"",
+    )),
     # auth header with too many elements
-    b"\x00" * TAG_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, AUTH_SCHEME_NAME, b"", b"", b"")),
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * NONCE_SIZE,
+        b"\x00" * ID_NONCE_SIZE,
+        AUTH_SCHEME_NAME,
+        b"",
+        b"",
+        b"",
+    )),
     # auth header with invalid tag
-    b"\x00" * TAG_SIZE + rlp.encode((b"\x00" * (NONCE_SIZE - 1), AUTH_SCHEME_NAME, b"", b"")),
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * (NONCE_SIZE - 1),
+        b"\x00" * ID_NONCE_SIZE,
+        AUTH_SCHEME_NAME,
+        b"",
+        b"",
+    )),
+    # auth header with invalid id nonce
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * (NONCE_SIZE - 1),
+        b"\x00" * (ID_NONCE_SIZE - 1),
+        AUTH_SCHEME_NAME,
+        b"",
+        b"",
+    )),
     # auth header with wrong auth scheme
-    b"\x00" * TAG_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, b"no-gcm", b"", b"")),
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * NONCE_SIZE,
+        b"\x00" * ID_NONCE_SIZE,
+        b"no-gcm",
+        b"",
+        b"",
+    )),
     # auth header with tag being a list
-    b"\x00" * TAG_SIZE + rlp.encode(([b"\x00"] * NONCE_SIZE, b"gcm", b"", b"")),
+    b"\x00" * TAG_SIZE + rlp.encode((
+        [b"\x00"] * NONCE_SIZE,
+        b"\x00" * ID_NONCE_SIZE,
+        b"gcm",
+        b"",
+        b"",
+    )),
+    # auth header with id nonce being a list
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * NONCE_SIZE,
+        [b"\x00"] * ID_NONCE_SIZE,
+        b"gcm",
+        b"",
+        b"",
+    )),
     # auth header with public key being a list
-    b"\x00" * TAG_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, b"gcm", [b""], b"")),
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * NONCE_SIZE,
+        b"\x00" * ID_NONCE_SIZE,
+        b"gcm",
+        [b""],
+        b"",
+    )),
     # auth header with auth response being a list
-    b"\x00" * TAG_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, b"gcm", b"", [b""])),
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * NONCE_SIZE,
+        b"\x00" * ID_NONCE_SIZE,
+        b"gcm",
+        b"",
+        [b""],
+    )),
     # auth header with oversized message
-    b"\x00" * TAG_SIZE + rlp.encode((b"\x00" * NONCE_SIZE, b"gcm", b"", b"")) + b"\x00" * 2000,
+    b"\x00" * TAG_SIZE + rlp.encode((
+        b"\x00" * NONCE_SIZE,
+        b"\x00" * ID_NONCE_SIZE,
+        b"gcm",
+        b"",
+        b"",
+    )) + b"\x00" * 2000,
+
     # auth tag with invalid size
     b"\x00" * TAG_SIZE + rlp.encode(b"\x00" * (NONCE_SIZE - 1)),
     # auth tag with oversized message

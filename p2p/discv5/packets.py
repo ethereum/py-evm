@@ -47,6 +47,7 @@ from p2p.discv5.enr import (
 )
 from p2p.discv5.constants import (
     AUTH_SCHEME_NAME,
+    ID_NONCE_SIZE,
     MAX_PACKET_SIZE,
     TAG_SIZE,
     MAGIC_SIZE,
@@ -64,6 +65,7 @@ from p2p.discv5.typing import (
 #
 class AuthHeader(NamedTuple):
     auth_tag: Nonce
+    id_nonce: bytes
     auth_scheme_name: bytes
     ephemeral_pubkey: bytes
     encrypted_auth_response: bytes
@@ -79,6 +81,7 @@ class AuthHeaderPacket(NamedTuple):
                 *,
                 tag: Hash32,
                 auth_tag: Nonce,
+                id_nonce: bytes,
                 message: BaseMessage,
                 initiator_key: AES128Key,
                 id_nonce_signature: bytes,
@@ -94,6 +97,7 @@ class AuthHeaderPacket(NamedTuple):
         )
         auth_header = AuthHeader(
             auth_tag=auth_tag,
+            id_nonce=id_nonce,
             auth_scheme_name=AUTH_SCHEME_NAME,
             ephemeral_pubkey=ephemeral_pubkey,
             encrypted_auth_response=encrypted_auth_response,
@@ -325,6 +329,7 @@ def validate_auth_header(auth_header: AuthHeader) -> None:
             f"Auth header uses scheme {auth_header.auth_scheme_name}, but only "
             f"{AUTH_SCHEME_NAME} is supported"
         )
+    validate_length(auth_header.id_nonce, ID_NONCE_SIZE, "id nonce")
 
 
 #
@@ -383,15 +388,16 @@ def _decode_auth(encoded_packet: bytes) -> Tuple[Union[AuthHeader, Nonce], int]:
         validate_nonce(decoded_auth)
         return Nonce(decoded_auth), message_start_index
     elif is_list_like(decoded_auth):
-        validate_length(decoded_auth, 4, "auth header")
+        validate_length(decoded_auth, 5, "auth header")
         for index, element in enumerate(decoded_auth):
             if not is_bytes(element):
                 raise ValidationError(f"Element {index} in auth header is not bytes: {element}")
         auth_header = AuthHeader(
             auth_tag=decoded_auth[0],
-            auth_scheme_name=decoded_auth[1],
-            ephemeral_pubkey=decoded_auth[2],
-            encrypted_auth_response=decoded_auth[3],
+            id_nonce=decoded_auth[1],
+            auth_scheme_name=decoded_auth[2],
+            ephemeral_pubkey=decoded_auth[3],
+            encrypted_auth_response=decoded_auth[4],
         )
         validate_auth_header(auth_header)
         return auth_header, message_start_index
