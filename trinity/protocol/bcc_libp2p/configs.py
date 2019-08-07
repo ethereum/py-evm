@@ -92,6 +92,15 @@ class ResponseCode(Enum):
     INVALID_REQUEST = 1
     SERVER_ERROR = 2
 
+    # TODO: Confirm this behavior.
+    #   Reference: https://docs.python.org/3/library/enum.html#timeperiod
+    _ignore_ = 'ResponseCode i'
+
+    # Set the "alternative, erroneous request-specific responses."
+    ResponseCode = vars()
+    for i in range(128, 256):
+        ResponseCode[f"{i}"] = i
+
 
 REQ_RESP_VERSION = "1"
 REQ_RESP_ENCODE_POSTFIX = "ssz"

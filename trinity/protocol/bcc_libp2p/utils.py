@@ -1,7 +1,9 @@
+import asyncio
 from typing import (
     Tuple,
     Type,
     TypeVar,
+    Union,
 )
 
 from eth_keys import datatypes
@@ -28,8 +30,14 @@ from .configs import (
     REQ_RESP_PROTOCOL_PREFIX,
     REQ_RESP_VERSION,
     REQ_RESP_MAX_SIZE,
+    RESP_TIMEOUT,
     ResponseCode,
+    TTFB_TIMEOUT,
 )
+
+
+MsgType = TypeVar("MsgType", bound=ssz.Serializable)
+ErrorMsgType = TypeVar("ErrorMsgType", bound=str)
 
 
 def peer_id_from_pubkey(pubkey: datatypes.PublicKey) -> ID:
@@ -50,15 +58,11 @@ def make_rpc_v1_ssz_protocol_id(message_name: str) -> str:
     return make_rpc_protocol_id(message_name, REQ_RESP_VERSION, REQ_RESP_ENCODE_POSTFIX)
 
 
-MsgType = TypeVar("MsgType", bound=ssz.Serializable)
-
-
 async def read_req(
     stream: INetStream,
     msg_type: Type[MsgType],
-    is_first_read: bool = False,
 ) -> MsgType:
-    return await _read_ssz_msg(stream, msg_type, is_first_read)
+    return await _read_ssz_msg(stream, msg_type, timeout=RESP_TIMEOUT)
 
 
 async def write_req(
@@ -73,45 +77,75 @@ async def read_resp(
     stream: INetStream,
     msg_type: Type[MsgType],
     is_first_read: bool = False,
-) -> Tuple[int, MsgType]:
-    result_byte = await stream.read(1)
-    result = result_byte[0]
-    msg = await _read_ssz_msg(stream, msg_type, is_first_read)
-    return result, msg
+) -> Tuple[ResponseCode, Union[MsgType, ErrorMsgType]]:
+    coro_read_byte = stream.read(1)
+    if is_first_read:
+        result_byte = await asyncio.wait_for(coro_read_byte, timeout=TTFB_TIMEOUT)
+    else:
+        result_byte = await coro_read_byte
+    resp_code = ResponseCode(result_byte[0])
+    # `MsgType`
+    if resp_code == ResponseCode.SUCCESS:
+        msg = await _read_ssz_msg(stream, msg_type, timeout=RESP_TIMEOUT)
+    # `ErrorMsgType`
+    else:
+        msg = await _read_varint_prefixed_bytes(stream, timeout=RESP_TIMEOUT)
+    return resp_code, msg
 
 
 async def write_resp(
     stream: INetStream,
-    msg: MsgType,
-    result: int,
+    msg: Union[MsgType, ErrorMsgType],
+    resp_code: ResponseCode,
 ) -> None:
     # TODO: Confirm the endian.
     try:
-        result_byte = result.to_bytes(1, "big")
+        resp_code_byte = resp_code.value.to_bytes(1, "big")
     except OverflowError as e:
-        raise ValueError(f"result={result} is not valid") from e
-    msg_bytes = _serialize_ssz_msg(msg)
-    await stream.write(result_byte + msg_bytes)
+        raise ValueError(f"result={resp_code} is not valid") from e
+    # `ErrorMsgType`
+    if isinstance(msg, str):
+        msg_bytes = _serialize_bytes(msg.encode("utf-8"))
+    # `MsgType`
+    elif isinstance(msg, ssz.Serializable):
+        msg_bytes = _serialize_ssz_msg(msg)
+    else:
+        raise TypeError(
+            "Type of `msg` should be either `str` or `ssz.Serializable`"
+        )
+    # TODO: Optimization: probably the first byte should be written
+    #   at the beginning of this function, to meet the limitation of `TTFB_TIMEOUT`.
+    await stream.write(resp_code_byte + msg_bytes)
 
 
-async def _read_ssz_msg(
+async def _read_varint_prefixed_bytes(
     stream: INetStream,
-    msg_type: Type[MsgType],
-    is_first_read: bool = False,
-) -> MsgType:
-    # TODO: Confirm that `timeout` is correct.
-    timeout = 10
+    timeout: float = None,
+) -> bytes:
     len_payload = await decode_uvarint_from_stream(stream, timeout)
     if len_payload > REQ_RESP_MAX_SIZE:
         raise ValueError(
             f"size_of_payload={len_payload} is larger than maximum={REQ_RESP_MAX_SIZE}"
         )
-    # TODO: Add correct `timeout`.
-    payload = await stream.read(len_payload)
+    # TODO: Confirm `timeout` is correct.
+    payload = await asyncio.wait_for(stream.read(len_payload), timeout)
+    return payload
+
+
+async def _read_ssz_msg(
+    stream: INetStream,
+    msg_type: Type[MsgType],
+    timeout: float = None,
+) -> MsgType:
+    payload = await _read_varint_prefixed_bytes(stream, timeout=timeout)
     return ssz.decode(payload, msg_type)
+
+
+def _serialize_bytes(payload: bytes) -> bytes:
+    len_payload_varint = encode_uvarint(len(payload))
+    return len_payload_varint + payload
 
 
 def _serialize_ssz_msg(msg: MsgType) -> bytes:
     msg_bytes = ssz.encode(msg)
-    len_payload_varint = encode_uvarint(len(msg_bytes))
-    return len_payload_varint + msg_bytes
+    return _serialize_bytes(msg_bytes)

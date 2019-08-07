@@ -8,13 +8,18 @@ import pytest
 
 from eth_keys import datatypes
 
+from trinity.protocol.bcc_libp2p.configs import (
+    ResponseCode,
+)
 from trinity.protocol.bcc_libp2p.messages import (
     HelloRequest,
 )
 from trinity.protocol.bcc_libp2p.utils import (
     peer_id_from_pubkey,
     read_req,
+    read_resp,
     write_req,
+    write_resp,
 )
 
 from libp2p.peer.id import (
@@ -77,4 +82,20 @@ async def test_read_write_req_msg_round_trip(msg):
     s = FakeNetStream()
     await write_req(s, msg)
     msg_read = await read_req(s, HelloRequest)
+    assert msg_read == msg
+
+
+@pytest.mark.parametrize(
+    "msg",
+    (
+        hello_req,
+    )
+)
+@pytest.mark.asyncio
+async def test_read_write_resp_msg_round_trip_success_code(msg):
+    s = FakeNetStream()
+    resp_code = ResponseCode.SUCCESS
+    await write_resp(s, msg, resp_code)
+    resp_code_read, msg_read = await read_resp(s, HelloRequest)
+    assert resp_code_read == resp_code
     assert msg_read == msg
