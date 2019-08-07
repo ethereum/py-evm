@@ -169,6 +169,7 @@ class RegTopicMessage(BaseMessage):
     fields = (
         ("request_id", big_endian_int),
         ("ticket", binary),
+        ("node_record", ENR),
     )
 
 
