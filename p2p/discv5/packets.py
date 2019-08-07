@@ -93,7 +93,6 @@ class AuthHeaderPacket(NamedTuple):
             auth_response_key=auth_response_key,
             id_nonce_signature=id_nonce_signature,
             enr=enr,
-            tag=tag,
         )
         auth_header = AuthHeader(
             auth_tag=auth_tag,
@@ -126,7 +125,7 @@ class AuthHeaderPacket(NamedTuple):
             key=auth_response_key,
             nonce=ZERO_NONCE,
             cipher_text=self.auth_header.encrypted_auth_response,
-            authenticated_data=self.tag,
+            authenticated_data=b"",
         )
 
         try:
@@ -440,7 +439,6 @@ def _decode_who_are_you_payload(encoded_packet: bytes) -> Tuple[Nonce, bytes, in
 def compute_encrypted_auth_response(auth_response_key: AES128Key,
                                     id_nonce_signature: bytes,
                                     enr: Optional[ENR],
-                                    tag: Hash32,
                                     ) -> bytes:
     if enr:
         plain_text_auth_response = rlp.encode([id_nonce_signature, enr])
@@ -451,7 +449,7 @@ def compute_encrypted_auth_response(auth_response_key: AES128Key,
         key=auth_response_key,
         nonce=ZERO_NONCE,
         plain_text=plain_text_auth_response,
-        authenticated_data=tag,
+        authenticated_data=b"",
     )
     return encrypted_auth_response
 

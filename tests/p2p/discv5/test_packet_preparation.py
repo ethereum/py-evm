@@ -89,7 +89,7 @@ def test_auth_header_preparation(tag,
         key=auth_response_key,
         nonce=ZERO_NONCE,
         cipher_text=packet.auth_header.encrypted_auth_response,
-        authenticated_data=tag,
+        authenticated_data=b"",
     )
     decoded_auth_response = rlp.decode(decrypted_auth_response)
     assert is_list_like(decoded_auth_response) and len(decoded_auth_response) == 2
@@ -161,7 +161,7 @@ def test_auth_header_preparation_without_enr(tag,
         key=auth_response_key,
         nonce=ZERO_NONCE,
         cipher_text=packet.auth_header.encrypted_auth_response,
-        authenticated_data=tag,
+        authenticated_data=b"",
     )
     decoded_auth_response = rlp.decode(decrypted_auth_response)
     assert is_list_like(decoded_auth_response) and len(decoded_auth_response) == 2
