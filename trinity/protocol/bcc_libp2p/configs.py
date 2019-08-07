@@ -26,7 +26,7 @@ MULTIPLEXING_PROTOCOL_ID = "/mplex/6.7.0"
 
 # TODO: TBD
 # The max size of uncompressed req/resp messages that clients will allow.
-REQ_RESP_MAX_SIZE = None
+REQ_RESP_MAX_SIZE = 2 ** 32 - 1  # 4 GiB
 # The max size of uncompressed gossip messages.
 GOSSIP_MAX_SIZE = 2 ** 20  # 1 MiB
 # TODO: TBD
@@ -84,7 +84,7 @@ PUBSUB_TOPIC_ENCODE_COMPRESS_POSTFIX = "ssz_snappy"
 # Req/Resp domain
 #
 
-RPC_PROTOCOL_PREFIX = "/eth2/beacon_chain_req"
+REQ_RESP_PROTOCOL_PREFIX = "/eth2/beacon_chain/req"
 
 
 class ResponseCode(Enum):
@@ -93,10 +93,10 @@ class ResponseCode(Enum):
     SERVER_ERROR = 2
 
 
-RPC_VERSION = "1"
-RPC_ENCODE_POSTFIX = "ssz"
-RPC_ENCODE_COMPRESS_POSTFIX = "ssz_snappy"
-RPC_HELLO = "hello"
-RPC_GOODBYE = "goodbye"
-RPC_BEACON_BLOCKS = "beacon_blocks"
-RPC_RECENT_BEACON_BLOCKS = "recent_beacon_blocks"
+REQ_RESP_VERSION = "1"
+REQ_RESP_ENCODE_POSTFIX = "ssz"
+REQ_RESP_ENCODE_COMPRESS_POSTFIX = "ssz_snappy"
+REQ_RESP_HELLO = "hello"
+REQ_RESP_GOODBYE = "goodbye"
+REQ_RESP_BEACON_BLOCKS = "beacon_blocks"
+REQ_RESP_RECENT_BEACON_BLOCKS = "recent_beacon_blocks"

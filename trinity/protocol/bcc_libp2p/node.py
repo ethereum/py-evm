@@ -30,9 +30,11 @@ from libp2p.host.basic_host import (
 from libp2p.network.network_interface import (
     INetwork,
 )
+from libp2p.network.stream.net_stream_interface import (
+    INetStream,
+)
 from libp2p.peer.id import (
     ID,
-    id_b58_decode,
 )
 from libp2p.peer.peerdata import (
     PeerData,
@@ -66,14 +68,28 @@ from p2p.service import (
 
 from .configs import (
     GOSSIPSUB_PROTOCOL_ID,
+    GossipsubParams,
     PUBSUB_TOPIC_BEACON_BLOCK,
     PUBSUB_TOPIC_BEACON_ATTESTATION,
-    GossipsubParams,
+    REQ_RESP_BEACON_BLOCKS,
+    REQ_RESP_GOODBYE,
+    REQ_RESP_HELLO,
+    REQ_RESP_RECENT_BEACON_BLOCKS,
+)
+from .messages import (
+    HelloRequest,
 )
 from .utils import (
+    make_rpc_v1_ssz_protocol_id,
     make_tcp_ip_maddr,
     peer_id_from_pubkey,
 )
+
+
+REQ_RESP_HELLO_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_HELLO)
+REQ_RESP_GOODBYE_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_GOODBYE)
+REQ_RESP_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_BEACON_BLOCKS)
+REQ_RESP_RECENT_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_RECENT_BEACON_BLOCKS)
 
 
 class Node(BaseService):
@@ -85,6 +101,7 @@ class Node(BaseService):
     pubsub: Pubsub
     bootstrap_nodes: Optional[Tuple[Multiaddr, ...]]
     preferred_nodes: Optional[Tuple[Multiaddr, ...]]
+    # TODO: Add `Chain`
 
     def __init__(
             self,
@@ -142,7 +159,7 @@ class Node(BaseService):
         await self.host.get_network().listen(self.listen_maddr)
         await self.connect_preferred_nodes()
         # TODO: Connect bootstrap nodes?
-        # TODO: Set up stream handlers for each protocol
+        self._register_rpc_handlers()
         # TODO: Register notifees
 
         # pubsub
@@ -169,7 +186,7 @@ class Node(BaseService):
         """
         ip = maddr.value_for_protocol(protocols.P_IP4)
         port = maddr.value_for_protocol(protocols.P_TCP)
-        peer_id = id_b58_decode(maddr.value_for_protocol(protocols.P_P2P))
+        peer_id = ID.from_base58(maddr.value_for_protocol(protocols.P_P2P))
         await self.dial_peer(ip=ip, port=port, peer_id=peer_id)
 
     async def connect_preferred_nodes(self) -> None:
@@ -214,3 +231,20 @@ class Node(BaseService):
             listener.server.close()
             await listener.server.wait_closed()
         # TODO: Add `close` in `Pubsub`
+
+    def _register_rpc_handlers(self) -> None:
+        self.host.set_stream_handler(REQ_RESP_HELLO_SSZ, self._handle_hello)
+
+    #
+    # RPC Handlers
+    #
+
+    # request   ::= <encoding-dependent-header> | <encoded-payload>
+    # response  ::= <result> | <encoding-dependent-header> | <encoded-payload>
+    # result    ::= “0” | “1” | “2” | [“128” ... ”255”]
+
+    async def _handle_hello(self, stream: INetStream) -> None:
+        pass
+
+    async def request_hello(self, peer_id: ID) -> None:
+        pass
