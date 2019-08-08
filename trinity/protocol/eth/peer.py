@@ -70,7 +70,7 @@ from .events import (
     SendReceiptsEvent,
     TransactionsEvent,
 )
-from .proto import ETHProtocol, ProxyETHProtocol
+from .proto import ETHProtocol, ProxyETHProtocol, ETHHandshakeParams
 from .handlers import ETHExchangeHandler, ProxyETHExchangeHandler
 
 
@@ -107,7 +107,15 @@ class ETHPeer(BaseChainPeer):
         super().handle_sub_proto_msg(cmd, msg)
 
     async def send_sub_proto_handshake(self) -> None:
-        self.sub_proto.send_handshake(await self._local_chain_info)
+        chain_info = await self._local_chain_info
+        handshake_params = ETHHandshakeParams(
+            version=self.sub_proto.version,
+            head_hash=chain_info.block_hash,
+            genesis_hash=chain_info.genesis_hash,
+            total_difficulty=chain_info.total_difficulty,
+            network_id=chain_info.network_id,
+        )
+        self.sub_proto.send_handshake(handshake_params)
 
     async def process_sub_proto_handshake(
             self, cmd: CommandAPI, msg: Payload) -> None:

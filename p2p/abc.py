@@ -25,7 +25,7 @@ from p2p.typing import Capability, Payload, Structure
 
 if TYPE_CHECKING:
     from p2p.p2p_proto import (  # noqa: F401
-        P2PProtocol,
+        BaseP2PProtocol,
     )
 
 
@@ -298,7 +298,7 @@ class MultiplexerAPI(ABC):
         ...
 
     @abstractmethod
-    def get_base_protocol(self) -> 'P2PProtocol':
+    def get_base_protocol(self) -> 'BaseP2PProtocol':
         ...
 
     @abstractmethod

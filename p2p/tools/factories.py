@@ -20,6 +20,7 @@ from p2p import auth
 from p2p import discovery
 from p2p.abc import AddressAPI, NodeAPI, ProtocolAPI, TransportAPI, MultiplexerAPI
 from p2p.ecies import generate_privkey
+from p2p.handshake import DevP2PHandshakeParams
 from p2p.kademlia import Node, Address
 from p2p.multiplexer import Multiplexer
 from p2p.p2p_proto import P2PProtocol
@@ -373,7 +374,7 @@ def MultiplexerPairFactory(*,
         in zip(protocol_types, cmd_id_offsets)
     )
 
-    alice_p2p_protocol = P2PProtocol(alice_transport, snappy_support)
+    alice_p2p_protocol = P2PProtocol(alice_transport, 0, snappy_support)
     alice_multiplexer = Multiplexer(
         transport=alice_transport,
         base_protocol=alice_p2p_protocol,
@@ -381,7 +382,7 @@ def MultiplexerPairFactory(*,
         token=cancel_token,
     )
 
-    bob_p2p_protocol = P2PProtocol(bob_transport, False)
+    bob_p2p_protocol = P2PProtocol(bob_transport, 0, snappy_support)
     bob_multiplexer = Multiplexer(
         transport=bob_transport,
         base_protocol=bob_p2p_protocol,
@@ -389,3 +390,12 @@ def MultiplexerPairFactory(*,
         token=cancel_token,
     )
     return alice_multiplexer, bob_multiplexer
+
+
+class DevP2PHandshakeParamsFactory(factory.Factory):
+    class Meta:
+        model = DevP2PHandshakeParams
+
+    listen_port = 30303
+    client_version_string = 'test'
+    version = 5
