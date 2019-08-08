@@ -35,6 +35,12 @@ from trinity.protocol.eth.proto import ETHHandshakeParams, ETHProtocol
 from trinity.protocol.les.peer import LESPeer, LESPeerFactory
 from trinity.protocol.les.proto import LESHandshakeParams, LESProtocol, LESProtocolV2
 
+# TODO: Probably it is not suitable to import from `tests`
+from tests.plugins.eth2.beacon.test_receive_server import (
+    get_fake_chain,
+)
+
+
 try:
     import factory
 except ImportError:

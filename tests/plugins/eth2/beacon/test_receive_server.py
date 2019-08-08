@@ -27,9 +27,9 @@ from eth.exceptions import (
 from eth2.beacon.typing import (
     FromBlockParams,
 )
+from eth2.beacon.chains.base import BaseBeaconChain
 from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
-# TODO(ralexstokes) merge together each pool
 from eth2.beacon.operations.attestation_pool import AttestationPool as TempPool
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
@@ -111,10 +111,9 @@ async def get_fake_chain() -> FakeChain:
 
 
 def get_blocks(
-        receive_server: BCCReceiveServer,
+        chain: BaseBeaconChain,
         parent_block: SerenityBeaconBlock = None,
         num_blocks: int = 3) -> Tuple[SerenityBeaconBlock, ...]:
-    chain = receive_server.chain
     if parent_block is None:
         parent_block = chain.get_canonical_head()
     blocks = []
@@ -232,7 +231,7 @@ async def test_bcc_receive_server_try_import_orphan_blocks(request,
         request, event_loop, event_bus
     ) as (_, _, bob_recv_server, _):
 
-        blocks = get_blocks(bob_recv_server, num_blocks=4)
+        blocks = get_blocks(bob_recv_server.chain, num_blocks=4)
         assert not bob_recv_server._is_block_root_in_db(blocks[0].signing_root)
         bob_recv_server.chain.import_block(blocks[0])
 
@@ -279,7 +278,7 @@ async def test_bcc_receive_server_handle_beacon_blocks_checks(request,
         event_bus,
     ) as (alice, _, bob_recv_server, bob_msg_queue):
 
-        blocks = get_blocks(bob_recv_server, num_blocks=1)
+        blocks = get_blocks(bob_recv_server.chain, num_blocks=1)
 
         event = asyncio.Event()
 
@@ -337,7 +336,7 @@ async def test_bcc_receive_server_handle_new_beacon_block_checks(request,
         event_loop,
         event_bus,
     ) as (alice, _, bob_recv_server, bob_msg_queue):
-        blocks = get_blocks(bob_recv_server, num_blocks=1)
+        blocks = get_blocks(bob_recv_server.chain, num_blocks=1)
 
         event = asyncio.Event()
 
@@ -385,7 +384,7 @@ async def test_bcc_receive_request_block_by_root(request, event_loop, event_bus)
     ) as (alice, alice_req_server, bob_recv_server, bob_msg_queue):
         alice_msg_buffer = MsgBuffer()
         alice.add_subscriber(alice_msg_buffer)
-        blocks = get_blocks(bob_recv_server, num_blocks=1)
+        blocks = get_blocks(bob_recv_server.chain, num_blocks=1)
 
         # test: request from bob is issued and received by alice
         bob_recv_server._request_block_from_peers(blocks[0].signing_root)
@@ -415,7 +414,7 @@ async def test_bcc_receive_server_process_received_block(request,
         event_bus,
     ) as (_, _, bob_recv_server, _):
 
-        block_not_orphan, block_orphan = get_blocks(bob_recv_server, num_blocks=2)
+        block_not_orphan, block_orphan = get_blocks(bob_recv_server.chain, num_blocks=2)
 
         # test: if the block is an orphan, puts it in the orphan pool, calls
         #   `_request_block_from_peers`, and returns `False`.
@@ -469,7 +468,7 @@ async def test_bcc_receive_server_broadcast_block(request, event_loop, event_bus
         event_bus,
     ) as (alice, _, bob_recv_server, _):
 
-        block_non_orphan, block_orphan = get_blocks(bob_recv_server, num_blocks=2)
+        block_non_orphan, block_orphan = get_blocks(bob_recv_server.chain, num_blocks=2)
         alice_msg_buffer = MsgBuffer()
         alice.add_subscriber(alice_msg_buffer)
 
@@ -507,7 +506,7 @@ async def test_bcc_receive_server_with_request_server(request, event_loop, event
 
         alice_msg_buffer = MsgBuffer()
         alice.add_subscriber(alice_msg_buffer)
-        blocks = get_blocks(bob_recv_server, num_blocks=3)
+        blocks = get_blocks(bob_recv_server.chain, num_blocks=3)
         await alice_req_server.db.coro_persist_block(
             blocks[0],
             SerenityBeaconBlock,

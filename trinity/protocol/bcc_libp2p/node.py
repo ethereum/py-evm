@@ -15,6 +15,9 @@ from eth_keys import (
     datatypes,
 )
 
+from eth2.beacon.chains.base import (
+    BaseBeaconChain,
+)
 from eth2.beacon.types.attestations import (
     Attestation,
 )
@@ -111,6 +114,7 @@ class Node(BaseService):
     bootstrap_nodes: Optional[Tuple[Multiaddr, ...]]
     preferred_nodes: Optional[Tuple[Multiaddr, ...]]
     # TODO: Add `Chain`
+    chain: BaseBeaconChain
 
     # NOTE: Used to track which peers
     handshaked_peers: Set[ID]
@@ -122,6 +126,7 @@ class Node(BaseService):
             listen_port: int,
             security_protocol_ops: Dict[str, ISecureTransport],
             muxer_protocol_ids: Tuple[str, ...],
+            chain: BaseBeaconChain,
             gossipsub_params: Optional[GossipsubParams] = None,
             cancel_token: CancelToken = None,
             bootstrap_nodes: Tuple[Multiaddr, ...] = None,
@@ -160,6 +165,9 @@ class Node(BaseService):
             router=gossipsub_router,
             my_id=self.peer_id,
         )
+
+        self.chain = chain
+
         self.handshaked_peers = set()
 
     async def _run(self) -> None:
