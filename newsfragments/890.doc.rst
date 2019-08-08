@@ -1,0 +1,1 @@
+Cleanup Quickstart and start a Cookbook with small recipes

@@ -16,8 +16,9 @@ Table of contents
    :maxdepth: 1
    :caption: Fundamentals
 
-   guides/index
    api/index
+   cookbook
+   guides/index
 
 .. toctree::
    :maxdepth: 1

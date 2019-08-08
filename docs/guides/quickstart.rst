@@ -156,100 +156,18 @@ Once Trinity successfully connected to other peers we should see it starting to 
   INFO  05-29 02:23:17       chain  Imported chain segment in 0 seconds, new head: #767 (aeb6)
 
 
-Running as a light client
--------------------------
+What's next?
+~~~~~~~~~~~~
 
-.. warning::
+Now that we've got things running, there's a lot ahead to learn. Check out the existing guides on
+Trinity's general :doc:`Architecture </guides/architecture>`, :doc:`Writing Plugins </guides/writing_plugins>`
+or scan the :doc:`Cookbook </cookbook>` for short recipes to learn how to:
 
-    It may take a **very** long time for Trinity to find an LES node with open
-    slots.  This is not a bug with trinity, but rather a shortage of nodes
-    serving LES.  Please consider running your own LES server to help improve
-    the health of the network.
-
-Use the ``--sync-mode=light`` flag to instruct Trinity to run as a light node.
-
-
-Ropsten vs Mainnet
-------------------
-
-Trinity currently only supports running against either the Ethereum Mainnet or
-Ropsten testnet.  Use ``--ropsten`` to run against Ropsten.
-
-
-.. code:: sh
-
-  trinity --ropsten
-
-
-
-Connecting to preferred nodes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you would like to have Trinity prioritize connecting to specific nodes, you
-can use the ``--preferred-node`` command line flag.  This flag takes an enode
-URI as a single argument and will instruct Trinity to prioritize connecting to
-this node.
-
-.. code:: sh
-
-  trinity --preferred-node enode://a41defa74e8d9d4152699cb9a0d195377da95833769ad6b386092ac3b16c184eb4ef4b4f02889e0b5097ff50fb5847ba99694d40b61f911cdea07b444b00e676@127.0.0.1:30304
-
-
-Using ``--preferred-node`` is a good way to ensure Trinity running in
-``sync-mode=light`` mode connects to known peers who serve LES.
-
-
-Retrieving Chain information via web3
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-While just running ``trinity`` already causes the node to start syncing, it doesn't let us interact
-with the chain directly (apart from the JSON-RPC API).
-
-However, we can attach an interactive shell to a running Trinity instance with the
-``attach`` subcommand. The interactive ``ipython`` shell binds a
-`web3 <http://web3py.readthedocs.io>`_ instance to the ``w3`` variable.
-
-.. code:: sh
-
-  trinity attach
-
-Now that Trinity runs in an interactive shell mode, let's try to get some information about the
-latest block by calling ``w3.eth.getBlock('latest')``.
-
-.. code:: sh
-
-  In [9]: w3.eth.getBlock('latest')
-  Out[9]:
-  AttributeDict({'difficulty': 743444339302,
-  'extraData': HexBytes('0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32'),
-  'gasLimit': 5000,
-  'gasUsed': 0,
-  'hash': HexBytes('0x1a8487dfb8de7ee27b9cca30b6f3f6c9676eae29c10eef39b86890ed15eeed01'),
-  'logsBloom': HexBytes('0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000'),
-  'mixHash': HexBytes('0xf693b8e4bc30728600da40a0578c14ddb7ad08a64e329a19d9355d5665588aef'),
-  'nonce': HexBytes('0x7382884a72533c59'),
-  'number': 12479,
-  'parentHash': HexBytes('0x889c36c51463f100cf50ec2e2a92886aa7ebb3f99fa8c817343214a92f967a29'),
-  'receiptsRoot': HexBytes('0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421'),
-  'sha3Uncles': HexBytes('0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347'),
-  'stateRoot': HexBytes('0x6ad1ecb7d516c679e7c476956159051fa32848f3ba631a47c3fb72937ed86987'),
-  'timestamp': 1438368997,
-  'transactionsRoot': HexBytes('0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421'),
-  'miner': '0xbb7B8287f3F0a933474a79eAe42CBCa977791171',
-  'totalDifficulty': 3961372514945562,
-  'uncles': [],
-  'size': 544,
-  'transactions': []})
-
-You can attach to an existing Trinity process using the ``attach`` comand.
-
-.. code:: sh
-
-  trinity attach
-
-For a list of JSON-RPC endpoints which are expected to work, see this issue: https://github.com/ethereum/py-evm/issues/178
-
-
+- :ref:`Run Trinity as a light client<cookbook_recipe_running_as_a_light_client>`
+- :ref:`Connect to Mainnet or Ropsten<cookbook_recipe_ropsten_vs_mainnet>`
+- :ref:`Connect to preferred nodes<cookbook_recipe_connecting_to_preferred_nodes>`
+- :ref:`Retrieve chain information via web3<cookbook_recipe_retrieving_chain_information_via_web3>`
+- and many more!
 
 
 .. warning::
