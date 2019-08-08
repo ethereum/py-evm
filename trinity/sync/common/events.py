@@ -8,6 +8,8 @@ from typing import (
 )
 
 from eth.rlp.blocks import BaseBlock
+from eth.rlp.headers import BlockHeader
+from eth.rlp.transactions import BaseTransaction
 from eth_typing import (
     Address,
     Hash32,
@@ -52,6 +54,7 @@ class CollectMissingAccount(BaseRequestResponseEvent[MissingAccountCollected]):
     missing_node_hash: Hash32
     address_hash: Hash32
     state_root_hash: Hash32
+    urgent: bool
 
     @staticmethod
     def expected_response_type() -> Type[MissingAccountCollected]:
@@ -73,6 +76,7 @@ class CollectMissingBytecode(BaseRequestResponseEvent[MissingBytecodeCollected])
     is missing from the state DB, at the given state root hash.
     """
     bytecode_hash: Hash32
+    urgent: bool
 
     @staticmethod
     def expected_response_type() -> Type[MissingBytecodeCollected]:
@@ -99,6 +103,7 @@ class CollectMissingStorage(BaseRequestResponseEvent[MissingStorageCollected]):
     storage_key: Hash32
     storage_root_hash: Hash32
     account_address: Address
+    urgent: bool
 
     @staticmethod
     def expected_response_type() -> Type[MissingStorageCollected]:
@@ -131,3 +136,12 @@ class DoStatelessBlockImport(BaseRequestResponseEvent[StatelessBlockImportDone])
     @staticmethod
     def expected_response_type() -> Type[StatelessBlockImportDone]:
         return StatelessBlockImportDone
+
+
+@dataclass
+class DoStatelessBlockPreview(BaseEvent):
+    """
+    Event to identify and download the data needed to execute the given transactions
+    """
+    header: BlockHeader
+    transactions: Tuple[BaseTransaction, ...]

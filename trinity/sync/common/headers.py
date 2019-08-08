@@ -266,7 +266,21 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         Return True if the syncing of header appears to be complete.
         This is fairly relaxed about the definition, preferring speed over slow precision.
         """
-        return await self._db.coro_header_exists(header.hash)
+        if not await self._db.coro_header_exists(header.hash):
+            return False
+        else:
+            try:
+                # This is a somewhat slow mechanism, since it triggers an RLP encode on
+                #   the other side. Once AsyncHeaderDB can do a coro_exists(), check
+                #   the score directly, instead.
+                await self.wait(self._db.coro_get_score(header.hash))
+            except HeaderNotFound:
+                # The header rlp is saved, but a score isn't so it was just preloaded in the DB
+                return False
+            else:
+                # The RLP and score are available, so this seems to have been properly imported
+                # Skip it during sync
+                return True
 
     async def _find_launch_headers(self, peer: TChainPeer) -> Tuple[BlockHeader, ...]:
         """

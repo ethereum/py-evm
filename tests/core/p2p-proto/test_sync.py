@@ -8,7 +8,7 @@ import pytest
 
 from trinity.protocol.eth.peer import ETHPeerPoolEventServer
 from trinity.sync.beam.importer import (
-    pausing_vm_decorator,
+    make_pausing_beam_chain,
     BlockImportServer,
 )
 from trinity.protocol.eth.sync import ETHHeaderChainSyncer
@@ -33,7 +33,6 @@ from tests.core.integration_test_helpers import (
     ByzantiumTestChain,
     DBFixture,
     FakeAsyncAtomicDB,
-    FakeAsyncChain,
     FakeAsyncChainDB,
     FakeAsyncHeaderDB,
     LatestTestChain,
@@ -176,17 +175,18 @@ async def test_beam_syncer(
         pausing_config
     ) as pausing_endpoint, AsyncioEndpoint.serve(gatherer_config) as gatherer_endpoint:
 
-        BeamPetersburgVM = pausing_vm_decorator(PetersburgVM, pausing_endpoint, event_loop)
+        client_chain = make_pausing_beam_chain(
+            ((0, PetersburgVM), ),
+            chain_id=999,
+            db=chaindb_fresh.db,
+            event_bus=pausing_endpoint,
+            loop=event_loop,
+        )
 
-        class BeamPetersburgTestChain(FakeAsyncChain):
-            vm_configuration = ((0, BeamPetersburgVM),)
-            network_id = 999
-
-        client_chain = BeamPetersburgTestChain(chaindb_fresh.db)
         client = BeamSyncer(
             client_chain,
-            chaindb_fresh.db,
-            client_chain.chaindb,
+            FakeAsyncAtomicDB(chaindb_fresh.db),
+            FakeAsyncChainDB(chaindb_fresh.db),
             client_peer_pool,
             gatherer_endpoint,
             beam_to_block,

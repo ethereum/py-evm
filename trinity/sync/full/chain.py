@@ -152,6 +152,11 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
         # Track if any headers have been received yet
         self._got_first_header = asyncio.Event()
 
+        # Keep a copy of old state roots to use when previewing transactions
+        # Preview needs a header's *parent's* state root. Sometimes the parent
+        # header isn't in the database yet, so must be looked up here.
+        self._block_hash_to_state_root: Dict[Hash32, Hash32] = {}
+
     async def _run(self) -> None:
         with self.subscribe(self._peer_pool):
             await self.cancellation()
@@ -172,6 +177,8 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 
         async for headers in self.wait_iter(get_headers_coro):
             self._got_first_header.set()
+            for h in headers:
+                self._block_hash_to_state_root[h.hash] = h.state_root
             try:
                 # We might end up with duplicates that can be safely ignored.
                 # Likely scenario: switched which peer downloads headers, and the new peer isn't
@@ -206,6 +213,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
                     parent_header = await self.wait(
                         self.db.coro_get_block_header_by_hash(new_headers[0].parent_hash)
                     )
+                    self._block_hash_to_state_root[parent_header.hash] = parent_header.state_root
                 except HeaderNotFound:
                     await self._log_missing_parent(new_headers[0], highest_block_num, missing_exc)
 
@@ -1098,10 +1106,23 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             #   - look up the addresses referenced by the transaction (sender and recipient)
             #   - store the header (for future evm execution that might look up old block hashes)
             # We only run the preview *execution* if we are lagging
+            try:
+                parent_state_root = self._block_hash_to_state_root[header.parent_hash]
+            except KeyError:
+                # For the very first header that we load, we have to look up the parent's
+                # state from the database:
+                parent = await self.chain.coro_get_block_header_by_hash(header.parent_hash)
+                parent_state_root = parent.state_root
+
+            # We *always* run the preview to:
+            #   - look up the addresses referenced by the transaction (sender and recipient)
+            #   - store the header (for future evm execution that might look up old block hashes)
+            # We only run the preview *execution* if we are lagging
             # TODO should this be split into two calls then?
             await self._block_importer.preview_transactions(
                 header,
                 block.transactions,
+                parent_state_root,
                 lagging,
             )
 

@@ -11,3 +11,9 @@ REQUEST_BUFFER_MULTIPLIER = 16
 # How long should we wait after a peer gives us an empty response for node data,
 # before we ask for some new data from them? Measured in seconds.
 EMPTY_PEER_RESPONSE_PENALTY = 1
+
+# How many different processes are running previews? They will split the
+# block imports equally. A higher number means a slower startup, but more
+# previews are possible at a time (given that you have enough CPU cores).
+# The sensitivity of this number is relatively unexplored.
+NUM_PREVIEW_SHARDS = 4
