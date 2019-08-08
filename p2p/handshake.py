@@ -20,6 +20,7 @@ from eth_utils.toolz import groupby, valmap
 
 from eth.tools.logging import ExtendedDebugLogger
 
+from p2p._utils import duplicates
 from p2p.abc import TransportAPI, MultiplexerAPI
 from p2p.constants import (
     SNAPPY_PROTOCOL_VERSION,
@@ -118,14 +119,10 @@ class DevP2PHandshakeParams(NamedTuple):
 @to_tuple
 def _select_capabilities(remote_capabilities: Capabilities,
                          local_capabilities: Capabilities) -> Iterable[Capability]:
-    """Select the sub-protocol to use when talking to the remote.
+    """
+    Select the appropriate shared capabilities between local and remote.
 
-    Find the highest version of our supported sub-protocols that is also supported by the
-    remote and stores an instance of it (with the appropriate cmd_id offset) in
-    self.protocol.
-
-    Raises NoMatchingPeerCapabilities if none of our supported protocols match one of the
-    remote's protocols.
+    https://github.com/ethereum/devp2p/blob/master/rlpx.md#capability-messaging
     """
     # Determine the remote capabilites that intersect with our own.
     matching_capabilities = tuple(sorted(
@@ -186,6 +183,7 @@ async def _do_p2p_handshake(transport: TransportAPI,
                 # parity sends Ping immediately after handshake
                 protocol = P2PProtocol(
                     transport,
+                    cmd_id_offset=0,
                     snappy_support=True,
                 )
             else:
@@ -234,17 +232,18 @@ async def negotiate_protocol_handshakes(transport: TransportAPI,
         for handshaker
         in protocol_handshakers
     )
+
+    # Verify that there are no duplicated local or remote capabilities
+    duplicate_capabilities = duplicates(local_capabilities)
+    if duplicate_capabilities:
+        raise Exception(f"Duplicate local capabilities: {duplicate_capabilities}")
+
     # We create an *ephemeral* version of the base `p2p` protocol with snappy
     # compression disabled for the handshake.  As part of the handshake, a new
     # instance of this protocol will be created with snappy compression enabled
     # if it is supported by the protocol version.
-    ephemeral_base_protocol: BaseP2PProtocol
-    if issubclass(p2p_protocol_class, P2PProtocolV4):
-        ephemeral_base_protocol = p2p_protocol_class(transport)
-    elif issubclass(p2p_protocol_class, P2PProtocol):
-        ephemeral_base_protocol = p2p_protocol_class(transport, False)
-    else:
-        raise Exception(f"Unknown p2p protocol class: {p2p_protocol_class}")
+    ephemeral_base_protocol = p2p_protocol_class(transport, cmd_id_offset=0, snappy_support=False)
+
     # Perform the actual `p2p` protocol handshake.  We need the remote
     # capabilities data from the receipt to select the appropriate sub
     # protocols.
@@ -257,19 +256,19 @@ async def negotiate_protocol_handshakes(transport: TransportAPI,
     )
 
     # This data structure is simply for easy retrieval of the proper
-    # `Handshaker` for each selectd protocol.
+    # `Handshaker` for each selected protocol.
     protocol_handshakers_by_capability = dict(zip(local_capabilities, protocol_handshakers))
     # Using our local capabilities and the ones transmitted by the remote
     # select the highest shared version of each shared protocol.
     selected_capabilities = _select_capabilities(
         devp2p_receipt.capabilities,
-        protocol_handshakers_by_capability.keys()
+        local_capabilities,
     )
     # If there are no capability matches throw an exception.
     if len(selected_capabilities) < 1:
         raise NoMatchingPeerCapabilities(
             "Found no matching capabilities between self and peer:\n"
-            f" - local : {tuple(sorted(protocol_handshakers_by_capability.keys()))}\n"
+            f" - local : {tuple(sorted(local_capabilities))}\n"
             f" - remote: {devp2p_receipt.capabilities}"
         )
 

@@ -234,6 +234,14 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
 
         if self._protocol_locks.is_locked(protocol_class):
             raise Exception(f"Streaming lock for {protocol_class} is not free.")
+        elif not self._multiplex_lock.locked():
+            raise Exception("Not multiplexed.")
+
+        # Mostly a sanity check but this ensures we do better than accidentally
+        # raising an attribute error in whatever race conditions or edge cases
+        # potentially make the `_multiplex_token` unavailable.
+        if not hasattr(self, '_multiplex_token'):
+            raise Exception("No cancel token found for multiplexing.")
 
         # We do the wait_iter here so that the call sites in the handshakers
         # that use this don't need to be aware of cancellation tokens.
@@ -285,6 +293,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
             ).chain(self.cancel_token)
             self._multiplex_token = multiplex_token
             fut = asyncio.ensure_future(self._do_multiplexing(multiplex_token))
+            # wait for the multiplexing to actually start
             try:
                 yield
             finally:

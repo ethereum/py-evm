@@ -374,7 +374,7 @@ def MultiplexerPairFactory(*,
         in zip(protocol_types, cmd_id_offsets)
     )
 
-    alice_p2p_protocol = P2PProtocol(alice_transport, snappy_support)
+    alice_p2p_protocol = P2PProtocol(alice_transport, 0, snappy_support)
     alice_multiplexer = Multiplexer(
         transport=alice_transport,
         base_protocol=alice_p2p_protocol,
@@ -382,7 +382,7 @@ def MultiplexerPairFactory(*,
         token=cancel_token,
     )
 
-    bob_p2p_protocol = P2PProtocol(bob_transport, False)
+    bob_p2p_protocol = P2PProtocol(bob_transport, 0, snappy_support)
     bob_multiplexer = Multiplexer(
         transport=bob_transport,
         base_protocol=bob_p2p_protocol,

@@ -75,6 +75,14 @@ class BaseP2PProtocol(Protocol):
     _commands = (Hello, Ping, Pong, Disconnect)
     cmd_length = P2P_PROTOCOL_COMMAND_LENGTH
 
+    def __init__(self, transport: TransportAPI, cmd_id_offset: int, snappy_support: bool) -> None:
+        if cmd_id_offset != 0:
+            raise TypeError(
+                f"The base `p2p` protocol **must** have a cmd_id_offset of 0. "
+                f"Got `{cmd_id_offset}`"
+            )
+        super().__init__(transport, cmd_id_offset, snappy_support)
+
     def send_handshake(
             self,
             client_version_string: str,
@@ -122,12 +130,14 @@ class BaseP2PProtocol(Protocol):
 class P2PProtocolV4(BaseP2PProtocol):
     version = 4
 
-    def __init__(self, transport: TransportAPI) -> None:
-        super().__init__(transport, cmd_id_offset=0, snappy_support=False)
+    def __init__(self, transport: TransportAPI, cmd_id_offset: int, snappy_support: bool) -> None:
+        if snappy_support is True:
+            raise TypeError(
+                f"Snappy support is not supported before version 5 of the p2p "
+                f"protocol.  Currently using version `{self.version}`"
+            )
+        super().__init__(transport, cmd_id_offset=cmd_id_offset, snappy_support=False)
 
 
 class P2PProtocol(BaseP2PProtocol):
     version = 5
-
-    def __init__(self, transport: TransportAPI, snappy_support: bool) -> None:
-        super().__init__(transport, cmd_id_offset=0, snappy_support=snappy_support)

@@ -1,7 +1,9 @@
+import collections
 from concurrent.futures import Executor, ProcessPoolExecutor
 import logging
 import os
 import signal
+from typing import Hashable, Sequence, Tuple, TypeVar
 
 import rlp
 
@@ -113,3 +115,15 @@ def trim_middle(arbitrary_string: str, max_length: int) -> str:
         else:
             last_half = ''
         return f"{first_half}✂✂✂{last_half}"
+
+
+TValue = TypeVar('TValue', bound=Hashable)
+
+
+def duplicates(elements: Sequence[TValue]) -> Tuple[TValue, ...]:
+    return tuple(
+        value for
+        value, count in
+        collections.Counter(elements).items()
+        if count > 1
+    )

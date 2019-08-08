@@ -64,7 +64,7 @@ class BaseLESHandshaker(Handshaker):
 
             msg = cast(Dict[str, Any], msg)
 
-            params = LESHandshakeParams(
+            remote_params = LESHandshakeParams(
                 version=msg['protocolVersion'],
                 network_id=msg['networkId'],
                 head_td=msg['headTd'],
@@ -83,19 +83,17 @@ class BaseLESHandshaker(Handshaker):
                 announce_type=msg.get('announceType'),  # TODO: only in StatusV2
             )
 
-            receipt = LESHandshakeReceipt(protocol, params)
-
-            if receipt.handshake_params.network_id != self.handshake_params.network_id:
+            if remote_params.network_id != self.handshake_params.network_id:
                 raise WrongNetworkFailure(
                     f"{multiplexer.remote} network "
-                    f"({receipt.handshake_params.network_id}) does not match ours "
+                    f"({remote_params.network_id}) does not match ours "
                     f"({self.handshake_params.network_id}), disconnecting"
                 )
 
-            if receipt.handshake_params.genesis_hash != self.handshake_params.genesis_hash:
+            if remote_params.genesis_hash != self.handshake_params.genesis_hash:
                 raise WrongGenesisFailure(
                     f"{multiplexer.remote} genesis "
-                    f"({encode_hex(receipt.handshake_params.genesis_hash)}) does "
+                    f"({encode_hex(remote_params.genesis_hash)}) does "
                     f"not match ours "
                     f"({encode_hex(self.handshake_params.genesis_hash)}), "
                     f"disconnecting"
@@ -105,9 +103,10 @@ class BaseLESHandshaker(Handshaker):
             # are the only side serving data, but right now both our chain
             # syncer and the Peer.boot() method expect the remote to reply to
             # header requests, so if they don't we simply disconnect here.
-            if receipt.handshake_params.serve_headers is False:
+            if remote_params.serve_headers is False:
                 raise HandshakeFailure(f"{multiplexer.remote} doesn't serve headers, disconnecting")
 
+            receipt = LESHandshakeReceipt(protocol, remote_params)
             break
         else:
             raise HandshakeFailure("Message stream exited before finishing handshake")

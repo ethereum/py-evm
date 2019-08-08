@@ -188,6 +188,7 @@ class BasePeer(BaseService):
         # snappy compression
         self.base_protocol = P2PProtocol(
             transport=self.transport,
+            cmd_id_offset=0,
             snappy_support=False,
         )
 
@@ -468,6 +469,7 @@ class BasePeer(BaseService):
             # parity sends Ping immediately after Handshake
                 self.base_protocol = P2PProtocol(
                     self.transport,
+                    cmd_id_offset=0,
                     snappy_support=snappy_support,
                 )
 
