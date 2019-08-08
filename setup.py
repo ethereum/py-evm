@@ -25,7 +25,7 @@ deps = {
         "coincurve>=10.0.0,<11.0.0",
         "eth-hash[pysha3];implementation_name=='cpython'",
         "eth-hash[pycryptodome];implementation_name=='pypy'",
-        "plyvel==1.0.5",
+        "plyvel>=1.0.5,<1.2.0",
     ],
     'test': [
         "hypothesis==3.69.5",
