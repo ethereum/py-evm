@@ -4,10 +4,10 @@ Quickstart
 Installation
 ~~~~~~~~~~~~
 
-This is the quickstart guide for Trinity. If you only care about running a Trinity node, this
-guide will help you to get things set up. If you plan to develop on top of Py-EVM or contribute
-to the project you may rather want to checkout the :doc:`Contributing Guide </contributing>` which
-explains how to set everything up for development.
+This is the quickstart guide for Trinity. It teaches us how to run a Trinity node as a user.
+
+To develop on top of Trinity or to contribute to the project, check out the
+:doc:`Contributing Guide </contributing>` that explains how to set everything up for development.
 
 Installing on Ubuntu
 --------------------
@@ -97,7 +97,7 @@ Alternatively, we can run a specific image version, following the usual docker v
 
   docker run -it ethereum/trinity:0.1.0-alpha.13
 
-**2. Build your own image**
+**2. Building an image from the source**
 
 Alternatively, we may want to try out a specific (unreleased) version. In that case, we can create
 our very own image directly from the source code.
