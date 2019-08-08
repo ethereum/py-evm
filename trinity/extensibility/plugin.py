@@ -42,6 +42,9 @@ from trinity._utils.logging import (
 from trinity._utils.os import (
     friendly_filename_or_url,
 )
+from trinity._utils.profiling import (
+    profiler,
+)
 
 
 class PluginStatus(Enum):
@@ -205,11 +208,18 @@ class BaseIsolatedPlugin(BasePlugin):
         """
         self._status = PluginStatus.STARTED
         self._process = ctx.Process(
-            target=self._spawn_start,
+            target=self._prepare_spawn,
         )
 
         self._process.start()
         self.logger.info("Plugin started: %s (pid=%d)", self.name, self._process.pid)
+
+    def _prepare_spawn(self) -> None:
+        if self.boot_info.boot_kwargs.pop('profile', False):
+            with profiler(f'profile_{self.normalized_name}'):
+                self._spawn_start()
+        else:
+            self._spawn_start()
 
     @abstractmethod
     def _spawn_start(self) -> None:

@@ -101,7 +101,7 @@ def trinity_boot(args: Namespace,
     return (database_server_process,)
 
 
-@setup_cprofiler('run_database_process')
+@setup_cprofiler('profile_db_process')
 @with_queued_logging
 def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) -> None:
     with trinity_config.process_id_file('database'):

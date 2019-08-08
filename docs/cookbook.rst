@@ -99,3 +99,24 @@ latest block by calling ``w3.eth.getBlock('latest')``.
     'size': 540,
     'transactions': []})
 
+
+Performance profiling
+---------------------
+
+Trinity has builtin support for performance profiling via the ``--profile`` flag. When we run Trinity
+with the ``--profile`` flag it creates a ``cProfile`` of every single process in the current directory.
+
+The files are named ``profile_*`` (e.g. ``profile_discovery``) and can be viewed with any tool that
+supports ``cProfile`` files.
+
+A simple way is through ``cprofilev``
+
+.. code:: sh
+
+  pip install cprofilev
+
+Once installed we can generate a HTML based report and view it in a browser.
+
+.. code:: sh
+
+  cprofilev -f profile_discovery
