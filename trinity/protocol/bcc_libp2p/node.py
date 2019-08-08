@@ -169,11 +169,11 @@ class Node(BaseService):
 
     async def start(self) -> None:
         # host
+        self._register_rpc_handlers()
+        # TODO: Register notifees
         await self.host.get_network().listen(self.listen_maddr)
         await self.connect_preferred_nodes()
         # TODO: Connect bootstrap nodes?
-        self._register_rpc_handlers()
-        # TODO: Register notifees
 
         # pubsub
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_BLOCK)
@@ -255,14 +255,15 @@ class Node(BaseService):
     # result    ::= “0” | “1” | “2” | [“128” ... ”255”]
 
     # TODO: Add a wrapper or decorator to handle the exceptions in handlers,
-    #   to close the streams safely.
+    #   to close the streams safely. Probably starting from: if the function
+    #   returns successfully, then close the stream. Otherwise, reset the stream.
 
     async def _validate_hello_req(self, msg: HelloRequest) -> bool:
         # Reject if
-        #   - TODO: `fork_version` matches the local fork version.
+        #   - TODO: `fork_version` doesn't match the local fork version.
         #   - TODO: If the (finalized_root, finalized_epoch) shared by the peer
         #       is not in the client's chain at the expected epoch.
-        pass
+        return True
 
     async def _request_beacon_blocks(self) -> None:
         """
@@ -272,19 +273,25 @@ class Node(BaseService):
         from its counterparty via the BeaconBlocks request.
         """
 
+    # TODO: Add `make_hello_packect`
+
     async def _handle_hello(self, stream: INetStream) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
-
         peer_id = stream.mplex_conn.peer_id
         if peer_id in self.handshaked_peers:
+            self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
             return
-
         # TODO: Add `timeout`
-        hello_other_side = await read_req(stream, HelloRequest, is_first_read=True)
+        self.logger.debug(f"Waiting for hello from the other side")
+        hello_other_side = await read_req(stream, HelloRequest)
+        self.logger.debug(f"Received the hello message {hello_other_side}")
         if not (await self._validate_hello_req(hello_other_side)):
             # TODO: Disconnect if anything unmatch.
+            self.logger.info(
+                f"Handshake failed: hello message {hello_other_side} is not valid."
+                f"Disconnecting {peer_id}."
+            )
             return
-
         # FIXME: Change this fake message to the real one.
         hello_mine = HelloRequest(
             fork_version=b"recv",
@@ -293,14 +300,17 @@ class Node(BaseService):
             head_root=b"3" * 32,
             head_slot=4,
         )
+        self.logger.debug(f"Sending our hello message {hello_mine}")
         await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
         self.handshaked_peers.add(peer_id)
+        self.logger.debug(f"Handshake from {peer_id} is finished. Added to the `handshake_peers`.")
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
 
     async def say_hello(self, peer_id: ID) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
-
+        print("!@# say_hello 0")
         if peer_id in self.handshaked_peers:
+            self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
             return
 
         # FIXME: Change this fake message to the real one.
@@ -311,19 +321,30 @@ class Node(BaseService):
             head_root=b"3" * 32,
             head_slot=4,
         )
-        stream = self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
+        self.logger.debug(f"Opening new stream to {peer_id} with protocols {[REQ_RESP_HELLO_SSZ]}.")
+        stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
+        self.logger.debug(f"Sending our hello message {hello_mine}.")
         await write_req(stream, hello_mine)
-        # TODO: Wait for `TTFB_TIMEOUT`.
-        resp_code_int, hello_other_side = await read_resp(stream, HelloRequest, is_first_read=True)
+        self.logger.debug(f"Waiting for hello from the other side")
+        resp_code, hello_other_side = await read_resp(stream, HelloRequest)
+        self.logger.debug(f"Received the hello message {hello_other_side}, resp_code={resp_code}.")
         if not (await self._validate_hello_req(hello_other_side)):
             # TODO: Disconnect if anything unmatch.
+            self.logger.info(
+                f"Handshake failed: hello message {hello_other_side} is not valid."
+                f"Disconnecting {peer_id}."
+            )
             return
         # TODO: Handle the case when `resp_code` is not success.
-        resp_code = ResponseCode(resp_code_int)
         if resp_code != ResponseCode.SUCCESS:
             # TODO: Do something according to the `ResponseCode`
             # TODO: Disconnect
-            raise HandshakeFailure(f"resp_code={resp_code}")
+            error_msg = f"resp_code={resp_code}, error_msg={hello_other_side}"
+            self.logger.info(
+                f"Handshake failed: {error_msg}"
+            )
+            raise HandshakeFailure(error_msg)
 
         self.handshaked_peers.add(peer_id)
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
+        self.logger.debug(f"Handshake to {peer_id} is finished. Added to the `handshake_peers`.")

@@ -58,6 +58,10 @@ def make_rpc_v1_ssz_protocol_id(message_name: str) -> str:
     return make_rpc_protocol_id(message_name, REQ_RESP_VERSION, REQ_RESP_ENCODE_POSTFIX)
 
 
+# TODO: Refactor: Probably move these [de]serialization functions to `Node` as methods,
+#   expose the hard-coded to parameters, and pass the timeout from the methods?
+
+
 async def read_req(
     stream: INetStream,
     msg_type: Type[MsgType],
@@ -76,13 +80,8 @@ async def write_req(
 async def read_resp(
     stream: INetStream,
     msg_type: Type[MsgType],
-    is_first_read: bool = False,
 ) -> Tuple[ResponseCode, Union[MsgType, ErrorMsgType]]:
-    coro_read_byte = stream.read(1)
-    if is_first_read:
-        result_byte = await asyncio.wait_for(coro_read_byte, timeout=TTFB_TIMEOUT)
-    else:
-        result_byte = await coro_read_byte
+    result_byte = await asyncio.wait_for(stream.read(1), timeout=TTFB_TIMEOUT)
     resp_code = ResponseCode(result_byte[0])
     # `MsgType`
     if resp_code == ResponseCode.SUCCESS:

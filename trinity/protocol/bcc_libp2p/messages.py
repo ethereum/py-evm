@@ -55,6 +55,13 @@ class HelloRequest(ssz.Serializable):
 # (
 #   reason: uint64
 # )
+class Goodbye(ssz.Serializable):
+    fields = [
+        ('reason', uint64),
+    ]
+
+    def __init__(self, reason: int) -> None:
+        super().__init__(reason)
 
 
 # # TODO: BeaconBlocksRequest
@@ -64,6 +71,29 @@ class HelloRequest(ssz.Serializable):
 #   count: uint64
 #   step: uint64
 # )
+class BeaconBlocksRequest(ssz.Serializable):
+    fields = [
+        ('head_block_root', bytes32),
+        ('start_slot', uint64),
+        ('count', uint64),
+        ('step', uint64),
+    ]
+
+    def __init__(
+        self,
+        head_block_root: bytes,
+        start_slot: int,
+        count: int,
+        step: int,
+    ) -> None:
+        super().__init__(
+            head_block_root,
+            start_slot,
+            count,
+            step,
+        )
+
+
 # # BeaconBlocksResponse
 # (
 #   blocks: []BeaconBlock
@@ -74,6 +104,7 @@ class HelloRequest(ssz.Serializable):
 # (
 #   block_roots: []HashTreeRoot
 # )
+
 # # RecentBeaconBlocksResponse
 # (
 #   blocks: []BeaconBlock
