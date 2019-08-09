@@ -464,7 +464,7 @@ class FastChainSyncer(BaseService):
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token=token)
-        self._header_syncer = ETHHeaderChainSyncer(chain, db, peer_pool, self.cancel_token)
+        self._header_syncer = ETHHeaderChainSyncer(chain, db, peer_pool, token=self.cancel_token)
         self._body_syncer = FastChainBodySyncer(
             chain,
             db,
@@ -947,7 +947,7 @@ class RegularChainSyncer(BaseService):
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token=token)
-        self._header_syncer = ETHHeaderChainSyncer(chain, db, peer_pool, self.cancel_token)
+        self._header_syncer = ETHHeaderChainSyncer(chain, db, peer_pool, token=self.cancel_token)
         self._body_syncer = RegularChainBodySyncer(
             chain,
             db,

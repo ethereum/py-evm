@@ -1,0 +1,8 @@
+Allow beam sync to start from a trusted checkpoint.
+Specify a checkpoint via CLI parameter such as:
+
+``--beam-from-checkpoint="eth://block/byhash/<hash>?score=<score>"``
+
+When given, beam sync will use this as a checkpoint
+to avoid having to download the entire chain of headers
+first.

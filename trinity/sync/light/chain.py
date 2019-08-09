@@ -18,7 +18,7 @@ class LightChainSyncer(BaseService):
                  token: CancelToken = None) -> None:
         super().__init__(token=token)
         self._db = db
-        self._header_syncer = LightHeaderChainSyncer(chain, db, peer_pool, self.cancel_token)
+        self._header_syncer = LightHeaderChainSyncer(chain, db, peer_pool, token=self.cancel_token)
 
     async def _run(self) -> None:
         self.run_daemon(self._header_syncer)

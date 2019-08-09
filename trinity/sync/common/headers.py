@@ -34,7 +34,6 @@ from eth_utils.toolz import (
     take,
 )
 
-from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -62,6 +61,10 @@ from trinity.sync.common.constants import (
     MAX_SKELETON_REORG_DEPTH,
 )
 from trinity.sync.common.peers import TChainPeer, WaitingPeers
+from trinity.sync.common.strategies import (
+    FromGenesisLaunchStrategy,
+    SyncLaunchStrategyAPI,
+)
 from trinity._utils.datastructures import (
     DuplicateTasks,
     OrderedTaskPreparation,
@@ -87,10 +90,15 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                  chain: AsyncChainAPI,
                  db: BaseAsyncHeaderDB,
                  peer: TChainPeer,
-                 token: CancelToken) -> None:
+                 token: CancelToken,
+                 launch_strategy: SyncLaunchStrategyAPI = None) -> None:
         super().__init__(token=token)
         self._chain = chain
         self._db = db
+        if launch_strategy is None:
+            launch_strategy = FromGenesisLaunchStrategy(db, chain)
+
+        self._launch_strategy = launch_strategy
         self.peer = peer
         max_pending_headers = peer.max_headers_fetch * 8
         self._fetched_headers = asyncio.Queue(max_pending_headers)
@@ -229,7 +237,8 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             previous_tail_header = final_headers[-1]
 
     async def _find_newest_matching_skeleton_header(self, peer: TChainPeer) -> BlockHeader:
-        start_num = await self._get_starting_block_num()
+        start_num = await self.wait(self._launch_strategy.get_starting_block_number())
+
         # after returning this header, we request the next gap, and prefer that one header
         # is new to us, which may be the next header in this mini-skeleton. (hence the -1 below)
         skip = MAX_HEADERS_FETCH - 1
@@ -336,7 +345,6 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 raise ValidationError(
                     f"First header {new_headers[0]} did not have parent in DB"
                 ) from exc
-
             # validate new headers against the parent in the database
             await self.wait(self._chain.coro_validate_chain(
                 launch_parent,
@@ -418,15 +426,6 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 # skip the pair following the gap, include all the following pairs
                 pairs[gap_index + 2:],
             ))
-
-    async def _get_starting_block_num(self) -> BlockNumber:
-        head = await self.wait(self._db.coro_get_canonical_head())
-
-        # When we start the sync with a peer, we always request up to MAX_REORG_DEPTH extra
-        # headers before our current head's number, in case there were chain reorgs since the last
-        # time _sync() was called. All of the extra headers that are already present in our DB
-        # will be discarded so we don't unnecessarily process them again.
-        return max(GENESIS_BLOCK_NUMBER, head.block_number - self.max_reorg_depth)
 
     async def _fetch_headers_from(
             self,
@@ -783,6 +782,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                  chain: AsyncChainAPI,
                  db: BaseAsyncHeaderDB,
                  peer_pool: BaseChainPeerPool,
+                 launch_strategy: SyncLaunchStrategyAPI = None,
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self._db = db
@@ -791,6 +791,11 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         self._tip_monitor = self.tip_monitor_class(peer_pool, token=self.cancel_token)
         self._last_target_header_hash: Hash32 = None
         self._skeleton: SkeletonSyncer[TChainPeer] = None
+
+        if launch_strategy is None:
+            launch_strategy = FromGenesisLaunchStrategy(self._db, self._chain)
+
+        self._launch_strategy = launch_strategy
 
         # Track if there is capacity for syncing more headers
         self._buffer_capacity = asyncio.Event()
@@ -886,6 +891,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             self._db,
             peer,
             self.cancel_token,
+            self._launch_strategy,
         )
         self.run_child_service(self._skeleton)
         await self._skeleton.events.started.wait()
@@ -961,8 +967,8 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             await self._buffer_capacity.wait()
 
     async def _validate_peer_is_ahead(self, peer: BaseChainPeer) -> None:
-        head = await self.wait(self._db.coro_get_canonical_head())
-        head_td = await self.wait(self._db.coro_get_score(head.hash))
+        head = await self._db.coro_get_canonical_head()
+        head_td = await self._db.coro_get_score(head.hash)
         if peer.head_td <= head_td:
             self.logger.debug(
                 "Head TD (%d) announced by %s not higher than ours (%d), not syncing",

@@ -75,6 +75,7 @@ from trinity.sync.light.chain import (
 from trinity._utils.shutdown import (
     exit_with_services,
 )
+from .cli import NormalizeCheckpointURI
 
 
 class BaseSyncStrategy(ABC):
@@ -200,6 +201,16 @@ class BeamSyncStrategy(BaseSyncStrategy):
             default=None,
         )
 
+        arg_parser.add_argument(
+            '--beam-from-checkpoint',
+            action=NormalizeCheckpointURI,
+            help=(
+                "Start beam sync from a trusted checkpoint specified using URI syntax:"
+                "eth://block/byhash/<hash>?score=<score>"
+            ),
+            default=None,
+        )
+
     async def sync(self,
                    args: Namespace,
                    logger: Logger,
@@ -215,6 +226,7 @@ class BeamSyncStrategy(BaseSyncStrategy):
             base_db,
             cast(ETHPeerPool, peer_pool),
             event_bus,
+            args.beam_from_checkpoint,
             args.force_beam_block_number,
             cancel_token,
         )

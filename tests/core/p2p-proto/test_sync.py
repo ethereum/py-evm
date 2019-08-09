@@ -4,6 +4,7 @@ import uuid
 from eth.db.atomic import AtomicDB
 from eth.exceptions import HeaderNotFound
 from eth.vm.forks.petersburg import PetersburgVM
+from eth_utils import decode_hex
 from lahja import ConnectionConfig, AsyncioEndpoint
 from p2p.service import BaseService
 import pytest
@@ -16,6 +17,7 @@ from trinity.sync.beam.importer import (
 )
 from trinity.protocol.eth.sync import ETHHeaderChainSyncer
 from trinity.protocol.les.servers import LightRequestServer
+from trinity.sync.common.checkpoint import Checkpoint
 from trinity.sync.common.chain import (
     SimpleBlockImporter,
 )
@@ -146,6 +148,30 @@ async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, ch
             assert head.state_root in chaindb_fresh.db
 
 
+@pytest.mark.asyncio
+async def test_beam_syncer_with_checkpoint(
+        request,
+        event_loop,
+        event_bus,
+        chaindb_fresh,
+        chaindb_churner):
+
+    checkpoint = Checkpoint(
+        block_hash=decode_hex('0x5b8d32e4aebda3da7bdf2f0588cb42256e2ed0c268efec71b38278df8488a263'),
+        score=55,
+    )
+
+    await test_beam_syncer(
+        request,
+        event_loop,
+        event_bus,
+        chaindb_fresh,
+        chaindb_churner,
+        beam_to_block=66,
+        checkpoint=checkpoint,
+    )
+
+
 # Identified tricky scenarios:
 # - 66: Missing an account trie node required for account deletion trie fixups,
 #       when "resuming" execution after completing all transactions
@@ -163,7 +189,8 @@ async def test_beam_syncer(
         event_bus,
         chaindb_fresh,
         chaindb_churner,
-        beam_to_block):
+        beam_to_block,
+        checkpoint=None):
 
     client_context = ChainContextFactory(headerdb__db=chaindb_fresh.db)
     server_context = ChainContextFactory(headerdb__db=chaindb_churner.db)
@@ -209,7 +236,8 @@ async def test_beam_syncer(
                 AsyncChainDB(chaindb_fresh.db),
                 client_peer_pool,
                 gatherer_endpoint,
-                beam_to_block,
+                force_beam_block_number=beam_to_block,
+                checkpoint=checkpoint,
             )
 
             client_peer.logger.info("%s is serving churner blocks", client_peer)
@@ -311,7 +339,7 @@ class FallbackTesting_RegularChainSyncer(BaseService):
     def __init__(self, chain, db, peer_pool, token=None) -> None:
         super().__init__(token=token)
         self._chain = chain
-        self._header_syncer = ETHHeaderChainSyncer(chain, db, peer_pool, self.cancel_token)
+        self._header_syncer = ETHHeaderChainSyncer(chain, db, peer_pool, token=self.cancel_token)
         self._single_header_syncer = self.HeaderSyncer_OnlyOne(self._header_syncer)
         self._paused_header_syncer = self.HeaderSyncer_PauseThenRest(self._header_syncer)
         self._draining_syncer = RegularChainBodySyncer(

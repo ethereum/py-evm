@@ -33,6 +33,9 @@ from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.eth.sync import ETHHeaderChainSyncer
+from trinity.sync.common.checkpoint import (
+    Checkpoint,
+)
 from trinity.sync.common.chain import (
     BaseBlockImporter,
 )
@@ -49,6 +52,11 @@ from trinity.sync.common.events import (
 from trinity.sync.common.headers import (
     HeaderSyncerAPI,
     ManualHeaderSyncer,
+)
+from trinity.sync.common.strategies import (
+    FromCheckpointLaunchStrategy,
+    FromGenesisLaunchStrategy,
+    SyncLaunchStrategyAPI,
 )
 from trinity.sync.full.chain import (
     FastChainBodySyncer,
@@ -91,15 +99,36 @@ class BeamSyncer(BaseService):
             chain_db: BaseAsyncChainDB,
             peer_pool: ETHPeerPool,
             event_bus: EndpointAPI,
+            checkpoint: Checkpoint = None,
             force_beam_block_number: int = None,
             token: CancelToken = None) -> None:
         super().__init__(token=token)
 
-        self._header_syncer = ETHHeaderChainSyncer(chain, chain_db, peer_pool, self.cancel_token)
+        if checkpoint is None:
+            self._launch_strategy: SyncLaunchStrategyAPI = FromGenesisLaunchStrategy(
+                chain_db,
+                chain
+            )
+        else:
+            self._launch_strategy = FromCheckpointLaunchStrategy(
+                chain_db,
+                chain,
+                checkpoint,
+                peer_pool,
+            )
+
+        self._header_syncer = ETHHeaderChainSyncer(
+            chain,
+            chain_db,
+            peer_pool,
+            self._launch_strategy,
+            self.cancel_token
+        )
         self._header_persister = HeaderOnlyPersist(
             self._header_syncer,
             chain_db,
             force_beam_block_number,
+            self._launch_strategy,
             self.cancel_token,
         )
         self._state_downloader = BeamDownloader(db, peer_pool, event_bus, self.cancel_token)
@@ -138,6 +167,16 @@ class BeamSyncer(BaseService):
         self._chain = chain
 
     async def _run(self) -> None:
+
+        try:
+            await self.wait(self._launch_strategy.fulfill_prerequisites())
+        except TimeoutError:
+            self.logger.error(
+                "Timed out while trying to fulfill prerequisites of"
+                f"sync launch strategy: {self._launch_strategy}"
+            )
+            await self.cancel()
+
         self.run_daemon(self._header_syncer)
 
         # Kick off the body syncer early (it hangs on the checkpoint header syncer anyway)
@@ -334,17 +373,27 @@ class HeaderOnlyPersist(BaseService):
                  header_syncer: ETHHeaderChainSyncer,
                  db: BaseAsyncHeaderDB,
                  force_end_block_number: int = None,
+                 launch_strategy: SyncLaunchStrategyAPI = None,
                  token: CancelToken = None) -> None:
         super().__init__(token=token)
         self._db = db
         self._header_syncer = header_syncer
         self._final_headers: Tuple[BlockHeader, ...] = None
         self._force_end_block_number = force_end_block_number
+        self._launch_strategy = launch_strategy
 
     async def _run(self) -> None:
         self.run_daemon_task(self._persist_headers())
         # run sync until cancelled
         await self.cancellation()
+
+    async def _persist_header_chain(self, headers: Tuple[BlockHeader, ...]) -> None:
+        await self.wait(
+            self._db.coro_persist_header_chain(
+                headers,
+                self._launch_strategy.get_genesis_parent_hash(),
+            )
+        )
 
     async def _persist_headers(self) -> None:
         async for headers in self._header_syncer.new_sync_headers(HEADER_QUEUE_SIZE_TARGET):
@@ -354,7 +403,7 @@ class HeaderOnlyPersist(BaseService):
             if exited:
                 break
 
-            await self.wait(self._db.coro_persist_header_chain(headers))
+            await self._persist_header_chain(headers)
 
             head = await self.wait(self._db.coro_get_canonical_head())
 
@@ -412,7 +461,7 @@ class HeaderOnlyPersist(BaseService):
                 # We have not reached the header syncer's target, continue normally
                 return False
 
-        await self.wait(self._db.coro_persist_header_chain(persist_headers))
+        await self._persist_header_chain(persist_headers)
 
         self._final_headers = final_headers
         self.cancel_nowait()

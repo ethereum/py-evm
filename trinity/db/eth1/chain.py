@@ -72,6 +72,7 @@ class AsyncChainDB(BaseAsyncChainDB):
     coro_header_exists = async_method(BaseAsyncChainDB.header_exists)
     coro_get_canonical_block_hash = async_method(BaseAsyncChainDB.get_canonical_block_hash)
     coro_get_canonical_block_header_by_number = async_method(BaseAsyncChainDB.get_canonical_block_header_by_number)  # noqa: E501
+    coro_persist_checkpoint_header = async_method(BaseAsyncChainDB.persist_checkpoint_header)
     coro_persist_header = async_method(BaseAsyncChainDB.persist_header)
     coro_persist_header_chain = async_method(BaseAsyncChainDB.persist_header_chain)
     coro_persist_block = async_method(BaseAsyncChainDB.persist_block)
