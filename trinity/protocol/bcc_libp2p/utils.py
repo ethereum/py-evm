@@ -97,7 +97,6 @@ async def write_resp(
     msg: Union[MsgType, ErrorMsgType],
     resp_code: ResponseCode,
 ) -> None:
-    # TODO: Confirm the endian.
     try:
         resp_code_byte = resp_code.value.to_bytes(1, "big")
     except OverflowError as e:

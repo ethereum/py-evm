@@ -281,7 +281,8 @@ class Node(BaseService):
         from its counterparty via the BeaconBlocks request.
         """
 
-    # TODO: Add `make_hello_packect`
+    async def make_hello_packect(self) -> HelloRequest:
+        pass
 
     async def _handle_hello(self, stream: INetStream) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
@@ -316,7 +317,6 @@ class Node(BaseService):
 
     async def say_hello(self, peer_id: ID) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
-        print("!@# say_hello 0")
         if peer_id in self.handshaked_peers:
             self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
             return

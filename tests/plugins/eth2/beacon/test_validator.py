@@ -37,10 +37,6 @@ from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,
 )
 
-from trinity.config import (
-    BeaconChainConfig,
-    BeaconGenesisData,
-)
 from trinity.plugins.eth2.beacon.validator import (
     Validator,
 )
@@ -49,8 +45,7 @@ from trinity.plugins.eth2.beacon.slot_ticker import (
 )
 
 from .helpers import (
-    genesis_block,
-    genesis_state,
+    get_chain_from_genesis,
     bcc_helpers,
     index_to_pubkey,
     keymap,
@@ -68,27 +63,6 @@ class FakeNode:
 
     async def broadcast_attestations(self, attestations):
         pass
-
-
-def get_chain_from_genesis(db, indices):
-    # pubkey -> privkey map
-    validator_keymap = {
-        index_to_pubkey[index]: keymap[index_to_pubkey[index]]
-        for index in indices
-    }
-    genesis_data = BeaconGenesisData(
-        genesis_time=genesis_state.genesis_time,
-        state=genesis_state,
-        validator_keymap=validator_keymap,
-    )
-    beacon_chain_config = BeaconChainConfig(chain_name='TestTestTest', genesis_data=genesis_data)
-    chain_class = beacon_chain_config.beacon_chain_class
-    return chain_class.from_genesis(
-        base_db=db,
-        genesis_state=genesis_state,
-        genesis_block=genesis_block,
-        genesis_config=beacon_chain_config.genesis_config,
-    )
 
 
 async def get_validator(event_loop, event_bus, indices) -> Validator:
