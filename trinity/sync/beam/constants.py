@@ -17,3 +17,9 @@ EMPTY_PEER_RESPONSE_PENALTY = 1
 # previews are possible at a time (given that you have enough CPU cores).
 # The sensitivity of this number is relatively unexplored.
 NUM_PREVIEW_SHARDS = 4
+
+# How many speculative executions should we run concurrently? This is
+#   a global number, not per process or thread. It is necessary to
+#   constrain the I/O, which can become the global bottleneck.
+MAX_CONCURRENT_SPECULATIVE_EXECUTIONS = 40
+MAX_SPECULATIVE_EXECUTIONS_PER_PROCESS = MAX_CONCURRENT_SPECULATIVE_EXECUTIONS // NUM_PREVIEW_SHARDS

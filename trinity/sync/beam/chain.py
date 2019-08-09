@@ -500,12 +500,11 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
         # This is a hack, so that preview executions can load ancestor block-hashes
         self._db[header.hash] = rlp.encode(header)
 
-        if lagging:
-            # Only broadcast if the current import is lagging, to start running block previews
-            old_state_header = header.copy(state_root=parent_state_root)
-            self._event_bus.broadcast_nowait(
-                DoStatelessBlockPreview(old_state_header, transactions)
-            )
+        # Always broadcast, to start previewing transactions that are further ahead in the block
+        old_state_header = header.copy(state_root=parent_state_root)
+        self._event_bus.broadcast_nowait(
+            DoStatelessBlockPreview(old_state_header, transactions)
+        )
 
     async def _preview_address_load(
             self,
