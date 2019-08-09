@@ -5,7 +5,16 @@ from ssz.sedes import (
     uint64,
 )
 
+from eth_typing import (
+    Hash32,
+)
+
+from eth.constants import (
+    ZERO_HASH32,
+)
+
 from eth2.beacon.typing import (  # noqa: F401
+    Version,
     default_epoch,
     default_slot,
     default_version,
@@ -31,16 +40,16 @@ class HelloRequest(ssz.Serializable):
         ('finalized_root', bytes32),
         ('finalized_epoch', uint64),
         ('head_root', bytes32),
-        ('head_slot', uint64)
+        ('head_slot', uint64),
     ]
 
     def __init__(
         self,
-        fork_version: bytes,
-        finalized_root: bytes,
-        finalized_epoch: int,
-        head_root: bytes,
-        head_slot: int
+        fork_version: Version = default_version,
+        finalized_root: Hash32 = ZERO_HASH32,
+        finalized_epoch: int = default_epoch,
+        head_root: Hash32 = ZERO_HASH32,
+        head_slot: int = default_slot,
     ) -> None:
         super().__init__(
             fork_version,

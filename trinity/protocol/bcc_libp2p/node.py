@@ -1,6 +1,7 @@
 import asyncio
 from typing import (
     Dict,
+    List,
     Optional,
     Set,
     Sequence,
@@ -266,11 +267,15 @@ class Node(BaseService):
     #   to close the streams safely. Probably starting from: if the function
     #   returns successfully, then close the stream. Otherwise, reset the stream.
 
-    async def _validate_hello_req(self, msg: HelloRequest) -> bool:
-        # Reject if
-        #   - TODO: `fork_version` doesn't match the local fork version.
-        #   - TODO: If the (finalized_root, finalized_epoch) shared by the peer
-        #       is not in the client's chain at the expected epoch.
+    # TODO: Handle the reputation of peers. Deduct their scores and even disconnect when they
+    #   behave.
+
+    async def _validate_hello_req(self, hello_other_side: HelloRequest) -> bool:
+        state = self.chain.get_state_machine().state
+        if hello_other_side.fork_version != state.fork.current_version:
+            return False
+        # TODO: Reject if the (finalized_root, finalized_epoch) shared by the peer
+        #   is not in the client's chain at the expected epoch.
         return True
 
     async def _request_beacon_blocks(self) -> None:
@@ -281,37 +286,50 @@ class Node(BaseService):
         from its counterparty via the BeaconBlocks request.
         """
 
-    async def make_hello_packect(self) -> HelloRequest:
-        pass
+    def _make_hello_packet(self) -> HelloRequest:
+        state = self.chain.get_state_machine().state
+        finalized_checkpoint = state.finalized_checkpoint
+        return HelloRequest(
+            fork_version=state.fork.current_version,
+            finalized_root=finalized_checkpoint.root,
+            finalized_epoch=finalized_checkpoint.epoch,
+            head_root=state.hash_tree_root,
+            head_slot=state.slot,
+        )
 
     async def _handle_hello(self, stream: INetStream) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
         peer_id = stream.mplex_conn.peer_id
         if peer_id in self.handshaked_peers:
             self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
+            await stream.reset()
             return
-        # TODO: Add `timeout`
+
         self.logger.debug(f"Waiting for hello from the other side")
-        hello_other_side = await read_req(stream, HelloRequest)
+        try:
+            hello_other_side = await read_req(stream, HelloRequest)
+        except asyncio.TimeoutError:
+            await stream.reset()
+            # TODO: Disconnect
+            return
         self.logger.debug(f"Received the hello message {hello_other_side}")
         if not (await self._validate_hello_req(hello_other_side)):
-            # TODO: Disconnect if anything unmatch.
             self.logger.info(
                 f"Handshake failed: hello message {hello_other_side} is not valid."
                 f"Disconnecting {peer_id}."
             )
+            await stream.reset()
+            # TODO: Disconnect
+            print("!@# Survive after stream.reset()")
             return
-        # FIXME: Change this fake message to the real one.
-        hello_mine = HelloRequest(
-            fork_version=b"recv",
-            finalized_root=b"1" * 32,
-            finalized_epoch=2,
-            head_root=b"3" * 32,
-            head_slot=4,
-        )
+
+        hello_mine = self._make_hello_packet()
+
         self.logger.debug(f"Sending our hello message {hello_mine}")
         await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
+
         self.handshaked_peers.add(peer_id)
+
         self.logger.debug(f"Handshake from {peer_id} is finished. Added to the `handshake_peers`.")
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
 
@@ -321,38 +339,41 @@ class Node(BaseService):
             self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
             return
 
-        # FIXME: Change this fake message to the real one.
-        hello_mine = HelloRequest(
-            fork_version=b"init",
-            finalized_root=b"1" * 32,
-            finalized_epoch=2,
-            head_root=b"3" * 32,
-            head_slot=4,
-        )
+        hello_mine = self._make_hello_packet()
+
         self.logger.debug(f"Opening new stream to {peer_id} with protocols {[REQ_RESP_HELLO_SSZ]}.")
         stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
+
         self.logger.debug(f"Sending our hello message {hello_mine}.")
         await write_req(stream, hello_mine)
+
         self.logger.debug(f"Waiting for hello from the other side")
-        resp_code, hello_other_side = await read_resp(stream, HelloRequest)
+        try:
+            resp_code, hello_other_side = await read_resp(stream, HelloRequest)
+        except asyncio.TimeoutError:
+            await stream.reset()
+            # TODO: Disconnect
+            return
         self.logger.debug(f"Received the hello message {hello_other_side}, resp_code={resp_code}.")
         if not (await self._validate_hello_req(hello_other_side)):
-            # TODO: Disconnect if anything unmatch.
             self.logger.info(
                 f"Handshake failed: hello message {hello_other_side} is not valid."
                 f"Disconnecting {peer_id}."
             )
+            await stream.reset()
+            # TODO: Disconnect
             return
         # TODO: Handle the case when `resp_code` is not success.
         if resp_code != ResponseCode.SUCCESS:
             # TODO: Do something according to the `ResponseCode`
             # TODO: Disconnect
             error_msg = f"resp_code={resp_code}, error_msg={hello_other_side}"
-            self.logger.info(
-                f"Handshake failed: {error_msg}"
-            )
+            self.logger.info(f"Handshake failed: {error_msg}")
+            await stream.reset()
+            # TODO: Disconnect
             raise HandshakeFailure(error_msg)
 
         self.handshaked_peers.add(peer_id)
-        # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
+
         self.logger.debug(f"Handshake to {peer_id} is finished. Added to the `handshake_peers`.")
+        # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
