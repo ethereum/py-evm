@@ -229,8 +229,8 @@ class Transport(TransportAPI):
                 self._reader.readexactly(n),
                 timeout=CONN_IDLE_TIMEOUT,
             )
-        except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as e:
-            raise PeerConnectionLost(repr(e))
+        except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as err:
+            raise PeerConnectionLost from err
 
     def write(self, data: bytes) -> None:
         self._writer.write(data)
