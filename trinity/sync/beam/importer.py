@@ -180,7 +180,7 @@ def pausing_vm_decorator(
 
         def _pause_on_missing_data(
                 self,
-                unbound_vm_method: Callable[['PausingVMState', Any], TVMFuncReturn],
+                vm_method: Callable[[Any], TVMFuncReturn],
                 *args: Any,
                 **kwargs: Any) -> TVMFuncReturn:
             """
@@ -189,7 +189,7 @@ def pausing_vm_decorator(
             """
             while True:
                 try:
-                    return unbound_vm_method(self, *args, **kwargs)  # type: ignore
+                    return vm_method(*args, **kwargs)  # type: ignore
                 except MissingAccountTrieNode as exc:
                     t = Timer()
                     account_future = asyncio.run_coroutine_threadsafe(
@@ -235,55 +235,55 @@ def pausing_vm_decorator(
                     self.stats_counter.data_pause_time += t.elapsed
 
         def get_balance(self, account: bytes) -> int:
-            return self._pause_on_missing_data(super().get_balance.__func__, account)
+            return self._pause_on_missing_data(super().get_balance, account)
 
         def get_code(self, account: bytes) -> bytes:
-            return self._pause_on_missing_data(super().get_code.__func__, account)
+            return self._pause_on_missing_data(super().get_code, account)
 
         def get_storage(self, *args: Any, **kwargs: Any) -> int:
-            return self._pause_on_missing_data(super().get_storage.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().get_storage, *args, **kwargs)
 
         def delete_storage(self, *args: Any, **kwargs: Any) -> None:
-            return self._pause_on_missing_data(super().delete_storage.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().delete_storage, *args, **kwargs)
 
         def delete_account(self, *args: Any, **kwargs: Any) -> None:
-            return self._pause_on_missing_data(super().delete_account.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().delete_account, *args, **kwargs)
 
         def set_balance(self, *args: Any, **kwargs: Any) -> None:
-            return self._pause_on_missing_data(super().set_balance.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().set_balance, *args, **kwargs)
 
         def get_nonce(self, *args: Any, **kwargs: Any) -> int:
-            return self._pause_on_missing_data(super().get_nonce.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().get_nonce, *args, **kwargs)
 
         def set_nonce(self, *args: Any, **kwargs: Any) -> None:
-            return self._pause_on_missing_data(super().set_nonce.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().set_nonce, *args, **kwargs)
 
         def increment_nonce(self, *args: Any, **kwargs: Any) -> None:
-            return self._pause_on_missing_data(super().increment_nonce.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().increment_nonce, *args, **kwargs)
 
         def set_code(self, *args: Any, **kwargs: Any) -> None:
-            return self._pause_on_missing_data(super().set_code.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().set_code, *args, **kwargs)
 
         def get_code_hash(self, *args: Any, **kwargs: Any) -> Hash32:
-            return self._pause_on_missing_data(super().get_code_hash.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().get_code_hash, *args, **kwargs)
 
         def delete_code(self, *args: Any, **kwargs: Any) -> None:
-            return self._pause_on_missing_data(super().delete_code.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().delete_code, *args, **kwargs)
 
         def has_code_or_nonce(self, *args: Any, **kwargs: Any) -> bool:
-            return self._pause_on_missing_data(super().has_code_or_nonce.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().has_code_or_nonce, *args, **kwargs)
 
         def account_exists(self, *args: Any, **kwargs: Any) -> bool:
-            return self._pause_on_missing_data(super().account_exists.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().account_exists, *args, **kwargs)
 
         def touch_account(self, *args: Any, **kwargs: Any) -> None:
-            return self._pause_on_missing_data(super().touch_account.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().touch_account, *args, **kwargs)
 
         def account_is_empty(self, *args: Any, **kwargs: Any) -> bool:
-            return self._pause_on_missing_data(super().account_is_empty.__func__, *args, **kwargs)
+            return self._pause_on_missing_data(super().account_is_empty, *args, **kwargs)
 
         def persist(self) -> Optional[Any]:
-            return self._pause_on_missing_data(super().persist.__func__)
+            return self._pause_on_missing_data(super().persist)
 
     class PausingVM(original_vm_class):  # type: ignore
         @classmethod
