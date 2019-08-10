@@ -116,6 +116,10 @@ from .messages import (
     RecentBeaconBlocksRequest,
     RecentBeaconBlocksResponse,
 )
+from .topic_validators import (
+    get_beacon_attestation_validator,
+    get_beacon_block_validator,
+)
 from .utils import (
     make_rpc_v1_ssz_protocol_id,
     make_tcp_ip_maddr,
@@ -200,6 +204,9 @@ class Node(BaseService):
 
         self.chain = chain
 
+        # Setup topic validators in pubsub
+        self.setup_topic_validators()
+
         self.handshaked_peers = set()
 
     async def _run(self) -> None:
@@ -219,6 +226,18 @@ class Node(BaseService):
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_BLOCK)
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_ATTESTATION)
         # TODO: Register topic validators
+
+    def setup_topic_validators(self) -> None:
+        self.pubsub.set_topic_validator(
+            PUBSUB_TOPIC_BEACON_BLOCK,
+            get_beacon_block_validator(self.chain),
+            False,
+        )
+        self.pubsub.set_topic_validator(
+            PUBSUB_TOPIC_BEACON_ATTESTATION,
+            get_beacon_attestation_validator(self.chain),
+            False,
+        )
 
     async def dial_peer(self, ip: str, port: int, peer_id: ID) -> None:
         """
