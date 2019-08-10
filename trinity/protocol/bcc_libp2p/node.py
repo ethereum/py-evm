@@ -204,9 +204,6 @@ class Node(BaseService):
 
         self.chain = chain
 
-        # Setup topic validators in pubsub
-        self.setup_topic_validators()
-
         self.handshaked_peers = set()
 
     async def _run(self) -> None:
@@ -225,9 +222,9 @@ class Node(BaseService):
         # pubsub
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_BLOCK)
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_ATTESTATION)
-        # TODO: Register topic validators
+        self._setup_topic_validators()
 
-    def setup_topic_validators(self) -> None:
+    def _setup_topic_validators(self) -> None:
         self.pubsub.set_topic_validator(
             PUBSUB_TOPIC_BEACON_BLOCK,
             get_beacon_block_validator(self.chain),
