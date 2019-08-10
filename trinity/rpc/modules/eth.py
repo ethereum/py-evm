@@ -79,7 +79,7 @@ async def get_header(chain: BaseAsyncChain, at_block: Union[str, int]) -> BlockH
     # mypy doesn't have user defined type guards yet
     # https://github.com/python/mypy/issues/5206
     elif is_integer(at_block) and at_block >= 0:  # type: ignore
-        block = await chain.coro_get_canonical_block_by_number(BlockNumber(0))
+        block = await chain.coro_get_canonical_block_by_number(BlockNumber(int(at_block)))
         at_header = block.header
     else:
         raise TypeError("Unrecognized block reference: %r" % at_block)

@@ -1,0 +1,2 @@
+Fix JSON-RPC call `eth_getBalance(address, block_number)` to return balance at the requested block_number.
+Earlier it would always return balance at `block(0)`.
