@@ -114,10 +114,8 @@ class Node(BaseService):
     pubsub: Pubsub
     bootstrap_nodes: Optional[Tuple[Multiaddr, ...]]
     preferred_nodes: Optional[Tuple[Multiaddr, ...]]
-    # TODO: Add `Chain`
     chain: BaseBeaconChain
 
-    # NOTE: Used to track which peers
     handshaked_peers: Set[ID]
 
     def __init__(
@@ -259,10 +257,6 @@ class Node(BaseService):
     # RPC Handlers
     #
 
-    # request   ::= <encoding-dependent-header> | <encoded-payload>
-    # response  ::= <result> | <encoding-dependent-header> | <encoded-payload>
-    # result    ::= “0” | “1” | “2” | [“128” ... ”255”]
-
     # TODO: Add a wrapper or decorator to handle the exceptions in handlers,
     #   to close the streams safely. Probably starting from: if the function
     #   returns successfully, then close the stream. Otherwise, reset the stream.
@@ -302,14 +296,16 @@ class Node(BaseService):
         peer_id = stream.mplex_conn.peer_id
         if peer_id in self.handshaked_peers:
             self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
-            await stream.reset()
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
             return
 
         self.logger.debug(f"Waiting for hello from the other side")
         try:
             hello_other_side = await read_req(stream, HelloRequest)
         except asyncio.TimeoutError:
-            await stream.reset()
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
             # TODO: Disconnect
             return
         self.logger.debug(f"Received the hello message {hello_other_side}")
@@ -318,14 +314,16 @@ class Node(BaseService):
                 f"Handshake failed: hello message {hello_other_side} is not valid."
                 f"Disconnecting {peer_id}."
             )
-            await stream.reset()
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
             # TODO: Disconnect
-            print("!@# Survive after stream.reset()")
             return
 
         hello_mine = self._make_hello_packet()
 
         self.logger.debug(f"Sending our hello message {hello_mine}")
+        # TODO: Find out when we should respond the `ResponseCode`
+        #   other than `ResponseCode.SUCCESS`.
         await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
 
         self.handshaked_peers.add(peer_id)
@@ -336,14 +334,14 @@ class Node(BaseService):
     async def say_hello(self, peer_id: ID) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
         if peer_id in self.handshaked_peers:
-            self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
-            return
+            error_msg = f"already handshaked with {peer_id} before"
+            self.logger.info(f"Handshake failed: {error_msg}.")
+            raise HandshakeFailure(error_msg)
 
         hello_mine = self._make_hello_packet()
 
         self.logger.debug(f"Opening new stream to {peer_id} with protocols {[REQ_RESP_HELLO_SSZ]}.")
         stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
-
         self.logger.debug(f"Sending our hello message {hello_mine}.")
         await write_req(stream, hello_mine)
 
@@ -351,25 +349,32 @@ class Node(BaseService):
         try:
             resp_code, hello_other_side = await read_resp(stream, HelloRequest)
         except asyncio.TimeoutError:
-            await stream.reset()
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
             # TODO: Disconnect
-            return
+            raise HandshakeFailure("time out when reading the response")
+
         self.logger.debug(f"Received the hello message {hello_other_side}, resp_code={resp_code}.")
-        if not (await self._validate_hello_req(hello_other_side)):
-            self.logger.info(
-                f"Handshake failed: hello message {hello_other_side} is not valid."
-                f"Disconnecting {peer_id}."
-            )
-            await stream.reset()
-            # TODO: Disconnect
-            return
+
         # TODO: Handle the case when `resp_code` is not success.
         if resp_code != ResponseCode.SUCCESS:
             # TODO: Do something according to the `ResponseCode`
             # TODO: Disconnect
-            error_msg = f"resp_code={resp_code}, error_msg={hello_other_side}"
+            error_msg = (
+                f"resp_code != ResponseCode.SUCCESS, "
+                "resp_code={resp_code}, error_msg={hello_other_side}"
+            )
             self.logger.info(f"Handshake failed: {error_msg}")
-            await stream.reset()
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            # TODO: Disconnect
+            raise HandshakeFailure(error_msg)
+
+        if not (await self._validate_hello_req(hello_other_side)):
+            error_msg = f"hello message {hello_other_side} is invalid"
+            self.logger.info(f"Handshake failed: {error_msg}. Disconnecting {peer_id}.")
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
             # TODO: Disconnect
             raise HandshakeFailure(error_msg)
 

@@ -25,8 +25,8 @@ async def nodes(num_nodes):
 
 @pytest.fixture
 async def nodes_with_chain(num_nodes):
-    # TODO: Probably it is not suitable to import from `tests`
-    # NOTE: Lazy imports since they are expernsive.
+    # TODO: Probably it is not suitable to import from `tests`.
+    # NOTE: Lazy imports since they are expensive.
     from tests.plugins.eth2.beacon.helpers import (
         bcc_helpers,
         NUM_VALIDATORS,

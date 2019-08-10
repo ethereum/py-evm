@@ -125,7 +125,6 @@ async def _read_varint_prefixed_bytes(
         raise ValueError(
             f"size_of_payload={len_payload} is larger than maximum={REQ_RESP_MAX_SIZE}"
         )
-    # TODO: Confirm `timeout` is correct.
     payload = await asyncio.wait_for(stream.read(len_payload), timeout)
     return payload
 
