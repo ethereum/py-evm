@@ -313,7 +313,7 @@ async def ipc_server(
     the course of all tests. It yields the IPC server only for monkeypatching purposes
     """
     rpc = RPCServer(
-        initialize_eth1_modules(chain_with_block_validation, event_bus)
+        initialize_eth1_modules(chain_with_block_validation, event_bus), event_bus,
     )
     ipc_server = IPCServer(rpc, jsonrpc_ipc_pipe_path, loop=event_loop)
 

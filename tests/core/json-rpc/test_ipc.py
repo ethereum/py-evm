@@ -24,8 +24,10 @@ from trinity.protocol.common.events import (
     PeerCountResponse,
 )
 from trinity.sync.common.events import (
+    CollectMissingAccount,
     SyncingRequest,
     SyncingResponse,
+    MissingAccountCollected,
 )
 from trinity.sync.common.types import (
     SyncProgress
@@ -590,3 +592,67 @@ async def test_admin_addPeer_fires_message(
 
     event = await asyncio.wait_for(future, timeout=0.1, loop=event_loop)
     assert event.remote.uri() == enode
+
+
+@pytest.fixture
+def ipc_request(jsonrpc_ipc_pipe_path, event_loop, event_bus, ipc_server):
+    async def make_request(*args):
+        request = build_request(*args)
+        return await get_ipc_response(
+            jsonrpc_ipc_pipe_path, request, event_loop, event_bus
+        )
+    return make_request
+
+
+@pytest.mark.asyncio
+async def test_get_balance_works(
+        ipc_request, funded_address, funded_address_initial_balance):
+    """
+    Sanity check, if we call eth_getBalance we get back the expected response.
+    """
+    response = await ipc_request('eth_getBalance', [funded_address.hex(), 'latest'])
+    assert 'error' not in response
+    assert response['result'] == hex(funded_address_initial_balance)
+
+
+@pytest.fixture
+def missing_node(chain_with_block_validation):
+    chain = chain_with_block_validation
+    state_root = chain.get_canonical_head().state_root
+    return chain.chaindb.db.pop(state_root)
+
+
+@pytest.mark.asyncio
+async def test_fails_when_state_is_missing(
+        ipc_request, funded_address, funded_address_initial_balance, missing_node):
+    """
+    If the state root is missing then eth_getBalance throws an error.
+    """
+    response = await ipc_request('eth_getBalance', [funded_address.hex(), 'latest'])
+    assert 'error' in response
+    assert response['error'].startswith('State trie database is missing node for hash')
+
+
+@pytest.mark.asyncio
+async def test_missing_state_is_fetched_if_fetcher_exists(
+        ipc_request, funded_address, funded_address_initial_balance,
+        missing_node, chain_with_block_validation, event_bus):
+    chain = chain_with_block_validation
+
+    # beam sync is not running, so we receive an error
+    response = await ipc_request('eth_getBalance', [funded_address.hex(), 'latest'])
+    assert 'error' in response
+    assert response['error'].startswith('State trie database is missing node for hash')
+
+    # beam sync starts, it fetches requested nodes from remote peers
+    async def find_and_insert_node(event: CollectMissingAccount):
+        state_root = chain.get_canonical_head().state_root
+        chain.chaindb.db[state_root] = missing_node
+        await event_bus.broadcast(MissingAccountCollected(1), event.broadcast_config())
+    event_bus.subscribe(CollectMissingAccount, find_and_insert_node)
+    await event_bus.wait_until_any_endpoint_subscribed_to(CollectMissingAccount)
+
+    # beam sync fetches the missing node so no error is returned
+    response = await ipc_request('eth_getBalance', [funded_address.hex(), 'latest'])
+    assert 'error' not in response
+    assert response['result'] == hex(funded_address_initial_balance)

@@ -1,0 +1,2 @@
+If Trinity is beam syncing and a call to `eth_getBalance` requests data which is not in
+the local database, Trinity asks for the data over the network.

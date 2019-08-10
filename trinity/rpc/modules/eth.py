@@ -32,10 +32,10 @@ from eth.constants import (
     ZERO_ADDRESS,
 )
 from eth.rlp.blocks import (
-    BaseBlock
+    BaseBlock,
 )
 from eth.rlp.headers import (
-    BlockHeader
+    BlockHeader,
 )
 from eth.vm.spoof import (
     SpoofTransaction,
@@ -56,6 +56,7 @@ from trinity.rpc.format import (
 from trinity.rpc.modules import (
     Eth1ChainRPCModule,
 )
+from trinity.rpc.retry import retryable
 from trinity.sync.common.events import (
     SyncingRequest,
 )
@@ -174,6 +175,7 @@ class Eth(Eth1ChainRPCModule):
     async def gasPrice(self) -> str:
         return hex(int(os.environ.get('TRINITY_GAS_PRICE', to_wei(1, 'gwei'))))
 
+    @retryable
     @format_params(decode_hex, to_int_if_hex)
     async def getBalance(self, address: Address, at_block: Union[str, int]) -> str:
         state = await state_at_block(self.chain, at_block)
