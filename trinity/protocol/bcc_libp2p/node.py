@@ -1,7 +1,6 @@
 import asyncio
 from typing import (
     Dict,
-    List,
     Optional,
     Set,
     Sequence,
@@ -268,12 +267,8 @@ class Node(BaseService):
         state = self.chain.get_state_machine().state
         if hello_other_side.fork_version != state.fork.current_version:
             return False
-        finalized_checkpoint = state.finalized_checkpoint
         # TODO: Reject if the (finalized_root, finalized_epoch) shared by the peer
         #   is not in the client's chain at the expected epoch.
-        #   - If our `finalized_epoch` is larger
-        # if finalized_checkpoint.epoch > hello_other_side.finalized_epoch:
-        #     our_root_at_peer_finalized_epoch = chain.
         return True
 
     async def _request_beacon_blocks(self) -> None:

@@ -4,6 +4,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 from eth_keys import datatypes
@@ -84,11 +85,13 @@ async def read_resp(
     result_byte = await asyncio.wait_for(stream.read(1), timeout=TTFB_TIMEOUT)
     resp_code = ResponseCode.from_bytes(result_byte)
     # `MsgType`
+    msg: Union[MsgType, ErrorMsgType]
     if resp_code == ResponseCode.SUCCESS:
         msg = await _read_ssz_msg(stream, msg_type, timeout=RESP_TIMEOUT)
     # `ErrorMsgType`
     else:
-        msg = await _read_varint_prefixed_bytes(stream, timeout=RESP_TIMEOUT)
+        msg_bytes = await _read_varint_prefixed_bytes(stream, timeout=RESP_TIMEOUT)
+        msg = cast(ErrorMsgType, msg_bytes.decode("utf-8"))
     return resp_code, msg
 
 

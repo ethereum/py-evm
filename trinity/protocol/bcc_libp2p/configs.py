@@ -1,7 +1,6 @@
 from typing import (
     NamedTuple,
     Set,
-    Union,
 )
 
 # Reference: https://github.com/ethereum/eth2.0-specs/blob/dev/specs/networking/p2p-interface.md
@@ -93,6 +92,11 @@ class ResponseCode:
         SUCCESS: int = 0
         INVALID_REQUEST: int = 1
         SERVER_ERROR: int = 2
+    # Make mypy happy, but duplicated with the code above.
+    SUCCESS: "ResponseCode"
+    INVALID_REQUEST: "ResponseCode"
+    SERVER_ERROR: "ResponseCode"
+
     _standard_codes = StandardCodes()
     _standard_codes_value_to_name = {
         value: key for key, value in _standard_codes._asdict().items()
@@ -112,9 +116,9 @@ class ResponseCode:
         else:
             return f"<ResponseCode #{self._code}>"
 
-    def __eq__(self, other: Union["ResponseCode", int]) -> bool:
-        if isinstance(other, int):
-            return self._code == other
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ResponseCode):
+            return NotImplemented
         return self._code == other._code
 
     @property
