@@ -189,3 +189,46 @@ async def test_bcc_receive_server_handle_beacon_blocks(receive_server):
     # Wait for receive server to process the new block
     await asyncio.sleep(0.5)
     assert receive_server.chain.get_canonical_head() == block
+
+
+@pytest.mark.asyncio
+async def test_bcc_receive_server_handle_beacon_attestations(receive_server):
+    attestation = Attestation()
+    encoded_attestations = ssz.encode([attestation], sedes=ssz.List(Attestation, SSZ_MAX_LIST_SIZE))
+    msg = rpc_pb2.Message(
+        from_id=b"my_id",
+        seqno=b"\x00" * 8,
+        data=encoded_attestations,
+        topicIDs=[PUBSUB_TOPIC_BEACON_ATTESTATION]
+    )
+
+    assert attestation not in receive_server.attestation_pool
+
+    beacon_attestation_queue = receive_server.topic_msg_queues[PUBSUB_TOPIC_BEACON_ATTESTATION]
+    await beacon_attestation_queue.put(msg)
+    # Wait for receive server to process the new attestation
+    await asyncio.sleep(0.5)
+    # Check that attestation is put to attestation pool
+    assert attestation in receive_server.attestation_pool
+
+    # Put the attestation in the next block
+    block = get_blocks(receive_server.chain, num_blocks=1)[0]
+    block = block.copy(
+        body=block.body.copy(
+            attestations=[attestation],
+        )
+    )
+    encoded_block = ssz.encode(block, BeaconBlock)
+    msg = rpc_pb2.Message(
+        from_id=b"my_id",
+        seqno=b"\x00" * 8,
+        data=encoded_block,
+        topicIDs=[PUBSUB_TOPIC_BEACON_BLOCK]
+    )
+
+    beacon_block_queue = receive_server.topic_msg_queues[PUBSUB_TOPIC_BEACON_BLOCK]
+    await beacon_block_queue.put(msg)
+    # Wait for receive server to process the new block
+    await asyncio.sleep(0.5)
+    # Check that attestation is removed from attestation pool
+    assert attestation not in receive_server.attestation_pool

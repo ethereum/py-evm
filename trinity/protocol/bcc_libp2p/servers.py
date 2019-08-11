@@ -135,14 +135,14 @@ class BCCReceiveServer(BaseService):
     async def _handle_beacon_attestation_loop(self) -> None:
         while True:
             msg = await self.topic_msg_queues[PUBSUB_TOPIC_BEACON_ATTESTATION].get()
-            await self._handle_attestations(msg)
+            await self._handle_beacon_attestations(msg)
 
     async def _handle_beacon_block_loop(self) -> None:
         while True:
             msg = await self.topic_msg_queues[PUBSUB_TOPIC_BEACON_BLOCK].get()
             await self._handle_beacon_block(msg)
 
-    async def _handle_attestations(self, msg: rpc_pb2.Message) -> None:
+    async def _handle_beacon_attestations(self, msg: rpc_pb2.Message) -> None:
         attestations = ssz.decode(msg.data, sedes=ssz.List(Attestation, SSZ_MAX_LIST_SIZE))
 
         self.logger.debug("Received attestations=%s", attestations)
