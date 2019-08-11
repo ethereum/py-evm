@@ -169,3 +169,23 @@ def test_attestation_pool():
     assert len(pool._pool) == 2
     pool.batch_remove([a2, a1])
     assert len(pool._pool) == 0
+
+
+@pytest.mark.asyncio
+async def test_bcc_receive_server_handle_beacon_blocks(receive_server):
+    block = get_blocks(receive_server.chain, num_blocks=1)[0]
+    encoded_block = ssz.encode(block, BeaconBlock)
+    msg = rpc_pb2.Message(
+        from_id=b"my_id",
+        seqno=b"\x00" * 8,
+        data=encoded_block,
+        topicIDs=[PUBSUB_TOPIC_BEACON_BLOCK]
+    )
+
+    assert receive_server.chain.get_canonical_head() != block
+
+    beacon_block_queue = receive_server.topic_msg_queues[PUBSUB_TOPIC_BEACON_BLOCK]
+    await beacon_block_queue.put(msg)
+    # Wait for receive server to process the new block
+    await asyncio.sleep(0.5)
+    assert receive_server.chain.get_canonical_head() == block
