@@ -232,3 +232,46 @@ async def test_bcc_receive_server_handle_beacon_attestations(receive_server):
     await asyncio.sleep(0.5)
     # Check that attestation is removed from attestation pool
     assert attestation not in receive_server.attestation_pool
+
+
+@pytest.mark.asyncio
+async def test_bcc_receive_server_get_ready_attestations(receive_server, mocker):
+    class MockState:
+        slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
+    state = MockState()
+
+    def mock_get_attestation_data_slot(state, data, config):
+        return data.slot
+    mocker.patch("eth2.beacon.state_machines.base.BeaconStateMachine.state", state)
+    mocker.patch(
+        "trinity.protocol.bcc_libp2p.servers.get_attestation_data_slot",
+        mock_get_attestation_data_slot,
+    )
+    attesting_slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
+    a1 = Attestation(data=AttestationData())
+    a1.data.slot = attesting_slot
+    a2 = Attestation(signature=b'\x56' * 96, data=AttestationData())
+    a2.data.slot = attesting_slot
+    a3 = Attestation(signature=b'\x78' * 96, data=AttestationData())
+    a3.data.slot = attesting_slot + 1
+    receive_server.attestation_pool.batch_add([a1, a2, a3])
+
+    # Workaround: add a fake head state slot
+    # so `get_state_machine` wont's trigger `HeadStateSlotNotFound` exception
+    receive_server.chain.chaindb._add_head_state_slot_lookup(XIAO_LONG_BAO_CONFIG.GENESIS_SLOT)
+
+    state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1
+    ready_attestations = receive_server.get_ready_attestations()
+    assert len(ready_attestations) == 0
+
+    state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
+    ready_attestations = receive_server.get_ready_attestations()
+    assert set([a1, a2]) == set(ready_attestations)
+
+    state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1
+    ready_attestations = receive_server.get_ready_attestations()
+    assert set([a1, a2, a3]) == set(ready_attestations)
+
+    state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH + 1
+    ready_attestations = receive_server.get_ready_attestations()
+    assert set([a3]) == set(ready_attestations)

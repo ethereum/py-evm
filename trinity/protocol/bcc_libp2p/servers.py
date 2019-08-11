@@ -1,10 +1,10 @@
-import asyncio
 from typing import (
     Dict,
     Iterable,
     Set,
     Tuple,
     Union,
+    TYPE_CHECKING,
 )
 
 from cancel_token import (
@@ -54,6 +54,9 @@ from .configs import (
     PUBSUB_TOPIC_BEACON_ATTESTATION,
     SSZ_MAX_LIST_SIZE,
 )
+
+if TYPE_CHECKING:
+    import asyncio  # noqa: F401
 
 
 class AttestationPool:
@@ -111,7 +114,7 @@ class AttestationPool:
 class BCCReceiveServer(BaseService):
 
     chain: BaseBeaconChain
-    topic_msg_queues: Dict[str, "asyncio.Queue[rpc_pb2.Message]"]
+    topic_msg_queues: Dict[str, 'asyncio.Queue[rpc_pb2.Message]']
     attestation_pool: AttestationPool
     # TODO: Add orphan block pool and request parent block function back
     # after RPC for requesting beacon block is built
@@ -119,7 +122,7 @@ class BCCReceiveServer(BaseService):
     def __init__(
             self,
             chain: BaseBeaconChain,
-            topic_msg_queues: Dict[str, asyncio.Queue],
+            topic_msg_queues: Dict[str, 'asyncio.Queue[rpc_pb2.Message]'],
             cancel_token: CancelToken = None) -> None:
         super().__init__(cancel_token)
         self.chain = chain
