@@ -102,6 +102,7 @@ from .configs import (
     REQ_RESP_HELLO,
     REQ_RESP_RECENT_BEACON_BLOCKS,
     ResponseCode,
+    SSZ_MAX_LIST_SIZE,
 )
 from .exceptions import (
     HandshakeFailure,
@@ -270,7 +271,10 @@ class Node(BaseService):
         await self._broadcast_data(PUBSUB_TOPIC_BEACON_BLOCK, ssz.encode(block))
 
     async def broadcast_attestations(self, attestations: Sequence[Attestation]) -> None:
-        await self._broadcast_data(PUBSUB_TOPIC_BEACON_ATTESTATION, ssz.encode(attestations))
+        await self._broadcast_data(
+            PUBSUB_TOPIC_BEACON_ATTESTATION,
+            ssz.encode(list(attestations), sedes=ssz.List(Attestation, SSZ_MAX_LIST_SIZE))
+        )
 
     async def _broadcast_data(self, topic: str, data: bytes) -> None:
         await self.pubsub.publish(topic, data)

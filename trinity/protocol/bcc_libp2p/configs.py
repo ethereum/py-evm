@@ -23,7 +23,8 @@ SHARD_SUBNET_COUNT = None
 TTFB_TIMEOUT = 5  # seconds
 # Maximum time for complete response transfer.
 RESP_TIMEOUT = 10  # seconds
-
+# Maximum number of items in a SSZ List type
+SSZ_MAX_LIST_SIZE = 10
 
 #
 # Gossip domain
