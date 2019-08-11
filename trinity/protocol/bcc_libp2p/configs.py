@@ -1,6 +1,7 @@
-from enum import Enum
 from typing import (
     NamedTuple,
+    Set,
+    Union,
 )
 
 # Reference: https://github.com/ethereum/eth2.0-specs/blob/dev/specs/networking/p2p-interface.md
@@ -87,19 +88,62 @@ PUBSUB_TOPIC_ENCODE_COMPRESS_POSTFIX = "ssz_snappy"
 REQ_RESP_PROTOCOL_PREFIX = "/eth2/beacon_chain/req"
 
 
-class ResponseCode(Enum):
-    SUCCESS = 0
-    INVALID_REQUEST = 1
-    SERVER_ERROR = 2
+class ResponseCode:
+    class StandardCodes(NamedTuple):
+        SUCCESS: int = 0
+        INVALID_REQUEST: int = 1
+        SERVER_ERROR: int = 2
+    _standard_codes = StandardCodes()
+    _standard_codes_value_to_name = {
+        value: key for key, value in _standard_codes._asdict().items()
+    }
+    _non_standard_codes = tuple(range(128, 256))
 
-    # TODO: Confirm this behavior.
-    #   Reference: https://docs.python.org/3/library/enum.html#timeperiod
-    _ignore_ = 'ResponseCode i'
+    _code: int
 
-    # Set the "alternative, erroneous request-specific responses."
-    ResponseCode = vars()
-    for i in range(128, 256):
-        ResponseCode[f"{i}"] = i
+    def __init__(self, code: int) -> None:
+        self._validate(code)
+        self._code = code
+
+    def __repr__(self) -> str:
+        if self._code in self._standard_codes:
+            name = self._standard_codes_value_to_name[self._code]
+            return f"<ResponseCode {name}>"
+        else:
+            return f"<ResponseCode #{self._code}>"
+
+    def __eq__(self, other: Union["ResponseCode", int]) -> bool:
+        if isinstance(other, int):
+            return self._code == other
+        return self._code == other._code
+
+    @property
+    def valid_codes(self) -> Set[int]:
+        return set(self._standard_codes).union(self._non_standard_codes)
+
+    def _validate(self, code: int) -> None:
+        if code < 0 or code >= 256:
+            raise ValueError("`code` should be in the range [0, 256)")
+        if code not in self.valid_codes:
+            raise ValueError(f"`code` should be in valid_codes={self.valid_codes}")
+
+    def to_int(self) -> int:
+        return self._code
+
+    def to_bytes(self) -> bytes:
+        return self._code.to_bytes(1, "big")
+
+    @classmethod
+    def from_bytes(cls, code_bytes: bytes) -> "ResponseCode":
+        if len(code_bytes) != 1:
+            raise ValueError("length of the bytes repr of code should be exactly 1")
+        return cls(code_bytes[0])
+
+
+# Set the standard codes as the class attributes.
+# e.g. ResponseCode.SUCCESS
+for code_name, code_value in ResponseCode._standard_codes._asdict().items():
+    setattr(ResponseCode, code_name, ResponseCode(code_value))
 
 
 REQ_RESP_VERSION = "1"

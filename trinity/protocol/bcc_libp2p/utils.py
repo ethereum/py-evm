@@ -82,7 +82,7 @@ async def read_resp(
     msg_type: Type[MsgType],
 ) -> Tuple[ResponseCode, Union[MsgType, ErrorMsgType]]:
     result_byte = await asyncio.wait_for(stream.read(1), timeout=TTFB_TIMEOUT)
-    resp_code = ResponseCode(result_byte[0])
+    resp_code = ResponseCode.from_bytes(result_byte)
     # `MsgType`
     if resp_code == ResponseCode.SUCCESS:
         msg = await _read_ssz_msg(stream, msg_type, timeout=RESP_TIMEOUT)
@@ -98,7 +98,7 @@ async def write_resp(
     resp_code: ResponseCode,
 ) -> None:
     try:
-        resp_code_byte = resp_code.value.to_bytes(1, "big")
+        resp_code_byte = resp_code.to_bytes()
     except OverflowError as e:
         raise ValueError(f"result={resp_code} is not valid") from e
     # `ErrorMsgType`
