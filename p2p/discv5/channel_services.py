@@ -33,7 +33,7 @@ from p2p.discv5.constants import (
 # Data structures
 #
 class Endpoint(NamedTuple):
-    ip_address: bytes
+    ip_address: str
     port: int
 
 
