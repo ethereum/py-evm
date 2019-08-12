@@ -116,7 +116,7 @@ class AuthHeaderPacket(NamedTuple):
             rlp.encode(auth_header),
         ))
         encrypted_message = compute_encrypted_message(
-            initiator_key=initiator_key,
+            key=initiator_key,
             auth_tag=auth_tag,
             message=message,
             authenticated_data=authenticated_data,
@@ -184,11 +184,11 @@ class AuthHeaderPacket(NamedTuple):
         return id_nonce_signature, enr
 
     def decrypt_message(self,
-                        initiator_key: AES128Key,
+                        key: AES128Key,
                         message_type_registry: MessageTypeRegistry = default_message_type_registry,
                         ) -> BaseMessage:
         return _decrypt_message(
-            initiator_key=initiator_key,
+            key=key,
             auth_tag=self.auth_header.auth_tag,
             encrypted_message=self.encrypted_message,
             authenticated_data=self.tag + rlp.encode(self.auth_header),
@@ -216,10 +216,10 @@ class AuthTagPacket(NamedTuple):
                 tag: Tag,
                 auth_tag: Nonce,
                 message: BaseMessage,
-                initiator_key: AES128Key,
+                key: AES128Key,
                 ) -> "AuthTagPacket":
         encrypted_message = compute_encrypted_message(
-            initiator_key=initiator_key,
+            key=key,
             auth_tag=auth_tag,
             message=message,
             authenticated_data=tag,
@@ -244,11 +244,11 @@ class AuthTagPacket(NamedTuple):
         )
 
     def decrypt_message(self,
-                        initiator_key: AES128Key,
+                        key: AES128Key,
                         message_type_registry: MessageTypeRegistry = default_message_type_registry,
                         ) -> BaseMessage:
         return _decrypt_message(
-            initiator_key=initiator_key,
+            key=key,
             auth_tag=self.auth_tag,
             encrypted_message=self.encrypted_message,
             authenticated_data=self.tag,
@@ -508,13 +508,13 @@ def compute_encrypted_auth_response(auth_response_key: AES128Key,
     return encrypted_auth_response
 
 
-def compute_encrypted_message(initiator_key: AES128Key,
+def compute_encrypted_message(key: AES128Key,
                               auth_tag: Nonce,
                               message: BaseMessage,
                               authenticated_data: bytes,
                               ) -> bytes:
     encrypted_message = aesgcm_encrypt(
-        key=initiator_key,
+        key=key,
         nonce=auth_tag,
         plain_text=message.to_bytes(),
         authenticated_data=authenticated_data,
@@ -530,14 +530,14 @@ def compute_who_are_you_magic(destination_node_id: NodeID) -> Hash32:
 #
 # Packet decryption
 #
-def _decrypt_message(initiator_key: AES128Key,
+def _decrypt_message(key: AES128Key,
                      auth_tag: Nonce,
                      encrypted_message: bytes,
                      authenticated_data: bytes,
                      message_type_registry: MessageTypeRegistry,
                      ) -> BaseMessage:
     plain_text = aesgcm_decrypt(
-        key=initiator_key,
+        key=key,
         nonce=auth_tag,
         cipher_text=encrypted_message,
         authenticated_data=authenticated_data,

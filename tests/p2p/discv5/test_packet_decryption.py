@@ -191,15 +191,15 @@ def test_invalid_auth_header_decryption_with_wrong_key(tag,
 @given(
     tag=tag_st,
     auth_tag=nonce_st,
-    initiator_key=key_st,
+    key=key_st,
 )
-def test_auth_tag_message_decryption(tag, auth_tag, initiator_key, message):
+def test_auth_tag_message_decryption(tag, auth_tag, key, message):
     packet = AuthTagPacket.prepare(
         tag=tag,
         auth_tag=auth_tag,
         message=message,
-        initiator_key=initiator_key,
+        key=key,
     )
 
-    decrypted_message = packet.decrypt_message(initiator_key)
+    decrypted_message = packet.decrypt_message(key)
     assert decrypted_message == message
