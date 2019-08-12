@@ -40,6 +40,9 @@ from p2p.discv5.constants import (
     MAGIC_SIZE,
     TAG_SIZE,
 )
+from p2p.discv5.channel_services import (
+    Endpoint,
+)
 
 from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.tools.memory_transport import MemoryTransport
@@ -452,3 +455,11 @@ class WhoAreYouPacketFactory(factory.Factory):
     token = b"\x00" * NONCE_SIZE
     id_nonce = b"\x00" * ID_NONCE_SIZE
     enr_sequence_number = 0
+
+
+class EndpointFactory(factory.Factory):
+    class Meta:
+        model = Endpoint
+
+    ip_address = factory.Faker("ipv4")
+    port = factory.Faker("pyint", min_value=0, max_value=65535)

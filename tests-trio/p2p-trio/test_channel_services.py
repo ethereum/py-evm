@@ -10,7 +10,6 @@ from p2p.trio_service import (
 from p2p.discv5.channel_services import (
     DatagramReceiver,
     DatagramSender,
-    Endpoint,
     IncomingDatagram,
     OutgoingDatagram,
     OutgoingPacket,
@@ -20,6 +19,7 @@ from p2p.discv5.channel_services import (
 
 from p2p.tools.factories import (
     AuthTagPacketFactory,
+    EndpointFactory,
 )
 
 
@@ -37,11 +37,6 @@ async def socket_pair():
     await sending_socket.bind(("127.0.0.1", 0))
     await receiving_socket.bind(("127.0.0.1", 0))
     return sending_socket, receiving_socket
-
-
-@pytest.fixture
-def fake_endpoint():
-    return Endpoint(ip_address=b"127.0.0.1", port=1234)
 
 
 @pytest.mark.trio
@@ -80,26 +75,27 @@ async def test_datagram_sender(socket_pair):
         assert sender == sender_address
 
 
-async def test_packet_decoder(fake_endpoint):
+async def test_packet_decoder():
     datagram_send_channel, datagram_receive_channel = trio.open_memory_channel(1)
     packet_send_channel, packet_receive_channel = trio.open_memory_channel(1)
 
     async with background_service(PacketDecoder(datagram_receive_channel, packet_send_channel)):
         packet = AuthTagPacketFactory()
+        sender = EndpointFactory()
         await datagram_send_channel.send(IncomingDatagram(
             datagram=packet.to_wire_bytes(),
-            sender=fake_endpoint,
+            sender=sender,
         ))
 
         with trio.fail_after(0.5):
             incoming_packet = await packet_receive_channel.receive()
 
         assert incoming_packet.packet == packet
-        assert incoming_packet.sender.ip_address == fake_endpoint.ip_address
-        assert incoming_packet.sender.port == fake_endpoint.port
+        assert incoming_packet.sender.ip_address == sender.ip_address
+        assert incoming_packet.sender.port == sender.port
 
 
-async def test_packet_decoder_error(fake_endpoint):
+async def test_packet_decoder_error():
     datagram_send_channel, datagram_receive_channel = trio.open_memory_channel(1)
     packet_send_channel, packet_receive_channel = trio.open_memory_channel(1)
 
@@ -107,14 +103,15 @@ async def test_packet_decoder_error(fake_endpoint):
         # send invalid packet
         await datagram_send_channel.send(IncomingDatagram(
             datagram=b"not a valid packet",
-            sender=fake_endpoint,
+            sender=EndpointFactory(),
         ))
 
         # send valid packet
         packet = AuthTagPacketFactory()
+        sender = EndpointFactory()
         await datagram_send_channel.send(IncomingDatagram(
             datagram=packet.to_wire_bytes(),
-            sender=fake_endpoint,
+            sender=sender,
         ))
 
         # ignore the invalid one, only receive the valid one
@@ -122,18 +119,18 @@ async def test_packet_decoder_error(fake_endpoint):
             incoming_packet = await packet_receive_channel.receive()
 
         assert incoming_packet.packet == packet
-        assert incoming_packet.sender.ip_address == fake_endpoint.ip_address
-        assert incoming_packet.sender.port == fake_endpoint.port
+        assert incoming_packet.sender.ip_address == sender.ip_address
+        assert incoming_packet.sender.port == sender.port
 
 
-async def test_packet_encoder(fake_endpoint):
+async def test_packet_encoder():
     packet_send_channel, packet_receive_channel = trio.open_memory_channel(1)
     datagram_send_channel, datagram_receive_channel = trio.open_memory_channel(1)
 
     async with background_service(PacketEncoder(packet_receive_channel, datagram_send_channel)):
         outgoing_packet = OutgoingPacket(
             packet=AuthTagPacketFactory(),
-            receiver=fake_endpoint,
+            receiver=EndpointFactory(),
         )
         await packet_send_channel.send(outgoing_packet)
 
