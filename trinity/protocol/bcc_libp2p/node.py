@@ -263,6 +263,10 @@ class Node(BaseService):
     # TODO: Handle the reputation of peers. Deduct their scores and even disconnect when they
     #   behave.
 
+    # TODO: Register notifee to the `Network` to
+    #   - Record peers' joining time.
+    #   - Disconnect peers when they fail to join in a certain amount of time.
+
     async def _validate_hello_req(self, hello_other_side: HelloRequest) -> bool:
         state = self.chain.get_state_machine().state
         if hello_other_side.fork_version != state.fork.current_version:
@@ -294,10 +298,11 @@ class Node(BaseService):
         # TODO: Handle `stream.close` and `stream.reset`
         peer_id = stream.mplex_conn.peer_id
         if peer_id in self.handshaked_peers:
-            self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
+            error_msg = f"already handshaked with {peer_id} before"
+            self.logger.info(f"Handshake failed: {error_msg}.")
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
-            return
+            raise HandshakeFailure(error_msg)
 
         self.logger.debug(f"Waiting for hello from the other side")
         try:
@@ -309,14 +314,15 @@ class Node(BaseService):
             return
         self.logger.debug(f"Received the hello message {hello_other_side}")
         if not (await self._validate_hello_req(hello_other_side)):
+            error_msg = f"hello message {hello_other_side} is not valid"
             self.logger.info(
-                f"Handshake failed: hello message {hello_other_side} is not valid."
+                f"Handshake failed: {error_msg}."
                 f"Disconnecting {peer_id}."
             )
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
-            return
+            raise HandshakeFailure(error_msg)
 
         hello_mine = self._make_hello_packet()
 
@@ -329,6 +335,8 @@ class Node(BaseService):
 
         self.logger.debug(f"Handshake from {peer_id} is finished. Added to the `handshake_peers`.")
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
+
+        await stream.close()
 
     async def say_hello(self, peer_id: ID) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
@@ -381,3 +389,5 @@ class Node(BaseService):
 
         self.logger.debug(f"Handshake to {peer_id} is finished. Added to the `handshake_peers`.")
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
+
+        await stream.close()
