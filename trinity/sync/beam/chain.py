@@ -174,20 +174,28 @@ class BeamSyncer(BaseService):
         When importing a block, we need to validate uncles against the previous
         six blocks, so download those bodies and persist them to the database.
         """
+        # We need MAX_UNCLE_DEPTH + 1 headers to check during uncle validation
+        # We need to request one more header, to set the starting tip
+        parents_needed = MAX_UNCLE_DEPTH + 2
+
         self.logger.info(
             "Downloading %d block bodies for uncle validation, before %s",
-            MAX_UNCLE_DEPTH,
+            parents_needed,
             before_header,
         )
 
         # select the recent ancestors to sync block bodies for
         parent_headers = tuple(reversed([
             header async for header
-            in self._get_ancestors(MAX_UNCLE_DEPTH + 1, header=before_header)
+            in self._get_ancestors(parents_needed, header=before_header)
         ]))
 
         # identify starting tip and headers with possible uncle conflicts for validation
-        if len(parent_headers) <= MAX_UNCLE_DEPTH:
+        if len(parent_headers) < parents_needed:
+            self.logger.info(
+                "Collecting %d blocks to genesis for uncle validation",
+                len(parent_headers),
+            )
             sync_from_tip = await self._chain.coro_get_canonical_block_by_number(BlockNumber(0))
             uncle_conflict_headers = parent_headers
         else:
