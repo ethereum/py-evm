@@ -28,10 +28,16 @@ from p2p.protocol import Command, Protocol, get_cmd_offsets
 from p2p.transport import Transport
 
 from p2p.discv5.packets import (
+    AuthHeader,
+    AuthHeaderPacket,
     AuthTagPacket,
+    WhoAreYouPacket,
 )
 from p2p.discv5.constants import (
+    AUTH_SCHEME_NAME,
+    ID_NONCE_SIZE,
     NONCE_SIZE,
+    MAGIC_SIZE,
     TAG_SIZE,
 )
 
@@ -415,4 +421,34 @@ class AuthTagPacketFactory(factory.Factory):
 
     tag = b"\x00" * TAG_SIZE
     auth_tag = b"\x00" * NONCE_SIZE
-    encrypted_message = b""
+    encrypted_message = b"\x00" * 10
+
+
+class AuthHeaderFactory(factory.Factory):
+    class Meta:
+        model = AuthHeader
+
+    auth_tag = b"\x00" * NONCE_SIZE
+    id_nonce = b"\x00" * ID_NONCE_SIZE
+    auth_scheme_name = AUTH_SCHEME_NAME
+    ephemeral_pubkey = b"\x00" * 32
+    encrypted_auth_response = b"\x00" * 10
+
+
+class AuthHeaderPacketFactory(factory.Factory):
+    class Meta:
+        model = AuthHeaderPacket
+
+    tag = b"\x00" * TAG_SIZE
+    auth_header = factory.SubFactory(AuthHeaderFactory)
+    encrypted_message = b"\x00" * 10
+
+
+class WhoAreYouPacketFactory(factory.Factory):
+    class Meta:
+        model = WhoAreYouPacket
+
+    magic = b"\x00" * MAGIC_SIZE
+    token = b"\x00" * NONCE_SIZE
+    id_nonce = b"\x00" * ID_NONCE_SIZE
+    enr_sequence_number = 0
