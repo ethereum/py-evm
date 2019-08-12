@@ -1,5 +1,4 @@
 from typing import (
-    Callable,
     NamedTuple,
     NewType,
 )
@@ -10,7 +9,6 @@ Nonce = NewType("Nonce", bytes)
 IDNonce = NewType("IDNonce", bytes)
 Tag = NewType("Tag", bytes)
 
-RandomBytesFn = Callable[[int], bytes]  # function that returns a number of random bytes
 NodeID = NewType("NodeID", bytes)
 
 
