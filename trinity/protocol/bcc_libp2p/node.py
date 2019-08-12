@@ -83,6 +83,8 @@ from .configs import (
 )
 from .exceptions import (
     HandshakeFailure,
+    ReadMessageFailure,
+    WriteMessageFailure,
 )
 from .messages import (
     HelloRequest,
@@ -307,11 +309,11 @@ class Node(BaseService):
         self.logger.debug(f"Waiting for hello from the other side")
         try:
             hello_other_side = await read_req(stream, HelloRequest)
-        except asyncio.TimeoutError:
+        except ReadMessageFailure as error:
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
-            return
+            raise HandshakeFailure("fail to read the request") from error
         self.logger.debug(f"Received the hello message {hello_other_side}")
         if not (await self._validate_hello_req(hello_other_side)):
             error_msg = f"hello message {hello_other_side} is not valid"
@@ -329,7 +331,10 @@ class Node(BaseService):
         self.logger.debug(f"Sending our hello message {hello_mine}")
         # TODO: Find out when we should respond the `ResponseCode`
         #   other than `ResponseCode.SUCCESS`.
-        await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
+        try:
+            await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
+        except WriteMessageFailure as error:
+            raise HandshakeFailure(f"fail to write response={hello_mine}") from error
 
         self.handshaked_peers.add(peer_id)
 
@@ -350,16 +355,19 @@ class Node(BaseService):
         self.logger.debug(f"Opening new stream to {peer_id} with protocols {[REQ_RESP_HELLO_SSZ]}.")
         stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
         self.logger.debug(f"Sending our hello message {hello_mine}.")
-        await write_req(stream, hello_mine)
+        try:
+            await write_req(stream, hello_mine)
+        except WriteMessageFailure as error:
+            raise HandshakeFailure(f"fail to write request={hello_mine}") from error
 
         self.logger.debug(f"Waiting for hello from the other side")
         try:
             resp_code, hello_other_side = await read_resp(stream, HelloRequest)
-        except asyncio.TimeoutError:
+        except ReadMessageFailure as error:
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
-            raise HandshakeFailure("time out when reading the response")
+            raise HandshakeFailure("fail to read the response") from error
 
         self.logger.debug(f"Received the hello message {hello_other_side}, resp_code={resp_code}.")
 

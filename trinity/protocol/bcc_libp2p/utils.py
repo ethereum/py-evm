@@ -35,6 +35,10 @@ from .configs import (
     ResponseCode,
     TTFB_TIMEOUT,
 )
+from .exceptions import (
+    ReadMessageFailure,
+    WriteMessageFailure,
+)
 
 
 MsgType = TypeVar("MsgType", bound=ssz.Serializable)
@@ -74,7 +78,10 @@ async def write_req(
     stream: INetStream,
     msg: MsgType,
 ) -> None:
-    msg_bytes = _serialize_ssz_msg(msg)
+    try:
+        msg_bytes = _serialize_ssz_msg(msg)
+    except ssz.SerializationError as error:
+        raise WriteMessageFailure(f"failed to serialize msg={msg}") from error
     await stream.write(msg_bytes)
 
 
@@ -82,10 +89,18 @@ async def read_resp(
     stream: INetStream,
     msg_type: Type[MsgType],
 ) -> Tuple[ResponseCode, Union[MsgType, ErrorMsgType]]:
-    result_byte = await asyncio.wait_for(stream.read(1), timeout=TTFB_TIMEOUT)
-    resp_code = ResponseCode.from_bytes(result_byte)
-    # `MsgType`
+    try:
+        result_bytes = await asyncio.wait_for(stream.read(1), timeout=TTFB_TIMEOUT)
+    # TODO: Catch more errors?
+    except asyncio.TimeoutError as error:
+        raise ReadMessageFailure("failed to read `result_bytes`") from error
+    if len(result_bytes) != 1:
+        raise ReadMessageFailure(
+            f"result bytes should be of length 1: result_bytes={result_bytes}"
+        )
+    resp_code = ResponseCode(result_bytes[0])
     msg: Union[MsgType, ErrorMsgType]
+    # `MsgType`
     if resp_code == ResponseCode.SUCCESS:
         msg = await _read_ssz_msg(stream, msg_type, timeout=RESP_TIMEOUT)
     # `ErrorMsgType`
@@ -101,17 +116,20 @@ async def write_resp(
     resp_code: ResponseCode,
 ) -> None:
     try:
-        resp_code_byte = resp_code.to_bytes()
-    except OverflowError as e:
-        raise ValueError(f"result={resp_code} is not valid") from e
+        resp_code_byte = resp_code.value.to_bytes(1, "big")
+    except OverflowError as error:
+        raise WriteMessageFailure(f"result={resp_code} is not valid") from error
     # `ErrorMsgType`
     if isinstance(msg, str):
         msg_bytes = _serialize_bytes(msg.encode("utf-8"))
     # `MsgType`
     elif isinstance(msg, ssz.Serializable):
-        msg_bytes = _serialize_ssz_msg(msg)
+        try:
+            msg_bytes = _serialize_ssz_msg(msg)
+        except ssz.SerializationError as error:
+            raise WriteMessageFailure(f"failed to serialize msg={msg}") from error
     else:
-        raise TypeError(
+        raise WriteMessageFailure(
             "Type of `msg` should be either `str` or `ssz.Serializable`"
         )
     # TODO: Optimization: probably the first byte should be written
@@ -123,12 +141,20 @@ async def _read_varint_prefixed_bytes(
     stream: INetStream,
     timeout: float = None,
 ) -> bytes:
-    len_payload = await decode_uvarint_from_stream(stream, timeout)
+    try:
+        len_payload = await decode_uvarint_from_stream(stream, timeout)
+    # TODO: Catch more errors?
+    except asyncio.TimeoutError as error:
+        raise ReadMessageFailure("failed to read the length of the payload") from error
     if len_payload > REQ_RESP_MAX_SIZE:
-        raise ValueError(
+        raise ReadMessageFailure(
             f"size_of_payload={len_payload} is larger than maximum={REQ_RESP_MAX_SIZE}"
         )
-    payload = await asyncio.wait_for(stream.read(len_payload), timeout)
+    try:
+        payload = await asyncio.wait_for(stream.read(len_payload), timeout)
+    # TODO: Catch more errors?
+    except asyncio.TimeoutError as error:
+        raise ReadMessageFailure("failed to read the payload") from error
     return payload
 
 
@@ -138,7 +164,10 @@ async def _read_ssz_msg(
     timeout: float = None,
 ) -> MsgType:
     payload = await _read_varint_prefixed_bytes(stream, timeout=timeout)
-    return ssz.decode(payload, msg_type)
+    try:
+        return ssz.decode(payload, msg_type)
+    except ssz.DeserializationError as error:
+        raise ReadMessageFailure("failed to read the payload") from error
 
 
 def _serialize_bytes(payload: bytes) -> bytes:

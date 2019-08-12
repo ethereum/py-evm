@@ -4,3 +4,11 @@ class BaseLibp2pError(Exception):
 
 class HandshakeFailure(BaseLibp2pError):
     pass
+
+
+class ReadMessageFailure(BaseLibp2pError):
+    pass
+
+
+class WriteMessageFailure(BaseLibp2pError):
+    pass

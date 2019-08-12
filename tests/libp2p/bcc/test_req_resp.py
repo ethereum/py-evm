@@ -26,43 +26,6 @@ def mock_timeout(monkeypatch):
     monkeypatch.setattr(utils, "RESP_TIMEOUT", MOCK_TIME * 2)
 
 
-def test_resp_code_standard():
-    assert ResponseCode.SUCCESS == ResponseCode(0)
-    assert ResponseCode.INVALID_REQUEST == ResponseCode(1)
-    assert ResponseCode.SERVER_ERROR == ResponseCode(2)
-
-
-@pytest.mark.parametrize(
-    "code_value",
-    (
-        ResponseCode._standard_codes +
-        (ResponseCode._non_standard_codes[0], ResponseCode._non_standard_codes[-1])  # edges
-    ),
-)
-def test_resp_code_valid(code_value):
-    code = ResponseCode(code_value)
-    assert code_value == code.to_int()
-    assert ResponseCode.from_bytes(code.to_bytes()) == code
-
-
-@pytest.mark.parametrize(
-    "code_value",
-    (-1, 256, 257,),
-)
-def test_resp_code_invalid(code_value):
-    with pytest.raises(ValueError):
-        ResponseCode(code_value)
-
-
-@pytest.mark.parametrize(
-    "code_bytes",
-    (b"", b"12",),
-)
-def test_resp_code_from_bytes_failure(code_bytes):
-    with pytest.raises(ValueError):
-        ResponseCode.from_bytes(code_bytes)
-
-
 @pytest.mark.parametrize(
     "num_nodes",
     (2,),
