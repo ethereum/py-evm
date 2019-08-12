@@ -61,6 +61,7 @@ def test_auth_header_preparation(tag,
         signature=b"",
         kv_pairs={
             b"id": b"v4",
+            b"secp256k1": b"\x02" * 33,
         }
     )
     message = PingMessage(

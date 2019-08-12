@@ -33,6 +33,7 @@ OFFICIAL_TEST_DATA = {
         "pMa2_oxVtw0RW_QAdpzBQA8yWM0xOIN1ZHCCdl8"
     ),
     "private_key": decode_hex("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291"),
+    "public_key": decode_hex("03ca634cae0d49acb401d8a4c6b6fe8c55b70d115bf400769cc1400f3258cd3138"),
     "node_id": decode_hex("a448f24c6d18e575453db13171562b71999873db5b286df957af199ec94617f7"),
     "identity_scheme": V4IdentityScheme,
     "sequence_number": 1,
@@ -53,18 +54,26 @@ class MockIdentityScheme(IdentityScheme):
     private_key_size = 32
 
     @classmethod
-    def create_signature(cls, enr, private_key: bytes) -> bytes:
+    def create_enr_signature(cls, enr, private_key: bytes) -> bytes:
         if len(private_key) != cls.private_key_size:
             raise ValidationError("Invalid private key")
         return private_key + enr.get_signing_message()
 
     @classmethod
-    def validate_signature(cls, enr) -> None:
-        if not enr.signature == cls.extract_node_address(enr) + enr.get_signing_message():
+    def validate_enr_structure(cls, enr) -> None:
+        pass
+
+    @classmethod
+    def validate_enr_signature(cls, enr) -> None:
+        if not enr.signature == enr.node_id + enr.get_signing_message():
             raise ValidationError("Invalid signature")
 
     @classmethod
-    def extract_node_address(cls, enr) -> bytes:
+    def extract_public_key(cls, enr) -> bytes:
+        return b""
+
+    @classmethod
+    def extract_node_id(cls, enr) -> bytes:
         return enr.signature[:cls.private_key_size]
 
 
@@ -168,7 +177,7 @@ def test_signing(mock_identity_scheme, identity_scheme_registry):
     )
     private_key = b"\x00" * 32
     enr = unsigned_enr.to_signed_enr(private_key)
-    assert enr.signature == mock_identity_scheme.create_signature(enr, private_key)
+    assert enr.signature == mock_identity_scheme.create_enr_signature(enr, private_key)
 
 
 def test_signature_validation(mock_identity_scheme, identity_scheme_registry):
@@ -196,18 +205,25 @@ def test_signature_validation(mock_identity_scheme, identity_scheme_registry):
         )
 
 
-def test_extract_node_address(mock_identity_scheme, identity_scheme_registry):
+def test_public_key(mock_identity_scheme, identity_scheme_registry):
     unsigned_enr = UnsignedENR(0, {b"id": b"mock"}, identity_scheme_registry)
     private_key = b"\x00" * 32
     enr = unsigned_enr.to_signed_enr(private_key)
-    assert enr.extract_node_address() == private_key
+    assert enr.public_key == mock_identity_scheme.extract_public_key(enr)
+
+
+def test_node_id(mock_identity_scheme, identity_scheme_registry):
+    unsigned_enr = UnsignedENR(0, {b"id": b"mock"}, identity_scheme_registry)
+    private_key = b"\x00" * 32
+    enr = unsigned_enr.to_signed_enr(private_key)
+    assert enr.node_id == private_key
 
 
 def test_signature_scheme_selection(mock_identity_scheme, identity_scheme_registry):
     mock_enr = ENR(0, {b"id": b"mock"}, b"", identity_scheme_registry)
     assert mock_enr.identity_scheme is mock_identity_scheme
 
-    v4_enr = ENR(0, {b"id": b"v4"}, b"", identity_scheme_registry)
+    v4_enr = ENR(0, {b"id": b"v4", b"secp256k1": b"\x02" * 33}, b"", identity_scheme_registry)
     assert v4_enr.identity_scheme is V4IdentityScheme
 
     with pytest.raises(ValidationError):
@@ -331,12 +347,26 @@ def test_serialization_roundtrip(identity_scheme_registry):
     assert recovered_enr == original_enr
 
 
+@pytest.mark.parametrize("invalid_kv_pairs", (
+    {b"id": b"v4"},  # missing public key
+    {b"id": b"v4", b"secp256k1": b"\x00"},  # invalid public key
+))
+def test_v4_structure_validation(invalid_kv_pairs, identity_scheme_registry):
+    with pytest.raises(ValidationError):
+        UnsignedENR(
+            sequence_number=0,
+            kv_pairs=invalid_kv_pairs,
+            identity_scheme_registry=identity_scheme_registry,
+        )
+
+
 def test_official_test_vector():
     enr = ENR.from_repr(OFFICIAL_TEST_DATA["repr"])  # use default identity scheme registry
 
     assert enr.sequence_number == OFFICIAL_TEST_DATA["sequence_number"]
     assert dict(enr) == OFFICIAL_TEST_DATA["kv_pairs"]
-    assert enr.extract_node_address() == OFFICIAL_TEST_DATA["node_id"]
+    assert enr.public_key == OFFICIAL_TEST_DATA["public_key"]
+    assert enr.node_id == OFFICIAL_TEST_DATA["node_id"]
     assert enr.identity_scheme is OFFICIAL_TEST_DATA["identity_scheme"]
     assert repr(enr) == OFFICIAL_TEST_DATA["repr"]
 
