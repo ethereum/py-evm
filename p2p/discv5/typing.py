@@ -7,8 +7,11 @@ from typing import (
 
 AES128Key = NewType("AES128Key", bytes)
 Nonce = NewType("Nonce", bytes)
+IDNonce = NewType("IDNonce", bytes)
+Tag = NewType("Tag", bytes)
 
 RandomBytesFn = Callable[[int], bytes]  # function that returns a number of random bytes
+NodeID = NewType("NodeID", bytes)
 
 
 class SessionKeys(NamedTuple):

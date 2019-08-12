@@ -41,6 +41,9 @@ from p2p.discv5.identity_schemes import (
     IdentityScheme,
     IdentitySchemeRegistry,
 )
+from p2p.discv5.typing import (
+    NodeID,
+)
 from p2p.discv5.constants import (
     MAX_ENR_SIZE,
     ENR_REPR_PREFIX,
@@ -237,7 +240,7 @@ class BaseENR(Mapping[bytes, Any], ABC):
             )
 
     @property
-    def node_id(self) -> bytes:
+    def node_id(self) -> NodeID:
         try:
             return self.identity_scheme.extract_node_id(self)
         except KeyError:

@@ -30,6 +30,8 @@ from eth_utils import (
 
 from p2p.discv5.typing import (
     AES128Key,
+    IDNonce,
+    NodeID,
     SessionKeys,
 )
 from p2p.discv5.constants import (
@@ -105,7 +107,7 @@ class IdentityScheme(ABC):
 
     @classmethod
     @abstractmethod
-    def extract_node_id(cls, enr: "BaseENR") -> bytes:
+    def extract_node_id(cls, enr: "BaseENR") -> NodeID:
         """Retrieve the node id from an ENR."""
         ...
 
@@ -130,16 +132,16 @@ class IdentityScheme(ABC):
                              *,
                              local_private_key: bytes,
                              peer_public_key: bytes,
-                             initiator_node_id: bytes,
-                             recipient_node_id: bytes,
-                             id_nonce: bytes,
+                             initiator_node_id: NodeID,
+                             recipient_node_id: NodeID,
+                             id_nonce: IDNonce,
                              ) -> SessionKeys:
         """Compute the symmetric session keys."""
         ...
 
     def create_id_nonce_signature(cls,
                                   *,
-                                  id_nonce: bytes,
+                                  id_nonce: IDNonce,
                                   private_key: bytes,
                                   ) -> bytes:
         """Sign an id nonce received during handshake."""
@@ -147,7 +149,7 @@ class IdentityScheme(ABC):
 
     def validate_id_nonce_signature(cls,
                                     *,
-                                    id_nonce: bytes,
+                                    id_nonce: IDNonce,
                                     signature: bytes,
                                     public_key: bytes,
                                     ) -> None:
@@ -197,10 +199,10 @@ class V4IdentityScheme(IdentityScheme):
             raise KeyError("ENR does not contain public key") from error
 
     @classmethod
-    def extract_node_id(cls, enr: "BaseENR") -> bytes:
+    def extract_node_id(cls, enr: "BaseENR") -> NodeID:
         public_key_object = PublicKey.from_compressed_bytes(enr.public_key)
         uncompressed_bytes = public_key_object.to_bytes()
-        return keccak(uncompressed_bytes)
+        return NodeID(keccak(uncompressed_bytes))
 
     #
     # Handshake
@@ -220,9 +222,9 @@ class V4IdentityScheme(IdentityScheme):
                              *,
                              local_private_key: bytes,
                              peer_public_key: bytes,
-                             initiator_node_id: bytes,
-                             recipient_node_id: bytes,
-                             id_nonce: bytes,
+                             initiator_node_id: NodeID,
+                             recipient_node_id: NodeID,
+                             id_nonce: IDNonce,
                              ) -> SessionKeys:
         # TODO: do it properly
         return SessionKeys(
@@ -234,7 +236,7 @@ class V4IdentityScheme(IdentityScheme):
     @classmethod
     def create_id_nonce_signature(cls,
                                   *,
-                                  id_nonce: bytes,
+                                  id_nonce: IDNonce,
                                   private_key: bytes,
                                   ) -> bytes:
         private_key_object = PrivateKey(private_key)
@@ -244,7 +246,7 @@ class V4IdentityScheme(IdentityScheme):
     @classmethod
     def validate_id_nonce_signature(cls,
                                     *,
-                                    id_nonce: bytes,
+                                    id_nonce: IDNonce,
                                     signature: bytes,
                                     public_key: bytes,
                                     ) -> None:
