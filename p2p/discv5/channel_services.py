@@ -12,7 +12,6 @@ from trio.abc import (
 )
 
 from eth_utils import (
-    encode_hex,
     ValidationError,
 )
 
@@ -107,8 +106,7 @@ async def PacketDecoder(manager: ManagerAPI,
             try:
                 packet = decode_packet(datagram)
                 logger.debug(
-                    f"Successfully decoded {packet.__class__.__name__} with tag "
-                    f"{encode_hex(packet.tag)} from {sender}"
+                    f"Successfully decoded {packet.__class__.__name__} from {sender}"
                 )
             except ValidationError:
                 logger.warn(f"Failed to decode a packet from {sender}", exc_info=True)
@@ -128,7 +126,6 @@ async def PacketEncoder(manager: ManagerAPI,
         async for packet, receiver in outgoing_packet_receive_channel:
             outgoing_datagram = OutgoingDatagram(packet.to_wire_bytes(), receiver)
             logger.debug(
-                f"Encoded {packet.__class__.__name__} with tag {encode_hex(packet.tag)} for "
-                f"{receiver}"
+                f"Encoded {packet.__class__.__name__} for {receiver}"
             )
             await outgoing_datagram_send_channel.send(outgoing_datagram)
