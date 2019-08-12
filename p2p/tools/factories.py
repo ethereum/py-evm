@@ -27,6 +27,23 @@ from p2p.p2p_proto import P2PProtocol
 from p2p.protocol import Command, Protocol, get_cmd_offsets
 from p2p.transport import Transport
 
+from p2p.discv5.packets import (
+    AuthHeader,
+    AuthHeaderPacket,
+    AuthTagPacket,
+    WhoAreYouPacket,
+)
+from p2p.discv5.constants import (
+    AUTH_SCHEME_NAME,
+    ID_NONCE_SIZE,
+    NONCE_SIZE,
+    MAGIC_SIZE,
+    TAG_SIZE,
+)
+from p2p.discv5.channel_services import (
+    Endpoint,
+)
+
 from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.tools.memory_transport import MemoryTransport
 
@@ -399,3 +416,50 @@ class DevP2PHandshakeParamsFactory(factory.Factory):
     listen_port = 30303
     client_version_string = 'test'
     version = 5
+
+
+class AuthTagPacketFactory(factory.Factory):
+    class Meta:
+        model = AuthTagPacket
+
+    tag = b"\x00" * TAG_SIZE
+    auth_tag = b"\x00" * NONCE_SIZE
+    encrypted_message = b"\x00" * 10
+
+
+class AuthHeaderFactory(factory.Factory):
+    class Meta:
+        model = AuthHeader
+
+    auth_tag = b"\x00" * NONCE_SIZE
+    id_nonce = b"\x00" * ID_NONCE_SIZE
+    auth_scheme_name = AUTH_SCHEME_NAME
+    ephemeral_pubkey = b"\x00" * 32
+    encrypted_auth_response = b"\x00" * 10
+
+
+class AuthHeaderPacketFactory(factory.Factory):
+    class Meta:
+        model = AuthHeaderPacket
+
+    tag = b"\x00" * TAG_SIZE
+    auth_header = factory.SubFactory(AuthHeaderFactory)
+    encrypted_message = b"\x00" * 10
+
+
+class WhoAreYouPacketFactory(factory.Factory):
+    class Meta:
+        model = WhoAreYouPacket
+
+    magic = b"\x00" * MAGIC_SIZE
+    token = b"\x00" * NONCE_SIZE
+    id_nonce = b"\x00" * ID_NONCE_SIZE
+    enr_sequence_number = 0
+
+
+class EndpointFactory(factory.Factory):
+    class Meta:
+        model = Endpoint
+
+    ip_address = factory.Faker("ipv4")
+    port = factory.Faker("pyint", min_value=0, max_value=65535)

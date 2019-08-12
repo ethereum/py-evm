@@ -14,9 +14,9 @@ import rlp
 from p2p.discv5.packets import (
     AuthTagPacket,
     AuthHeaderPacket,
-    AuthHeader,
     WhoAreYouPacket,
     decode_message_packet,
+    decode_packet,
     decode_who_are_you_packet,
 )
 from p2p.discv5.constants import (
@@ -26,6 +26,13 @@ from p2p.discv5.constants import (
     MAX_PACKET_SIZE,
     AUTH_SCHEME_NAME,
     MAGIC_SIZE,
+)
+
+from p2p.tools.factories import (
+    AuthHeaderFactory,
+    AuthHeaderPacketFactory,
+    AuthTagPacketFactory,
+    WhoAreYouPacketFactory,
 )
 
 from tests.p2p.discv5.strategies import (
@@ -51,7 +58,7 @@ pubkey_st = st.binary(min_size=33, max_size=33)
 )
 def test_auth_tag_packet_encoding_decoding(tag, auth_tag, encrypted_message_size):
     encrypted_message = b"\x00" * encrypted_message_size
-    original_packet = AuthTagPacket(
+    original_packet = AuthTagPacketFactory(
         tag=tag,
         auth_tag=auth_tag,
         encrypted_message=encrypted_message,
@@ -63,9 +70,7 @@ def test_auth_tag_packet_encoding_decoding(tag, auth_tag, encrypted_message_size
 
 
 def test_oversize_auth_tag_packet_encoding():
-    packet = AuthTagPacket(
-        tag=b"\x00" * TAG_SIZE,
-        auth_tag=b"\x00" * NONCE_SIZE,
+    packet = AuthTagPacketFactory(
         encrypted_message=b"\x00" * (MAX_PACKET_SIZE - (1 + TAG_SIZE) - NONCE_SIZE + 1),
     )
     with pytest.raises(ValidationError):
@@ -97,15 +102,14 @@ def test_auth_header_packet_encoding_decoding(tag,
                                               ephemeral_pubkey,
                                               encrypted_auth_response,
                                               encrypted_message_size):
-    auth_header = AuthHeader(
+    auth_header = AuthHeaderFactory(
         auth_tag=auth_tag,
         id_nonce=id_nonce,
-        auth_scheme_name=AUTH_SCHEME_NAME,
         ephemeral_pubkey=ephemeral_pubkey,
         encrypted_auth_response=encrypted_auth_response,
     )
     encrypted_message = b"\x00" * encrypted_message_size
-    original_packet = AuthHeaderPacket(
+    original_packet = AuthHeaderPacketFactory(
         tag=tag,
         auth_header=auth_header,
         encrypted_message=encrypted_message,
@@ -117,18 +121,11 @@ def test_auth_header_packet_encoding_decoding(tag,
 
 
 def test_oversize_auth_header_packet_encoding():
-    auth_header = AuthHeader(
-        auth_tag=b"\x00" * NONCE_SIZE,
-        id_nonce=b"\x00" * ID_NONCE_SIZE,
-        auth_scheme_name=AUTH_SCHEME_NAME,
-        ephemeral_pubkey=b"\x00" * 32,
-        encrypted_auth_response=32,
-    )
+    auth_header = AuthHeaderFactory(encrypted_auth_response=32)
     header_size = len(rlp.encode(auth_header))
     encrypted_message_size = MAX_PACKET_SIZE - TAG_SIZE - header_size + 1
     encrypted_message = b"\x00" * encrypted_message_size
-    packet = AuthHeaderPacket(
-        tag=b"\x00" * TAG_SIZE,
+    packet = AuthHeaderPacketFactory(
         auth_header=auth_header,
         encrypted_message=encrypted_message,
     )
@@ -277,3 +274,14 @@ def test_invalid_who_are_you_encoding():
     )
     with pytest.raises(ValidationError):
         packet.to_wire_bytes()
+
+
+@pytest.mark.parametrize("packet", (
+    WhoAreYouPacketFactory(),
+    AuthTagPacketFactory(),
+    AuthHeaderPacketFactory(),
+))
+def test_packet_decoding(packet):
+    encoded_packet = packet.to_wire_bytes()
+    decoded_packet = decode_packet(encoded_packet)
+    assert decoded_packet == packet

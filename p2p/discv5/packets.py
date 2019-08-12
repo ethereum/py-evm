@@ -2,6 +2,7 @@ import hashlib
 
 from typing import (
     cast,
+    Callable,
     NamedTuple,
     Optional,
     Tuple,
@@ -11,6 +12,9 @@ from typing import (
 import rlp
 from rlp.sedes import (
     big_endian_int,
+)
+from rlp.codec import (
+    consume_length_prefix,
 )
 from rlp.exceptions import (
     DecodingError,
@@ -296,6 +300,9 @@ class WhoAreYouPacket(NamedTuple):
         return encoded_packet
 
 
+Packet = Union[WhoAreYouPacket, AuthHeaderPacket, AuthTagPacket]
+
+
 #
 # Validation
 #
@@ -346,6 +353,38 @@ def validate_auth_header(auth_header: AuthHeader) -> None:
 #
 # Packet decoding
 #
+def get_packet_decoder(encoded_packet: bytes) -> Callable[[bytes], Packet]:
+    # Both message and WhoAreYou packets start with 32 bytes (either magic or tag) followed by rlp
+    # encoded data. Only in the case of message packets this is followed by the encrypted message.
+    # Therefore, we distinguish the two by reading the RLP length prefix and then checking if there
+    # is additional data.
+    if MAGIC_SIZE != TAG_SIZE:
+        raise Exception(
+            "Invariant: This check works as magic and tag size are equal"
+        )
+    prefix_size = MAGIC_SIZE
+    if len(encoded_packet) < prefix_size + 1:
+        raise ValidationError(f"Packet is with {len(encoded_packet)} bytes too short")
+
+    try:
+        _, _, rlp_size, _ = consume_length_prefix(encoded_packet, MAGIC_SIZE)
+    except DecodingError as error:
+        raise ValidationError("RLP section of packet starts with invalid length prefix") from error
+
+    expected_who_are_you_size = prefix_size + 1 + rlp_size
+    if len(encoded_packet) > expected_who_are_you_size:
+        return decode_message_packet
+    elif len(encoded_packet) == expected_who_are_you_size:
+        return decode_who_are_you_packet
+    else:
+        raise ValidationError("RLP section of packet is incomplete")
+
+
+def decode_packet(encoded_packet: bytes) -> Packet:
+    decoder = get_packet_decoder(encoded_packet)
+    return decoder(encoded_packet)
+
+
 def decode_message_packet(encoded_packet: bytes) -> Union[AuthTagPacket, AuthHeaderPacket]:
     validate_message_packet_size(encoded_packet)
 
