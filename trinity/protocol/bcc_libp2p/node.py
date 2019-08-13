@@ -352,7 +352,7 @@ class Node(BaseService):
 
         hello_mine = self._make_hello_packet()
 
-        self.logger.debug(f"Opening new stream to {peer_id} with protocols {[REQ_RESP_HELLO_SSZ]}.")
+        self.logger.debug(f"Opening new stream to peer={peer_id} with protocols={[REQ_RESP_HELLO_SSZ]}.")
         stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
         self.logger.debug(f"Sending our hello message {hello_mine}.")
         try:
