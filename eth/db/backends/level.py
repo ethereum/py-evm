@@ -62,6 +62,8 @@ class LevelDB(BaseAtomicDB):
         return self.db.get(key) is not None
 
     def __delitem__(self, key: bytes) -> None:
+        if self.db.get(key) is None:
+            raise KeyError(key)
         self.db.delete(key)
 
     @contextmanager

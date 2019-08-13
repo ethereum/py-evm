@@ -40,7 +40,7 @@ class BaseDB(DatabaseAPI):
         try:
             del self[key]
         except KeyError:
-            return None
+            pass
 
     def __iter__(self) -> Iterator[bytes]:
         raise NotImplementedError("By default, DB classes cannot be iterated.")
