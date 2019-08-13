@@ -3,6 +3,15 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.3 (2019-08-13)
+---------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Add back missing ``Chain.get_vm_class`` method. (`#1821 <https://github.com/ethereum/py-evm/issues/1821>`__)
+
+
 py-evm 0.3.0-alpha.2 (2019-08-13)
 ---------------------------------
 

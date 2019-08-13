@@ -1,1 +1,0 @@
-Add back missing ``Chain.get_vm_class`` method.
