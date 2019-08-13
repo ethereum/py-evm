@@ -1,0 +1,1 @@
+Update to ``lahja>=0.14.2`` to fix warnings during endpoint shutdown.
