@@ -70,7 +70,8 @@ async def DatagramReceiver(manager: ManagerAPI,
 
     async with incoming_datagram_send_channel:
         while manager.is_running:
-            datagram, endpoint = await socket.recvfrom(DATAGRAM_BUFFER_SIZE)
+            datagram, (ip_address, port) = await socket.recvfrom(DATAGRAM_BUFFER_SIZE)
+            endpoint = Endpoint(ip_address, port)
             logger.debug(f"Received {len(datagram)} bytes from {endpoint}")
             incoming_datagram = IncomingDatagram(datagram, endpoint)
             await incoming_datagram_send_channel.send(incoming_datagram)
