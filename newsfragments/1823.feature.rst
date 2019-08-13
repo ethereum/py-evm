@@ -1,0 +1,7 @@
+Add an *optional* ``genesis_parent_hash`` parameter to
+:meth:`~eth.db.header.HeaderDB.persist_header_chain` and
+:meth:`~eth.db.chain.ChainDB.persist_block` that allows to overwrite the hash that is used
+to identify the genesis header. This allows persisting headers / blocks that aren't (yet)
+connected back to the true genesis header.
+
+This feature opens up new, faster syncing techniques.

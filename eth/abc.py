@@ -312,6 +312,10 @@ class HeaderDatabaseAPI(ABC):
         ...
 
     @abstractmethod
+    def persist_checkpoint_header(self, header: BlockHeaderAPI, score: int) -> None:
+        ...
+
+    @abstractmethod
     def persist_header(self,
                        header: BlockHeaderAPI
                        ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
@@ -319,7 +323,8 @@ class HeaderDatabaseAPI(ABC):
 
     @abstractmethod
     def persist_header_chain(self,
-                             headers: Sequence[BlockHeaderAPI]
+                             headers: Sequence[BlockHeaderAPI],
+                             genesis_parent_hash: Hash32 = None,
                              ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         ...
 
@@ -337,7 +342,8 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     #
     @abstractmethod
     def persist_block(self,
-                      block: BlockAPI
+                      block: BlockAPI,
+                      genesis_parent_hash: Hash32 = None,
                       ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         ...
 

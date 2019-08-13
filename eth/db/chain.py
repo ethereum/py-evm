@@ -32,6 +32,7 @@ from eth.abc import (
 )
 from eth.constants import (
     EMPTY_UNCLE_HASH,
+    GENESIS_PARENT_HASH,
 )
 from eth.exceptions import (
     HeaderNotFound,
@@ -92,17 +93,20 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
 
     @classmethod
-    def _set_as_canonical_chain_head(cls,
-                                     db: DatabaseAPI,
-                                     block_hash: Hash32,
-                                     ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:  # noqa: E501
+    def _set_as_canonical_chain_head(
+            cls,
+            db: DatabaseAPI,
+            block_hash: Hash32,
+            genesis_parent_hash: Hash32,
+    ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         try:
             header = cls._get_block_header_by_hash(db, block_hash)
         except HeaderNotFound:
             raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
                 header.hash))
 
-        new_canonical_headers = tuple(reversed(cls._find_new_ancestors(db, header)))
+        new_canonical_headers = tuple(reversed(
+            cls._find_new_ancestors(db, header, genesis_parent_hash)))
         old_canonical_headers = []
 
         # remove transaction lookups for blocks that are no longer canonical
@@ -134,23 +138,34 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     # Block API
     #
     def persist_block(self,
-                      block: BlockAPI
+                      block: BlockAPI,
+                      genesis_parent_hash: Hash32 = GENESIS_PARENT_HASH
                       ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         """
         Persist the given block's header and uncles.
 
+        :param block: the block that gets persisted
+        :param genesis_parent_hash: *optional* parent hash of the header that is treated
+            as genesis. Providing a ``genesis_parent_hash`` allows storage of blocks that
+            aren't (yet) connected back to the true genesis header.
+
         Assumes all block transactions have been persisted already.
         """
         with self.db.atomic_batch() as db:
-            return self._persist_block(db, block)
+            return self._persist_block(db, block, genesis_parent_hash)
 
     @classmethod
     def _persist_block(
             cls,
             db: DatabaseAPI,
-            block: BlockAPI) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
+            block: BlockAPI,
+            genesis_parent_hash: Hash32) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         header_chain = (block.header, )
-        new_canonical_headers, old_canonical_headers = cls._persist_header_chain(db, header_chain)
+        new_canonical_headers, old_canonical_headers = cls._persist_header_chain(
+            db,
+            header_chain,
+            genesis_parent_hash
+        )
 
         for header in new_canonical_headers:
             if header.hash == block.hash:
