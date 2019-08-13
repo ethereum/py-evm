@@ -92,7 +92,7 @@ async def test_read_write_req_msg(msg):
     )
 )
 @pytest.mark.asyncio
-async def test_read_write_resp_msg_round_trip_success_code(msg):
+async def test_read_write_resp_msg(msg):
     s = FakeNetStream()
     resp_code = ResponseCode.SUCCESS
     await write_resp(s, msg, resp_code)
