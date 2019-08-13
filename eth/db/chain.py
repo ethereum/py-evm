@@ -31,6 +31,7 @@ from eth.exceptions import (
     ReceiptNotFound,
     TransactionNotFound,
 )
+from eth.db.block_diff import BlockDiff
 from eth.db.header import BaseHeaderDB, HeaderDB
 from eth.db.backends.base import (
     BaseAtomicDB,
@@ -261,6 +262,9 @@ class ChainDB(HeaderDB, BaseChainDB):
         old_canonical_hashes = tuple(
             header.hash for header in old_canonical_headers)
 
+        # TODO: Only do this if we're in Turbo mode
+        cls._update_turbo_db(db, new_canonical_headers, old_canonical_headers)
+
         return new_canonical_hashes, old_canonical_hashes
 
     def persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
@@ -278,6 +282,20 @@ class ChainDB(HeaderDB, BaseChainDB):
             uncles_hash,
             rlp.encode(uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
         return uncles_hash
+
+    @classmethod
+    def _update_turbo_db(cls,
+                         db: 'BaseDB',
+                         new_canonical_headers: Tuple[Tuple[BlockHeader]],
+                         old_canonical_headers: Tuple[Tuple[BlockHeader]]) -> None:
+        # A - B - C - D (B, C, D is new_canonical_headers)
+        #  \- E - F - G (E, F, G is old_canonical_headers)
+
+        for old_header in reversed(old_canonical_headers):
+            BlockDiff.apply_to(db, old_header.parent_hash, old_header.hash)
+
+        for new_header in new_canonical_headers:
+            BlockDiff.apply_to(db, new_header.parent_hash, new_header.hash)
 
     #
     # Transaction API

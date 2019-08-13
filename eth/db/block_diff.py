@@ -18,7 +18,8 @@ from eth_utils import (
 import rlp
 
 from eth.db.backends.base import BaseDB
-from eth.db.schema import SchemaTurbo
+from eth.db.atomic import AtomicDB
+from eth.db.schema import SchemaTurbo, Schemas, get_schema
 from eth.rlp.accounts import Account
 
 
@@ -131,3 +132,44 @@ class BlockDiff:
 
         encoded_diff = rlp.encode(diff)
         db[SchemaTurbo.make_block_diff_lookup_key(block_hash)] = encoded_diff
+
+    @classmethod
+    def apply_to(cls, db: BaseDB,
+                 parent_hash: Hash32, block_hash: Hash32, forward: bool = True) -> None:
+        """
+        Looks up the BlockDif for the given hash and applies it to the databae
+        """
+
+        if get_schema(db) != Schemas.TURBO:
+            return
+
+        # 1. Verify the database is in the correct state
+        if forward:
+            assert db[SchemaTurbo.current_state_lookup_key] == parent_hash
+        else:
+            assert db[SchemaTurbo.current_state_lookup_key] == block_hash
+
+        # 2. Lookup the diff (throws KeyError if it does not exist)
+        diff = cls.from_db(db, block_hash)
+
+        # Sadly, AtomicDB.atomic_batch() databases are not themselves atomic, so the rest
+        # of this method cannot be wrapped in an atomic_batch context manager.
+
+        # TODO: also keep track of storage items!
+        for address in diff.get_changed_accounts():
+            old_value = diff.get_account(address, new=False)
+            new_value = diff.get_account(address, new=True)
+
+            key = SchemaTurbo.make_account_state_lookup_key(keccak(address))
+
+            if forward:
+                assert db[key] == old_value
+                db[key] = new_value
+            else:
+                assert db[key] == new_value
+                db[key] = old_value
+
+        if forward:
+            db[SchemaTurbo.current_state_lookup_key] = block_hash
+        else:
+            db[SchemaTurbo.current_state_lookup_key] = parent_hash
