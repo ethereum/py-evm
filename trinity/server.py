@@ -13,7 +13,8 @@ from lahja import EndpointAPI
 from eth_keys import datatypes
 from cancel_token import CancelToken, OperationCancelled
 from eth_typing import BlockNumber
-from eth.vm.base import BaseVM
+
+from eth.abc import VirtualMachineAPI
 
 from p2p.abc import NodeAPI
 from p2p.constants import DEFAULT_MAX_PEERS
@@ -48,7 +49,7 @@ DIAL_IN_OUT_RATIO = 0.75
 BOUND_IP = '0.0.0.0'
 
 TPeerPool = TypeVar('TPeerPool', bound=BasePeerPool)
-T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[BaseVM]], ...]
+T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
 
 
 class BaseServer(BaseService, Generic[TPeerPool]):

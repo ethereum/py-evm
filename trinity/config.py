@@ -27,8 +27,8 @@ from typing import (
     cast,
 )
 
-from eth.db.backends.base import (
-    BaseAtomicDB,
+from eth.abc import (
+    AtomicDatabaseAPI,
 )
 from eth.typing import (
     VMConfiguration,
@@ -217,7 +217,7 @@ class Eth1ChainConfig:
         return self.genesis_data.state
 
     def initialize_chain(self,
-                         base_db: BaseAtomicDB) -> 'FullChain':
+                         base_db: AtomicDatabaseAPI) -> 'FullChain':
         genesis_params = self.genesis_params.to_dict()
         genesis_state = {
             address: account.to_dict()
@@ -714,7 +714,7 @@ class BeaconChainConfig:
         )
 
     def initialize_chain(self,
-                         base_db: BaseAtomicDB) -> 'BeaconChain':
+                         base_db: AtomicDatabaseAPI) -> 'BeaconChain':
         chain_class = self.beacon_chain_class
         state = self.genesis_data.state
         block = get_genesis_block(

@@ -10,11 +10,11 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.chains.base import (
-    BaseChain
+from eth.abc import (
+    ChainAPI,
+    SignedTransactionAPI,
 )
 from eth.rlp.transactions import (
-    BaseTransaction,
     BaseTransactionFields
 )
 
@@ -29,7 +29,7 @@ class DefaultTransactionValidator():
     """
 
     def __init__(self,
-                 chain: BaseChain,
+                 chain: ChainAPI,
                  initial_tx_validation_block_number: BlockNumber = None) -> None:
         if not chain.vm_configuration:
             raise TypeError(
@@ -66,7 +66,7 @@ class DefaultTransactionValidator():
             return True
 
     @cachetools.func.ttl_cache(maxsize=1024, ttl=300)
-    def get_appropriate_tx_class(self) -> Type[BaseTransaction]:
+    def get_appropriate_tx_class(self) -> Type[SignedTransactionAPI]:
         head = self.chain.get_canonical_head()
         current_tx_class = self.chain.get_vm_class(head).get_transaction_class()
 
@@ -77,9 +77,11 @@ class DefaultTransactionValidator():
 
         return current_tx_class
 
-    def is_outdated_tx_class(self, tx_class: Type[BaseTransaction]) -> bool:
+    def is_outdated_tx_class(self, tx_class: Type[SignedTransactionAPI]) -> bool:
         return self._ordered_tx_classes.index(tx_class) < self._initial_tx_class_index
 
-    def _get_tx_class_for_block_number(self, block_number: BlockNumber) -> Type[BaseTransaction]:
+    def _get_tx_class_for_block_number(self,
+                                       block_number: BlockNumber,
+                                       ) -> Type[SignedTransactionAPI]:
         vm_class = self.chain.get_vm_class_for_block_number(block_number)
         return vm_class.get_transaction_class()

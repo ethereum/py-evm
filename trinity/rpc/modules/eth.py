@@ -27,6 +27,7 @@ from eth_utils import (
     to_wei,
 )
 
+from eth.abc import AccountDatabaseAPI
 from eth.constants import (
     ZERO_ADDRESS,
 )
@@ -38,9 +39,6 @@ from eth.rlp.headers import (
 )
 from eth.vm.spoof import (
     SpoofTransaction,
-)
-from eth.vm.state import (
-    BaseAccountDB
 )
 
 from trinity.constants import (
@@ -90,7 +88,7 @@ async def get_header(chain: BaseAsyncChain, at_block: Union[str, int]) -> BlockH
 async def state_at_block(
         chain: BaseAsyncChain,
         at_block: Union[str, int],
-        read_only: bool=True) ->BaseAccountDB:
+        read_only: bool=True) -> AccountDatabaseAPI:
     at_header = await get_header(chain, at_block)
     vm = chain.get_vm(at_header)
     return vm.state

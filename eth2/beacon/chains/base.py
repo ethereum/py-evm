@@ -12,8 +12,8 @@ from typing import (
 from eth._utils.datatypes import (
     Configurable,
 )
-from eth.db.backends.base import (
-    BaseAtomicDB,
+from eth.abc import (
+    AtomicDatabaseAPI,
 )
 from eth.exceptions import (
     BlockNotFound,
@@ -88,7 +88,7 @@ class BaseBeaconChain(Configurable, ABC):
     @classmethod
     @abstractmethod
     def from_genesis(cls,
-                     base_db: BaseAtomicDB,
+                     base_db: AtomicDatabaseAPI,
                      genesis_state: BeaconState,
                      genesis_block: BaseBeaconBlock,
                      genesis_config: Eth2GenesisConfig) -> 'BaseBeaconChain':
@@ -192,7 +192,7 @@ class BeaconChain(BaseBeaconChain):
     chaindb_class = BeaconChainDB  # type: Type[BaseBeaconChainDB]
 
     def __init__(self,
-                 base_db: BaseAtomicDB,
+                 base_db: AtomicDatabaseAPI,
                  attestation_pool: AttestationPool,
                  genesis_config: Eth2GenesisConfig) -> None:
         if not self.sm_configuration:
@@ -221,7 +221,7 @@ class BeaconChain(BaseBeaconChain):
     #
     @classmethod
     def from_genesis(cls,
-                     base_db: BaseAtomicDB,
+                     base_db: AtomicDatabaseAPI,
                      genesis_state: BeaconState,
                      genesis_block: BaseBeaconBlock,
                      genesis_config: Eth2GenesisConfig) -> 'BaseBeaconChain':
@@ -249,7 +249,7 @@ class BeaconChain(BaseBeaconChain):
 
     @classmethod
     def _from_genesis_block(cls,
-                            base_db: BaseAtomicDB,
+                            base_db: AtomicDatabaseAPI,
                             attestation_pool: AttestationPool,
                             genesis_block: BaseBeaconBlock,
                             genesis_config: Eth2GenesisConfig) -> 'BaseBeaconChain':

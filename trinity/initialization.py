@@ -1,8 +1,10 @@
 import os
 from typing import Type
 
-from eth.db.backends.base import BaseAtomicDB
-from eth.db.chain import BaseChainDB
+from eth.abc import (
+    AtomicDatabaseAPI,
+    ChainDatabaseAPI,
+)
 from eth.exceptions import CanonicalHeadNotFound
 
 from p2p import ecies
@@ -59,7 +61,7 @@ def is_data_dir_initialized(trinity_config: TrinityConfig) -> bool:
     return True
 
 
-def is_database_initialized(chaindb: BaseChainDB) -> bool:
+def is_database_initialized(chaindb: ChainDatabaseAPI) -> bool:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -131,8 +133,8 @@ def initialize_data_dir(trinity_config: TrinityConfig) -> None:
 
 
 def initialize_database(chain_config: Eth1ChainConfig,
-                        chaindb: BaseChainDB,
-                        base_db: BaseAtomicDB) -> None:
+                        chaindb: ChainDatabaseAPI,
+                        base_db: AtomicDatabaseAPI) -> None:
     try:
         chaindb.get_canonical_head()
     except CanonicalHeadNotFound:
@@ -141,7 +143,7 @@ def initialize_database(chain_config: Eth1ChainConfig,
 
 def initialize_beacon_database(chain_config: BeaconChainConfig,
                                chaindb: BaseBeaconChainDB,
-                               base_db: BaseAtomicDB,
+                               base_db: AtomicDatabaseAPI,
                                block_class: Type[BaseBeaconBlock]) -> None:
     try:
         chaindb.get_canonical_head(block_class)

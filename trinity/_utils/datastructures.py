@@ -19,6 +19,7 @@ from typing import (
     Dict,
     Generic,
     Iterable,
+    Sequence,
     Set,
     Tuple,
     Type,
@@ -240,7 +241,7 @@ class TaskQueue(Generic[TTask]):
 
         return (next_id, pending_tasks)
 
-    def complete(self, batch_id: int, completed: Tuple[TTask, ...]) -> None:
+    def complete(self, batch_id: int, completed: Sequence[TTask]) -> None:
         if batch_id not in self._in_progress:
             raise ValidationError(f"batch id {batch_id} not recognized, with tasks {completed!r}")
 
@@ -337,7 +338,7 @@ class DuplicateTasks(Exception, Generic[TTask]):
     """
     Tried to register a task that was already registered
     """
-    def __init__(self, msg: str, duplicates: Tuple[TTask, ...]) -> None:
+    def __init__(self, msg: str, duplicates: Sequence[TTask]) -> None:
         super().__init__(msg)
         self.duplicates = duplicates
 
@@ -361,7 +362,7 @@ class BaseOrderedTaskPreparation(ABC, Generic[TTask, TTaskID]):
     @abstractmethod
     def register_tasks(
             self,
-            tasks: Tuple[TTask, ...],
+            tasks: Sequence[TTask],
             ignore_duplicates: bool = False) -> Tuple[TTask, ...]:
         ...
 
@@ -542,7 +543,7 @@ class OrderedTaskPreparation(
     @to_tuple
     def register_tasks(
             self,
-            tasks: Tuple[TTask, ...],
+            tasks: Sequence[TTask],
             ignore_duplicates: bool = False) -> Iterable[TTask]:
         """
         Initiate a task into tracking. By default, each task must be registered
@@ -601,7 +602,7 @@ class OrderedTaskPreparation(
 
                 yield prereq_tracker.task
 
-    def finish_prereq(self, prereq: TPrerequisite, tasks: Tuple[TTask, ...]) -> None:
+    def finish_prereq(self, prereq: TPrerequisite, tasks: Sequence[TTask]) -> None:
         """For every task in tasks, mark the given prerequisite as completed"""
         if len(self._tasks) == 0:
             raise ValidationError("Cannot finish a task until set_last_completion() is called")

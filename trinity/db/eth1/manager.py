@@ -4,8 +4,8 @@ from multiprocessing.managers import (
 )
 import pathlib
 
+from eth.abc import AtomicDatabaseAPI
 from eth.db.chain import ChainDB
-from eth.db.backends.base import BaseAtomicDB
 from eth.db.header import HeaderDB
 
 from trinity.config import (
@@ -28,7 +28,7 @@ from trinity._utils.mp import TracebackRecorder
 
 
 def create_db_server_manager(trinity_config: TrinityConfig,
-                             base_db: BaseAtomicDB) -> BaseManager:
+                             base_db: AtomicDatabaseAPI) -> BaseManager:
 
     eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
     chain_config = eth1_app_config.get_chain_config()

@@ -8,7 +8,7 @@ from typing import (
     Type,
 )
 
-from eth.db.backends.base import BaseDB
+from eth.abc import AtomicDatabaseAPI
 from eth.db.backends.level import LevelDB
 
 from trinity.bootstrap import (
@@ -92,7 +92,7 @@ def trinity_boot(args: Namespace,
 
 @setup_cprofiler('profile_db_process')
 @with_queued_logging
-def run_database_process(trinity_config: TrinityConfig, db_class: Type[BaseDB]) -> None:
+def run_database_process(trinity_config: TrinityConfig, db_class: Type[AtomicDatabaseAPI]) -> None:
     with trinity_config.process_id_file('database'):
         app_config = trinity_config.get_app_config(Eth1AppConfig)
 
