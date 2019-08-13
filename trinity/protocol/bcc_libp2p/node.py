@@ -395,7 +395,7 @@ class Node(BaseService):
 
         self.handshaked_peers.add(peer_id)
 
-        self.logger.debug(f"Handshake to {peer_id} is finished. Added to the `handshake_peers`.")
+        self.logger.debug(f"Handshake to peer={peer_id} is finished. Added to the `handshake_peers`.")
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
 
         await stream.close()
