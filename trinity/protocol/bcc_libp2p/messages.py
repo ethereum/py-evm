@@ -20,20 +20,7 @@ from eth2.beacon.typing import (  # noqa: F401
     default_version,
 )
 
-# # ErrorMessage
-# (
-#   error_message: String
-# )
 
-
-# # HelloRequest
-# (
-#   fork_version: bytes4
-#   finalized_root: bytes32
-#   finalized_epoch: uint64
-#   head_root: bytes32
-#   head_slot: uint64
-# )
 class HelloRequest(ssz.Serializable):
     fields = [
         ('fork_version', bytes4),
@@ -60,10 +47,6 @@ class HelloRequest(ssz.Serializable):
         )
 
 
-# # TODO: Goodbye
-# (
-#   reason: uint64
-# )
 class Goodbye(ssz.Serializable):
     fields = [
         ('reason', uint64),
@@ -73,13 +56,6 @@ class Goodbye(ssz.Serializable):
         super().__init__(reason)
 
 
-# # TODO: BeaconBlocksRequest
-# (
-#   head_block_root: HashTreeRoot
-#   start_slot: uint64
-#   count: uint64
-#   step: uint64
-# )
 class BeaconBlocksRequest(ssz.Serializable):
     fields = [
         ('head_block_root', bytes32),
@@ -103,7 +79,7 @@ class BeaconBlocksRequest(ssz.Serializable):
         )
 
 
-# # BeaconBlocksResponse
+# # TODO: BeaconBlocksResponse
 # (
 #   blocks: []BeaconBlock
 # )

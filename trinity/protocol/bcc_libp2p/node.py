@@ -84,6 +84,7 @@ from .configs import (
 from .exceptions import (
     HandshakeFailure,
     ReadMessageFailure,
+    ValidationError,
     WriteMessageFailure,
 )
 from .messages import (
@@ -269,13 +270,16 @@ class Node(BaseService):
     #   - Record peers' joining time.
     #   - Disconnect peers when they fail to join in a certain amount of time.
 
-    async def _validate_hello_req(self, hello_other_side: HelloRequest) -> bool:
+    async def _validate_hello_req(self, hello_other_side: HelloRequest) -> None:
         state = self.chain.get_state_machine().state
         if hello_other_side.fork_version != state.fork.current_version:
-            return False
+            raise ValidationError(
+                "`fork_version` mismatches: "
+                f"hello_other_side.fork_version={hello_other_side.fork_version}, "
+                f"state.fork.current_version={state.fork.current_version}"
+            )
         # TODO: Reject if the (finalized_root, finalized_epoch) shared by the peer
         #   is not in the client's chain at the expected epoch.
-        return True
 
     async def _request_beacon_blocks(self) -> None:
         """
@@ -297,14 +301,16 @@ class Node(BaseService):
         )
 
     async def _handle_hello(self, stream: INetStream) -> None:
+        # TODO: Find out when we should respond the `ResponseCode`
+        #   other than `ResponseCode.SUCCESS`.
+
         # TODO: Handle `stream.close` and `stream.reset`
         peer_id = stream.mplex_conn.peer_id
         if peer_id in self.handshaked_peers:
-            error_msg = f"already handshaked with {peer_id} before"
-            self.logger.info(f"Handshake failed: {error_msg}.")
+            self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
-            raise HandshakeFailure(error_msg)
+            return
 
         self.logger.debug(f"Waiting for hello from the other side")
         try:
@@ -313,28 +319,28 @@ class Node(BaseService):
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
-            raise HandshakeFailure("fail to read the request") from error
+            return
         self.logger.debug(f"Received the hello message {hello_other_side}")
-        if not (await self._validate_hello_req(hello_other_side)):
-            error_msg = f"hello message {hello_other_side} is not valid"
-            self.logger.info(
-                f"Handshake failed: {error_msg}."
-                f"Disconnecting {peer_id}."
-            )
+
+        try:
+            await self._validate_hello_req(hello_other_side)
+        except ValidationError:
+            self.logger.info(f"Handshake failed: hello message {hello_other_side} is invalid.")
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
-            raise HandshakeFailure(error_msg)
+            return
 
         hello_mine = self._make_hello_packet()
 
         self.logger.debug(f"Sending our hello message {hello_mine}")
-        # TODO: Find out when we should respond the `ResponseCode`
-        #   other than `ResponseCode.SUCCESS`.
         try:
             await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
         except WriteMessageFailure as error:
-            raise HandshakeFailure(f"fail to write response={hello_mine}") from error
+            self.logger.info(f"Handshake failed: failed to write message {hello_mine}.")
+            # await stream.reset()
+            # TODO: Disconnect
+            return
 
         self.handshaked_peers.add(peer_id)
 
@@ -352,13 +358,20 @@ class Node(BaseService):
 
         hello_mine = self._make_hello_packet()
 
-        self.logger.debug(f"Opening new stream to peer={peer_id} with protocols={[REQ_RESP_HELLO_SSZ]}.")
+        self.logger.debug(
+            f"Opening new stream to peer={peer_id} with protocols={[REQ_RESP_HELLO_SSZ]}."
+        )
         stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
         self.logger.debug(f"Sending our hello message {hello_mine}.")
         try:
             await write_req(stream, hello_mine)
         except WriteMessageFailure as error:
-            raise HandshakeFailure(f"fail to write request={hello_mine}") from error
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            # TODO: Disconnect
+            error_msg = f"fail to write request={hello_mine}"
+            self.logger.info(f"Handshake failed: {error_msg}.")
+            raise HandshakeFailure(error_msg) from error
 
         self.logger.debug(f"Waiting for hello from the other side")
         try:
@@ -367,7 +380,9 @@ class Node(BaseService):
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
-            raise HandshakeFailure("fail to read the response") from error
+            error_msg = "fail to read the response"
+            self.logger.info(f"Handshake failed: {error_msg}.")
+            raise HandshakeFailure(error_msg) from error
 
         self.logger.debug(f"Received the hello message {hello_other_side}, resp_code={resp_code}.")
 
@@ -385,17 +400,21 @@ class Node(BaseService):
             # TODO: Disconnect
             raise HandshakeFailure(error_msg)
 
-        if not (await self._validate_hello_req(hello_other_side)):
-            error_msg = f"hello message {hello_other_side} is invalid"
+        try:
+            await self._validate_hello_req(hello_other_side)
+        except ValidationError as error:
+            error_msg = f"hello message {hello_other_side} is invalid: {str(error)}"
             self.logger.info(f"Handshake failed: {error_msg}. Disconnecting {peer_id}.")
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
-            raise HandshakeFailure(error_msg)
+            raise HandshakeFailure(error_msg) from error
 
         self.handshaked_peers.add(peer_id)
 
-        self.logger.debug(f"Handshake to peer={peer_id} is finished. Added to the `handshake_peers`.")
+        self.logger.debug(
+            f"Handshake to peer={peer_id} is finished. Added to the `handshake_peers`."
+        )
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
 
         await stream.close()

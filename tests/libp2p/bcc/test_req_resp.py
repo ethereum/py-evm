@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 
-from trinity.protocol.bcc_libp2p import utils
 from trinity.protocol.bcc_libp2p.node import (
     REQ_RESP_HELLO_SSZ,
 )
@@ -15,15 +14,10 @@ from trinity.protocol.bcc_libp2p.exceptions import (
 from trinity.protocol.bcc_libp2p.messages import (
     HelloRequest,
 )
-
-
-MOCK_TIME = 0.01
-
-
-@pytest.fixture
-def mock_timeout(monkeypatch):
-    monkeypatch.setattr(utils, "TTFB_TIMEOUT", MOCK_TIME)
-    monkeypatch.setattr(utils, "RESP_TIMEOUT", MOCK_TIME * 2)
+from trinity.protocol.bcc_libp2p.utils import (
+    read_req,
+    write_resp,
+)
 
 
 @pytest.mark.parametrize(
@@ -72,9 +66,9 @@ async def test_hello_failure_failure_response(nodes_with_chain):
     await nodes[0].dial_peer_maddr(nodes[1].listen_maddr_with_peer_id)
 
     async def fake_handle_hello(stream):
-        await utils.read_req(stream, HelloRequest)
+        await read_req(stream, HelloRequest)
         # The overridden `resp_code` can be anything other than `ResponseCode.SUCCESS`
-        await utils.write_resp(stream, HelloRequest(), ResponseCode.INVALID_REQUEST)
+        await write_resp(stream, "error msg", ResponseCode.INVALID_REQUEST)
     # Mock the handler.
     nodes[1].host.set_stream_handler(REQ_RESP_HELLO_SSZ, fake_handle_hello)
     # Test: Handshake fails when the response is not success.

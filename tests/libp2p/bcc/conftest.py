@@ -7,9 +7,20 @@ from eth_utils.toolz import (
     groupby,
 )
 
+from trinity.protocol.bcc_libp2p import utils
+
 from trinity.tools.bcc_factories import (
     NodeFactory,
 )
+
+
+MOCK_TIME = 0.01
+
+
+@pytest.fixture
+def mock_timeout(monkeypatch):
+    monkeypatch.setattr(utils, "TTFB_TIMEOUT", MOCK_TIME)
+    monkeypatch.setattr(utils, "RESP_TIMEOUT", MOCK_TIME * 2)
 
 
 @pytest.fixture

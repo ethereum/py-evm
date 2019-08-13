@@ -1,5 +1,4 @@
 import asyncio
-import io
 from typing import (
     NamedTuple,
 )
@@ -8,8 +7,14 @@ import pytest
 
 from eth_keys import datatypes
 
+import ssz
+
 from trinity.protocol.bcc_libp2p.configs import (
     ResponseCode,
+)
+from trinity.protocol.bcc_libp2p.exceptions import (
+    ReadMessageFailure,
+    WriteMessageFailure,
 )
 from trinity.protocol.bcc_libp2p.messages import (
     HelloRequest,
@@ -36,7 +41,7 @@ def test_peer_id_from_pubkey():
 
 
 class FakeNetStream:
-    _queue: asyncio.Queue
+    _queue: "asyncio.Queue[bytes]"
 
     class FakeMplexConn(NamedTuple):
         peer_id: ID = ID(b"\x12\x20" + b"\x00" * 32)
@@ -47,14 +52,17 @@ class FakeNetStream:
         self._queue = asyncio.Queue()
 
     async def read(self, n: int = -1) -> bytes:
-        buf = io.BytesIO()
-        n_read = 0
+        buf = b""
+        # Exit with empty bytes directly if `n == 0`.
+        if n == 0:
+            return b''
+        # Force to blocking wait for first byte.
+        buf += await self._queue.get()
         while not self._queue.empty():
-            if n != -1 and n_read >= n:
+            if n != -1 and len(buf) >= n:
                 break
-            buf.write(await self._queue.get())
-            n_read += 1
-        return buf.getvalue()
+            buf += await self._queue.get()
+        return buf
 
     async def write(self, data: bytes) -> int:
         for i in data:
@@ -99,3 +107,100 @@ async def test_read_write_resp_msg(msg):
     resp_code_read, msg_read = await read_resp(s, HelloRequest)
     assert resp_code_read == resp_code
     assert msg_read == msg
+
+
+@pytest.mark.parametrize(
+    "resp_code, error_msg",
+    (
+        (ResponseCode.INVALID_REQUEST, "error msg"),
+        (ResponseCode.SERVER_ERROR, "error msg"),
+    ),
+)
+@pytest.mark.asyncio
+async def test_read_write_resp_msg_error_resp_code(resp_code, error_msg):
+    s = FakeNetStream()
+    await write_resp(s, error_msg, resp_code)
+    resp_code_read, msg_read = await read_resp(s, HelloRequest)
+    assert resp_code_read == resp_code
+    assert msg_read == error_msg
+
+
+def _fake_encode(data):
+    raise ssz.SerializationError
+
+
+def _fake_decode(data):
+    raise ssz.DeserializationError
+
+
+@pytest.mark.asyncio
+async def test_read_req_failure(monkeypatch, mock_timeout):
+    s = FakeNetStream()
+    # Test: Raise `ReadMessageFailure` if the time is out.
+    with pytest.raises(ReadMessageFailure):
+        await read_req(s, HelloRequest)
+
+    monkeypatch.setattr(ssz, "decode", _fake_decode)
+    with pytest.raises(ReadMessageFailure):
+        await read_req(s, HelloRequest)
+
+
+@pytest.mark.asyncio
+async def test_write_req_failure(monkeypatch):
+    s = FakeNetStream()
+
+    # Test: Raise `WriteMessageFailure` if `ssz.SerializationError` is thrown.
+    monkeypatch.setattr(ssz, "encode", _fake_encode)
+    with pytest.raises(WriteMessageFailure):
+        await write_req(s, b"whatever data")
+
+
+@pytest.mark.asyncio
+async def test_read_resp_failure(monkeypatch, mock_timeout):
+    s = FakeNetStream()
+    # Test: Raise `ReadMessageFailure` if the time is out.
+    with pytest.raises(ReadMessageFailure):
+        await read_resp(s, HelloRequest)
+
+    # Test: Raise `ReadMessageFailure` if `read` returns `b""`.
+
+    async def _fake_read(n):
+        return b""
+    monkeypatch.setattr(s, 'read', _fake_read)
+    with pytest.raises(ReadMessageFailure):
+        await read_resp(s, HelloRequest)
+
+
+@pytest.mark.parametrize(
+    "msg_bytes",
+    (
+        b"\x7b\x03msg",  # resp_code = 123, msg = "msg"
+        # Should probably be reserved as a valid error code in the future.
+        b"\xff\x03msg",  # resp_code = 255, msg = "msg"
+    ),
+)
+@pytest.mark.asyncio
+async def test_read_resp_failure_invalid_resp_code(msg_bytes):
+    s = FakeNetStream()
+    await s.write(msg_bytes)
+    with pytest.raises(ReadMessageFailure):
+        await read_resp(s, HelloRequest)
+
+
+@pytest.mark.asyncio
+async def test_write_resp_failure(monkeypatch):
+    s = FakeNetStream()
+    # Test: Raise `WriteMessageFailure` if `resp_code` is SUCCESS,
+    #   but `msg` is not `ssz.Serializable`.
+    with pytest.raises(WriteMessageFailure):
+        await write_resp(s, "error msg", ResponseCode.SUCCESS)
+
+    # Test: Raise `WriteMessageFailure` if `resp_code` is not SUCCESS,
+    #   but `msg` is not `str`.
+    with pytest.raises(WriteMessageFailure):
+        await write_resp(s, HelloRequest(), ResponseCode.INVALID_REQUEST)
+
+    # Test: Raise `WriteMessageFailure` if `ssz.SerializationError` is thrown.
+    monkeypatch.setattr(ssz, "encode", _fake_encode)
+    with pytest.raises(WriteMessageFailure):
+        await write_req(s, b"whatever data")

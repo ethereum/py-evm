@@ -12,3 +12,7 @@ class ReadMessageFailure(BaseLibp2pError):
 
 class WriteMessageFailure(BaseLibp2pError):
     pass
+
+
+class ValidationError(BaseLibp2pError):
+    pass
