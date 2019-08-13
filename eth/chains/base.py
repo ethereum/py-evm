@@ -130,6 +130,10 @@ class BaseChain(Configurable, ChainAPI):
         else:
             raise VMNotFound("No vm available for block #{0}".format(block_number))
 
+    @classmethod
+    def get_vm_class(cls, header: BlockHeaderAPI) -> Type[VirtualMachineAPI]:
+        return cls.get_vm_class_for_block_number(header.block_number)
+
     #
     # Validation API
     #
