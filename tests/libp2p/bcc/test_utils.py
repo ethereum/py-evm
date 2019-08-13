@@ -78,7 +78,7 @@ hello_req = HelloRequest(
     )
 )
 @pytest.mark.asyncio
-async def test_read_write_req_msg_round_trip(msg):
+async def test_read_write_req_msg(msg):
     s = FakeNetStream()
     await write_req(s, msg)
     msg_read = await read_req(s, HelloRequest)
