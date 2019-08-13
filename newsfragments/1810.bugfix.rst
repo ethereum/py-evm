@@ -1,1 +1,0 @@
-Fix a crash during chain reorganization on a header-only chain (which can happen during Beam Sync)

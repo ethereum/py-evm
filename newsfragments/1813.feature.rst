@@ -1,1 +1,0 @@
-Package up test suites for the ``DatabaseAPI`` and ``AtomicDatabaseAPI`` to be class-based to make them reusable by other libaries.

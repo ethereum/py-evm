@@ -1,2 +1,0 @@
-Drop StateRootNotFound as an over-specialized version of EVMMissingData.
-Drop VMState.execute_transaction() as redundant to VMState.apply_transaction().

@@ -3,6 +3,34 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.2 (2019-08-13)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Package up test suites for the ``DatabaseAPI`` and ``AtomicDatabaseAPI`` to be class-based to make them reusable by other libaries. (`#1813 <https://github.com/ethereum/py-evm/issues/1813>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Fix a crash during chain reorganization on a header-only chain (which can happen during Beam Sync) (`#1810 <https://github.com/ethereum/py-evm/issues/1810>`__)
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Setup towncrier to generate release notes from fragment files to  ensure a higher standard
+  for release notes. (`#1796 <https://github.com/ethereum/py-evm/issues/1796>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Drop StateRootNotFound as an over-specialized version of EVMMissingData.
+  Drop VMState.execute_transaction() as redundant to VMState.apply_transaction(). (`#1809 <https://github.com/ethereum/py-evm/issues/1809>`__)
+
 
 v0.3.0-alpha.1
 --------------------------
