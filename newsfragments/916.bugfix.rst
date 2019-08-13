@@ -1,0 +1,1 @@
+Handles ``MalformedMessage`` and ``TimeoutError`` exceptions that can occur while multiplexing the devp2p connection
