@@ -1723,6 +1723,7 @@ class ChainAPI(ConfigurableAPI):
     # VM API
     #
     @classmethod
+    @abstractmethod
     def get_vm_class(cls, header: BlockHeaderAPI) -> Type[VirtualMachineAPI]:
         """
         Returns the VM instance for the given block number.

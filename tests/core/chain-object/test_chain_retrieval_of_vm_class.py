@@ -69,6 +69,15 @@ def test_header_chain_get_vm_class_for_block_number(base_db, genesis_header):
         assert chain.get_vm_class_for_block_number(num) is VM_B
 
 
+def test_header_chain_get_vm_class_using_block_header(base_db, genesis_header):
+    chain = ChainForTesting.from_genesis_header(base_db, genesis_header)
+    assert chain.get_vm_class(genesis_header) is VM_A
+
+    header_at_height_10 = genesis_header.copy(block_number=10)
+
+    assert chain.get_vm_class(header_at_height_10) is VM_B
+
+
 def test_header_chain_invalid_if_no_vm_configuration(base_db, genesis_header):
     chain_class = MiningChain.configure('ChainNoEmptyConfiguration', vm_configuration=())
     with pytest.raises(ValueError):
