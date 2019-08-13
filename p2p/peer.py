@@ -38,6 +38,7 @@ from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     HandshakeFailure,
     MalformedMessage,
+    PeerConnectionLost,
     TooManyPeersFailure,
     UnexpectedMessage,
     UnknownProtocolCommand,
@@ -366,10 +367,14 @@ class BasePeer(BaseService):
             token=self.cancel_token,
         )
         self.run_child_service(self.boot_manager)
-        async with multiplexer.multiplex():
-            self.run_daemon_task(self.handle_p2p_proto_stream(multiplexer))
-            self.run_daemon_task(self.handle_sub_proto_stream(multiplexer))
-            await self.cancellation()
+        try:
+            async with multiplexer.multiplex():
+                self.run_daemon_task(self.handle_p2p_proto_stream(multiplexer))
+                self.run_daemon_task(self.handle_sub_proto_stream(multiplexer))
+                await self.cancellation()
+        except PeerConnectionLost as err:
+            self.logger.debug('Peer connection lost: %r', err)
+            self.cancel_nowait()
 
     async def read_msg(self) -> Tuple[CommandAPI, Payload]:
         msg = await self.transport.recv(self.cancel_token)
