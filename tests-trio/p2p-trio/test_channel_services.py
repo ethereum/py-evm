@@ -54,25 +54,25 @@ async def test_datagram_receiver(socket_pair):
             received_datagram = await receive_channel.receive()
 
         assert received_datagram.datagram == data
-        assert received_datagram.sender.ip_address == sender_address[0]
-        assert received_datagram.sender.port == sender_address[1]
+        assert received_datagram.sender_endpoint.ip_address == sender_address[0]
+        assert received_datagram.sender_endpoint.port == sender_address[1]
 
 
 @pytest.mark.trio
 async def test_datagram_sender(socket_pair):
     sending_socket, receiving_socket = socket_pair
-    receiver_address = receiving_socket.getsockname()
-    sender_address = sending_socket.getsockname()
+    receiver_endpoint = receiving_socket.getsockname()
+    sender_endpoint = sending_socket.getsockname()
 
     send_channel, receive_channel = trio.open_memory_channel(1)
     async with background_service(DatagramSender(receive_channel, sending_socket)):
-        outgoing_datagram = OutgoingDatagram(b"some packet", receiver_address)
+        outgoing_datagram = OutgoingDatagram(b"some packet", receiver_endpoint)
         await send_channel.send(outgoing_datagram)
 
         with trio.fail_after(0.5):
             data, sender = await receiving_socket.recvfrom(1024)
         assert data == outgoing_datagram.datagram
-        assert sender == sender_address
+        assert sender == sender_endpoint
 
 
 async def test_packet_decoder():
@@ -81,18 +81,18 @@ async def test_packet_decoder():
 
     async with background_service(PacketDecoder(datagram_receive_channel, packet_send_channel)):
         packet = AuthTagPacketFactory()
-        sender = EndpointFactory()
+        sender_endpoint = EndpointFactory()
         await datagram_send_channel.send(IncomingDatagram(
             datagram=packet.to_wire_bytes(),
-            sender=sender,
+            sender_endpoint=sender_endpoint,
         ))
 
         with trio.fail_after(0.5):
             incoming_packet = await packet_receive_channel.receive()
 
         assert incoming_packet.packet == packet
-        assert incoming_packet.sender.ip_address == sender.ip_address
-        assert incoming_packet.sender.port == sender.port
+        assert incoming_packet.sender_endpoint.ip_address == sender_endpoint.ip_address
+        assert incoming_packet.sender_endpoint.port == sender_endpoint.port
 
 
 async def test_packet_decoder_error():
@@ -103,15 +103,15 @@ async def test_packet_decoder_error():
         # send invalid packet
         await datagram_send_channel.send(IncomingDatagram(
             datagram=b"not a valid packet",
-            sender=EndpointFactory(),
+            sender_endpoint=EndpointFactory(),
         ))
 
         # send valid packet
         packet = AuthTagPacketFactory()
-        sender = EndpointFactory()
+        sender_endpoint = EndpointFactory()
         await datagram_send_channel.send(IncomingDatagram(
             datagram=packet.to_wire_bytes(),
-            sender=sender,
+            sender_endpoint=sender_endpoint,
         ))
 
         # ignore the invalid one, only receive the valid one
@@ -119,8 +119,8 @@ async def test_packet_decoder_error():
             incoming_packet = await packet_receive_channel.receive()
 
         assert incoming_packet.packet == packet
-        assert incoming_packet.sender.ip_address == sender.ip_address
-        assert incoming_packet.sender.port == sender.port
+        assert incoming_packet.sender_endpoint.ip_address == sender_endpoint.ip_address
+        assert incoming_packet.sender_endpoint.port == sender_endpoint.port
 
 
 async def test_packet_encoder():
@@ -128,9 +128,10 @@ async def test_packet_encoder():
     datagram_send_channel, datagram_receive_channel = trio.open_memory_channel(1)
 
     async with background_service(PacketEncoder(packet_receive_channel, datagram_send_channel)):
+        receiver_endpoint = EndpointFactory()
         outgoing_packet = OutgoingPacket(
             packet=AuthTagPacketFactory(),
-            receiver=EndpointFactory(),
+            receiver_endpoint=receiver_endpoint,
         )
         await packet_send_channel.send(outgoing_packet)
 
@@ -138,5 +139,5 @@ async def test_packet_encoder():
             outgoing_datagram = await datagram_receive_channel.receive()
 
         assert outgoing_datagram.datagram == outgoing_packet.packet.to_wire_bytes()
-        assert outgoing_datagram.receiver.ip_address == outgoing_packet.receiver.ip_address
-        assert outgoing_datagram.receiver.port == outgoing_packet.receiver.port
+        assert outgoing_datagram.receiver_endpoint.ip_address == receiver_endpoint.ip_address
+        assert outgoing_datagram.receiver_endpoint.port == receiver_endpoint.port

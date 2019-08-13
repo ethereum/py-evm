@@ -33,28 +33,28 @@ from p2p.discv5.constants import (
 # Data structures
 #
 class Endpoint(NamedTuple):
-    ip_address: bytes
+    ip_address: str
     port: int
 
 
 class IncomingDatagram(NamedTuple):
     datagram: bytes
-    sender: Endpoint
+    sender_endpoint: Endpoint
 
 
 class OutgoingDatagram(NamedTuple):
     datagram: bytes
-    receiver: Endpoint
+    receiver_endpoint: Endpoint
 
 
 class IncomingPacket(NamedTuple):
     packet: Packet
-    sender: Endpoint
+    sender_endpoint: Endpoint
 
 
 class OutgoingPacket(NamedTuple):
     packet: Packet
-    receiver: Endpoint
+    receiver_endpoint: Endpoint
 
 
 #
@@ -71,8 +71,9 @@ async def DatagramReceiver(manager: ManagerAPI,
     async with incoming_datagram_send_channel:
         while manager.is_running:
             datagram, (ip_address, port) = await socket.recvfrom(DATAGRAM_BUFFER_SIZE)
-            logger.debug(f"Received {len(datagram)} bytes from {(ip_address, port)}")
-            incoming_datagram = IncomingDatagram(datagram, Endpoint(ip_address, port))
+            endpoint = Endpoint(ip_address, port)
+            logger.debug(f"Received {len(datagram)} bytes from {endpoint}")
+            incoming_datagram = IncomingDatagram(datagram, endpoint)
             await incoming_datagram_send_channel.send(incoming_datagram)
 
 
@@ -85,9 +86,9 @@ async def DatagramSender(manager: ManagerAPI,
     logger = logging.getLogger('p2p.discv5.channel_services.DatagramSender')
 
     async with outgoing_datagram_receive_channel:
-        async for datagram, (ip_address, port) in outgoing_datagram_receive_channel:
-            logger.debug(f"Sending {len(datagram)} bytes to {(ip_address, port)}")
-            await socket.sendto(datagram, (ip_address, port))
+        async for datagram, endpoint in outgoing_datagram_receive_channel:
+            logger.debug(f"Sending {len(datagram)} bytes to {endpoint}")
+            await socket.sendto(datagram, endpoint)
 
 
 #
@@ -102,16 +103,16 @@ async def PacketDecoder(manager: ManagerAPI,
     logger = logging.getLogger('p2p.discv5.channel_services.PacketDecoder')
 
     async with incoming_datagram_receive_channel, incoming_packet_send_channel:
-        async for datagram, sender in incoming_datagram_receive_channel:
+        async for datagram, endpoint in incoming_datagram_receive_channel:
             try:
                 packet = decode_packet(datagram)
                 logger.debug(
-                    f"Successfully decoded {packet.__class__.__name__} from {sender}"
+                    f"Successfully decoded {packet.__class__.__name__} from {endpoint}"
                 )
             except ValidationError:
-                logger.warn(f"Failed to decode a packet from {sender}", exc_info=True)
+                logger.warn(f"Failed to decode a packet from {endpoint}", exc_info=True)
             else:
-                await incoming_packet_send_channel.send(IncomingPacket(packet, sender))
+                await incoming_packet_send_channel.send(IncomingPacket(packet, endpoint))
 
 
 @as_service
@@ -123,9 +124,9 @@ async def PacketEncoder(manager: ManagerAPI,
     logger = logging.getLogger('p2p.discv5.channel_services.PacketEncoder')
 
     async with outgoing_packet_receive_channel, outgoing_datagram_send_channel:
-        async for packet, receiver in outgoing_packet_receive_channel:
-            outgoing_datagram = OutgoingDatagram(packet.to_wire_bytes(), receiver)
+        async for packet, endpoint in outgoing_packet_receive_channel:
+            outgoing_datagram = OutgoingDatagram(packet.to_wire_bytes(), endpoint)
             logger.debug(
-                f"Encoded {packet.__class__.__name__} for {receiver}"
+                f"Encoded {packet.__class__.__name__} for {endpoint}"
             )
             await outgoing_datagram_send_channel.send(outgoing_datagram)

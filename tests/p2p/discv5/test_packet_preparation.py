@@ -196,9 +196,9 @@ def test_who_are_you_preparation(node_id, token, id_nonce, enr_seq):
 @given(
     tag=tag_st,
     auth_tag=nonce_st,
-    initiator_key=key_st,
+    key=key_st,
 )
-def test_auth_tag_packet_preparation(tag, auth_tag, initiator_key):
+def test_auth_tag_packet_preparation(tag, auth_tag, key):
     message = PingMessage(
         request_id=5,
         enr_seq=3,
@@ -208,12 +208,12 @@ def test_auth_tag_packet_preparation(tag, auth_tag, initiator_key):
         tag=tag,
         auth_tag=auth_tag,
         message=message,
-        initiator_key=initiator_key,
+        key=key,
     )
     assert packet.tag == tag
     assert packet.auth_tag == auth_tag
     decrypted_message = aesgcm_decrypt(
-        key=initiator_key,
+        key=key,
         nonce=auth_tag,
         cipher_text=packet.encrypted_message,
         authenticated_data=tag,
