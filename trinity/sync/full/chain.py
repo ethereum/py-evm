@@ -1141,7 +1141,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             block = await self.wait(self._import_queue.get())
             if not self._import_active.locked():
                 self.logger.info(
-                    "Paused block import %.1fs, while collecting %s body",
+                    "Waited %.1fs for %s body",
                     waiting_for_next_block.elapsed,
                     block.header,
                 )

@@ -1,4 +1,6 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
+from operator import attrgetter
 from typing import (
     Any,
     Callable,
@@ -27,6 +29,9 @@ from eth_typing import (
 from eth_utils import (
     ValidationError,
 )
+from eth_utils.toolz import (
+    groupby,
+)
 
 from lahja import EndpointAPI
 from lahja.common import BroadcastConfig
@@ -36,7 +41,10 @@ from p2p.service import BaseService
 from trinity._utils.timer import Timer
 from trinity.chains.base import BaseAsyncChain
 from trinity.chains.full import FullChain
-from trinity.sync.beam.constants import NUM_PREVIEW_SHARDS
+from trinity.sync.beam.constants import (
+    MAX_SPECULATIVE_EXECUTIONS_PER_PROCESS,
+    NUM_PREVIEW_SHARDS,
+)
 from trinity.sync.common.events import (
     CollectMissingAccount,
     CollectMissingBytecode,
@@ -417,6 +425,48 @@ def partial_trigger_missing_state_downloads(
     return _trigger_missing_state_downloads
 
 
+def partial_speculative_execute(
+        beam_chain: BaseAsyncChain,
+        header: BlockHeader,
+        transactions: Tuple[BaseTransaction, ...]) -> Callable[[], None]:
+    """
+    Get an argument-free function that will trigger missing state downloads,
+    by executing all the transactions, in the context of the given header.
+    """
+    def _trigger_missing_state_downloads() -> None:
+        vm = beam_chain.get_vm(header)
+        unused_header = header.copy(gas_used=0)
+
+        # this won't actually save the results, but all we need to do is generate the trie requests
+        t = Timer()
+        try:
+            _, receipts, _ = vm.apply_all_transactions(transactions, unused_header)
+        except ValidationError as exc:
+            preview_time = t.elapsed
+            vm.logger.debug(
+                "Speculative transactions %d failed for %s after %.1fs: %s",
+                transactions,
+                header,
+                preview_time,
+                exc,
+            )
+        else:
+            preview_time = t.elapsed
+
+            beam_stats = vm.get_beam_stats()
+            vm.logger.debug2(
+                "Speculative transaction (%d/%d gas) for %s in %.1f s, %%exec %.0f, stats: %s",
+                sum(r.gas_used for r in receipts),
+                sum(txn.gas for txn in transactions),
+                header,
+                preview_time,
+                100 * (preview_time - beam_stats.data_pause_time) / preview_time,
+                beam_stats,
+            )
+
+    return _trigger_missing_state_downloads
+
+
 class BlockPreviewServer(BaseService):
     def __init__(
             self,
@@ -447,6 +497,10 @@ class BlockPreviewServer(BaseService):
         Listen to DoStatelessBlockPreview events, and execute the transactions to prefill
         all the needed state data.
         """
+        speculative_thread_executor = ThreadPoolExecutor(
+            max_workers=MAX_SPECULATIVE_EXECUTIONS_PER_PROCESS,
+            thread_name_prefix="trinity-spec-exec-",
+        )
 
         async for event in self.wait_iter(event_bus.stream(DoStatelessBlockPreview)):
             if event.header.block_number % NUM_PREVIEW_SHARDS != self._shard_num:
@@ -457,7 +511,8 @@ class BlockPreviewServer(BaseService):
                 self._shard_num,
                 event.header,
             )
-            # launch in new thread, so we don't block the event loop!
+            # Parallel Execution:
+            # Run a complete block end-to-end
             asyncio.get_event_loop().run_in_executor(
                 # Maybe build the pausing chain inside the new process, so we can use process pool?
                 None,
@@ -467,5 +522,24 @@ class BlockPreviewServer(BaseService):
                     event.transactions,
                 )
             )
+
+            # Speculative Execution:
+            # Split transactions into groups by sender, and run them independently.
+            # This effectively assumes that the transactions by each sender are not
+            #   affected by any other transactions in the block. This is often true,
+            #   so it helps speed up the search for data.
+            # Being able to retrieve this predicted data in parallel, asking for more
+            # trie nodes in each GetNodeData request, can help make the difference
+            # between keeping up and falling behind, on the network.
+            transaction_groups = groupby(attrgetter('sender'), event.transactions)
+            for sender_transactions in transaction_groups.values():
+                asyncio.get_event_loop().run_in_executor(
+                    speculative_thread_executor,
+                    partial_speculative_execute(
+                        beam_chain,
+                        event.header,
+                        sender_transactions,
+                    )
+                )
             # we don't need to broadcast that the preview is complete, so immediately
             # look for next preview request. That way, we can run them in parallel.
