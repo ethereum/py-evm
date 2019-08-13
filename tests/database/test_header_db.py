@@ -78,7 +78,31 @@ def test_headerdb_get_canonical_head_with_header_chain(headerdb, genesis_header)
     headerdb.persist_header_chain(headers)
 
     head = headerdb.get_canonical_head()
+    assert headerdb.get_score(head.hash) == 188978561024
     assert_headers_eq(head, headers[-1])
+
+
+def test_headerdb_persist_disconnected_headers(headerdb, genesis_header):
+    headerdb.persist_header(genesis_header)
+
+    headers = mk_header_chain(genesis_header, length=10)
+
+    score_at_pseudo_genesis = 154618822656
+    # This is the score that we would reach at the tip if we persist the entire chain.
+    # But we test to reach it by building on top of a trusted score.
+    expected_score_at_tip = 188978561024
+
+    pseudo_genesis = headers[7]
+
+    # Persist the checkpoint header with a trusted score
+    headerdb.persist_checkpoint_header(pseudo_genesis, score_at_pseudo_genesis)
+
+    headers_from_pseudo_genesis = (headers[8], headers[9],)
+
+    headerdb.persist_header_chain(headers_from_pseudo_genesis, pseudo_genesis.parent_hash)
+    head = headerdb.get_canonical_head()
+    assert_headers_eq(head, headers[-1])
+    assert headerdb.get_score(head.hash) == expected_score_at_tip
 
 
 @pytest.mark.parametrize(
