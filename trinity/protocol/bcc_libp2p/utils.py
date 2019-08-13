@@ -118,7 +118,7 @@ async def write_resp(
     try:
         resp_code_byte = resp_code.value.to_bytes(1, "big")
     except OverflowError as error:
-        raise WriteMessageFailure(f"result={resp_code} is not valid") from error
+        raise WriteMessageFailure(f"resp_code ={resp_code} is not valid") from error
     # `ErrorMsgType`
     if isinstance(msg, str):
         msg_bytes = _serialize_bytes(msg.encode("utf-8"))
