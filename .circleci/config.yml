@@ -111,7 +111,7 @@ eth2_fixtures: &eth2_fixtures
         when: on_fail
     - restore_cache:
         keys:
-          - cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+          - cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum ".circleci/config.yml" }}
     - run:
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
@@ -121,8 +121,10 @@ eth2_fixtures: &eth2_fixtures
     - run:
         name: download the required yaml files
         command: |
-          wget -c https://github.com/hwwhww/eth2.0-spec-tests/releases/download/v0.8.1b2/archive.tar.gz
-          tar zxvf archive.tar.gz -C ./eth2-fixtures
+          if [ ! -d "./eth2-fixtures/tests" ]; then
+            wget -c https://github.com/hwwhww/eth2.0-spec-tests/releases/download/v0.8.1b/archive.tar.gz
+            tar zxvf archive.tar.gz -C ./eth2-fixtures
+          fi
     - run:
         name: install dependencies
         command: pip install --user tox
@@ -137,7 +139,8 @@ eth2_fixtures: &eth2_fixtures
           - ~/.local
           - ./eggs
           - .pytest_cache/v/eth2/bls/key-cache
-        key: cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+          - ./eth2-fixtures
+        key: cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum ".circleci/config.yml" }}
 
 jobs:
   py36-lint:
