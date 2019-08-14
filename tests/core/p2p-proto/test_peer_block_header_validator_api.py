@@ -8,10 +8,11 @@ from p2p.peer import (
 import pytest
 
 from trinity.protocol.les.commands import GetBlockHeaders
-from trinity.protocol.les.peer import LESPeer
 
-from tests.core.peer_helpers import (
-    get_directly_linked_peers,
+from trinity.tools.factories import (
+    ETHPeerPairFactory,
+    LESV1PeerPairFactory,
+    LESV2PeerPairFactory,
 )
 
 
@@ -45,22 +46,16 @@ def mk_header_chain(length):
 
 
 @pytest.fixture
-async def eth_peer_and_remote(request, event_loop):
-    peer, remote = await get_directly_linked_peers(
-        request,
-        event_loop,
-    )
-    return peer, remote
+async def eth_peer_and_remote():
+    async with ETHPeerPairFactory() as (peer, remote):
+        yield peer, remote
 
 
-@pytest.fixture
-async def les_peer_and_remote(request, event_loop):
-    peer, remote = await get_directly_linked_peers(
-        request,
-        event_loop,
-        alice_peer_class=LESPeer,
-    )
-    return peer, remote
+@pytest.fixture(params=(LESV1PeerPairFactory, LESV2PeerPairFactory))
+async def les_peer_and_remote(request):
+    factory = request.param
+    async with factory() as (peer, remote):
+        yield peer, remote
 
 
 @pytest.mark.parametrize(

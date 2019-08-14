@@ -38,7 +38,7 @@ class MemoryTransport(asyncio.WriteTransport):
         self._is_closing = True
 
     def is_closing(self) -> bool:
-        return self._is_closing
+        return self._is_closing or self._reader.at_eof()
 
     #
     # WriteTransport methods

@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from trinity.tools.factories import (
+from trinity.tools.bcc_factories import (
     NodeFactory,
 )
 

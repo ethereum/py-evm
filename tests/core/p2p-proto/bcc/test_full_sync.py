@@ -12,12 +12,17 @@ from trinity.protocol.bcc.servers import BCCRequestServer
 
 from trinity.sync.beacon.chain import BeaconChainSyncer
 
+from trinity.tools.bcc_factories import (
+    BCCPeerPairFactory,
+    BCCPeerPoolFactory,
+    BeaconContextFactory,
+)
+
 from tests.core.integration_test_helpers import (
     run_peer_pool_event_server,
 )
 from .helpers import (
     SERENITY_GENESIS_CONFIG,
-    get_directly_linked_peers_in_peer_pools,
     get_chain_db,
     create_test_block,
     create_branch,
@@ -48,37 +53,39 @@ async def get_sync_setup(
         alice_chain_db,
         bob_chain_db,
         genesis_config=SERENITY_GENESIS_CONFIG):
-    alice, alice_peer_pool, bob, bob_peer_pool = await get_directly_linked_peers_in_peer_pools(
-        request,
-        event_loop,
-        alice_chain_db=alice_chain_db,
-        bob_chain_db=bob_chain_db,
-        bob_peer_pool_event_bus=event_bus,
+    alice_context = BeaconContextFactory(chain_db=alice_chain_db)
+    bob_context = BeaconContextFactory(chain_db=bob_chain_db)
+    peer_pair = BCCPeerPairFactory(
+        alice_peer_context=alice_context,
+        bob_peer_context=bob_context,
+        event_bus=event_bus,
     )
+    async with peer_pair as (alice, bob):
+        async with BCCPeerPoolFactory.run_for_peer(alice) as alice_peer_pool, BCCPeerPoolFactory.run_for_peer(bob) as bob_peer_pool:  # noqa: E501
 
-    bob_request_server = BCCRequestServer(
-        event_bus, TO_NETWORKING_BROADCAST_CONFIG, bob.context.chain_db)
+            bob_request_server = BCCRequestServer(
+                event_bus, TO_NETWORKING_BROADCAST_CONFIG, bob.context.chain_db)
 
-    alice_syncer = BeaconChainSyncer(
-        alice_chain_db,
-        alice_peer_pool,
-        SimpleWriterBlockImporter(alice_chain_db),
-        genesis_config,
-    )
-    async with run_peer_pool_event_server(
-        event_bus, bob_peer_pool, handler_type=BCCPeerPoolEventServer
-    ):
+            alice_syncer = BeaconChainSyncer(
+                alice_chain_db,
+                alice_peer_pool,
+                SimpleWriterBlockImporter(alice_chain_db),
+                genesis_config,
+            )
+            async with run_peer_pool_event_server(
+                event_bus, bob_peer_pool, handler_type=BCCPeerPoolEventServer
+            ):
 
-        asyncio.ensure_future(bob_request_server.run())
-        asyncio.ensure_future(alice_syncer.run())
+                asyncio.ensure_future(bob_request_server.run())
+                asyncio.ensure_future(alice_syncer.run())
 
-        def finalizer():
-            event_loop.run_until_complete(alice_syncer.cancel())
-            event_loop.run_until_complete(bob_request_server.cancel())
+                def finalizer():
+                    event_loop.run_until_complete(alice_syncer.cancel())
+                    event_loop.run_until_complete(bob_request_server.cancel())
 
-        request.addfinalizer(finalizer)
-        await alice_syncer.events.finished.wait()
-        yield alice_syncer
+                request.addfinalizer(finalizer)
+                await alice_syncer.events.finished.wait()
+                yield alice_syncer
 
 
 @pytest.mark.asyncio

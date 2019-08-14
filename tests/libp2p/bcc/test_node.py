@@ -6,7 +6,7 @@ from libp2p.peer.id import ID
 
 from p2p.tools.factories import get_open_port
 
-from trinity.tools.factories import (
+from trinity.tools.bcc_factories import (
     NodeFactory,
 )
 

@@ -8,18 +8,13 @@ from eth_utils import (
     keccak,
 )
 
-from tests.core.peer_helpers import (
-    get_directly_linked_peers,
-)
+from trinity.tools.factories import ETHPeerPairFactory
 
 
 @pytest.fixture
-async def eth_peer_and_remote(request, event_loop):
-    peer, remote = await get_directly_linked_peers(
-        request,
-        event_loop,
-    )
-    return peer, remote
+async def eth_peer_and_remote():
+    async with ETHPeerPairFactory() as (peer, remote):
+        yield peer, remote
 
 
 def mk_node():
