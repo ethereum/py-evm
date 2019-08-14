@@ -386,7 +386,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             raise ValidationError(f"All nodes must be either urgent or predictive")
 
         if len(urgent_nodes) == 0 and urgent_batch_id is not None:
-            self.logger.info("%s returned no urgent nodes from %r", peer, urgent_node_hashes)
+            self.logger.debug("%s returned no urgent nodes from %r", peer, urgent_node_hashes)
 
         # batch all DB writes into one, for performance
         with self._db.atomic_batch() as batch:
@@ -454,7 +454,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             return tuple()
         except OperationCancelled:
             self.logger.debug(
-                "Service cancellation while fetching segment, dropping %s from queue",
+                "Service cancellation while fetching nodes, dropping %s from queue",
                 peer,
                 exc_info=True,
             )
