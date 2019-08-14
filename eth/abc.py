@@ -1109,6 +1109,7 @@ class TransactionExecutorAPI(ABC):
 
 class ConfigurableAPI(ABC):
     @classmethod
+    @abstractmethod
     def configure(cls: Type[T],
                   __name__: str=None,
                   **overrides: Any) -> Type[T]:
