@@ -373,8 +373,15 @@ class BasePeer(BaseService):
                 self.run_daemon_task(self.handle_sub_proto_stream(multiplexer))
                 await self.cancellation()
         except PeerConnectionLost as err:
-            self.logger.debug('Peer connection lost: %r', err)
+            self.logger.debug('Peer connection lost: %s: %r', self, err)
             self.cancel_nowait()
+        except MalformedMessage as err:
+            self.logger.debug('MalformedMessage error with peer: %s: %r', self, err)
+            await self.disconnect(DisconnectReason.subprotocol_error)
+        except TimeoutError as err:
+            # TODO: we should send a ping and see if we get back a pong...
+            self.logger.debug('TimeoutError error with peer: %s: %r', self, err)
+            await self.disconnect(DisconnectReason.timeout)
 
     async def read_msg(self) -> Tuple[CommandAPI, Payload]:
         msg = await self.transport.recv(self.cancel_token)
