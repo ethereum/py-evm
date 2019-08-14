@@ -27,6 +27,11 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import validate_
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
 )
+from eth2.beacon.tools.factories import (
+    BeaconChainFactory,
+    keymap,
+    index_to_pubkey,
+)
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
 )
@@ -44,12 +49,6 @@ from trinity.plugins.eth2.beacon.slot_ticker import (
     SlotTickEvent,
 )
 
-from .helpers import (
-    get_chain_from_genesis,
-    bcc_helpers,
-    index_to_pubkey,
-    keymap,
-)
 
 override_lengths(XIAO_LONG_BAO_CONFIG)
 
@@ -66,8 +65,7 @@ class FakeNode:
 
 
 async def get_validator(event_loop, event_bus, indices) -> Validator:
-    chain_db = await bcc_helpers.get_chain_db()
-    chain = get_chain_from_genesis(chain_db.db, indices)
+    chain = BeaconChainFactory()
     validator_privkeys = {
         index: keymap[index_to_pubkey[index]]
         for index in indices

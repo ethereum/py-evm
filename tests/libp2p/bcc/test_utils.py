@@ -7,8 +7,6 @@ import pytest
 
 from eth_keys import datatypes
 
-import ssz
-
 from trinity.protocol.bcc_libp2p.configs import (
     ResponseCode,
 )

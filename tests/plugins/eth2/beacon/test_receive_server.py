@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import importlib
 
 from typing import (
     Tuple,
@@ -72,9 +73,8 @@ from tests.core.integration_test_helpers import (
     run_request_server,
 )
 
-from .helpers import (
-    bcc_helpers
-)
+
+bcc_helpers = importlib.import_module('tests.core.p2p-proto.bcc.helpers')
 
 
 class FakeChain(_TestnetChain):
