@@ -484,12 +484,12 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                     self.logger.warning(
                         "%s is no longer alive but has not been removed from pool", peer)
                     continue
-                most_received_type, count = max(
-                    peer.received_msgs.items(), key=operator.itemgetter(1))
                 self.logger.debug(
-                    "%s: uptime=%s, received_msgs=%d, most_received=%s(%d)",
-                    peer, humanize_seconds(peer.uptime), peer.received_msgs_count,
-                    most_received_type, count)
+                    "%s: uptime=%s, received_msgs=%d",
+                    peer,
+                    humanize_seconds(peer.uptime),
+                    peer.received_msgs_count,
+                )
                 self.logger.debug("client_version_string='%s'", peer.client_version_string)
                 for line in peer.get_extra_stats():
                     self.logger.debug("    %s", line)
