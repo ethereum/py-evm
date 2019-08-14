@@ -255,6 +255,8 @@ TProtocol = TypeVar('TProtocol', bound=ProtocolAPI)
 
 
 class MultiplexerAPI(ABC):
+    cancel_token: CancelToken
+
     #
     # Transport API
     #
