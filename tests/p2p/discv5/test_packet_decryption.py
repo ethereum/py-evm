@@ -31,7 +31,7 @@ from tests.p2p.discv5.strategies import (
     tag_st,
     nonce_st,
     key_st,
-    pubkey_st,
+    public_key_st,
 )
 
 
@@ -61,14 +61,14 @@ def message(enr):
     id_nonce=id_nonce_st,
     initiator_key=key_st,
     auth_response_key=key_st,
-    ephemeral_pubkey=pubkey_st,
+    ephemeral_public_key=public_key_st,
 )
 def test_auth_header_message_decryption(tag,
                                         auth_tag,
                                         id_nonce,
                                         initiator_key,
                                         auth_response_key,
-                                        ephemeral_pubkey,
+                                        ephemeral_public_key,
                                         enr,
                                         message):
     id_nonce_signature = b"\x00" * 32
@@ -82,7 +82,7 @@ def test_auth_header_message_decryption(tag,
         id_nonce_signature=id_nonce_signature,
         auth_response_key=auth_response_key,
         enr=enr,
-        ephemeral_pubkey=ephemeral_pubkey
+        ephemeral_public_key=ephemeral_public_key
     )
 
     decrypted_message = packet.decrypt_message(initiator_key)
@@ -95,14 +95,14 @@ def test_auth_header_message_decryption(tag,
     id_nonce=id_nonce_st,
     initiator_key=key_st,
     auth_response_key=key_st,
-    ephemeral_pubkey=pubkey_st,
+    ephemeral_public_key=public_key_st,
 )
 def test_auth_header_decryption_with_enr(tag,
                                          auth_tag,
                                          id_nonce,
                                          initiator_key,
                                          auth_response_key,
-                                         ephemeral_pubkey,
+                                         ephemeral_public_key,
                                          enr,
                                          message):
     id_nonce_signature = b"\x00" * 32
@@ -116,7 +116,7 @@ def test_auth_header_decryption_with_enr(tag,
         id_nonce_signature=id_nonce_signature,
         auth_response_key=auth_response_key,
         enr=enr,
-        ephemeral_pubkey=ephemeral_pubkey
+        ephemeral_public_key=ephemeral_public_key
     )
 
     recovered_id_nonce_signature, recovered_enr = packet.decrypt_auth_response(auth_response_key)
@@ -130,14 +130,14 @@ def test_auth_header_decryption_with_enr(tag,
     id_nonce=id_nonce_st,
     initiator_key=key_st,
     auth_response_key=key_st,
-    ephemeral_pubkey=pubkey_st,
+    ephemeral_public_key=public_key_st,
 )
 def test_auth_header_decryption_without_enr(tag,
                                             auth_tag,
                                             id_nonce,
                                             initiator_key,
                                             auth_response_key,
-                                            ephemeral_pubkey,
+                                            ephemeral_public_key,
                                             message):
     id_nonce_signature = b"\x00" * 32
     packet = AuthHeaderPacket.prepare(
@@ -149,7 +149,7 @@ def test_auth_header_decryption_without_enr(tag,
         id_nonce_signature=id_nonce_signature,
         auth_response_key=auth_response_key,
         enr=None,
-        ephemeral_pubkey=ephemeral_pubkey
+        ephemeral_public_key=ephemeral_public_key
     )
 
     recovered_id_nonce_signature, recovered_enr = packet.decrypt_auth_response(auth_response_key)
@@ -162,13 +162,13 @@ def test_auth_header_decryption_without_enr(tag,
     auth_tag=nonce_st,
     id_nonce=id_nonce_st,
     initiator_key=key_st,
-    ephemeral_pubkey=pubkey_st,
+    ephemeral_public_key=public_key_st,
 )
 def test_invalid_auth_header_decryption_with_wrong_key(tag,
                                                        auth_tag,
                                                        id_nonce,
                                                        initiator_key,
-                                                       ephemeral_pubkey,
+                                                       ephemeral_public_key,
                                                        message):
     id_nonce_signature = b"\x00" * 32
     encryption_key = b"\x00" * AES128_KEY_SIZE
@@ -182,7 +182,7 @@ def test_invalid_auth_header_decryption_with_wrong_key(tag,
         id_nonce_signature=id_nonce_signature,
         auth_response_key=encryption_key,
         enr=None,
-        ephemeral_pubkey=ephemeral_pubkey
+        ephemeral_public_key=ephemeral_public_key
     )
     with pytest.raises(DecryptionError):
         packet.decrypt_auth_response(decryption_key)

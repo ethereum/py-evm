@@ -76,7 +76,7 @@ class AuthHeader(NamedTuple):
     auth_tag: Nonce
     id_nonce: IDNonce
     auth_scheme_name: bytes
-    ephemeral_pubkey: bytes
+    ephemeral_public_key: bytes
     encrypted_auth_response: bytes
 
 
@@ -96,7 +96,7 @@ class AuthHeaderPacket(NamedTuple):
                 id_nonce_signature: bytes,
                 auth_response_key: AES128Key,
                 enr: Optional[ENR],
-                ephemeral_pubkey: bytes,
+                ephemeral_public_key: bytes,
                 ) -> "AuthHeaderPacket":
         encrypted_auth_response = compute_encrypted_auth_response(
             auth_response_key=auth_response_key,
@@ -107,7 +107,7 @@ class AuthHeaderPacket(NamedTuple):
             auth_tag=auth_tag,
             id_nonce=id_nonce,
             auth_scheme_name=AUTH_SCHEME_NAME,
-            ephemeral_pubkey=ephemeral_pubkey,
+            ephemeral_public_key=ephemeral_public_key,
             encrypted_auth_response=encrypted_auth_response,
         )
 
@@ -449,7 +449,7 @@ def _decode_auth(encoded_packet: bytes) -> Tuple[Union[AuthHeader, Nonce], int]:
             auth_tag=decoded_auth[0],
             id_nonce=decoded_auth[1],
             auth_scheme_name=decoded_auth[2],
-            ephemeral_pubkey=decoded_auth[3],
+            ephemeral_public_key=decoded_auth[3],
             encrypted_auth_response=decoded_auth[4],
         )
         validate_auth_header(auth_header)
