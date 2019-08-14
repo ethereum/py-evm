@@ -1,10 +1,14 @@
-from typing import Any
+from typing import (
+    Any,
+    Dict,
+)
 
 import factory
 
 from eth_keys import keys
 
 from eth_utils import keccak
+from eth_utils.toolz import merge
 
 from p2p.discovery import DiscoveryProtocol
 from p2p.discv5.packets import (
@@ -22,6 +26,21 @@ from p2p.discv5.constants import (
 )
 from p2p.discv5.channel_services import (
     Endpoint,
+    IncomingPacket,
+)
+from p2p.discv5.enr import (
+    ENR,
+    UnsignedENR,
+)
+from p2p.discv5.identity_schemes import (
+    V4IdentityScheme,
+)
+from p2p.discv5.messages import (
+    PingMessage,
+)
+from p2p.discv5.handshake import (
+    HandshakeInitiator,
+    HandshakeRecipient,
 )
 from p2p.ecies import generate_privkey
 
@@ -90,3 +109,67 @@ class EndpointFactory(factory.Factory):
 
     ip_address = factory.Faker("ipv4")
     port = factory.Faker("pyint", min_value=0, max_value=65535)
+
+
+class IncomingPacketFactory(factory.Factory):
+    class Meta:
+        model = IncomingPacket
+
+    packet = factory.SubFactory(AuthTagPacketFactory)
+    sender_endpoint = factory.SubFactory(EndpointFactory)
+
+
+class ENRFactory(factory.Factory):
+    class Meta:
+        model = ENR
+
+    sequence_number = factory.Faker("pyint", min_value=0, max_value=100)
+    kv_pairs = factory.LazyAttribute(lambda o: merge({
+        b"id": b"v4",
+        b"secp256k1": keys.PrivateKey(o.private_key).public_key.to_compressed_bytes(),
+    }, o.custom_kv_pairs))
+    signature = factory.LazyAttribute(
+        lambda o: UnsignedENR(
+            o.sequence_number,
+            o.kv_pairs,
+        ).to_signed_enr(o.private_key).signature
+    )
+
+    class Params:
+        private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
+        custom_kv_pairs: Dict[bytes, Any] = {}
+
+
+class PingMessageFactory(factory.Factory):
+    class Meta:
+        model = PingMessage
+
+    request_id = factory.Faker("pyint", min_value=0, max_value=100)
+    enr_seq = factory.Faker("pyint", min_value=0, max_value=100)
+
+
+class HandshakeInitiatorFactory(factory.Factory):
+    class Meta:
+        model = HandshakeInitiator
+
+    our_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
+    our_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.our_private_key))
+    their_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.their_private_key))
+    initial_message = factory.SubFactory(PingMessageFactory)
+
+    class Params:
+        their_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
+
+
+class HandshakeRecipientFactory(factory.Factory):
+    class Meta:
+        model = HandshakeRecipient
+
+    our_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
+    our_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.our_private_key))
+    their_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.their_private_key))
+    their_node_id = factory.LazyAttribute(lambda o: o.their_enr.node_id)
+    initiating_packet_auth_tag = factory.Faker("binary", length=NONCE_SIZE)
+
+    class Params:
+        their_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
