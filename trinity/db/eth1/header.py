@@ -17,10 +17,10 @@ from eth_typing import (
     BlockNumber,
 )
 
-from eth.db.backends.base import (
-    BaseAtomicDB,
+from eth.abc import (
+    AtomicDatabaseAPI,
+    BlockHeaderAPI,
 )
-from eth.rlp.headers import BlockHeader
 
 from trinity._utils.mp import (
     async_method,
@@ -29,25 +29,25 @@ from trinity._utils.mp import (
 
 class BaseAsyncHeaderDB(ABC):
     """
-    Abstract base class for the async counterpart to ``BaseHeaderDB``.
+    Abstract base class for the async counterpart to ``HeaderDatabaseAPI``.
     """
     @abstractmethod
     async def coro_get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         ...
 
     @abstractmethod
-    async def coro_get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:  # noqa: E501
+    async def coro_get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:  # noqa: E501
         ...
 
     @abstractmethod
-    async def coro_get_canonical_head(self) -> BlockHeader:
+    async def coro_get_canonical_head(self) -> BlockHeaderAPI:
         ...
 
     #
     # Header API
     #
     @abstractmethod
-    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+    async def coro_get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeaderAPI:
         ...
 
     @abstractmethod
@@ -59,12 +59,13 @@ class BaseAsyncHeaderDB(ABC):
         ...
 
     @abstractmethod
-    async def coro_persist_header(self, header: BlockHeader) -> Tuple[BlockHeader, ...]:
+    async def coro_persist_header(self, header: BlockHeaderAPI) -> Tuple[BlockHeaderAPI, ...]:
         ...
 
     @abstractmethod
     async def coro_persist_header_chain(self,
-                                        headers: Iterable[BlockHeader]) -> Tuple[BlockHeader, ...]:
+                                        headers: Iterable[BlockHeaderAPI],
+                                        ) -> Tuple[BlockHeaderAPI, ...]:
         ...
 
 
@@ -74,7 +75,7 @@ class AsyncHeaderDBPreProxy(BaseAsyncHeaderDB):
     ``BaseProxy`` for the purpose of improved testability.
     """
 
-    def __init__(self, db: BaseAtomicDB) -> None:
+    def __init__(self, db: AtomicDatabaseAPI) -> None:
         pass
 
     coro_get_block_header_by_hash = async_method('get_block_header_by_hash')

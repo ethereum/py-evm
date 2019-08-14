@@ -20,8 +20,8 @@ from eth_typing import (
 
 from eth_utils.toolz import groupby
 
+from eth.abc import VirtualMachineAPI
 from eth.constants import GENESIS_BLOCK_NUMBER
-from eth.vm.base import BaseVM
 
 from p2p.abc import NodeAPI
 from p2p.disconnect import DisconnectReason
@@ -98,7 +98,7 @@ class BaseChainPeer(BasePeer):
         return self.context.network_id
 
     @property
-    def vm_configuration(self) -> Tuple[Tuple[int, Type[BaseVM]], ...]:
+    def vm_configuration(self) -> Tuple[Tuple[int, Type[VirtualMachineAPI]], ...]:
         return self.context.vm_configuration
 
     _local_genesis_hash: Hash32 = None

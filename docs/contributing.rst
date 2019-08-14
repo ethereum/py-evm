@@ -65,7 +65,7 @@ All parameters as well as the return type of defs are expected to be typed with 
 
 .. code:: python
 
-    def __init__(self, wrapped_db: BaseDB) -> None:
+    def __init__(self, wrapped_db: DatabaseAPI) -> None:
         self.wrapped_db = wrapped_db
         self.reset()
 

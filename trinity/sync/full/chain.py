@@ -15,6 +15,7 @@ from typing import (
     List,
     NamedTuple,
     FrozenSet,
+    Sequence,
     Tuple,
     Type,
     cast,
@@ -35,15 +36,17 @@ from eth_utils.toolz import (
     valfilter,
 )
 
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    ReceiptAPI,
+    SignedTransactionAPI,
+)
 from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
 )
 from eth.exceptions import HeaderNotFound
-from eth.rlp.blocks import BaseBlock
-from eth.rlp.headers import BlockHeader
-from eth.rlp.receipts import Receipt
-from eth.rlp.transactions import BaseTransaction
 
 from p2p.abc import CommandAPI
 from p2p.disconnect import DisconnectReason
@@ -93,7 +96,7 @@ from trinity._utils.humanize import (
 from trinity._utils.timer import Timer
 
 # (ReceiptBundle, (Receipt, (root_hash, receipt_trie_data))
-ReceiptBundle = Tuple[Tuple[Receipt, ...], Tuple[Hash32, Dict[Hash32, bytes]]]
+ReceiptBundle = Tuple[Tuple[ReceiptAPI, ...], Tuple[Hash32, Dict[Hash32, bytes]]]
 # (BlockBody, (txn_root, txn_trie_data), uncles_hash)
 BlockBodyBundle = Tuple[
     BlockBody,
@@ -120,7 +123,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 
     tip_monitor_class = ETHChainTipMonitor
 
-    _pending_bodies: Dict[BlockHeader, BlockBody]
+    _pending_bodies: Dict[BlockHeaderAPI, BlockBody]
 
     def __init__(self,
                  chain: BaseAsyncChain,
@@ -163,9 +166,9 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 
     async def _sync_from_headers(
             self,
-            task_integrator: BaseOrderedTaskPreparation[BlockHeader, Hash32],
-            completion_check: Callable[[BlockHeader], Awaitable[bool]],
-    ) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+            task_integrator: BaseOrderedTaskPreparation[BlockHeaderAPI, Hash32],
+            completion_check: Callable[[BlockHeaderAPI], Awaitable[bool]],
+    ) -> AsyncIterator[Tuple[BlockHeaderAPI, ...]]:
         """
         Watch for new headers to be added to the queue, and add the prerequisite
         tasks as they become available.
@@ -275,7 +278,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
             self,
             peer: ETHPeer,
             batch_id: int,
-            all_headers: Tuple[BlockHeader, ...]) -> None:
+            all_headers: Sequence[BlockHeaderAPI]) -> None:
         """
         Given a single batch retrieved from self._block_body_tasks, get as many of the block bodies
         as possible, and mark them as complete.
@@ -324,14 +327,14 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
     def _mark_body_download_complete(
             self,
             batch_id: int,
-            completed_headers: Tuple[BlockHeader, ...]) -> None:
+            completed_headers: Sequence[BlockHeaderAPI]) -> None:
         self._block_body_tasks.complete(batch_id, completed_headers)
 
     async def _get_block_bodies(
             self,
             peer: ETHPeer,
-            headers: Tuple[BlockHeader, ...],
-    ) -> Tuple[Tuple[BlockBodyBundle, ...], Tuple[BlockHeader, ...]]:
+            headers: Sequence[BlockHeaderAPI],
+    ) -> Tuple[Tuple[BlockBodyBundle, ...], Tuple[BlockHeaderAPI, ...]]:
         """
         Request and return block bodies, pairing them with the associated headers.
         Store the bodies for later use, during block import (or persist).
@@ -385,14 +388,14 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
     async def _request_block_bodies(
             self,
             peer: ETHPeer,
-            batch: Tuple[BlockHeader, ...]) -> Tuple[BlockBodyBundle, ...]:
+            batch: Sequence[BlockHeaderAPI]) -> Tuple[BlockBodyBundle, ...]:
         """
         Requests the batch of block bodies from the given peer, returning the
         returned block bodies data, or an empty tuple on an error.
         """
         self.logger.debug("Requesting block bodies for %d headers from %s", len(batch), peer)
         try:
-            block_body_bundles = await peer.requests.get_block_bodies(batch)
+            block_body_bundles = await peer.requests.get_block_bodies(tuple(batch))
         except TimeoutError as err:
             self.logger.debug(
                 "Timed out requesting block bodies for %d headers from %s", len(batch), peer,
@@ -415,7 +418,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 
     async def _log_missing_parent(
             self,
-            first_header: BlockHeader,
+            first_header: BlockHeaderAPI,
             highest_block_num: int,
             missing_exc: Exception) -> None:
         self.logger.warning("Parent missing for header %r, restarting header sync", first_header)
@@ -487,8 +490,8 @@ class BlockPersistPrereqs(enum.Enum):
 
 
 class ChainSyncStats(NamedTuple):
-    prev_head: BlockHeader
-    latest_head: BlockHeader
+    prev_head: BlockHeaderAPI
+    latest_head: BlockHeaderAPI
 
     elapsed: float
 
@@ -500,7 +503,7 @@ class ChainSyncStats(NamedTuple):
 
 
 class ChainSyncPerformanceTracker:
-    def __init__(self, head: BlockHeader) -> None:
+    def __init__(self, head: BlockHeaderAPI) -> None:
         # The `head` from the previous time we reported stats
         self.prev_head = head
         # The latest `head` we have synced
@@ -521,7 +524,7 @@ class ChainSyncPerformanceTracker:
     def record_transactions(self, count: int) -> None:
         self.num_transactions += count
 
-    def set_latest_head(self, head: BlockHeader) -> None:
+    def set_latest_head(self, head: BlockHeaderAPI) -> None:
         self.latest_head = head
 
     def report(self) -> ChainSyncStats:
@@ -586,7 +589,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         # Track whether the fast chain syncer completed its goal
         self.is_complete = False
 
-    async def _sync_from(self) -> BlockHeader:
+    async def _sync_from(self) -> BlockHeaderAPI:
         """
         Select which header should be the last known header.
         Start by importing headers that are children of this tip.
@@ -612,7 +615,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         self._body_peers.put_nowait(peer)
         self._receipt_peers.put_nowait(peer)
 
-    async def _should_skip_header(self, header: BlockHeader) -> bool:
+    async def _should_skip_header(self, header: BlockHeaderAPI) -> bool:
         """
         Should we skip trying to import this header?
         Return True if the syncing of header appears to be complete.
@@ -710,7 +713,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         self.is_complete = True
         self.cancel_nowait()
 
-    async def _persist_blocks(self, headers: Tuple[BlockHeader, ...]) -> None:
+    async def _persist_blocks(self, headers: Sequence[BlockHeaderAPI]) -> None:
         """
         Persist blocks for the given headers, directly to the database
 
@@ -721,8 +724,8 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             block_class = vm_class.get_block_class()
 
             if _is_body_empty(header):
-                transactions: List[BaseTransaction] = []
-                uncles: List[BlockHeader] = []
+                transactions: List[SignedTransactionAPI] = []
+                uncles: List[BlockHeaderAPI] = []
             else:
                 body = self._pending_bodies.pop(header)
                 uncles = body.uncles
@@ -756,7 +759,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
     def _mark_body_download_complete(
             self,
             batch_id: int,
-            completed_headers: Tuple[BlockHeader, ...]) -> None:
+            completed_headers: Sequence[BlockHeaderAPI]) -> None:
         super()._mark_body_download_complete(batch_id, completed_headers)
         self._block_persist_tracker.finish_prereq(
             BlockPersistPrereqs.StoreBlockBodies,
@@ -767,14 +770,14 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             self,
             peer: ETHPeer,
             batch_id: int,
-            headers: Tuple[BlockHeader, ...]) -> None:
+            headers: Sequence[BlockHeaderAPI]) -> None:
         """
         Given a single batch retrieved from self._receipt_tasks, get as many of the receipt bundles
         as possible, and mark them as complete.
         """
         # If there is an exception during _process_receipts, prepare to mark the task as finished
         # with no headers collected:
-        completed_headers: Tuple[BlockHeader, ...] = tuple()
+        completed_headers: Tuple[BlockHeaderAPI, ...] = tuple()
         try:
             completed_headers = await peer.wait(self._process_receipts(peer, headers))
 
@@ -809,7 +812,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
     async def _process_receipts(
             self,
             peer: ETHPeer,
-            all_headers: Tuple[BlockHeader, ...]) -> Tuple[BlockHeader, ...]:
+            all_headers: Sequence[BlockHeaderAPI]) -> Tuple[BlockHeaderAPI, ...]:
         """
         Downloads and persists the receipts for the given set of block headers.
         Some receipts may be trivial, having a blank root hash, and will not be requested.
@@ -881,7 +884,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
 
     async def _validate_receipts(
             self,
-            headers: Tuple[BlockHeader, ...],
+            headers: Sequence[BlockHeaderAPI],
             receipt_bundles: Tuple[ReceiptBundle, ...]) -> None:
 
         header_by_root = {
@@ -905,14 +908,14 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
     async def _request_receipts(
             self,
             peer: ETHPeer,
-            batch: Tuple[BlockHeader, ...]) -> Tuple[ReceiptBundle, ...]:
+            batch: Sequence[BlockHeaderAPI]) -> Tuple[ReceiptBundle, ...]:
         """
         Requests the batch of receipts from the given peer, returning the
         received receipt data.
         """
         self.logger.debug("Requesting receipts for %d headers from %s", len(batch), peer)
         try:
-            receipt_bundles = await peer.requests.get_receipts(batch)
+            receipt_bundles = await peer.requests.get_receipts(tuple(batch))
         except TimeoutError as err:
             self.logger.debug(
                 "Timed out requesting receipts for %d headers from %s", len(batch), peer,
@@ -1002,7 +1005,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         )
 
         # the queue of blocks that are downloaded and ready to be imported
-        self._import_queue: 'asyncio.Queue[BaseBlock]' = asyncio.Queue(BLOCK_IMPORT_QUEUE_SIZE)
+        self._import_queue: 'asyncio.Queue[BlockAPI]' = asyncio.Queue(BLOCK_IMPORT_QUEUE_SIZE)
 
         self._import_active = asyncio.Lock()
 
@@ -1021,7 +1024,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         super().register_peer(peer)
         self._body_peers.put_nowait(cast(ETHPeer, peer))
 
-    async def _should_skip_header(self, header: BlockHeader) -> bool:
+    async def _should_skip_header(self, header: BlockHeaderAPI) -> bool:
         """
         Should we skip trying to import this header?
         Return True if the syncing of header appears to be complete.
@@ -1048,7 +1051,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
     def _mark_body_download_complete(
             self,
             batch_id: int,
-            completed_headers: Tuple[BlockHeader, ...]) -> None:
+            completed_headers: Sequence[BlockHeaderAPI]) -> None:
         super()._mark_body_download_complete(batch_id, completed_headers)
         self._block_import_tracker.finish_prereq(
             BlockImportPrereqs.StoreBlockBodies,
@@ -1149,7 +1152,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
 
             await self._import_block(block)
 
-    async def _import_block(self, block: BaseBlock) -> None:
+    async def _import_block(self, block: BlockAPI) -> None:
         timer = Timer()
         _, new_canonical_blocks, old_canonical_blocks = await self.wait(
             self._block_importer.import_block(block)
@@ -1188,7 +1191,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         else:
             raise Exception("Invariant: unreachable code path")
 
-    def _header_to_block(self, header: BlockHeader) -> BaseBlock:
+    def _header_to_block(self, header: BlockHeaderAPI) -> BlockAPI:
         """
         This method converts a header that was queued up for sync into its full block
         representation. It may not be called until after the body is marked as fully
@@ -1198,8 +1201,8 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         block_class = vm_class.get_block_class()
 
         if _is_body_empty(header):
-            transactions: List[BaseTransaction] = []
-            uncles: List[BlockHeader] = []
+            transactions: List[SignedTransactionAPI] = []
+            uncles: List[BlockHeaderAPI] = []
         else:
             body = self._pending_bodies.pop(header)
             tx_class = block_class.get_transaction_class()
@@ -1226,9 +1229,9 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             )
 
 
-def _is_body_empty(header: BlockHeader) -> bool:
+def _is_body_empty(header: BlockHeaderAPI) -> bool:
     return header.transaction_root == BLANK_ROOT_HASH and header.uncles_hash == EMPTY_UNCLE_HASH
 
 
-def _is_receipts_empty(header: BlockHeader) -> bool:
+def _is_receipts_empty(header: BlockHeaderAPI) -> bool:
     return header.receipt_root == BLANK_ROOT_HASH

@@ -21,13 +21,12 @@ from eth_utils import (
     encode_hex,
     ValidationError,
 )
-from eth.rlp.blocks import (
-    BaseBlock,
+
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    SignedTransactionAPI,
 )
-from eth.rlp.headers import (
-    BlockHeader,
-)
-from eth.rlp.transactions import BaseTransaction
 
 from eth2.beacon.types.blocks import BaseBeaconBlock
 
@@ -87,7 +86,7 @@ class PeerHeaderSyncer(BaseService):
     async def _run(self) -> None:
         await self.events.cancelled.wait()
 
-    async def next_header_batch(self) -> AsyncIterator[Tuple[BlockHeader, ...]]:
+    async def next_header_batch(self) -> AsyncIterator[Tuple[BlockHeaderAPI, ...]]:
         """Try to fetch headers until the given peer's head_hash.
 
         Returns when the peer's head_hash is available in our ChainDB, or if any error occurs
@@ -108,7 +107,7 @@ class PeerHeaderSyncer(BaseService):
                 peer, peer.head_td, head_td)
         self.sync_progress = SyncProgress(head.block_number, head.block_number, peer.head_number)
         self.logger.info("Starting sync with %s", peer)
-        last_received_header: BlockHeader = None
+        last_received_header: BlockHeaderAPI = None
         # When we start the sync with a peer, we always request up to MAX_REORG_DEPTH extra
         # headers before our current head's number, in case there were chain reorgs since the last
         # time _sync() was called. All of the extra headers that are already present in our DB
@@ -241,7 +240,7 @@ class PeerHeaderSyncer(BaseService):
             start_at = last_received_header.block_number + 1
 
     async def _request_headers(
-            self, peer: BaseChainPeer, start_at: BlockNumber) -> Tuple[BlockHeader, ...]:
+            self, peer: BaseChainPeer, start_at: BlockNumber) -> Tuple[BlockHeaderAPI, ...]:
         """Fetch a batch of headers starting at start_at and return the ones we're missing."""
         self.logger.debug("Requsting chain of headers from %s starting at #%d", peer, start_at)
 
@@ -257,13 +256,13 @@ class BaseBlockImporter(ABC):
     @abstractmethod
     async def import_block(
             self,
-            block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+            block: BlockAPI) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
         ...
 
     async def preview_transactions(
             self,
-            header: BlockHeader,
-            transactions: Tuple[BaseTransaction, ...],
+            header: BlockHeaderAPI,
+            transactions: Tuple[SignedTransactionAPI, ...],
             parent_state_root: Hash32,
             lagging: bool = True) -> None:
         """
@@ -289,7 +288,7 @@ class SimpleBlockImporter(BaseBlockImporter):
 
     async def import_block(
             self,
-            block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+            block: BlockAPI) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
         return await self._chain.coro_import_block(block, perform_validation=True)
 
 
@@ -297,7 +296,7 @@ class BaseSyncBlockImporter(ABC):
     @abstractmethod
     def import_block(
             self,
-            block: BaseBlock) -> Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]:
+            block: BlockAPI) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
         ...
 
 

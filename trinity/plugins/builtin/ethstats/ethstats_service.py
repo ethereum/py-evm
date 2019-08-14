@@ -4,9 +4,7 @@ import websockets
 
 from lahja import EndpointAPI
 
-from eth.chains.base import (
-    BaseChain,
-)
+from eth.abc import ChainAPI
 
 from p2p.service import (
     BaseService,
@@ -164,12 +162,12 @@ class EthstatsService(BaseService):
             'peers': peer_count,
         }
 
-    def get_chain(self) -> BaseChain:
+    def get_chain(self) -> ChainAPI:
         db_manager = create_db_consumer_manager(self.boot_info.trinity_config.database_ipc_path)
         app_config = self.boot_info.trinity_config.get_app_config(Eth1AppConfig)
         chain_config = app_config.get_chain_config()
 
-        chain: BaseChain
+        chain: ChainAPI
 
         if self.boot_info.args.sync_mode == SYNC_LIGHT:
             header_db = db_manager.get_headerdb()  # type: ignore

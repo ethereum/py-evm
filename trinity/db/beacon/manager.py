@@ -5,7 +5,7 @@ from multiprocessing.managers import (
 import pathlib
 
 from eth2.beacon.db.chain import BeaconChainDB
-from eth.db.backends.base import BaseAtomicDB
+from eth.abc import AtomicDatabaseAPI
 
 from trinity.config import (
     BeaconAppConfig,
@@ -28,7 +28,7 @@ from eth2.beacon.types.blocks import (
 
 
 def create_db_server_manager(trinity_config: TrinityConfig,
-                             base_db: BaseAtomicDB) -> BaseManager:
+                             base_db: AtomicDatabaseAPI) -> BaseManager:
     app_config = trinity_config.get_app_config(BeaconAppConfig)
     chain_config = app_config.get_chain_config()
     chaindb = BeaconChainDB(base_db, chain_config.genesis_config)

@@ -11,12 +11,15 @@ from typing import (
 )
 
 from cancel_token import CancelToken
-from eth.db.backends.base import BaseAtomicDB
-from eth.rlp.blocks import BaseBlock
-from eth.rlp.headers import BlockHeader
-from eth.rlp.transactions import BaseTransaction
-from eth.vm.state import BaseState
-from eth.vm.base import BaseVM
+
+from eth.abc import (
+    AtomicDatabaseAPI,
+    BlockAPI,
+    BlockHeaderAPI,
+    SignedTransactionAPI,
+    StateAPI,
+    VirtualMachineAPI,
+)
 from eth.vm.interrupt import (
     MissingAccountTrieNode,
     MissingBytecode,
@@ -57,7 +60,7 @@ from trinity.sync.common.events import (
     StatelessBlockImportDone,
 )
 
-ImportBlockType = Tuple[BaseBlock, Tuple[BaseBlock, ...], Tuple[BaseBlock, ...]]
+ImportBlockType = Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]
 
 
 class BeamChain(FullChain):
@@ -73,13 +76,13 @@ class BeamChain(FullChain):
     """
     _first_vm = None
 
-    def get_vm(self, header: BlockHeader) -> BaseVM:
+    def get_vm(self, header: BlockHeaderAPI) -> VirtualMachineAPI:
         vm = super().get_vm(header)
         if self._first_vm is None:
             self._first_vm = vm
         return vm
 
-    def get_first_vm(self) -> BaseVM:
+    def get_first_vm(self) -> VirtualMachineAPI:
         return self._first_vm
 
     def clear_first_vm(self) -> None:
@@ -87,9 +90,9 @@ class BeamChain(FullChain):
 
 
 def make_pausing_beam_chain(
-        vm_config: Tuple[Tuple[int, BaseVM], ...],
+        vm_config: Tuple[Tuple[int, VirtualMachineAPI], ...],
         chain_id: int,
-        db: BaseAtomicDB,
+        db: AtomicDatabaseAPI,
         event_bus: EndpointAPI,
         loop: asyncio.AbstractEventLoop,
         urgent: bool = True) -> BeamChain:
@@ -139,10 +142,10 @@ class BeamStats:
 
 
 def pausing_vm_decorator(
-        original_vm_class: Type[BaseVM],
+        original_vm_class: Type[VirtualMachineAPI],
         event_bus: EndpointAPI,
         loop: asyncio.AbstractEventLoop,
-        urgent: bool = True) -> Type[BaseVM]:
+        urgent: bool = True) -> Type[VirtualMachineAPI]:
     """
     Decorate a py-evm VM so that it will pause when data is missing
     """
@@ -295,7 +298,7 @@ def pausing_vm_decorator(
 
     class PausingVM(original_vm_class):  # type: ignore
         @classmethod
-        def get_state_class(cls) -> Type[BaseState]:
+        def get_state_class(cls) -> Type[StateAPI]:
             return PausingVMState
 
         def get_beam_stats(self) -> BeamStats:
@@ -306,7 +309,7 @@ def pausing_vm_decorator(
 
 def _broadcast_import_complete(
         event_bus: EndpointAPI,
-        block: BaseBlock,
+        block: BlockAPI,
         broadcast_config: BroadcastConfig,
         future: 'asyncio.Future[ImportBlockType]') -> None:
     completed = not future.cancelled()
@@ -321,7 +324,7 @@ def _broadcast_import_complete(
     )
 
 
-def partial_import_block(beam_chain: BaseAsyncChain, block: BaseBlock) -> Callable[[], None]:
+def partial_import_block(beam_chain: BaseAsyncChain, block: BlockAPI) -> Callable[[], None]:
     """
     Get an argument-free function that will import the given block.
     """
@@ -397,8 +400,8 @@ class BlockImportServer(BaseService):
 
 def partial_trigger_missing_state_downloads(
         beam_chain: BaseAsyncChain,
-        header: BlockHeader,
-        transactions: Tuple[BaseTransaction, ...]) -> Callable[[], None]:
+        header: BlockHeaderAPI,
+        transactions: Tuple[SignedTransactionAPI, ...]) -> Callable[[], None]:
     """
     Get an argument-free function that will trigger missing state downloads,
     by executing all the transactions, in the context of the given header.
@@ -427,8 +430,8 @@ def partial_trigger_missing_state_downloads(
 
 def partial_speculative_execute(
         beam_chain: BaseAsyncChain,
-        header: BlockHeader,
-        transactions: Tuple[BaseTransaction, ...]) -> Callable[[], None]:
+        header: BlockHeaderAPI,
+        transactions: Tuple[SignedTransactionAPI, ...]) -> Callable[[], None]:
     """
     Get an argument-free function that will trigger missing state downloads,
     by executing all the transactions, in the context of the given header.

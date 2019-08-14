@@ -23,23 +23,19 @@ from eth_utils import (
 
 import rlp
 
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    SignedTransactionAPI,
+)
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
-)
-from eth.rlp.blocks import (
-    BaseBlock
-)
-from eth.rlp.headers import (
-    BlockHeader
-)
-from eth.rlp.transactions import (
-    BaseTransaction
 )
 
 from trinity.chains.base import BaseAsyncChain
 
 
-def transaction_to_dict(transaction: BaseTransaction) -> Dict[str, str]:
+def transaction_to_dict(transaction: SignedTransactionAPI) -> Dict[str, str]:
     return {
         'hash': encode_hex(transaction.hash),
         'nonce': hex(transaction.nonce),
@@ -84,7 +80,7 @@ def normalize_transaction_dict(transaction_dict: Dict[str, str]) -> Dict[str, An
     return merge(SAFE_TRANSACTION_DEFAULTS, normalized_dict)
 
 
-def header_to_dict(header: BlockHeader) -> Dict[str, str]:
+def header_to_dict(header: BlockHeaderAPI) -> Dict[str, str]:
     logs_bloom = encode_hex(int_to_big_endian(header.bloom))[2:]
     logs_bloom = '0x' + logs_bloom.rjust(512, '0')
     header_dict = {
@@ -108,7 +104,7 @@ def header_to_dict(header: BlockHeader) -> Dict[str, str]:
     return header_dict
 
 
-def block_to_dict(block: BaseBlock,
+def block_to_dict(block: BlockAPI,
                   chain: BaseAsyncChain,
                   include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
 

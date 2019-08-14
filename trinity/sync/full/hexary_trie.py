@@ -15,7 +15,7 @@ from eth_typing import (
     Hash32
 )
 
-from eth.db.backends.base import BaseDB
+from eth.abc import DatabaseAPI
 from eth.tools.logging import ExtendedDebugLogger
 
 from trie.constants import (
@@ -116,7 +116,7 @@ class HexaryTrieSync:
     def __init__(self,
                  root_hash: Hash32,
                  db: BaseAsyncDB,
-                 nodes_cache: BaseDB,
+                 nodes_cache: DatabaseAPI,
                  logger: ExtendedDebugLogger) -> None:
         # Nodes that haven't been requested yet.
         self.queue: List[SyncRequest] = []

@@ -22,9 +22,7 @@ from typing import (
 from lahja import EndpointAPI
 
 from cancel_token import CancelToken
-from eth.chains.base import (
-    BaseChain
-)
+from eth.abc import ChainAPI
 from eth_utils import (
     to_tuple,
     ValidationError,
@@ -91,7 +89,7 @@ class BaseSyncStrategy(ABC):
     @abstractmethod
     async def sync(self,
                    logger: Logger,
-                   chain: BaseChain,
+                   chain: ChainAPI,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -111,7 +109,7 @@ class NoopSyncStrategy(BaseSyncStrategy):
 
     async def sync(self,
                    logger: Logger,
-                   chain: BaseChain,
+                   chain: ChainAPI,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -128,7 +126,7 @@ class FullSyncStrategy(BaseSyncStrategy):
 
     async def sync(self,
                    logger: Logger,
-                   chain: BaseChain,
+                   chain: ChainAPI,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -153,7 +151,7 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
 
     async def sync(self,
                    logger: Logger,
-                   chain: BaseChain,
+                   chain: ChainAPI,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -178,7 +176,7 @@ class BeamSyncStrategy(BaseSyncStrategy):
 
     async def sync(self,
                    logger: Logger,
-                   chain: BaseChain,
+                   chain: ChainAPI,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -204,7 +202,7 @@ class LightSyncStrategy(BaseSyncStrategy):
 
     async def sync(self,
                    logger: Logger,
-                   chain: BaseChain,
+                   chain: ChainAPI,
                    db_manager: BaseManager,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -223,7 +221,7 @@ class LightSyncStrategy(BaseSyncStrategy):
 class SyncerPlugin(AsyncioIsolatedPlugin):
     peer_pool: BaseChainPeerPool = None
     cancel_token: CancelToken = None
-    chain: BaseChain = None
+    chain: ChainAPI = None
     db_manager: BaseManager = None
 
     active_strategy: BaseSyncStrategy = None

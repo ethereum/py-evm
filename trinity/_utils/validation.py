@@ -7,8 +7,8 @@ from eth_utils import (
     is_address,
 )
 
-from eth.vm.base import (
-    BaseVM,
+from eth.abc import (
+    VirtualMachineAPI,
 )
 
 
@@ -17,7 +17,8 @@ DERIVED_KEYS = {'from'}
 RENAMED_KEYS = {'gas_price': 'gasPrice'}
 
 
-def validate_transaction_gas_estimation_dict(transaction_dict: Dict[str, Any], vm: BaseVM) -> None:
+def validate_transaction_gas_estimation_dict(transaction_dict: Dict[str, Any],
+                                             vm: VirtualMachineAPI) -> None:
     """Validate a transaction dictionary supplied for an RPC method call"""
     transaction_class = vm.get_transaction_class()
 
@@ -36,7 +37,7 @@ def validate_transaction_gas_estimation_dict(transaction_dict: Dict[str, Any], v
         )
 
 
-def validate_transaction_call_dict(transaction_dict: Dict[str, Any], vm: BaseVM) -> None:
+def validate_transaction_call_dict(transaction_dict: Dict[str, Any], vm: VirtualMachineAPI) -> None:
     validate_transaction_gas_estimation_dict(transaction_dict, vm)
 
     # 'to' is required in a call, but not a gas estimation

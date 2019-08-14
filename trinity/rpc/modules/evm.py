@@ -9,9 +9,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from eth.chains.base import (
-    BaseChain
-)
+from eth.abc import ChainAPI
 from eth.tools._utils.normalization import (
     normalize_block,
     normalize_blockchain_fixtures,
@@ -33,7 +31,7 @@ from trinity.rpc.modules import (
 class EVM(Eth1ChainRPCModule):
 
     @format_params(normalize_blockchain_fixtures)
-    async def resetToGenesisFixture(self, chain_info: Any) -> BaseChain:
+    async def resetToGenesisFixture(self, chain_info: Any) -> ChainAPI:
         """
         This method is a special case. It returns a new chain object
         which is then replaced inside :class:`~trinity.rpc.main.RPCServer`

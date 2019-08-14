@@ -8,17 +8,19 @@ from typing import (
     Dict,
     Iterable,
     List,
-    Tuple,
+    Sequence,
     Type,
 )
 
 from eth_typing import Hash32
 
-from eth.db.backends.base import BaseAtomicDB
-from eth.rlp.blocks import BaseBlock
-from eth.rlp.headers import BlockHeader
-from eth.rlp.receipts import Receipt
-from eth.rlp.transactions import BaseTransaction
+from eth.abc import (
+    AtomicDatabaseAPI,
+    BlockAPI,
+    BlockHeaderAPI,
+    ReceiptAPI,
+    SignedTransactionAPI,
+)
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity._utils.mp import (
@@ -28,7 +30,7 @@ from trinity._utils.mp import (
 
 class BaseAsyncChainDB(BaseAsyncHeaderDB):
     """
-    Abstract base class for the async counterpart to ``BaseChainDB``.
+    Abstract base class for the async counterpart to ``ChainDatabaseAPI``.
     """
 
     @abstractmethod
@@ -40,11 +42,11 @@ class BaseAsyncChainDB(BaseAsyncHeaderDB):
         ...
 
     @abstractmethod
-    async def coro_persist_block(self, block: BaseBlock) -> None:
+    async def coro_persist_block(self, block: BlockAPI) -> None:
         ...
 
     @abstractmethod
-    async def coro_persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
+    async def coro_persist_uncles(self, uncles: Sequence[BlockHeaderAPI]) -> Hash32:
         ...
 
     @abstractmethod
@@ -54,17 +56,17 @@ class BaseAsyncChainDB(BaseAsyncHeaderDB):
     @abstractmethod
     async def coro_get_block_transactions(
             self,
-            header: BlockHeader,
-            transaction_class: Type[BaseTransaction]) -> Iterable[BaseTransaction]:
+            header: BlockHeaderAPI,
+            transaction_class: Type[SignedTransactionAPI]) -> Iterable[SignedTransactionAPI]:
         ...
 
     @abstractmethod
-    async def coro_get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
+    async def coro_get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeaderAPI]:
         ...
 
     @abstractmethod
     async def coro_get_receipts(
-            self, header: BlockHeader, receipt_class: Type[Receipt]) -> List[Receipt]:
+            self, header: BlockHeaderAPI, receipt_class: Type[ReceiptAPI]) -> List[ReceiptAPI]:
         ...
 
 
@@ -74,7 +76,7 @@ class AsyncChainDBPreProxy(BaseAsyncChainDB):
     ``BaseProxy`` for the purpose of improved testability.
     """
 
-    def __init__(self, db: BaseAtomicDB) -> None:
+    def __init__(self, db: AtomicDatabaseAPI) -> None:
         pass
 
     coro_exists = async_method('exists')

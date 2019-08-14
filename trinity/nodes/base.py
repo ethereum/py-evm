@@ -10,7 +10,7 @@ from typing import (
 
 from lahja import EndpointAPI
 
-from eth.chains.base import BaseChain
+from eth.abc import ChainAPI
 
 from p2p.peer_pool import BasePeerPool
 from p2p.service import (
@@ -87,7 +87,7 @@ class Node(BaseService, Generic[TPeer]):
         return self._chain_config
 
     @abstractmethod
-    def get_chain(self) -> BaseChain:
+    def get_chain(self) -> ChainAPI:
         ...
 
     def get_full_chain(self) -> FullChain:

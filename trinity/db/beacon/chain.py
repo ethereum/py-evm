@@ -112,11 +112,11 @@ class BaseAsyncBeaconChainDB(ABC):
     # Attestation API
     #
     @abstractmethod
-    def coro_get_attestation_key_by_root(self, attestation_root: Hash32)-> Tuple[Hash32, int]:
+    async def coro_get_attestation_key_by_root(self, attestation_root: Hash32)-> Tuple[Hash32, int]:
         ...
 
     @abstractmethod
-    def coro_attestation_exists(self, attestation_root: Hash32) -> bool:
+    async def coro_attestation_exists(self, attestation_root: Hash32) -> bool:
         ...
 
     #

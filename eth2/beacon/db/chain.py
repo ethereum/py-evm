@@ -23,9 +23,9 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.db.backends.base import (
-    BaseAtomicDB,
-    BaseDB,
+from eth.abc import (
+    DatabaseAPI,
+    AtomicDatabaseAPI,
 )
 from eth.constants import (
     ZERO_HASH32,
@@ -76,10 +76,10 @@ class AttestationKey(ssz.Serializable):
 
 
 class BaseBeaconChainDB(ABC):
-    db = None  # type: BaseAtomicDB
+    db: AtomicDatabaseAPI = None
 
     @abstractmethod
-    def __init__(self, db: BaseAtomicDB, genesis_config: Eth2GenesisConfig) -> None:
+    def __init__(self, db: AtomicDatabaseAPI, genesis_config: Eth2GenesisConfig) -> None:
         pass
 
     #
@@ -200,20 +200,20 @@ class BaseBeaconChainDB(ABC):
 
 
 class BeaconChainDB(BaseBeaconChainDB):
-    def __init__(self, db: BaseAtomicDB, genesis_config: Eth2GenesisConfig) -> None:
+    def __init__(self, db: AtomicDatabaseAPI, genesis_config: Eth2GenesisConfig) -> None:
         self.db = db
         self.genesis_config = genesis_config
 
         self._finalized_root = self._get_finalized_root_if_present(db)
         self._highest_justified_epoch = self._get_highest_justified_epoch(db)
 
-    def _get_finalized_root_if_present(self, db: BaseDB) -> Hash32:
+    def _get_finalized_root_if_present(self, db: DatabaseAPI) -> Hash32:
         try:
             return self._get_finalized_head_root(db)
         except FinalizedHeadNotFound:
             return ZERO_HASH32
 
-    def _get_highest_justified_epoch(self, db: BaseDB) -> Epoch:
+    def _get_highest_justified_epoch(self, db: DatabaseAPI) -> Epoch:
         try:
             justified_head_root = self._get_justified_head_root(db)
             slot = self.get_slot_by_root(justified_head_root)
@@ -239,7 +239,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @classmethod
     def _persist_block(
             cls,
-            db: 'BaseDB',
+            db: DatabaseAPI,
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock],
             fork_choice_scoring: ForkChoiceScoringFn,
@@ -277,7 +277,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_canonical_block_root(self.db, self.genesis_config.GENESIS_SLOT)
 
     @staticmethod
-    def _get_canonical_block_root(db: BaseDB, slot: Slot) -> Hash32:
+    def _get_canonical_block_root(db: DatabaseAPI, slot: Slot) -> Hash32:
         slot_to_root_key = SchemaV1.make_block_slot_to_root_lookup_key(slot)
         try:
             encoded_key = db[slot_to_root_key]
@@ -302,7 +302,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @classmethod
     def _get_canonical_block_by_slot(
             cls,
-            db: BaseDB,
+            db: DatabaseAPI,
             slot: Slot,
             block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         canonical_block_root = cls._get_canonical_block_root(db, slot)
@@ -316,7 +316,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     @classmethod
     def _get_canonical_head(cls,
-                            db: BaseDB,
+                            db: DatabaseAPI,
                             block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         canonical_head_root = cls._get_canonical_head_root(db)
         return cls._get_block_by_root(db, Hash32(canonical_head_root), block_class)
@@ -328,7 +328,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_canonical_head_root(self.db)
 
     @staticmethod
-    def _get_canonical_head_root(db: BaseDB) -> Hash32:
+    def _get_canonical_head_root(db: DatabaseAPI) -> Hash32:
         try:
             canonical_head_root = db[SchemaV1.make_canonical_head_root_lookup_key()]
         except KeyError:
@@ -343,13 +343,13 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     @classmethod
     def _get_finalized_head(cls,
-                            db: BaseDB,
+                            db: DatabaseAPI,
                             block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         finalized_head_root = cls._get_finalized_head_root(db)
         return cls._get_block_by_root(db, Hash32(finalized_head_root), block_class)
 
     @staticmethod
-    def _get_finalized_head_root(db: BaseDB) -> Hash32:
+    def _get_finalized_head_root(db: DatabaseAPI) -> Hash32:
         try:
             finalized_head_root = db[SchemaV1.make_finalized_head_root_lookup_key()]
         except KeyError:
@@ -364,13 +364,13 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     @classmethod
     def _get_justified_head(cls,
-                            db: BaseDB,
+                            db: DatabaseAPI,
                             block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         justified_head_root = cls._get_justified_head_root(db)
         return cls._get_block_by_root(db, Hash32(justified_head_root), block_class)
 
     @staticmethod
-    def _get_justified_head_root(db: BaseDB) -> Hash32:
+    def _get_justified_head_root(db: DatabaseAPI) -> Hash32:
         try:
             justified_head_root = db[SchemaV1.make_justified_head_root_lookup_key()]
         except KeyError:
@@ -383,7 +383,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_block_by_root(self.db, block_root, block_class)
 
     @staticmethod
-    def _get_block_by_root(db: BaseDB,
+    def _get_block_by_root(db: DatabaseAPI,
                            block_root: Hash32,
                            block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         """
@@ -409,7 +409,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_slot_by_root(self.db, block_root)
 
     @staticmethod
-    def _get_slot_by_root(db: BaseDB,
+    def _get_slot_by_root(db: DatabaseAPI,
                           block_root: Hash32) -> Slot:
         validate_word(block_root, title="block root")
         try:
@@ -423,7 +423,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_score(self.db, block_root)
 
     @staticmethod
-    def _get_score(db: BaseDB, block_root: Hash32) -> int:
+    def _get_score(db: DatabaseAPI, block_root: Hash32) -> int:
         try:
             encoded_score = db[SchemaV1.make_block_root_to_score_lookup_key(block_root)]
         except KeyError:
@@ -435,7 +435,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._block_exists(self.db, block_root)
 
     @staticmethod
-    def _block_exists(db: BaseDB, block_root: Hash32) -> bool:
+    def _block_exists(db: DatabaseAPI, block_root: Hash32) -> bool:
         validate_word(block_root, title="block root")
         return block_root in db
 
@@ -454,7 +454,7 @@ class BeaconChainDB(BaseBeaconChainDB):
 
     @staticmethod
     def _set_block_score_to_db(
-            db: BaseDB,
+            db: DatabaseAPI,
             block: BaseBeaconBlock,
             score: int,
     ) -> int:
@@ -477,7 +477,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @classmethod
     def _persist_block_chain(
             cls,
-            db: BaseDB,
+            db: DatabaseAPI,
             blocks: Iterable[BaseBeaconBlock],
             block_class: Type[BaseBeaconBlock],
             fork_choice_scorings: Iterable[ForkChoiceScoringFn],
@@ -559,7 +559,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @classmethod
     def _set_as_canonical_chain_head(
             cls,
-            db: BaseDB,
+            db: DatabaseAPI,
             block_root: Hash32,
             block_class: Type[BaseBeaconBlock]
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
@@ -601,7 +601,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     @to_tuple
     def _find_new_ancestors(
             cls,
-            db: BaseDB,
+            db: DatabaseAPI,
             block: BaseBeaconBlock,
             block_class: Type[BaseBeaconBlock]) -> Iterable[BaseBeaconBlock]:
         """
@@ -635,7 +635,7 @@ class BeaconChainDB(BaseBeaconChainDB):
                 block = cls._get_block_by_root(db, block.parent_root, block_class)
 
     @staticmethod
-    def _add_block_slot_to_root_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
+    def _add_block_slot_to_root_lookup(db: DatabaseAPI, block: BaseBeaconBlock) -> None:
         """
         Set a record in the database to allow looking up this block by its
         block slot.
@@ -649,7 +649,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         )
 
     @staticmethod
-    def _add_block_root_to_slot_lookup(db: BaseDB, block: BaseBeaconBlock) -> None:
+    def _add_block_root_to_slot_lookup(db: DatabaseAPI, block: BaseBeaconBlock) -> None:
         """
         Set a record in the database to allow looking up the slot number by its
         block root.
@@ -689,7 +689,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_head_state_slot(self.db)
 
     @staticmethod
-    def _get_head_state_slot(db: BaseDB) -> Slot:
+    def _get_head_state_slot(db: DatabaseAPI) -> Slot:
         try:
             encoded_head_state_slot = db[SchemaV1.make_head_state_slot_lookup_key()]
             head_state_slot = ssz.decode(encoded_head_state_slot, sedes=ssz.sedes.uint64)
@@ -701,7 +701,9 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_state_by_slot(self.db, slot, state_class)
 
     @staticmethod
-    def _get_state_by_slot(db: BaseDB, slot: Slot, state_class: Type[BeaconState]) -> BeaconState:
+    def _get_state_by_slot(db: DatabaseAPI,
+                           slot: Slot,
+                           state_class: Type[BeaconState]) -> BeaconState:
         """
         Return the requested beacon state as specified by slot.
 
@@ -726,7 +728,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_state_by_root(self.db, state_root, state_class)
 
     @staticmethod
-    def _get_state_by_root(db: BaseDB,
+    def _get_state_by_root(db: DatabaseAPI,
                            state_root: Hash32,
                            state_class: Type[BeaconState]) -> BeaconState:
         """
@@ -842,7 +844,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             self._update_justified_head(*result)
 
     def _handle_exceptional_justification_and_finality(self,
-                                                       db: BaseDB,
+                                                       db: DatabaseAPI,
                                                        genesis_block: BaseBeaconBlock) -> None:
         """
         The genesis ``BeaconState`` lacks the correct justification and finality
@@ -859,7 +861,7 @@ class BeaconChainDB(BaseBeaconChainDB):
     #
 
     @staticmethod
-    def _add_attestations_root_to_block_lookup(db: BaseDB,
+    def _add_attestations_root_to_block_lookup(db: DatabaseAPI,
                                                block: BaseBeaconBlock) -> None:
         root = block.signing_root
         for index, attestation in enumerate(block.body.attestations):
@@ -873,7 +875,8 @@ class BeaconChainDB(BaseBeaconChainDB):
         return self._get_attestation_key_by_root(self.db, attestation_root)
 
     @staticmethod
-    def _get_attestation_key_by_root(db: BaseDB, attestation_root: Hash32) -> Tuple[Hash32, int]:
+    def _get_attestation_key_by_root(db: DatabaseAPI,
+                                     attestation_root: Hash32) -> Tuple[Hash32, int]:
         try:
             encoded_key = db[SchemaV1.make_attestation_root_to_block_lookup_key(attestation_root)]
         except KeyError:
