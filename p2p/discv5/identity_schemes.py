@@ -139,6 +139,8 @@ class IdentityScheme(ABC):
         """Compute the symmetric session keys."""
         ...
 
+    @classmethod
+    @abstractmethod
     def create_id_nonce_signature(cls,
                                   *,
                                   id_nonce: IDNonce,
@@ -147,6 +149,8 @@ class IdentityScheme(ABC):
         """Sign an id nonce received during handshake."""
         ...
 
+    @classmethod
+    @abstractmethod
     def validate_id_nonce_signature(cls,
                                     *,
                                     id_nonce: IDNonce,
