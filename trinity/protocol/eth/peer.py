@@ -2,30 +2,26 @@ from typing import (
     Any,
     cast,
     Dict,
+    Sequence,
     Tuple,
 )
 
 from lahja import EndpointAPI
 
+from eth_typing import BlockNumber
+
+from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.rlp.headers import BlockHeader
-from eth_utils import encode_hex
 from lahja import (
     BroadcastConfig,
 )
 
 from p2p.abc import CommandAPI, NodeAPI
-from p2p.exceptions import (
-    HandshakeFailure,
-)
-from p2p.disconnect import DisconnectReason
+from p2p.handshake import DevP2PReceipt, HandshakeReceipt
 from p2p.protocol import (
     Payload,
 )
 
-from trinity.exceptions import (
-    WrongNetworkFailure,
-    WrongGenesisFailure,
-)
 from trinity.protocol.common.peer import (
     BaseChainPeer,
     BaseChainPeerFactory,
@@ -49,7 +45,6 @@ from .commands import (
     GetNodeData,
     NewBlock,
     NewBlockHashes,
-    Status,
     Transactions,
 )
 from .constants import MAX_HEADERS_FETCH
@@ -72,6 +67,7 @@ from .events import (
 )
 from .proto import ETHProtocol, ProxyETHProtocol, ETHHandshakeParams
 from .handlers import ETHExchangeHandler, ProxyETHExchangeHandler
+from .handshaker import ETHHandshaker, ETHHandshakeReceipt
 
 
 class ETHPeer(BaseChainPeer):
@@ -81,6 +77,22 @@ class ETHPeer(BaseChainPeer):
     sub_proto: ETHProtocol = None
 
     _requests: ETHExchangeHandler = None
+
+    def process_receipts(self,
+                         devp2p_receipt: DevP2PReceipt,
+                         protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+        super().process_receipts(devp2p_receipt, protocol_receipts)
+        for receipt in protocol_receipts:
+            if isinstance(receipt, ETHHandshakeReceipt):
+                self.head_td = receipt.handshake_params.total_difficulty
+                self.head_hash = receipt.handshake_params.head_hash
+                self.genesis_hash = receipt.handshake_params.genesis_hash
+                self.network_id = receipt.handshake_params.network_id
+                break
+        else:
+            raise Exception(
+                "Did not find an `ETHHandshakeReceipt` in {protocol_receipts}"
+            )
 
     def get_extra_stats(self) -> Tuple[str, ...]:
         stats_pairs = self.requests.get_stats().items()
@@ -105,45 +117,6 @@ class ETHPeer(BaseChainPeer):
                 self.head_td = actual_td
 
         super().handle_sub_proto_msg(cmd, msg)
-
-    async def send_sub_proto_handshake(self) -> None:
-        chain_info = await self._local_chain_info
-        handshake_params = ETHHandshakeParams(
-            version=self.sub_proto.version,
-            head_hash=chain_info.block_hash,
-            genesis_hash=chain_info.genesis_hash,
-            total_difficulty=chain_info.total_difficulty,
-            network_id=chain_info.network_id,
-        )
-        self.sub_proto.send_handshake(handshake_params)
-
-    async def process_sub_proto_handshake(
-            self, cmd: CommandAPI, msg: Payload) -> None:
-        if not isinstance(cmd, Status):
-            await self.disconnect(DisconnectReason.subprotocol_error)
-            raise HandshakeFailure(f"Expected a ETH Status msg, got {cmd}, disconnecting")
-
-        msg = cast(Dict[str, Any], msg)
-
-        self.head_td = msg['td']
-        self.head_hash = msg['best_hash']
-        self.network_id = msg['network_id']
-        self.genesis_hash = msg['genesis_hash']
-
-        if msg['network_id'] != self.local_network_id:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise WrongNetworkFailure(
-                f"{self} network ({msg['network_id']}) does not match ours "
-                f"({self.local_network_id}), disconnecting"
-            )
-
-        local_genesis_hash = await self._get_local_genesis_hash()
-        if msg['genesis_hash'] != local_genesis_hash:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise WrongGenesisFailure(
-                f"{self} genesis ({encode_hex(msg['genesis_hash'])}) does not "
-                f"match ours ({local_genesis_hash}), disconnecting"
-            )
 
 
 class ETHProxyPeer(BaseProxyPeer):
@@ -179,6 +152,27 @@ class ETHProxyPeer(BaseProxyPeer):
 
 class ETHPeerFactory(BaseChainPeerFactory):
     peer_class = ETHPeer
+
+    async def get_handshakers(self) -> Tuple[ETHHandshaker, ...]:
+        headerdb = self.context.headerdb
+        wait = self.cancel_token.cancellable_wait
+
+        head = await wait(headerdb.coro_get_canonical_head())
+        total_difficulty = await wait(headerdb.coro_get_score(head.hash))
+        genesis_hash = await wait(
+            headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
+        )
+
+        handshake_params = ETHHandshakeParams(
+            head_hash=head.hash,
+            total_difficulty=total_difficulty,
+            genesis_hash=genesis_hash,
+            network_id=self.context.network_id,
+            version=ETHProtocol.version,
+        )
+        return (
+            ETHHandshaker(handshake_params),
+        )
 
 
 class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):

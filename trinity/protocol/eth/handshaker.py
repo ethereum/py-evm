@@ -69,7 +69,7 @@ class ETHHandshaker(Handshaker):
                 raise WrongGenesisFailure(
                     f"{multiplexer.remote} genesis "
                     f"({encode_hex(receipt.handshake_params.genesis_hash)}) does "
-                    f"not match ours ({self.handshake_params.genesis_hash}), "
+                    f"not match ours ({encode_hex(self.handshake_params.genesis_hash)}), "
                     f"disconnecting"
                 )
 

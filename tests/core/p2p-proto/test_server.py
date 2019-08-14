@@ -14,11 +14,17 @@ from p2p.kademlia import (
     Node,
     Address,
 )
-from p2p.tools.factories import get_open_port
+from p2p.handshake import negotiate_protocol_handshakes
+from p2p.service import run_service
+from p2p.tools.factories import (
+    get_open_port,
+    DevP2PHandshakeParamsFactory,
+)
 from p2p.tools.paragon import (
     ParagonContext,
     ParagonPeer,
     ParagonPeerPool,
+    ParagonPeerFactory,
 )
 from p2p.transport import Transport
 
@@ -26,6 +32,7 @@ from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.protocol.common.events import ConnectToNodeCommand
 from trinity.server import BaseServer
+
 
 from tests.p2p.auth_constants import eip8_values
 from tests.core.integration_test_helpers import (
@@ -78,12 +85,13 @@ def get_server(privkey, address, event_bus):
 @pytest.fixture
 async def server(event_bus):
     server = get_server(RECEIVER_PRIVKEY, SERVER_ADDRESS, event_bus)
-    await asyncio.wait_for(server._start_tcp_listener(), timeout=1)
-    try:
+    async with run_service(server):
+        # wait for the tcp server to be present
+        for _ in range(50):
+            if hasattr(server, '_tcp_listener'):
+                break
+            await asyncio.sleep(0)
         yield server
-    finally:
-        server.cancel_token.trigger()
-    await asyncio.wait_for(server._close_tcp_listener(), timeout=1)
 
 
 @pytest.mark.asyncio
@@ -91,7 +99,13 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
     use_eip8 = False
     token = CancelToken("initiator")
     initiator = HandshakeInitiator(RECEIVER_REMOTE, INITIATOR_PRIVKEY, use_eip8, token)
-    reader, writer = await initiator.connect()
+    for _ in range(10):
+        # The server isn't listening immediately so we give it a short grace
+        # period while trying to connect.
+        try:
+            reader, writer = await initiator.connect()
+        except ConnectionRefusedError:
+            await asyncio.sleep(0)
     # Send auth init message to the server, then read and decode auth ack
     aes_secret, mac_secret, egress_mac, ingress_mac = await _handshake(
         initiator, reader, writer, token)
@@ -106,18 +120,34 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
         egress_mac=egress_mac,
         ingress_mac=ingress_mac,
     )
-    initiator_peer = ParagonPeer(
-        transport=transport,
+
+    factory = ParagonPeerFactory(
+        initiator.privkey,
         context=ParagonContext(),
         token=token,
     )
-    # Perform p2p/sub-proto handshake, completing the full handshake and causing a new peer to be
-    # added to the server's pool.
-    await initiator_peer.do_p2p_handshake()
-    await initiator_peer.do_sub_proto_handshake()
+    handshakers = await factory.get_handshakers()
+    devp2p_handshake_params = DevP2PHandshakeParamsFactory(
+        listen_port=INITIATOR_REMOTE.address.tcp_port,
+    )
+
+    multiplexer, devp2p_receipt, protocol_receipts = await negotiate_protocol_handshakes(
+        transport=transport,
+        p2p_handshake_params=devp2p_handshake_params,
+        protocol_handshakers=handshakers,
+        token=token,
+    )
+    initiator_peer = factory.create_peer(
+        multiplexer=multiplexer,
+        devp2p_receipt=devp2p_receipt,
+        protocol_receipts=protocol_receipts,
+        inbound=False,
+    )
 
     # wait for peer to be processed
-    while len(server.peer_pool) == 0:
+    for _ in range(100):
+        if len(server.peer_pool) > 0:
+            break
         await asyncio.sleep(0)
 
     assert len(server.peer_pool.connected_nodes) == 1
@@ -126,8 +156,7 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
     assert initiator_peer.sub_proto is not None
     assert initiator_peer.sub_proto.name == receiver_peer.sub_proto.name
     assert initiator_peer.sub_proto.version == receiver_peer.sub_proto.version
-    # test public key here in order to not access private `_private_key` variable.
-    assert receiver_peer.transport.public_key == RECEIVER_PRIVKEY.public_key
+    assert initiator_peer.remote.pubkey == RECEIVER_PRIVKEY.public_key
 
 
 @pytest.mark.asyncio

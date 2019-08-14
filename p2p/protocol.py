@@ -1,9 +1,7 @@
 import logging
-import operator
 import struct
 from typing import (
     ClassVar,
-    Iterable,
     Sequence,
     Tuple,
     Type,
@@ -12,8 +10,7 @@ from typing import (
 
 import snappy
 
-from eth_utils import to_tuple
-from eth_utils.toolz import accumulate, groupby
+from eth_utils.toolz import accumulate
 
 import rlp
 from rlp import sedes
@@ -24,7 +21,7 @@ from p2p._utils import get_devp2p_cmd_id
 from p2p.abc import CommandAPI, ProtocolAPI, RequestAPI, TransportAPI
 from p2p.constants import P2P_PROTOCOL_COMMAND_LENGTH
 from p2p.exceptions import MalformedMessage
-from p2p.typing import Capability, Capabilities, Payload, Structure
+from p2p.typing import Capability, Payload, Structure
 
 
 class Command(CommandAPI):
@@ -184,41 +181,6 @@ class Protocol(ProtocolAPI):
 
     def __repr__(self) -> str:
         return "(%s, %d)" % (self.name, self.version)
-
-
-@to_tuple
-def match_protocols_with_capabilities(protocols: Sequence[Type[ProtocolAPI]],
-                                      capabilities: Capabilities,
-                                      ) -> Iterable[Type[ProtocolAPI]]:
-    """
-    Return the `Protocol` classes that match with the provided `capabilities`
-    according to the RLPx protocol rules.
-
-    - ordered case-sensitive by protocol name
-    - at most one protocol per name
-    - discard protocols that are not present in `capabilities`
-    - use highest version in case of multiple same-name matched protocols
-    """
-    # make a set for faster inclusion checks
-    capabilities_set = set(capabilities)
-
-    # group the protocols by name
-    proto_groups = groupby(operator.attrgetter('name'), protocols)
-    for _, homogenous_protocols in sorted(proto_groups.items()):
-        # for each set of protocols with the same name, sort them in decreasing
-        # order by their version number.
-        ordered_protocols = sorted(
-            homogenous_protocols,
-            key=operator.attrgetter('version'),
-            reverse=True,
-        )
-        for proto in ordered_protocols:
-            if proto.as_capability() in capabilities_set:
-                # select the first protocol we find that is in the provided
-                # `capabilities` which will be the *highest* version since we
-                # previously sorted them.
-                yield proto
-                break
 
 
 def _pad_to_16_byte_boundary(data: bytes) -> bytes:

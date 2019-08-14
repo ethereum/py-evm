@@ -50,6 +50,7 @@ from p2p.exceptions import (
     BadAckMessage,
     HandshakeFailure,
     MalformedMessage,
+    NoMatchingPeerCapabilities,
     PeerConnectionLost,
     UnreachablePeer,
 )
@@ -57,7 +58,6 @@ from p2p.peer import (
     BasePeer,
     BasePeerFactory,
     BasePeerContext,
-    handshake,
     PeerMessage,
     PeerSubscriber,
 )
@@ -86,6 +86,7 @@ TO_DISCOVERY_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=DISCOVERY_EVENTB
 
 
 COMMON_PEER_CONNECTION_EXCEPTIONS = cast(Tuple[Type[BaseP2PError], ...], (
+    NoMatchingPeerCapabilities,
     PeerConnectionLost,
     TimeoutError,
     UnreachablePeer,
@@ -342,7 +343,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
             try:
                 self.logger.debug2("Connecting to %s...", remote)
-                peer = await self.wait(handshake(remote, self.get_peer_factory()))
+                peer = await self.wait(self.get_peer_factory().handshake(remote))
+
                 return peer
             except OperationCancelled:
                 # Pass it on to instruct our main loop to stop.

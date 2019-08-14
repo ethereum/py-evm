@@ -17,9 +17,8 @@ from eth_utils import (
     ValidationError,
 )
 
-from p2p.peer import (
-    MsgBuffer,
-)
+from p2p.peer import MsgBuffer
+from p2p.tools.factories import PrivateKeyFactory
 
 from eth.exceptions import (
     BlockNotFound,
@@ -133,23 +132,28 @@ async def get_peer_and_receive_server(request, event_loop, event_bus) -> Tuple[
     alice_chain = await get_fake_chain()
     bob_chain = await get_fake_chain()
 
+    alice_private_key = PrivateKeyFactory()
+    bob_private_key = PrivateKeyFactory()
+
     alice_context = BeaconContextFactory(chain_db=alice_chain.chaindb)
     bob_context = BeaconContextFactory(chain_db=bob_chain.chaindb)
     peer_pair = BCCPeerPairFactory(
         alice_peer_context=alice_context,
+        alice_private_key=alice_private_key,
         bob_peer_context=bob_context,
+        bob_private_key=bob_private_key,
         event_bus=event_bus,
     )
     async with peer_pair as (alice, bob):
         alice_pool_ctx = BCCPeerPoolFactory.run_for_peer(
             alice,
-            privkey=alice.transport._private_key,
+            privkey=alice_private_key,
             context=alice_context,
             event_bus=event_bus,
         )
         bob_pool_ctx = BCCPeerPoolFactory.run_for_peer(
             bob,
-            privkey=bob.transport._private_key,
+            privkey=bob_private_key,
             context=bob_context,
             event_bus=event_bus,
         )

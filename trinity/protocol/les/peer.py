@@ -1,8 +1,8 @@
 from typing import (
-    Any,
     cast,
     Dict,
     List,
+    Sequence,
     Tuple,
     Union,
     TYPE_CHECKING,
@@ -19,22 +19,20 @@ from eth_typing import (
     Hash32,
 )
 
-from eth_utils import encode_hex
+from eth.constants import GENESIS_BLOCK_NUMBER
+
 from lahja import (
     BroadcastConfig,
 )
 
 from p2p.abc import CommandAPI, NodeAPI
-from p2p.disconnect import DisconnectReason
-from p2p.exceptions import HandshakeFailure
+from p2p.handshake import DevP2PReceipt, HandshakeReceipt
 from p2p.peer_pool import BasePeerPool
 from p2p.typing import Payload
 
 from trinity.rlp.block_body import BlockBody
-from trinity.exceptions import (
-    WrongNetworkFailure,
-    WrongGenesisFailure,
-)
+from p2p.handshake import Handshaker
+
 from trinity.protocol.common.peer import (
     BaseChainPeer,
     BaseProxyPeer,
@@ -49,8 +47,6 @@ from trinity.protocol.common.peer_pool_event_bus import (
 from .commands import (
     Announce,
     GetBlockHeaders,
-    Status,
-    StatusV2,
 )
 from .constants import (
     MAX_HEADERS_FETCH,
@@ -73,6 +69,7 @@ from .events import (
     GetReceiptsRequest,
 )
 from .handlers import LESExchangeHandler
+from .handshaker import LESV1Handshaker, LESV2Handshaker, LESHandshakeReceipt
 
 if TYPE_CHECKING:
     from trinity.sync.light.service import BaseLightPeerChain  # noqa: F401
@@ -85,6 +82,23 @@ class LESPeer(BaseChainPeer):
     sub_proto: LESProtocol = None
 
     _requests: LESExchangeHandler = None
+
+    def process_receipts(self,
+                         devp2p_receipt: DevP2PReceipt,
+                         protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+        super().process_receipts(devp2p_receipt, protocol_receipts)
+        for receipt in protocol_receipts:
+            if isinstance(receipt, LESHandshakeReceipt):
+                self.head_td = receipt.handshake_params.head_td
+                self.head_hash = receipt.handshake_params.head_hash
+                self.head_number = receipt.handshake_params.head_num
+                self.genesis_hash = receipt.handshake_params.genesis_hash
+                self.network_id = receipt.handshake_params.network_id
+                break
+        else:
+            raise Exception(
+                "Did not find an `LES` in {protocol_receipts}"
+            )
 
     def get_extra_stats(self) -> Tuple[str, ...]:
         stats_pairs = self.requests.get_stats().items()
@@ -106,64 +120,6 @@ class LESPeer(BaseChainPeer):
             self.head_number = cast(BlockNumber, head_info['head_number'])
 
         super().handle_sub_proto_msg(cmd, msg)
-
-    async def send_sub_proto_handshake(self) -> None:
-        chain_info = await self._local_chain_info
-        handshake_params = LESHandshakeParams(
-            version=self.sub_proto.version,
-            network_id=chain_info.network_id,
-            head_td=chain_info.total_difficulty,
-            head_hash=chain_info.block_hash,
-            head_num=chain_info.block_number,
-            genesis_hash=chain_info.genesis_hash,
-            serve_headers=True,
-            tx_relay=False,
-            serve_chain_since=None,
-            serve_state_since=None,
-            serve_recent_state=None,
-            serve_recent_chain=None,
-            flow_control_bl=None,
-            flow_control_mcr=None,
-            flow_control_mrr=None,
-            announce_type=None if self.sub_proto.version < 2 else self.sub_proto.version,
-        )
-        self.sub_proto.send_handshake(handshake_params)
-
-    async def process_sub_proto_handshake(
-            self, cmd: CommandAPI, msg: Payload) -> None:
-        if not isinstance(cmd, (Status, StatusV2)):
-            await self.disconnect(DisconnectReason.subprotocol_error)
-            raise HandshakeFailure(f"Expected a LES Status msg, got {cmd}, disconnecting")
-
-        msg = cast(Dict[str, Any], msg)
-
-        self.head_td = msg['headTd']
-        self.head_hash = msg['headHash']
-        self.head_number = msg['headNum']
-        self.network_id = msg['networkId']
-        self.genesis_hash = msg['genesisHash']
-
-        if msg['networkId'] != self.local_network_id:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise WrongNetworkFailure(
-                f"{self} network ({msg['networkId']}) does not match ours "
-                f"({self.local_network_id}), disconnecting"
-            )
-
-        local_genesis_hash = await self._get_local_genesis_hash()
-        if msg['genesisHash'] != local_genesis_hash:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise WrongGenesisFailure(
-                f"{self} genesis ({encode_hex(msg['genesisHash'])}) does not "
-                f"match ours ({local_genesis_hash}), disconnecting"
-            )
-
-        # Eventually we might want to keep connections to peers where we are the only side serving
-        # data, but right now both our chain syncer and the Peer.boot() method expect the remote
-        # to reply to header requests, so if they don't we simply disconnect here.
-        if 'serveHeaders' not in msg:
-            await self.disconnect(DisconnectReason.useless_peer)
-            raise HandshakeFailure(f"{self} doesn't serve headers, disconnecting")
 
 
 class LESProxyPeer(BaseProxyPeer):
@@ -192,6 +148,41 @@ class LESProxyPeer(BaseProxyPeer):
 
 class LESPeerFactory(BaseChainPeerFactory):
     peer_class = LESPeer
+
+    async def get_handshakers(self) -> Tuple[Handshaker, ...]:
+        headerdb = self.context.headerdb
+        wait = self.cancel_token.cancellable_wait
+
+        head = await wait(headerdb.coro_get_canonical_head())
+        total_difficulty = await wait(headerdb.coro_get_score(head.hash))
+        genesis_hash = await wait(
+            headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
+        )
+        handshake_params_kwargs = dict(
+            network_id=self.context.network_id,
+            head_td=total_difficulty,
+            head_hash=head.hash,
+            head_num=head.block_number,
+            genesis_hash=genesis_hash,
+            serve_headers=True,
+            serve_chain_since=0,
+            # TODO: these should be configurable to allow us to serve this data.
+            serve_state_since=None,
+            serve_recent_state=None,
+            serve_recent_chain=None,
+            tx_relay=None,
+            flow_control_bl=None,
+            flow_control_mcr=None,
+            flow_control_mrr=None,
+            announce_type=None,
+        )
+        v1_handshake_params = LESHandshakeParams(version=1, **handshake_params_kwargs)
+        v2_handshake_params = LESHandshakeParams(version=2, **handshake_params_kwargs)
+
+        return (
+            LESV1Handshaker(handshake_params=v1_handshake_params),
+            LESV2Handshaker(handshake_params=v2_handshake_params),
+        )
 
 
 class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):

@@ -1,5 +1,6 @@
 from typing import (
     TYPE_CHECKING,
+    NamedTuple,
     Tuple,
     Union,
 )
@@ -7,6 +8,7 @@ from typing import (
 from eth_typing import (
     Hash32,
 )
+from eth_utils import ValidationError
 from lahja import (
     BroadcastConfig,
     EndpointAPI,
@@ -44,6 +46,13 @@ if TYPE_CHECKING:
     from .peer import BCCPeer  # noqa: F401
 
 
+class BCCHandshakeParams(NamedTuple):
+    protocol_version: int
+    network_id: int
+    genesis_root: Hash32
+    head_slot: Slot
+
+
 # HasExtendedDebugLogger must come before Protocol so there's self.logger.debug2()
 class BCCProtocol(HasExtendedDebugLogger, Protocol):
     name = "bcc"
@@ -58,15 +67,17 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
 
     peer: "BCCPeer"
 
-    def send_handshake(self,
-                       genesis_root: Hash32,
-                       head_slot: Slot,
-                       network_id: int) -> None:
+    def send_handshake(self, handshake_params: BCCHandshakeParams) -> None:
+        if self.version != handshake_params.protocol_version:
+            raise ValidationError(
+                f"BCC protocol version mismatch: "
+                f"params:{handshake_params.protocol_version} != proto:{self.version}"
+            )
         resp = StatusMessage(
-            protocol_version=self.version,
-            network_id=network_id,
-            genesis_root=genesis_root,
-            head_slot=head_slot,
+            protocol_version=handshake_params.protocol_version,
+            network_id=handshake_params.network_id,
+            genesis_root=handshake_params.genesis_root,
+            head_slot=handshake_params.head_slot,
         )
         cmd = Status(self.cmd_id_offset, self.snappy_support)
         self.logger.debug2("Sending BCC/Status msg: %s", resp)

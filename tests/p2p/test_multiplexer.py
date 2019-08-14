@@ -95,6 +95,7 @@ async def test_multiplexer_properties():
 @pytest.mark.asyncio
 async def test_multiplexer_only_p2p_protocol():
     alice_multiplexer, bob_multiplexer = MultiplexerPairFactory()
+
     async with alice_multiplexer.multiplex():
         async with bob_multiplexer.multiplex():
             alice_stream = alice_multiplexer.stream_protocol_messages(P2PProtocol)
@@ -139,6 +140,7 @@ async def test_multiplexer_p2p_and_paragon_protocol():
             bob_second_protocol.send_cmd(CommandA)
             bob_p2p_protocol.send_pong()
             bob_second_protocol.send_cmd(CommandB)
+
             cmd, _ = await asyncio.wait_for(alice_p2p_stream.asend(None), timeout=0.1)
             assert isinstance(cmd, Pong)
 

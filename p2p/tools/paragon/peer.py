@@ -1,5 +1,12 @@
 from typing import (
     Iterable,
+    Tuple,
+)
+
+from p2p.abc import MultiplexerAPI
+from p2p.handshake import (
+    Handshaker,
+    HandshakeReceipt,
 )
 
 from p2p.abc import CommandAPI
@@ -11,6 +18,7 @@ from p2p.peer import (
 )
 from p2p.peer_pool import BasePeerPool
 from p2p.typing import Payload
+from p2p.protocol import Protocol
 
 from .proto import ParagonProtocol
 
@@ -42,9 +50,21 @@ class ParagonContext(BasePeerContext):
         super().__init__(client_version_string, listen_port, p2p_version)
 
 
+class ParagonHandshaker(Handshaker):
+    protocol_class = ParagonProtocol
+
+    async def do_handshake(self,
+                           multiplexer: MultiplexerAPI,
+                           protocol: Protocol) -> HandshakeReceipt:
+        return HandshakeReceipt(protocol)
+
+
 class ParagonPeerFactory(BasePeerFactory):
     peer_class = ParagonPeer
     context: ParagonContext
+
+    async def get_handshakers(self) -> Tuple[Handshaker, ...]:
+        return (ParagonHandshaker(),)
 
 
 class ParagonPeerPool(BasePeerPool):
