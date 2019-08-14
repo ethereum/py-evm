@@ -1,0 +1,1 @@
+``ETHHandshakeReceipt`` and ``LESHandshakeReceipt`` now properly accept their protocol instances in their constructors.

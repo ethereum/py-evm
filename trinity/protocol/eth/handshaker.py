@@ -21,7 +21,8 @@ from .commands import Status
 class ETHHandshakeReceipt(HandshakeReceipt):
     handshake_params: ETHHandshakeParams
 
-    def __init__(self, handshake_params: ETHHandshakeParams) -> None:
+    def __init__(self, protocol: ETHProtocol, handshake_params: ETHHandshakeParams) -> None:
+        super().__init__(protocol)
         self.handshake_params = handshake_params
 
 
@@ -48,13 +49,14 @@ class ETHHandshaker(Handshaker):
 
             msg = cast(Dict[str, Any], msg)
 
-            receipt = ETHHandshakeReceipt(ETHHandshakeParams(
+            remote_params = ETHHandshakeParams(
                 version=msg['protocol_version'],
                 network_id=msg['network_id'],
                 total_difficulty=msg['td'],
                 head_hash=msg['best_hash'],
                 genesis_hash=msg['genesis_hash'],
-            ))
+            )
+            receipt = ETHHandshakeReceipt(protocol, remote_params)
 
             if receipt.handshake_params.network_id != self.handshake_params.network_id:
                 raise WrongNetworkFailure(
