@@ -296,6 +296,9 @@ def pausing_vm_decorator(
         def persist(self) -> Optional[Any]:
             return self._pause_on_missing_data(super().persist)
 
+        def make_state_root(self) -> Optional[Any]:
+            return self._pause_on_missing_data(super().make_state_root)
+
     class PausingVM(original_vm_class):  # type: ignore
         @classmethod
         def get_state_class(cls) -> Type[StateAPI]:
@@ -413,6 +416,7 @@ def partial_trigger_missing_state_downloads(
         # this won't actually save the results, but all we need to do is generate the trie requests
         t = Timer()
         vm.apply_all_transactions(transactions, unused_header)
+        vm.state.make_state_root()
         preview_time = t.elapsed
 
         beam_stats = vm.get_beam_stats()
