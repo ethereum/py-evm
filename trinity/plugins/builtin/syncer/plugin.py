@@ -4,6 +4,7 @@ from abc import (
 )
 from argparse import (
     ArgumentParser,
+    Namespace,
     _SubParsersAction,
 )
 import asyncio
@@ -82,12 +83,20 @@ class BaseSyncStrategy(ABC):
         return True
 
     @classmethod
+    def configure_parser(cls, arg_parser: ArgumentParser) -> None:
+        """
+        Configure the argument parser for the specific sync strategy.
+        """
+        pass
+
+    @classmethod
     @abstractmethod
     def get_sync_mode(cls) -> str:
         ...
 
     @abstractmethod
     async def sync(self,
+                   args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
                    db_manager: BaseManager,
@@ -108,6 +117,7 @@ class NoopSyncStrategy(BaseSyncStrategy):
         return 'none'
 
     async def sync(self,
+                   args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
                    db_manager: BaseManager,
@@ -125,6 +135,7 @@ class FullSyncStrategy(BaseSyncStrategy):
         return SYNC_FULL
 
     async def sync(self,
+                   args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
                    db_manager: BaseManager,
@@ -150,6 +161,7 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
         return SYNC_FAST
 
     async def sync(self,
+                   args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
                    db_manager: BaseManager,
@@ -174,7 +186,17 @@ class BeamSyncStrategy(BaseSyncStrategy):
     def get_sync_mode(cls) -> str:
         return SYNC_BEAM
 
+    @classmethod
+    def configure_parser(cls, arg_parser: ArgumentParser) -> None:
+        arg_parser.add_argument(
+            '--force-beam-block-number',
+            type=int,
+            help="Force beam sync to activate on a specific block number (for testing)",
+            default=None,
+        )
+
     async def sync(self,
+                   args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
                    db_manager: BaseManager,
@@ -188,6 +210,7 @@ class BeamSyncStrategy(BaseSyncStrategy):
             db_manager.get_db(),  # type: ignore
             cast(ETHPeerPool, peer_pool),
             event_bus,
+            args.force_beam_block_number,
             cancel_token,
         )
 
@@ -201,6 +224,7 @@ class LightSyncStrategy(BaseSyncStrategy):
         return SYNC_LIGHT
 
     async def sync(self,
+                   args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
                    db_manager: BaseManager,
@@ -248,6 +272,9 @@ class SyncerPlugin(AsyncioIsolatedPlugin):
 
         if cls.default_strategy not in cls.extract_strategy_types():
             raise ValidationError(f"Default strategy {cls.default_strategy} not in strategies")
+
+        for sync_strategy in cls.strategies:
+            sync_strategy.configure_parser(arg_parser)
 
         syncing_parser = arg_parser.add_argument_group('sync mode')
         mode_parser = syncing_parser.add_mutually_exclusive_group()
@@ -304,6 +331,7 @@ class SyncerPlugin(AsyncioIsolatedPlugin):
     async def launch_sync(self, node: Node[BasePeer]) -> None:
         await node.events.started.wait()
         await self.active_strategy.sync(
+            self.boot_info.args,
             self.logger,
             node.get_chain(),
             node.db_manager,

@@ -21,6 +21,7 @@ class BeamSyncService(BaseService):
             base_db: BaseAsyncDB,
             peer_pool: ETHPeerPool,
             event_bus: EndpointAPI,
+            force_beam_block_number: int = None,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain
@@ -28,6 +29,7 @@ class BeamSyncService(BaseService):
         self.base_db = base_db
         self.peer_pool = peer_pool
         self.event_bus = event_bus
+        self.force_beam_block_number = force_beam_block_number
 
     async def _run(self) -> None:
         head = await self.wait(self.chaindb.coro_get_canonical_head())
@@ -38,6 +40,7 @@ class BeamSyncService(BaseService):
             self.chaindb,
             self.peer_pool,
             self.event_bus,
+            self.force_beam_block_number,
             token=self.cancel_token,
         )
         await beam_syncer.run()

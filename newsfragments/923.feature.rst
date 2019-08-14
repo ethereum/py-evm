@@ -1,0 +1,2 @@
+Expose the `force-beam-block-number` config as a command line parameter.
+The config is useful for testing to force beam sync to activate on a given block number.
