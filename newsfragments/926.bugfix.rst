@@ -1,0 +1,1 @@
+``BootManager`` now uses the ``BasePeer.loop`` as well as their cancel token.
