@@ -52,7 +52,7 @@ geth_steps: &geth_steps
     - checkout
     - restore_cache:
         keys:
-          - cache-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+          - cache-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./.circleci/build_geth.sh" }}
     - run:
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
@@ -64,23 +64,7 @@ geth_steps: &geth_steps
         command: pip install --user tox
     - run:
         name: build geth if missing
-        command: |
-          mkdir -p $HOME/.ethash
-          pip install --user py-geth>=2.1.0
-          export GOROOT=/usr/local/go
-          export GETH_BINARY="$HOME/.py-geth/geth-$GETH_VERSION/bin/geth"
-          if [ ! -e "$GETH_BINARY" ]; then
-            curl -O https://storage.googleapis.com/golang/go1.10.linux-amd64.tar.gz
-            tar xvf go1.10.linux-amd64.tar.gz
-            sudo chown -R root:root ./go
-            sudo mv go /usr/local
-            sudo ln -s /usr/local/go/bin/go /usr/local/bin/go
-            sudo apt-get update;
-            sudo apt-get install -y build-essential;
-            python -m geth.install $GETH_VERSION;
-          fi
-          sudo ln -s $GETH_BINARY /usr/local/bin/geth
-          geth version
+        command: ./.circleci/build_geth.sh
     - run:
         name: run tox
         command: ~/.local/bin/tox -r
@@ -92,7 +76,7 @@ geth_steps: &geth_steps
           - ./eggs
           - ~/.ethash
           - ~/.py-geth
-        key: cache-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+        key: cache-v2-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./.circleci/build_geth.sh" }}
 
 eth2_fixtures: &eth2_fixtures
   working_directory: ~/repo
@@ -111,7 +95,7 @@ eth2_fixtures: &eth2_fixtures
         when: on_fail
     - restore_cache:
         keys:
-          - cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum ".circleci/config.yml" }}
+          - cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./.circleci/get_eth2_fixtures.sh" }}
     - run:
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
@@ -119,12 +103,8 @@ eth2_fixtures: &eth2_fixtures
         name: install cmake
         command: sudo apt install -y gcc g++ cmake
     - run:
-        name: download the required yaml files
-        command: |
-          if [ ! -d "./eth2-fixtures/tests" ]; then
-            wget -c https://github.com/hwwhww/eth2.0-spec-tests/releases/download/v0.8.1b/archive.tar.gz
-            tar zxvf archive.tar.gz -C ./eth2-fixtures
-          fi
+        name: download the required yaml files if missing
+        command: ./.circleci/get_eth2_fixtures.sh
     - run:
         name: install dependencies
         command: pip install --user tox
@@ -140,8 +120,7 @@ eth2_fixtures: &eth2_fixtures
           - ./eggs
           - .pytest_cache/v/eth2/bls/key-cache
           - ./eth2-fixtures
-        key: cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum ".circleci/config.yml" }}
-
+        key: cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./.circleci/get_eth2_fixtures.sh" }}
 jobs:
   py36-lint:
     <<: *common
