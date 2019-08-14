@@ -1,0 +1,1 @@
+``LESHandshakeParams`` no longer takes a ``version`` parameter to ``as_payload_dict``
