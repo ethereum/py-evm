@@ -2,6 +2,7 @@ import time
 import factory
 from typing import (
     Any,
+    Type,
     TypeVar,
 )
 
@@ -66,8 +67,7 @@ class BeaconChainFactory(factory.Factory):
         model = TestnetChain
 
     @classmethod
-    def _create(cls, model_class: TChain, *args: Any, **kwargs: Any) -> TChain:
-        print(cls)
+    def _create(cls, model_class: Type[TChain], *args: Any, **kwargs: Any) -> TChain:
         return model_class.from_genesis(
             base_db=AtomicDB(),
             genesis_state=genesis_state,

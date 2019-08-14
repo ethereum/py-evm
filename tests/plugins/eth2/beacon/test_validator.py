@@ -29,8 +29,8 @@ from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
 )
 from eth2.beacon.tools.factories import (
     BeaconChainFactory,
-    keymap,
     index_to_pubkey,
+    keymap,
 )
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
