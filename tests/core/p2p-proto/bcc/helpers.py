@@ -32,6 +32,7 @@ from trinity.protocol.bcc.peer import (
 )
 
 from p2p import ecies
+from p2p.constants import DEVP2P_V5
 from p2p.tools.paragon.helpers import (
     get_directly_linked_peers_without_handshake as _get_directly_linked_peers_without_handshake,
     get_directly_linked_peers as _get_directly_linked_peers,
@@ -131,6 +132,7 @@ async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):
         network_id=1,
         client_version_string='alice',
         listen_port=30303,
+        p2p_version=DEVP2P_V5,
     )
 
     alice_factory = BCCPeerFactory(
@@ -147,6 +149,7 @@ async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):
         network_id=1,
         client_version_string='bob',
         listen_port=30304,
+        p2p_version=DEVP2P_V5,
     )
 
     bob_factory = BCCPeerFactory(

@@ -1,0 +1,1 @@
+Add ``p2p_version`` to ``p2p.peer.BasePeerContext`` properties and use for handshake.

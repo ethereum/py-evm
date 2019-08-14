@@ -6,6 +6,7 @@ from eth.chains.mainnet import (
 from eth.db.atomic import AtomicDB
 
 from p2p import ecies
+from p2p.constants import DEVP2P_V5
 from p2p.tools.paragon.helpers import (
     get_directly_linked_peers_without_handshake as _get_directly_linked_peers_without_handshake,
     get_directly_linked_peers as _get_directly_linked_peers,
@@ -54,6 +55,7 @@ async def _setup_alice_and_bob_factories(
         vm_configuration=tuple(),
         client_version_string='alice',
         listen_port=30303,
+        p2p_version=DEVP2P_V5,
     )
 
     if alice_peer_class is ETHPeer:
@@ -81,6 +83,7 @@ async def _setup_alice_and_bob_factories(
         vm_configuration=tuple(),
         client_version_string='bob',
         listen_port=30304,
+        p2p_version=DEVP2P_V5,
     )
 
     if bob_peer_class is ETHPeer:

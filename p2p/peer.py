@@ -66,7 +66,7 @@ from p2p.tracking.connection import (
 
 from .constants import (
     BLACKLIST_SECONDS_BAD_PROTOCOL,
-    SNAPPY_PROTOCOL_VERSION,
+    DEVP2P_V5,
 )
 
 if TYPE_CHECKING:
@@ -149,10 +149,15 @@ class BasePeerBootManager(BaseService):
 class BasePeerContext:
     client_version_string: str
     listen_port: int
+    p2p_version: int
 
-    def __init__(self, client_version_string: str, listen_port: int) -> None:
+    def __init__(self,
+                 client_version_string: str,
+                 listen_port: int,
+                 p2p_version: int) -> None:
         self.client_version_string = client_version_string
         self.listen_port = listen_port
+        self.p2p_version = p2p_version
 
 
 class BasePeer(BaseService):
@@ -324,6 +329,7 @@ class BasePeer(BaseService):
             client_version_string=self.context.client_version_string,
             capabilities=self.capabilities,
             listen_port=self.context.listen_port,
+            p2p_version=self.context.p2p_version,
         )
 
         cmd, msg = await self.read_msg()
@@ -473,7 +479,7 @@ class BasePeer(BaseService):
 
         # Check whether to support Snappy Compression or not
         # based on other peer's p2p protocol version
-        snappy_support = msg['version'] >= SNAPPY_PROTOCOL_VERSION
+        snappy_support = msg['version'] >= DEVP2P_V5
 
         if snappy_support:
             # Now update the base protocol to support snappy compression

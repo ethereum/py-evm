@@ -17,8 +17,9 @@ class ChainContext(BasePeerContext):
                  vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...],
                  client_version_string: str,
                  listen_port: int,
+                 p2p_version: int,
                  ) -> None:
-        super().__init__(client_version_string, listen_port)
+        super().__init__(client_version_string, listen_port, p2p_version)
         self.headerdb = headerdb
         self.network_id = network_id
         self.vm_configuration = vm_configuration

@@ -12,9 +12,10 @@ from cancel_token import CancelToken
 
 from p2p import ecies
 from p2p import protocol
+from p2p.constants import DEVP2P_V4
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import HandshakeFailure
-from p2p.p2p_proto import Hello
+from p2p.p2p_proto import Hello, P2PProtocolV4
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
@@ -182,7 +183,12 @@ async def get_directly_linked_v4_and_v5_peers(
     )
 
     # Tweaking the P2P Protocol Versions for Alice
-    alice.base_protocol.version = 4  # type: ignore  # mypy doesn't like us overwriting class variables  # noqa: E501
+    alice.base_protocol = P2PProtocolV4(  # type: ignore
+        transport=alice.base_protocol.transport,
+        cmd_id_offset=0,
+        snappy_support=False,
+    )
+    alice.context.p2p_version = DEVP2P_V4
     alice.process_p2p_handshake = MethodType(process_v4_p2p_handshake, alice)  # type: ignore  # mypy still support method overwrites  # noqa: E501
 
     # Perform the base protocol (P2P) handshake.

@@ -40,7 +40,7 @@ from .constants import (
     HASH_LEN,
     PUBKEY_LEN,
     SIGNATURE_LEN,
-    SUPPORTED_RLPX_VERSION,
+    DEVP2P_V4,
 )
 
 
@@ -195,7 +195,7 @@ class HandshakeInitiator(HandshakeBase):
 
         if self.use_eip8:
             data = rlp.encode(
-                [S, self.pubkey.to_bytes(), nonce, SUPPORTED_RLPX_VERSION], sedes=eip8_auth_sedes)
+                [S, self.pubkey.to_bytes(), nonce, DEVP2P_V4], sedes=eip8_auth_sedes)
             return _pad_eip8_data(data)
         else:
             # S || H(ephemeral-pubk) || pubk || nonce || 0x0
@@ -222,7 +222,7 @@ class HandshakeResponder(HandshakeBase):
     def create_auth_ack_message(self, nonce: bytes) -> bytes:
         if self.use_eip8:
             data = rlp.encode(
-                (self.ephemeral_pubkey.to_bytes(), nonce, SUPPORTED_RLPX_VERSION),
+                (self.ephemeral_pubkey.to_bytes(), nonce, DEVP2P_V4),
                 sedes=eip8_ack_sedes)
             msg = _pad_eip8_data(data)
         else:
@@ -279,7 +279,7 @@ def decode_ack_plain(
         raise BadAckMessage(f"Unexpected size for ack message: {len(message)}")
     eph_pubkey = keys.PublicKey(message[:PUBKEY_LEN])
     nonce = message[PUBKEY_LEN: PUBKEY_LEN + HASH_LEN]
-    return eph_pubkey, nonce, SUPPORTED_RLPX_VERSION
+    return eph_pubkey, nonce, DEVP2P_V4
 
 
 def decode_ack_eip8(
@@ -308,7 +308,7 @@ def decode_auth_plain(ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple
     pubkey = keys.PublicKey(message[pubkey_start: pubkey_start + PUBKEY_LEN])
     nonce_start = pubkey_start + PUBKEY_LEN
     nonce = message[nonce_start: nonce_start + HASH_LEN]
-    return signature, pubkey, nonce, SUPPORTED_RLPX_VERSION
+    return signature, pubkey, nonce, DEVP2P_V4
 
 
 def decode_auth_eip8(ciphertext: bytes, privkey: datatypes.PrivateKey) -> Tuple[

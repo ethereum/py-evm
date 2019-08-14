@@ -23,7 +23,7 @@ from eth.tools.logging import ExtendedDebugLogger
 from p2p._utils import duplicates
 from p2p.abc import TransportAPI, MultiplexerAPI
 from p2p.constants import (
-    SNAPPY_PROTOCOL_VERSION,
+    DEVP2P_V5,
 )
 from p2p.exceptions import (
     HandshakeFailure,
@@ -151,13 +151,8 @@ async def _do_p2p_handshake(transport: TransportAPI,
                             p2p_handshake_params: DevP2PHandshakeParams,
                             base_protocol: BaseP2PProtocol,
                             token: CancelToken) -> Tuple[DevP2PReceipt, BaseP2PProtocol]:
-    client_version_string, listen_port, version = p2p_handshake_params
-    if version != base_protocol.version:
-        raise Exception(
-            f"Protocol class has versin `{base_protocol.version}` but handshake "
-            f"params have version `{version}`"
-        )
-    base_protocol.send_handshake(client_version_string, capabilites, listen_port)
+    client_version_string, listen_port, p2p_version = p2p_handshake_params
+    base_protocol.send_handshake(client_version_string, capabilites, listen_port, p2p_version)
 
     # The base `p2p` protocol handshake directly streams the messages as it has
     # strict requirements about receiving the `Hello` message first.
@@ -172,10 +167,10 @@ async def _do_p2p_handshake(transport: TransportAPI,
 
         protocol: BaseP2PProtocol
 
-        if base_protocol.version >= SNAPPY_PROTOCOL_VERSION:
+        if base_protocol.version >= DEVP2P_V5:
             # Check whether to support Snappy Compression or not
             # based on other peer's p2p protocol version
-            snappy_support = msg['version'] >= SNAPPY_PROTOCOL_VERSION
+            snappy_support = msg['version'] >= DEVP2P_V5
 
             if snappy_support:
                 # Now update the base protocol to support snappy compression

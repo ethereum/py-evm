@@ -22,6 +22,7 @@ from eth.chains.ropsten import (
 from eth.db.atomic import AtomicDB
 
 from p2p import ecies
+from p2p.constants import DEVP2P_V5
 from p2p.kademlia import Node
 
 from trinity.constants import ROPSTEN_NETWORK_ID
@@ -169,6 +170,7 @@ async def test_lightchain_integration(
         vm_configuration=ROPSTEN_VM_CONFIGURATION,
         client_version_string='trinity-test',
         listen_port=30303,
+        p2p_version=DEVP2P_V5,
     )
     peer_pool = LESPeerPool(
         privkey=ecies.generate_privkey(),
