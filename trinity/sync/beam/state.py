@@ -397,9 +397,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             self._node_tasks.complete(urgent_batch_id, tuple(urgent_nodes.keys()))
 
         if predictive_batch_id is not None:
-            # retire all predictions, if the responding node doesn't have them, then we don't
-            # want to keep asking
-            self._maybe_useful_nodes.complete(predictive_batch_id, predictive_node_hashes)
+            self._maybe_useful_nodes.complete(predictive_batch_id, tuple(predictive_nodes.keys()))
 
         self._urgent_processed_nodes += len(urgent_nodes)
         for node_hash in predictive_nodes.keys():
