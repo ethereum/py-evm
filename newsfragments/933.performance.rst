@@ -1,0 +1,2 @@
+During Beam Sync previews, be sure to collect the nodes required to generate the new state root,
+rather than wait until it's time to import the block.
