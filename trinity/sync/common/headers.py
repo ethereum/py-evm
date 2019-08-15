@@ -867,7 +867,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             try:
                 await self._validate_peer_is_ahead(peer)
             except _PeerBehind:
-                self.logger.info("At or behind peer %s, skipping skeleton sync", peer)
+                self.logger.debug("At or behind peer %s, skipping skeleton sync", peer)
             else:
                 async with self._get_skeleton_syncer(peer) as syncer:
                     await self._full_skeleton_sync(syncer)
@@ -961,7 +961,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         head = await self.wait(self._db.coro_get_canonical_head())
         head_td = await self.wait(self._db.coro_get_score(head.hash))
         if peer.head_td <= head_td:
-            self.logger.info(
+            self.logger.debug(
                 "Head TD (%d) announced by %s not higher than ours (%d), not syncing",
                 peer.head_td, peer, head_td)
             raise _PeerBehind(f"{peer} is behind us, not a valid target for sync")

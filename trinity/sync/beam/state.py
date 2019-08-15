@@ -75,7 +75,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
     _total_requests = 0
     _timer = Timer(auto_start=False)
     _report_interval = 10  # Number of seconds between progress reports.
-    _reply_timeout = 20  # seconds
+    _reply_timeout = 1  # seconds
 
     # We are only interested in peers entering or leaving the pool
     subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
@@ -386,7 +386,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             raise ValidationError(f"All nodes must be either urgent or predictive")
 
         if len(urgent_nodes) == 0 and urgent_batch_id is not None:
-            self.logger.info("%s returned no urgent nodes from %r", peer, urgent_node_hashes)
+            self.logger.debug("%s returned no urgent nodes from %r", peer, urgent_node_hashes)
 
         # batch all DB writes into one, for performance
         with self._db.atomic_batch() as batch:
@@ -397,9 +397,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             self._node_tasks.complete(urgent_batch_id, tuple(urgent_nodes.keys()))
 
         if predictive_batch_id is not None:
-            # retire all predictions, if the responding node doesn't have them, then we don't
-            # want to keep asking
-            self._maybe_useful_nodes.complete(predictive_batch_id, predictive_node_hashes)
+            self._maybe_useful_nodes.complete(predictive_batch_id, tuple(predictive_nodes.keys()))
 
         self._urgent_processed_nodes += len(urgent_nodes)
         for node_hash in predictive_nodes.keys():
@@ -456,7 +454,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             return tuple()
         except OperationCancelled:
             self.logger.debug(
-                "Service cancellation while fetching segment, dropping %s from queue",
+                "Service cancellation while fetching nodes, dropping %s from queue",
                 peer,
                 exc_info=True,
             )
