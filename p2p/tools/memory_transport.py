@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import struct
 from typing import Tuple
 
@@ -8,6 +9,7 @@ from eth_keys import datatypes
 
 from cancel_token import CancelToken
 
+from p2p._utils import get_devp2p_cmd_id
 from p2p.abc import NodeAPI, TransportAPI
 from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.exceptions import PeerConnectionLost
@@ -21,6 +23,8 @@ CONNECTION_LOST_ERRORS = (
 
 
 class MemoryTransport(TransportAPI):
+    logger = logging.getLogger('p2p.tools.memory_transport.MemoryTransport')
+
     def __init__(self,
                  remote: NodeAPI,
                  private_key: datatypes.PrivateKey,
@@ -56,10 +60,10 @@ class MemoryTransport(TransportAPI):
         return self._private_key.public_key
 
     async def read(self, n: int, token: CancelToken) -> bytes:
+        self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
         try:
             return await token.cancellable_wait(
                 self._reader.readexactly(n),
-                timeout=2,
             )
         except CONNECTION_LOST_ERRORS as err:
             raise PeerConnectionLost from err
@@ -76,7 +80,10 @@ class MemoryTransport(TransportAPI):
     def send(self, header: bytes, body: bytes) -> None:
         (size,) = struct.unpack(b'>I', b'\x00' + header[:3])
         if self.is_closing:
-            raise PeerConnectionLost("transport closed")
+            cmd_id = get_devp2p_cmd_id(body)
+            self.logger.error(
+                "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
+            return
         self.write(header[:3] + body[:size])
 
     def close(self) -> None:
