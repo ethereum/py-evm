@@ -1,0 +1,1 @@
+Add ``MultiplexerAPI.cancel_token`` property.
