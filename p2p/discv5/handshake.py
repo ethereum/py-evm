@@ -154,7 +154,7 @@ class HandshakeInitiator(BaseHandshakeParticipant):
         if not self.is_response_packet(response_packet):
             raise ValueError("Packet {packet} is not the expected response packet")
         if not isinstance(response_packet, WhoAreYouPacket):
-            raise Exception("Invariant: Only WhoAreYou packets are valid responses")
+            raise TypeError("Invariant: Only WhoAreYou packets are valid responses")
         who_are_you_packet = response_packet
 
         # compute session keys
