@@ -54,30 +54,30 @@ class HandshakeResult(NamedTuple):
 class BaseHandshakeParticipant(ABC):
     def __init__(self,
                  is_initiator: bool,
-                 our_private_key: bytes,
-                 our_enr: ENR,
-                 their_node_id: Optional[NodeID] = None,
-                 their_enr: Optional[ENR] = None,
+                 local_private_key: bytes,
+                 local_enr: ENR,
+                 remote_node_id: Optional[NodeID] = None,
+                 remote_enr: Optional[ENR] = None,
                  ) -> None:
         self.is_initiator = is_initiator
 
-        self.our_enr = our_enr
-        self.our_private_key = our_private_key
+        self.local_enr = local_enr
+        self.local_private_key = local_private_key
 
-        self.their_enr = their_enr
-        if their_enr is None and their_node_id is None:
+        self.remote_enr = remote_enr
+        if remote_enr is None and remote_node_id is None:
             raise ValueError("Either the peer's ENR or node id must be given")
-        elif their_enr is not None and their_node_id is not None:
-            if not their_node_id == their_enr.node_id:
+        elif remote_enr is not None and remote_node_id is not None:
+            if not remote_node_id == remote_enr.node_id:
                 raise ValueError(
-                    f"Node id according to ENR ({encode_hex(their_enr.node_id)}) must match "
-                    f"explicitly given one ({encode_hex(their_node_id)})"
+                    f"Node id according to ENR ({encode_hex(remote_enr.node_id)}) must match "
+                    f"explicitly given one ({encode_hex(remote_node_id)})"
                 )
-            self.their_node_id = their_node_id
-        elif their_enr is None and their_node_id is not None:
-            self.their_node_id = their_node_id
-        elif their_enr is not None and their_node_id is None:
-            self.their_node_id = their_enr.node_id
+            self.remote_node_id = remote_node_id
+        elif remote_enr is None and remote_node_id is not None:
+            self.remote_node_id = remote_node_id
+        elif remote_enr is not None and remote_node_id is None:
+            self.remote_node_id = remote_enr.node_id
         else:
             raise Exception("Invariant: All cases handled")
 
@@ -103,30 +103,30 @@ class BaseHandshakeParticipant(ABC):
         ...
 
     @property
-    def our_node_id(self) -> NodeID:
-        return self.our_enr.node_id
+    def local_node_id(self) -> NodeID:
+        return self.local_enr.node_id
 
     @property
     def tag(self) -> Tag:
         return compute_tag(
-            source_node_id=self.our_node_id,
-            destination_node_id=self.their_node_id,
+            source_node_id=self.local_node_id,
+            destination_node_id=self.remote_node_id,
         )
 
 
 class HandshakeInitiator(BaseHandshakeParticipant):
     def __init__(self,
                  *,
-                 our_private_key: bytes,
-                 our_enr: ENR,
-                 their_enr: ENR,
+                 local_private_key: bytes,
+                 local_enr: ENR,
+                 remote_enr: ENR,
                  initial_message: BaseMessage,
                  ) -> None:
         super().__init__(
             is_initiator=True,
-            our_enr=our_enr,
-            our_private_key=our_private_key,
-            their_enr=their_enr,
+            local_enr=local_enr,
+            local_private_key=local_private_key,
+            remote_enr=remote_enr,
         )
         self.initial_message = initial_message
 
@@ -138,7 +138,7 @@ class HandshakeInitiator(BaseHandshakeParticipant):
 
     @property
     def identity_scheme(self) -> Type[IdentityScheme]:
-        return self.their_enr.identity_scheme
+        return self.remote_enr.identity_scheme
 
     @property
     def first_packet_to_send(self) -> Packet:
@@ -165,20 +165,20 @@ class HandshakeInitiator(BaseHandshakeParticipant):
 
         session_keys = self.identity_scheme.compute_session_keys(
             local_private_key=ephemeral_private_key,
-            peer_public_key=self.their_enr.public_key,
-            initiator_node_id=self.our_enr.node_id,
-            recipient_node_id=self.their_node_id,
+            peer_public_key=self.remote_enr.public_key,
+            initiator_node_id=self.local_enr.node_id,
+            recipient_node_id=self.remote_node_id,
             id_nonce=who_are_you_packet.id_nonce,
         )
 
         # prepare response packet
         id_nonce_signature = self.identity_scheme.create_id_nonce_signature(
             id_nonce=who_are_you_packet.id_nonce,
-            private_key=self.our_private_key,
+            private_key=self.local_private_key,
         )
 
-        if who_are_you_packet.enr_sequence_number < self.our_enr.sequence_number:
-            enr = self.our_enr
+        if who_are_you_packet.enr_sequence_number < self.local_enr.sequence_number:
+            enr = self.local_enr
         else:
             enr = None
 
@@ -205,26 +205,26 @@ class HandshakeInitiator(BaseHandshakeParticipant):
 class HandshakeRecipient(BaseHandshakeParticipant):
     def __init__(self,
                  *,
-                 our_private_key: bytes,
-                 our_enr: ENR,
-                 their_node_id: Optional[NodeID],
-                 their_enr: Optional[ENR],
+                 local_private_key: bytes,
+                 local_enr: ENR,
+                 remote_node_id: Optional[NodeID],
+                 remote_enr: Optional[ENR],
                  initiating_packet_auth_tag: Nonce,
                  ) -> None:
         super().__init__(
             is_initiator=False,
-            our_enr=our_enr,
-            our_private_key=our_private_key,
-            their_enr=their_enr,
-            their_node_id=their_node_id,
+            local_enr=local_enr,
+            local_private_key=local_private_key,
+            remote_enr=remote_enr,
+            remote_node_id=remote_node_id,
         )
 
-        if their_enr is not None:
-            enr_sequence_number = their_enr.sequence_number
+        if remote_enr is not None:
+            enr_sequence_number = remote_enr.sequence_number
         else:
             enr_sequence_number = 0
         self.who_are_you_packet = WhoAreYouPacket.prepare(
-            destination_node_id=self.their_node_id,
+            destination_node_id=self.remote_node_id,
             token=initiating_packet_auth_tag,
             id_nonce=get_random_id_nonce(),
             enr_sequence_number=enr_sequence_number,
@@ -232,7 +232,7 @@ class HandshakeRecipient(BaseHandshakeParticipant):
 
     @property
     def identity_scheme(self) -> Type[IdentityScheme]:
-        return self.our_enr.identity_scheme
+        return self.local_enr.identity_scheme
 
     @property
     def first_packet_to_send(self) -> Packet:
@@ -243,8 +243,8 @@ class HandshakeRecipient(BaseHandshakeParticipant):
             isinstance(packet, AuthHeaderPacket) and
             recover_source_id_from_tag(
                 packet.tag,
-                self.our_node_id,
-            ) == self.their_node_id
+                self.local_node_id,
+            ) == self.remote_node_id
         )
 
     def complete_handshake(self, response_packet: Packet) -> HandshakeResult:
@@ -264,10 +264,10 @@ class HandshakeRecipient(BaseHandshakeParticipant):
             ) from error
 
         session_keys = self.identity_scheme.compute_session_keys(
-            local_private_key=self.our_private_key,
+            local_private_key=self.local_private_key,
             peer_public_key=ephemeral_public_key,
-            initiator_node_id=self.their_node_id,
-            recipient_node_id=self.our_enr.node_id,
+            initiator_node_id=self.remote_node_id,
+            recipient_node_id=self.local_enr.node_id,
             id_nonce=self.who_are_you_packet.id_nonce,
         )
 
@@ -302,35 +302,35 @@ class HandshakeRecipient(BaseHandshakeParticipant):
 
         # validate ENR if present
         if enr is None:
-            if self.their_enr is None:
+            if self.remote_enr is None:
                 raise HandshakeFailure("Peer failed to send their ENR")
             else:
-                their_current_enr = self.their_enr
+                current_remote_enr = self.remote_enr
         else:
             try:
                 enr.validate_signature()
             except ValidationError as error:
                 raise HandshakeFailure("ENR in auth response contains invalid signature") from error
 
-            if self.their_enr is not None and enr.sequence_number <= self.their_enr.sequence_number:
-                raise HandshakeFailure(
-                    "ENR in auth response is not newer than what we already have"
-                )
+            if self.remote_enr is not None:
+                if enr.sequence_number <= self.remote_enr.sequence_number:
+                    raise HandshakeFailure(
+                        "ENR in auth response is not newer than what we already have"
+                    )
 
-            if enr.node_id != self.their_node_id:
+            if enr.node_id != self.remote_node_id:
                 raise HandshakeFailure(
                     f"ENR received from peer belongs to different node ({encode_hex(enr.node_id)} "
-                    f"instead of {encode_hex(self.their_node_id)})"
+                    f"instead of {encode_hex(self.remote_node_id)})"
                 )
 
-            their_current_enr = enr
+            current_remote_enr = enr
 
-        # validate id nonce signature
         try:
             self.identity_scheme.validate_id_nonce_signature(
                 signature=id_nonce_signature,
                 id_nonce=id_nonce,
-                public_key=their_current_enr.public_key,
+                public_key=current_remote_enr.public_key,
             )
         except ValidationError as error:
             raise HandshakeFailure("Invalid id nonce signature in auth response") from error

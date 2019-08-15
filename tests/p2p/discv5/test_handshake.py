@@ -35,15 +35,15 @@ def test_successful_handshake():
     initial_message = PingMessageFactory()
 
     initiator = HandshakeInitiatorFactory(
-        our_private_key=initiator_private_key,
-        our_enr=initiator_enr,
-        their_enr=recipient_enr,
+        local_private_key=initiator_private_key,
+        local_enr=initiator_enr,
+        remote_enr=recipient_enr,
         initial_message=initial_message,
     )
     recipient = HandshakeRecipientFactory(
-        our_private_key=recipient_private_key,
-        our_enr=recipient_enr,
-        their_enr=initiator_enr,
+        local_private_key=recipient_private_key,
+        local_enr=recipient_enr,
+        remote_enr=initiator_enr,
         initiating_packet_auth_tag=initiator.first_packet_to_send.auth_tag
     )
 
@@ -71,13 +71,13 @@ def test_successful_handshake_with_enr_update():
     )
 
     initiator = HandshakeInitiatorFactory(
-        our_private_key=initiator_private_key,
-        our_enr=new_initiator_enr,
-        their_private_key=recipient_private_key,
+        local_private_key=initiator_private_key,
+        local_enr=new_initiator_enr,
+        remote_private_key=recipient_private_key,
     )
     recipient = HandshakeRecipientFactory(
-        our_private_key=recipient_private_key,
-        their_enr=old_initiator_enr,
+        local_private_key=recipient_private_key,
+        remote_enr=old_initiator_enr,
         initiating_packet_auth_tag=initiator.first_packet_to_send.auth_tag
     )
 
@@ -95,15 +95,15 @@ def test_successful_handshake_with_new_enr():
     recipient_enr = ENRFactory(private_key=recipient_private_key)
 
     initiator = HandshakeInitiatorFactory(
-        our_private_key=initiator_private_key,
-        our_enr=initiator_enr,
-        their_enr=recipient_enr,
+        local_private_key=initiator_private_key,
+        local_enr=initiator_enr,
+        remote_enr=recipient_enr,
     )
     recipient = HandshakeRecipientFactory(
-        our_private_key=recipient_private_key,
-        our_enr=recipient_enr,
-        their_enr=None,
-        their_node_id=initiator_enr.node_id,
+        local_private_key=recipient_private_key,
+        local_enr=recipient_enr,
+        remote_enr=None,
+        remote_node_id=initiator_enr.node_id,
         initiating_packet_auth_tag=initiator.first_packet_to_send.auth_tag
     )
 
