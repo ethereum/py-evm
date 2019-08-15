@@ -269,7 +269,7 @@ With sender and receiver prepared, let's create the actual transaction.
 ::
 
     vm = chain.get_vm()
-    nonce = vm.state.get_nonce(SENDER)
+    nonce = vm.state.account_db.get_nonce(SENDER)
 
     tx = vm.create_unsigned_transaction(
         nonce=nonce,
@@ -283,7 +283,7 @@ With sender and receiver prepared, let's create the actual transaction.
 Every transaction needs a ``nonce`` not to be confused with the ``nonce`` that we previously
 mined as part of the PoW algorithm. The *transaction nonce* serves as a counter to ensure
 all transactions from one address are processed in order. We retrieve the current ``nonce``
-by calling :func:`~eth.vm.base.VM.state.get_nonce(sender)`.
+by calling :func:`~eth.vm.base.VM.state.account_db.get_nonce(sender)`.
 
 Once we have the ``nonce`` we can call :func:`~eth.vm.base.VM.create_unsigned_transaction` and
 pass the ``nonce`` among the rest of the transaction attributes as key-value pairs.
@@ -356,7 +356,7 @@ zero value transfer transaction.
   >>> chain = klass.from_genesis(AtomicDB(), GENESIS_PARAMS)
   >>> vm = chain.get_vm()
 
-  >>> nonce = vm.state.get_nonce(SENDER)
+  >>> nonce = vm.state.account_db.get_nonce(SENDER)
 
   >>> tx = vm.create_unsigned_transaction(
   ...     nonce=nonce,
