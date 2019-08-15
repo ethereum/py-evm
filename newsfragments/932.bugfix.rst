@@ -1,0 +1,2 @@
+Fix a deadlock bug: if you request data from a peer at just the wrong moment, the request would hang
+forever. Now, it correctly raises an :cls:`OperationCancelled`.

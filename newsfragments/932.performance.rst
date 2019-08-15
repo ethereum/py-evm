@@ -1,0 +1,2 @@
+Previously, we gave up on predicted nodes that were not returned by a peer. Now we retry them,
+which helps make sure we aren't missing any nodes at block import time.
