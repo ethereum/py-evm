@@ -1,5 +1,5 @@
 import hashlib
-import os
+import secrets
 
 from typing import (
     cast,
@@ -568,12 +568,12 @@ def _decrypt_message(key: AES128Key,
 # Random packet data
 #
 def get_random_encrypted_data() -> bytes:
-    return os.urandom(RANDOM_ENCRYPTED_DATA_SIZE)
+    return secrets.token_bytes(RANDOM_ENCRYPTED_DATA_SIZE)
 
 
 def get_random_id_nonce() -> IDNonce:
-    return IDNonce(os.urandom(ID_NONCE_SIZE))
+    return IDNonce(secrets.token_bytes(ID_NONCE_SIZE))
 
 
 def get_random_auth_tag() -> Nonce:
-    return Nonce(os.urandom(NONCE_SIZE))
+    return Nonce(secrets.token_bytes(NONCE_SIZE))

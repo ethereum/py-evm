@@ -5,7 +5,7 @@ from abc import (
 from collections import (
     UserDict,
 )
-import os
+import secrets
 from typing import (
     Tuple,
     Type,
@@ -213,7 +213,7 @@ class V4IdentityScheme(IdentityScheme):
     #
     @classmethod
     def create_handshake_key_pair(cls) -> Tuple[bytes, bytes]:
-        private_key = os.urandom(cls.private_key_size)
+        private_key = secrets.token_bytes(cls.private_key_size)
         public_key = PrivateKey(private_key).public_key.to_compressed_bytes()
         return private_key, public_key
 
