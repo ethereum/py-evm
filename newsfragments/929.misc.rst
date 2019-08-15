@@ -1,0 +1,1 @@
+Additional logging output in ``BaseService`` when cancel token has already been triggered and a small sleep to allow cleanup a little extra time to cancel background tasks.
