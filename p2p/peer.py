@@ -139,7 +139,7 @@ class BasePeerBootManager(BaseService):
     protocols which need to perform more complex boot check.
     """
     def __init__(self, peer: 'BasePeer') -> None:
-        super().__init__(peer.cancel_token)
+        super().__init__(token=peer.cancel_token, loop=peer.cancel_token.loop)
         self.peer = peer
 
     async def _run(self) -> None:
