@@ -4,6 +4,7 @@ from typing import (
     Dict,
 )
 
+from eth_utils import ValidationError
 from eth_utils.toolz import assoc
 
 import rlp
@@ -87,7 +88,13 @@ class BaseP2PProtocol(Protocol):
             self,
             client_version_string: str,
             capabilities: Capabilities,
-            listen_port: int) -> None:
+            listen_port: int,
+            p2p_version: int) -> None:
+        if p2p_version != self.version:
+            raise ValidationError(
+                f"P2P version mismatch.  Handshake parameters set as "
+                f"v{p2p_version} but protocol class has v{self.version}"
+            )
         self.send_hello(
             version=self.version,
             client_version_string=client_version_string,

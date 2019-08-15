@@ -3,6 +3,7 @@ from typing import (
 )
 
 from p2p.abc import CommandAPI
+from p2p.constants import DEVP2P_V5
 from p2p.peer import (
     BasePeer,
     BasePeerContext,
@@ -36,8 +37,9 @@ class ParagonContext(BasePeerContext):
 
     def __init__(self,
                  client_version_string: str = 'paragon-test',
-                 listen_port: int = 30303) -> None:
-        super().__init__(client_version_string, listen_port)
+                 listen_port: int = 30303,
+                 p2p_version: int = DEVP2P_V5) -> None:
+        super().__init__(client_version_string, listen_port, p2p_version)
 
 
 class ParagonPeerFactory(BasePeerFactory):

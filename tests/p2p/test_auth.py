@@ -130,6 +130,7 @@ async def test_handshake():
         client_version_string=initiator_peer.context.client_version_string,
         capabilities=initiator_peer.capabilities,
         listen_port=initiator_peer.context.listen_port,
+        p2p_version=initiator_peer.context.p2p_version,
     )
     responder_transport = Transport(
         remote=responder_remote,
@@ -149,6 +150,7 @@ async def test_handshake():
         client_version_string=responder_peer.context.client_version_string,
         capabilities=responder_peer.capabilities,
         listen_port=responder_peer.context.listen_port,
+        p2p_version=responder_peer.context.p2p_version,
     )
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's
@@ -248,6 +250,7 @@ async def test_handshake_eip8():
         client_version_string=initiator_peer.context.client_version_string,
         capabilities=initiator_peer.capabilities,
         listen_port=initiator_peer.context.listen_port,
+        p2p_version=initiator_peer.context.p2p_version,
     )
     responder_transport = Transport(
         remote=responder_remote,
@@ -267,6 +270,7 @@ async def test_handshake_eip8():
         client_version_string=responder_peer.context.client_version_string,
         capabilities=responder_peer.capabilities,
         listen_port=responder_peer.context.listen_port,
+        p2p_version=responder_peer.context.p2p_version,
     )
 
     # The handshake msgs sent by each peer (above) are going to be fed directly into their remote's

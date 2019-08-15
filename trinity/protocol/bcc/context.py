@@ -8,7 +8,8 @@ class BeaconContext(BasePeerContext):
                  chain_db: BaseAsyncBeaconChainDB,
                  network_id: int,
                  client_version_string: str,
-                 listen_port: int) -> None:
-        super().__init__(client_version_string, listen_port)
+                 listen_port: int,
+                 p2p_version: int) -> None:
+        super().__init__(client_version_string, listen_port, p2p_version)
         self.chain_db = chain_db
         self.network_id = network_id

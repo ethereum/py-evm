@@ -17,12 +17,13 @@ from eth_typing import BlockNumber
 from eth.abc import VirtualMachineAPI
 
 from p2p.abc import NodeAPI
-from p2p.constants import DEFAULT_MAX_PEERS
+from p2p.constants import DEFAULT_MAX_PEERS, DEVP2P_V5
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     HandshakeFailure,
     PeerConnectionLost,
 )
+from p2p.handshake import DevP2PHandshakeParams
 from p2p.peer import receive_handshake
 from p2p.service import BaseService
 
@@ -74,6 +75,13 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         super().__init__(token)
         # cross process event bus
         self.event_bus = event_bus
+
+        # setup parameters for the base devp2p handshake.
+        self.p2p_handshake_params = DevP2PHandshakeParams(
+            client_version_string=construct_trinity_client_identifier(),
+            listen_port=port,
+            version=DEVP2P_V5,
+        )
 
         # chain information
         self.chain = chain
@@ -193,8 +201,9 @@ class FullServer(BaseServer[ETHPeerPool]):
             headerdb=self.headerdb,
             network_id=self.network_id,
             vm_configuration=self.chain.vm_configuration,
-            client_version_string=construct_trinity_client_identifier(),
-            listen_port=self.port,
+            client_version_string=self.p2p_handshake_params.client_version_string,
+            listen_port=self.p2p_handshake_params.listen_port,
+            p2p_version=self.p2p_handshake_params.version,
         )
         return ETHPeerPool(
             privkey=self.privkey,
@@ -212,8 +221,9 @@ class LightServer(BaseServer[LESPeerPool]):
             headerdb=self.headerdb,
             network_id=self.network_id,
             vm_configuration=self.chain.vm_configuration,
-            client_version_string=construct_trinity_client_identifier(),
-            listen_port=self.port,
+            client_version_string=self.p2p_handshake_params.client_version_string,
+            listen_port=self.p2p_handshake_params.listen_port,
+            p2p_version=self.p2p_handshake_params.version,
         )
         return LESPeerPool(
             privkey=self.privkey,
@@ -277,8 +287,9 @@ class BCCServer(BaseServer[BCCPeerPool]):
         context = BeaconContext(
             chain_db=cast(BaseAsyncBeaconChainDB, self.chaindb),
             network_id=self.network_id,
-            client_version_string=construct_trinity_client_identifier(),
-            listen_port=self.port,
+            client_version_string=self.p2p_handshake_params.client_version_string,
+            listen_port=self.p2p_handshake_params.listen_port,
+            p2p_version=self.p2p_handshake_params.version,
         )
         return BCCPeerPool(
             privkey=self.privkey,
