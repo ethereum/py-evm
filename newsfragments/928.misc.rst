@@ -1,0 +1,1 @@
+Removes the most received message count from the general peer stats (it is still available in the detail data printed about each message type the peer has received)
