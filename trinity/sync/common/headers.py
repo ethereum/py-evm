@@ -460,6 +460,9 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             ))
 
             self.logger.debug2('sync received new headers: %s', headers)
+        except PeerConnectionLost:
+            self.logger.debug("Lost connection to %s while retrieving headers, aborting sync", peer)
+            return tuple()
         except OperationCancelled:
             self.logger.info("Skeleteon sync with %s cancelled", peer)
             return tuple()

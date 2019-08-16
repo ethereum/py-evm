@@ -449,6 +449,9 @@ class BeamDownloader(BaseService, PeerSubscriber):
             node_hashes: Tuple[Hash32, ...]) -> NodeDataBundles:
         try:
             completed_nodes = await self._make_node_request(peer, node_hashes)
+        except PeerConnectionLost:
+            self.logger.debug("%s went away, cancelling the nodes request and moving on...", peer)
+            return tuple()
         except BaseP2PError as exc:
             self.logger.warning("Unexpected p2p err while downloading nodes from %s: %s", peer, exc)
             self.logger.debug("Problem downloading nodes from peer, dropping...", exc_info=True)
@@ -459,9 +462,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 peer,
                 exc_info=True,
             )
-            return tuple()
-        except PeerConnectionLost:
-            self.logger.debug("%s went away, cancelling the nodes request and moving on...", peer)
             return tuple()
         except CancelledError:
             self.logger.debug("Pending nodes call to %r future cancelled", peer)
