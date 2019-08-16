@@ -13,6 +13,10 @@ from typing import (
 from eth_utils import ValidationError
 from eth_utils.toolz import partition
 
+from eth.abc import (
+    AtomicDatabaseAPI,
+    DatabaseAPI,
+)
 from eth.db.backends.base import BaseDB, BaseAtomicDB
 from eth.db.diff import DBDiffTracker, DBDiff, DiffMissingError
 
@@ -151,7 +155,10 @@ class DBManager:
     """
     logger = logging.getLogger('trinity.db.manager.DBManager')
 
-    def __init__(self, db: BaseAtomicDB):
+    def __init__(self, db: AtomicDatabaseAPI):
+        """
+        The AtomicDatabaseAPI that this wraps must be threadsafe.
+        """
         self._started = threading.Event()
         self._stopped = threading.Event()
         self.db = db
@@ -225,9 +232,6 @@ class DBManager:
             sock.bind(str(ipc_path))
             sock.listen(1)
 
-            # Wait for the IPC socket to appear before marking ourself as
-            # actually having started.
-            wait_for_ipc(ipc_path)
             self._started.set()
 
             while self.is_running:
@@ -351,10 +355,6 @@ class DBManager:
         sock.sendall(SUCCESS_BYTE)
 
 
-class empty:
-    pass
-
-
 class DBClient(BaseAtomicDB):
     logger = logging.getLogger('trinity.db.client.DBClient')
 
@@ -453,7 +453,7 @@ class DBClient(BaseAtomicDB):
 
 class AtomicBatch(BaseDB):
     """
-    This is returned by a BaseAtomicDB during an atomic_batch, to provide a temporary view
+    This is returned by a DBClient during an atomic_batch, to provide a temporary view
     of the database, before commit.
     """
     logger = logging.getLogger("trinity.db.manager.AtomicBatch")
@@ -461,7 +461,7 @@ class AtomicBatch(BaseDB):
     _write_target_db: BaseDB = None
     _diff: DBDiffTracker = None
 
-    def __init__(self, db: BaseDB) -> None:
+    def __init__(self, db: DatabaseAPI) -> None:
         self._db = db
         self._track_diff = DBDiffTracker()
 
@@ -486,17 +486,11 @@ class AtomicBatch(BaseDB):
         self._track_diff[key] = value
 
     def __delitem__(self, key: bytes) -> None:
-        if self._track_diff is None:
-            raise ValidationError("Cannot delete data from a write batch, out of context")
-
         if key not in self:
             raise KeyError(key)
         del self._track_diff[key]
 
     def _exists(self, key: bytes) -> bool:
-        if self._track_diff is None:
-            raise ValidationError("Cannot test data existance from a write batch, out of context")
-
         try:
             self[key]
         except KeyError:

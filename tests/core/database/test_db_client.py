@@ -28,10 +28,7 @@ def base_db():
 @pytest.fixture
 def db_manager(base_db, ipc_path):
     with DBManager(base_db).run(ipc_path) as manager:
-        manager.logger.info('started db manager')
         yield manager
-        manager.logger.info('exiting db manager')
-    manager.logger.info('exited db manager')
 
 
 @pytest.fixture
@@ -40,9 +37,7 @@ def db_client(ipc_path, db_manager):
     try:
         yield client
     finally:
-        client.logger.info('closing client')
         client.close()
-        client.logger.info('closed client')
 
 
 @pytest.fixture
