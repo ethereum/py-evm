@@ -18,11 +18,13 @@ from .types import (
     TResult,
 )
 
-
 TRequest = TypeVar('TRequest', bound=RequestAPI[Any])
 
 
-class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TResult]):
+class BasePerformance(ABC):
+    """
+    The statistics of how a command is performing.
+    """
     def __init__(self) -> None:
         self.total_msgs = 0
         self.total_items = 0
@@ -42,35 +44,6 @@ class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TRes
 
         # an EMA of the items per second
         self.items_per_second_ema = EMA(initial_value=0, smoothing_factor=0.05)
-
-    @abstractmethod
-    def _get_request_size(self, request: TRequest) -> Optional[int]:
-        """
-        The request size represents the number of *things* that were requested,
-        not taking into account the sizes of individual items.
-
-        Some requests cannot be used to determine the expected size.  In this
-        case `None` should be returned.  (Specifically the `GetBlockHeaders`
-        anchored to a block hash.
-        """
-        ...
-
-    @abstractmethod
-    def _get_result_size(self, result: TResult) -> int:
-        """
-        The result size represents the number of *things* that were returned,
-        not taking into account the sizes of individual items.
-        """
-        ...
-
-    @abstractmethod
-    def _get_result_item_count(self, result: TResult) -> int:
-        """
-        The item count is intended to more accurately represent the size of the
-        response, taking into account things like the size of individual
-        response items such as the number of transactions in a block.
-        """
-        ...
 
     def get_stats(self) -> str:
         """
@@ -102,6 +75,40 @@ class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TRes
             f"ips={self.items_per_second_ema.value:.5f}  "
             f"timeouts={self.total_timeouts}  quality={int(self.response_quality_ema.value)}"
         )
+
+
+class BasePerformanceTracker(BasePerformance, HasExtendedDebugLogger, Generic[TRequest, TResult]):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def _get_request_size(self, request: TRequest) -> Optional[int]:
+        """
+        The request size represents the number of *things* that were requested,
+        not taking into account the sizes of individual items.
+
+        Some requests cannot be used to determine the expected size.  In this
+        case `None` should be returned.  (Specifically the `GetBlockHeaders`
+        anchored to a block hash.
+        """
+        ...
+
+    @abstractmethod
+    def _get_result_size(self, result: TResult) -> int:
+        """
+        The result size represents the number of *things* that were returned,
+        not taking into account the sizes of individual items.
+        """
+        ...
+
+    @abstractmethod
+    def _get_result_item_count(self, result: TResult) -> int:
+        """
+        The item count is intended to more accurately represent the size of the
+        response, taking into account things like the size of individual
+        response items such as the number of transactions in a block.
+        """
+        ...
 
     def record_timeout(self, timeout: float) -> None:
         self.total_msgs += 1
