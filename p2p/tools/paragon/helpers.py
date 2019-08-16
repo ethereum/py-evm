@@ -183,7 +183,7 @@ async def get_directly_linked_v4_and_v5_peers(
     )
 
     # Tweaking the P2P Protocol Versions for Alice
-    alice.base_protocol = P2PProtocolV4(  # type: ignore
+    alice.base_protocol = P2PProtocolV4(
         transport=alice.base_protocol.transport,
         cmd_id_offset=0,
         snappy_support=False,
