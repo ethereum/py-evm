@@ -103,10 +103,13 @@ class BasePerformanceTracker(ABC, HasExtendedDebugLogger, Generic[TRequest, TRes
             f"timeouts={self.total_timeouts}  quality={int(self.response_quality_ema.value)}"
         )
 
-    def record_timeout(self) -> None:
+    def record_timeout(self, timeout: float) -> None:
         self.total_msgs += 1
         self.total_timeouts += 1
         self.response_quality_ema.update(0)
+        self.round_trip_ema.update(timeout)
+        self.round_trip_99th.update(timeout)
+        self.round_trip_stddev.update(timeout)
         self.items_per_second_ema.update(0)
 
     def record_response(self,

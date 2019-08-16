@@ -111,7 +111,7 @@ class ResponseCandidateStream(
                 try:
                     yield await self._get_payload(timeout_remaining)
                 except TimeoutError as err:
-                    tracker.record_timeout()
+                    tracker.record_timeout(total_timeout)
 
                     # If the peer has timeoud out too many times, desconnect
                     # and blacklist them
