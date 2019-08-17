@@ -1,0 +1,1 @@
+Capture :cls:`PeerConnectionLost` in more places, especially sync.

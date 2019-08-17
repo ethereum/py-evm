@@ -1,0 +1,3 @@
+Use round-trip-time when finding the best peer for Beam Sync (instead of node bandwidth).
+Track timeouts as part of RTT now, so that peers with a lot of short responses and timeouts are
+avoided. Increase number of timeouts before peers are kicked.
