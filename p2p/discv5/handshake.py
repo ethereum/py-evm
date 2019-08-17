@@ -7,6 +7,7 @@ from typing import (
     Optional,
     Type,
 )
+import secrets
 
 from eth_utils import (
     encode_hex,
@@ -147,7 +148,7 @@ class HandshakeInitiator(BaseHandshakeParticipant):
     def is_response_packet(self, packet: Packet) -> bool:
         return (
             isinstance(packet, WhoAreYouPacket) and
-            packet.token == self.initiating_packet.auth_tag
+            secrets.compare_digest(packet.token, self.initiating_packet.auth_tag)
         )
 
     def complete_handshake(self, response_packet: Packet) -> HandshakeResult:
