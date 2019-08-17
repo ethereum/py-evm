@@ -15,6 +15,7 @@ from eth_typing import (
 from eth.constants import (
     GENESIS_BLOCK_NUMBER
 )
+from eth.db.header import HeaderDB
 from p2p.constants import (
     DISCOVERY_EVENTBUS_ENDPOINT,
 )
@@ -42,9 +43,7 @@ from trinity.config import (
     Eth1DbMode,
     TrinityConfig,
 )
-from trinity.db.eth1.manager import (
-    create_db_consumer_manager
-)
+from trinity.db.manager import DBClient
 from trinity.events import ShutdownRequest
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
@@ -80,9 +79,9 @@ def get_protocol(trinity_config: TrinityConfig) -> Type[Protocol]:
 
 
 def get_discv5_topic(trinity_config: TrinityConfig, protocol: Type[Protocol]) -> bytes:
-    db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
+    db = DBClient.connect(trinity_config.database_ipc_path)
 
-    header_db = db_manager.get_headerdb()  # type: ignore
+    header_db = HeaderDB(db)
     genesis_hash = header_db.get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
 
     return get_v5_topic(protocol, genesis_hash)

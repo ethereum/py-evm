@@ -31,10 +31,8 @@ from p2p import ecies
 from trinity._utils.shutdown import (
     exit_with_services,
 )
-from trinity.db.beacon.manager import (
-    create_db_consumer_manager,
-)
 from trinity.config import BeaconAppConfig
+from trinity.db.manager import DBClient
 from trinity.extensibility import AsyncioIsolatedPlugin
 from trinity.protocol.bcc_libp2p.configs import (
     SECURITY_PROTOCOL_ID,
@@ -78,8 +76,7 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
     def do_start(self) -> None:
         trinity_config = self.boot_info.trinity_config
         beacon_app_config = trinity_config.get_app_config(BeaconAppConfig)
-        db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
-        base_db = db_manager.get_db()  # type: ignore
+        base_db = DBClient.connect(trinity_config.database_ipc_path)
         chain_config = beacon_app_config.get_chain_config()
         attestation_pool = AttestationPool()
         chain = chain_config.beacon_chain_class(

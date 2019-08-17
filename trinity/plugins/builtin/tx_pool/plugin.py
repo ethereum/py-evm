@@ -23,9 +23,7 @@ from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
 )
-from trinity.db.eth1.manager import (
-    create_db_consumer_manager
-)
+from trinity.db.manager import DBClient
 from trinity.events import ShutdownRequest
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
@@ -73,8 +71,7 @@ class TxPlugin(AsyncioIsolatedPlugin):
     def do_start(self) -> None:
 
         trinity_config = self.boot_info.trinity_config
-        db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
-        db = db_manager.get_db()  # type: ignore
+        db = DBClient.connect(trinity_config.database_ipc_path)
 
         app_config = trinity_config.get_app_config(Eth1AppConfig)
         chain_config = app_config.get_chain_config()

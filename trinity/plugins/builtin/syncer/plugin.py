@@ -23,7 +23,10 @@ from typing import (
 from lahja import EndpointAPI
 
 from cancel_token import CancelToken
-from eth.abc import ChainAPI
+from eth.abc import (
+    AtomicDatabaseAPI,
+    ChainAPI,
+)
 from eth_utils import (
     to_tuple,
     ValidationError,
@@ -39,6 +42,8 @@ from trinity.constants import (
     SYNC_LIGHT,
     SYNC_BEAM,
 )
+from trinity.db.eth1.chain import AsyncChainDB
+from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.extensibility.asyncio import (
     AsyncioIsolatedPlugin
 )
@@ -99,7 +104,7 @@ class BaseSyncStrategy(ABC):
                    args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
-                   db_manager: BaseManager,
+                   base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
@@ -120,7 +125,7 @@ class NoopSyncStrategy(BaseSyncStrategy):
                    args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
-                   db_manager: BaseManager,
+                   base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
@@ -138,15 +143,15 @@ class FullSyncStrategy(BaseSyncStrategy):
                    args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
-                   db_manager: BaseManager,
+                   base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         syncer = FullChainSyncer(
             chain,
-            db_manager.get_chaindb(),  # type: ignore
-            db_manager.get_db(),  # type: ignore
+            AsyncChainDB(base_db),
+            base_db,
             cast(ETHPeerPool, peer_pool),
             cancel_token,
         )
@@ -164,15 +169,15 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
                    args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
-                   db_manager: BaseManager,
+                   base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         syncer = FastThenFullChainSyncer(
             chain,
-            db_manager.get_chaindb(),  # type: ignore
-            db_manager.get_db(),  # type: ignore
+            AsyncChainDB(base_db),
+            base_db,
             cast(ETHPeerPool, peer_pool),
             cancel_token,
         )
@@ -199,15 +204,15 @@ class BeamSyncStrategy(BaseSyncStrategy):
                    args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
-                   db_manager: BaseManager,
+                   base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         syncer = BeamSyncService(
             chain,
-            db_manager.get_chaindb(),  # type: ignore
-            db_manager.get_db(),  # type: ignore
+            AsyncChainDB(base_db),
+            base_db,
             cast(ETHPeerPool, peer_pool),
             event_bus,
             args.force_beam_block_number,
@@ -227,14 +232,14 @@ class LightSyncStrategy(BaseSyncStrategy):
                    args: Namespace,
                    logger: Logger,
                    chain: ChainAPI,
-                   db_manager: BaseManager,
+                   base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
                    cancel_token: CancelToken) -> None:
 
         syncer = LightChainSyncer(
             chain,
-            db_manager.get_headerdb(),  # type: ignore
+            AsyncHeaderDB(base_db),
             cast(LESPeerPool, peer_pool),
             cancel_token,
         )
@@ -334,7 +339,7 @@ class SyncerPlugin(AsyncioIsolatedPlugin):
             self.boot_info.args,
             self.logger,
             node.get_chain(),
-            node.db_manager,
+            node.base_db,
             node.get_peer_pool(),
             self.event_bus,
             node.cancel_token

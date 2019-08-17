@@ -14,7 +14,7 @@ from eth_keys import datatypes
 from cancel_token import CancelToken, OperationCancelled
 from eth_typing import BlockNumber
 
-from eth.abc import VirtualMachineAPI
+from eth.abc import AtomicDatabaseAPI, VirtualMachineAPI
 
 from p2p.abc import NodeAPI
 from p2p.constants import DEFAULT_MAX_PEERS, DEVP2P_V5
@@ -32,10 +32,8 @@ from eth2.beacon.chains.base import BeaconChain
 from trinity._utils.version import construct_trinity_client_identifier
 from trinity.chains.base import BaseAsyncChain
 from trinity.constants import DEFAULT_PREFERRED_NODES
-from trinity.db.base import BaseAsyncDB
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
-from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.eth.peer import ETHPeerPool
@@ -64,7 +62,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                  chain: BaseAsyncChain,
                  chaindb: BaseAsyncChainDB,
                  headerdb: BaseAsyncHeaderDB,
-                 base_db: BaseAsyncDB,
+                 base_db: AtomicDatabaseAPI,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Sequence[NodeAPI] = None,
@@ -242,7 +240,7 @@ class BCCServer(BaseServer[BCCPeerPool]):
                  chain: BaseAsyncChain,
                  chaindb: BaseAsyncChainDB,
                  headerdb: BaseAsyncHeaderDB,
-                 base_db: BaseAsyncDB,
+                 base_db: AtomicDatabaseAPI,
                  network_id: int,
                  max_peers: int = DEFAULT_MAX_PEERS,
                  bootstrap_nodes: Sequence[NodeAPI] = None,
@@ -285,7 +283,7 @@ class BCCServer(BaseServer[BCCPeerPool]):
 
     def _make_peer_pool(self) -> BCCPeerPool:
         context = BeaconContext(
-            chain_db=cast(BaseAsyncBeaconChainDB, self.chaindb),
+            chain_db=self.chaindb,
             network_id=self.network_id,
             client_version_string=self.p2p_handshake_params.client_version_string,
             listen_port=self.p2p_handshake_params.listen_port,

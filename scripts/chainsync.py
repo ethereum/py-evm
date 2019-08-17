@@ -12,6 +12,10 @@ from typing import (
 
 from eth.exceptions import HeaderNotFound
 
+from trinity.db.eth1.chain import (
+    AsyncChainDB,
+    AsyncHeaderDB,
+)
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.les.peer import LESPeerPool
 
@@ -30,7 +34,7 @@ def _test() -> None:
     from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
     from tests.core.integration_test_helpers import (
-        FakeAsyncChainDB, FakeAsyncMainnetChain, FakeAsyncRopstenChain, FakeAsyncHeaderDB,
+        FakeAsyncMainnetChain, FakeAsyncRopstenChain,
         connect_to_peers_loop)
     from trinity.constants import DEFAULT_PREFERRED_NODES
     from trinity.protocol.common.context import ChainContext
@@ -54,8 +58,8 @@ def _test() -> None:
     loop = asyncio.get_event_loop()
 
     base_db = LevelDB(args.db)
-    headerdb = FakeAsyncHeaderDB(base_db)
-    chaindb = FakeAsyncChainDB(base_db)
+    headerdb = AsyncHeaderDB(base_db)
+    chaindb = AsyncChainDB(base_db)
     try:
         genesis = chaindb.get_canonical_block_header_by_number(0)
     except HeaderNotFound:

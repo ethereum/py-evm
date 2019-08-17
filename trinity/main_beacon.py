@@ -28,9 +28,7 @@ from trinity.config import (
 from trinity.constants import (
     APP_IDENTIFIER_BEACON,
 )
-from trinity.db.beacon.manager import (
-    create_db_server_manager,
-)
+from trinity.db.manager import DBManager
 from trinity.initialization import (
     ensure_beacon_dirs,
 )
@@ -49,9 +47,6 @@ from trinity._utils.mp import (
 )
 from trinity._utils.profiling import (
     setup_cprofiler,
-)
-from trinity._utils.proxy import (
-    serve_until_sigint,
 )
 
 
@@ -109,5 +104,9 @@ def run_database_process(trinity_config: TrinityConfig, db_class: Type[AtomicDat
 
         base_db = db_class(db_path=app_config.database_dir)
 
-        manager = create_db_server_manager(trinity_config, base_db)
-        serve_until_sigint(manager)
+        manager = DBManager(base_db)
+        with manager.run(trinity_config.database_ipc_path):
+            try:
+                manager.wait_stopped()
+            except KeyboardInterrupt:
+                pass

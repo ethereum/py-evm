@@ -13,9 +13,8 @@ from p2p.tools.paragon.helpers import (
     get_directly_linked_v4_and_v5_peers as _get_directly_linked_v4_and_v5_peers,
 )
 
-
+from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
-
 from trinity.protocol.eth.peer import (
     ETHPeer,
     ETHPeerFactory,
@@ -26,11 +25,9 @@ from trinity.protocol.les.peer import (
     LESPeerFactory,
 )
 
-from tests.core.integration_test_helpers import FakeAsyncHeaderDB
-
 
 def get_fresh_mainnet_headerdb():
-    headerdb = FakeAsyncHeaderDB(AtomicDB())
+    headerdb = AsyncHeaderDB(AtomicDB())
     headerdb.persist_header(MAINNET_GENESIS_HEADER)
     return headerdb
 

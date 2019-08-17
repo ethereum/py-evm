@@ -1,8 +1,5 @@
 from abc import abstractmethod
 from pathlib import Path
-from multiprocessing.managers import (
-    BaseManager,
-)
 from typing import (
     Generic,
     TypeVar,
@@ -10,7 +7,10 @@ from typing import (
 
 from lahja import EndpointAPI
 
-from eth.abc import ChainAPI
+from eth.abc import (
+    AtomicDatabaseAPI,
+    ChainAPI,
+)
 
 from p2p.peer_pool import BasePeerPool
 from p2p.service import (
@@ -19,11 +19,10 @@ from p2p.service import (
 from p2p._utils import ensure_global_asyncio_executor
 
 from trinity.chains.full import FullChain
+from trinity.db.manager import DBClient
 from trinity.db.eth1.header import (
+    AsyncHeaderDB,
     BaseAsyncHeaderDB,
-)
-from trinity.db.eth1.manager import (
-    create_db_consumer_manager,
 )
 from trinity.events import ShutdownRequest
 from trinity.config import (
@@ -55,8 +54,8 @@ class Node(BaseService, Generic[TPeer]):
     def __init__(self, event_bus: EndpointAPI, trinity_config: TrinityConfig) -> None:
         super().__init__()
         self.trinity_config = trinity_config
-        self._db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
-        self._headerdb = self._db_manager.get_headerdb()  # type: ignore
+        self._base_db = DBClient.connect(trinity_config.database_ipc_path)
+        self._headerdb = AsyncHeaderDB(self._base_db)
 
         self._jsonrpc_ipc_path: Path = trinity_config.jsonrpc_ipc_path
         self._network_id = trinity_config.network_id
@@ -93,7 +92,7 @@ class Node(BaseService, Generic[TPeer]):
     def get_full_chain(self) -> FullChain:
         if self._full_chain is None:
             chain_class = self.chain_config.full_chain_class
-            self._full_chain = chain_class(self.db_manager.get_db())  # type: ignore
+            self._full_chain = chain_class(self._base_db)
 
         return self._full_chain
 
@@ -120,8 +119,8 @@ class Node(BaseService, Generic[TPeer]):
         ...
 
     @property
-    def db_manager(self) -> BaseManager:
-        return self._db_manager
+    def base_db(self) -> AtomicDatabaseAPI:
+        return self._base_db
 
     @property
     def headerdb(self) -> BaseAsyncHeaderDB:

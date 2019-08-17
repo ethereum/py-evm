@@ -23,12 +23,12 @@ from p2p.tools.paragon import (
 from p2p.transport import Transport
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
+from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.protocol.common.events import ConnectToNodeCommand
 from trinity.server import BaseServer
 
 from tests.p2p.auth_constants import eip8_values
 from tests.core.integration_test_helpers import (
-    FakeAsyncHeaderDB,
     run_peer_pool_event_server,
 )
 
@@ -58,7 +58,7 @@ class ParagonServer(BaseServer):
 
 def get_server(privkey, address, event_bus):
     base_db = AtomicDB()
-    headerdb = FakeAsyncHeaderDB(base_db)
+    headerdb = AsyncHeaderDB(base_db)
     chaindb = ChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
     chain = RopstenChain(base_db)

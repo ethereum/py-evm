@@ -23,9 +23,7 @@ from trinity.chains.base import BaseAsyncChain
 from trinity.chains.light_eventbus import (
     EventBusLightPeerChain,
 )
-from trinity.db.eth1.manager import (
-    create_db_consumer_manager
-)
+from trinity.db.manager import DBClient
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
@@ -64,20 +62,17 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
         )
 
     def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[BaseRPCModule, ...]:
-        db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
-
         eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
         chain_config = eth1_app_config.get_chain_config()
 
         chain: BaseAsyncChain
+        db = DBClient.connect(trinity_config.database_ipc_path)
 
         if eth1_app_config.database_mode is Eth1DbMode.LIGHT:
-            db = db_manager.get_db()  # type: ignore
             header_db = HeaderDB(db)
             event_bus_light_peer_chain = EventBusLightPeerChain(self.event_bus)
             chain = chain_config.light_chain_class(header_db, peer_chain=event_bus_light_peer_chain)
         elif eth1_app_config.database_mode is Eth1DbMode.FULL:
-            db = db_manager.get_db()  # type: ignore
             chain = chain_config.full_chain_class(db)
         else:
             raise Exception(f"Unsupported Database Mode: {eth1_app_config.database_mode}")

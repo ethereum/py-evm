@@ -23,9 +23,8 @@ from trinity.constants import (
 from trinity.chains.light_eventbus import (
     EventBusLightPeerChain,
 )
-from trinity.db.eth1.manager import (
-    create_db_consumer_manager,
-)
+from trinity.db.eth1.header import AsyncHeaderDB
+from trinity.db.manager import DBClient
 from trinity._utils.version import (
     construct_trinity_client_identifier,
 )
@@ -163,20 +162,19 @@ class EthstatsService(BaseService):
         }
 
     def get_chain(self) -> ChainAPI:
-        db_manager = create_db_consumer_manager(self.boot_info.trinity_config.database_ipc_path)
         app_config = self.boot_info.trinity_config.get_app_config(Eth1AppConfig)
         chain_config = app_config.get_chain_config()
 
         chain: ChainAPI
+        base_db = DBClient.connect(self.boot_info.trinity_config.database_ipc_path)
 
         if self.boot_info.args.sync_mode == SYNC_LIGHT:
-            header_db = db_manager.get_headerdb()  # type: ignore
+            header_db = AsyncHeaderDB(base_db)
             chain = chain_config.light_chain_class(
                 header_db,
                 peer_chain=EventBusLightPeerChain(self.event_bus)
             )
         else:
-            db = db_manager.get_db()  # type: ignore
-            chain = chain_config.full_chain_class(db)
+            chain = chain_config.full_chain_class(base_db)
 
         return chain

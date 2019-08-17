@@ -6,6 +6,7 @@ from p2p.peer_pool import BasePeerPool
 
 from trinity.chains.full import FullChain
 from trinity.config import TrinityConfig
+from trinity.db.eth1.chain import AsyncChainDB
 from trinity.protocol.common.peer_pool_event_bus import PeerPoolEventServer
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPoolEventServer
 from trinity.server import FullServer
@@ -43,14 +44,13 @@ class FullNode(Node[ETHPeer]):
 
     def get_p2p_server(self) -> FullServer:
         if self._p2p_server is None:
-            manager = self.db_manager
             self._p2p_server = FullServer(
                 privkey=self._node_key,
                 port=self._node_port,
                 chain=self.get_full_chain(),
-                chaindb=manager.get_chaindb(),  # type: ignore
+                chaindb=AsyncChainDB(self._base_db),
                 headerdb=self.headerdb,
-                base_db=manager.get_db(),  # type: ignore
+                base_db=self._base_db,
                 network_id=self._network_id,
                 max_peers=self._max_peers,
                 bootstrap_nodes=self._bootstrap_nodes,

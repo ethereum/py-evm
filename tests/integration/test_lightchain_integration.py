@@ -26,6 +26,8 @@ from p2p.constants import DEVP2P_V5
 from p2p.kademlia import Node
 
 from trinity.constants import ROPSTEN_NETWORK_ID
+from trinity.db.eth1.chain import AsyncChainDB
+from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.sync.light.chain import LightChainSyncer
@@ -35,9 +37,7 @@ from trinity._utils.ipc import (
 )
 
 from tests.core.integration_test_helpers import (
-    FakeAsyncChainDB,
     FakeAsyncRopstenChain,
-    FakeAsyncHeaderDB,
     connect_to_peers_loop,
 )
 
@@ -161,9 +161,9 @@ async def test_lightchain_integration(
 
     remote = Node.from_uri(enode)
     base_db = AtomicDB()
-    chaindb = FakeAsyncChainDB(base_db)
+    chaindb = AsyncChainDB(base_db)
     chaindb.persist_header(ROPSTEN_GENESIS_HEADER)
-    headerdb = FakeAsyncHeaderDB(base_db)
+    headerdb = AsyncHeaderDB(base_db)
     context = ChainContext(
         headerdb=headerdb,
         network_id=ROPSTEN_NETWORK_ID,

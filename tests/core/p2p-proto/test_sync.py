@@ -1,11 +1,14 @@
 import asyncio
 import uuid
 
+from eth.db.atomic import AtomicDB
 from eth.exceptions import HeaderNotFound
 from lahja import ConnectionConfig, AsyncioEndpoint
 from p2p.service import BaseService
 import pytest
 
+from trinity.db.eth1.chain import AsyncChainDB
+from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeerPoolEventServer
 from trinity.sync.beam.importer import (
     make_pausing_beam_chain,
@@ -32,9 +35,6 @@ from trinity.sync.light.chain import LightChainSyncer
 from tests.core.integration_test_helpers import (
     ByzantiumTestChain,
     DBFixture,
-    FakeAsyncAtomicDB,
-    FakeAsyncChainDB,
-    FakeAsyncHeaderDB,
     LatestTestChain,
     PetersburgVM,
     load_fixture_db,
@@ -66,8 +66,8 @@ async def test_fast_syncer(request,
                            chaindb_20):
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
-        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
+        alice_headerdb=AsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=AsyncHeaderDB(chaindb_20.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
     client = FastChainSyncer(LatestTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
@@ -78,7 +78,7 @@ async def test_fast_syncer(request,
         handler_type=ETHPeerPoolEventServer,
     ), run_request_server(
         event_bus,
-        FakeAsyncChainDB(chaindb_20.db),
+        AsyncChainDB(chaindb_20.db),
     ):
 
         server_peer.logger.info("%s is serving 20 blocks", server_peer)
@@ -102,8 +102,8 @@ async def test_fast_syncer(request,
 async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, chaindb_1000):
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
-        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncHeaderDB(chaindb_1000.db))
+        alice_headerdb=AsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=AsyncHeaderDB(chaindb_1000.db))
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
     client = FastChainSyncer(LatestTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
@@ -111,7 +111,7 @@ async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, ch
     async with run_peer_pool_event_server(
         event_bus, server_peer_pool, handler_type=ETHPeerPoolEventServer
     ), run_request_server(
-        event_bus, FakeAsyncChainDB(chaindb_1000.db)
+        event_bus, AsyncChainDB(chaindb_1000.db)
     ):
 
         client_peer.logger.info("%s is serving 1000 blocks", client_peer)
@@ -151,8 +151,8 @@ async def test_beam_syncer(
 
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
-        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncHeaderDB(chaindb_churner.db))
+        alice_headerdb=AsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=AsyncHeaderDB(chaindb_churner.db))
 
     # Need a name that will be unique per xdist-process, otherwise
     #   lahja IPC endpoints in each process will clobber each other
@@ -170,7 +170,7 @@ async def test_beam_syncer(
     async with run_peer_pool_event_server(
         event_bus, server_peer_pool, handler_type=ETHPeerPoolEventServer
     ), run_request_server(
-        event_bus, FakeAsyncChainDB(chaindb_churner.db)
+        event_bus, AsyncChainDB(chaindb_churner.db)
     ), AsyncioEndpoint.serve(
         pausing_config
     ) as pausing_endpoint, AsyncioEndpoint.serve(gatherer_config) as gatherer_endpoint:
@@ -185,8 +185,8 @@ async def test_beam_syncer(
 
         client = BeamSyncer(
             client_chain,
-            FakeAsyncAtomicDB(chaindb_fresh.db),
-            FakeAsyncChainDB(chaindb_fresh.db),
+            chaindb_fresh.db,
+            AsyncChainDB(chaindb_fresh.db),
             client_peer_pool,
             gatherer_endpoint,
             beam_to_block,
@@ -218,8 +218,8 @@ async def test_beam_syncer(
 async def test_regular_syncer(request, event_loop, event_bus, chaindb_fresh, chaindb_20):
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
-        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
+        alice_headerdb=AsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=AsyncHeaderDB(chaindb_20.db))
     client = RegularChainSyncer(
         ByzantiumTestChain(chaindb_fresh.db),
         chaindb_fresh,
@@ -229,7 +229,7 @@ async def test_regular_syncer(request, event_loop, event_bus, chaindb_fresh, cha
     async with run_peer_pool_event_server(
         event_bus, server_peer_pool, handler_type=ETHPeerPoolEventServer
     ), run_request_server(
-        event_bus, FakeAsyncChainDB(chaindb_20.db)
+        event_bus, AsyncChainDB(chaindb_20.db)
     ):
 
         server_peer.logger.info("%s is serving 20 blocks", server_peer)
@@ -332,8 +332,8 @@ async def test_regular_syncer_fallback(request, event_loop, event_bus, chaindb_f
     """
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
-        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
+        alice_headerdb=AsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=AsyncHeaderDB(chaindb_20.db))
     client = FallbackTesting_RegularChainSyncer(
         ByzantiumTestChain(chaindb_fresh.db),
         chaindb_fresh,
@@ -343,7 +343,7 @@ async def test_regular_syncer_fallback(request, event_loop, event_bus, chaindb_f
     async with run_peer_pool_event_server(
         event_bus, server_peer_pool, handler_type=ETHPeerPoolEventServer
     ), run_request_server(
-        event_bus, FakeAsyncChainDB(chaindb_20.db)
+        event_bus, AsyncChainDB(chaindb_20.db)
     ):
 
         server_peer.logger.info("%s is serving 20 blocks", server_peer)
@@ -371,8 +371,8 @@ async def test_light_syncer(request,
     client_peer, server_peer = await get_directly_linked_peers(
         request, event_loop,
         alice_peer_class=LESPeer,
-        alice_headerdb=FakeAsyncHeaderDB(chaindb_fresh.db),
-        bob_headerdb=FakeAsyncHeaderDB(chaindb_20.db))
+        alice_headerdb=AsyncHeaderDB(chaindb_fresh.db),
+        bob_headerdb=AsyncHeaderDB(chaindb_20.db))
     client = LightChainSyncer(
         LatestTestChain(chaindb_fresh.db),
         chaindb_fresh,
@@ -382,7 +382,7 @@ async def test_light_syncer(request,
     async with run_peer_pool_event_server(
         event_bus, server_peer_pool, handler_type=LESPeerPoolEventServer
     ), run_request_server(
-        event_bus, FakeAsyncChainDB(chaindb_20.db), server_type=LightRequestServer
+        event_bus, AsyncChainDB(chaindb_20.db), server_type=LightRequestServer
     ):
 
         server_peer.logger.info("%s is serving 20 blocks", server_peer)
@@ -406,7 +406,7 @@ def leveldb_churner():
 
 @pytest.fixture
 def chaindb_churner(leveldb_churner):
-    chain = load_mining_chain(FakeAsyncAtomicDB(leveldb_churner))
+    chain = load_mining_chain(AtomicDB(leveldb_churner))
     assert chain.chaindb.get_canonical_head().block_number == 129
     return chain.chaindb
 

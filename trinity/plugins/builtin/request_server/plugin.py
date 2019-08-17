@@ -2,12 +2,11 @@ from argparse import (
     ArgumentParser,
     _SubParsersAction,
 )
-from multiprocessing.managers import (
-    BaseManager,
-)
 import asyncio
 
 from lahja import EndpointAPI
+
+from eth.db.backends.base import BaseAtomicDB
 
 from p2p.service import (
     BaseService,
@@ -21,13 +20,10 @@ from trinity.config import (
 from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
 )
-from trinity.db.eth1.manager import (
-    create_db_consumer_manager,
-)
-from trinity.db.beacon.manager import (
-    create_db_consumer_manager as create_beacon_db_consumer_manager,
-)
-
+from trinity.db.manager import DBClient
+from trinity.db.eth1.chain import AsyncChainDB
+from trinity.db.eth1.header import AsyncHeaderDB
+from trinity.db.beacon.chain import AsyncBeaconChainDB
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
@@ -66,18 +62,17 @@ class RequestServerPlugin(AsyncioIsolatedPlugin):
     def do_start(self) -> None:
 
         trinity_config = self.boot_info.trinity_config
+        base_db = DBClient.connect(trinity_config.database_ipc_path)
 
         if trinity_config.has_app_config(Eth1AppConfig):
-            db_manager = create_db_consumer_manager(trinity_config.database_ipc_path)
             server = self.make_eth1_request_server(
                 trinity_config.get_app_config(Eth1AppConfig),
-                db_manager,
+                base_db,
             )
         elif trinity_config.has_app_config(BeaconAppConfig):
-            db_manager = create_beacon_db_consumer_manager(trinity_config.database_ipc_path)
             server = self.make_beacon_request_server(
                 trinity_config.get_app_config(BeaconAppConfig),
-                db_manager,
+                base_db,
             )
         else:
             raise Exception("Trinity config must have either eth1 or beacon chain config")
@@ -87,17 +82,17 @@ class RequestServerPlugin(AsyncioIsolatedPlugin):
 
     def make_eth1_request_server(self,
                                  app_config: Eth1AppConfig,
-                                 db_manager: BaseManager) -> BaseService:
+                                 base_db: BaseAtomicDB) -> BaseService:
 
         if app_config.database_mode is Eth1DbMode.LIGHT:
-            header_db = db_manager.get_headerdb()  # type: ignore
+            header_db = AsyncHeaderDB(base_db)
             server: BaseService = LightRequestServer(
                 self.event_bus,
                 TO_NETWORKING_BROADCAST_CONFIG,
                 header_db
             )
         elif app_config.database_mode is Eth1DbMode.FULL:
-            chain_db = db_manager.get_chaindb()  # type: ignore
+            chain_db = AsyncChainDB(base_db)
             server = ETHRequestServer(
                 self.event_bus,
                 TO_NETWORKING_BROADCAST_CONFIG,
@@ -110,10 +105,10 @@ class RequestServerPlugin(AsyncioIsolatedPlugin):
 
     def make_beacon_request_server(self,
                                    app_config: BeaconAppConfig,
-                                   db_manager: BaseManager) -> BaseService:
+                                   base_db: BaseAtomicDB) -> BaseService:
 
         return BCCRequestServer(
             self.event_bus,
             TO_NETWORKING_BROADCAST_CONFIG,
-            db_manager.get_chaindb()  # type: ignore
+            AsyncBeaconChainDB(base_db, app_config.get_chain_config().genesis_config),
         )

@@ -21,7 +21,7 @@ from trinity.config import (
     BeaconAppConfig,
     TrinityConfig,
 )
-from trinity.db import eth1, beacon
+from trinity.db.manager import DBClient
 from trinity._utils.log_messages import (
     create_missing_ipc_error_message,
 )
@@ -131,8 +131,7 @@ def get_eth1_shell_context(database_dir: Path, trinity_config: TrinityConfig) ->
 
     trinity_already_running = ipc_path.exists()
     if trinity_already_running:
-        db_manager = eth1.manager.create_db_consumer_manager(ipc_path)  # type: ignore
-        db = db_manager.get_db()
+        db = DBClient.connect(ipc_path)
     else:
         db = LevelDB(database_dir)
 
@@ -160,8 +159,7 @@ def get_beacon_shell_context(database_dir: Path, trinity_config: TrinityConfig) 
 
     trinity_already_running = ipc_path.exists()
     if trinity_already_running:
-        db_manager = beacon.manager.create_db_consumer_manager(ipc_path)  # type: ignore
-        db = db_manager.get_db()
+        db = DBClient.connect(ipc_path)
     else:
         db = LevelDB(database_dir)
 

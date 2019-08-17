@@ -22,6 +22,8 @@ from eth_typing import (
     Hash32,
 )
 
+from eth.db.backends.base import BaseAtomicDB
+
 from cancel_token import CancelToken, OperationCancelled
 
 from p2p.abc import CommandAPI
@@ -34,7 +36,6 @@ from trie.exceptions import MissingTrieNode
 
 from trinity._utils.datastructures import TaskQueue
 from trinity._utils.timer import Timer
-from trinity.db.base import BaseAsyncDB
 from trinity.protocol.common.types import (
     NodeDataBundles,
 )
@@ -87,7 +88,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
     def __init__(
             self,
-            db: BaseAsyncDB,
+            db: BaseAtomicDB,
             peer_pool: ETHPeerPool,
             event_bus: EndpointAPI,
             token: CancelToken = None) -> None:
