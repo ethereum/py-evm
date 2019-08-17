@@ -57,30 +57,13 @@ class BaseHandshakeParticipant(ABC):
                  is_initiator: bool,
                  local_private_key: bytes,
                  local_enr: ENR,
-                 remote_node_id: Optional[NodeID] = None,
-                 remote_enr: Optional[ENR] = None,
+                 remote_node_id: NodeID,
                  ) -> None:
         self.is_initiator = is_initiator
 
         self.local_enr = local_enr
         self.local_private_key = local_private_key
-
-        self.remote_enr = remote_enr
-        if remote_enr is None and remote_node_id is None:
-            raise ValueError("Either the peer's ENR or node id must be given")
-        elif remote_enr is not None and remote_node_id is not None:
-            if not remote_node_id == remote_enr.node_id:
-                raise ValueError(
-                    f"Node id according to ENR ({encode_hex(remote_enr.node_id)}) must match "
-                    f"explicitly given one ({encode_hex(remote_node_id)})"
-                )
-            self.remote_node_id = remote_node_id
-        elif remote_enr is None and remote_node_id is not None:
-            self.remote_node_id = remote_node_id
-        elif remote_enr is not None and remote_node_id is None:
-            self.remote_node_id = remote_enr.node_id
-        else:
-            raise Exception("Invariant: All cases handled")
+        self.remote_node_id = remote_node_id
 
     @property
     @abstractmethod
@@ -153,7 +136,7 @@ class HandshakeInitiator(BaseHandshakeParticipant):
 
     def complete_handshake(self, response_packet: Packet) -> HandshakeResult:
         if not self.is_response_packet(response_packet):
-            raise ValueError("Packet {packet} is not the expected response packet")
+            raise ValueError(f"Packet {response_packet} is not the expected response packet")
         if not isinstance(response_packet, WhoAreYouPacket):
             raise TypeError("Invariant: Only WhoAreYou packets are valid responses")
         who_are_you_packet = response_packet
@@ -212,16 +195,27 @@ class HandshakeRecipient(BaseHandshakeParticipant):
                  remote_enr: Optional[ENR],
                  initiating_packet_auth_tag: Nonce,
                  ) -> None:
+        if remote_enr is None and remote_node_id is None:
+            raise ValueError("Either the peer's ENR, its node id, or both must be given")
+        elif remote_enr is not None and remote_node_id is not None:
+            if remote_node_id != remote_enr.node_id:
+                raise ValueError(
+                    f"Node id according to ENR ({encode_hex(remote_enr.node_id)}) must match "
+                    f"explicitly given one ({encode_hex(remote_node_id)})"
+                )
+        if remote_node_id is None:
+            remote_node_id = remote_enr.node_id
+
         super().__init__(
             is_initiator=False,
             local_enr=local_enr,
             local_private_key=local_private_key,
-            remote_enr=remote_enr,
             remote_node_id=remote_node_id,
         )
+        self.remote_enr = remote_enr
 
-        if remote_enr is not None:
-            enr_sequence_number = remote_enr.sequence_number
+        if self.remote_enr is not None:
+            enr_sequence_number = self.remote_enr.sequence_number
         else:
             enr_sequence_number = 0
         self.who_are_you_packet = WhoAreYouPacket.prepare(
@@ -252,7 +246,7 @@ class HandshakeRecipient(BaseHandshakeParticipant):
         if not self.is_response_packet(response_packet):
             raise ValueError("Packet is not the expected response packet")
         if not isinstance(response_packet, AuthHeaderPacket):
-            raise Exception("Invariant: Only AuthHeader packets are valid responses")
+            raise TypeError("Invariant: Only AuthHeader packets are valid responses")
         auth_header_packet = response_packet
 
         ephemeral_public_key = auth_header_packet.auth_header.ephemeral_public_key
