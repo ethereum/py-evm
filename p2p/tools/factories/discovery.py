@@ -80,7 +80,7 @@ class AuthHeaderFactory(factory.Factory):
     auth_tag = b"\x00" * NONCE_SIZE
     id_nonce = b"\x00" * ID_NONCE_SIZE
     auth_scheme_name = AUTH_SCHEME_NAME
-    ephemeral_pubkey = b"\x00" * 32
+    ephemeral_public_key = b"\x00" * 32
     encrypted_auth_response = b"\x00" * 10
 
 
@@ -152,24 +152,24 @@ class HandshakeInitiatorFactory(factory.Factory):
     class Meta:
         model = HandshakeInitiator
 
-    our_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
-    our_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.our_private_key))
-    their_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.their_private_key))
+    local_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
+    local_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.local_private_key))
+    remote_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.remote_private_key))
     initial_message = factory.SubFactory(PingMessageFactory)
 
     class Params:
-        their_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
+        remote_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
 
 
 class HandshakeRecipientFactory(factory.Factory):
     class Meta:
         model = HandshakeRecipient
 
-    our_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
-    our_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.our_private_key))
-    their_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.their_private_key))
-    their_node_id = factory.LazyAttribute(lambda o: o.their_enr.node_id)
+    local_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
+    local_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.local_private_key))
+    remote_enr = factory.LazyAttribute(lambda o: ENRFactory(private_key=o.remote_private_key))
+    remote_node_id = factory.LazyAttribute(lambda o: o.remote_enr.node_id)
     initiating_packet_auth_tag = factory.Faker("binary", length=NONCE_SIZE)
 
     class Params:
-        their_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)
+        remote_private_key = factory.Faker("binary", length=V4IdentityScheme.private_key_size)

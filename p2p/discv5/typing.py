@@ -6,13 +6,13 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from p2p.discv5.enr import (
+    from p2p.discv5.enr import (  # noqa: F401
         ENR,
     )
-    from p2p.discv5.messages import (
+    from p2p.discv5.messages import (  # noqa: F401
         BaseMessage,
     )
-    from p2p.discv5.packets import (
+    from p2p.discv5.packets import (  # noqa: F401
         AuthHeaderPacket,
     )
 

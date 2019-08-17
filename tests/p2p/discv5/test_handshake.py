@@ -2,14 +2,16 @@ from eth_utils import (
     keccak,
 )
 
-from p2p.tools.factories import (
+from p2p.tools.factories.discovery import (
     AuthTagPacketFactory,
     ENRFactory,
     HandshakeInitiatorFactory,
     HandshakeRecipientFactory,
     PingMessageFactory,
-    PrivateKeyFactory,
     WhoAreYouPacketFactory,
+)
+from p2p.tools.factories.keys import (
+    PrivateKeyFactory,
 )
 
 

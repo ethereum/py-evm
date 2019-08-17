@@ -1,9 +1,4 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
 from typing import (
-    NamedTuple,
     Optional,
     Type,
 )
