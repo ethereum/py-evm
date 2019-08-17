@@ -77,11 +77,11 @@ class LESHandshakeParams(NamedTuple):
     flow_control_mrr: Optional[int]
     announce_type: Optional[int]
 
-    def as_payload_dict(self, version: int) -> Payload:
-        return self._as_payload_dict(version)
+    def as_payload_dict(self) -> Payload:
+        return self._as_payload_dict()
 
     @to_dict
-    def _as_payload_dict(self, version: int) -> Iterable[Tuple[str, Any]]:
+    def _as_payload_dict(self) -> Iterable[Tuple[str, Any]]:
         yield 'protocolVersion', self.version
         yield 'networkId', self.network_id
         yield 'headTd', self.head_td
@@ -131,7 +131,7 @@ class LESProtocol(Protocol):
                 f"LES protocol version mismatch: "
                 f"params:{handshake_params.version} != proto:{self.version}"
             )
-        resp = handshake_params.as_payload_dict(version=self.version)
+        resp = handshake_params.as_payload_dict()
         cmd = Status(self.cmd_id_offset, self.snappy_support)
         self.transport.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: %s", resp)
@@ -253,7 +253,7 @@ class LESProtocolV2(LESProtocol):
                 f"LES protocol version mismatch: "
                 f"params:{handshake_params.version} != proto:{self.version}"
             )
-        resp = handshake_params.as_payload_dict(version=self.version)
+        resp = handshake_params.as_payload_dict()
         cmd = StatusV2(self.cmd_id_offset, self.snappy_support)
         self.logger.debug("Sending LES/Status msg: %s", resp)
         self.transport.send(*cmd.encode(resp))
