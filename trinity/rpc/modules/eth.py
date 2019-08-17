@@ -207,6 +207,7 @@ class Eth(Eth1ChainRPCModule):
         block = await get_block_at_number(self.chain, at_block)
         return hex(len(block.transactions))
 
+    @retryable
     @format_params(decode_hex, to_int_if_hex)
     async def getCode(self, address: Address, at_block: Union[str, int]) -> str:
         state = await state_at_block(self.chain, at_block)

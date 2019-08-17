@@ -13,10 +13,12 @@ from lahja import EndpointAPI
 
 from eth.vm.interrupt import (
     MissingAccountTrieNode,
+    MissingBytecode,
 )
 
 from trinity.sync.common.events import (
     CollectMissingAccount,
+    CollectMissingBytecode,
 )
 
 
@@ -37,35 +39,47 @@ def is_retryable(func: Func) -> bool:
     return getattr(func, RETRYABLE_ATTRIBUTE_NAME, False)
 
 
-def should_execute_with_retries(event_bus: EndpointAPI, func: Func) -> bool:
-    return all((
-        is_retryable(func),
-        event_bus.is_any_endpoint_subscribed_to(CollectMissingAccount),
-    ))
-
-
 async def execute_with_retries(event_bus: EndpointAPI, func: Func, params: Any) -> None:
     """
     If a beam sync (or anything which responds to CollectMissingAccount) is running then
     attempt to fetch missing data from it before giving up.
     """
-    should_retry = should_execute_with_retries(event_bus, func)
+    retryable = is_retryable(func)
 
     for iteration in itertools.count():
         try:
             return await func(*params)
         except MissingAccountTrieNode as exc:
-            if not should_retry:
+            if not retryable:
                 raise
 
             if iteration > MAX_RETRIES:
                 raise Exception(
-                    f"Failed to collect missing account after {MAX_RETRIES} attempts"
+                    f"Failed to collect all necessary state after {MAX_RETRIES} attempts"
                 ) from exc
+
+            if not event_bus.is_any_endpoint_subscribed_to(CollectMissingAccount):
+                raise
 
             await event_bus.request(CollectMissingAccount(
                 exc.missing_node_hash,
                 exc.address_hash,
                 exc.state_root_hash,
+                urgent=True,
+            ))
+        except MissingBytecode as exc:
+            if not retryable:
+                raise
+
+            if iteration > MAX_RETRIES:
+                raise Exception(
+                    f"Failed to collect all necessary state after {MAX_RETRIES} attempts"
+                ) from exc
+
+            if not event_bus.is_any_endpoint_subscribed_to(CollectMissingBytecode):
+                raise
+
+            await event_bus.request(CollectMissingBytecode(
+                bytecode_hash=exc.missing_code_hash,
                 urgent=True,
             ))
