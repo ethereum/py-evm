@@ -19,6 +19,7 @@ from p2p.exceptions import (
     HandshakeFailure,
 )
 
+from p2p.discv5.abc import HandshakeParticipantAPI
 from p2p.discv5.enr import ENR
 from p2p.discv5.identity_schemes import IdentityScheme
 from p2p.discv5.messages import BaseMessage
@@ -40,55 +41,43 @@ from p2p.discv5.typing import (
     IDNonce,
     NodeID,
     Nonce,
-    SessionKeys,
+    HandshakeResult,
     Tag,
 )
 
 
-class HandshakeResult(NamedTuple):
-    session_keys: SessionKeys
-    enr: Optional[ENR]
-    message: Optional[BaseMessage]
-    auth_header_packet: Optional[AuthHeaderPacket]
-
-
-class BaseHandshakeParticipant(ABC):
+class BaseHandshakeParticipant(HandshakeParticipantAPI):
     def __init__(self,
                  is_initiator: bool,
                  local_private_key: bytes,
                  local_enr: ENR,
                  remote_node_id: NodeID,
                  ) -> None:
-        self.is_initiator = is_initiator
+        self._is_initiator = is_initiator
 
-        self.local_enr = local_enr
-        self.local_private_key = local_private_key
-        self.remote_node_id = remote_node_id
-
-    @property
-    @abstractmethod
-    def first_packet_to_send(self) -> Packet:
-        """The first packet we have to send the peer."""
-        ...
-
-    @abstractmethod
-    def is_response_packet(self, packet: Packet) -> bool:
-        """Check if the given packet is the response we need to complete the handshake."""
-        ...
-
-    @abstractmethod
-    def complete_handshake(self, response_packet: Packet) -> HandshakeResult:
-        """Complete the handshake using a response packet received from the peer."""
-        ...
+        self._local_enr = local_enr
+        self._local_private_key = local_private_key
+        self._remote_node_id = remote_node_id
 
     @property
-    @abstractmethod
-    def identity_scheme(self) -> Type[IdentityScheme]:
-        ...
+    def is_initiator(self) -> bool:
+        return self._is_initiator
+
+    @property
+    def local_private_key(self) -> bytes:
+        return self._local_private_key
+
+    @property
+    def local_enr(self) -> ENR:
+        return self._local_enr
 
     @property
     def local_node_id(self) -> NodeID:
         return self.local_enr.node_id
+
+    @property
+    def remote_node_id(self) -> NodeID:
+        return self._remote_node_id
 
     @property
     def tag(self) -> Tag:
@@ -110,8 +99,9 @@ class HandshakeInitiator(BaseHandshakeParticipant):
             is_initiator=True,
             local_enr=local_enr,
             local_private_key=local_private_key,
-            remote_enr=remote_enr,
+            remote_node_id=remote_enr.node_id,
         )
+        self.remote_enr = remote_enr
         self.initial_message = initial_message
 
         self.initiating_packet = AuthTagPacket.prepare_random(
