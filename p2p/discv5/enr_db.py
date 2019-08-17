@@ -1,19 +1,23 @@
-from abc import ABC
 from typing import (
     Dict,
 )
 
 import trio
 
+from p2p.discv5.abc import EnrDbApi
 from p2p.discv5.enr import ENR
 from p2p.discv5.identity_schemes import IdentitySchemeRegistry
 from p2p.discv5.typing import NodeID
 
 
-class EnrDbApi(ABC):
+class BaseEnrDb(EnrDbApi):
 
     def __init__(self, identity_scheme_registry: IdentitySchemeRegistry):
-        self.identity_scheme_registry = identity_scheme_registry
+        self._identity_scheme_registry = identity_scheme_registry
+
+    @property
+    def identity_scheme_registry(self) -> IdentitySchemeRegistry:
+        return self._identity_scheme_registry
 
     def validate_identity_scheme(self, enr: ENR) -> None:
         """Check that we know the identity scheme of the ENR.
@@ -28,35 +32,12 @@ class EnrDbApi(ABC):
                 f"identity scheme registry"
             )
 
-    async def insert(self, enr: ENR) -> None:
-        """Insert an ENR into the database."""
-        ...
 
-    async def update(self, enr: ENR) -> None:
-        """Update an existing ENR if the sequence number is greater."""
-        ...
-
-    async def remove(self, node_id: NodeID) -> None:
-        """Remove an ENR from the db."""
-        ...
-
-    async def insert_or_update(self, enr: ENR) -> None:
-        """Insert or update an ENR depending if it is already present already or not."""
-        ...
-
-    async def get(self, node_id: NodeID) -> ENR:
-        """Get an ENR by its node id."""
-        ...
-
-    async def contains(self, node_id: NodeID) -> bool:
-        """Check if the db contains an ENR with the given node id."""
-        ...
-
-
-class MemoryEnrDb(EnrDbApi):
+class MemoryEnrDb(BaseEnrDb):
 
     def __init__(self, identity_scheme_registry: IdentitySchemeRegistry):
-        self.identity_scheme_registry = identity_scheme_registry
+        super().__init__(identity_scheme_registry)
+
         self.key_value_storage: Dict[NodeID, ENR] = {}
 
     async def insert(self, enr: ENR) -> None:
