@@ -29,23 +29,6 @@ In particular Py-EVM aims to:
 
 - be highly flexible to support both research as well as alternate use cases like private chains.
 
-## Trinity
-
-While Py-EVM provides the low level APIs of the Ethereum protocol, it does not aim to implement a
-full or light node directly.
-
-### Goals
-
-- provide a reference implementation for an Ethereum 1.0 node (alpha)
-
-- support "full" and "light" modes
-
-- fully support mainnet as well as several testnets
-
-- provide a reference implementation of an Ethereum 2.0 / Serenity beacon node (pre-alpha)
-
-- provide a reference implementation of an Ethereum 2.0 / Sereneity validator node (pre-alpha)
-
 
 ## Quickstart
 
