@@ -19,5 +19,5 @@ NUM_QUEUED_REQUESTS = 3
 
 # Parameters for the token bucket which manages whether a peer should be
 # disconnected from in the event of a TimeoutError during a request/response.
-TIMEOUT_BUCKET_RATE = 1 / 300  # refill 1 token every 5 minutes
+TIMEOUT_BUCKET_RATE = 1 / 60  # refill 1 token every minute
 TIMEOUT_BUCKET_CAPACITY = 3  # max capacity of 3 tokens
