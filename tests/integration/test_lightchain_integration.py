@@ -25,6 +25,7 @@ from p2p import ecies
 from p2p.constants import DEVP2P_V5
 from p2p.kademlia import Node
 
+from trinity._utils.ipc import kill_popen_gracefully
 from trinity.constants import ROPSTEN_NETWORK_ID
 from trinity.db.eth1.chain import AsyncChainDB
 from trinity.db.eth1.header import AsyncHeaderDB
@@ -32,12 +33,9 @@ from trinity.protocol.common.context import ChainContext
 from trinity.protocol.les.peer import LESPeerPool
 from trinity.sync.light.chain import LightChainSyncer
 from trinity.sync.light.service import LightPeerChain
-from trinity._utils.ipc import (
-    kill_popen_gracefully,
-)
+from trinity.tools.chain import AsyncRopstenChain
 
 from tests.core.integration_test_helpers import (
-    FakeAsyncRopstenChain,
     connect_to_peers_loop,
 )
 
@@ -176,7 +174,7 @@ async def test_lightchain_integration(
         privkey=ecies.generate_privkey(),
         context=context,
     )
-    chain = FakeAsyncRopstenChain(base_db)
+    chain = AsyncRopstenChain(base_db)
     syncer = LightChainSyncer(chain, chaindb, peer_pool)
     syncer.min_peers_to_sync = 1
     peer_chain = LightPeerChain(headerdb, peer_pool)

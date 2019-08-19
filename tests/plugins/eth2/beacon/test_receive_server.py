@@ -43,6 +43,7 @@ from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
 )
 
+from trinity.db.beacon.chain import AsyncBeaconChainDB
 from trinity.exceptions import (
     AttestationNotFound,
 )
@@ -71,7 +72,7 @@ from .helpers import (
 
 
 class FakeChain(_TestnetChain):
-    chaindb_class = bcc_helpers.FakeAsyncBeaconChainDB
+    chaindb_class = AsyncBeaconChainDB
 
     def import_block(
             self,

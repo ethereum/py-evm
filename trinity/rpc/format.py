@@ -32,7 +32,7 @@ from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
 
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 
 
 def transaction_to_dict(transaction: SignedTransactionAPI) -> Dict[str, str]:
@@ -105,7 +105,7 @@ def header_to_dict(header: BlockHeaderAPI) -> Dict[str, str]:
 
 
 def block_to_dict(block: BlockAPI,
-                  chain: BaseAsyncChain,
+                  chain: AsyncChainAPI,
                   include_transactions: bool) -> Dict[str, Union[str, List[str]]]:
 
     header_dict = header_to_dict(block.header)

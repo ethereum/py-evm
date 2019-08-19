@@ -36,27 +36,26 @@ from eth.abc import (
 )
 from eth.chains.base import (
     AccountState,
+    Chain,
 )
 from eth.rlp.headers import (
     HeaderParams,
 )
 
-from trinity.sync.light.service import (
-    BaseLightPeerChain,
-)
-from trinity._utils.async_dispatch import (
-    async_method,
-)
+from trinity._utils.async_dispatch import async_method
+from trinity.db.eth1.chain import AsyncChainDB
+from trinity.sync.light.service import BaseLightPeerChain
 
-from .base import BaseAsyncChain
+from .base import AsyncChainAPI
 
 
-class LightDispatchChain(BaseAsyncChain):
+class LightDispatchChain(AsyncChainAPI, Chain):
     """
     Provide the :class:`ChainAPI` API, even though only a
     :class:`BaseLightPeerChain` is syncing. Store results locally so that not
     all requests hit the light peer network.
     """
+    chaindb_class = AsyncChainDB
 
     ASYNC_TIMEOUT_SECONDS = 10
     _loop = None
@@ -80,16 +79,16 @@ class LightDispatchChain(BaseAsyncChain):
     def from_genesis(cls,
                      base_db: DatabaseAPI,
                      genesis_params: Dict[str, HeaderParams],
-                     genesis_state: AccountState=None) -> 'BaseAsyncChain':
+                     genesis_state: AccountState=None) -> 'LightDispatchChain':
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     @classmethod
     def from_genesis_header(cls,
                             base_db: DatabaseAPI,
-                            genesis_header: BlockHeaderAPI) -> 'BaseAsyncChain':
+                            genesis_header: BlockHeaderAPI) -> 'LightDispatchChain':
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    def get_chain_at_block_parent(self, block: BlockAPI) -> 'BaseAsyncChain':
+    def get_chain_at_block_parent(self, block: BlockAPI) -> 'LightDispatchChain':
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     #
@@ -109,8 +108,12 @@ class LightDispatchChain(BaseAsyncChain):
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeaderAPI:
         return self._headerdb.get_block_header_by_hash(block_hash)
 
+    coro_get_block_header_by_hash = async_method(Chain.get_block_header_by_hash)
+
     def get_canonical_head(self) -> BlockHeaderAPI:
         return self._headerdb.get_canonical_head()
+
+    coro_get_canonical_head = async_method(Chain.get_canonical_head)
 
     def get_score(self, block_hash: Hash32) -> int:
         return self._headerdb.get_score(block_hash)
@@ -119,6 +122,9 @@ class LightDispatchChain(BaseAsyncChain):
     # Block API
     #
     def get_ancestors(self, limit: int, header: BlockHeaderAPI) -> Tuple[BlockAPI, ...]:
+        raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
+
+    async def coro_get_ancestors(self, limit: int, header: BlockHeaderAPI) -> Tuple[BlockAPI, ...]:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def get_block(self) -> BlockAPI:
@@ -241,4 +247,4 @@ class LightDispatchChain(BaseAsyncChain):
     def validate_uncles(self, block: BlockAPI) -> None:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    coro_validate_chain = async_method('validate_chain')
+    coro_validate_chain = async_method(Chain.validate_chain)

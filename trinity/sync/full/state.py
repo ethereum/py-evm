@@ -28,11 +28,11 @@ from eth_typing import (
 
 from cancel_token import CancelToken
 
+from eth.abc import AtomicDatabaseAPI
 from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
 )
-from eth.db.backends.base import BaseAtomicDB
 from eth.db.backends.level import LevelDB
 from eth.rlp.accounts import Account
 from eth.tools.logging import ExtendedDebugLogger
@@ -72,7 +72,7 @@ class StateDownloader(BaseService, PeerSubscriber):
 
     def __init__(self,
                  chaindb: BaseAsyncChainDB,
-                 account_db: BaseAtomicDB,
+                 account_db: AtomicDatabaseAPI,
                  root_hash: Hash32,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:

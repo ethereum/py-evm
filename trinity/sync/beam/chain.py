@@ -28,7 +28,7 @@ import rlp
 
 from p2p.service import BaseService
 
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeerPool
@@ -86,7 +86,7 @@ class BeamSyncer(BaseService):
     """
     def __init__(
             self,
-            chain: BaseAsyncChain,
+            chain: AsyncChainAPI,
             db: BaseAtomicDB,
             chain_db: BaseAsyncChainDB,
             peer_pool: ETHPeerPool,
@@ -440,7 +440,7 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
     """
     def __init__(
             self,
-            chain: BaseAsyncChain,
+            chain: AsyncChainAPI,
             db: DatabaseAPI,
             state_getter: BeamDownloader,
             event_bus: EndpointAPI,

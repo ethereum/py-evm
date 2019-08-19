@@ -47,7 +47,7 @@ from p2p.exceptions import BaseP2PError, PeerConnectionLost
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
 
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.commands import (
     BaseBlockHeaders,
@@ -84,7 +84,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
     _fetched_headers: 'asyncio.Queue[Tuple[BlockHeader, ...]]'
 
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  db: BaseAsyncHeaderDB,
                  peer: TChainPeer,
                  token: CancelToken) -> None:
@@ -564,7 +564,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
 
     def __init__(
             self,
-            chain: BaseAsyncChain,
+            chain: AsyncChainAPI,
             peer_pool: BaseChainPeerPool,
             stitcher: HeaderStitcher,
             token: CancelToken) -> None:
@@ -780,7 +780,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
     _meat: HeaderMeatSyncer[TChainPeer]
 
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  db: BaseAsyncHeaderDB,
                  peer_pool: BaseChainPeerPool,
                  token: CancelToken = None) -> None:

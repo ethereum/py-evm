@@ -44,7 +44,7 @@ from eth.vm.spoof import (
 from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
 )
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.rpc.format import (
     block_to_dict,
     header_to_dict,
@@ -66,7 +66,7 @@ from trinity._utils.validation import (
 )
 
 
-async def get_header(chain: BaseAsyncChain, at_block: Union[str, int]) -> BlockHeader:
+async def get_header(chain: AsyncChainAPI, at_block: Union[str, int]) -> BlockHeader:
     if at_block == 'pending':
         raise NotImplementedError("RPC interface does not support the 'pending' block at this time")
     elif at_block == 'latest':
@@ -87,7 +87,7 @@ async def get_header(chain: BaseAsyncChain, at_block: Union[str, int]) -> BlockH
 
 
 async def state_at_block(
-        chain: BaseAsyncChain,
+        chain: AsyncChainAPI,
         at_block: Union[str, int],
         read_only: bool=True) -> AccountDatabaseAPI:
     at_header = await get_header(chain, at_block)
@@ -95,7 +95,7 @@ async def state_at_block(
     return vm.state
 
 
-async def get_block_at_number(chain: BaseAsyncChain, at_block: Union[str, int]) -> BaseBlock:
+async def get_block_at_number(chain: AsyncChainAPI, at_block: Union[str, int]) -> BaseBlock:
     # mypy doesn't have user defined type guards yet
     # https://github.com/python/mypy/issues/5206
     if is_integer(at_block) and at_block >= 0:  # type: ignore
@@ -107,7 +107,7 @@ async def get_block_at_number(chain: BaseAsyncChain, at_block: Union[str, int]) 
 
 
 def dict_to_spoof_transaction(
-        chain: BaseAsyncChain,
+        chain: AsyncChainAPI,
         header: BlockHeader,
         transaction_dict: Dict[str, Any]) -> SpoofTransaction:
     """

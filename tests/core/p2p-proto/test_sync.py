@@ -7,6 +7,8 @@ from lahja import ConnectionConfig, AsyncioEndpoint
 from p2p.service import BaseService
 import pytest
 
+from eth.vm.forks.petersburg import PetersburgVM
+
 from trinity.db.eth1.chain import AsyncChainDB
 from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeerPoolEventServer
@@ -32,11 +34,13 @@ from trinity.sync.beam.chain import (
 )
 from trinity.sync.light.chain import LightChainSyncer
 
-from tests.core.integration_test_helpers import (
+from trinity.tools.chain import (
     ByzantiumTestChain,
-    DBFixture,
     LatestTestChain,
-    PetersburgVM,
+)
+
+from tests.core.integration_test_helpers import (
+    DBFixture,
     load_fixture_db,
     load_mining_chain,
     run_peer_pool_event_server,
@@ -85,7 +89,7 @@ async def test_fast_syncer(request,
         client_peer.logger.info("%s is syncing up 20", client_peer)
 
         # FastChainSyncer.run() will return as soon as it's caught up with the peer.
-        await asyncio.wait_for(client.run(), timeout=2)
+        await asyncio.wait_for(client.run(), timeout=5)
 
         head = chaindb_fresh.get_canonical_head()
         assert head == chaindb_20.get_canonical_head()
@@ -93,7 +97,7 @@ async def test_fast_syncer(request,
         # Now download the state for the chain's head.
         state_downloader = StateDownloader(
             chaindb_fresh, chaindb_fresh.db, head.state_root, client_peer_pool)
-        await asyncio.wait_for(state_downloader.run(), timeout=2)
+        await asyncio.wait_for(state_downloader.run(), timeout=5)
 
         assert head.state_root in chaindb_fresh.db
 
@@ -206,7 +210,7 @@ async def test_beam_syncer(
         #   to the chaindb_churner canonical head, and increase the timeout significantly
         target_block_number = min(beam_to_block + 10, 129)
         target_head = chaindb_churner.get_canonical_block_header_by_number(target_block_number)
-        await wait_for_head(chaindb_fresh, target_head, sync_timeout=4)
+        await wait_for_head(chaindb_fresh, target_head, sync_timeout=10)
         assert target_head.state_root in chaindb_fresh.db
 
         # first stop the import server, so it doesn't hang waiting for state data
@@ -411,7 +415,7 @@ def chaindb_churner(leveldb_churner):
     return chain.chaindb
 
 
-async def wait_for_head(headerdb, header, sync_timeout=3):
+async def wait_for_head(headerdb, header, sync_timeout=10):
     # A full header sync may involve several round trips, so we must be willing to wait a little
     # bit for them.
 

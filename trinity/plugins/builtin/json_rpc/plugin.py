@@ -19,7 +19,7 @@ from trinity.config import (
     BeaconAppConfig,
     TrinityConfig
 )
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.chains.light_eventbus import (
     EventBusLightPeerChain,
 )
@@ -65,7 +65,7 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
         eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
         chain_config = eth1_app_config.get_chain_config()
 
-        chain: BaseAsyncChain
+        chain: AsyncChainAPI
         db = DBClient.connect(trinity_config.database_ipc_path)
 
         if eth1_app_config.database_mode is Eth1DbMode.LIGHT:

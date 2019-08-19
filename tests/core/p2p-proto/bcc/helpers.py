@@ -14,17 +14,12 @@ from eth.constants import (
 )
 from eth.db.atomic import AtomicDB
 
-from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
 )
 
-from tests.core.integration_test_helpers import (
-    async_passthrough,
-)
-
-from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
+from trinity.db.beacon.chain import AsyncBeaconChainDB
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import (
     BCCPeerFactory,
@@ -47,27 +42,6 @@ from eth2.configs import (
 )
 
 SERENITY_GENESIS_CONFIG = Eth2GenesisConfig(SERENITY_CONFIG)
-
-
-class FakeAsyncBeaconChainDB(BaseAsyncBeaconChainDB, BeaconChainDB):
-
-    coro_persist_block = async_passthrough('persist_block')
-    coro_get_canonical_block_root = async_passthrough('get_canonical_block_root')
-    coro_get_genesis_block_root = async_passthrough('get_genesis_block_root')
-    coro_get_canonical_block_by_slot = async_passthrough('get_canonical_block_by_slot')
-    coro_get_canonical_head = async_passthrough('get_canonical_head')
-    coro_get_canonical_head_root = async_passthrough('get_canonical_head_root')
-    coro_get_finalized_head = async_passthrough('get_finalized_head')
-    coro_get_block_by_root = async_passthrough('get_block_by_root')
-    coro_get_score = async_passthrough('get_score')
-    coro_block_exists = async_passthrough('block_exists')
-    coro_persist_block_chain = async_passthrough('persist_block_chain')
-    coro_get_state_by_root = async_passthrough('get_state_by_root')
-    coro_persist_state = async_passthrough('persist_state')
-    coro_get_attestation_key_by_root = async_passthrough('get_attestation_key_by_root')
-    coro_attestation_exists = async_passthrough('attestation_exists')
-    coro_exists = async_passthrough('exists')
-    coro_get = async_passthrough('get')
 
 
 def create_test_block(parent=None, genesis_config=SERENITY_GENESIS_CONFIG, **kwargs):
@@ -107,7 +81,7 @@ async def get_chain_db(blocks=(),
                        genesis_config=SERENITY_GENESIS_CONFIG,
                        fork_choice_scoring=higher_slot_scoring):
     db = AtomicDB()
-    chain_db = FakeAsyncBeaconChainDB(db=db, genesis_config=genesis_config)
+    chain_db = AsyncBeaconChainDB(db=db, genesis_config=genesis_config)
     await chain_db.coro_persist_block_chain(
         blocks,
         BeaconBlock,

@@ -42,7 +42,7 @@ from lahja.common import BroadcastConfig
 from p2p.service import BaseService
 
 from trinity._utils.timer import Timer
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.chains.full import FullChain
 from trinity.sync.beam.constants import (
     MAX_SPECULATIVE_EXECUTIONS_PER_PROCESS,
@@ -327,7 +327,7 @@ def _broadcast_import_complete(
     )
 
 
-def partial_import_block(beam_chain: BaseAsyncChain, block: BlockAPI) -> Callable[[], None]:
+def partial_import_block(beam_chain: AsyncChainAPI, block: BlockAPI) -> Callable[[], None]:
     """
     Get an argument-free function that will import the given block.
     """
@@ -356,7 +356,7 @@ class BlockImportServer(BaseService):
     def __init__(
             self,
             event_bus: EndpointAPI,
-            beam_chain: BaseAsyncChain,
+            beam_chain: AsyncChainAPI,
             token: CancelToken=None) -> None:
         super().__init__(token=token)
         self._event_bus = event_bus
@@ -369,7 +369,7 @@ class BlockImportServer(BaseService):
     async def serve(
             self,
             event_bus: EndpointAPI,
-            beam_chain: BaseAsyncChain) -> None:
+            beam_chain: AsyncChainAPI) -> None:
         """
         Listen to DoStatelessBlockImport events, and import block when received.
         Reply with StatelessBlockImportDone when import is complete.
@@ -402,7 +402,7 @@ class BlockImportServer(BaseService):
 
 
 def partial_trigger_missing_state_downloads(
-        beam_chain: BaseAsyncChain,
+        beam_chain: AsyncChainAPI,
         header: BlockHeaderAPI,
         transactions: Tuple[SignedTransactionAPI, ...]) -> Callable[[], None]:
     """
@@ -433,7 +433,7 @@ def partial_trigger_missing_state_downloads(
 
 
 def partial_speculative_execute(
-        beam_chain: BaseAsyncChain,
+        beam_chain: AsyncChainAPI,
         header: BlockHeaderAPI,
         transactions: Tuple[SignedTransactionAPI, ...]) -> Callable[[], None]:
     """
@@ -478,7 +478,7 @@ class BlockPreviewServer(BaseService):
     def __init__(
             self,
             event_bus: EndpointAPI,
-            beam_chain: BaseAsyncChain,
+            beam_chain: AsyncChainAPI,
             shard_num: int,
             token: CancelToken=None) -> None:
         super().__init__(token=token)
@@ -499,7 +499,7 @@ class BlockPreviewServer(BaseService):
     async def serve(
             self,
             event_bus: EndpointAPI,
-            beam_chain: BaseAsyncChain) -> None:
+            beam_chain: AsyncChainAPI) -> None:
         """
         Listen to DoStatelessBlockPreview events, and execute the transactions to prefill
         all the needed state data.

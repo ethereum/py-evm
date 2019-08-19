@@ -15,7 +15,7 @@ from eth.abc import (
 )
 from eth.db.header import HeaderDB
 
-from trinity._utils.asyncio import async_thread_method
+from trinity._utils.async_dispatch import async_method
 
 
 TReturn = TypeVar('TReturn')
@@ -64,12 +64,12 @@ class BaseAsyncHeaderDB(HeaderDB):
 
 
 class AsyncHeaderDB(BaseAsyncHeaderDB):
-    coro_get_block_header_by_hash = async_thread_method(BaseAsyncHeaderDB.get_block_header_by_hash)
-    coro_get_canonical_block_hash = async_thread_method(BaseAsyncHeaderDB.get_canonical_block_hash)
-    coro_get_canonical_block_header_by_number = async_thread_method(BaseAsyncHeaderDB.get_canonical_block_header_by_number)  # noqa: E501
-    coro_get_canonical_head = async_thread_method(BaseAsyncHeaderDB.get_canonical_head)
-    coro_get_score = async_thread_method(BaseAsyncHeaderDB.get_score)
-    coro_header_exists = async_thread_method(BaseAsyncHeaderDB.header_exists)
-    coro_get_canonical_block_hash = async_thread_method(BaseAsyncHeaderDB.get_canonical_block_hash)
-    coro_persist_header = async_thread_method(BaseAsyncHeaderDB.persist_header)
-    coro_persist_header_chain = async_thread_method(BaseAsyncHeaderDB.persist_header_chain)
+    coro_get_block_header_by_hash = async_method(BaseAsyncHeaderDB.get_block_header_by_hash)
+    coro_get_canonical_block_hash = async_method(BaseAsyncHeaderDB.get_canonical_block_hash)
+    coro_get_canonical_block_header_by_number = async_method(BaseAsyncHeaderDB.get_canonical_block_header_by_number)  # noqa: E501
+    coro_get_canonical_head = async_method(BaseAsyncHeaderDB.get_canonical_head)
+    coro_get_score = async_method(BaseAsyncHeaderDB.get_score)
+    coro_header_exists = async_method(BaseAsyncHeaderDB.header_exists)
+    coro_get_canonical_block_hash = async_method(BaseAsyncHeaderDB.get_canonical_block_hash)
+    coro_persist_header = async_method(BaseAsyncHeaderDB.persist_header)
+    coro_persist_header_chain = async_method(BaseAsyncHeaderDB.persist_header_chain)
