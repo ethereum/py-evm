@@ -22,16 +22,18 @@ from trinity.protocol.bcc.events import GetBeaconBlocksEvent
 from trinity.protocol.bcc.servers import BCCRequestServer
 from trinity.protocol.bcc.peer import BCCPeerPoolEventServer
 
+from trinity.tools.bcc_factories import (
+    BeaconBlockFactory,
+    BeaconContextFactory,
+    AsyncBeaconChainDBFactory,
+    BCCPeerPoolFactory,
+    BCCPeerPairFactory,
+)
+
 from tests.core.integration_test_helpers import (
     run_peer_pool_event_server,
 )
 
-from .helpers import (
-    get_chain_db,
-    create_test_block,
-    create_branch,
-    get_directly_linked_peers_in_peer_pools,
-)
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 
@@ -42,40 +44,42 @@ async def get_request_server_setup(request, event_loop, event_bus, chain_db):
         SERENITY_CONFIG.GENESIS_SLOT,
         BeaconBlock,
     )
-    alice_chain_db = await get_chain_db((genesis,))
-    alice, alice_peer_pool, bob, bob_peer_pool = await get_directly_linked_peers_in_peer_pools(
-        request,
-        event_loop,
-        alice_chain_db=alice_chain_db,
-        bob_chain_db=chain_db,
-        bob_peer_pool_event_bus=event_bus,
+    alice_chain_db = AsyncBeaconChainDBFactory(blocks=(genesis,))
+    alice_context = BeaconContextFactory(chain_db=alice_chain_db)
+    bob_context = BeaconContextFactory(chain_db=chain_db)
+    peer_pair = BCCPeerPairFactory(
+        alice_peer_context=alice_context,
+        bob_peer_context=bob_context,
+        event_bus=event_bus,
     )
+    async with peer_pair as (alice, bob):
+        async with BCCPeerPoolFactory.run_for_peer(bob) as bob_peer_pool:  # noqa: E501
+            response_buffer = MsgBuffer()
+            alice.add_subscriber(response_buffer)
 
-    response_buffer = MsgBuffer()
-    alice.add_subscriber(response_buffer)
+            async with run_peer_pool_event_server(
+                event_bus, bob_peer_pool, handler_type=BCCPeerPoolEventServer
+            ):
 
-    async with run_peer_pool_event_server(
-        event_bus, bob_peer_pool, handler_type=BCCPeerPoolEventServer
-    ):
+                bob_request_server = BCCRequestServer(
+                    event_bus, TO_NETWORKING_BROADCAST_CONFIG, bob_context.chain_db)
+                asyncio.ensure_future(bob_request_server.run())
 
-        bob_request_server = BCCRequestServer(
-            event_bus, TO_NETWORKING_BROADCAST_CONFIG, bob.context.chain_db)
-        asyncio.ensure_future(bob_request_server.run())
+                await event_bus.wait_until_all_endpoints_subscribed_to(GetBeaconBlocksEvent)
 
-        await event_bus.wait_until_all_endpoints_subscribed_to(GetBeaconBlocksEvent)
+                def finalizer():
+                    event_loop.run_until_complete(bob_request_server.cancel())
 
-        def finalizer():
-            event_loop.run_until_complete(bob_request_server.cancel())
+                request.addfinalizer(finalizer)
 
-        request.addfinalizer(finalizer)
-
-        yield alice, response_buffer
+                yield alice, response_buffer
 
 
 @pytest.mark.asyncio
 async def test_get_single_block_by_slot(request, event_loop, event_bus):
-    block = create_test_block()
-    chain_db = await get_chain_db((block,))
+    block = BeaconBlockFactory()
+    chain_db = AsyncBeaconChainDBFactory(blocks=(block,))
+
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
     ) as (alice, response_buffer):
@@ -92,8 +96,9 @@ async def test_get_single_block_by_slot(request, event_loop, event_bus):
 
 @pytest.mark.asyncio
 async def test_get_single_block_by_root(request, event_loop, event_bus):
-    block = create_test_block()
-    chain_db = await get_chain_db((block,))
+    block = BeaconBlockFactory()
+    chain_db = AsyncBeaconChainDBFactory(blocks=(block,))
+
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
     ) as (alice, response_buffer):
@@ -110,8 +115,9 @@ async def test_get_single_block_by_root(request, event_loop, event_bus):
 
 @pytest.mark.asyncio
 async def test_get_no_blocks(request, event_loop, event_bus):
-    block = create_test_block()
-    chain_db = await get_chain_db((block,))
+    block = BeaconBlockFactory()
+    chain_db = AsyncBeaconChainDBFactory(blocks=(block,))
+
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
     ) as (alice, response_buffer):
@@ -128,8 +134,9 @@ async def test_get_no_blocks(request, event_loop, event_bus):
 
 @pytest.mark.asyncio
 async def test_get_unknown_block_by_slot(request, event_loop, event_bus):
-    block = create_test_block()
-    chain_db = await get_chain_db((block,))
+    block = BeaconBlockFactory()
+    chain_db = AsyncBeaconChainDBFactory(blocks=(block,))
+
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
     ) as (alice, response_buffer):
@@ -146,8 +153,9 @@ async def test_get_unknown_block_by_slot(request, event_loop, event_bus):
 
 @pytest.mark.asyncio
 async def test_get_unknown_block_by_root(request, event_loop, event_bus):
-    block = create_test_block()
-    chain_db = await get_chain_db((block,))
+    block = BeaconBlockFactory()
+    chain_db = AsyncBeaconChainDBFactory(blocks=(block,))
+
     async with get_request_server_setup(
         request, event_loop, event_bus, chain_db
     ) as (alice, response_buffer):
@@ -164,13 +172,21 @@ async def test_get_unknown_block_by_root(request, event_loop, event_bus):
 
 @pytest.mark.asyncio
 async def test_get_canonical_block_range_by_slot(request, event_loop, event_bus):
-    chain_db = await get_chain_db()
+    chain_db = AsyncBeaconChainDBFactory(blocks=())
 
-    genesis = create_test_block()
-    base_branch = create_branch(3, root=genesis)
-    non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
+    genesis = BeaconBlockFactory()
+    base_branch = BeaconBlockFactory.create_branch(3, root=genesis)
+    non_canonical_branch = BeaconBlockFactory.create_branch(
+        3,
+        root=base_branch[-1],
+        state_root=b"\x00" * 32,
+    )
 
-    canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
+    canonical_branch = BeaconBlockFactory.create_branch(
+        4,
+        root=base_branch[-1],
+        state_root=b"\x11" * 32,
+    )
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
         scorings = (higher_slot_scoring for block in branch)
@@ -194,12 +210,20 @@ async def test_get_canonical_block_range_by_slot(request, event_loop, event_bus)
 
 @pytest.mark.asyncio
 async def test_get_canonical_block_range_by_root(request, event_loop, event_bus):
-    chain_db = await get_chain_db()
+    chain_db = AsyncBeaconChainDBFactory(blocks=())
 
-    genesis = create_test_block()
-    base_branch = create_branch(3, root=genesis)
-    non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
-    canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
+    genesis = BeaconBlockFactory()
+    base_branch = BeaconBlockFactory.create_branch(3, root=genesis)
+    non_canonical_branch = BeaconBlockFactory.create_branch(
+        3,
+        root=base_branch[-1],
+        state_root=b"\x00" * 32,
+    )
+    canonical_branch = BeaconBlockFactory.create_branch(
+        4,
+        root=base_branch[-1],
+        state_root=b"\x11" * 32,
+    )
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
         scorings = (higher_slot_scoring for block in branch)
@@ -223,12 +247,20 @@ async def test_get_canonical_block_range_by_root(request, event_loop, event_bus)
 
 @pytest.mark.asyncio
 async def test_get_incomplete_canonical_block_range(request, event_loop, event_bus):
-    chain_db = await get_chain_db()
+    chain_db = AsyncBeaconChainDBFactory(blocks=())
 
-    genesis = create_test_block()
-    base_branch = create_branch(3, root=genesis)
-    non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
-    canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
+    genesis = BeaconBlockFactory()
+    base_branch = BeaconBlockFactory.create_branch(3, root=genesis)
+    non_canonical_branch = BeaconBlockFactory.create_branch(
+        3,
+        root=base_branch[-1],
+        state_root=b"\x00" * 32,
+    )
+    canonical_branch = BeaconBlockFactory.create_branch(
+        4,
+        root=base_branch[-1],
+        state_root=b"\x11" * 32,
+    )
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
         scorings = (higher_slot_scoring for block in branch)
@@ -252,12 +284,20 @@ async def test_get_incomplete_canonical_block_range(request, event_loop, event_b
 
 @pytest.mark.asyncio
 async def test_get_non_canonical_branch(request, event_loop, event_bus):
-    chain_db = await get_chain_db()
+    chain_db = AsyncBeaconChainDBFactory(blocks=())
 
-    genesis = create_test_block()
-    base_branch = create_branch(3, root=genesis)
-    non_canonical_branch = create_branch(3, root=base_branch[-1], state_root=b"\x00" * 32)
-    canonical_branch = create_branch(4, root=base_branch[-1], state_root=b"\x11" * 32)
+    genesis = BeaconBlockFactory()
+    base_branch = BeaconBlockFactory.create_branch(3, root=genesis)
+    non_canonical_branch = BeaconBlockFactory.create_branch(
+        3,
+        root=base_branch[-1],
+        state_root=b"\x00" * 32,
+    )
+    canonical_branch = BeaconBlockFactory.create_branch(
+        4,
+        root=base_branch[-1],
+        state_root=b"\x11" * 32,
+    )
 
     for branch in [[genesis], base_branch, non_canonical_branch, canonical_branch]:
         scorings = (higher_slot_scoring for block in branch)

@@ -6,15 +6,30 @@ from trinity.db.eth1.chain import AsyncChainDB
 from trinity.protocol.eth.peer import (
     ETHPeerPoolEventServer,
 )
+
+from trinity.tools.factories import (
+    ChainContextFactory,
+    ETHPeerPairFactory,
+)
+
 from tests.core.integration_test_helpers import (
     run_peer_pool_event_server,
     run_proxy_peer_pool,
     run_request_server,
 )
 from tests.core.peer_helpers import (
-    get_directly_linked_peers,
     MockPeerPoolWithConnectedPeers,
 )
+
+
+@pytest.fixture
+async def client_and_server(chaindb_fresh, chaindb_20):
+    peer_pair = ETHPeerPairFactory(
+        alice_peer_context=ChainContextFactory(headerdb__db=chaindb_fresh.db),
+        bob_peer_context=ChainContextFactory(headerdb__db=chaindb_20.db),
+    )
+    async with peer_pair as (client_peer, server_peer):
+        yield client_peer, server_peer
 
 
 @pytest.mark.asyncio
@@ -22,16 +37,11 @@ async def test_proxy_peer_requests(request,
                                    event_bus,
                                    other_event_bus,
                                    event_loop,
-                                   chaindb_fresh,
-                                   chaindb_20):
+                                   chaindb_20,
+                                   client_and_server):
     server_event_bus = event_bus
     client_event_bus = other_event_bus
-    client_peer, server_peer = await get_directly_linked_peers(
-        request,
-        event_loop,
-        alice_headerdb=AsyncChainDB(chaindb_fresh.db),
-        bob_headerdb=AsyncChainDB(chaindb_20.db),
-    )
+    client_peer, server_peer = client_and_server
 
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer], event_bus=client_event_bus)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=server_event_bus)
@@ -76,17 +86,11 @@ async def test_proxy_peer_requests_with_timeouts(request,
                                                  event_bus,
                                                  other_event_bus,
                                                  event_loop,
-                                                 chaindb_fresh,
-                                                 chaindb_20):
+                                                 client_and_server):
 
     server_event_bus = event_bus
     client_event_bus = other_event_bus
-    client_peer, server_peer = await get_directly_linked_peers(
-        request,
-        event_loop,
-        alice_headerdb=AsyncChainDB(chaindb_fresh.db),
-        bob_headerdb=AsyncChainDB(chaindb_20.db),
-    )
+    client_peer, server_peer = client_and_server
 
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer], event_bus=client_event_bus)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=server_event_bus)
@@ -121,17 +125,12 @@ async def test_requests_when_peer_in_client_vanishs(request,
                                                     event_bus,
                                                     other_event_bus,
                                                     event_loop,
-                                                    chaindb_fresh,
-                                                    chaindb_20):
+                                                    chaindb_20,
+                                                    client_and_server):
 
     server_event_bus = event_bus
     client_event_bus = other_event_bus
-    client_peer, server_peer = await get_directly_linked_peers(
-        request,
-        event_loop,
-        alice_headerdb=AsyncChainDB(chaindb_fresh.db),
-        bob_headerdb=AsyncChainDB(chaindb_20.db),
-    )
+    client_peer, server_peer = client_and_server
 
     client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer], event_bus=client_event_bus)
     server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=server_event_bus)

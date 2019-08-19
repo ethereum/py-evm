@@ -1,7 +1,3 @@
-import asyncio
-
-from cancel_token import CancelToken
-
 from eth_utils import (
     to_tuple,
 )
@@ -19,19 +15,6 @@ from eth2.beacon.types.blocks import (
     BeaconBlockBody,
 )
 
-from trinity.db.beacon.chain import AsyncBeaconChainDB
-from trinity.protocol.bcc.context import BeaconContext
-from trinity.protocol.bcc.peer import (
-    BCCPeerFactory,
-    BCCPeerPool,
-)
-
-from p2p import ecies
-from p2p.constants import DEVP2P_V5
-from p2p.tools.paragon.helpers import (
-    get_directly_linked_peers_without_handshake as _get_directly_linked_peers_without_handshake,
-    get_directly_linked_peers as _get_directly_linked_peers,
-)
 from eth2.beacon.constants import (
     EMPTY_SIGNATURE,
 )
@@ -40,6 +23,8 @@ from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 from eth2.configs import (
     Eth2GenesisConfig,
 )
+
+from trinity.db.beacon.chain import AsyncBeaconChainDB
 
 SERENITY_GENESIS_CONFIG = Eth2GenesisConfig(SERENITY_CONFIG)
 
@@ -93,98 +78,3 @@ async def get_chain_db(blocks=(),
 async def get_genesis_chain_db(genesis_config=SERENITY_GENESIS_CONFIG):
     genesis = create_test_block(genesis_config=genesis_config)
     return await get_chain_db((genesis,), genesis_config=genesis_config)
-
-
-async def _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db):
-    cancel_token = CancelToken('trinity.get_directly_linked_peers_without_handshake')
-
-    #
-    # Alice
-    #
-    alice_context = BeaconContext(
-        chain_db=alice_chain_db,
-        network_id=1,
-        client_version_string='alice',
-        listen_port=30303,
-        p2p_version=DEVP2P_V5,
-    )
-
-    alice_factory = BCCPeerFactory(
-        privkey=ecies.generate_privkey(),
-        context=alice_context,
-        token=cancel_token,
-    )
-
-    #
-    # Bob
-    #
-    bob_context = BeaconContext(
-        chain_db=bob_chain_db,
-        network_id=1,
-        client_version_string='bob',
-        listen_port=30304,
-        p2p_version=DEVP2P_V5,
-    )
-
-    bob_factory = BCCPeerFactory(
-        privkey=ecies.generate_privkey(),
-        context=bob_context,
-        token=cancel_token,
-    )
-
-    return alice_factory, bob_factory
-
-
-async def get_directly_linked_peers_without_handshake(alice_chain_db, bob_chain_db):
-    alice_factory, bob_factory = await _setup_alice_and_bob_factories(alice_chain_db, bob_chain_db)
-
-    return await _get_directly_linked_peers_without_handshake(
-        alice_factory=alice_factory,
-        bob_factory=bob_factory,
-    )
-
-
-async def get_directly_linked_peers(request, event_loop, alice_chain_db, bob_chain_db):
-    alice_factory, bob_factory = await _setup_alice_and_bob_factories(
-        alice_chain_db,
-        bob_chain_db,
-    )
-
-    return await _get_directly_linked_peers(
-        request,
-        event_loop,
-        alice_factory=alice_factory,
-        bob_factory=bob_factory,
-    )
-
-
-async def get_directly_linked_peers_in_peer_pools(request,
-                                                  event_loop,
-                                                  alice_chain_db,
-                                                  bob_chain_db,
-                                                  alice_peer_pool_event_bus=None,
-                                                  bob_peer_pool_event_bus=None):
-    alice, bob = await get_directly_linked_peers(
-        request,
-        event_loop,
-        alice_chain_db=alice_chain_db,
-        bob_chain_db=bob_chain_db,
-    )
-    alice_peer_pool = BCCPeerPool(
-        alice.transport._private_key, alice.context, event_bus=alice_peer_pool_event_bus)
-    bob_peer_pool = BCCPeerPool(
-        bob.transport._private_key, bob.context, event_bus=bob_peer_pool_event_bus)
-
-    asyncio.ensure_future(alice_peer_pool.run())
-    asyncio.ensure_future(bob_peer_pool.run())
-
-    def finalizer():
-        event_loop.run_until_complete(alice_peer_pool.cancel())
-        event_loop.run_until_complete(bob_peer_pool.cancel())
-
-    request.addfinalizer(finalizer)
-
-    alice_peer_pool._add_peer(alice, [])
-    bob_peer_pool._add_peer(bob, [])
-
-    return alice, alice_peer_pool, bob, bob_peer_pool

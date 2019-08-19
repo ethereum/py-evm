@@ -61,6 +61,12 @@ from eth2.configs import (
     Eth2GenesisConfig,
 )
 
+from trinity.tools.bcc_factories import (
+    BCCPeerPairFactory,
+    BeaconContextFactory,
+    BCCPeerPoolFactory,
+)
+
 from tests.core.integration_test_helpers import (
     run_peer_pool_event_server,
     run_request_server,
@@ -128,47 +134,60 @@ async def get_peer_and_receive_server(request, event_loop, event_bus) -> Tuple[
     alice_chain = await get_fake_chain()
     bob_chain = await get_fake_chain()
 
-    (
-        alice, alice_peer_pool, bob, bob_peer_pool
-    ) = await bcc_helpers.get_directly_linked_peers_in_peer_pools(
-        request,
-        event_loop,
-        alice_chain_db=alice_chain.chaindb,
-        bob_chain_db=bob_chain.chaindb,
+    alice_context = BeaconContextFactory(chain_db=alice_chain.chaindb)
+    bob_context = BeaconContextFactory(chain_db=bob_chain.chaindb)
+    peer_pair = BCCPeerPairFactory(
+        alice_peer_context=alice_context,
+        bob_peer_context=bob_context,
+        event_bus=event_bus,
     )
+    async with peer_pair as (alice, bob):
+        alice_pool_ctx = BCCPeerPoolFactory.run_for_peer(
+            alice,
+            privkey=alice.transport._private_key,
+            context=alice_context,
+            event_bus=event_bus,
+        )
+        bob_pool_ctx = BCCPeerPoolFactory.run_for_peer(
+            bob,
+            privkey=bob.transport._private_key,
+            context=bob_context,
+            event_bus=event_bus,
+        )
+        async with alice_pool_ctx as alice_peer_pool, bob_pool_ctx as bob_peer_pool:
+            msg_queue = asyncio.Queue()
+            orig_handle_msg = BCCReceiveServer._handle_msg
 
-    msg_queue = asyncio.Queue()
-    orig_handle_msg = BCCReceiveServer._handle_msg
+            # Inject a queue to each `BCCReceiveServer`, which puts the message
+            # passed to `_handle_msg` to the queue, right after every `_handle_msg`
+            # finishes.  This is crucial to make the test be able to wait until
+            # `_handle_msg` finishes.
+            async def _handle_msg(self, base_peer, cmd, msg):
+                task = asyncio.ensure_future(orig_handle_msg(self, base_peer, cmd, msg))
 
-    # Inject a queue to each `BCCReceiveServer`, which puts the message passed to `_handle_msg` to
-    # the queue, right after every `_handle_msg` finishes.
-    # This is crucial to make the test be able to wait until `_handle_msg` finishes.
-    async def _handle_msg(self, base_peer, cmd, msg):
-        task = asyncio.ensure_future(orig_handle_msg(self, base_peer, cmd, msg))
+                def enqueue_msg(future, msg):
+                    msg_queue.put_nowait(msg)
+                task.add_done_callback(functools.partial(enqueue_msg, msg=msg))
+                await task
+            BCCReceiveServer._handle_msg = _handle_msg
 
-        def enqueue_msg(future, msg):
-            msg_queue.put_nowait(msg)
-        task.add_done_callback(functools.partial(enqueue_msg, msg=msg))
-        await task
-    BCCReceiveServer._handle_msg = _handle_msg
+            async with run_peer_pool_event_server(
+                event_bus, alice_peer_pool, BCCPeerPoolEventServer
+            ), run_request_server(
+                event_bus, alice_chain.chaindb, server_type=BCCRequestServer
+            ) as alice_req_server:
 
-    async with run_peer_pool_event_server(
-        event_bus, alice_peer_pool, BCCPeerPoolEventServer
-    ), run_request_server(
-        event_bus, alice_chain.chaindb, server_type=BCCRequestServer
-    ) as alice_req_server:
+                bob_recv_server = BCCReceiveServer(chain=bob_chain, peer_pool=bob_peer_pool)
 
-        bob_recv_server = BCCReceiveServer(chain=bob_chain, peer_pool=bob_peer_pool)
+                asyncio.ensure_future(bob_recv_server.run())
+                await bob_recv_server.events.started.wait()
 
-        asyncio.ensure_future(bob_recv_server.run())
-        await bob_recv_server.events.started.wait()
+                def finalizer():
+                    event_loop.run_until_complete(bob_recv_server.cancel())
 
-        def finalizer():
-            event_loop.run_until_complete(bob_recv_server.cancel())
+                request.addfinalizer(finalizer)
 
-        request.addfinalizer(finalizer)
-
-        yield alice, alice_req_server, bob_recv_server, msg_queue
+                yield alice, alice_req_server, bob_recv_server, msg_queue
 
 
 def test_orphan_block_pool():

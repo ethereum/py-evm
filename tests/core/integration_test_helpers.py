@@ -36,6 +36,7 @@ from trinity.protocol.eth.servers import (
 )
 from trinity.tools.chain import AsyncMiningChain
 
+
 ZIPPED_FIXTURES_PATH = Path(__file__).parent.parent / 'integration' / 'fixtures'
 
 

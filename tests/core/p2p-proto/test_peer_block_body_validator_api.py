@@ -19,9 +19,7 @@ from eth.rlp.transactions import BaseTransactionFields
 
 from trinity.rlp.block_body import BlockBody
 
-from tests.core.peer_helpers import (
-    get_directly_linked_peers,
-)
+from trinity.tools.factories import ETHPeerPairFactory
 
 
 def mk_uncle(block_number):
@@ -76,12 +74,9 @@ def mk_headers(*counts):
 
 
 @pytest.fixture
-async def eth_peer_and_remote(request, event_loop):
-    peer, remote = await get_directly_linked_peers(
-        request,
-        event_loop,
-    )
-    return peer, remote
+async def eth_peer_and_remote():
+    async with ETHPeerPairFactory() as (peer, remote):
+        yield peer, remote
 
 
 @pytest.mark.asyncio

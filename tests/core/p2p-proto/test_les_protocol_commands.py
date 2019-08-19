@@ -1,26 +1,16 @@
 import asyncio
 import pytest
 
-from trinity.protocol.les.peer import (
-    LESPeer,
-)
 from trinity.protocol.les.proto import (
     LESProtocol,
 )
-
-from tests.core.peer_helpers import (
-    get_directly_linked_peers,
-)
+from trinity.tools.factories import LESV2PeerPairFactory
 
 
 @pytest.fixture
 async def les_peer_and_remote(request, event_loop):
-    peer, remote = await get_directly_linked_peers(
-        request,
-        event_loop,
-        alice_peer_class=LESPeer,
-    )
-    return peer, remote
+    async with LESV2PeerPairFactory() as (alice, bob):
+        yield alice, bob
 
 
 @pytest.mark.parametrize(
