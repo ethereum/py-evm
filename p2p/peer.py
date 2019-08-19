@@ -23,6 +23,7 @@ from cached_property import cached_property
 
 from eth_utils import (
     to_tuple,
+    ValidationError,
 )
 
 from eth_keys import datatypes
@@ -34,6 +35,11 @@ from p2p._utils import (
     trim_middle,
 )
 from p2p.abc import CommandAPI, MultiplexerAPI, NodeAPI, ProtocolAPI, TransportAPI
+from p2p.constants import (
+    BLACKLIST_SECONDS_BAD_PROTOCOL,
+    DEVP2P_V4,
+    DEVP2P_V5,
+)
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     HandshakeFailure,
@@ -46,9 +52,11 @@ from p2p.exceptions import (
 from p2p.multiplexer import Multiplexer
 from p2p.service import BaseService
 from p2p.p2p_proto import (
+    BaseP2PProtocol,
     Disconnect,
     Hello,
     P2PProtocol,
+    P2PProtocolV4,
     Ping,
     Pong,
 )
@@ -64,10 +72,6 @@ from p2p.tracking.connection import (
     NoopConnectionTracker,
 )
 
-from .constants import (
-    BLACKLIST_SECONDS_BAD_PROTOCOL,
-    DEVP2P_V5,
-)
 
 if TYPE_CHECKING:
     from p2p.peer_pool import BasePeerPool  # noqa: F401
@@ -172,6 +176,8 @@ class BasePeer(BaseService):
 
     _event_bus: EndpointAPI = None
 
+    base_protocol: BaseP2PProtocol
+
     def __init__(self,
                  transport: TransportAPI,
                  context: BasePeerContext,
@@ -192,11 +198,20 @@ class BasePeer(BaseService):
 
         # Initially while doing the handshake, the base protocol shouldn't support
         # snappy compression
-        self.base_protocol = P2PProtocol(
-            transport=self.transport,
-            cmd_id_offset=0,
-            snappy_support=False,
-        )
+        if self.context.p2p_version == DEVP2P_V5:
+            self.base_protocol = P2PProtocol(
+                transport=self.transport,
+                cmd_id_offset=0,
+                snappy_support=False,
+            )
+        elif self.context.p2p_version == DEVP2P_V4:
+            self.base_protocol = P2PProtocolV4(
+                transport=self.transport,
+                cmd_id_offset=0,
+                snappy_support=False,
+            )
+        else:
+            raise ValidationError(f"Unrecognized p2p version: {self.context.p2p_version}")
 
         # Optional event bus handle
         self._event_bus = event_bus
@@ -485,11 +500,11 @@ class BasePeer(BaseService):
             # Now update the base protocol to support snappy compression
             # This is needed so that Trinity is compatible with parity since
             # parity sends Ping immediately after Handshake
-                self.base_protocol = P2PProtocol(
-                    self.transport,
-                    cmd_id_offset=0,
-                    snappy_support=snappy_support,
-                )
+            self.base_protocol = P2PProtocol(
+                self.transport,
+                cmd_id_offset=0,
+                snappy_support=snappy_support,
+            )
 
         remote_capabilities = msg['capabilities']
         matched_proto_classes = match_protocols_with_capabilities(
