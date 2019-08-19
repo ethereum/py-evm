@@ -43,7 +43,7 @@ from trinity._utils.headers import (
 from trinity._utils.humanize import (
     humanize_integer_sequence,
 )
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer import (
     BaseChainPeer,
@@ -66,7 +66,7 @@ class PeerHeaderSyncer(BaseService):
     _seal_check_random_sample_rate = SEAL_CHECK_RANDOM_SAMPLE_RATE
 
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  db: BaseAsyncHeaderDB,
                  peer: BaseChainPeer,
                  token: CancelToken = None) -> None:
@@ -283,7 +283,7 @@ class BaseBlockImporter(ABC):
 
 
 class SimpleBlockImporter(BaseBlockImporter):
-    def __init__(self, chain: BaseAsyncChain) -> None:
+    def __init__(self, chain: AsyncChainAPI) -> None:
         self._chain = chain
 
     async def import_block(

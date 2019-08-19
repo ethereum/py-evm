@@ -30,7 +30,7 @@ from p2p.service import BaseService
 from eth2.beacon.chains.base import BeaconChain
 
 from trinity._utils.version import construct_trinity_client_identifier
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
@@ -59,7 +59,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
     def __init__(self,
                  privkey: datatypes.PrivateKey,
                  port: int,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  chaindb: BaseAsyncChainDB,
                  headerdb: BaseAsyncHeaderDB,
                  base_db: AtomicDatabaseAPI,
@@ -237,7 +237,7 @@ class BCCServer(BaseServer[BCCPeerPool]):
     def __init__(self,
                  privkey: datatypes.PrivateKey,
                  port: int,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  chaindb: BaseAsyncChainDB,
                  headerdb: BaseAsyncHeaderDB,
                  base_db: AtomicDatabaseAPI,

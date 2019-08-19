@@ -34,7 +34,7 @@ def _test() -> None:
     from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
     from eth.db.backends.level import LevelDB
     from tests.core.integration_test_helpers import (
-        FakeAsyncMainnetChain, FakeAsyncRopstenChain,
+        AsyncMainnetChain, AsyncRopstenChain,
         connect_to_peers_loop)
     from trinity.constants import DEFAULT_PREFERRED_NODES
     from trinity.protocol.common.context import ChainContext
@@ -73,11 +73,11 @@ def _test() -> None:
     if genesis.hash == ROPSTEN_GENESIS_HEADER.hash:
         network_id = RopstenChain.network_id
         vm_config = ROPSTEN_VM_CONFIGURATION  # type: ignore
-        chain_class = FakeAsyncRopstenChain
+        chain_class = AsyncRopstenChain
     elif genesis.hash == MAINNET_GENESIS_HEADER.hash:
         network_id = MainnetChain.network_id
         vm_config = MAINNET_VM_CONFIGURATION  # type: ignore
-        chain_class = FakeAsyncMainnetChain
+        chain_class = AsyncMainnetChain
     else:
         raise RuntimeError("Unknown genesis: %s", genesis)
 

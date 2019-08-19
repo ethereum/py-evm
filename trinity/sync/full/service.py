@@ -9,7 +9,7 @@ from eth.rlp.headers import BlockHeader
 
 from p2p.service import BaseService
 
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.eth.peer import ETHPeerPool
 
@@ -22,7 +22,7 @@ async def ensure_state_then_sync_full(logger: logging.Logger,
                                       head: BlockHeader,
                                       base_db: BaseAtomicDB,
                                       chaindb: BaseAsyncChainDB,
-                                      chain: BaseAsyncChain,
+                                      chain: AsyncChainAPI,
                                       peer_pool: ETHPeerPool,
                                       cancel_token: CancelToken) -> None:
     # Ensure we have the state for our current head.
@@ -47,7 +47,7 @@ async def ensure_state_then_sync_full(logger: logging.Logger,
 class FullChainSyncer(BaseService):
 
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  chaindb: BaseAsyncChainDB,
                  base_db: BaseAtomicDB,
                  peer_pool: ETHPeerPool,
@@ -78,7 +78,7 @@ class FullChainSyncer(BaseService):
 class FastThenFullChainSyncer(BaseService):
 
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  chaindb: BaseAsyncChainDB,
                  base_db: BaseAtomicDB,
                  peer_pool: ETHPeerPool,

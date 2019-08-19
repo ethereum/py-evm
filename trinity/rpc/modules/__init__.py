@@ -9,9 +9,7 @@ from eth_utils import (
     to_tuple,
 )
 
-from trinity.chains.base import (
-    BaseAsyncChain
-)
+from trinity.chains.base import AsyncChainAPI
 
 from .main import (  # noqa: F401
     BaseRPCModule,
@@ -30,7 +28,7 @@ from .web3 import Web3  # noqa: F401
 
 
 @to_tuple
-def initialize_eth1_modules(chain: BaseAsyncChain,
+def initialize_eth1_modules(chain: AsyncChainAPI,
                             event_bus: EndpointAPI) -> Iterable[BaseRPCModule]:
     yield Eth(chain, event_bus)
     yield EVM(chain, event_bus)

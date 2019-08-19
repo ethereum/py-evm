@@ -55,7 +55,7 @@ from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
 from p2p.token_bucket import TokenBucket
 
-from trinity.chains.base import BaseAsyncChain
+from trinity.chains.base import AsyncChainAPI
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.eth.monitors import ETHChainTipMonitor
 from trinity.protocol.eth import commands
@@ -126,7 +126,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
     _pending_bodies: Dict[BlockHeaderAPI, BlockBody]
 
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  header_syncer: HeaderSyncerAPI,
@@ -459,7 +459,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
 
 class FastChainSyncer(BaseService):
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
@@ -563,7 +563,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
     head.
     """
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  header_syncer: HeaderSyncerAPI,
@@ -942,7 +942,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
 
 class RegularChainSyncer(BaseService):
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
@@ -976,7 +976,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
     """
 
     def __init__(self,
-                 chain: BaseAsyncChain,
+                 chain: AsyncChainAPI,
                  db: BaseAsyncChainDB,
                  peer_pool: ETHPeerPool,
                  header_syncer: HeaderSyncerAPI,

@@ -5,7 +5,6 @@ from typing import (
     Any,
     Generic,
     TypeVar,
-    TYPE_CHECKING,
 )
 
 from lahja import (
@@ -13,8 +12,7 @@ from lahja import (
     EndpointAPI
 )
 
-if TYPE_CHECKING:
-    from trinity.chains.base import BaseAsyncChain  # noqa: F401
+from trinity.chains.base import AsyncChainAPI
 
 
 TChain = TypeVar('TChain')
@@ -51,5 +49,5 @@ class ChainBasedRPCModule(BaseRPCModule, Generic[TChain]):
         self.chain = chain
 
 
-Eth1ChainRPCModule = ChainBasedRPCModule['BaseAsyncChain']
+Eth1ChainRPCModule = ChainBasedRPCModule[AsyncChainAPI]
 BeaconChainRPCModule = ChainBasedRPCModule[Any]

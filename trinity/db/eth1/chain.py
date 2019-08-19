@@ -17,7 +17,7 @@ from eth.abc import (
 )
 from eth.db.chain import ChainDB
 
-from trinity._utils.asyncio import async_thread_method
+from trinity._utils.async_dispatch import async_method
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 
 
@@ -64,20 +64,20 @@ class BaseAsyncChainDB(BaseAsyncHeaderDB, ChainDB):
 
 
 class AsyncChainDB(BaseAsyncChainDB):
-    coro_exists = async_thread_method(BaseAsyncChainDB.exists)
-    coro_get = async_thread_method(BaseAsyncChainDB.get)
-    coro_get_block_header_by_hash = async_thread_method(BaseAsyncChainDB.get_block_header_by_hash)
-    coro_get_canonical_head = async_thread_method(BaseAsyncChainDB.get_canonical_head)
-    coro_get_score = async_thread_method(BaseAsyncChainDB.get_score)
-    coro_header_exists = async_thread_method(BaseAsyncChainDB.header_exists)
-    coro_get_canonical_block_hash = async_thread_method(BaseAsyncChainDB.get_canonical_block_hash)
-    coro_get_canonical_block_header_by_number = async_thread_method(BaseAsyncChainDB.get_canonical_block_header_by_number)  # noqa: E501
-    coro_persist_header = async_thread_method(BaseAsyncChainDB.persist_header)
-    coro_persist_header_chain = async_thread_method(BaseAsyncChainDB.persist_header_chain)
-    coro_persist_block = async_thread_method(BaseAsyncChainDB.persist_block)
-    coro_persist_header_chain = async_thread_method(BaseAsyncChainDB.persist_header_chain)
-    coro_persist_uncles = async_thread_method(BaseAsyncChainDB.persist_uncles)
-    coro_persist_trie_data_dict = async_thread_method(BaseAsyncChainDB.persist_trie_data_dict)
-    coro_get_block_transactions = async_thread_method(BaseAsyncChainDB.get_block_transactions)
-    coro_get_block_uncles = async_thread_method(BaseAsyncChainDB.get_block_uncles)
-    coro_get_receipts = async_thread_method(BaseAsyncChainDB.get_receipts)
+    coro_exists = async_method(BaseAsyncChainDB.exists)
+    coro_get = async_method(BaseAsyncChainDB.get)
+    coro_get_block_header_by_hash = async_method(BaseAsyncChainDB.get_block_header_by_hash)
+    coro_get_canonical_head = async_method(BaseAsyncChainDB.get_canonical_head)
+    coro_get_score = async_method(BaseAsyncChainDB.get_score)
+    coro_header_exists = async_method(BaseAsyncChainDB.header_exists)
+    coro_get_canonical_block_hash = async_method(BaseAsyncChainDB.get_canonical_block_hash)
+    coro_get_canonical_block_header_by_number = async_method(BaseAsyncChainDB.get_canonical_block_header_by_number)  # noqa: E501
+    coro_persist_header = async_method(BaseAsyncChainDB.persist_header)
+    coro_persist_header_chain = async_method(BaseAsyncChainDB.persist_header_chain)
+    coro_persist_block = async_method(BaseAsyncChainDB.persist_block)
+    coro_persist_header_chain = async_method(BaseAsyncChainDB.persist_header_chain)
+    coro_persist_uncles = async_method(BaseAsyncChainDB.persist_uncles)
+    coro_persist_trie_data_dict = async_method(BaseAsyncChainDB.persist_trie_data_dict)
+    coro_get_block_transactions = async_method(BaseAsyncChainDB.get_block_transactions)
+    coro_get_block_uncles = async_method(BaseAsyncChainDB.get_block_uncles)
+    coro_get_receipts = async_method(BaseAsyncChainDB.get_receipts)
