@@ -7,8 +7,11 @@ from p2p.discv5.identity_schemes import (
     default_identity_scheme_registry,
     IdentitySchemeRegistry,
 )
-from p2p.tools.factories import (
+
+from p2p.tools.factories.discovery import (
     ENRFactory,
+)
+from p2p.tools.factories.keys import (
     PrivateKeyFactory,
 )
 
