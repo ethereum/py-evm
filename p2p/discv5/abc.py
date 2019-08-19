@@ -24,6 +24,7 @@ from p2p.discv5.typing import (
 
 
 class HandshakeParticipantAPI(ABC):
+    @abstractmethod
     def __init__(self,
                  is_initiator: bool,
                  local_private_key: bytes,
@@ -85,12 +86,13 @@ class HandshakeParticipantAPI(ABC):
         ...
 
     @property
+    @abstractmethod
     def tag(self) -> Tag:
         """The tag used for message packets sent by this node to the peer."""
+        ...
 
 
 class EnrDbApi(ABC):
-
     @abstractmethod
     def __init__(self, identity_scheme_registry: IdentitySchemeRegistry):
         ...
