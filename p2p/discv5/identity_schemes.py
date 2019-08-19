@@ -5,7 +5,7 @@ from abc import (
 from collections import (
     UserDict,
 )
-import os
+import secrets
 from typing import (
     Tuple,
     Type,
@@ -139,6 +139,8 @@ class IdentityScheme(ABC):
         """Compute the symmetric session keys."""
         ...
 
+    @classmethod
+    @abstractmethod
     def create_id_nonce_signature(cls,
                                   *,
                                   id_nonce: IDNonce,
@@ -147,6 +149,8 @@ class IdentityScheme(ABC):
         """Sign an id nonce received during handshake."""
         ...
 
+    @classmethod
+    @abstractmethod
     def validate_id_nonce_signature(cls,
                                     *,
                                     id_nonce: IDNonce,
@@ -209,7 +213,7 @@ class V4IdentityScheme(IdentityScheme):
     #
     @classmethod
     def create_handshake_key_pair(cls) -> Tuple[bytes, bytes]:
-        private_key = os.urandom(cls.private_key_size)
+        private_key = secrets.token_bytes(cls.private_key_size)
         public_key = PrivateKey(private_key).public_key.to_compressed_bytes()
         return private_key, public_key
 

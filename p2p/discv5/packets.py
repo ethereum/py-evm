@@ -1,4 +1,5 @@
 import hashlib
+import secrets
 
 from typing import (
     cast,
@@ -55,6 +56,8 @@ from p2p.discv5.constants import (
     AUTH_SCHEME_NAME,
     ID_NONCE_SIZE,
     MAX_PACKET_SIZE,
+    NONCE_SIZE,
+    RANDOM_ENCRYPTED_DATA_SIZE,
     TAG_SIZE,
     MAGIC_SIZE,
     ZERO_NONCE,
@@ -76,7 +79,7 @@ class AuthHeader(NamedTuple):
     auth_tag: Nonce
     id_nonce: IDNonce
     auth_scheme_name: bytes
-    ephemeral_pubkey: bytes
+    ephemeral_public_key: bytes
     encrypted_auth_response: bytes
 
 
@@ -96,7 +99,7 @@ class AuthHeaderPacket(NamedTuple):
                 id_nonce_signature: bytes,
                 auth_response_key: AES128Key,
                 enr: Optional[ENR],
-                ephemeral_pubkey: bytes,
+                ephemeral_public_key: bytes,
                 ) -> "AuthHeaderPacket":
         encrypted_auth_response = compute_encrypted_auth_response(
             auth_response_key=auth_response_key,
@@ -107,7 +110,7 @@ class AuthHeaderPacket(NamedTuple):
             auth_tag=auth_tag,
             id_nonce=id_nonce,
             auth_scheme_name=AUTH_SCHEME_NAME,
-            ephemeral_pubkey=ephemeral_pubkey,
+            ephemeral_public_key=ephemeral_public_key,
             encrypted_auth_response=encrypted_auth_response,
         )
 
@@ -449,7 +452,7 @@ def _decode_auth(encoded_packet: bytes) -> Tuple[Union[AuthHeader, Nonce], int]:
             auth_tag=decoded_auth[0],
             id_nonce=decoded_auth[1],
             auth_scheme_name=decoded_auth[2],
-            ephemeral_pubkey=decoded_auth[3],
+            ephemeral_public_key=decoded_auth[3],
             encrypted_auth_response=decoded_auth[4],
         )
         validate_auth_header(auth_header)
@@ -559,3 +562,18 @@ def _decrypt_message(key: AES128Key,
         raise ValidationError("Encrypted message does not contain valid RLP") from error
 
     return message
+
+
+#
+# Random packet data
+#
+def get_random_encrypted_data() -> bytes:
+    return secrets.token_bytes(RANDOM_ENCRYPTED_DATA_SIZE)
+
+
+def get_random_id_nonce() -> IDNonce:
+    return IDNonce(secrets.token_bytes(ID_NONCE_SIZE))
+
+
+def get_random_auth_tag() -> Nonce:
+    return Nonce(secrets.token_bytes(NONCE_SIZE))

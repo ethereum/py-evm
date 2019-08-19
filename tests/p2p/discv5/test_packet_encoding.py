@@ -44,7 +44,7 @@ from tests.p2p.discv5.strategies import (
 )
 
 # arbitrary as we're not working with a particular identity scheme
-pubkey_st = st.binary(min_size=33, max_size=33)
+public_key_st = st.binary(min_size=33, max_size=33)
 
 
 @given(
@@ -81,7 +81,7 @@ def test_oversize_auth_tag_packet_encoding():
     tag=tag_st,
     auth_tag=nonce_st,
     id_nonce=id_nonce_st,
-    ephemeral_pubkey=pubkey_st,
+    ephemeral_public_key=public_key_st,
     encrypted_auth_response=st.binary(min_size=16, max_size=32),
     encrypted_message_size=st.integers(
         min_value=0,
@@ -91,7 +91,7 @@ def test_oversize_auth_tag_packet_encoding():
             1 + NONCE_SIZE,  # tag
             1 + len(AUTH_SCHEME_NAME),  # auth scheme name
             1 + ID_NONCE_SIZE,  # id nonce
-            1 + 33,  # pubkey
+            1 + 33,  # public_key
             1 + 32,  # encrypted auth response
         ))
     ),
@@ -99,13 +99,13 @@ def test_oversize_auth_tag_packet_encoding():
 def test_auth_header_packet_encoding_decoding(tag,
                                               auth_tag,
                                               id_nonce,
-                                              ephemeral_pubkey,
+                                              ephemeral_public_key,
                                               encrypted_auth_response,
                                               encrypted_message_size):
     auth_header = AuthHeaderFactory(
         auth_tag=auth_tag,
         id_nonce=id_nonce,
-        ephemeral_pubkey=ephemeral_pubkey,
+        ephemeral_public_key=ephemeral_public_key,
         encrypted_auth_response=encrypted_auth_response,
     )
     encrypted_message = b"\x00" * encrypted_message_size
