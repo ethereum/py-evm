@@ -61,8 +61,8 @@ async def test_token_bucket_hits_limit():
     expected_delta = 10 / 1000 + zero
     delta = end_at - start_at
 
-    # allow up to 5% difference in expected time
-    assert_fuzzy_equal(delta, expected_delta, allowed_drift=0.05)
+    # allow up to 10% difference in expected time
+    assert_fuzzy_equal(delta, expected_delta, allowed_drift=0.1)
 
 
 @pytest.mark.asyncio
