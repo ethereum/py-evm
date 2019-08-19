@@ -48,7 +48,14 @@ async def test_les_protocol_methods_request_id(
         generated_request_id = peer.sub_proto.send_get_block_headers(
             b'1234', 1, 0, False, request_id=request_id
         )
-        await asyncio.sleep(0.1)
+
+        # yield to let remote and peer transmit messages.  This can take a
+        # small amount of time so we give it a few rounds of the event loop to
+        # finish transmitting.
+        for _ in range(10):
+            await asyncio.sleep(0.01)
+            if buffer.msg_queue.qsize() >= 1:
+                break
 
     messages = buffer.get_messages()
     assert len(messages) == 1
