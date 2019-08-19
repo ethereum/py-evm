@@ -3,6 +3,33 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.4 (2019-08-19)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Add an *optional* ``genesis_parent_hash`` parameter to
+  :meth:`~eth.db.header.HeaderDB.persist_header_chain` and
+  :meth:`~eth.db.chain.ChainDB.persist_block` that allows to overwrite the hash that is used
+  to identify the genesis header. This allows persisting headers / blocks that aren't (yet)
+  connected back to the true genesis header.
+
+  This feature opens up new, faster syncing techniques. (`#1823 <https://github.com/ethereum/py-evm/issues/1823>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Add missing ``@abstractmethod`` decorator to ``ConfigurableAPI.configure``. (`#1822 <https://github.com/ethereum/py-evm/issues/1822>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Remove ``AsyncHeaderDB`` that wasn't used anywhere (`#1823 <https://github.com/ethereum/py-evm/issues/1823>`__)
+
+
 py-evm 0.3.0-alpha.3 (2019-08-13)
 ---------------------------------
 
