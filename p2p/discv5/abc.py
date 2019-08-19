@@ -97,8 +97,8 @@ class EnrDbApi(ABC):
     def __init__(self, identity_scheme_registry: IdentitySchemeRegistry):
         ...
 
-    @abstractmethod
     @property
+    @abstractmethod
     def identity_scheme_registry(self) -> IdentitySchemeRegistry:
         ...
 
