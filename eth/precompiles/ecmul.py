@@ -9,6 +9,9 @@ from eth_utils import (
     int_to_big_endian,
     ValidationError,
 )
+from eth_utils.toolz import (
+    curry,
+)
 
 from eth import constants
 
@@ -28,8 +31,12 @@ from eth.vm.computation import (
 )
 
 
-def ecmul(computation: BaseComputation) -> BaseComputation:
-    computation.consume_gas(constants.GAS_ECMUL, reason='ECMUL Precompile')
+@curry
+def ecmul(
+        computation: BaseComputation,
+        gas_cost: int = constants.GAS_ECMUL) -> BaseComputation:
+
+    computation.consume_gas(gas_cost, reason='ECMUL Precompile')
 
     try:
         result = _ecmull(computation.msg.data_as_bytes)

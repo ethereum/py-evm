@@ -1,0 +1,10 @@
+
+#
+# New gas costs for some opcodes
+#
+
+# EIP-1108:
+GAS_ECADD = 150
+GAS_ECMUL = 6000
+GAS_ECPAIRING_BASE = 45_000
+GAS_ECPAIRING_PER_POINT = 34_000
