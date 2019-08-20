@@ -13,7 +13,11 @@ from eth.vm.forks.byzantium.opcodes import (
 from eth.vm.forks.constantinople.opcodes import (
     CONSTANTINOPLE_OPCODES,
 )
-from eth.vm.logic import context
+from eth.vm.forks.istanbul import constants
+from eth.vm.logic import (
+    context,
+    storage,
+)
 from eth.vm.opcode import as_opcode
 from .storage import (
     sstore_eip2200,
@@ -33,6 +37,21 @@ UPDATED_OPCODES = {
         logic_fn=ensure_no_static(sstore_eip2200),
         mnemonic=mnemonics.SSTORE,
         gas_cost=constants.GAS_NULL,
+    ),
+    opcode_values.BALANCE: as_opcode(
+        logic_fn=context.balance,
+        mnemonic=mnemonics.BALANCE,
+        gas_cost=constants.GAS_BALANCE_EIP1884,
+    ),
+    opcode_values.SLOAD: as_opcode(
+        logic_fn=storage.sload,
+        mnemonic=mnemonics.SLOAD,
+        gas_cost=constants.GAS_SLOAD_EIP1884,
+    ),
+    opcode_values.EXTCODEHASH: as_opcode(
+        logic_fn=context.extcodehash,
+        mnemonic=mnemonics.EXTCODEHASH,
+        gas_cost=constants.GAS_EXTCODEHASH_EIP1884,
     ),
 }
 
