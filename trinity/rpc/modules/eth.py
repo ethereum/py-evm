@@ -214,6 +214,7 @@ class Eth(Eth1ChainRPCModule):
         code = state.get_code(address)
         return encode_hex(code)
 
+    @retryable
     @format_params(decode_hex, to_int_if_hex, to_int_if_hex)
     async def getStorageAt(self, address: Address, position: int, at_block: Union[str, int]) -> str:
         if not is_integer(position) or position < 0:

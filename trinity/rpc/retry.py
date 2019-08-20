@@ -14,11 +14,13 @@ from lahja import EndpointAPI
 from eth.vm.interrupt import (
     MissingAccountTrieNode,
     MissingBytecode,
+    MissingStorageTrieNode,
 )
 
 from trinity.sync.common.events import (
     CollectMissingAccount,
     CollectMissingBytecode,
+    CollectMissingStorage,
 )
 
 
@@ -81,5 +83,24 @@ async def execute_with_retries(event_bus: EndpointAPI, func: Func, params: Any) 
 
             await event_bus.request(CollectMissingBytecode(
                 bytecode_hash=exc.missing_code_hash,
+                urgent=True,
+            ))
+        except MissingStorageTrieNode as exc:
+            if not retryable:
+                raise
+
+            if iteration > MAX_RETRIES:
+                raise Exception(
+                    f"Failed to collect all necessary state after {MAX_RETRIES} attempts"
+                ) from exc
+
+            if not event_bus.is_any_endpoint_subscribed_to(CollectMissingStorage):
+                raise
+
+            await event_bus.request(CollectMissingStorage(
+                missing_node_hash=exc.missing_node_hash,
+                storage_key=exc.requested_key,
+                storage_root_hash=exc.storage_root_hash,
+                account_address=exc.account_address,
                 urgent=True,
             ))
