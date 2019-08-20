@@ -1,5 +1,6 @@
 import contextlib
 import enum
+import errno
 import itertools
 import logging
 import pathlib
@@ -439,7 +440,13 @@ class DBClient(BaseAtomicDB):
             Result(self._socket.read_exactly(1))
 
     def close(self) -> None:
-        self._socket.shutdown(socket.SHUT_WR)
+        try:
+            self._socket.shutdown(socket.SHUT_WR)
+        except OSError as e:
+            # on mac OS this can result in the following error:
+            # OSError: [Errno 57] Socket is not connected
+            if e.errno != errno.ENOTCONN:
+                raise
         self._socket.close()
 
     @classmethod
