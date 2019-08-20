@@ -1,4 +1,3 @@
-import asyncio
 from typing import (
     cast,
     Any,
@@ -28,6 +27,7 @@ from eth.constants import (
 from p2p import kademlia
 from p2p.constants import DEFAULT_MAX_PEERS
 from p2p.ecies import generate_privkey
+from p2p.service import run_service
 from p2p.tools.factories import (
     get_open_port,
     CancelTokenFactory,
@@ -228,15 +228,7 @@ class BCCPeerPoolFactory(factory.Factory):
     async def run_for_peer(cls, peer: BCCPeer, **kwargs: Any) -> AsyncIterator[BCCPeerPool]:
         kwargs.setdefault('event_bus', peer.get_event_bus())
         peer_pool = cls(**kwargs)
-        task = asyncio.ensure_future(peer_pool.run())
-        await peer_pool.events.started.wait()
-        peer_pool._add_peer(peer, ())
-        try:
+
+        async with run_service(peer_pool):
+            peer_pool._add_peer(peer, ())
             yield peer_pool
-        finally:
-            await peer_pool.cancel()
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass

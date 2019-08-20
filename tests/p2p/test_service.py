@@ -3,7 +3,7 @@ import asyncio
 from cancel_token import OperationCancelled
 import pytest
 
-from p2p.service import BaseService
+from p2p.service import BaseService, run_service
 
 
 class ParentService(BaseService):
@@ -124,3 +124,50 @@ async def test_service_children_do_not_leak_memory():
 
     # test cleanup
     await parent.cancel()
+
+
+@pytest.mark.asyncio
+async def test_run_service_context_manager_lifecycle():
+    service = WaitService()
+
+    assert not service.is_operational
+    assert not service.is_cancelled
+    assert not service.is_running
+
+    async with run_service(service) as running_service:
+        assert running_service is service
+
+        assert service.is_operational
+        assert not service.is_cancelled
+        assert service.is_running
+
+    assert not service.is_operational
+    assert service.is_cancelled
+    assert not service.is_running
+
+
+class BlowUp(Exception):
+    pass
+
+
+@pytest.mark.asyncio
+async def test_run_service_context_manager_lifecycle_with_exception():
+    service = WaitService()
+
+    assert not service.is_operational
+    assert not service.is_cancelled
+    assert not service.is_running
+
+    with pytest.raises(BlowUp):
+        async with run_service(service) as running_service:
+            assert running_service is service
+
+            assert service.is_operational
+            assert not service.is_cancelled
+            assert service.is_running
+
+            raise BlowUp
+
+    assert not service.is_operational
+    assert service.is_cancelled
+    assert not service.is_running

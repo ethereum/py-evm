@@ -11,6 +11,7 @@ from eth_keys import keys
 
 from p2p.abc import NodeAPI
 from p2p.peer import BasePeer, BasePeerContext, BasePeerFactory
+from p2p.service import run_service
 
 from p2p.tools.paragon import ParagonPeer, ParagonContext, ParagonPeerFactory
 
@@ -74,31 +75,8 @@ async def PeerPairFactory(*,
         do_handshake(bob),
     ), timeout=1)
 
-    alice_task = asyncio.ensure_future(alice.run())
-    bob_task = asyncio.ensure_future(bob.run())
-
-    await asyncio.wait_for(asyncio.gather(
-        alice.events.started.wait(),
-        bob.events.started.wait(),
-    ), timeout=1)
-
-    try:
+    async with run_service(alice), run_service(bob):
         yield alice, bob
-    finally:
-        await asyncio.wait_for(asyncio.gather(
-            alice.cancel(),
-            bob.cancel(),
-        ), timeout=1)
-        alice_task.cancel()
-        bob_task.cancel()
-        try:
-            await alice_task
-        except asyncio.CancelledError:
-            pass
-        try:
-            await bob_task
-        except asyncio.CancelledError:
-            pass
 
 
 def ParagonPeerPairFactory(*,
