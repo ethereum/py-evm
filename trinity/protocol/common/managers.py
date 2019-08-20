@@ -104,7 +104,7 @@ class ResponseCandidateStream(
 
         try:
             self._request(request)
-            while self._is_pending():
+            while self.is_pending:
                 timeout_remaining = max(0, total_timeout - (time.perf_counter() - start_at))
 
                 try:
@@ -200,7 +200,8 @@ class ResponseCandidateStream(
         future: 'asyncio.Future[TResponsePayload]' = asyncio.Future()
         self.pending_request = (time.perf_counter(), future)
 
-    def _is_pending(self) -> bool:
+    @property
+    def is_pending(self) -> bool:
         return self.pending_request is not None
 
     async def _cleanup(self) -> None:
@@ -350,3 +351,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
         This service that needs to be running for calls to execute properly
         """
         return self._response_stream
+
+    @property
+    def is_requesting(self) -> bool:
+        return self._response_stream is not None and self._response_stream.is_pending

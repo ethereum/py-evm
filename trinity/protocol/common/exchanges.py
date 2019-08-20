@@ -89,3 +89,7 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
         Issue the request to the peer for the desired data
         """
         ...
+
+    @property
+    def is_requesting(self) -> bool:
+        return self._manager.is_requesting
