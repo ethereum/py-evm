@@ -466,7 +466,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             return tuple()
         except CancelledError:
             self.logger.debug("Pending nodes call to %r future cancelled", peer)
-            return tuple()
+            raise
         except Exception as exc:
             self.logger.info("Unexpected err while downloading nodes from %s: %s", peer, exc)
             delay = NON_IDEAL_RESPONSE_PENALTY
