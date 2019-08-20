@@ -11,6 +11,7 @@ from p2p.discv5.enr import (
 )
 from p2p.discv5.identity_schemes import (
     IdentityScheme,
+    IdentitySchemeRegistry,
 )
 from p2p.discv5.packets import (
     Packet,
@@ -23,6 +24,7 @@ from p2p.discv5.typing import (
 
 
 class HandshakeParticipantAPI(ABC):
+    @abstractmethod
     def __init__(self,
                  is_initiator: bool,
                  local_private_key: bytes,
@@ -84,6 +86,48 @@ class HandshakeParticipantAPI(ABC):
         ...
 
     @property
+    @abstractmethod
     def tag(self) -> Tag:
         """The tag used for message packets sent by this node to the peer."""
+        ...
+
+
+class EnrDbApi(ABC):
+    @abstractmethod
+    def __init__(self, identity_scheme_registry: IdentitySchemeRegistry):
+        ...
+
+    @property
+    @abstractmethod
+    def identity_scheme_registry(self) -> IdentitySchemeRegistry:
+        ...
+
+    @abstractmethod
+    async def insert(self, enr: ENR) -> None:
+        """Insert an ENR into the database."""
+        ...
+
+    @abstractmethod
+    async def update(self, enr: ENR) -> None:
+        """Update an existing ENR if the sequence number is greater."""
+        ...
+
+    @abstractmethod
+    async def remove(self, node_id: NodeID) -> None:
+        """Remove an ENR from the db."""
+        ...
+
+    @abstractmethod
+    async def insert_or_update(self, enr: ENR) -> None:
+        """Insert or update an ENR depending if it is already present already or not."""
+        ...
+
+    @abstractmethod
+    async def get(self, node_id: NodeID) -> ENR:
+        """Get an ENR by its node id."""
+        ...
+
+    @abstractmethod
+    async def contains(self, node_id: NodeID) -> bool:
+        """Check if the db contains an ENR with the given node id."""
         ...
