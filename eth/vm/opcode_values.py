@@ -59,7 +59,10 @@ EXTCODECOPY = 0x3c
 RETURNDATASIZE = 0x3d
 RETURNDATACOPY = 0x3e
 EXTCODEHASH = 0x3f
-CHAINID = 0x46  # Note: no more space in the environment info block
+
+# These opcodes seem to belong in the environment block, but we are out of opcode space in 0x3*
+CHAINID = 0x46
+SELFBALANCE = 0x47
 
 #
 # Block Information

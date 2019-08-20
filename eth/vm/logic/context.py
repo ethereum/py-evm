@@ -1,3 +1,7 @@
+from eth_typing import (
+    Address,
+)
+
 from eth import constants
 
 from eth.exceptions import (
@@ -16,7 +20,15 @@ from eth.vm.computation import BaseComputation
 
 def balance(computation: BaseComputation) -> None:
     addr = force_bytes_to_address(computation.stack_pop1_bytes())
-    balance = computation.state.get_balance(addr)
+    _push_balance_of_address(addr, computation)
+
+
+def selfbalance(computation: BaseComputation) -> None:
+    _push_balance_of_address(computation.msg.storage_address, computation)
+
+
+def _push_balance_of_address(address: Address, computation: BaseComputation) -> None:
+    balance = computation.state.get_balance(address)
     computation.stack_push_int(balance)
 
 
