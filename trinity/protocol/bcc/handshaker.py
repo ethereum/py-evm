@@ -3,7 +3,7 @@ from typing import cast
 from eth_typing import Hash32
 from eth_utils import encode_hex
 
-from p2p.abc import MultiplexerAPI
+from p2p.abc import MultiplexerAPI, ProtocolAPI
 from p2p.exceptions import (
     HandshakeFailure,
 )
@@ -11,7 +11,6 @@ from p2p.handshake import (
     HandshakeReceipt,
     Handshaker,
 )
-from p2p.protocol import Protocol
 
 from .commands import (
     Status,
@@ -45,7 +44,7 @@ class BCCHandshaker(Handshaker):
 
     async def do_handshake(self,
                            multiplexer: MultiplexerAPI,
-                           protocol: Protocol) -> BCCHandshakeReceipt:
+                           protocol: ProtocolAPI) -> BCCHandshakeReceipt:
         """Perform the handshake for the sub-protocol agreed with the remote peer.
 
         Raises HandshakeFailure if the handshake is not successful.

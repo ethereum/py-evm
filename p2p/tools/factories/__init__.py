@@ -3,6 +3,7 @@ try:
 except ImportError:
     raise ImportError("The `p2p.tools.factories` module requires the `factory-boy` library")
 from .cancel_token import CancelTokenFactory  # noqa: F401
+from .connection import ConnectionPairFactory  # noqa: F401
 from .discovery import (  # noqa: F401
     AuthHeaderFactory,
     AuthHeaderPacketFactory,

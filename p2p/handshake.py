@@ -21,7 +21,7 @@ from eth_utils.toolz import groupby, valmap
 from eth.tools.logging import ExtendedDebugLogger
 
 from p2p._utils import duplicates
-from p2p.abc import TransportAPI, MultiplexerAPI
+from p2p.abc import TransportAPI, MultiplexerAPI, ProtocolAPI
 from p2p.constants import (
     DEVP2P_V5,
 )
@@ -39,10 +39,7 @@ from p2p.p2p_proto import (
     P2PProtocol,
     P2PProtocolV4,
 )
-from p2p.protocol import (
-    get_cmd_offsets,
-    Protocol,
-)
+from p2p.protocol import get_cmd_offsets
 from p2p.typing import (
     Capabilities,
     Capability,
@@ -54,9 +51,9 @@ class HandshakeReceipt:
     Data storage object for ephemeral data exchanged during protocol
     handshakes.
     """
-    protocol: Protocol
+    protocol: ProtocolAPI
 
-    def __init__(self, protocol: Protocol) -> None:
+    def __init__(self, protocol: ProtocolAPI) -> None:
         self.protocol = protocol
 
 
@@ -68,12 +65,12 @@ class Handshaker(ABC):
     """
     logger = cast(ExtendedDebugLogger, logging.getLogger('p2p.connection.ProtocolHandler'))
 
-    protocol_class: Type[Protocol]
+    protocol_class: Type[ProtocolAPI]
 
     @abstractmethod
     async def do_handshake(self,
                            multiplexer: MultiplexerAPI,
-                           protocol: Protocol) -> HandshakeReceipt:
+                           protocol: ProtocolAPI) -> HandshakeReceipt:
         """
         Perform the actual handshake for the protocol.
         """

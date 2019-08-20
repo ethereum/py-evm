@@ -3,6 +3,8 @@ from typing import (
     Any,
     AsyncContextManager,
     AsyncIterator,
+    Awaitable,
+    Callable,
     ClassVar,
     Dict,
     Generic,
@@ -21,7 +23,8 @@ from cancel_token import CancelToken
 
 from eth_keys import datatypes
 
-from p2p.typing import Capability, Payload, Structure
+from p2p.disconnect import DisconnectReason
+from p2p.typing import Capability, Capabilities, Payload, Structure
 
 if TYPE_CHECKING:
     from p2p.p2p_proto import (  # noqa: F401
@@ -320,4 +323,78 @@ class MultiplexerAPI(ABC):
     # Message reading and streaming API
     #
     def multiplex(self) -> AsyncContextManager[None]:
+        ...
+
+
+class HandlerSubscriptionAPI:
+    @abstractmethod
+    def cancel(self) -> None:
+        ...
+
+
+class ConnectionAPI(ABC):
+    disconnect_reason: DisconnectReason = None
+
+    #
+    # Primary properties of the connection
+    #
+    @property
+    @abstractmethod
+    def is_dial_in(self) -> bool:
+        ...
+
+    @property
+    @abstractmethod
+    def remote(self) -> NodeAPI:
+        ...
+
+    #
+    # Subscriptions/Handler API
+    #
+    @abstractmethod
+    def add_protocol_handler(self,
+                             protocol_type: Type[ProtocolAPI],
+                             handler_fn: Callable[[CommandAPI, Payload], Awaitable[Any]],
+                             ) -> HandlerSubscriptionAPI:
+        ...
+
+    @abstractmethod
+    def add_command_handler(self,
+                            command_type: Type[CommandAPI],
+                            handler_fn: Callable[[Payload], Awaitable[Any]],
+                            ) -> HandlerSubscriptionAPI:
+        ...
+
+    #
+    # Access to underlying Multiplexer
+    #
+    @abstractmethod
+    def get_multiplexer(self) -> MultiplexerAPI:
+        ...
+
+    #
+    # Base Protocol shortcuts
+    #
+    @abstractmethod
+    def get_base_protocol(self) -> 'BaseP2PProtocol':
+        ...
+
+    @property
+    @abstractmethod
+    def remote_capabilities(self) -> Capabilities:
+        ...
+
+    @property
+    @abstractmethod
+    def remote_p2p_version(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def client_version_string(self) -> str:
+        ...
+
+    @property
+    @abstractmethod
+    def safe_client_version_string(self) -> str:
         ...

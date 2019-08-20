@@ -9,6 +9,7 @@ from p2p.handshake import (
     HandshakeReceipt,
 )
 
+from p2p.abc import ProtocolAPI
 from p2p.constants import DEVP2P_V5
 from p2p.peer import (
     BasePeer,
@@ -16,7 +17,6 @@ from p2p.peer import (
     BasePeerFactory,
 )
 from p2p.peer_pool import BasePeerPool
-from p2p.protocol import Protocol
 
 from .proto import ParagonProtocol
 
@@ -43,7 +43,7 @@ class ParagonHandshaker(Handshaker):
 
     async def do_handshake(self,
                            multiplexer: MultiplexerAPI,
-                           protocol: Protocol) -> HandshakeReceipt:
+                           protocol: ProtocolAPI) -> HandshakeReceipt:
         return HandshakeReceipt(protocol)
 
 
