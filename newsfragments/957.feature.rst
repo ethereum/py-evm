@@ -1,0 +1,2 @@
+If `eth_getStorageAt` is called during beam sync but the requested data is not available
+locally trinity will attempt to fetch the requested data from remote peers.
