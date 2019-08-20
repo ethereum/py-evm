@@ -19,7 +19,10 @@ from eth_utils import (
 from eth_keys import keys
 
 from eth import constants as eth_constants
-from eth.chains.base import Chain
+from eth.chains.base import (
+    Chain,
+    MiningChain
+)
 from eth.db.atomic import AtomicDB
 # TODO: tests should not be locked into one set of VM rules.  Look at expanding
 # to all mainnet vms.
@@ -277,7 +280,7 @@ def chain_without_block_validation(
         'validate_block': lambda self, block: None,
     }
     SpuriousDragonVMForTesting = SpuriousDragonVM.configure(validate_seal=lambda block: None)
-    klass = Chain.configure(
+    klass = MiningChain.configure(
         __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
             (eth_constants.GENESIS_BLOCK_NUMBER, SpuriousDragonVMForTesting),

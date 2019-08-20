@@ -3,7 +3,11 @@ import json
 import os
 import pytest
 import time
+import uuid
 
+from eth._utils.address import (
+    force_bytes_to_address,
+)
 from eth_utils.toolz import (
     assoc,
 )
@@ -12,6 +16,7 @@ from eth_utils import (
     function_signature_to_4byte_selector,
     to_bytes,
     to_hex,
+    to_int,
 )
 
 from trinity.nodes.events import (
@@ -101,6 +106,19 @@ async def get_ipc_response(
 
     writer.close()
     return json.loads(result_bytes.decode())
+
+
+def transfer_eth(chain, sender_private_key, value, to):
+    tx = chain.create_unsigned_transaction(
+        nonce=0,
+        gas_price=1,
+        gas=3138525,
+        data=uuid.uuid4().bytes,
+        to=to,
+        value=value
+    ).as_signed_transaction(sender_private_key)
+    chain.apply_transaction(tx)
+    chain.mine_block()
 
 
 @pytest.fixture
@@ -656,3 +674,37 @@ async def test_missing_state_is_fetched_if_fetcher_exists(
     response = await ipc_request('eth_getBalance', [funded_address.hex(), 'latest'])
     assert 'error' not in response
     assert response['result'] == hex(funded_address_initial_balance)
+
+
+@pytest.mark.asyncio
+async def test_get_balance_works_for_block_number(
+        chain_without_block_validation,
+        ipc_request,
+        funded_address,
+        funded_address_initial_balance,
+        funded_address_private_key
+):
+    block_no_before_transfer = (
+        await ipc_request('eth_blockNumber', [])
+    )['result']
+    transfer_eth(
+        chain=chain_without_block_validation,
+        sender_private_key=funded_address_private_key,
+        value=1,
+        to=force_bytes_to_address(b'\x10\x10')
+    )
+    balance_before = (await ipc_request(
+        'eth_getBalance',
+        [funded_address.hex(), to_int(hexstr=block_no_before_transfer)]
+    ))['result']
+    assert balance_before == hex(funded_address_initial_balance)
+
+    block_no_after_transfer = (
+        await ipc_request('eth_blockNumber', [])
+    )['result']
+    balance_after = (await ipc_request(
+        'eth_getBalance',
+        [funded_address.hex(), to_int(hexstr=block_no_after_transfer)]
+    ))['result']
+
+    assert to_int(hexstr=balance_after) < to_int(hexstr=balance_before)
