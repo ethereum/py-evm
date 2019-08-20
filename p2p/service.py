@@ -6,13 +6,17 @@ import logging
 import time
 from typing import (
     Any,
+    AsyncIterator,
     Awaitable,
     Callable,
     List,
     Optional,
+    TypeVar,
     cast,
 )
 from weakref import WeakSet
+
+from async_generator import asynccontextmanager
 
 from cancel_token import CancelToken, OperationCancelled
 from eth_utils import (
@@ -407,3 +411,25 @@ class EmptyService(BaseService):
 
     async def _cleanup(self) -> None:
         pass
+
+
+TService = TypeVar('TService', bound=BaseService)
+
+
+@asynccontextmanager
+async def run_service(service: TService) -> AsyncIterator[TService]:
+    task = asyncio.ensure_future(service.run())
+    await service.events.started.wait()
+    try:
+        yield service
+    finally:
+        try:
+            if not service.is_cancelled:
+                await service.cancel()
+        finally:
+            task.cancel()
+
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
