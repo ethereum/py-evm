@@ -1,16 +1,15 @@
 from typing import Tuple
 
+from eth_utils import (
+    big_endian_to_int,
+    ValidationError,
+)
 from eth_utils.toolz import (
     curry,
     pipe,
 )
 from py_ecc import (
     optimized_bn128 as bn128,
-)
-
-from eth_utils import (
-    big_endian_to_int,
-    ValidationError,
 )
 
 from eth import constants
@@ -40,13 +39,18 @@ ZERO = bn128.Z2
 EXPONENT = bn128.FQ12.one()
 
 
-def ecpairing(computation: BaseComputation) -> BaseComputation:
+@curry
+def ecpairing(
+        computation: BaseComputation,
+        gas_cost_base: int = constants.GAS_ECPAIRING_BASE,
+        gas_cost_per_point: int = constants.GAS_ECPAIRING_PER_POINT) -> BaseComputation:
+
     if len(computation.msg.data) % 192:
         # data length must be an exact multiple of 192
         raise VMError("Invalid ECPAIRING parameters")
 
     num_points = len(computation.msg.data) // 192
-    gas_fee = constants.GAS_ECPAIRING_BASE + num_points * constants.GAS_ECPAIRING_PER_POINT
+    gas_fee = gas_cost_base + num_points * gas_cost_per_point
 
     computation.consume_gas(gas_fee, reason='ECPAIRING Precompile')
 
