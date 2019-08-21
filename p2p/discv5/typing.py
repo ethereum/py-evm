@@ -26,8 +26,8 @@ NodeID = NewType("NodeID", bytes)
 
 
 class SessionKeys(NamedTuple):
-    initiator_key: AES128Key
-    recipient_key: AES128Key
+    encryption_key: AES128Key
+    decryption_key: AES128Key
     auth_response_key: AES128Key
 
 
