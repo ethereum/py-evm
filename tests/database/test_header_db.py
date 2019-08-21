@@ -97,6 +97,8 @@ def test_headerdb_persist_disconnected_headers(headerdb, genesis_header):
     # Persist the checkpoint header with a trusted score
     headerdb.persist_checkpoint_header(pseudo_genesis, score_at_pseudo_genesis)
 
+    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
+
     headers_from_pseudo_genesis = (headers[8], headers[9],)
 
     headerdb.persist_header_chain(headers_from_pseudo_genesis, pseudo_genesis.parent_hash)
