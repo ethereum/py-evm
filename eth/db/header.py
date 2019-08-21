@@ -167,6 +167,10 @@ class HeaderDB(HeaderDatabaseAPI):
             return self._persist_header_chain(db, headers, genesis_parent_hash)
 
     def persist_checkpoint_header(self, header: BlockHeaderAPI, score: int) -> None:
+        """
+        Persist a checkpoint header with a trusted score. Persisting the checkpoint header
+        automatically sets it as the new canonical head.
+        """
         with self.db.atomic_batch() as db:
             return self._persist_checkpoint_header(db, header, score)
 
@@ -199,6 +203,7 @@ class HeaderDB(HeaderDatabaseAPI):
         )
         previous_score = score - header.difficulty
         cls._set_hash_scores_to_db(db, header, previous_score)
+        cls._set_as_canonical_chain_head(db, header.hash, header.parent_hash)
 
     @classmethod
     def _persist_header_chain(
