@@ -1,0 +1,2 @@
+Fix type hints so that ``max_headers`` is recognized as keyword argument
+to ``get_block_headers``.

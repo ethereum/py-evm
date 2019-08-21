@@ -61,7 +61,7 @@ if TYPE_CHECKING:
         [
             BaseExchangeHandler,
             BlockIdentifier,
-            int,
+            DefaultArg(int, 'max_headers'),
             DefaultArg(int, 'skip'),
             DefaultArg(int, 'reverse'),
             DefaultArg(float, 'timeout')
