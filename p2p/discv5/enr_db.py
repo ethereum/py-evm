@@ -1,8 +1,11 @@
+import logging
 from typing import (
     Dict,
 )
 
 import trio
+
+from eth_utils import encode_hex
 
 from p2p.discv5.abc import EnrDbApi
 from p2p.discv5.enr import ENR
@@ -13,6 +16,10 @@ from p2p.discv5.typing import NodeID
 class BaseEnrDb(EnrDbApi):
 
     def __init__(self, identity_scheme_registry: IdentitySchemeRegistry):
+        self.logger = logging.getLogger(".".join((
+            self.__module__,
+            self.__class__.__name__,
+        )))
         self._identity_scheme_registry = identity_scheme_registry
 
     @property
@@ -46,16 +53,30 @@ class MemoryEnrDb(BaseEnrDb):
         if await self.contains(enr.node_id):
             raise ValueError(f"ENR with nodeid {enr.node_id} already exists.")
         else:
+            self.logger.debug(
+                f"Inserting new ENR of {encode_hex(enr.node_id)} with sequence number "
+                f"{enr.sequence_number}"
+            )
             self.key_value_storage[enr.node_id] = enr
 
     async def update(self, enr: ENR) -> None:
         self.validate_identity_scheme(enr)
         existing_enr = await self.get(enr.node_id)
         if existing_enr.sequence_number < enr.sequence_number:
+            self.logger.debug(
+                f"Updating ENR of {encode_hex(enr.node_id)} from sequence number "
+                f"{existing_enr.sequence_number} to {enr.sequence_number}"
+            )
             self.key_value_storage[enr.node_id] = enr
+        else:
+            self.logger.debug(
+                f"Not updating ENR of {encode_hex(enr.node_id)} as new sequence number "
+                f"{enr.sequence_number} is not higher than the current one {enr.sequence_number}"
+            )
 
     async def remove(self, node_id: NodeID) -> None:
         self.key_value_storage.pop(node_id)
+        self.logger.debug(f"Removing ENR of {encode_hex(node_id)}")
 
         await trio.sleep(0)  # add checkpoint to make this a proper async function
 
