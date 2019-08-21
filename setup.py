@@ -47,8 +47,7 @@ deps = {
         "multiaddr>=0.0.8,<0.1.0",
         "pymultihash>=0.8.2",
         # FIXME: Change to PyPI when the commit is released.
-        # NOTE: This branch includes py-libp2p#230 and py-libp2p#245
-        "libp2p @ git+https://git@github.com/mhchia/py-libp2p@593d657",
+        "libp2p @ git+https://git@github.com/libp2p/py-libp2p@6b05d9ab8f0de5e15f8a65ffaa199e760d209cbe",  # noqa: E501
     ],
     'test': [
         "hypothesis>=4.24.3,<5",
