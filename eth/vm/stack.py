@@ -91,10 +91,7 @@ class Stack(StackAPI):
         # when the popped type matches the pushed type.
         #
         if not self.values:
-            raise InsufficientStack(
-                "Wanted 1 stack item, only had %d",
-                len(self.values),
-            )
+            raise InsufficientStack("Wanted 1 stack item as bytes, had none")
         else:
             item_type, popped = self._pop_typed()
             if item_type is int:
@@ -115,10 +112,7 @@ class Stack(StackAPI):
         # Note: This function is optimized for speed over readability.
         #
         if not self.values:
-            raise InsufficientStack(
-                "Wanted 1 stack item, only had %d",
-                len(self.values),
-            )
+            raise InsufficientStack("Wanted 1 stack item as int, had none")
         else:
             item_type, popped = self._pop_typed()
             if item_type is int:
@@ -141,10 +135,7 @@ class Stack(StackAPI):
         # Note: This function is optimized for speed over readability.
         #
         if not self.values:
-            raise InsufficientStack(
-                "Wanted 1 stack item, only had %d",
-                len(self.values),
-            )
+            raise InsufficientStack("Wanted 1 stack item, had none")
         else:
             _, popped = self._pop_typed()
             return popped
