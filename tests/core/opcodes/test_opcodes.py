@@ -3,8 +3,10 @@ import pytest
 from eth_utils import (
     decode_hex,
     encode_hex,
-    to_canonical_address,
+    hexstr_if_str,
     int_to_big_endian,
+    to_bytes,
+    to_canonical_address,
     ValidationError,
 )
 from eth import (
@@ -15,6 +17,9 @@ from eth.db.atomic import (
 )
 from eth.db.chain import (
     ChainDB
+)
+from eth.exceptions import (
+    InvalidInstruction,
 )
 from eth.rlp.headers import (
     BlockHeader,
@@ -56,9 +61,14 @@ GENESIS_HEADER = BlockHeader(
 )
 
 
+def assemble(*codes):
+    return b''.join(
+        hexstr_if_str(to_bytes, element)
+        for element in codes
+    )
+
+
 def setup_computation(vm_class, create_address, code, chain_id=None, gas=1000000):
-    if chain_id is None:
-        chain_id = 42
 
     message = Message(
         to=CANONICAL_ADDRESS_A,
@@ -887,3 +897,113 @@ def test_chainid(vm_class, chain_id, expected_result):
     result = computation.stack_pop1_any()
 
     assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    'vm_class, code, expect_exception, expect_gas_used',
+    (
+        (
+            ConstantinopleVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+            ),
+            None,
+            3 + 400,
+        ),
+        (
+            ConstantinopleVM,
+            assemble(
+                opcode_values.SELFBALANCE,
+            ),
+            InvalidInstruction,
+            1_000_000,  # the invalid instruction causes a failure that consumes all provided gas
+        ),
+        (
+            IstanbulVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+            ),
+            None,
+            3 + 700,  # balance now costs more
+        ),
+        (
+            IstanbulVM,
+            assemble(
+                opcode_values.SELFBALANCE,
+            ),
+            None,
+            5,
+        ),
+    )
+)
+def test_balance(vm_class, code, expect_exception, expect_gas_used):
+    sender_balance = 987654321
+    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, code)
+
+    # make sure setup is correct
+    assert computation.msg.sender == CANONICAL_ADDRESS_B
+
+    computation.state.set_balance(CANONICAL_ADDRESS_B, sender_balance)
+    computation.state.persist()
+
+    comp = computation.apply_message()
+    if expect_exception:
+        assert isinstance(comp.error, expect_exception)
+    else:
+        assert comp.is_success
+        assert comp.stack_pop1_int() == sender_balance
+
+    assert len(comp._stack) == 0
+    assert comp.get_gas_used() == expect_gas_used
+
+
+@pytest.mark.parametrize(
+    'vm_class, code, expect_gas_used',
+    (
+        (
+            ConstantinopleVM,
+            assemble(
+                opcode_values.PUSH1,
+                0x0,
+                opcode_values.SLOAD,
+            ),
+            3 + 200,
+        ),
+        (
+            ConstantinopleVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_A,
+                opcode_values.EXTCODEHASH,
+            ),
+            3 + 400,
+        ),
+        (
+            IstanbulVM,
+            assemble(
+                opcode_values.PUSH1,
+                0x0,
+                opcode_values.SLOAD,
+            ),
+            3 + 800,
+        ),
+        (
+            IstanbulVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_A,
+                opcode_values.EXTCODEHASH,
+            ),
+            3 + 700,
+        ),
+    )
+)
+def test_gas_costs(vm_class, code, expect_gas_used):
+    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, code)
+    comp = computation.apply_message()
+    assert comp.is_success
+    assert comp.get_gas_used() == expect_gas_used
