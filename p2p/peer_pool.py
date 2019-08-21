@@ -252,6 +252,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             peer.remove_subscriber(subscriber)
 
     async def start_peer(self, peer: BasePeer) -> None:
+        self.run_child_service(peer.connection)
+        await self.wait(peer.connection.events.started.wait(), timeout=1)
+
         self.run_child_service(peer)
         await self.wait(peer.events.started.wait(), timeout=1)
         if peer.is_operational:
@@ -463,7 +466,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             # Yield control to ensure we process any disconnection requests from peers. Otherwise
             # we could return peers that should have been disconnected already.
             await asyncio.sleep(0)
-            if not peer.is_closing:
+            if peer.is_operational and not peer.is_closing:
                 yield peer
 
     async def _periodically_report_stats(self) -> None:

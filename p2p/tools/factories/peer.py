@@ -1,4 +1,3 @@
-import asyncio
 from typing import cast, AsyncContextManager, AsyncIterator, Tuple, Type
 
 from async_generator import asynccontextmanager
@@ -10,15 +9,13 @@ from cancel_token import CancelToken
 from eth_keys import keys
 
 from p2p.abc import NodeAPI
-from p2p.handshake import negotiate_protocol_handshakes
 from p2p.peer import BasePeer, BasePeerContext, BasePeerFactory
 from p2p.service import run_service
 
 from p2p.tools.paragon import ParagonPeer, ParagonContext, ParagonPeerFactory
 
 from .cancel_token import CancelTokenFactory
-from .p2p_proto import DevP2PHandshakeParamsFactory
-from .transport import MemoryTransportPairFactory
+from .connection import ConnectionPairFactory
 
 
 @asynccontextmanager
@@ -56,65 +53,28 @@ async def PeerPairFactory(*,
         event_bus=event_bus,
     )
 
-    # Establish linked transports for peer communication.
-    alice_transport, bob_transport = MemoryTransportPairFactory(
-        alice_remote=alice_remote,
-        alice_private_key=alice_private_key,
-        bob_remote=bob_remote,
-        bob_private_key=bob_private_key,
-    )
-
-    # Get their respective base DevP2P handshake parameters
-    alice_p2p_handshake_params = DevP2PHandshakeParamsFactory(
-        listen_port=alice_transport.remote.address.tcp_port,
-        client_version_string=alice_client_version,
-        version=alice_p2p_version,
-    )
-    bob_p2p_handshake_params = DevP2PHandshakeParamsFactory(
-        listen_port=bob_transport.remote.address.tcp_port,
-        client_version_string=bob_client_version,
-        version=bob_p2p_version,
-    )
-
-    # Get their protocol handshakers
     alice_handshakers = await alice_factory.get_handshakers()
     bob_handshakers = await bob_factory.get_handshakers()
 
-    # Perform the handshake between the two peers.
-    (
-        (alice_multiplexer, alice_devp2p_receipt, alice_protocol_receipts),
-        (bob_multiplexer, bob_devp2p_receipt, bob_protocol_receipts),
-    ) = await asyncio.wait_for(asyncio.gather(
-        negotiate_protocol_handshakes(
-            transport=alice_transport,
-            p2p_handshake_params=alice_p2p_handshake_params,
-            protocol_handshakers=alice_handshakers,
-            token=cancel_token,
-        ),
-        negotiate_protocol_handshakes(
-            transport=bob_transport,
-            p2p_handshake_params=bob_p2p_handshake_params,
-            protocol_handshakers=bob_handshakers,
-            token=cancel_token,
-        ),
-    ), timeout=1)
-
-    # Create the peer instances
-    alice = alice_factory.create_peer(
-        multiplexer=alice_multiplexer,
-        devp2p_receipt=alice_devp2p_receipt,
-        protocol_receipts=alice_protocol_receipts,
-        inbound=False,
+    connection_pair = ConnectionPairFactory(
+        alice_handshakers=alice_handshakers,
+        bob_handshakers=bob_handshakers,
+        alice_remote=alice_remote,
+        alice_private_key=alice_private_key,
+        alice_client_version=alice_client_version,
+        alice_p2p_version=alice_p2p_version,
+        bob_remote=bob_remote,
+        bob_private_key=bob_private_key,
+        bob_client_version=bob_client_version,
+        bob_p2p_version=bob_p2p_version,
+        cancel_token=cancel_token,
     )
-    bob = bob_factory.create_peer(
-        multiplexer=bob_multiplexer,
-        devp2p_receipt=bob_devp2p_receipt,
-        protocol_receipts=bob_protocol_receipts,
-        inbound=True,
-    )
+    async with connection_pair as (alice_connection, bob_connection):
+        alice = alice_factory.create_peer(connection=alice_connection, inbound=False)
+        bob = bob_factory.create_peer(connection=bob_connection, inbound=False)
 
-    async with run_service(alice), run_service(bob):
-        yield alice, bob
+        async with run_service(alice), run_service(bob):
+            yield alice, bob
 
 
 def ParagonPeerPairFactory(*,

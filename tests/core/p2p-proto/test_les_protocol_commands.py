@@ -1,11 +1,11 @@
 import asyncio
 import pytest
 
-from p2p.peer import MsgBuffer
-
 from trinity.protocol.les.proto import (
     LESProtocol,
+    LESProtocolV2,
 )
+
 from trinity.tools.factories import LESV2PeerPairFactory
 
 
@@ -35,25 +35,24 @@ async def test_les_protocol_methods_request_id(
     assert isinstance(peer.sub_proto, LESProtocol)
     assert isinstance(remote.sub_proto, LESProtocol)
 
-    collector = MsgBuffer()
-    remote.add_subscriber(collector)
+    # setup message collection
+    messages = []
+    got_message = asyncio.Event()
+
+    async def collect_messages(cmd, msg):
+        messages.append((cmd, msg))
+        got_message.set()
+
+    peer.connection.add_protocol_handler(LESProtocolV2, collect_messages)
 
     # Test for get_block_headers
-    generated_request_id = peer.sub_proto.send_get_block_headers(
+    generated_request_id = remote.sub_proto.send_get_block_headers(
         b'1234', 1, 0, False, request_id=request_id
     )
+    await asyncio.wait_for(got_message.wait(), timeout=1)
 
-    # yield to let remote and peer transmit messages.  This can take a
-    # small amount of time so we give it a few rounds of the event loop to
-    # finish transmitting.
-    for _ in range(10):
-        await asyncio.sleep(0.01)
-        if collector.msg_queue.qsize() >= 1:
-            break
-
-    messages = collector.get_messages()
     assert len(messages) == 1
-    peer, cmd, msg = messages[0]
+    cmd, msg = messages[0]
 
     # Asserted that the reply message has the request_id as that which was generated
     assert generated_request_id == msg['request_id']

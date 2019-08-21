@@ -27,18 +27,10 @@ from trinity.db.beacon.chain import AsyncBeaconChainDB
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
-from trinity.protocol.bcc.servers import (
-    BCCRequestServer,
-)
-from trinity.protocol.eth.servers import (
-    ETHRequestServer
-)
-from trinity.protocol.les.servers import (
-    LightRequestServer,
-)
-from trinity._utils.shutdown import (
-    exit_with_services,
-)
+from trinity.protocol.bcc.servers import BCCRequestServer
+from trinity.protocol.eth.servers import ETHRequestServer
+from trinity.protocol.les.servers import LightRequestServer
+from trinity._utils.shutdown import exit_with_services
 
 
 class RequestServerPlugin(AsyncioIsolatedPlugin):

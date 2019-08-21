@@ -1,7 +1,7 @@
 import asyncio
 import collections
 import functools
-from typing import Any, Awaitable, Callable, DefaultDict, Set, Tuple, Type
+from typing import Any, Awaitable, Callable, DefaultDict, Sequence, Set, Type
 
 from eth_keys import keys
 
@@ -49,12 +49,12 @@ class Connection(ConnectionAPI, BaseService):
     def __init__(self,
                  multiplexer: MultiplexerAPI,
                  devp2p_receipt: DevP2PReceipt,
-                 protocol_receipts: Tuple[HandshakeReceipt, ...],
+                 protocol_receipts: Sequence[HandshakeReceipt],
                  is_dial_out: bool) -> None:
         super().__init__(token=multiplexer.cancel_token, loop=multiplexer.cancel_token.loop)
         self._multiplexer = multiplexer
         self._devp2p_receipt = devp2p_receipt
-        self._protocol_receipts = protocol_receipts
+        self.protocol_receipts = tuple(protocol_receipts)
         self.is_dial_out = is_dial_out
 
         self._protocol_handlers = collections.defaultdict(set)
@@ -173,6 +173,12 @@ class Connection(ConnectionAPI, BaseService):
     def get_base_protocol(self) -> BaseP2PProtocol:
         return self._multiplexer.get_base_protocol()
 
+    def get_p2p_receipt(self) -> DevP2PReceipt:
+        return self._devp2p_receipt
+
+    #
+    # Connection Metadata
+    #
     @property
     def remote_capabilities(self) -> Capabilities:
         return self._devp2p_receipt.capabilities

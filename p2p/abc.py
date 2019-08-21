@@ -30,6 +30,7 @@ from eth_keys import datatypes
 from p2p.typing import Capability, Capabilities, Payload, Structure
 
 if TYPE_CHECKING:
+    from p2p.handshake import DevP2PReceipt  # noqa: F401
     from p2p.p2p_proto import (  # noqa: F401
         BaseP2PProtocol,
     )
@@ -389,13 +390,15 @@ class HandshakeReceiptAPI(ABC):
     protocol: ProtocolAPI
 
 
-class HandlerSubscriptionAPI(ABC):
+class HandlerSubscriptionAPI:
     @abstractmethod
     def cancel(self) -> None:
         ...
 
 
 class ConnectionAPI(AsyncioServiceAPI):
+    protocol_receipts: Tuple[HandshakeReceiptAPI, ...]
+
     #
     # Primary properties of the connection
     #
@@ -412,6 +415,10 @@ class ConnectionAPI(AsyncioServiceAPI):
     #
     # Subscriptions/Handler API
     #
+    @abstractmethod
+    def start_protocol_streams(self) -> None:
+        ...
+
     @abstractmethod
     def add_protocol_handler(self,
                              protocol_type: Type[ProtocolAPI],
@@ -440,6 +447,13 @@ class ConnectionAPI(AsyncioServiceAPI):
     def get_base_protocol(self) -> 'BaseP2PProtocol':
         ...
 
+    @abstractmethod
+    def get_p2p_receipt(self) -> 'DevP2PReceipt':
+        ...
+
+    #
+    # Connection Metadata
+    #
     @property
     @abstractmethod
     def remote_capabilities(self) -> Capabilities:

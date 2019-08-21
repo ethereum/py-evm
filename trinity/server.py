@@ -36,13 +36,11 @@ from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BasePeerPool
-from trinity.protocol.eth.peer import ETHPeerPool
-from trinity.protocol.les.peer import LESPeerPool
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import BCCPeerPool
-from trinity.protocol.bcc.servers import (
-    BCCReceiveServer,
-)
+from trinity.protocol.bcc.servers import BCCReceiveServer
+from trinity.protocol.eth.peer import ETHPeerPool
+from trinity.protocol.les.peer import LESPeerPool
 
 DIAL_IN_OUT_RATIO = 0.75
 BOUND_IP = '0.0.0.0'
@@ -169,7 +167,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         factory = self.peer_pool.get_peer_factory()
         handshakers = await factory.get_handshakers()
-        multiplexer, devp2p_receipt, protocol_receipts = await receive_handshake(
+        connection = await receive_handshake(
             reader=reader,
             writer=writer,
             private_key=self.privkey,
@@ -179,12 +177,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         )
 
         # Create and register peer in peer_pool
-        peer = factory.create_peer(
-            multiplexer=multiplexer,
-            devp2p_receipt=devp2p_receipt,
-            protocol_receipts=protocol_receipts,
-            inbound=True,
-        )
+        peer = factory.create_peer(connection, inbound=True)
 
         if self.peer_pool.is_full:
             await peer.disconnect(DisconnectReason.too_many_peers)
