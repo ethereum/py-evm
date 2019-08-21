@@ -134,10 +134,11 @@ class HandshakeInitiator(BaseHandshakeParticipant):
 
         session_keys = self.identity_scheme.compute_session_keys(
             local_private_key=ephemeral_private_key,
-            peer_public_key=self.remote_enr.public_key,
-            initiator_node_id=self.local_enr.node_id,
-            recipient_node_id=self.remote_node_id,
+            remote_public_key=self.remote_enr.public_key,
+            local_node_id=self.local_enr.node_id,
+            remote_node_id=self.remote_node_id,
             id_nonce=who_are_you_packet.id_nonce,
+            is_locally_initiated=True,
         )
 
         # prepare response packet
@@ -156,7 +157,7 @@ class HandshakeInitiator(BaseHandshakeParticipant):
             auth_tag=get_random_auth_tag(),
             id_nonce=who_are_you_packet.id_nonce,
             message=self.initial_message,
-            initiator_key=session_keys.initiator_key,
+            initiator_key=session_keys.encryption_key,
             id_nonce_signature=id_nonce_signature,
             auth_response_key=session_keys.auth_response_key,
             enr=enr,
@@ -245,10 +246,11 @@ class HandshakeRecipient(BaseHandshakeParticipant):
 
         session_keys = self.identity_scheme.compute_session_keys(
             local_private_key=self.local_private_key,
-            peer_public_key=ephemeral_public_key,
-            initiator_node_id=self.remote_node_id,
-            recipient_node_id=self.local_enr.node_id,
+            remote_public_key=ephemeral_public_key,
+            local_node_id=self.local_enr.node_id,
+            remote_node_id=self.remote_node_id,
             id_nonce=self.who_are_you_packet.id_nonce,
+            is_locally_initiated=False,
         )
 
         enr = self.decrypt_and_validate_auth_response(
@@ -258,7 +260,7 @@ class HandshakeRecipient(BaseHandshakeParticipant):
         )
         message = self.decrypt_and_validate_message(
             auth_header_packet,
-            session_keys.initiator_key,
+            session_keys.decryption_key,
         )
 
         return HandshakeResult(
@@ -319,10 +321,10 @@ class HandshakeRecipient(BaseHandshakeParticipant):
 
     def decrypt_and_validate_message(self,
                                      auth_header_packet: AuthHeaderPacket,
-                                     initiator_key: AES128Key
+                                     decryption_key: AES128Key
                                      ) -> BaseMessage:
         try:
-            return auth_header_packet.decrypt_message(initiator_key)
+            return auth_header_packet.decrypt_message(decryption_key)
         except DecryptionError as error:
             raise HandshakeFailure(
                 "Failed to decrypt message in AuthHeader packet with newly established session keys"

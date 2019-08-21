@@ -15,6 +15,12 @@ from p2p.tools.factories.keys import (
 )
 
 
+def assert_session_keys_equal(initiator_session_keys, recipient_session_keys):
+    assert initiator_session_keys.auth_response_key == recipient_session_keys.auth_response_key
+    assert initiator_session_keys.encryption_key == recipient_session_keys.decryption_key
+    assert initiator_session_keys.decryption_key == recipient_session_keys.encryption_key
+
+
 def test_initiator_expects_who_are_you_response():
     handshake_initiator = HandshakeInitiatorFactory()
     expected_token = handshake_initiator.first_packet_to_send.auth_tag
@@ -52,7 +58,7 @@ def test_successful_handshake():
     initiator_result = initiator.complete_handshake(recipient.first_packet_to_send)
     recipient_result = recipient.complete_handshake(initiator_result.auth_header_packet)
 
-    assert initiator_result.session_keys == recipient_result.session_keys
+    assert_session_keys_equal(initiator_result.session_keys, recipient_result.session_keys)
 
     assert initiator_result.message is None
     assert initiator_result.enr is None

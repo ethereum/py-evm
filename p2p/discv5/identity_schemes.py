@@ -131,10 +131,11 @@ class IdentityScheme(ABC):
     def compute_session_keys(cls,
                              *,
                              local_private_key: bytes,
-                             peer_public_key: bytes,
-                             initiator_node_id: NodeID,
-                             recipient_node_id: NodeID,
+                             remote_public_key: bytes,
+                             local_node_id: NodeID,
+                             remote_node_id: NodeID,
                              id_nonce: IDNonce,
+                             is_locally_initiated: bool,
                              ) -> SessionKeys:
         """Compute the symmetric session keys."""
         ...
@@ -225,15 +226,24 @@ class V4IdentityScheme(IdentityScheme):
     def compute_session_keys(cls,
                              *,
                              local_private_key: bytes,
-                             peer_public_key: bytes,
-                             initiator_node_id: NodeID,
-                             recipient_node_id: NodeID,
+                             remote_public_key: bytes,
+                             local_node_id: NodeID,
+                             remote_node_id: NodeID,
                              id_nonce: IDNonce,
+                             is_locally_initiated: bool
                              ) -> SessionKeys:
         # TODO: do it properly
+        initiator_key = AES128Key(b"\x00" * AES128_KEY_SIZE)
+        recipient_key = AES128Key(b"\x11" * AES128_KEY_SIZE)
+
+        if is_locally_initiated:
+            encryption_key, decryption_key = initiator_key, recipient_key
+        else:
+            encryption_key, decryption_key = recipient_key, initiator_key
+
         return SessionKeys(
-            initiator_key=AES128Key(b"\x00" * AES128_KEY_SIZE),
-            recipient_key=AES128Key(b"\x11" * AES128_KEY_SIZE),
+            encryption_key=encryption_key,
+            decryption_key=decryption_key,
             auth_response_key=AES128Key(b"\x22" * AES128_KEY_SIZE),
         )
 
