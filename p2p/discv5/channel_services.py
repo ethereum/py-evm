@@ -57,10 +57,16 @@ class IncomingPacket(NamedTuple):
     packet: Packet
     sender_endpoint: Endpoint
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.packet.__class__.__name__}]"
+
 
 class OutgoingPacket(NamedTuple):
     packet: Packet
     receiver_endpoint: Endpoint
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.packet.__class__.__name__}]"
 
 
 class IncomingMessage(NamedTuple):
@@ -68,11 +74,17 @@ class IncomingMessage(NamedTuple):
     sender_endpoint: Endpoint
     sender_node_id: NodeID
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.message.__class__.__name__}]"
+
 
 class OutgoingMessage(NamedTuple):
     message: BaseMessage
     receiver_endpoint: Endpoint
     receiver_node_id: NodeID
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.message.__class__.__name__}]"
 
 
 #

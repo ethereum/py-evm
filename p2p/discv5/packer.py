@@ -153,7 +153,7 @@ class PeerPacker(Service):
             # handshake state, if not we just drop the packet (which is what we always do with
             # AuthTag packets received after we have initiated a handshake).
             if self.is_pre_handshake:
-                self.logger.debug("Received handshake initiating packet")
+                self.logger.debug("Received %s as handshake initiation", incoming_packet)
                 self.start_handshake_as_recipient(
                     auth_tag=incoming_packet.packet.auth_tag,
                     local_enr=local_enr,
@@ -161,17 +161,15 @@ class PeerPacker(Service):
                 )
             else:
                 self.logger.warning(
-                    "Dropping AuthTag packet previously thought to initiate handshake as we have "
-                    "initiated handshake ourselves in the meantime"
+                    "Dropping %s previously thought to initiate handshake as we have initiated "
+                    "handshake ourselves in the meantime",
+                    incoming_packet,
                 )
 
             self.logger.debug("Responding with WhoAreYou packet")
             await self.send_first_handshake_packet(incoming_packet.sender_endpoint)
         else:
-            self.logger.debug(
-                "Dropping %s as handshake has not been started yet",
-                incoming_packet.packet.__class__.__name__,
-            )
+            self.logger.debug("Dropping %s as handshake has not been started yet", incoming_packet)
 
     async def handle_incoming_packet_during_handshake(self,
                                                       incoming_packet: IncomingPacket,
@@ -186,10 +184,7 @@ class PeerPacker(Service):
         if self.handshake_participant.is_response_packet(packet):
             self.logger.debug("Received %s as handshake response", packet.__class__.__name__)
         else:
-            self.logger.debug(
-                "Dropping %s unexpectedly received during handshake",
-                packet.__class__.__name__,
-            )
+            self.logger.debug("Dropping %s unexpectedly received during handshake", incoming_packet)
             return
 
         try:
@@ -222,7 +217,10 @@ class PeerPacker(Service):
                     handshake_result.auth_header_packet,
                     incoming_packet.sender_endpoint,
                 )
-                self.logger.debug("Sending AuthHeader packet to let peer complete handshake")
+                self.logger.debug(
+                    "Sending %s packet to let peer complete handshake",
+                    outgoing_packet,
+                )
                 await self.outgoing_packet_send_channel.send(outgoing_packet)
 
             if handshake_result.message:
@@ -231,10 +229,7 @@ class PeerPacker(Service):
                     incoming_packet.sender_endpoint,
                     self.remote_node_id,
                 )
-                self.logger.debug(
-                    "Received %s message during handshake",
-                    handshake_result.message.__class__.__name__,
-                )
+                self.logger.debug("Received %s during handshake", incoming_message)
                 await self.incoming_message_send_channel.send(incoming_message)
 
             self.logger.debug("Sending %d messages from backlog", len(outgoing_message_backlog))
@@ -263,17 +258,17 @@ class PeerPacker(Service):
                 self.logger.warning("Received invalid packet: %s", validation_error)
                 raise  # let the service fail
             else:
-                self.logger.debug("Received %s in AuthTag packet", message.__class__.__name__)
                 incoming_message = IncomingMessage(
                     message,
                     incoming_packet.sender_endpoint,
                     self.remote_node_id,
                 )
+                self.logger.debug("Received %s", incoming_message)
                 await self.incoming_message_send_channel.send(incoming_message)
         else:
             self.logger.debug(
                 "Dropping %s as handshake has already been completed",
-                incoming_packet.packet.__class__.__name__,
+                incoming_packet,
             )
 
     #
@@ -305,10 +300,7 @@ class PeerPacker(Service):
         # handshake state, if not we just handle the packet again (which will most likely result in
         # the message being put on the backlog).
         if self.is_pre_handshake:
-            self.logger.info(
-                "Initiating handshake to send %s",
-                outgoing_message.message.__class__.__name__,
-            )
+            self.logger.info("Initiating handshake to send %s", outgoing_message)
             self.start_handshake_as_initiator(
                 local_enr=local_enr,
                 remote_enr=remote_enr,
@@ -327,7 +319,7 @@ class PeerPacker(Service):
 
         self.logger.debug(
             "Putting %s on message backlog as handshake is in progress already",
-            outgoing_message.message.__class__.__name__,
+            outgoing_message,
         )
         self.outgoing_message_backlog.append(outgoing_message)
         await trio.sleep(0)
@@ -350,10 +342,7 @@ class PeerPacker(Service):
             packet,
             outgoing_message.receiver_endpoint,
         )
-        self.logger.debug(
-            "Sending %s in AuthTag packet",
-            outgoing_message.message.__class__.__name__,
-        )
+        self.logger.debug("Sending %s", outgoing_message)
         await self.outgoing_packet_send_channel.send(outgoing_packet)
 
     #
