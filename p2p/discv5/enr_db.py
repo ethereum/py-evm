@@ -51,11 +51,12 @@ class MemoryEnrDb(BaseEnrDb):
         self.validate_identity_scheme(enr)
 
         if await self.contains(enr.node_id):
-            raise ValueError(f"ENR with nodeid {enr.node_id} already exists.")
+            raise ValueError("ENR with node id %s already exists", encode_hex(enr.node_id))
         else:
             self.logger.debug(
-                f"Inserting new ENR of {encode_hex(enr.node_id)} with sequence number "
-                f"{enr.sequence_number}"
+                "Inserting new ENR of %s with sequence number %d",
+                encode_hex(enr.node_id),
+                enr.sequence_number,
             )
             self.key_value_storage[enr.node_id] = enr
 
@@ -64,19 +65,24 @@ class MemoryEnrDb(BaseEnrDb):
         existing_enr = await self.get(enr.node_id)
         if existing_enr.sequence_number < enr.sequence_number:
             self.logger.debug(
-                f"Updating ENR of {encode_hex(enr.node_id)} from sequence number "
-                f"{existing_enr.sequence_number} to {enr.sequence_number}"
+                "Updating ENR of %s from sequence number %d to %d",
+                encode_hex(enr.node_id),
+                existing_enr.sequence_number,
+                enr.sequence_number,
             )
             self.key_value_storage[enr.node_id] = enr
         else:
             self.logger.debug(
-                f"Not updating ENR of {encode_hex(enr.node_id)} as new sequence number "
-                f"{enr.sequence_number} is not higher than the current one {enr.sequence_number}"
+                "Not updating ENR of %s as new sequence number %d is not higher than the current "
+                "one %d",
+                encode_hex(enr.node_id),
+                enr.sequence_number,
+                existing_enr.sequence_number,
             )
 
     async def remove(self, node_id: NodeID) -> None:
         self.key_value_storage.pop(node_id)
-        self.logger.debug(f"Removing ENR of {encode_hex(node_id)}")
+        self.logger.debug("Removing ENR of %s", encode_hex(node_id))
 
         await trio.sleep(0)  # add checkpoint to make this a proper async function
 
