@@ -25,6 +25,8 @@ from eth.vm import (
     opcode_values
 )
 from eth.vm.forks import (
+    IstanbulVM,
+    PetersburgVM,
     ConstantinopleVM,
     ByzantiumVM,
     SpuriousDragonVM,
@@ -52,7 +54,7 @@ GENESIS_HEADER = BlockHeader(
 )
 
 
-def setup_computation(vm_class, create_address, code):
+def setup_computation(vm_class, create_address, code, gas=1000000):
 
     message = Message(
         to=CANONICAL_ADDRESS_A,
@@ -61,7 +63,7 @@ def setup_computation(vm_class, create_address, code):
         value=0,
         data=b'',
         code=code,
-        gas=1000000,
+        gas=gas,
     )
 
     tx_context = vm_class._state_class.transaction_context_class(
@@ -649,6 +651,141 @@ def test_extcodehash(vm_class, address, expected):
             19800,
             1,
         ),
+        # Petersburg reverts the SSTORE change
+        (
+            PetersburgVM,
+            '0x60006000556000600055',
+            10012,
+            0,
+            0,
+        ),
+        (
+            PetersburgVM,
+            '0x60006000556001600055',
+            25012,
+            0,
+            0,
+        ),
+        # Istanbul re-adds the SSTORE change, but at a higher base cost (200->800)
+        (
+            IstanbulVM,
+            '0x60006000556000600055',
+            1612,
+            0,
+            0,
+        ),
+        (
+            IstanbulVM,
+            '0x60006000556001600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            IstanbulVM,
+            '0x60016000556000600055',
+            20812,
+            19200,
+            0,
+        ),
+        (
+            IstanbulVM,
+            '0x60016000556002600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            IstanbulVM,
+            '0x60016000556001600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            IstanbulVM,
+            '0x60006000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60006000556001600055',
+            5812,
+            4200,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60006000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60026000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60026000556003600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60026000556001600055',
+            5812,
+            4200,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60026000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60016000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60016000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x60016000556001600055',
+            1612,
+            0,
+            1,
+        ),
+        (
+            IstanbulVM,
+            '0x600160005560006000556001600055',
+            40818,
+            19200,
+            0,
+        ),
+        (
+            IstanbulVM,
+            '0x600060005560016000556000600055',
+            10818,
+            19200,
+            1,
+        ),
     )
 )
 def test_sstore(vm_class, code, gas_used, refund, original):
@@ -663,5 +800,39 @@ def test_sstore(vm_class, code, gas_used, refund, original):
     assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=False) == original
 
     comp = computation.apply_message()
+    assert comp.get_gas_refund() == refund
+    assert comp.get_gas_used() == gas_used
+
+
+@pytest.mark.parametrize(
+    'gas_supplied, success, gas_used, refund',
+    (
+        # 2 pushes get executed before the SSTORE, so add 6 before checking the 2300 limit
+        (2306, False, 2306, 0),
+        # Just one more gas, leaving 2301 at the beginning of SSTORE, allows it to succeed
+        (2307, True, 806, 0),
+    )
+)
+def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
+    vm_class = IstanbulVM
+    hex_code = '0x6000600055'
+    original = 0
+    computation = setup_computation(
+        vm_class,
+        CANONICAL_ADDRESS_B,
+        decode_hex(hex_code),
+        gas=gas_supplied,
+    )
+
+    computation.state.set_balance(CANONICAL_ADDRESS_B, 100000000000)
+    computation.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
+    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0) == original
+    computation.state.persist()
+
+    comp = computation.apply_message()
+    if success and not comp.is_success:
+        raise comp._error
+    else:
+        assert comp.is_success == success
     assert comp.get_gas_refund() == refund
     assert comp.get_gas_used() == gas_used
