@@ -14,7 +14,7 @@ from lahja import EndpointAPI
 
 from cancel_token import CancelToken
 
-from libp2p.security.insecure_security import InsecureTransport
+from libp2p.crypto.secp256k1 import create_new_key_pair
 
 from eth_keys import keys
 
@@ -26,7 +26,6 @@ from eth.constants import (
 
 from p2p import kademlia
 from p2p.constants import DEFAULT_MAX_PEERS
-from p2p.ecies import generate_privkey
 from p2p.service import run_service
 from p2p.tools.factories import (
     get_open_port,
@@ -47,10 +46,7 @@ from eth2.configs import (
 )
 
 from trinity.db.beacon.chain import AsyncBeaconChainDB
-from trinity.protocol.bcc_libp2p.configs import (
-    SECURITY_PROTOCOL_ID,
-    MULTIPLEXING_PROTOCOL_ID,
-)
+
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import (
     BCCPeer,
@@ -76,29 +72,28 @@ SERENITY_GENESIS_CONFIG = Eth2GenesisConfig(SERENITY_CONFIG)
 #
 # LibP2P
 #
+
+
 class NodeFactory(factory.Factory):
     class Meta:
         model = Node
 
-    privkey = factory.LazyFunction(generate_privkey)
+    key_pair = factory.LazyFunction(create_new_key_pair)
     listen_ip = "127.0.0.1"
     listen_port = factory.LazyFunction(get_open_port)
-    security_protocol_ops = {SECURITY_PROTOCOL_ID: InsecureTransport("plaintext")}
-    muxer_protocol_ids = (MULTIPLEXING_PROTOCOL_ID,)
+    security_protocol_ops = None
+    muxer_protocol_ops = None
     gossipsub_params = None
     cancel_token = None
     bootstrap_nodes = None
     preferred_nodes = None
+    chain = None
 
     @classmethod
     def create_batch(cls, number: int) -> Tuple[Node, ...]:
         return tuple(
             cls() for _ in range(number)
         )
-
-    @classmethod
-    def with_args(cls, *args: Any, **kwargs: Any) -> Node:
-        return cls(*args, **kwargs)
 
 
 class BeaconBlockBodyFactory(factory.Factory):

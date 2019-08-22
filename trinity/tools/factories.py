@@ -35,6 +35,7 @@ from trinity.protocol.eth.proto import ETHHandshakeParams, ETHProtocol
 from trinity.protocol.les.peer import LESPeer, LESPeerFactory
 from trinity.protocol.les.proto import LESHandshakeParams, LESProtocol, LESProtocolV2
 
+
 try:
     import factory
 except ImportError:

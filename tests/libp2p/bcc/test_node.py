@@ -91,7 +91,7 @@ async def test_node_dial_peer_maddr(nodes):
 )
 @pytest.mark.asyncio
 async def test_node_connect_preferred_nodes(nodes):
-    new_node = NodeFactory.with_args(
+    new_node = NodeFactory(
         preferred_nodes=[node.listen_maddr_with_peer_id for node in nodes]
     )
     asyncio.ensure_future(new_node.run())
