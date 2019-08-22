@@ -1,0 +1,1 @@
+Remove mutation of geth testing fixtures from ``./tests/integration/test_lightchain_integration.py`` test.
