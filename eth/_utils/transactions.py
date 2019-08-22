@@ -10,6 +10,14 @@ from eth_utils import (
     int_to_big_endian,
     ValidationError,
 )
+
+from eth.constants import (
+    GAS_TX,
+    GAS_TXCREATE,
+    GAS_TXDATAZERO,
+    GAS_TXDATANONZERO,
+    CREATE_CONTRACT_ADDRESS,
+)
 from eth.typing import (
     Address,
     VRS,
@@ -110,3 +118,21 @@ def extract_transaction_sender(transaction: BaseTransaction) -> Address:
     public_key = signature.recover_public_key_from_msg(message)
     sender = public_key.to_canonical_address()
     return Address(sender)
+
+
+def get_intrinsic_gas(
+        transaction: BaseTransaction,
+        gas_txdatazero: int=GAS_TXDATAZERO,
+        gas_txdatanonzero: int=GAS_TXDATANONZERO) -> int:
+    num_zero_bytes = transaction.data.count(b'\x00')
+    num_non_zero_bytes = len(transaction.data) - num_zero_bytes
+    if transaction.to == CREATE_CONTRACT_ADDRESS:
+        create_cost = GAS_TXCREATE
+    else:
+        create_cost = 0
+    return (
+        GAS_TX +
+        num_zero_bytes * gas_txdatazero +
+        num_non_zero_bytes * gas_txdatanonzero +
+        create_cost
+    )

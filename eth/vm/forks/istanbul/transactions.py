@@ -8,6 +8,11 @@ from eth.vm.forks.constantinople.transactions import (
 
 from eth._utils.transactions import (
     create_transaction_signature,
+    get_intrinsic_gas
+)
+
+from .constants import (
+    GAS_TXDATANONZERO
 )
 
 
@@ -22,6 +27,9 @@ class IstanbulTransaction(ConstantinopleTransaction):
                                     value: int,
                                     data: bytes) -> 'IstanbulUnsignedTransaction':
         return IstanbulUnsignedTransaction(nonce, gas_price, gas, to, value, data)
+
+    def get_intrinsic_gas(self) -> int:
+        return get_intrinsic_gas(self, gas_txdatanonzero=GAS_TXDATANONZERO)
 
 
 class IstanbulUnsignedTransaction(ConstantinopleUnsignedTransaction):
@@ -40,3 +48,6 @@ class IstanbulUnsignedTransaction(ConstantinopleUnsignedTransaction):
             r=r,
             s=s,
         )
+
+    def get_intrinsic_gas(self) -> int:
+        return get_intrinsic_gas(self, gas_txdatanonzero=GAS_TXDATANONZERO)

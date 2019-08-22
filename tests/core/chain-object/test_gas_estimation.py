@@ -1,6 +1,9 @@
 import pytest
 
 from eth.estimators.gas import binary_gas_search_1000_tolerance
+from eth.vm.forks import (
+    IstanbulVM,
+)
 from eth._utils.address import force_bytes_to_address
 
 from tests.core.helpers import (
@@ -14,6 +17,10 @@ ADDRESS_2 = b'\0' * 19 + b'\x02'
 ADDR_1010 = force_bytes_to_address(b'\x10\x10')
 
 
+def is_pre_istanbul_vm(vm):
+    return not isinstance(vm, IstanbulVM)
+
+
 @pytest.fixture
 def chain(chain_without_block_validation):
     return chain_without_block_validation
@@ -23,18 +30,18 @@ def chain(chain_without_block_validation):
     'should_sign_tx', (True, False),
 )
 @pytest.mark.parametrize(
-    'data, gas_estimator, to, on_pending, expected',
+    'data, gas_estimator, to, on_pending, pre_instanbul_expected, post_constantinople_expected',
     (
-        (b'', None, ADDR_1010, True, 21000),
-        (b'', None, ADDR_1010, False, 21000),
-        (b'\xff' * 10, None, ADDR_1010, True, 21680),
-        (b'\xff' * 10, None, ADDR_1010, False, 21680),
+        (b'', None, ADDR_1010, True, 21000, 21000),
+        (b'', None, ADDR_1010, False, 21000, 21000),
+        (b'\xff' * 10, None, ADDR_1010, True, 21680, 21160),
+        (b'\xff' * 10, None, ADDR_1010, False, 21680, 21160),
         # sha3 precompile
-        (b'\xff' * 32, None, ADDRESS_2, True, 35333),
-        (b'\xff' * 32, None, ADDRESS_2, False, 35345),
-        (b'\xff' * 320, None, ADDRESS_2, True, 54840),
+        (b'\xff' * 32, None, ADDRESS_2, True, 35333, 33675),
+        (b'\xff' * 32, None, ADDRESS_2, False, 35345, 33687),
+        (b'\xff' * 320, None, ADDRESS_2, True, 54840, 38265),
         # 1000_tolerance binary search
-        (b'\xff' * 32, binary_gas_search_1000_tolerance, ADDRESS_2, True, 23935),
+        (b'\xff' * 32, binary_gas_search_1000_tolerance, ADDRESS_2, True, 23935, 22272),
     ),
     ids=[
         'simple default pending',
@@ -53,15 +60,22 @@ def test_estimate_gas(
         gas_estimator,
         to,
         on_pending,
-        expected,
+        pre_instanbul_expected,
+        post_constantinople_expected,
         funded_address,
         funded_address_private_key,
-        should_sign_tx):
+        should_sign_tx,
+):
     if gas_estimator:
         chain.gas_estimator = gas_estimator
     vm = chain.get_vm()
     amount = 100
     from_ = funded_address
+
+    if is_pre_istanbul_vm(vm):
+        expected = pre_instanbul_expected
+    else:
+        expected = post_constantinople_expected
 
     tx_params = dict(
         vm=vm,
@@ -109,6 +123,11 @@ def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_ad
         garbage_data, which doesn't add to execution time, just the gas costs
     """ * 30
     gas = 375000
+    vm = chain.get_vm()
+    if is_pre_istanbul_vm(vm):
+        expected_gas = 722760
+    else:
+        expected_gas = 186120
 
     # fill the canonical head
     fill_block(chain, from_, from_key, gas, garbage_data)
@@ -117,7 +136,7 @@ def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_ad
     # build a transaction to estimate gas for
     next_canonical_tx = mk_estimation_txn(chain, from_, from_key, data=garbage_data * 2)
 
-    assert chain.estimate_gas(next_canonical_tx) == 722760
+    assert chain.estimate_gas(next_canonical_tx) == expected_gas
 
     # fill the pending block
     fill_block(chain, from_, from_key, gas, garbage_data)
@@ -125,4 +144,4 @@ def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_ad
     # build a transaction to estimate gas for
     next_pending_tx = mk_estimation_txn(chain, from_, from_key, data=garbage_data * 2)
 
-    assert chain.estimate_gas(next_pending_tx, chain.header) == 722760
+    assert chain.estimate_gas(next_pending_tx, chain.header) == expected_gas
