@@ -10,9 +10,6 @@ from typing import (
 
 from lahja import EndpointAPI
 
-from eth_keys.datatypes import (
-    PrivateKey,
-)
 
 from libp2p.crypto.keys import KeyPair
 from libp2p.crypto.secp256k1 import create_new_key_pair, Secp256k1PrivateKey
@@ -24,8 +21,6 @@ from eth2.beacon.types.attestations import (
 from eth2.beacon.typing import (
     ValidatorIndex,
 )
-
-from p2p import ecies
 
 from trinity._utils.shutdown import (
     exit_with_services,
@@ -89,7 +84,7 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
 
         # TODO: Handle `bootstrap_nodes`.
         libp2p_node = Node(
-            privkey=key_pair,
+            key_pair=key_pair,
             listen_ip="127.0.0.1",  # FIXME: Should be configurable
             listen_port=self.boot_info.args.port,
             preferred_nodes=trinity_config.preferred_nodes,

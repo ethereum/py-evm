@@ -11,10 +11,6 @@ from cancel_token import (
     CancelToken,
 )
 
-from eth_keys import (
-    datatypes,
-)
-
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
@@ -28,6 +24,8 @@ from eth2.beacon.types.blocks import (
 from libp2p import (
     initialize_default_swarm,
 )
+from libp2p.typing import TProtocol
+
 from libp2p.crypto.keys import (
     KeyPair,
 )
@@ -60,6 +58,7 @@ from libp2p.pubsub.gossipsub import (
 )
 from libp2p.security.base_transport import BaseSecureTransport
 from libp2p.security.insecure.transport import PLAINTEXT_PROTOCOL_ID, InsecureTransport
+from libp2p.stream_muxer.abc import IMuxedConn
 from libp2p.stream_muxer.mplex.mplex import MPLEX_PROTOCOL_ID, Mplex
 
 from multiaddr import (
@@ -127,9 +126,9 @@ class Node(BaseService):
             key_pair: KeyPair,
             listen_ip: str,
             listen_port: int,
-            security_protocol_ops: Dict[str, BaseSecureTransport],
-            muxer_protocol_ops: Tuple[str, ...],
             chain: BaseBeaconChain,
+            security_protocol_ops: Dict[TProtocol, BaseSecureTransport] = None,
+            muxer_protocol_ops: Dict[TProtocol, IMuxedConn] = None,
             gossipsub_params: Optional[GossipsubParams] = None,
             cancel_token: CancelToken = None,
             bootstrap_nodes: Tuple[Multiaddr, ...] = None,
