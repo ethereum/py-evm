@@ -11,13 +11,19 @@ from eth_typing import (
 )
 
 from eth_utils import (
-    is_hex,
-    remove_0x_prefix,
     decode_hex,
+    is_hex,
+    to_int,
+    remove_0x_prefix,
     ValidationError,
 )
 
 from trinity.sync.common.checkpoint import Checkpoint
+
+from .etherscan_api import (
+    get_block_by_number,
+    get_latest_block,
+)
 
 
 def is_block_hash(value: str) -> bool:
@@ -34,7 +40,31 @@ def parse_checkpoint_uri(uri: str) -> Checkpoint:
     except ValueError as e:
         raise ValidationError(str(e))
 
-    scheme, netloc, path, query = parsed.scheme, parsed.netloc, parsed.path.lower(), parsed.query
+    path = parsed.path.lower()
+    if path.startswith('/byhash'):
+        return parse_byhash_uri(parsed)
+    elif path == '/byetherscan/latest':
+        return parse_byetherscan_uri(parsed)
+    else:
+        raise ValidationError("Not a valid checkpoint URI")
+
+
+BLOCKS_FROM_TIP = 50
+
+
+def parse_byetherscan_uri(parsed: urllib.parse.ParseResult) -> Checkpoint:
+
+    latest_block_number = get_latest_block()
+    checkpoint_block_number = latest_block_number - BLOCKS_FROM_TIP
+    checkpoint_block_response = get_block_by_number(checkpoint_block_number)
+    checkpoint_score = to_int(hexstr=checkpoint_block_response['totalDifficulty'])
+    checkpoint_hash = checkpoint_block_response['hash']
+
+    return Checkpoint(Hash32(decode_hex(checkpoint_hash)), checkpoint_score)
+
+
+def parse_byhash_uri(parsed: urllib.parse.ParseResult) -> Checkpoint:
+    scheme, netloc, query = parsed.scheme, parsed.netloc, parsed.query
 
     try:
         parsed_query = urllib.parse.parse_qsl(query)
@@ -48,10 +78,9 @@ def parse_checkpoint_uri(uri: str) -> Checkpoint:
     # allows copying out a value from e.g etherscan.
     score = remove_non_digits(query_dict.get('score', ''))
 
-    is_by_hash = path.startswith('/byhash')
     parts = PurePosixPath(parsed.path).parts
 
-    if len(parts) != 3 or scheme != 'eth' or netloc != 'block' or not is_by_hash or not score:
+    if len(parts) != 3 or scheme != 'eth' or netloc != 'block' or not score:
         raise ValidationError(
             'checkpoint string must be of the form'
             '"eth://block/byhash/<hash>?score=<score>"'

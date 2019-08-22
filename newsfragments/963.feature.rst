@@ -1,0 +1,2 @@
+Allow Trinity to automatically resolve a checkpoint through the etherscan API
+using this syntax: ``--beam-from-checkpoint="eth://block/byetherscan/latest"``

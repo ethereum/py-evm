@@ -206,7 +206,8 @@ class BeamSyncStrategy(BaseSyncStrategy):
             action=NormalizeCheckpointURI,
             help=(
                 "Start beam sync from a trusted checkpoint specified using URI syntax:"
-                "eth://block/byhash/<hash>?score=<score>"
+                "By specific block, eth://block/byhash/<hash>?score=<score>"
+                "Let etherscan pick a block near the tip, eth://block/byetherscan/latest"
             ),
             default=None,
         )
