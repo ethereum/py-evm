@@ -14,9 +14,8 @@ from eth_keys.datatypes import (
     PrivateKey,
 )
 
-from libp2p.security.insecure.transport import (
-    InsecureTransport,
-)
+from libp2p.crypto.keys import KeyPair
+from libp2p.crypto.secp256k1 import create_new_key_pair, Secp256k1PrivateKey
 
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import (
@@ -34,10 +33,6 @@ from trinity._utils.shutdown import (
 from trinity.config import BeaconAppConfig
 from trinity.db.manager import DBClient
 from trinity.extensibility import AsyncioIsolatedPlugin
-from trinity.protocol.bcc_libp2p.configs import (
-    SECURITY_PROTOCOL_ID,
-    MULTIPLEXING_PROTOCOL_ID,
-)
 from trinity.protocol.bcc_libp2p.node import Node
 
 from .slot_ticker import (
@@ -85,18 +80,18 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             chain_config.genesis_config
         )
 
+        key_pair: KeyPair
         if self.boot_info.args.beacon_nodekey:
-            privkey = PrivateKey(bytes.fromhex(self.boot_info.args.beacon_nodekey))
+            privkey = Secp256k1PrivateKey(bytes.fromhex(self.boot_info.args.beacon_nodekey))
+            key_pair = KeyPair(private_key=privkey, public_key=privkey.get_public_key())
         else:
-            privkey = ecies.generate_privkey()
+            key_pair = create_new_key_pair()
 
         # TODO: Handle `bootstrap_nodes`.
         libp2p_node = Node(
-            privkey=privkey,
+            privkey=key_pair,
             listen_ip="127.0.0.1",  # FIXME: Should be configurable
             listen_port=self.boot_info.args.port,
-            security_protocol_ops={SECURITY_PROTOCOL_ID: InsecureTransport("plaintext")},
-            muxer_protocol_ids=(MULTIPLEXING_PROTOCOL_ID,),
             preferred_nodes=trinity_config.preferred_nodes,
             chain=chain,
         )

@@ -28,6 +28,9 @@ from eth2.beacon.types.blocks import (
 from libp2p import (
     initialize_default_swarm,
 )
+from libp2p.crypto.keys import (
+    KeyPair,
+)
 from libp2p.host.basic_host import (
     BasicHost,
 )
@@ -55,9 +58,9 @@ from libp2p.pubsub.pubsub import (
 from libp2p.pubsub.gossipsub import (
     GossipSub,
 )
-from libp2p.security.secure_transport_interface import (
-    ISecureTransport,
-)
+from libp2p.security.base_transport import BaseSecureTransport
+from libp2p.security.insecure.transport import PLAINTEXT_PROTOCOL_ID, InsecureTransport
+from libp2p.stream_muxer.mplex.mplex import MPLEX_PROTOCOL_ID, Mplex
 
 from multiaddr import (
     Multiaddr,
@@ -93,7 +96,6 @@ from .messages import (
 from .utils import (
     make_rpc_v1_ssz_protocol_id,
     make_tcp_ip_maddr,
-    peer_id_from_pubkey,
     read_req,
     read_resp,
     write_req,
@@ -109,7 +111,7 @@ REQ_RESP_RECENT_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_RECENT_
 
 class Node(BaseService):
 
-    privkey: datatypes.PrivateKey
+    key_pair: KeyPair
     listen_ip: str
     listen_port: int
     host: BasicHost
@@ -122,11 +124,11 @@ class Node(BaseService):
 
     def __init__(
             self,
-            privkey: datatypes.PrivateKey,
+            key_pair: KeyPair,
             listen_ip: str,
             listen_port: int,
-            security_protocol_ops: Dict[str, ISecureTransport],
-            muxer_protocol_ids: Tuple[str, ...],
+            security_protocol_ops: Dict[str, BaseSecureTransport],
+            muxer_protocol_ops: Tuple[str, ...],
             chain: BaseBeaconChain,
             gossipsub_params: Optional[GossipsubParams] = None,
             cancel_token: CancelToken = None,
@@ -135,14 +137,20 @@ class Node(BaseService):
         super().__init__(cancel_token)
         self.listen_ip = listen_ip
         self.listen_port = listen_port
-        self.privkey = privkey
+        self.key_pair = key_pair
         self.bootstrap_nodes = bootstrap_nodes
         self.preferred_nodes = preferred_nodes
         # TODO: Add key and peer_id to the peerstore
+        if security_protocol_ops is None:
+            security_protocol_ops = {
+                PLAINTEXT_PROTOCOL_ID: InsecureTransport(key_pair)
+            }
+        if muxer_protocol_ops is None:
+            muxer_protocol_ops = {MPLEX_PROTOCOL_ID: Mplex}
         network: INetwork = initialize_default_swarm(
-            id_opt=peer_id_from_pubkey(self.privkey.public_key),
+            key_pair=key_pair,
             transport_opt=[self.listen_maddr],
-            muxer_opt=list(muxer_protocol_ids),
+            muxer_opt=muxer_protocol_ops,
             sec_opt=security_protocol_ops,
             peerstore_opt=None,  # let the function initialize it
             disc_opt=None,  # no routing required here
@@ -172,8 +180,8 @@ class Node(BaseService):
         self.handshaked_peers = set()
 
     async def _run(self) -> None:
-        self.logger.info(f"libp2p node up")
         self.run_daemon_task(self.start())
+        self.logger.info("libp2p node %s is up", self.listen_maddr)
         await self.cancellation()
 
     async def start(self) -> None:
@@ -307,12 +315,15 @@ class Node(BaseService):
         # TODO: Handle `stream.close` and `stream.reset`
         peer_id = stream.mplex_conn.peer_id
         if peer_id in self.handshaked_peers:
-            self.logger.info(f"Handshake failed: already handshaked with {peer_id} before.")
+            self.logger.info(
+                "Handshake failed: already handshaked with %s before",
+                peer_id,
+            )
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             return
 
-        self.logger.debug(f"Waiting for hello from the other side")
+        self.logger.debug("Waiting for hello from the other side")
         try:
             hello_other_side = await read_req(stream, HelloRequest)
         except ReadMessageFailure as error:
@@ -320,12 +331,12 @@ class Node(BaseService):
             # await stream.reset()
             # TODO: Disconnect
             return
-        self.logger.debug(f"Received the hello message {hello_other_side}")
+        self.logger.debug("Received the hello message %s", hello_other_side)
 
         try:
             await self._validate_hello_req(hello_other_side)
         except ValidationError:
-            self.logger.info(f"Handshake failed: hello message {hello_other_side} is invalid.")
+            self.logger.info("Handshake failed: hello message %s is invalid", hello_other_side)
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
@@ -333,18 +344,24 @@ class Node(BaseService):
 
         hello_mine = self._make_hello_packet()
 
-        self.logger.debug(f"Sending our hello message {hello_mine}")
+        self.logger.debug("Sending our hello message %s", hello_mine)
         try:
             await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
         except WriteMessageFailure as error:
-            self.logger.info(f"Handshake failed: failed to write message {hello_mine}.")
+            self.logger.info(
+                "Handshake failed: failed to write message %s",
+                hello_mine,
+            )
             # await stream.reset()
             # TODO: Disconnect
             return
 
         self.handshaked_peers.add(peer_id)
 
-        self.logger.debug(f"Handshake from {peer_id} is finished. Added to the `handshake_peers`.")
+        self.logger.debug(
+            "Handshake from %s is finished. Added to the `handshake_peers`",
+            peer_id,
+        )
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
 
         await stream.close()
@@ -353,16 +370,18 @@ class Node(BaseService):
         # TODO: Handle `stream.close` and `stream.reset`
         if peer_id in self.handshaked_peers:
             error_msg = f"already handshaked with {peer_id} before"
-            self.logger.info(f"Handshake failed: {error_msg}.")
+            self.logger.info("Handshake failed: %s", error_msg)
             raise HandshakeFailure(error_msg)
 
         hello_mine = self._make_hello_packet()
 
         self.logger.debug(
-            f"Opening new stream to peer={peer_id} with protocols={[REQ_RESP_HELLO_SSZ]}."
+            "Opening new stream to peer=%s with protocols=%s",
+            peer_id,
+            [REQ_RESP_HELLO_SSZ],
         )
         stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
-        self.logger.debug(f"Sending our hello message {hello_mine}.")
+        self.logger.debug("Sending our hello message %s", hello_mine)
         try:
             await write_req(stream, hello_mine)
         except WriteMessageFailure as error:
@@ -370,10 +389,10 @@ class Node(BaseService):
             # await stream.reset()
             # TODO: Disconnect
             error_msg = f"fail to write request={hello_mine}"
-            self.logger.info(f"Handshake failed: {error_msg}.")
+            self.logger.info("Handshake failed: %s", error_msg)
             raise HandshakeFailure(error_msg) from error
 
-        self.logger.debug(f"Waiting for hello from the other side")
+        self.logger.debug("Waiting for hello from the other side")
         try:
             resp_code, hello_other_side = await read_resp(stream, HelloRequest)
         except ReadMessageFailure as error:
@@ -381,20 +400,24 @@ class Node(BaseService):
             # await stream.reset()
             # TODO: Disconnect
             error_msg = "fail to read the response"
-            self.logger.info(f"Handshake failed: {error_msg}.")
+            self.logger.info("Handshake failed: %s", error_msg)
             raise HandshakeFailure(error_msg) from error
 
-        self.logger.debug(f"Received the hello message {hello_other_side}, resp_code={resp_code}.")
+        self.logger.debug(
+            "Received the hello message %s, resp_code=%s",
+            hello_other_side,
+            resp_code,
+        )
 
         # TODO: Handle the case when `resp_code` is not success.
         if resp_code != ResponseCode.SUCCESS:
             # TODO: Do something according to the `ResponseCode`
             # TODO: Disconnect
             error_msg = (
-                f"resp_code != ResponseCode.SUCCESS, "
-                "resp_code={resp_code}, error_msg={hello_other_side}"
+                "resp_code != ResponseCode.SUCCESS, "
+                f"resp_code={resp_code}, error_msg={hello_other_side}"
             )
-            self.logger.info(f"Handshake failed: {error_msg}")
+            self.logger.info("Handshake failed: %s", error_msg)
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
@@ -404,7 +427,11 @@ class Node(BaseService):
             await self._validate_hello_req(hello_other_side)
         except ValidationError as error:
             error_msg = f"hello message {hello_other_side} is invalid: {str(error)}"
-            self.logger.info(f"Handshake failed: {error_msg}. Disconnecting {peer_id}.")
+            self.logger.info(
+                "Handshake failed: %s. Disconnecting %s",
+                error_msg,
+                peer_id,
+            )
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
             # TODO: Disconnect
@@ -413,7 +440,8 @@ class Node(BaseService):
         self.handshaked_peers.add(peer_id)
 
         self.logger.debug(
-            f"Handshake to peer={peer_id} is finished. Added to the `handshake_peers`."
+            "Handshake to peer=%s is finished. Added to the `handshake_peers`",
+            peer_id,
         )
         # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
 

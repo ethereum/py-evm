@@ -13,7 +13,7 @@ from eth.constants import (
     ZERO_HASH32,
 )
 
-from eth2.beacon.typing import (  # noqa: F401
+from eth2.beacon.typing import (
     Version,
     default_epoch,
     default_slot,

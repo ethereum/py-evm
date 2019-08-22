@@ -3,21 +3,8 @@ from typing import (
     NamedTuple,
 )
 
+
 # Reference: https://github.com/ethereum/eth2.0-specs/blob/dev/specs/networking/p2p-interface.md
-
-#
-# Network Fundamentals
-#
-
-# FIXME: Change to
-#   Insecure: when /plaintext/2.0.0 is finalized and implemented in py-libp2p
-#   or
-#   Secure
-SECURITY_PROTOCOL_ID = "/insecure/1.0.0"
-
-MULTISELECT_PROTOCOL_ID = "/multistream/1.0.0"
-
-MULTIPLEXING_PROTOCOL_ID = "/mplex/6.7.0"
 
 
 #
