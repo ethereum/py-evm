@@ -76,10 +76,10 @@ class BCCPeer(BasePeer):
 
     _requests: BCCExchangeHandler = None
 
-    def process_receipts(self,
-                         devp2p_receipt: DevP2PReceipt,
-                         protocol_receipts: Sequence[HandshakeReceipt]) -> None:
-        super().process_receipts(devp2p_receipt, protocol_receipts)
+    def process_handshake_receipts(self,
+                                   devp2p_receipt: DevP2PReceipt,
+                                   protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+        super().process_handshake_receipts(devp2p_receipt, protocol_receipts)
         for receipt in protocol_receipts:
             if isinstance(receipt, BCCHandshakeReceipt):
                 self.head_slot = receipt.handshake_params.head_slot

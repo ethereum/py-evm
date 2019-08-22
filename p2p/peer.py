@@ -22,7 +22,7 @@ from lahja import EndpointAPI
 
 from cached_property import cached_property
 
-from eth_utils import to_tuple
+from eth_utils import to_tuple, ValidationError
 
 from eth_keys import datatypes
 
@@ -35,6 +35,7 @@ from p2p.exceptions import (
     MalformedMessage,
     PeerConnectionLost,
     UnexpectedMessage,
+    UnknownProtocol,
 )
 from p2p.handshake import (
     negotiate_protocol_handshakes,
@@ -200,6 +201,15 @@ class BasePeer(BaseService):
 
         # TODO: need to remove this property but for now it is here to support
         # backwards compat
+        for protocol_class in self.supported_sub_protocols:
+            try:
+                self.sub_proto = self.multiplexer.get_protocol_by_type(protocol_class)
+            except UnknownProtocol:
+                pass
+            else:
+                break
+        else:
+            raise ValidationError("No supported subprotocols found in multiplexer")
         self.sub_proto = self.multiplexer.get_protocols()[1]
 
         # The self-identifying string that the remote names itself.
@@ -223,11 +233,11 @@ class BasePeer(BaseService):
         self.boot_manager = self.get_boot_manager()
         self.connection_tracker = self.setup_connection_tracker()
 
-        self.process_receipts(devp2p_receipt, protocol_receipts)
+        self.process_handshake_receipts(devp2p_receipt, protocol_receipts)
 
-    def process_receipts(self,
-                         devp2p_receipt: DevP2PReceipt,
-                         protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+    def process_handshake_receipts(self,
+                                   devp2p_receipt: DevP2PReceipt,
+                                   protocol_receipts: Sequence[HandshakeReceipt]) -> None:
         """
         Hook for subclasses to initialize data based on the protocol handshake.
         """

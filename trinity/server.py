@@ -28,7 +28,6 @@ from p2p.exceptions import (
 from p2p.handshake import DevP2PHandshakeParams
 from p2p.peer import receive_handshake
 from p2p.service import BaseService
-from p2p.p2p_proto import P2PProtocol
 
 from trinity._utils.version import construct_trinity_client_identifier
 from trinity.chains.base import AsyncChainAPI
@@ -97,12 +96,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         self.preferred_nodes = preferred_nodes
         if self.preferred_nodes is None and network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
-
-        self.p2p_handshake_params = DevP2PHandshakeParams(
-            client_version_string=construct_trinity_client_identifier(),
-            listen_port=self.port,
-            version=P2PProtocol.version,
-        )
 
         # child services
         self.peer_pool = self._make_peer_pool()

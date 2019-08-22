@@ -78,10 +78,10 @@ class ETHPeer(BaseChainPeer):
 
     _requests: ETHExchangeHandler = None
 
-    def process_receipts(self,
-                         devp2p_receipt: DevP2PReceipt,
-                         protocol_receipts: Sequence[HandshakeReceipt]) -> None:
-        super().process_receipts(devp2p_receipt, protocol_receipts)
+    def process_handshake_receipts(self,
+                                   devp2p_receipt: DevP2PReceipt,
+                                   protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+        super().process_handshake_receipts(devp2p_receipt, protocol_receipts)
         for receipt in protocol_receipts:
             if isinstance(receipt, ETHHandshakeReceipt):
                 self.head_td = receipt.handshake_params.total_difficulty

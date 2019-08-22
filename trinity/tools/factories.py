@@ -21,6 +21,7 @@ from eth.constants import GENESIS_DIFFICULTY, GENESIS_BLOCK_NUMBER
 from eth.chains.mainnet import MAINNET_VM_CONFIGURATION
 
 from p2p import kademlia
+from p2p.handshake import Handshaker
 from p2p.tools.factories import PeerPairFactory
 
 from trinity.constants import MAINNET_NETWORK_ID
@@ -32,6 +33,7 @@ from trinity.protocol.eth.handshaker import ETHHandshaker
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerFactory
 from trinity.protocol.eth.proto import ETHHandshakeParams, ETHProtocol
 
+from trinity.protocol.les.handshaker import LESV1Handshaker
 from trinity.protocol.les.peer import LESPeer, LESPeerFactory
 from trinity.protocol.les.proto import LESHandshakeParams, LESProtocol, LESProtocolV2
 
@@ -193,6 +195,11 @@ class LESV1Peer(LESPeer):
 class LESV1PeerFactory(LESPeerFactory):
     peer_class = LESV1Peer
 
+    async def get_handshakers(self) -> Tuple[Handshaker, ...]:
+        return (
+            LESV1Handshaker(LESHandshakeParamsFactory(version=1)),
+        )
+
 
 def LESV1PeerPairFactory(*,
                          alice_peer_context: ChainContext = None,
@@ -205,13 +212,13 @@ def LESV1PeerPairFactory(*,
                          bob_client_version: str = 'bob',
                          cancel_token: CancelToken = None,
                          event_bus: EndpointAPI = None,
-                         ) -> AsyncContextManager[Tuple[LESPeer, LESPeer]]:
+                         ) -> AsyncContextManager[Tuple[LESV1Peer, LESV1Peer]]:
     if alice_peer_context is None:
         alice_peer_context = ChainContextFactory()
     if bob_peer_context is None:
         bob_peer_context = ChainContextFactory()
 
-    return cast(AsyncContextManager[Tuple[LESPeer, LESPeer]], PeerPairFactory(
+    return cast(AsyncContextManager[Tuple[LESV1Peer, LESV1Peer]], PeerPairFactory(
         alice_peer_context=alice_peer_context,
         alice_peer_factory_class=LESV1PeerFactory,
         bob_peer_context=bob_peer_context,
