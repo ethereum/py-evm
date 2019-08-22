@@ -14,7 +14,7 @@ from eth_keys.datatypes import (
     PrivateKey,
 )
 
-from libp2p.security.insecure_security import (
+from libp2p.security.insecure.transport import (
     InsecureTransport,
 )
 
