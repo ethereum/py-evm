@@ -1,1 +1,0 @@
-Make sure ``persist_checkpoint_header`` sets the given header as canonical head.

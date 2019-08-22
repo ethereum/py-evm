@@ -1,2 +1,0 @@
-Remove section on Trinity's goals from the Readme. It's been a leftover from when
-Py-EVM and Trinity where hosted in a single repository.

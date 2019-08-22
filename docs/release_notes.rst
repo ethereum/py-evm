@@ -3,6 +3,28 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.5 (2019-08-22)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Add EIP-1108 to Istanbul: Reduce EC precompile costs (`#1819 <https://github.com/ethereum/py-evm/issues/1819>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Make sure ``persist_checkpoint_header`` sets the given header as canonical head. (`#1830 <https://github.com/ethereum/py-evm/issues/1830>`__)
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Remove section on Trinity's goals from the Readme. It's been a leftover from when
+  Py-EVM and Trinity where hosted in a single repository. (`#1827 <https://github.com/ethereum/py-evm/issues/1827>`__)
+
+
 py-evm 0.3.0-alpha.4 (2019-08-19)
 ---------------------------------
 
