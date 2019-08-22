@@ -16,6 +16,8 @@ from eth_typing import BlockNumber
 
 from eth.abc import AtomicDatabaseAPI, VirtualMachineAPI
 
+from eth2.beacon.chains.base import BeaconChain
+
 from p2p.abc import NodeAPI
 from p2p.constants import DEFAULT_MAX_PEERS, DEVP2P_V5
 from p2p.disconnect import DisconnectReason
@@ -26,8 +28,6 @@ from p2p.exceptions import (
 from p2p.handshake import DevP2PHandshakeParams
 from p2p.peer import receive_handshake
 from p2p.service import BaseService
-
-from eth2.beacon.chains.base import BeaconChain
 
 from trinity._utils.version import construct_trinity_client_identifier
 from trinity.chains.base import AsyncChainAPI
@@ -168,7 +168,23 @@ class BaseServer(BaseService, Generic[TPeerPool]):
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         factory = self.peer_pool.get_peer_factory()
-        peer = await receive_handshake(reader, writer, factory)
+        handshakers = await factory.get_handshakers()
+        multiplexer, devp2p_receipt, protocol_receipts = await receive_handshake(
+            reader=reader,
+            writer=writer,
+            private_key=self.privkey,
+            p2p_handshake_params=self.p2p_handshake_params,
+            protocol_handshakers=handshakers,
+            token=self.cancel_token,
+        )
+
+        # Create and register peer in peer_pool
+        peer = factory.create_peer(
+            multiplexer=multiplexer,
+            devp2p_receipt=devp2p_receipt,
+            protocol_receipts=protocol_receipts,
+            inbound=True,
+        )
 
         if self.peer_pool.is_full:
             await peer.disconnect(DisconnectReason.too_many_peers)

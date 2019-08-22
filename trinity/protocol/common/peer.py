@@ -4,7 +4,6 @@ import random
 from typing import (
     Dict,
     List,
-    NamedTuple,
     Tuple,
     Type,
 )
@@ -19,9 +18,6 @@ from eth_typing import (
 )
 
 from eth_utils.toolz import groupby
-
-from eth.abc import VirtualMachineAPI
-from eth.constants import GENESIS_BLOCK_NUMBER
 
 from p2p.abc import NodeAPI
 from p2p.disconnect import DisconnectReason
@@ -43,7 +39,6 @@ from p2p.tracking.connection import (
 )
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
-from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.handlers import BaseChainExchangeHandler
 
 from trinity.plugins.builtin.network_db.connection.tracker import ConnectionTrackerClient
@@ -58,15 +53,6 @@ from .context import ChainContext
 from .events import (
     DisconnectPeerEvent,
 )
-
-
-class ChainInfo(NamedTuple):
-    block_number: BlockNumber
-    block_hash: Hash32
-    total_difficulty: int
-    genesis_hash: Hash32
-
-    network_id: int
 
 
 class BaseChainPeer(BasePeer):
@@ -88,40 +74,6 @@ class BaseChainPeer(BasePeer):
     @abstractmethod
     def max_headers_fetch(self) -> int:
         ...
-
-    @property
-    def headerdb(self) -> BaseAsyncHeaderDB:
-        return self.context.headerdb
-
-    @property
-    def local_network_id(self) -> int:
-        return self.context.network_id
-
-    @property
-    def vm_configuration(self) -> Tuple[Tuple[int, Type[VirtualMachineAPI]], ...]:
-        return self.context.vm_configuration
-
-    _local_genesis_hash: Hash32 = None
-
-    async def _get_local_genesis_hash(self) -> Hash32:
-        if self._local_genesis_hash is None:
-            self._local_genesis_hash = await self.wait(
-                self.headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
-            )
-        return self._local_genesis_hash
-
-    @property
-    async def _local_chain_info(self) -> ChainInfo:
-        head = await self.wait(self.headerdb.coro_get_canonical_head())
-        total_difficulty = await self.wait(self.headerdb.coro_get_score(head.hash))
-        genesis_hash = await self._get_local_genesis_hash()
-        return ChainInfo(
-            block_number=head.block_number,
-            block_hash=head.hash,
-            total_difficulty=total_difficulty,
-            genesis_hash=genesis_hash,
-            network_id=self.local_network_id,
-        )
 
     def setup_connection_tracker(self) -> BaseConnectionTracker:
         if self.has_event_bus:
