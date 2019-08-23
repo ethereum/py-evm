@@ -2,7 +2,7 @@ from typing import Optional
 
 from eth.abc import ChainContextAPI
 from eth.validation import (
-    validate_uint256,
+    validate_uint64,
 )
 
 
@@ -17,7 +17,9 @@ class ChainContext(ChainContextAPI):
 
         if chain_id is None:
             chain_id = 0  # Default value (invalid for public networks)
-        validate_uint256(chain_id)
+        # Due to EIP-155's definition of chain IDs, the max number is UINT256_MAX/2 - 36,
+        #   so the recommended space for chain ID is uint64.
+        validate_uint64(chain_id)
         self._chain_id = chain_id
 
     @property

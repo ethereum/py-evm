@@ -5,6 +5,7 @@ from eth_utils import (
     encode_hex,
     to_canonical_address,
     int_to_big_endian,
+    ValidationError,
 )
 from eth import (
     constants
@@ -852,9 +853,34 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
             86,
             86,
         ),
+        (
+            IstanbulVM,
+            0,
+            0,
+        ),
+        (
+            IstanbulVM,
+            -1,
+            ValidationError,
+        ),
+        (
+            IstanbulVM,
+            2 ** 64 - 1,
+            2 ** 64 - 1,
+        ),
+        (
+            IstanbulVM,
+            2 ** 64,
+            ValidationError,
+        ),
     )
 )
 def test_chainid(vm_class, chain_id, expected_result):
+    if not isinstance(expected_result, int):
+        with pytest.raises(expected_result):
+            computation = prepare_general_computation(vm_class, chain_id=chain_id)
+        return
+
     computation = prepare_general_computation(vm_class, chain_id=chain_id)
 
     computation.opcodes[opcode_values.CHAINID](computation)
