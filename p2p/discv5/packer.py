@@ -90,6 +90,9 @@ class PeerPacker(Service):
 
         self.outgoing_message_backlog: List[OutgoingMessage] = []
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{encode_hex(self.remote_node_id)[2:10]}]"
+
     async def run(self) -> None:
         async with self.incoming_packet_receive_channel, self.incoming_message_send_channel,  \
                 self.outgoing_message_receive_channel, self.outgoing_packet_send_channel:
