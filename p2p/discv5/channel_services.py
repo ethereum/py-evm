@@ -20,12 +20,18 @@ from p2p.trio_service import (
     ManagerAPI,
 )
 
+from p2p.discv5.constants import (
+    DATAGRAM_BUFFER_SIZE,
+)
+from p2p.discv5.messages import (
+    BaseMessage,
+)
 from p2p.discv5.packets import (
     decode_packet,
     Packet,
 )
-from p2p.discv5.constants import (
-    DATAGRAM_BUFFER_SIZE,
+from p2p.discv5.typing import (
+    NodeID,
 )
 
 
@@ -51,10 +57,34 @@ class IncomingPacket(NamedTuple):
     packet: Packet
     sender_endpoint: Endpoint
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.packet.__class__.__name__}]"
+
 
 class OutgoingPacket(NamedTuple):
     packet: Packet
     receiver_endpoint: Endpoint
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.packet.__class__.__name__}]"
+
+
+class IncomingMessage(NamedTuple):
+    message: BaseMessage
+    sender_endpoint: Endpoint
+    sender_node_id: NodeID
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.message.__class__.__name__}]"
+
+
+class OutgoingMessage(NamedTuple):
+    message: BaseMessage
+    receiver_endpoint: Endpoint
+    receiver_node_id: NodeID
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{self.message.__class__.__name__}]"
 
 
 #

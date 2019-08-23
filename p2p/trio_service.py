@@ -5,8 +5,6 @@ import sys
 from types import TracebackType
 from typing import Any, Callable, Awaitable, Optional, Tuple, Type, AsyncIterator
 
-from mypy_extensions import VarArg
-
 from async_generator import asynccontextmanager
 
 import trio
@@ -156,7 +154,7 @@ class ManagerAPI(ABC):
     @trio_typing.takes_callable_and_args
     @abstractmethod
     async def run_task(self,
-                       async_fn: Callable[[VarArg()], Awaitable[Any]],
+                       async_fn: Callable[..., Awaitable[Any]],
                        *args: Any,
                        daemon: bool = False,
                        name: str = None) -> None:
