@@ -19,36 +19,29 @@ def test_multiplexer_pair_factory():
 
 
 @pytest.mark.parametrize(
-    'alice_p2p_version,bob_p2p_version',
+    'alice_p2p_version,bob_p2p_version,expected_base_protocol_class',
     (
-        (DEVP2P_V4, DEVP2P_V4),
-        (DEVP2P_V4, DEVP2P_V5),
-        (DEVP2P_V5, DEVP2P_V4),
-        (DEVP2P_V5, DEVP2P_V5),
+        (DEVP2P_V4, DEVP2P_V4, P2PProtocolV4),
+        (DEVP2P_V4, DEVP2P_V5, P2PProtocolV4),
+        (DEVP2P_V5, DEVP2P_V4, P2PProtocolV4),
+        (DEVP2P_V5, DEVP2P_V5, P2PProtocol),
     ),
 )
 @pytest.mark.asyncio
 async def test_multiplexer_pair_factory_with_different_p2p_versions(
     alice_p2p_version,
     bob_p2p_version,
+    expected_base_protocol_class,
 ):
     alice_multiplexer, bob_multiplexer = MultiplexerPairFactory(
         alice_p2p_version=alice_p2p_version,
         bob_p2p_version=bob_p2p_version,
     )
-    expected_base_protocol_version = min(alice_p2p_version, bob_p2p_version)
-    if expected_base_protocol_version == DEVP2P_V4:
-        expected_base_protocol_class = P2PProtocolV4
-    elif expected_base_protocol_version == DEVP2P_V5:
-        expected_base_protocol_class = P2PProtocol
-    else:
-        raise Exception(f"unrecognized version: {expected_base_protocol_version}")
-
     alice_base_protocol = alice_multiplexer.get_base_protocol()
     bob_base_protocol = bob_multiplexer.get_base_protocol()
 
     assert type(alice_base_protocol) is expected_base_protocol_class
     assert type(bob_base_protocol) is expected_base_protocol_class
 
-    assert alice_base_protocol.version == expected_base_protocol_version
-    assert bob_base_protocol.version == expected_base_protocol_version
+    assert alice_base_protocol.version == expected_base_protocol_class.version
+    assert bob_base_protocol.version == expected_base_protocol_class.version
