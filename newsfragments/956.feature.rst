@@ -1,0 +1,1 @@
+Add ``p2p.connection.Connection`` service which actively manages the ``p2p.multiplexer.Multiplexer`` exposing an API for registering handler callbacks for individuall protocol commands or entire protocols, as well as access to general metadata about the p2p connection.

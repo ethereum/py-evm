@@ -11,17 +11,8 @@ from p2p.p2p_proto import P2PProtocol, P2PProtocolV4
 from p2p.handshake import (
     negotiate_protocol_handshakes,
     DevP2PHandshakeParams,
-    Handshaker,
-    HandshakeReceipt,
 )
-
-
-class NoopHandshaker(Handshaker):
-    def __init__(self, protocol_class):
-        self.protocol_class = protocol_class
-
-    async def do_handshake(self, multiplexer, protocol):
-        return HandshakeReceipt(protocol)
+from p2p.tools.handshake import NoopHandshaker
 
 
 @pytest.mark.asyncio

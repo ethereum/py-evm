@@ -8,7 +8,7 @@ from typing import (
 
 from eth_utils import encode_hex
 
-from p2p.abc import MultiplexerAPI
+from p2p.abc import MultiplexerAPI, ProtocolAPI
 from p2p.exceptions import (
     HandshakeFailure,
 )
@@ -16,7 +16,6 @@ from p2p.handshake import (
     HandshakeReceipt,
     Handshaker,
 )
-from p2p.protocol import Protocol
 
 from trinity.exceptions import WrongGenesisFailure, WrongNetworkFailure
 
@@ -50,7 +49,7 @@ class BaseLESHandshaker(Handshaker):
 
     async def do_handshake(self,
                            multiplexer: MultiplexerAPI,
-                           protocol: Protocol) -> LESHandshakeReceipt:
+                           protocol: ProtocolAPI) -> LESHandshakeReceipt:
         """Perform the handshake for the sub-protocol agreed with the remote peer.
 
         Raises HandshakeFailure if the handshake is not successful.
