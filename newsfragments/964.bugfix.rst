@@ -1,0 +1,1 @@
+Fix ``p2p.tools.factories.MultiplexerPairFactory`` negotiation of ``p2p`` protocol version.
