@@ -13,13 +13,18 @@ AVAILABLE_BACKENDS = (
     PyECCBackend,
 )  # type: Tuple[Type[BaseBLSBackend], ...]
 
-# If blspy not installed, use PyECC as default BLS backend
 
-DEFAULT_BACKEND = None  # type: Type[BaseBLSBackend]
+DEFAULT_BACKEND = PyECCBackend  # type: Type[BaseBLSBackend]
+
+try:
+    from .milagro import MilagroBackend
+    DEFAULT_BACKEND = MilagroBackend
+    AVAILABLE_BACKENDS += (MilagroBackend,)
+except ImportError:
+    pass
 
 try:
     from .chia import ChiaBackend
-    DEFAULT_BACKEND = ChiaBackend
     AVAILABLE_BACKENDS += (ChiaBackend,)
 except ImportError:
-    DEFAULT_BACKEND = PyECCBackend
+    pass

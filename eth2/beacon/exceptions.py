@@ -45,8 +45,22 @@ class InvalidEpochError(ValidationError):
     pass
 
 
-class SignatureError(ValidationError):
+class BLSValidationError(ValidationError):
     """
     Raised when a verification of public keys, messages, and signature fails.
+    """
+    pass
+
+
+class SignatureError(BLSValidationError):
+    """
+    Signature is ill-formed
+    """
+    pass
+
+
+class PublicKeyError(BLSValidationError):
+    """
+    Public Key is ill-formed
     """
     pass

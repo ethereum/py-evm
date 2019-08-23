@@ -16,6 +16,9 @@ from eth2.beacon.constants import (
     EMPTY_PUBKEY,
     EMPTY_SIGNATURE,
 )
+from eth_utils import (
+    ValidationError,
+)
 
 
 def assert_pubkey(obj):
@@ -26,13 +29,17 @@ def assert_signature(obj):
     assert isinstance(obj, bytes) and len(obj) == 96
 
 
+@pytest.fixture
+def domain():
+    return (123).to_bytes(8, 'big')
+
+
 @pytest.mark.parametrize(
     "backend", AVAILABLE_BACKENDS
 )
-def test_sanity(backend):
+def test_sanity(backend, domain):
     bls.use(backend)
     msg_0 = b"\x32" * 32
-    domain = 123
 
     # Test: Verify the basic sign/verify process
     privkey_0 = 5566
@@ -59,7 +66,7 @@ def test_sanity(backend):
     assert bls.verify(msg_0, aggregated_pubkey, aggregated_signature, domain)
 
     # Test: `verify_multiple`
-    msg_1 = b"x22" * 32
+    msg_1 = b"\x22" * 32
     privkey_2 = 55688
     sig_2 = bls.sign(msg_1, privkey_2, domain)
     assert_signature(sig_2)
@@ -89,9 +96,8 @@ def test_sanity(backend):
         (curve_order - 1),
     ]
 )
-def test_bls_core_succeed(backend, privkey):
+def test_bls_core_succeed(backend, privkey, domain):
     bls.use(backend)
-    domain = 0
     msg = str(privkey).encode('utf-8')
     sig = bls.sign(msg, privkey, domain=domain)
     pub = bls.privtopub(privkey)
@@ -109,9 +115,8 @@ def test_bls_core_succeed(backend, privkey):
         (curve_order + 1),
     ]
 )
-def test_invalid_private_key(backend, privkey):
+def test_invalid_private_key(backend, privkey, domain):
     bls.use(backend)
-    domain = 0
     msg = str(privkey).encode('utf-8')
     with pytest.raises(ValueError):
         bls.privtopub(privkey)
@@ -131,40 +136,40 @@ def test_empty_aggregation(backend):
 @pytest.mark.parametrize(
     "backend", AVAILABLE_BACKENDS
 )
-def test_verify_empty_signatures(backend):
+def test_verify_empty_signatures(backend, domain):
     # Want EMPTY_SIGNATURE to fail in Trinity
     bls.use(backend)
 
-    def verify():
-        return bls.verify(b'\x11' * 32, EMPTY_PUBKEY, EMPTY_SIGNATURE, 1000)
+    def validate():
+        bls.validate(b'\x11' * 32, EMPTY_PUBKEY, EMPTY_SIGNATURE, domain)
 
-    def verify_multiple_1():
-        return bls.verify_multiple(
+    def validate_multiple_1():
+        bls.validate_multiple(
             pubkeys=(),
             message_hashes=(),
             signature=EMPTY_SIGNATURE,
-            domain=1000,
+            domain=domain,
         )
 
-    def verify_multiple_2():
-        return bls.verify_multiple(
+    def validate_multiple_2():
+        bls.validate_multiple(
             pubkeys=(EMPTY_PUBKEY, EMPTY_PUBKEY),
             message_hashes=(b'\x11' * 32, b'\x12' * 32),
             signature=EMPTY_SIGNATURE,
-            domain=1000,
+            domain=domain,
         )
 
     if backend == NoOpBackend:
-        assert verify()
-        assert verify_multiple_1()
-        assert verify_multiple_2()
+        validate()
+        validate_multiple_1()
+        validate_multiple_2()
     else:
-        with pytest.raises(ValueError):
-            verify()
-        with pytest.raises(ValueError):
-            verify_multiple_1()
-        with pytest.raises(ValueError):
-            verify_multiple_2()
+        with pytest.raises(ValidationError):
+            validate()
+        with pytest.raises(ValidationError):
+            validate_multiple_1()
+        with pytest.raises(ValidationError):
+            validate_multiple_2()
 
 
 @pytest.mark.parametrize(
@@ -177,9 +182,8 @@ def test_verify_empty_signatures(backend):
         (b'\x34' * 32, [42, 666, 1274099945, 4389392949595]),
     ]
 )
-def test_signature_aggregation(backend, msg, privkeys):
+def test_signature_aggregation(backend, msg, privkeys, domain):
     bls.use(backend)
-    domain = 0
     sigs = [bls.sign(msg, k, domain=domain) for k in privkeys]
     pubs = [bls.privtopub(k) for k in privkeys]
     aggsig = bls.aggregate_signatures(sigs)
@@ -206,9 +210,8 @@ def test_signature_aggregation(backend, msg, privkeys):
         ((), (2, 3, 4, 5)),
     ]
 )
-def test_multi_aggregation(backend, msg_1, msg_2, privkeys_1, privkeys_2):
+def test_multi_aggregation(backend, msg_1, msg_2, privkeys_1, privkeys_2, domain):
     bls.use(backend)
-    domain = 0
 
     sigs_1 = [bls.sign(msg_1, k, domain=domain) for k in privkeys_1]  # signatures to msg_1
     pubs_1 = [bls.privtopub(k) for k in privkeys_1]

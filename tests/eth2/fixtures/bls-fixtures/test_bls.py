@@ -10,7 +10,7 @@ from py_ecc.bls.typing import Domain
 
 from eth2._utils.bls import bls
 from eth2._utils.bls.backends import (
-    PyECCBackend,
+    MilagroBackend,
 )
 from eth2.beacon.tools.fixtures.loading import (
     get_input_bls_privkey,
@@ -133,6 +133,6 @@ all_test_cases = get_test_cases(
     all_test_cases
 )
 def test_aggregate_pubkeys_fixture(config, test_case):
-    bls.use(PyECCBackend)
+    bls.use(MilagroBackend)
     processing_call, _, _, _ = handler_to_processing_call_map[test_case.handler]
     assert processing_call(**(test_case.input)) == test_case.output

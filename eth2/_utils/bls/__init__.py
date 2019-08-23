@@ -8,9 +8,6 @@ from eth_typing import (
     BLSSignature,
     Hash32,
 )
-from eth_utils import (
-    ValidationError,
-)
 
 from py_ecc.bls.typing import Domain
 
@@ -28,6 +25,8 @@ from .backends.base import (
 from .validation import (
     validate_private_key,
     validate_signature,
+    validate_public_key,
+    validate_many_public_keys,
 )
 
 
@@ -79,12 +78,6 @@ class Eth2BLS:
                pubkey: BLSPubkey,
                signature: BLSSignature,
                domain: Domain) -> bool:
-        if cls.backend != NoOpBackend:
-            try:
-                validate_signature(signature)
-            except ValidationError:
-                return False
-
         return cls.backend.verify(message_hash, pubkey, signature, domain)
 
     @classmethod
@@ -93,12 +86,6 @@ class Eth2BLS:
                         message_hashes: Sequence[Hash32],
                         signature: BLSSignature,
                         domain: Domain) -> bool:
-        if cls.backend != NoOpBackend:
-            try:
-                validate_signature(signature)
-            except ValidationError:
-                return False
-
         return cls.backend.verify_multiple(pubkeys, message_hashes, signature, domain)
 
     @classmethod
@@ -107,6 +94,10 @@ class Eth2BLS:
                  pubkey: BLSPubkey,
                  signature: BLSSignature,
                  domain: Domain) -> None:
+        if cls.backend != NoOpBackend:
+            validate_signature(signature)
+            validate_public_key(pubkey)
+
         if not cls.verify(message_hash, pubkey, signature, domain):
             raise SignatureError(
                 f"backend {cls.backend.__name__}\n"
@@ -122,6 +113,10 @@ class Eth2BLS:
                           message_hashes: Sequence[Hash32],
                           signature: BLSSignature,
                           domain: Domain) -> None:
+        if cls.backend != NoOpBackend:
+            validate_signature(signature)
+            validate_many_public_keys(pubkeys)
+
         if not cls.verify_multiple(pubkeys, message_hashes, signature, domain):
             raise SignatureError(
                 f"backend {cls.backend.__name__}\n"
