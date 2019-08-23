@@ -3,7 +3,7 @@
 import os
 from setuptools import setup, find_packages
 
-PYEVM_DEPENDENCY = "py-evm==0.3.0a5"  # noqa: E501
+PYEVM_DEPENDENCY = "py-evm==0.3.0a5"
 
 
 deps = {

@@ -214,7 +214,7 @@ def _chain_with_block_validation(base_db, genesis_state, chain_cls=Chain):
         "extra_data": b"B",
         "gas_limit": 3141592,
         "gas_used": 0,
-        "mix_hash": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
+        "mix_hash": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),
         "nonce": decode_hex("0102030405060708"),
         "block_number": 0,
         "parent_hash": decode_hex("0000000000000000000000000000000000000000000000000000000000000000"),  # noqa: E501

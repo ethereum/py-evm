@@ -18,11 +18,11 @@ def is_uvloop_supported() -> bool:
 
 if is_uvloop_supported():
     # Set `uvloop` as the default event loop
-    import asyncio  # noqa: E402
+    import asyncio
 
     from eth._warnings import catch_and_ignore_import_warning
     with catch_and_ignore_import_warning():
-        import uvloop  # noqa: E402
+        import uvloop
 
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
