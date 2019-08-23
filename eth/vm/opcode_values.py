@@ -59,6 +59,7 @@ EXTCODECOPY = 0x3c
 RETURNDATASIZE = 0x3d
 RETURNDATACOPY = 0x3e
 EXTCODEHASH = 0x3f
+CHAINID = 0x46  # Note: no more space in the environment info block
 
 #
 # Block Information

@@ -76,6 +76,10 @@ def calldatacopy(computation: BaseComputation) -> None:
     computation.memory_write(mem_start_position, size, padded_value)
 
 
+def chain_id(computation: BaseComputation) -> None:
+    computation.stack_push_int(computation.state.execution_context.chain_id)
+
+
 def codesize(computation: BaseComputation) -> None:
     size = len(computation.code)
     computation.stack_push_int(size)

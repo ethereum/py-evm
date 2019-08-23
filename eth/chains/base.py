@@ -90,6 +90,7 @@ from eth.validation import (
     validate_word,
     validate_vm_configuration,
 )
+from eth.vm.chain_context import ChainContext
 
 from eth._warnings import catch_and_ignore_import_warning
 with catch_and_ignore_import_warning():
@@ -227,7 +228,8 @@ class Chain(BaseChain):
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
 
         pre_genesis_header = BlockHeader(difficulty=0, block_number=-1, gas_limit=0)
-        state = genesis_vm_class.build_state(base_db, pre_genesis_header)
+        chain_context = ChainContext(cls.chain_id)
+        state = genesis_vm_class.build_state(base_db, pre_genesis_header, chain_context)
 
         if genesis_state is None:
             genesis_state = {}
@@ -274,7 +276,8 @@ class Chain(BaseChain):
         """
         header = self.ensure_header(at_header)
         vm_class = self.get_vm_class_for_block_number(header.block_number)
-        return vm_class(header=header, chaindb=self.chaindb)
+        chain_context = ChainContext(self.chain_id)
+        return vm_class(header=header, chaindb=self.chaindb, chain_context=chain_context)
 
     #
     # Header API

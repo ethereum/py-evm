@@ -5,6 +5,7 @@ from eth_utils import (
     encode_hex,
     to_canonical_address,
     int_to_big_endian,
+    ValidationError,
 )
 from eth import (
     constants
@@ -24,6 +25,7 @@ from eth._utils.padding import (
 from eth.vm import (
     opcode_values
 )
+from eth.vm.chain_context import ChainContext
 from eth.vm.forks import (
     IstanbulVM,
     PetersburgVM,
@@ -54,7 +56,9 @@ GENESIS_HEADER = BlockHeader(
 )
 
 
-def setup_computation(vm_class, create_address, code, gas=1000000):
+def setup_computation(vm_class, create_address, code, chain_id=None, gas=1000000):
+    if chain_id is None:
+        chain_id = 42
 
     message = Message(
         to=CANONICAL_ADDRESS_A,
@@ -66,12 +70,14 @@ def setup_computation(vm_class, create_address, code, gas=1000000):
         gas=gas,
     )
 
+    chain_context = ChainContext(chain_id)
+
     tx_context = vm_class._state_class.transaction_context_class(
         gas_price=1,
         origin=CANONICAL_ADDRESS_B,
     )
 
-    vm = vm_class(GENESIS_HEADER, ChainDB(AtomicDB()))
+    vm = vm_class(GENESIS_HEADER, ChainDB(AtomicDB()), chain_context)
 
     computation = vm_class._state_class.computation_class(
         state=vm.state,
@@ -82,9 +88,9 @@ def setup_computation(vm_class, create_address, code, gas=1000000):
     return computation
 
 
-def prepare_general_computation(vm_class, create_address=None, code=b''):
+def prepare_general_computation(vm_class, create_address=None, code=b'', chain_id=None):
 
-    computation = setup_computation(vm_class, create_address, code)
+    computation = setup_computation(vm_class, create_address, code, chain_id)
 
     computation.state.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
     computation.state.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
@@ -836,3 +842,48 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
         assert comp.is_success == success
     assert comp.get_gas_refund() == refund
     assert comp.get_gas_used() == gas_used
+
+
+@pytest.mark.parametrize(
+    # Testcases from https://eips.ethereum.org/EIPS/eip-1344
+    'vm_class, chain_id, expected_result',
+    (
+        (
+            IstanbulVM,
+            86,
+            86,
+        ),
+        (
+            IstanbulVM,
+            0,
+            0,
+        ),
+        (
+            IstanbulVM,
+            -1,
+            ValidationError,
+        ),
+        (
+            IstanbulVM,
+            2 ** 64 - 1,
+            2 ** 64 - 1,
+        ),
+        (
+            IstanbulVM,
+            2 ** 64,
+            ValidationError,
+        ),
+    )
+)
+def test_chainid(vm_class, chain_id, expected_result):
+    if not isinstance(expected_result, int):
+        with pytest.raises(expected_result):
+            computation = prepare_general_computation(vm_class, chain_id=chain_id)
+        return
+
+    computation = prepare_general_computation(vm_class, chain_id=chain_id)
+
+    computation.opcodes[opcode_values.CHAINID](computation)
+    result = computation.stack_pop1_any()
+
+    assert result == expected_result

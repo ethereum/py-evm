@@ -31,6 +31,7 @@ from eth.constants import (
     GAS_LIMIT_MINIMUM,
     SECPK1_N,
     UINT_256_MAX,
+    UINT_64_MAX,
 )
 
 from eth.typing import (
@@ -158,6 +159,30 @@ def validate_word(value: Hash32, title: str="Value") -> None:
         raise ValidationError(
             "{title} is not a valid word. Must be 32 bytes in length: Got: {0}".format(
                 len(value),
+                title=title,
+            )
+        )
+
+
+def validate_uint64(value: int, title: str="Value") -> None:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValidationError(
+            "{title} must be an integer: Got: {0}".format(
+                type(value),
+                title=title,
+            )
+        )
+    if value < 0:
+        raise ValidationError(
+            "{title} cannot be negative: Got: {0}".format(
+                value,
+                title=title,
+            )
+        )
+    if value > UINT_64_MAX:
+        raise ValidationError(
+            "{title} exeeds maximum UINT256 size.  Got: {0}".format(
+                value,
                 title=title,
             )
         )

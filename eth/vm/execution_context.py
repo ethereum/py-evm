@@ -18,6 +18,7 @@ class ExecutionContext:
     _difficulty = None
     _gas_limit = None
     _prev_hashes = None
+    _chain_id = None
 
     def __init__(
             self,
@@ -26,13 +27,15 @@ class ExecutionContext:
             block_number: int,
             difficulty: int,
             gas_limit: int,
-            prev_hashes: Iterable[Hash32]) -> None:
+            prev_hashes: Iterable[Hash32],
+            chain_id: int) -> None:
         self._coinbase = coinbase
         self._timestamp = timestamp
         self._block_number = block_number
         self._difficulty = difficulty
         self._gas_limit = gas_limit
         self._prev_hashes = CachedIterable(prev_hashes)
+        self._chain_id = chain_id
 
     @property
     def coinbase(self) -> Address:
@@ -57,3 +60,7 @@ class ExecutionContext:
     @property
     def prev_hashes(self) -> Iterable[Hash32]:
         return self._prev_hashes
+
+    @property
+    def chain_id(self) -> int:
+        return self._chain_id
