@@ -1,7 +1,7 @@
 import asyncio
 import collections
 import functools
-from typing import Any, Awaitable, Callable, DefaultDict, Set, Tuple, TypeVar, Type
+from typing import Any, Awaitable, Callable, DefaultDict, Set, Tuple, Type
 
 from eth_keys import keys
 
@@ -13,7 +13,6 @@ from p2p.abc import (
     ProtocolAPI,
     ConnectionAPI,
 )
-from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     UnknownProtocol,
     UnknownProtocolCommand,
@@ -29,10 +28,6 @@ from p2p.p2p_proto import (
 from p2p.typing import Capabilities, Payload
 
 
-TProtocol = TypeVar('TProtocol', bound=ProtocolAPI)
-TReceipt = TypeVar('TReceipt', bound=HandshakeReceipt)
-
-
 class HandlerSubscription(HandlerSubscriptionAPI):
     def __init__(self, remove_fn: Callable[[], Any]) -> None:
         self._remove_fn = remove_fn
@@ -42,8 +37,6 @@ class HandlerSubscription(HandlerSubscriptionAPI):
 
 
 class Connection(ConnectionAPI, BaseService):
-    disconnect_reason: DisconnectReason = None
-
     _protocol_handlers: DefaultDict[
         Type[ProtocolAPI],
         Set[Callable[[CommandAPI, Payload], Awaitable[Any]]]

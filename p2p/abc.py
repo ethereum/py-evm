@@ -23,7 +23,6 @@ from cancel_token import CancelToken
 
 from eth_keys import datatypes
 
-from p2p.disconnect import DisconnectReason
 from p2p.typing import Capability, Capabilities, Payload, Structure
 
 if TYPE_CHECKING:
@@ -333,8 +332,6 @@ class HandlerSubscriptionAPI:
 
 
 class ConnectionAPI(ABC):
-    disconnect_reason: DisconnectReason = None
-
     #
     # Primary properties of the connection
     #

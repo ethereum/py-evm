@@ -75,15 +75,14 @@ async def test_connection_properties():
 
 @pytest.mark.asyncio
 async def test_connection_safe_client_version_string():
-    long_client_version_string = 'unicornsandrainbows' * 100
+    long_client_version_string = 'unicorns\nand\nrainbows\n' * 100
     pair_factory = ConnectionPairFactory(
         bob_client_version=long_client_version_string,
     )
     async with pair_factory as (connection, _):
         assert connection.client_version_string == long_client_version_string
-        assert len(connection.safe_client_version_string) == 256
-        assert connection.safe_client_version_string.endswith('...')
-        assert long_client_version_string.startswith(connection.safe_client_version_string[:-3])
+        assert len(connection.safe_client_version_string) < len(long_client_version_string)
+        assert '...' in connection.safe_client_version_string
 
 
 class CommandA(Command):
