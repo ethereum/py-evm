@@ -28,18 +28,30 @@ async def test_hello_failure_invalid_hello_packet(
     nodes = nodes_with_chain
     await nodes[0].dial_peer_maddr(nodes[1].listen_maddr_with_peer_id)
 
-    def _make_inconsistent_hello_packet():
+    def _make_hello_packet_with_wrong_fork_version():
         return HelloRequest(
             fork_version=b"\x12\x34\x56\x78"  # version different from another node.
         )
 
-    monkeypatch.setattr(nodes[0], "_make_hello_packet", _make_inconsistent_hello_packet)
-    monkeypatch.setattr(nodes[1], "_make_hello_packet", _make_inconsistent_hello_packet)
-    # Test: Handshake fails when either side sends invalid hello packets.
+    monkeypatch.setattr(nodes[0], "_make_hello_packet", _make_hello_packet_with_wrong_fork_version)
+    # Test: Handshake fails when sending invalid hello packet.
     with pytest.raises(HandshakeFailure):
         await nodes[0].say_hello(nodes[1].peer_id)
     await asyncio.sleep(0.01)
     assert nodes[0].peer_id not in nodes[1].handshaked_peers
+    assert nodes[1].peer_id not in nodes[0].handshaked_peers
+
+    def _make_hello_packet_with_wrong_checkpoint():
+        return HelloRequest(
+            finalized_root=b"\x78" * 32,  # finalized root different from another node.
+        )
+    monkeypatch.setattr(nodes[0], "_make_hello_packet", _make_hello_packet_with_wrong_checkpoint)
+    # Test: Handshake fails when sending invalid hello packet.
+    with pytest.raises(HandshakeFailure):
+        await nodes[0].say_hello(nodes[1].peer_id)
+    await asyncio.sleep(0.01)
+    assert nodes[0].peer_id not in nodes[1].handshaked_peers
+    assert nodes[1].peer_id not in nodes[0].handshaked_peers
 
 
 @pytest.mark.parametrize("num_nodes", (2,))

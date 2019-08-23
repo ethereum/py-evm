@@ -11,6 +11,11 @@ from cancel_token import (
     CancelToken,
 )
 
+from eth.constants import ZERO_HASH32
+
+from eth2.beacon.helpers import (
+    get_block_root,
+)
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
@@ -278,15 +283,39 @@ class Node(BaseService):
     #   - Disconnect peers when they fail to join in a certain amount of time.
 
     async def _validate_hello_req(self, hello_other_side: HelloRequest) -> None:
-        state = self.chain.get_state_machine().state
+        state_machine = self.chain.get_state_machine()
+        state = state_machine.state
+        config = state_machine.config
         if hello_other_side.fork_version != state.fork.current_version:
             raise ValidationError(
                 "`fork_version` mismatches: "
                 f"hello_other_side.fork_version={hello_other_side.fork_version}, "
                 f"state.fork.current_version={state.fork.current_version}"
             )
-        # TODO: Reject if the (finalized_root, finalized_epoch) shared by the peer
-        #   is not in the client's chain at the expected epoch.
+
+        # Can not validate the checkpoint with `finalized_epoch` higher than ours
+        if hello_other_side.finalized_epoch > state.finalized_checkpoint.epoch:
+            return
+
+        # Get the finalized root at `hello_other_side.finalized_epoch`
+        # FIXME: This check is added here because `get_block_root` would fail when
+        # `state.slot == 0`.
+        if hello_other_side.finalized_epoch == 0 and state.slot == 0:
+            finalized_root = ZERO_HASH32
+        else:
+            finalized_root = get_block_root(
+                state,
+                hello_other_side.finalized_epoch,
+                config.SLOTS_PER_EPOCH,
+                config.SLOTS_PER_HISTORICAL_ROOT,
+            )
+        if hello_other_side.finalized_root != finalized_root:
+            raise ValidationError(
+                "`finalized_root` mismatches: "
+                f"hello_other_side.finalized_root={hello_other_side.finalized_root}, "
+                f"hello_other_side.finalized_epoch={hello_other_side.finalized_epoch}, "
+                f"our `finalized_root` at the same `finalized_epoch`={finalized_root}"
+            )
 
     async def _request_beacon_blocks(self) -> None:
         """
@@ -328,17 +357,21 @@ class Node(BaseService):
         except ReadMessageFailure as error:
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
-            # TODO: Disconnect
+            # TODO: send `Goodbye` req then disconnect
             return
         self.logger.debug("Received the hello message %s", hello_other_side)
 
         try:
             await self._validate_hello_req(hello_other_side)
-        except ValidationError:
-            self.logger.info("Handshake failed: hello message %s is invalid", hello_other_side)
+        except ValidationError as error:
+            self.logger.info(
+                "Handshake failed: hello message %s is invalid: %s",
+                hello_other_side,
+                str(error)
+            )
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
-            # TODO: Disconnect
+            # TODO: send `Goodbye` req then disconnect
             return
 
         hello_mine = self._make_hello_packet()
@@ -361,7 +394,19 @@ class Node(BaseService):
             "Handshake from %s is finished. Added to the `handshake_peers`",
             peer_id,
         )
-        # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
+
+        # Check if we are behind the peer
+        checkpoint = self.chain.get_state_machine().state.finalized_checkpoint
+        head_block = self.chain.get_canonical_head()
+        peer_has_higher_finalized_epoch = hello_other_side.finalized_epoch > checkpoint.epoch
+        peer_has_equal_finalized_epoch = hello_other_side.finalized_epoch == checkpoint.epoch
+        peer_has_higher_head_slot = hello_other_side.head_slot > head_block.slot
+        if (
+            peer_has_higher_finalized_epoch or
+            (peer_has_equal_finalized_epoch and peer_has_higher_head_slot)
+        ):
+            # TODO: kickoff syncing process with this peer
+            pass
 
         await stream.close()
 
@@ -442,6 +487,18 @@ class Node(BaseService):
             "Handshake to peer=%s is finished. Added to the `handshake_peers`",
             peer_id,
         )
-        # TODO: If we have lower `finalized_epoch` or `head_slot`, request the later beacon blocks.
+
+        # Check if we are behind the peer
+        checkpoint = self.chain.get_state_machine().state.finalized_checkpoint
+        head_block = self.chain.get_canonical_head()
+        peer_has_higher_finalized_epoch = hello_other_side.finalized_epoch > checkpoint.epoch
+        peer_has_equal_finalized_epoch = hello_other_side.finalized_epoch == checkpoint.epoch
+        peer_has_higher_head_slot = hello_other_side.head_slot > head_block.slot
+        if (
+            peer_has_higher_finalized_epoch or
+            (peer_has_equal_finalized_epoch and peer_has_higher_head_slot)
+        ):
+            # TODO: kickoff syncing process with this peer
+            pass
 
         await stream.close()
