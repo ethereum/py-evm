@@ -1,7 +1,6 @@
 import trio
 from socket import (
     inet_aton,
-    inet_ntoa,
 )
 
 import pytest
