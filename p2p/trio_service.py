@@ -167,6 +167,19 @@ class ManagerAPI(ABC):
         """
         ...
 
+    @trio_typing.takes_callable_and_args
+    @abstractmethod
+    async def run_daemon_task(self,
+                              async_fn: Callable[..., Awaitable[Any]],
+                              *args: Any,
+                              name: str = None) -> None:
+        """
+        Run a daemon task in the background.
+
+        Equivalent to `run_task(..., daemon=True)`.
+        """
+        ...
+
 
 LogicFnType = Callable[..., Awaitable[Any]]
 
@@ -413,6 +426,13 @@ class Manager(ManagerAPI):
             *args,
             name=name,
         )
+
+    def run_daemon_task(self,
+                        async_fn: Callable[..., Awaitable[Any]],
+                        *args: Any,
+                        name: str = None) -> None:
+
+        self.run_task(async_fn, *args, daemon=True, name=name)
 
 
 @asynccontextmanager

@@ -104,8 +104,8 @@ class PeerPacker(Service):
     async def run(self) -> None:
         async with self.incoming_packet_receive_channel, self.incoming_message_send_channel,  \
                 self.outgoing_message_receive_channel, self.outgoing_packet_send_channel:
-            self.manager.run_task(self.handle_incoming_packets, daemon=True)
-            self.manager.run_task(self.handle_outgoing_messages, daemon=True)
+            self.manager.run_daemon_task(self.handle_incoming_packets)
+            self.manager.run_daemon_task(self.handle_outgoing_messages)
             await self.manager.wait_stopped()
 
     async def handle_incoming_packets(self) -> None:
@@ -479,8 +479,8 @@ class Packer(Service):
         self.managed_peer_packers: Dict[NodeID, ManagedPeerPacker] = {}
 
     async def run(self) -> None:
-        self.manager.run_task(self.handle_incoming_packets, daemon=True)
-        self.manager.run_task(self.handle_outgoing_messages, daemon=True)
+        self.manager.run_daemon_task(self.handle_incoming_packets)
+        self.manager.run_daemon_task(self.handle_outgoing_messages)
         await self.manager.wait_stopped()
 
     async def handle_incoming_packets(self) -> None:
