@@ -15,6 +15,8 @@ from eth_typing import (
     Hash32,
 )
 
+from eth_utils import ValidationError
+
 from eth.constants import ZERO_HASH32
 from eth.exceptions import (
     BlockNotFound,
@@ -102,13 +104,14 @@ from .exceptions import (
     HandshakeFailure,
     ReadMessageFailure,
     RequestFailure,
-    ValidationError,
     WriteMessageFailure,
 )
 from .messages import (
     HelloRequest,
     BeaconBlocksRequest,
     BeaconBlocksResponse,
+    RecentBeaconBlocksRequest,
+    RecentBeaconBlocksResponse,
 )
 from .utils import (
     make_rpc_v1_ssz_protocol_id,
@@ -280,6 +283,10 @@ class Node(BaseService):
     def _register_rpc_handlers(self) -> None:
         self.host.set_stream_handler(REQ_RESP_HELLO_SSZ, self._handle_hello)
         self.host.set_stream_handler(REQ_RESP_BEACON_BLOCKS_SSZ, self._handle_beacon_blocks)
+        self.host.set_stream_handler(
+            REQ_RESP_RECENT_BEACON_BLOCKS_SSZ,
+            self._handle_recent_beacon_blocks,
+        )
 
     #
     # RPC Handlers
@@ -535,7 +542,6 @@ class Node(BaseService):
         except ReadMessageFailure as error:
             # FIXME: Use `Stream.reset()` when `NetStream` has this API.
             # await stream.reset()
-            # TODO: send `Goodbye` req then disconnect
             return
         self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
 
@@ -716,3 +722,120 @@ class Node(BaseService):
         asyncio.ensure_future(stream.close())
 
         return beacon_blocks_response.blocks
+
+    async def _handle_recent_beacon_blocks(self, stream: INetStream) -> None:
+        # TODO: Handle `stream.close` and `stream.reset`
+        peer_id = stream.mplex_conn.peer_id
+        if peer_id not in self.handshaked_peers:
+            self.logger.info(
+                "Processing recent beacon blocks request failed: not handshaked with peer=%s yet",
+                peer_id,
+            )
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            return
+
+        self.logger.debug("Waiting for recent beacon blocks request from the other side")
+        try:
+            recent_beacon_blocks_request = await read_req(stream, RecentBeaconBlocksRequest)
+        except ReadMessageFailure as error:
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            return
+        self.logger.debug(
+            "Received the recent beacon blocks request message %s",
+            recent_beacon_blocks_request,
+        )
+
+        recent_beacon_blocks = []
+        for block_root in recent_beacon_blocks_request.block_roots:
+            try:
+                block = self.chain.get_block_by_root(block_root)
+            except (BlockNotFound, ValidationError) as error:
+                pass
+            else:
+                recent_beacon_blocks.append(block)
+
+        recent_beacon_blocks_response = RecentBeaconBlocksResponse(blocks=recent_beacon_blocks)
+        self.logger.debug("Sending recent beacon blocks response %s", recent_beacon_blocks_response)
+        try:
+            await write_resp(stream, recent_beacon_blocks_response, ResponseCode.SUCCESS)
+        except WriteMessageFailure as error:
+            self.logger.info(
+                "Processing recent beacon blocks request failed: failed to write message %s",
+                recent_beacon_blocks_response,
+            )
+            # await stream.reset()
+            # TODO: Disconnect
+            return
+
+        self.logger.debug(
+            "Processing recent beacon blocks request from %s is finished",
+            peer_id,
+        )
+
+    def _make_recent_beacon_blocks_packet(
+            self,
+            block_roots: Sequence[Hash32]) -> RecentBeaconBlocksRequest:
+        return RecentBeaconBlocksRequest(block_roots=block_roots)
+
+    async def request_recent_beacon_blocks(
+            self,
+            peer_id: ID,
+            block_roots: Sequence[Hash32]) -> Tuple[BaseBeaconBlock, ...]:
+        # TODO: Handle `stream.close` and `stream.reset`
+        if peer_id not in self.handshaked_peers:
+            error_msg = f"not handshaked with peer={peer_id} yet"
+            self.logger.info("Request recent beacon block failed: %s", error_msg)
+            raise RequestFailure(error_msg)
+
+        recent_beacon_blocks_request = self._make_recent_beacon_blocks_packet(block_roots)
+
+        self.logger.debug(
+            "Opening new stream to peer=%s with protocols=%s",
+            peer_id,
+            [REQ_RESP_RECENT_BEACON_BLOCKS_SSZ],
+        )
+        stream = await self.host.new_stream(peer_id, [REQ_RESP_RECENT_BEACON_BLOCKS_SSZ])
+        self.logger.debug("Sending recent beacon blocks request %s", recent_beacon_blocks_request)
+        try:
+            await write_req(stream, recent_beacon_blocks_request)
+        except WriteMessageFailure as error:
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            error_msg = f"fail to write request={recent_beacon_blocks_request}"
+            self.logger.info("Request recent beacon blocks failed: %s", error_msg)
+            raise RequestFailure(error_msg) from error
+
+        self.logger.debug("Waiting for recent beacon blocks response")
+        try:
+            resp_code, recent_beacon_blocks_response = await read_resp(
+                stream,
+                RecentBeaconBlocksResponse,
+            )
+        except ReadMessageFailure as error:
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            error_msg = "fail to read the response"
+            self.logger.info("Request recent beacon blocks failed: %s", error_msg)
+            raise RequestFailure(error_msg) from error
+
+        self.logger.debug(
+            "Received recent beacon blocks response %s, resp_code=%s",
+            recent_beacon_blocks_response,
+            resp_code,
+        )
+
+        if resp_code != ResponseCode.SUCCESS:
+            error_msg = (
+                "resp_code != ResponseCode.SUCCESS, "
+                f"resp_code={resp_code}, error_msg={recent_beacon_blocks_response}"
+            )
+            self.logger.info("Request recent beacon blocks failed: %s", error_msg)
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            raise RequestFailure(error_msg)
+
+        asyncio.ensure_future(stream.close())
+
+        return recent_beacon_blocks_response.blocks
