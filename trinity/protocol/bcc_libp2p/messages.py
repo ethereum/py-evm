@@ -1,3 +1,7 @@
+from typing import (
+    Sequence,
+)
+
 import ssz
 from ssz.sedes import (
     List,
@@ -86,16 +90,23 @@ class BeaconBlocksResponse(ssz.Serializable):
         ('blocks', List(BeaconBlock, 1)),
     ]
 
-    def __init__(self, blocks: int) -> None:
+    def __init__(self, blocks: Sequence[BeaconBlock]) -> None:
         super().__init__(blocks)
 
 
-# # TODO: RecentBeaconBlocksRequest
-# (
-#   block_roots: []HashTreeRoot
-# )
+class RecentBeaconBlocksRequest(ssz.Serializable):
+    fields = [
+        ('block_roots', List(bytes32, 1)),
+    ]
 
-# # RecentBeaconBlocksResponse
-# (
-#   blocks: []BeaconBlock
-# )
+    def __init__(self, block_roots: Sequence[Hash32]) -> None:
+        super().__init__(block_roots)
+
+
+class RecentBeaconBlocksResponse(ssz.Serializable):
+    fields = [
+        ('blocks', List(BeaconBlock, 1)),
+    ]
+
+    def __init__(self, blocks: Sequence[BeaconBlock]) -> None:
+        super().__init__(blocks)
