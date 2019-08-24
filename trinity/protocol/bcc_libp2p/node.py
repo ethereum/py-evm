@@ -619,9 +619,6 @@ class Node(BaseService):
                             slot_of_requested_blocks.pop()
                         if block.slot == slot_of_requested_blocks[-1]:
                             requested_beacon_blocks.append(block)
-                        #     slot_of_requested_blocks.pop()
-                        # elif block.slot < slot_of_requested_blocks[-1]:
-                        #     slot_of_requested_blocks.pop()
 
         # TODO: Should it be a successful response if peer is requesting
         # blocks on a fork we don't have data for?
@@ -642,3 +639,80 @@ class Node(BaseService):
             "Processing beacon blocks request from %s is finished",
             peer_id,
         )
+
+    def _make_beacon_blocks_packet(self,
+                                   head_block_root: Hash32,
+                                   start_slot: Slot,
+                                   count: int,
+                                   step: int) -> BeaconBlocksRequest:
+        return BeaconBlocksRequest(
+            head_block_root=head_block_root,
+            start_slot=start_slot,
+            count=count,
+            step=step,
+        )
+
+    async def request_beacon_blocks(self,
+                                    peer_id: ID,
+                                    head_block_root: Hash32,
+                                    start_slot: Slot,
+                                    count: int,
+                                    step: int) -> Tuple[BaseBeaconBlock, ...]:
+        # TODO: Handle `stream.close` and `stream.reset`
+        if peer_id not in self.handshaked_peers:
+            error_msg = f"not handshaked with peer={peer_id} yet"
+            self.logger.info("Request beacon block failed: %s", error_msg)
+            raise RequestFailure(error_msg)
+
+        beacon_blocks_request = self._make_beacon_blocks_packet(
+            head_block_root,
+            start_slot,
+            count,
+            step,
+        )
+
+        self.logger.debug(
+            "Opening new stream to peer=%s with protocols=%s",
+            peer_id,
+            [REQ_RESP_BEACON_BLOCKS_SSZ],
+        )
+        stream = await self.host.new_stream(peer_id, [REQ_RESP_BEACON_BLOCKS_SSZ])
+        self.logger.debug("Sending beacon blocks request %s", beacon_blocks_request)
+        try:
+            await write_req(stream, beacon_blocks_request)
+        except WriteMessageFailure as error:
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            error_msg = f"fail to write request={beacon_blocks_request}"
+            self.logger.info("Request beacon blocks failed: %s", error_msg)
+            raise RequestFailure(error_msg) from error
+
+        self.logger.debug("Waiting for beacon blocks response")
+        try:
+            resp_code, beacon_blocks_response = await read_resp(stream, BeaconBlocksResponse)
+        except ReadMessageFailure as error:
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            error_msg = "fail to read the response"
+            self.logger.info("Request beacon blocks failed: %s", error_msg)
+            raise RequestFailure(error_msg) from error
+
+        self.logger.debug(
+            "Received beacon blocks response %s, resp_code=%s",
+            beacon_blocks_response,
+            resp_code,
+        )
+
+        if resp_code != ResponseCode.SUCCESS:
+            error_msg = (
+                "resp_code != ResponseCode.SUCCESS, "
+                f"resp_code={resp_code}, error_msg={beacon_blocks_response}"
+            )
+            self.logger.info("Request beacon blocks failed: %s", error_msg)
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            raise RequestFailure(error_msg)
+
+        asyncio.ensure_future(stream.close())
+
+        return beacon_blocks_response.blocks
