@@ -11,7 +11,14 @@ from cancel_token import (
     CancelToken,
 )
 
+from eth_typing import (
+    Hash32,
+)
+
 from eth.constants import ZERO_HASH32
+from eth.exceptions import (
+    BlockNotFound,
+)
 
 from eth2.beacon.helpers import (
     get_block_root,
@@ -24,6 +31,9 @@ from eth2.beacon.types.attestations import (
 )
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
+)
+from eth2.beacon.typing import (
+    Slot,
 )
 
 from libp2p import (
@@ -91,11 +101,14 @@ from .configs import (
 from .exceptions import (
     HandshakeFailure,
     ReadMessageFailure,
+    RequestFailure,
     ValidationError,
     WriteMessageFailure,
 )
 from .messages import (
     HelloRequest,
+    BeaconBlocksRequest,
+    BeaconBlocksResponse,
 )
 from .utils import (
     make_rpc_v1_ssz_protocol_id,
@@ -266,6 +279,7 @@ class Node(BaseService):
 
     def _register_rpc_handlers(self) -> None:
         self.host.set_stream_handler(REQ_RESP_HELLO_SSZ, self._handle_hello)
+        self.host.set_stream_handler(REQ_RESP_BEACON_BLOCKS_SSZ, self._handle_beacon_blocks)
 
     #
     # RPC Handlers
@@ -502,3 +516,129 @@ class Node(BaseService):
             pass
 
         await stream.close()
+
+    async def _handle_beacon_blocks(self, stream: INetStream) -> None:
+        # TODO: Handle `stream.close` and `stream.reset`
+        peer_id = stream.mplex_conn.peer_id
+        if peer_id not in self.handshaked_peers:
+            self.logger.info(
+                "Processing beacon blocks request failed: not handshaked with peer=%s yet",
+                peer_id,
+            )
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            return
+
+        self.logger.debug("Waiting for beacon blocks request from the other side")
+        try:
+            beacon_blocks_request = await read_req(stream, BeaconBlocksRequest)
+        except ReadMessageFailure as error:
+            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
+            # await stream.reset()
+            # TODO: send `Goodbye` req then disconnect
+            return
+        self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
+
+        # TODO: Validate `start_slot`(>0)?
+
+        requested_beacon_blocks = []
+        head_block_not_found = False
+        try:
+            peer_head_block = self.chain.get_block_by_root(beacon_blocks_request.head_block_root)
+        except BlockNotFound:
+            head_block_not_found = True
+        else:
+            if peer_head_block.slot < beacon_blocks_request.start_slot:
+                reason = (
+                    f"Invalid request: head block slot({peer_head_block.slot})"
+                    f" lower than `start_slot`({beacon_blocks_request.start_slot})"
+                )
+                try:
+                    await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
+                except WriteMessageFailure as error:
+                    self.logger.info(
+                        "Processing beacon blocks request failed: failed to write message %s",
+                        reason,
+                    )
+                    # await stream.reset()
+                    # TODO: Disconnect
+                    return
+
+        not_on_canonical_chain = False
+        # If we have the peer's head block in our database,
+        # check if the head block is on our canonical chain.
+        if not head_block_not_found:
+            try:
+                canonical_block_at_slot = self.chain.get_canonical_block_by_slot(
+                    peer_head_block.slot
+                )
+            except BlockNotFound:
+                # Peer's head block is not on our canonical chain
+                not_on_canonical_chain = True
+            else:
+                if canonical_block_at_slot != peer_head_block:
+                    # Peer's head block is not on our canonical chain
+                    not_on_canonical_chain = True
+
+        if not head_block_not_found:
+            slot_of_requested_blocks = [
+                beacon_blocks_request.start_slot + i * beacon_blocks_request.step
+                for i in range(beacon_blocks_request.count)
+            ]
+            slot_of_requested_blocks = list(filter(
+                lambda slot: slot <= peer_head_block.slot,
+                slot_of_requested_blocks,
+            ))
+            # If peer's head block is on our canonical chain,
+            # start getting the requested blocks by slots.
+            if not not_on_canonical_chain:
+                for slot in slot_of_requested_blocks:
+                    try:
+                        block = self.chain.get_canonical_block_by_slot(slot)
+                    except BlockNotFound:
+                        pass
+                    else:
+                        requested_beacon_blocks.append(block)
+            # If peer's head block is on a fork chain,
+            # start getting the requested blocks by
+            # traversing the history from the head.
+            else:
+                block = peer_head_block
+                if block.slot == slot_of_requested_blocks[-1]:
+                    requested_beacon_blocks.append(block)
+                    slot_of_requested_blocks.pop()
+                while block.slot > beacon_blocks_request.start_slot:
+                    try:
+                        block = self.chain.get_block_by_root(block.parent_root)
+                    except BlockNotFound:
+                        # This should not happen as we only persist block if its
+                        # ancestors are also in the database.
+                        break
+                    else:
+                        while block.slot < slot_of_requested_blocks[-1]:
+                            slot_of_requested_blocks.pop()
+                        if block.slot == slot_of_requested_blocks[-1]:
+                            requested_beacon_blocks.append(block)
+                        #     slot_of_requested_blocks.pop()
+                        # elif block.slot < slot_of_requested_blocks[-1]:
+                        #     slot_of_requested_blocks.pop()
+
+        # TODO: Should it be a successful response if peer is requesting
+        # blocks on a fork we don't have data for?
+        beacon_blocks_response = BeaconBlocksResponse(blocks=requested_beacon_blocks)
+        self.logger.debug("Sending beacon blocks response %s", )
+        try:
+            await write_resp(stream, beacon_blocks_response, ResponseCode.SUCCESS)
+        except WriteMessageFailure as error:
+            self.logger.info(
+                "Processing beacon blocks request failed: failed to write message %s",
+                beacon_blocks_response,
+            )
+            # await stream.reset()
+            # TODO: Disconnect
+            return
+
+        self.logger.debug(
+            "Processing beacon blocks request from %s is finished",
+            peer_id,
+        )
