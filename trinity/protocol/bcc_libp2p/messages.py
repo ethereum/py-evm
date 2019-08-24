@@ -1,5 +1,6 @@
 import ssz
 from ssz.sedes import (
+    List,
     bytes4,
     bytes32,
     uint64,
@@ -19,6 +20,7 @@ from eth2.beacon.typing import (
     default_slot,
     default_version,
 )
+from eth2.beacon.types.blocks import BeaconBlock
 
 
 class HelloRequest(ssz.Serializable):
@@ -79,10 +81,13 @@ class BeaconBlocksRequest(ssz.Serializable):
         )
 
 
-# # TODO: BeaconBlocksResponse
-# (
-#   blocks: []BeaconBlock
-# )
+class BeaconBlocksResponse(ssz.Serializable):
+    fields = [
+        ('blocks', List(BeaconBlock, 1)),
+    ]
+
+    def __init__(self, blocks: int) -> None:
+        super().__init__(blocks)
 
 
 # # TODO: RecentBeaconBlocksRequest

@@ -16,3 +16,7 @@ class WriteMessageFailure(BaseLibp2pError):
 
 class ValidationError(BaseLibp2pError):
     pass
+
+
+class RequestFailure(BaseLibp2pError):
+    pass
