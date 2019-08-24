@@ -151,6 +151,7 @@ class Eth(Eth1ChainRPCModule):
         num = self.chain.get_canonical_head().block_number
         return hex(num)
 
+    @retryable
     @format_params(identity, to_int_if_hex)
     async def call(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
         header = await get_header(self.chain, at_block)
@@ -164,6 +165,7 @@ class Eth(Eth1ChainRPCModule):
         coinbase_address = ZERO_ADDRESS
         return encode_hex(coinbase_address)
 
+    @retryable
     @format_params(identity, to_int_if_hex)
     async def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
         header = await get_header(self.chain, at_block)
