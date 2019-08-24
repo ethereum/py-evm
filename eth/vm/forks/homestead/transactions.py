@@ -1,8 +1,12 @@
+from functools import partial
+
 import rlp
 
 from eth_keys.datatypes import PrivateKey
 
 from eth_typing import Address
+
+from eth.constants import GAS_TXCREATE
 
 from eth.validation import (
     validate_lt_secpk1n2,
@@ -11,12 +15,20 @@ from eth.validation import (
 from eth.vm.forks.frontier.transactions import (
     FrontierTransaction,
     FrontierUnsignedTransaction,
+    FRONTIER_TX_GAS_SCHEDULE,
 )
 
 from eth._utils.transactions import (
     create_transaction_signature,
-    get_intrinsic_gas
+    calculate_intrinsic_gas,
 )
+
+HOMESTEAD_TX_GAS_SCHEDULE = FRONTIER_TX_GAS_SCHEDULE._replace(
+    gas_txcreate=GAS_TXCREATE,
+)
+
+
+get_intrinsic_gas = partial(calculate_intrinsic_gas, HOMESTEAD_TX_GAS_SCHEDULE)
 
 
 class HomesteadTransaction(FrontierTransaction):

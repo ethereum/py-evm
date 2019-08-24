@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 import rlp
 
 from eth_keys import keys
@@ -12,10 +14,6 @@ from eth_utils import (
 )
 
 from eth.constants import (
-    GAS_TX,
-    GAS_TXCREATE,
-    GAS_TXDATAZERO,
-    GAS_TXDATANONZERO,
     CREATE_CONTRACT_ADDRESS,
 )
 from eth.typing import (
@@ -120,19 +118,26 @@ def extract_transaction_sender(transaction: BaseTransaction) -> Address:
     return Address(sender)
 
 
-def get_intrinsic_gas(
+class IntrinsicGasSchedule(NamedTuple):
+    gas_tx: int
+    gas_txcreate: int
+    gas_txdatazero: int
+    gas_txdatanonzero: int
+
+
+def calculate_intrinsic_gas(
+        gas_schedule: IntrinsicGasSchedule,
         transaction: BaseTransaction,
-        gas_txdatazero: int=GAS_TXDATAZERO,
-        gas_txdatanonzero: int=GAS_TXDATANONZERO) -> int:
+) -> int:
     num_zero_bytes = transaction.data.count(b'\x00')
     num_non_zero_bytes = len(transaction.data) - num_zero_bytes
     if transaction.to == CREATE_CONTRACT_ADDRESS:
-        create_cost = GAS_TXCREATE
+        create_cost = gas_schedule.gas_txcreate
     else:
         create_cost = 0
     return (
-        GAS_TX +
-        num_zero_bytes * gas_txdatazero +
-        num_non_zero_bytes * gas_txdatanonzero +
+        gas_schedule.gas_tx +
+        num_zero_bytes * gas_schedule.gas_txdatazero +
+        num_non_zero_bytes * gas_schedule.gas_txdatanonzero +
         create_cost
     )
