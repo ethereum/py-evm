@@ -1,7 +1,10 @@
 import logging
 from typing import (
+    Dict,
     List,
+    NamedTuple,
     Optional,
+    Tuple,
 )
 
 from eth_utils import (
@@ -15,7 +18,11 @@ from trio.abc import (
     SendChannel,
 )
 
-from p2p.trio_service import Service
+from p2p.trio_service import (
+    LifecycleError,
+    Service,
+    Manager,
+)
 
 from p2p.discv5.abc import (
     EnrDbApi,
@@ -45,6 +52,7 @@ from p2p.discv5.packets import (
 )
 from p2p.discv5.tags import (
     compute_tag,
+    recover_source_id_from_tag,
 )
 from p2p.discv5.typing import (
     NodeID,
@@ -90,11 +98,14 @@ class PeerPacker(Service):
 
         self.outgoing_message_backlog: List[OutgoingMessage] = []
 
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}[{encode_hex(self.remote_node_id)[2:10]}]"
+
     async def run(self) -> None:
         async with self.incoming_packet_receive_channel, self.incoming_message_send_channel,  \
                 self.outgoing_message_receive_channel, self.outgoing_packet_send_channel:
-            self.manager.run_task(self.handle_incoming_packets, daemon=True)
-            self.manager.run_task(self.handle_outgoing_messages, daemon=True)
+            self.manager.run_daemon_task(self.handle_incoming_packets)
+            self.manager.run_daemon_task(self.handle_outgoing_messages)
             await self.manager.wait_stopped()
 
     async def handle_incoming_packets(self) -> None:
@@ -432,3 +443,185 @@ class PeerPacker(Service):
             receiver_endpoint,
         )
         await self.outgoing_packet_send_channel.send(outgoing_packet)
+
+
+class ManagedPeerPacker(NamedTuple):
+    peer_packer: PeerPacker
+    manager: Manager
+    incoming_packet_send_channel: SendChannel[IncomingPacket]
+    outgoing_message_send_channel: SendChannel[OutgoingMessage]
+
+
+class Packer(Service):
+
+    def __init__(self,
+                 local_private_key: bytes,
+                 local_node_id: NodeID,
+                 enr_db: EnrDbApi,
+                 message_type_registry: MessageTypeRegistry,
+                 incoming_packet_receive_channel: ReceiveChannel[IncomingPacket],
+                 incoming_message_send_channel: SendChannel[IncomingMessage],
+                 outgoing_message_receive_channel: ReceiveChannel[OutgoingMessage],
+                 outgoing_packet_send_channel: SendChannel[OutgoingPacket],
+                 ) -> None:
+        self.local_private_key = local_private_key
+        self.local_node_id = local_node_id
+        self.enr_db = enr_db
+        self.message_type_registry = message_type_registry
+
+        self.incoming_packet_receive_channel = incoming_packet_receive_channel
+        self.incoming_message_send_channel = incoming_message_send_channel
+        self.outgoing_message_receive_channel = outgoing_message_receive_channel
+        self.outgoing_packet_send_channel = outgoing_packet_send_channel
+
+        self.logger = logging.getLogger("p2p.discv5.packer.Packer")
+
+        self.managed_peer_packers: Dict[NodeID, ManagedPeerPacker] = {}
+
+    async def run(self) -> None:
+        self.manager.run_daemon_task(self.handle_incoming_packets)
+        self.manager.run_daemon_task(self.handle_outgoing_messages)
+        await self.manager.wait_stopped()
+
+    async def handle_incoming_packets(self) -> None:
+        async for incoming_packet in self.incoming_packet_receive_channel:
+            expecting_managed_peer_packers = tuple(
+                managed_peer_packer
+                for managed_peer_packer in self.managed_peer_packers.values()
+                if managed_peer_packer.peer_packer.is_expecting_handshake_packet(incoming_packet)
+            )
+            if len(expecting_managed_peer_packers) >= 2:
+                self.logger.warning(
+                    "Multiple peer packers are expecting %s: %s",
+                    incoming_packet,
+                    ", ".join(
+                        encode_hex(managed_peer_packer.peer_packer.local_node_id)
+                        for managed_peer_packer in expecting_managed_peer_packers
+                    ),
+                )
+
+            if expecting_managed_peer_packers:
+                for managed_peer_packer in expecting_managed_peer_packers:
+                    self.logger.debug(
+                        "Passing %s to %s for handshake",
+                        incoming_packet,
+                        managed_peer_packer.peer_packer,
+                    )
+                    await managed_peer_packer.incoming_packet_send_channel.send(incoming_packet)
+
+            elif isinstance(incoming_packet.packet, AuthTagPacket):
+                tag = incoming_packet.packet.tag
+                remote_node_id = recover_source_id_from_tag(tag, self.local_node_id)
+
+                if not self.is_peer_packer_registered(remote_node_id):
+                    self.logger.info(
+                        "Launching peer packer for %s to handle %s",
+                        encode_hex(remote_node_id),
+                        incoming_packet,
+                    )
+                    self.register_peer_packer(remote_node_id)
+                    self.manager.run_task(self.run_peer_packer, remote_node_id)
+
+                managed_peer_packer = self.managed_peer_packers[remote_node_id]
+                self.logger.debug(
+                    "Passing %s from %s to responsible peer packer",
+                    incoming_packet,
+                    encode_hex(remote_node_id),
+                )
+                await managed_peer_packer.incoming_packet_send_channel.send(incoming_packet)
+
+            else:
+                self.logger.warning("Dropping unprompted handshake packet %s", incoming_packet)
+
+    async def handle_outgoing_messages(self) -> None:
+        async for outgoing_message in self.outgoing_message_receive_channel:
+            remote_node_id = outgoing_message.receiver_node_id
+            if not self.is_peer_packer_registered(remote_node_id):
+                self.logger.info(
+                    "Launching peer packer for %s to handle %s",
+                    encode_hex(remote_node_id),
+                    outgoing_message,
+                )
+                self.register_peer_packer(remote_node_id)
+                self.manager.run_task(self.run_peer_packer, remote_node_id)
+
+            self.logger.debug(
+                "Passing %s from %s to responsible peer packer",
+                outgoing_message,
+                encode_hex(remote_node_id),
+            )
+            managed_peer_packer = self.managed_peer_packers[remote_node_id]
+            await managed_peer_packer.outgoing_message_send_channel.send(outgoing_message)
+
+    #
+    # Peer packer handling
+    #
+    def is_peer_packer_registered(self, remote_node_id: NodeID) -> bool:
+        return remote_node_id in self.managed_peer_packers
+
+    def register_peer_packer(self, remote_node_id: NodeID) -> None:
+        if self.is_peer_packer_registered(remote_node_id):
+            raise ValueError(f"Peer packer for {encode_hex(remote_node_id)} is already registered")
+
+        incoming_packet_channels: Tuple[
+            SendChannel[IncomingPacket],
+            ReceiveChannel[IncomingPacket],
+        ] = trio.open_memory_channel(0)
+        outgoing_message_channels: Tuple[
+            SendChannel[OutgoingMessage],
+            ReceiveChannel[OutgoingMessage],
+        ] = trio.open_memory_channel(0)
+
+        peer_packer = PeerPacker(
+            local_private_key=self.local_private_key,
+            local_node_id=self.local_node_id,
+            remote_node_id=remote_node_id,
+            enr_db=self.enr_db,
+            message_type_registry=self.message_type_registry,
+            incoming_packet_receive_channel=incoming_packet_channels[1],
+            incoming_message_send_channel=self.incoming_message_send_channel,
+            outgoing_message_receive_channel=outgoing_message_channels[1],
+            outgoing_packet_send_channel=self.outgoing_packet_send_channel,
+        )
+
+        manager = Manager(peer_packer)
+
+        self.managed_peer_packers[remote_node_id] = ManagedPeerPacker(
+            peer_packer=peer_packer,
+            manager=manager,
+            incoming_packet_send_channel=incoming_packet_channels[0],
+            outgoing_message_send_channel=outgoing_message_channels[0],
+        )
+
+    def deregister_peer_packer(self, remote_node_id: NodeID) -> None:
+        if not self.is_peer_packer_registered(remote_node_id):
+            raise ValueError(f"Peer packer for {encode_hex(remote_node_id)} is not registered")
+        managed_peer_packer = self.managed_peer_packers[remote_node_id]
+        if managed_peer_packer.manager.is_running:
+            raise ValueError(
+                f"Peer packer for {encode_hex(remote_node_id)} is still running"
+            )
+
+        self.managed_peer_packers.pop(remote_node_id)
+
+    async def run_peer_packer(self, remote_node_id: NodeID) -> None:
+        if not self.is_peer_packer_registered(remote_node_id):
+            raise ValueError("Peer packer for {encode_hex(remote_node_id)} is not registered")
+        managed_peer_packer = self.managed_peer_packers[remote_node_id]
+
+        try:
+            await managed_peer_packer.manager.run()
+        except LifecycleError as lifecycle_error:
+            raise ValueError(
+                "Peer packer for {encode_hex(remote_node_id)} has already been started"
+            ) from lifecycle_error
+        except HandshakeFailure as handshake_failure:
+            # peer packer has logged a warning already
+            self.logger.debug(
+                "Peer packer %s has failed to do handshake with %s",
+                managed_peer_packer.peer_packer,
+                handshake_failure,
+            )
+        finally:
+            self.logger.info("Deregistering peer packer %s", managed_peer_packer.peer_packer)
+            self.deregister_peer_packer(remote_node_id)
