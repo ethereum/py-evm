@@ -1,3 +1,4 @@
+import socket
 from typing import (
     Any,
     Dict,
@@ -107,7 +108,7 @@ class EndpointFactory(factory.Factory):
     class Meta:
         model = Endpoint
 
-    ip_address = factory.Faker("ipv4")
+    ip_address = factory.LazyFunction(lambda: socket.inet_aton(factory.Faker("ipv4").generate({})))
     port = factory.Faker("pyint", min_value=0, max_value=65535)
 
 

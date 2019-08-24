@@ -6,6 +6,10 @@ from typing import (
 from trio.socket import (
     SocketType,
 )
+from socket import (
+    inet_aton,
+    inet_ntoa,
+)
 from trio.abc import (
     ReceiveChannel,
     SendChannel,
@@ -39,8 +43,11 @@ from p2p.discv5.typing import (
 # Data structures
 #
 class Endpoint(NamedTuple):
-    ip_address: str
+    ip_address: bytes
     port: int
+
+    def __str__(self) -> str:
+        return str((inet_ntoa(self.ip_address), self.port))
 
 
 class IncomingDatagram(NamedTuple):
@@ -101,7 +108,7 @@ async def DatagramReceiver(manager: ManagerAPI,
     async with incoming_datagram_send_channel:
         while manager.is_running:
             datagram, (ip_address, port) = await socket.recvfrom(DATAGRAM_BUFFER_SIZE)
-            endpoint = Endpoint(ip_address, port)
+            endpoint = Endpoint(inet_aton(ip_address), port)
             logger.debug(f"Received {len(datagram)} bytes from {endpoint}")
             incoming_datagram = IncomingDatagram(datagram, endpoint)
             await incoming_datagram_send_channel.send(incoming_datagram)
@@ -118,7 +125,7 @@ async def DatagramSender(manager: ManagerAPI,
     async with outgoing_datagram_receive_channel:
         async for datagram, endpoint in outgoing_datagram_receive_channel:
             logger.debug(f"Sending {len(datagram)} bytes to {endpoint}")
-            await socket.sendto(datagram, endpoint)
+            await socket.sendto(datagram, (inet_ntoa(endpoint.ip_address), endpoint.port))
 
 
 #
