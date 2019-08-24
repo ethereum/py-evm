@@ -185,12 +185,7 @@ def genesis_state(base_genesis_state):
     return base_genesis_state
 
 
-@pytest.fixture(params=[Chain, MiningChain])
-def chain_without_block_validation(
-        request,
-        VM,
-        base_db,
-        genesis_state):
+def _chain_without_block_validation(request, VM, base_db, genesis_state):
     """
     Return a Chain object containing just the genesis block.
 
@@ -228,6 +223,27 @@ def chain_without_block_validation(
     }
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
     return chain
+
+
+@pytest.fixture(params=[Chain, MiningChain])
+def chain_without_block_validation(
+        request,
+        VM,
+        base_db,
+        genesis_state):
+    return _chain_without_block_validation(request, VM, base_db, genesis_state)
+
+
+@pytest.fixture(params=[Chain, MiningChain])
+def chain_without_block_validation_from_vm(request, base_db, genesis_state):
+    """
+    This fixture is to be used only when the properties of the
+    chains differ from one VM to another.
+    For example, the block rewards change from one VM chain to another
+    """
+    def get_chain_from_vm(vm):
+        return _chain_without_block_validation(request, vm, base_db, genesis_state)
+    return get_chain_from_vm
 
 
 def pytest_addoption(parser):
