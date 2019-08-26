@@ -6,3 +6,4 @@ from .modexp import modexp  # noqa: F401
 from .ecadd import ecadd  # noqa: F401
 from .ecmul import ecmul  # noqa: F401
 from .ecpairing import ecpairing  # noqa: F401
+from .blake2 import blake2b_fcompress  # noqa: F401
