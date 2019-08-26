@@ -1,26 +1,12 @@
-from typing import (
-    Iterable,
-    NewType,
-    Sequence,
-)
+from typing import Iterable, NewType, Sequence
 
-from cytoolz import (
-    iterate,
-    partition,
-    take,
-)
+from cytoolz import iterate, partition, take
 
 from eth_utils import to_tuple
 
-from eth2._utils.hash import (
-    hash_eth2,
-)
-from eth_typing import (
-    Hash32,
-)
-from eth_utils import (
-    ValidationError,
-)
+from eth2._utils.hash import hash_eth2
+from eth_typing import Hash32
+from eth_utils import ValidationError
 
 
 MerkleTree = NewType("MerkleTree", Sequence[Sequence[Hash32]])
@@ -71,22 +57,22 @@ def get_merkle_proof(tree: MerkleTree, item_index: int) -> Iterable[Hash32]:
         return ()
 
     branch_indices = get_branch_indices(item_index, len(tree))
-    proof_indices = [i ^ 1 for i in branch_indices][:-1]  # get sibling by flipping rightmost bit
+    proof_indices = [i ^ 1 for i in branch_indices][
+        :-1
+    ]  # get sibling by flipping rightmost bit
     for layer, proof_index in zip(reversed(tree), proof_indices):
         yield layer[proof_index]
 
 
-def verify_merkle_branch(leaf: Hash32,
-                         proof: Sequence[Hash32],
-                         depth: int,
-                         index: int,
-                         root: Hash32) -> bool:
+def verify_merkle_branch(
+    leaf: Hash32, proof: Sequence[Hash32], depth: int, index: int, root: Hash32
+) -> bool:
     """
     Verify that the given ``leaf`` is on the merkle branch ``proof``.
     """
     value = leaf
     for i in range(depth):
-        if index // (2**i) % 2:
+        if index // (2 ** i) % 2:
             value = hash_eth2(proof[i] + value)
         else:
             value = hash_eth2(value + proof[i])

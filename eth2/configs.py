@@ -1,70 +1,63 @@
-from typing import (
-    NamedTuple,
-)
+from typing import NamedTuple
 
-from eth2.beacon.typing import (
-    Epoch,
-    Gwei,
-    Second,
-    Slot,
-)
+from eth2.beacon.typing import Epoch, Gwei, Second, Slot
 
 
 Eth2Config = NamedTuple(
-    'Eth2Config',
+    "Eth2Config",
     (
         # Misc
-        ('SHARD_COUNT', int),
-        ('TARGET_COMMITTEE_SIZE', int),
-        ('MAX_VALIDATORS_PER_COMMITTEE', int),
-        ('MIN_PER_EPOCH_CHURN_LIMIT', int),
-        ('CHURN_LIMIT_QUOTIENT', int),
-        ('SHUFFLE_ROUND_COUNT', int),
+        ("SHARD_COUNT", int),
+        ("TARGET_COMMITTEE_SIZE", int),
+        ("MAX_VALIDATORS_PER_COMMITTEE", int),
+        ("MIN_PER_EPOCH_CHURN_LIMIT", int),
+        ("CHURN_LIMIT_QUOTIENT", int),
+        ("SHUFFLE_ROUND_COUNT", int),
         # Genesis
-        ('MIN_GENESIS_ACTIVE_VALIDATOR_COUNT', int),
-        ('MIN_GENESIS_TIME', int),
+        ("MIN_GENESIS_ACTIVE_VALIDATOR_COUNT", int),
+        ("MIN_GENESIS_TIME", int),
         # Gwei values,
-        ('MIN_DEPOSIT_AMOUNT', Gwei),
-        ('MAX_EFFECTIVE_BALANCE', Gwei),
-        ('EJECTION_BALANCE', Gwei),
-        ('EFFECTIVE_BALANCE_INCREMENT', Gwei),
+        ("MIN_DEPOSIT_AMOUNT", Gwei),
+        ("MAX_EFFECTIVE_BALANCE", Gwei),
+        ("EJECTION_BALANCE", Gwei),
+        ("EFFECTIVE_BALANCE_INCREMENT", Gwei),
         # Initial values
-        ('GENESIS_SLOT', Slot),
-        ('GENESIS_EPOCH', Epoch),
-        ('BLS_WITHDRAWAL_PREFIX', int),
+        ("GENESIS_SLOT", Slot),
+        ("GENESIS_EPOCH", Epoch),
+        ("BLS_WITHDRAWAL_PREFIX", int),
         # Time parameters
-        ('SECONDS_PER_SLOT', Second),
-        ('MIN_ATTESTATION_INCLUSION_DELAY', int),
-        ('SLOTS_PER_EPOCH', int),
-        ('MIN_SEED_LOOKAHEAD', int),
-        ('ACTIVATION_EXIT_DELAY', int),
-        ('SLOTS_PER_ETH1_VOTING_PERIOD', int),
-        ('SLOTS_PER_HISTORICAL_ROOT', int),
-        ('MIN_VALIDATOR_WITHDRAWABILITY_DELAY', int),
-        ('PERSISTENT_COMMITTEE_PERIOD', int),
-        ('MAX_EPOCHS_PER_CROSSLINK', int),
-        ('MIN_EPOCHS_TO_INACTIVITY_PENALTY', int),
+        ("SECONDS_PER_SLOT", Second),
+        ("MIN_ATTESTATION_INCLUSION_DELAY", int),
+        ("SLOTS_PER_EPOCH", int),
+        ("MIN_SEED_LOOKAHEAD", int),
+        ("ACTIVATION_EXIT_DELAY", int),
+        ("SLOTS_PER_ETH1_VOTING_PERIOD", int),
+        ("SLOTS_PER_HISTORICAL_ROOT", int),
+        ("MIN_VALIDATOR_WITHDRAWABILITY_DELAY", int),
+        ("PERSISTENT_COMMITTEE_PERIOD", int),
+        ("MAX_EPOCHS_PER_CROSSLINK", int),
+        ("MIN_EPOCHS_TO_INACTIVITY_PENALTY", int),
         # State list lengths
-        ('EPOCHS_PER_HISTORICAL_VECTOR', int),
-        ('EPOCHS_PER_SLASHINGS_VECTOR', int),
-        ('HISTORICAL_ROOTS_LIMIT', int),
-        ('VALIDATOR_REGISTRY_LIMIT', int),
+        ("EPOCHS_PER_HISTORICAL_VECTOR", int),
+        ("EPOCHS_PER_SLASHINGS_VECTOR", int),
+        ("HISTORICAL_ROOTS_LIMIT", int),
+        ("VALIDATOR_REGISTRY_LIMIT", int),
         # Rewards and penalties
-        ('BASE_REWARD_FACTOR', int),
-        ('WHISTLEBLOWER_REWARD_QUOTIENT', int),
-        ('PROPOSER_REWARD_QUOTIENT', int),
-        ('INACTIVITY_PENALTY_QUOTIENT', int),
-        ('MIN_SLASHING_PENALTY_QUOTIENT', int),
+        ("BASE_REWARD_FACTOR", int),
+        ("WHISTLEBLOWER_REWARD_QUOTIENT", int),
+        ("PROPOSER_REWARD_QUOTIENT", int),
+        ("INACTIVITY_PENALTY_QUOTIENT", int),
+        ("MIN_SLASHING_PENALTY_QUOTIENT", int),
         # Max operations per block
-        ('MAX_PROPOSER_SLASHINGS', int),
-        ('MAX_ATTESTER_SLASHINGS', int),
-        ('MAX_ATTESTATIONS', int),
-        ('MAX_DEPOSITS', int),
-        ('MAX_VOLUNTARY_EXITS', int),
-        ('MAX_TRANSFERS', int),
+        ("MAX_PROPOSER_SLASHINGS", int),
+        ("MAX_ATTESTER_SLASHINGS", int),
+        ("MAX_ATTESTATIONS", int),
+        ("MAX_DEPOSITS", int),
+        ("MAX_VOLUNTARY_EXITS", int),
+        ("MAX_TRANSFERS", int),
         # Deposit contract
-        ('DEPOSIT_CONTRACT_ADDRESS', bytes),
-    )
+        ("DEPOSIT_CONTRACT_ADDRESS", bytes),
+    ),
 )
 
 

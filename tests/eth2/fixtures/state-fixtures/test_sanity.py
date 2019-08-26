@@ -1,50 +1,32 @@
-from dataclasses import (
-    dataclass,
-)
+from dataclasses import dataclass
 import pytest
 
-from eth_utils import (
-    ValidationError,
-)
+from eth_utils import ValidationError
 
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_lengths,
-)
+from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.tools.fixtures.config_name import (
-    ONLY_MINIMAL,
-)
-from eth2.beacon.tools.fixtures.helpers import (
-    run_state_execution,
-    validate_state,
-)
+from eth2.beacon.tools.fixtures.config_name import ONLY_MINIMAL
+from eth2.beacon.tools.fixtures.helpers import run_state_execution, validate_state
 from eth2.beacon.tools.fixtures.loading import (
     get_bls_setting,
     get_blocks,
     get_slots,
     get_states,
 )
-from eth2.beacon.tools.fixtures.test_case import (
-    StateTestCase,
-)
+from eth2.beacon.tools.fixtures.test_case import StateTestCase
 
 from tests.eth2.fixtures.helpers import (
     get_test_cases,
     get_chaindb_of_config,
     get_sm_class_of_config,
 )
-from tests.eth2.fixtures.path import (
-    BASE_FIXTURE_PATH,
-    ROOT_PROJECT_DIR,
-)
+from tests.eth2.fixtures.path import BASE_FIXTURE_PATH, ROOT_PROJECT_DIR
 
 
 # Test files
-RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / 'sanity'
-HANDLER_FIXTURE_PATHES = (
-    RUNNER_FIXTURE_PATH,
-)
+RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / "sanity"
+HANDLER_FIXTURE_PATHES = (RUNNER_FIXTURE_PATH,)
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
 
@@ -71,7 +53,7 @@ def parse_sanity_test_case(test_case, handler, index, config):
         handler=handler,
         index=index,
         bls_setting=bls_setting,
-        description=test_case['description'],
+        description=test_case["description"],
         pre=pre,
         post=post,
         is_valid=is_valid,
@@ -88,10 +70,7 @@ all_test_cases = get_test_cases(
 )
 
 
-@pytest.mark.parametrize(
-    "test_case, config",
-    all_test_cases
-)
+@pytest.mark.parametrize("test_case, config", all_test_cases)
 def test_sanity_fixture(base_db, config, test_case, empty_attestation_pool):
     sm_class = get_sm_class_of_config(config)
     chaindb = get_chaindb_of_config(base_db, config)
@@ -99,20 +78,12 @@ def test_sanity_fixture(base_db, config, test_case, empty_attestation_pool):
     post_state = test_case.pre
     if test_case.is_valid:
         post_state = run_state_execution(
-            test_case,
-            sm_class,
-            chaindb,
-            empty_attestation_pool,
-            post_state,
+            test_case, sm_class, chaindb, empty_attestation_pool, post_state
         )
 
         validate_state(test_case.post, post_state)
     else:
         with pytest.raises(ValidationError):
             run_state_execution(
-                test_case,
-                sm_class,
-                chaindb,
-                empty_attestation_pool,
-                post_state,
+                test_case, sm_class, chaindb, empty_attestation_pool, post_state
             )

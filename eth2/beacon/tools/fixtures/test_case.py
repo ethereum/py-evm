@@ -1,12 +1,6 @@
-from typing import (
-    Tuple,
-    Union,
-)
+from typing import Tuple, Union
 
-from dataclasses import (
-    dataclass,
-    field,
-)
+from dataclasses import dataclass, field
 
 
 from eth2.beacon.types.attestations import Attestation
@@ -20,12 +14,12 @@ from eth2.beacon.types.voluntary_exits import VoluntaryExit
 
 
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import (
-    Slot,
-)
+from eth2.beacon.typing import Slot
 
 
-Operation = Union[ProposerSlashing, AttesterSlashing, Attestation, Deposit, VoluntaryExit, Transfer]
+Operation = Union[
+    ProposerSlashing, AttesterSlashing, Attestation, Deposit, VoluntaryExit, Transfer
+]
 OperationOrBlockHeader = Union[Operation, BeaconBlockHeader]
 
 

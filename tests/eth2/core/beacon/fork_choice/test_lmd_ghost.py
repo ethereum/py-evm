@@ -13,9 +13,7 @@ from eth_utils.toolz import (
 )
 
 from eth2._utils import bitfield
-from eth2.beacon.attestation_helpers import (
-    get_attestation_data_slot,
-)
+from eth2.beacon.attestation_helpers import get_attestation_data_slot
 from eth2.beacon.committee_helpers import (
     get_committee_count,
     get_crosslink_committee,
@@ -33,9 +31,7 @@ from eth2.beacon.helpers import (
     compute_epoch_of_slot,
     get_active_validator_indices,
 )
-from eth2.beacon.tools.builder.validator import (
-    get_crosslink_committees_at_slot,
-)
+from eth2.beacon.tools.builder.validator import get_crosslink_committees_at_slot
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BeaconBlock
@@ -55,18 +51,13 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     )
-    epoch_start_shard = get_start_shard(
-        state,
-        epoch,
-        CommitteeConfig(config),
-    )
-    for shard_offset in random.sample(range(epoch_committee_count), epoch_committee_count):
+    epoch_start_shard = get_start_shard(state, epoch, CommitteeConfig(config))
+    for shard_offset in random.sample(
+        range(epoch_committee_count), epoch_committee_count
+    ):
         shard = Shard((epoch_start_shard + shard_offset) % config.SHARD_COUNT)
         committee = get_crosslink_committee(
-            state,
-            epoch,
-            shard,
-            CommitteeConfig(config),
+            state, epoch, shard, CommitteeConfig(config)
         )
 
         if not committee:
@@ -74,12 +65,7 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
             continue
 
         attestation_data = AttestationData(
-            target=Checkpoint(
-                epoch=epoch,
-            ),
-            crosslink=Crosslink(
-                shard=shard,
-            ),
+            target=Checkpoint(epoch=epoch), crosslink=Crosslink(shard=shard)
         )
         committee_count = len(committee)
         aggregation_bits = bitfield.get_empty_bitfield(committee_count)
@@ -90,30 +76,18 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
                 yield (
                     index,
                     (
-                        get_attestation_data_slot(
-                            state,
-                            attestation_data,
-                            config,
-                        ),
-                        (
-                            aggregation_bits,
-                            attestation_data,
-                        ),
+                        get_attestation_data_slot(state, attestation_data, config),
+                        (aggregation_bits, attestation_data),
                     ),
                 )
 
 
-def _mk_attestations_for_epoch_by_count(number_of_committee_samples,
-                                        epoch,
-                                        state,
-                                        config):
+def _mk_attestations_for_epoch_by_count(
+    number_of_committee_samples, epoch, state, config
+):
     results = {}
     for _ in range(number_of_committee_samples):
-        sample = _mk_attestation_inputs_in_epoch(
-            epoch,
-            state,
-            config,
-        )
+        sample = _mk_attestation_inputs_in_epoch(epoch, state, config)
         results = merge(results, sample)
     return results
 
@@ -122,10 +96,7 @@ def _extract_attestations_from_index_keying(values):
     results = ()
     for value in values:
         aggregation_bits, data = second(value)
-        attestation = Attestation(
-            aggregation_bits=aggregation_bits,
-            data=data,
-        )
+        attestation = Attestation(aggregation_bits=aggregation_bits, data=data)
         if attestation not in results:
             results += (attestation,)
     return results
@@ -145,16 +116,16 @@ def _find_collision(state, config, index, epoch):
     validator w/ the given index.
     """
     active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = get_committee_count(
-        len(active_validators),
-        config.SHARD_COUNT,
-        config.SLOTS_PER_EPOCH,
-        config.TARGET_COMMITTEE_SIZE,
-    ) // config.SLOTS_PER_EPOCH
-    epoch_start_slot = compute_start_slot_of_epoch(
-        epoch,
-        config.SLOTS_PER_EPOCH,
+    committees_per_slot = (
+        get_committee_count(
+            len(active_validators),
+            config.SHARD_COUNT,
+            config.SLOTS_PER_EPOCH,
+            config.TARGET_COMMITTEE_SIZE,
+        )
+        // config.SLOTS_PER_EPOCH
     )
+    epoch_start_slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
     epoch_start_shard = get_start_shard(state, epoch, CommitteeConfig(config))
 
     for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
@@ -162,16 +133,13 @@ def _find_collision(state, config, index, epoch):
         slot_start_shard = (epoch_start_shard + offset) % config.SHARD_COUNT
         for i in range(committees_per_slot):
             shard = Shard((slot_start_shard + i) % config.SHARD_COUNT)
-            committee = get_crosslink_committee(state, epoch, shard, CommitteeConfig(config))
+            committee = get_crosslink_committee(
+                state, epoch, shard, CommitteeConfig(config)
+            )
             if index in committee:
                 # TODO(ralexstokes) refactor w/ tools/builder
                 attestation_data = AttestationData(
-                    target=Checkpoint(
-                        epoch=epoch,
-                    ),
-                    crosslink=Crosslink(
-                        shard=shard,
-                    ),
+                    target=Checkpoint(epoch=epoch), crosslink=Crosslink(shard=shard)
                 )
                 committee_count = len(committee)
                 aggregation_bits = bitfield.get_empty_bitfield(committee_count)
@@ -179,18 +147,14 @@ def _find_collision(state, config, index, epoch):
                     aggregation_bits = bitfield.set_voted(aggregation_bits, i)
 
                 return {
-                    index: (
-                        slot, (aggregation_bits, attestation_data)
-                    )
+                    index: (slot, (aggregation_bits, attestation_data))
                     for index in committee
                 }
     else:
         raise Exception("should have found a duplicate validator")
 
 
-def _introduce_collisions(all_attestations_by_index,
-                          state,
-                          config):
+def _introduce_collisions(all_attestations_by_index, state, config):
     """
     Find some attestations for later epochs for the validators
     that are current attesting in each source of attestation.
@@ -223,57 +187,34 @@ def _get_committee_count(state, epoch, config):
 
 
 @pytest.mark.parametrize(
-    (
-        "validator_count",
-    ),
+    ("validator_count",),
     [
-        (8,),     # low number of validators
-        (128,),   # medium number of validators
+        (8,),  # low number of validators
+        (128,),  # medium number of validators
         # NOTE: the test at 1024 count takes too long :(
         (256,),  # high number of validators
-    ]
+    ],
 )
-@pytest.mark.parametrize(
-    (
-        "collisions_from_another_epoch",
-    ),
-    [
-        (True,),
-        (False,),
-    ]
-)
-def test_store_get_latest_attestation(genesis_state,
-                                      empty_attestation_pool,
-                                      config,
-                                      collisions_from_another_epoch):
+@pytest.mark.parametrize(("collisions_from_another_epoch",), [(True,), (False,)])
+def test_store_get_latest_attestation(
+    genesis_state, empty_attestation_pool, config, collisions_from_another_epoch
+):
     """
     Given some attestations across the various sources, can we
     find the latest ones for each validator?
     """
     some_epoch = 3
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH)
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
-    previous_epoch_committee_count = _get_committee_count(
-        state,
-        previous_epoch,
-        config,
-    )
+    previous_epoch_committee_count = _get_committee_count(state, previous_epoch, config)
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    current_epoch_committee_count = _get_committee_count(
-        state,
-        current_epoch,
-        config,
-    )
+    current_epoch_committee_count = _get_committee_count(state, current_epoch, config)
 
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
-    next_epoch_committee_count = _get_committee_count(
-        state,
-        next_epoch,
-        config,
-    )
+    next_epoch_committee_count = _get_committee_count(state, next_epoch, config)
 
     number_of_committee_samples = 4
     assert number_of_committee_samples <= previous_epoch_committee_count
@@ -282,42 +223,30 @@ def test_store_get_latest_attestation(genesis_state,
 
     # prepare samples from previous epoch
     previous_epoch_attestations_by_index = _mk_attestations_for_epoch_by_count(
-        number_of_committee_samples,
-        previous_epoch,
-        state,
-        config,
+        number_of_committee_samples, previous_epoch, state, config
     )
     previous_epoch_attestations = _extract_attestations_from_index_keying(
-        previous_epoch_attestations_by_index.values(),
+        previous_epoch_attestations_by_index.values()
     )
 
     # prepare samples from current epoch
     current_epoch_attestations_by_index = _mk_attestations_for_epoch_by_count(
-        number_of_committee_samples,
-        current_epoch,
-        state,
-        config,
+        number_of_committee_samples, current_epoch, state, config
     )
     current_epoch_attestations_by_index = keyfilter(
         lambda index: index not in previous_epoch_attestations_by_index,
         current_epoch_attestations_by_index,
     )
     current_epoch_attestations = _extract_attestations_from_index_keying(
-        current_epoch_attestations_by_index.values(),
+        current_epoch_attestations_by_index.values()
     )
 
     # prepare samples for pool, taking half from the current epoch and half from the next epoch
     pool_attestations_in_current_epoch_by_index = _mk_attestations_for_epoch_by_count(
-        number_of_committee_samples // 2,
-        current_epoch,
-        state,
-        config,
+        number_of_committee_samples // 2, current_epoch, state, config
     )
     pool_attestations_in_next_epoch_by_index = _mk_attestations_for_epoch_by_count(
-        number_of_committee_samples // 2,
-        next_epoch,
-        state,
-        config,
+        number_of_committee_samples // 2, next_epoch, state, config
     )
     pool_attestations_by_index = merge(
         pool_attestations_in_current_epoch_by_index,
@@ -325,13 +254,13 @@ def test_store_get_latest_attestation(genesis_state,
     )
     pool_attestations_by_index = keyfilter(
         lambda index: (
-            index not in previous_epoch_attestations_by_index or
-            index not in current_epoch_attestations_by_index
+            index not in previous_epoch_attestations_by_index
+            or index not in current_epoch_attestations_by_index
         ),
         pool_attestations_by_index,
     )
     pool_attestations = _extract_attestations_from_index_keying(
-        pool_attestations_by_index.values(),
+        pool_attestations_by_index.values()
     )
 
     all_attestations_by_index = (
@@ -345,20 +274,16 @@ def test_store_get_latest_attestation(genesis_state,
             previous_epoch_attestations_by_index,
             current_epoch_attestations_by_index,
             pool_attestations_by_index,
-        ) = _introduce_collisions(
-            all_attestations_by_index,
-            state,
-            config,
-        )
+        ) = _introduce_collisions(all_attestations_by_index, state, config)
 
         previous_epoch_attestations = _extract_attestations_from_index_keying(
-            previous_epoch_attestations_by_index.values(),
+            previous_epoch_attestations_by_index.values()
         )
         current_epoch_attestations = _extract_attestations_from_index_keying(
-            current_epoch_attestations_by_index.values(),
+            current_epoch_attestations_by_index.values()
         )
         pool_attestations = _extract_attestations_from_index_keying(
-            pool_attestations_by_index.values(),
+            pool_attestations_by_index.values()
         )
 
     # build expected results
@@ -400,12 +325,9 @@ def _mk_block(block_params, slot, parent, block_offset):
     )
 
 
-def _build_block_tree(block_params,
-                      root_block,
-                      base_slot,
-                      forking_descriptor,
-                      forking_asymmetry,
-                      config):
+def _build_block_tree(
+    block_params, root_block, base_slot, forking_descriptor, forking_asymmetry, config
+):
     """
     build a block tree according to the data in ``forking_descriptor``, starting at
     the block with root ``base_root``.
@@ -419,12 +341,7 @@ def _build_block_tree(block_params,
                 if random.choice([True, False]):
                     continue
             for block_offset in range(block_count):
-                block = _mk_block(
-                    block_params,
-                    slot,
-                    parent,
-                    block_offset,
-                )
+                block = _mk_block(block_params, slot, parent, block_offset)
             blocks.append(block)
         tree.append(blocks)
     # other code written w/ expectation that root is not in the tree
@@ -448,19 +365,14 @@ def _iter_block_tree_by_block(tree):
             yield block
 
 
-def _get_committees(state,
-                    target_slot,
-                    config,
-                    sampling_fraction):
+def _get_committees(state, target_slot, config, sampling_fraction):
     crosslink_committees_at_slot = get_crosslink_committees_at_slot(
-        state,
-        target_slot,
-        config=config,
+        state, target_slot, config=config
     )
     return tuple(
         random.sample(
             crosslink_committees_at_slot,
-            int((sampling_fraction * len(crosslink_committees_at_slot)))
+            int((sampling_fraction * len(crosslink_committees_at_slot))),
         )
     )
 
@@ -470,7 +382,7 @@ def _attach_committee_to_block(block, committee):
 
 
 def _get_committee_from_block(block):
-    return getattr(block, '_committee_data', None)
+    return getattr(block, "_committee_data", None)
 
 
 def _attach_attestation_to_block(block, attestation):
@@ -478,24 +390,18 @@ def _attach_attestation_to_block(block, attestation):
 
 
 def _get_attestation_from_block(block):
-    return getattr(block, '_attestation', None)
+    return getattr(block, "_attestation", None)
 
 
-def _attach_committees_to_block_tree(state,
-                                     block_tree,
-                                     committees_by_slot,
-                                     config,
-                                     forking_asymmetry):
+def _attach_committees_to_block_tree(
+    state, block_tree, committees_by_slot, config, forking_asymmetry
+):
     for level, committees in zip(
-            _iter_block_tree_by_slot(block_tree),
-            committees_by_slot,
+        _iter_block_tree_by_slot(block_tree), committees_by_slot
     ):
         block_count = len(level)
         partitions = partition(block_count, committees)
-        for block, committee in zip(
-                _iter_block_level_by_block(level),
-                partitions,
-        ):
+        for block, committee in zip(_iter_block_level_by_block(level), partitions):
             if forking_asymmetry:
                 if random.choice([True, False]):
                     # random drop out
@@ -515,11 +421,9 @@ def _mk_attestation_for_block_with_committee(block, committee, shard, config):
         data=AttestationData(
             beacon_block_root=block.signing_root,
             target=Checkpoint(
-                epoch=compute_epoch_of_slot(block.slot, config.SLOTS_PER_EPOCH),
+                epoch=compute_epoch_of_slot(block.slot, config.SLOTS_PER_EPOCH)
             ),
-            crosslink=Crosslink(
-                shard=shard,
-            ),
+            crosslink=Crosslink(shard=shard),
         ),
     )
     return attestation
@@ -532,7 +436,9 @@ def _attach_attestations_to_block_tree_with_committees(block_tree, config):
             # w/ asymmetry in forking we may need to skip this step
             continue
         committee, shard = committee_data
-        attestation = _mk_attestation_for_block_with_committee(block, committee, shard, config)
+        attestation = _mk_attestation_for_block_with_committee(
+            block, committee, shard, config
+        )
         _attach_attestation_to_block(block, attestation)
 
 
@@ -553,10 +459,7 @@ def _build_score_index_from_decorated_block_tree(block_tree, store, state, confi
 
 def _iter_attestation_by_validator_index(state, attestation, config):
     for index in get_attesting_indices(
-            state,
-            attestation.data,
-            attestation.aggregation_bits,
-            config,
+        state, attestation.data, attestation.aggregation_bits, config
     ):
         yield index
 
@@ -573,8 +476,7 @@ class _store:
         self._config = config
         self._latest_attestations = self._find_attestation_targets()
         self._block_index = {
-            block.signing_root: block
-            for block in _iter_block_tree_by_block(block_tree)
+            block.signing_root: block for block in _iter_block_tree_by_block(block_tree)
         }
         self._block_index[root_block.signing_root] = root_block
         self._blocks_by_parent_root = {
@@ -586,20 +488,15 @@ class _store:
         result = {}
         for _, attestation in self._attestation_pool:
             target_slot = get_attestation_data_slot(
-                self._state,
-                attestation.data,
-                self._config,
+                self._state, attestation.data, self._config
             )
             for validator_index in _iter_attestation_by_validator_index(
-                    self._state,
-                    attestation,
-                    self._config):
+                self._state, attestation, self._config
+            ):
                 if validator_index in result:
                     existing = result[validator_index]
                     existing_slot = get_attestation_data_slot(
-                        self._state,
-                        existing.data,
-                        self._config
+                        self._state, existing.data, self._config
                     )
                     if existing_slot > target_slot:
                         continue
@@ -623,14 +520,12 @@ class _store:
 
 
 @pytest.mark.parametrize(
-    (
-        "validator_count",
-    ),
+    ("validator_count",),
     [
-        (8,),     # low number of validators
-        (128,),   # medium number of validators
+        (8,),  # low number of validators
+        (128,),  # medium number of validators
         (1024,),  # high number of validators
-    ]
+    ],
 )
 @pytest.mark.parametrize(
     (
@@ -646,7 +541,7 @@ class _store:
         ((3, 2),),
         ((1, 4),),
         ((1, 2, 1),),
-    ]
+    ],
 )
 @pytest.mark.parametrize(
     (
@@ -660,17 +555,19 @@ class _store:
         # the number of children prescribed in ``forking_descriptor``.
         # => randomly drop some blocks from receiving attestations
         (False,),
-    ]
+    ],
 )
-def test_lmd_ghost_fork_choice_scoring(sample_beacon_block_params,
-                                       chaindb_at_genesis,
-                                       # see note below on how this is used
-                                       fork_choice_scoring,
-                                       forking_descriptor,
-                                       forking_asymmetry,
-                                       genesis_state,
-                                       empty_attestation_pool,
-                                       config):
+def test_lmd_ghost_fork_choice_scoring(
+    sample_beacon_block_params,
+    chaindb_at_genesis,
+    # see note below on how this is used
+    fork_choice_scoring,
+    forking_descriptor,
+    forking_asymmetry,
+    genesis_state,
+    empty_attestation_pool,
+    config,
+):
     """
     Given some blocks and some attestations, can we score them correctly?
     """
@@ -681,11 +578,11 @@ def test_lmd_ghost_fork_choice_scoring(sample_beacon_block_params,
     some_slot_offset = 10
 
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH) + some_slot_offset,
+        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH)
+        + some_slot_offset,
         current_justified_checkpoint=Checkpoint(
-            epoch=some_epoch,
-            root=root_block.signing_root,
-        )
+            epoch=some_epoch, root=root_block.signing_root
+        ),
     )
     assert some_epoch >= state.current_justified_checkpoint.epoch
 
@@ -704,31 +601,21 @@ def test_lmd_ghost_fork_choice_scoring(sample_beacon_block_params,
     committee_sampling_fraction = 1
     committees_by_slot = tuple(
         _get_committees(
-            state,
-            base_slot + slot_offset,
-            config,
-            committee_sampling_fraction,
+            state, base_slot + slot_offset, config, committee_sampling_fraction
         )
         for slot_offset in range(slot_count)
     )
 
     _attach_committees_to_block_tree(
-        state,
-        block_tree,
-        committees_by_slot,
-        config,
-        forking_asymmetry,
+        state, block_tree, committees_by_slot, config, forking_asymmetry
     )
 
-    _attach_attestations_to_block_tree_with_committees(
-        block_tree,
-        config,
-    )
+    _attach_attestations_to_block_tree_with_committees(block_tree, config)
 
     attestations = tuple(
-        _get_attestation_from_block(block) for block in _iter_block_tree_by_block(
-            block_tree,
-        ) if _get_attestation_from_block(block)
+        _get_attestation_from_block(block)
+        for block in _iter_block_tree_by_block(block_tree)
+        if _get_attestation_from_block(block)
     )
 
     attestation_pool = empty_attestation_pool
@@ -738,17 +625,16 @@ def test_lmd_ghost_fork_choice_scoring(sample_beacon_block_params,
     store = _store(state, root_block, block_tree, attestation_pool, config)
 
     score_index = _build_score_index_from_decorated_block_tree(
-        block_tree,
-        store,
-        state,
-        config,
+        block_tree, store, state, config
     )
 
     for block in _iter_block_tree_by_block(block_tree):
         # NOTE: we use the ``fork_choice_scoring`` fixture, it doesn't matter for this test
         chain_db.persist_block(block, BeaconBlock, fork_choice_scoring)
 
-    scoring_fn = lmd_ghost_scoring(chain_db, attestation_pool, state, config, BeaconBlock)
+    scoring_fn = lmd_ghost_scoring(
+        chain_db, attestation_pool, state, config, BeaconBlock
+    )
 
     for block in _iter_block_tree_by_block(block_tree):
         score = scoring_fn(block)

@@ -1,19 +1,11 @@
 import pytest
 
-from eth_utils import (
-    to_tuple,
-)
+from eth_utils import to_tuple
 
-from eth2.configs import (
-    Eth2GenesisConfig,
-)
+from eth2.configs import Eth2GenesisConfig
 from eth2.beacon.db.chain import BeaconChainDB
-from eth2.beacon.state_machines.forks.serenity import (
-    SerenityStateMachine,
-)
-from eth2.beacon.tools.fixtures.loading import (
-    get_all_test_files,
-)
+from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
+from eth2.beacon.tools.fixtures.loading import get_all_test_files
 
 
 #
@@ -29,19 +21,18 @@ def bls_setting_mark_fn(bls_setting):
 def get_test_cases(root_project_dir, fixture_pathes, config_names, parse_test_case_fn):
     # TODO: batch reading files
     test_files = get_all_test_files(
-        root_project_dir,
-        fixture_pathes,
-        config_names,
-        parse_test_case_fn,
+        root_project_dir, fixture_pathes, config_names, parse_test_case_fn
     )
     for test_file in test_files:
         for test_case in test_file.test_cases:
-            bls_setting = test_case.bls_setting if hasattr(test_case, 'bls_setting') else False
+            bls_setting = (
+                test_case.bls_setting if hasattr(test_case, "bls_setting") else False
+            )
             yield mark_test_case(test_file, test_case, bls_setting=bls_setting)
 
 
 def get_test_id(test_file, test_case):
-    description = test_case.description if hasattr(test_case, 'description') else ''
+    description = test_case.description if hasattr(test_case, "description") else ""
     return f"{test_file.file_name}:{test_case.index}:{description}"
 
 
@@ -60,8 +51,7 @@ def mark_test_case(test_file, test_case, bls_setting=False):
 #
 def get_sm_class_of_config(config):
     return SerenityStateMachine.configure(
-        __name__='SerenityStateMachineForTesting',
-        config=config,
+        __name__="SerenityStateMachineForTesting", config=config
     )
 
 

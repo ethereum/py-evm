@@ -1,61 +1,28 @@
-from typing import (
-    Tuple,
-)
-from dataclasses import (
-    dataclass,
-    field,
-)
+from typing import Tuple
+from dataclasses import dataclass, field
 import pytest
 
-from eth_utils import (
-    decode_hex,
-)
-from eth_typing import (
-    Hash32,
-)
-from ssz.tools import (
-    from_formatted_dict,
-)
+from eth_utils import decode_hex
+from eth_typing import Hash32
+from ssz.tools import from_formatted_dict
 
-from eth2.beacon.genesis import (
-    initialize_beacon_state_from_eth1,
-)
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_lengths,
-)
+from eth2.beacon.genesis import initialize_beacon_state_from_eth1
+from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.tools.fixtures.config_name import (
-    ONLY_MINIMAL,
-)
-from eth2.beacon.tools.fixtures.helpers import (
-    validate_state,
-)
-from eth2.beacon.tools.fixtures.loading import (
-    get_bls_setting,
-    get_deposits,
-)
-from eth2.beacon.tools.fixtures.test_case import (
-    BaseTestCase,
-)
-from eth2.beacon.typing import (
-    Timestamp,
-)
+from eth2.beacon.tools.fixtures.config_name import ONLY_MINIMAL
+from eth2.beacon.tools.fixtures.helpers import validate_state
+from eth2.beacon.tools.fixtures.loading import get_bls_setting, get_deposits
+from eth2.beacon.tools.fixtures.test_case import BaseTestCase
+from eth2.beacon.typing import Timestamp
 
-from tests.eth2.fixtures.helpers import (
-    get_test_cases,
-)
-from tests.eth2.fixtures.path import (
-    BASE_FIXTURE_PATH,
-    ROOT_PROJECT_DIR,
-)
+from tests.eth2.fixtures.helpers import get_test_cases
+from tests.eth2.fixtures.path import BASE_FIXTURE_PATH, ROOT_PROJECT_DIR
 
 
 # Test files
-RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / 'genesis'
-HANDLER_FIXTURE_PATHES = (
-    RUNNER_FIXTURE_PATH / 'initialization',
-)
+RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / "genesis"
+HANDLER_FIXTURE_PATHES = (RUNNER_FIXTURE_PATH / "initialization",)
 FILTERED_CONFIG_NAMES = ONLY_MINIMAL
 
 
@@ -79,16 +46,16 @@ def parse_genesis_initialization_test_case(test_case, handler, index, config):
     override_lengths(config)
 
     bls_setting = get_bls_setting(test_case)
-    eth1_block_hash = decode_hex(test_case['eth1_block_hash'])
-    eth1_timestamp = test_case['eth1_timestamp']
-    state = from_formatted_dict(test_case['state'], BeaconState)
+    eth1_block_hash = decode_hex(test_case["eth1_block_hash"])
+    eth1_timestamp = test_case["eth1_timestamp"]
+    state = from_formatted_dict(test_case["state"], BeaconState)
     deposits = get_deposits(test_case, Deposit)
 
     return GenesisInitializationTestCase(
         handler=handler,
         index=index,
         bls_setting=bls_setting,
-        description=test_case['description'],
+        description=test_case["description"],
         eth1_block_hash=eth1_block_hash,
         eth1_timestamp=eth1_timestamp,
         state=state,
@@ -104,10 +71,7 @@ all_test_cases = get_test_cases(
 )
 
 
-@pytest.mark.parametrize(
-    "test_case, config",
-    all_test_cases
-)
+@pytest.mark.parametrize("test_case, config", all_test_cases)
 def test_genesis_initialization_fixture(config, test_case):
     result_state = initialize_beacon_state_from_eth1(
         eth1_block_hash=test_case.eth1_block_hash,

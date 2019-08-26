@@ -1,16 +1,8 @@
-from typing import (
-    Tuple,
-    NamedTuple,
-)
+from typing import Tuple, NamedTuple
 
-from eth_utils import (
-    ValidationError,
-)
+from eth_utils import ValidationError
 
-from eth2.configs import (
-    CommitteeConfig,
-    Eth2Config,
-)
+from eth2.configs import CommitteeConfig, Eth2Config
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
     get_crosslink_committee,
@@ -22,33 +14,28 @@ from eth2.beacon.helpers import (
     compute_start_slot_of_epoch,
 )
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import (
-    Shard,
-    Slot,
-    ValidatorIndex,
-    Epoch,
-)
-from eth2.beacon.exceptions import (
-    NoCommitteeAssignment,
-)
+from eth2.beacon.typing import Shard, Slot, ValidatorIndex, Epoch
+from eth2.beacon.exceptions import NoCommitteeAssignment
 
 
 CommitteeAssignment = NamedTuple(
-    'CommitteeAssignment',
+    "CommitteeAssignment",
     (
-        ('committee', Tuple[ValidatorIndex, ...]),
-        ('shard', Shard),
-        ('slot', Slot),
-        ('is_proposer', bool)
-    )
+        ("committee", Tuple[ValidatorIndex, ...]),
+        ("shard", Shard),
+        ("slot", Slot),
+        ("is_proposer", bool),
+    ),
 )
 
 
 # TODO(ralexstokes) refactor using other helpers, also likely to have duplicated in tests
-def get_committee_assignment(state: BeaconState,
-                             config: Eth2Config,
-                             epoch: Epoch,
-                             validator_index: ValidatorIndex) -> CommitteeAssignment:
+def get_committee_assignment(
+    state: BeaconState,
+    config: Eth2Config,
+    epoch: Epoch,
+    validator_index: ValidatorIndex,
+) -> CommitteeAssignment:
     """
     Return the ``CommitteeAssignment`` in the ``epoch`` for ``validator_index``.
     ``CommitteeAssignment.committee`` is the tuple array of validators in the committee
@@ -64,16 +51,16 @@ def get_committee_assignment(state: BeaconState,
         )
 
     active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = get_committee_count(
-        len(active_validators),
-        config.SHARD_COUNT,
-        config.SLOTS_PER_EPOCH,
-        config.TARGET_COMMITTEE_SIZE,
-    ) // config.SLOTS_PER_EPOCH
-    epoch_start_slot = compute_start_slot_of_epoch(
-        epoch,
-        config.SLOTS_PER_EPOCH,
+    committees_per_slot = (
+        get_committee_count(
+            len(active_validators),
+            config.SHARD_COUNT,
+            config.SLOTS_PER_EPOCH,
+            config.TARGET_COMMITTEE_SIZE,
+        )
+        // config.SLOTS_PER_EPOCH
     )
+    epoch_start_slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
     epoch_start_shard = get_start_shard(state, epoch, CommitteeConfig(config))
 
     for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
@@ -81,14 +68,15 @@ def get_committee_assignment(state: BeaconState,
         slot_start_shard = (epoch_start_shard + offset) % config.SHARD_COUNT
         for i in range(committees_per_slot):
             shard = Shard((slot_start_shard + i) % config.SHARD_COUNT)
-            committee = get_crosslink_committee(state, epoch, shard, CommitteeConfig(config))
+            committee = get_crosslink_committee(
+                state, epoch, shard, CommitteeConfig(config)
+            )
             if validator_index in committee:
                 is_proposer = validator_index == get_beacon_proposer_index(
-                    state.copy(
-                        slot=slot,
-                    ),
-                    CommitteeConfig(config),
+                    state.copy(slot=slot), CommitteeConfig(config)
                 )
-                return CommitteeAssignment(committee, Shard(shard), Slot(slot), is_proposer)
+                return CommitteeAssignment(
+                    committee, Shard(shard), Slot(slot), is_proposer
+                )
 
     raise NoCommitteeAssignment

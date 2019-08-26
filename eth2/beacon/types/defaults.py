@@ -1,15 +1,9 @@
 """
 This module contains default values to be shared across types in the parent module.
 """
-from typing import (
-    Tuple,
-    TypeVar,
-    TYPE_CHECKING,
-)
+from typing import Tuple, TypeVar, TYPE_CHECKING
 
-from eth2.beacon.constants import (
-    EMPTY_PUBKEY,
-)
+from eth2.beacon.constants import EMPTY_PUBKEY
 from eth2.beacon.typing import (  # noqa: F401
     default_epoch,
     default_slot,
@@ -35,12 +29,12 @@ default_bls_pubkey = EMPTY_PUBKEY
 #
 # for more info, see: https://stackoverflow.com/q/51885518
 # updating to ``flake8==3.7.7`` fixes this bug but introduces many other breaking changes.
-SomeElement = TypeVar('SomeElement')
+SomeElement = TypeVar("SomeElement")
 
 default_tuple = tuple()  # type: Tuple[Any, ...]
 
 
 def default_tuple_of_size(
-        size: int,
-        default_element: SomeElement) -> Tuple[SomeElement, ...]:
+    size: int, default_element: SomeElement
+) -> Tuple[SomeElement, ...]:
     return (default_element,) * size

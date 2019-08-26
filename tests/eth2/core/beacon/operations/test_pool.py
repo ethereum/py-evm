@@ -8,9 +8,7 @@ from eth2.beacon.types.attestations import Attestation
 
 
 def mk_attestation(index, sample_attestation_params):
-    return Attestation(**sample_attestation_params).copy(
-        custody_bits=(True,) * 128,
-    )
+    return Attestation(**sample_attestation_params).copy(custody_bits=(True,) * 128)
 
 
 def test_iterating_operation_pool(sample_attestation_params):

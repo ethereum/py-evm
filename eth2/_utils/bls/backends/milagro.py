@@ -1,17 +1,7 @@
-from typing import (
-    Iterator,
-    Sequence,
-    Tuple,
-)
+from typing import Iterator, Sequence, Tuple
 
-from eth_typing import (
-    BLSPubkey,
-    BLSSignature,
-    Hash32,
-)
-from eth_utils import (
-    to_tuple,
-)
+from eth_typing import BLSPubkey, BLSSignature, Hash32
+from eth_utils import to_tuple
 from milagro_bls_binding import (
     aggregate_pubkeys,
     aggregate_signatures,
@@ -20,17 +10,10 @@ from milagro_bls_binding import (
     verify,
     verify_multiple,
 )
-from py_ecc.bls.typing import (
-    Domain,
-)
+from py_ecc.bls.typing import Domain
 
-from eth2._utils.bls.backends.base import (
-    BaseBLSBackend,
-)
-from eth2.beacon.constants import (
-    EMPTY_PUBKEY,
-    EMPTY_SIGNATURE,
-)
+from eth2._utils.bls.backends.base import BaseBLSBackend
+from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE
 
 
 def to_int(domain: Domain) -> int:
@@ -38,12 +21,13 @@ def to_int(domain: Domain) -> int:
     Convert Domain to big endian int since
     sigp/milagro_bls use big endian int on hash to g2.
     """
-    return int.from_bytes(domain, 'big')
+    return int.from_bytes(domain, "big")
 
 
 @to_tuple
-def filter_non_empty_pair(pubkeys: Sequence[BLSPubkey],
-                          message_hashes: Sequence[Hash32]) -> Iterator[Tuple[BLSPubkey, Hash32]]:
+def filter_non_empty_pair(
+    pubkeys: Sequence[BLSPubkey], message_hashes: Sequence[Hash32]
+) -> Iterator[Tuple[BLSPubkey, Hash32]]:
     for i, pubkey in enumerate(pubkeys):
         if pubkey != EMPTY_PUBKEY:
             yield pubkey, message_hashes[i]
@@ -52,26 +36,27 @@ def filter_non_empty_pair(pubkeys: Sequence[BLSPubkey],
 class MilagroBackend(BaseBLSBackend):
     @staticmethod
     def privtopub(k: int) -> BLSPubkey:
-        return privtopub(k.to_bytes(48, 'big'))
+        return privtopub(k.to_bytes(48, "big"))
 
     @staticmethod
-    def sign(message_hash: Hash32,
-             privkey: int,
-             domain: Domain) -> BLSSignature:
-        return sign(message_hash, privkey.to_bytes(48, 'big'), to_int(domain))
+    def sign(message_hash: Hash32, privkey: int, domain: Domain) -> BLSSignature:
+        return sign(message_hash, privkey.to_bytes(48, "big"), to_int(domain))
 
     @staticmethod
-    def verify(message_hash: Hash32,
-               pubkey: BLSPubkey,
-               signature: BLSSignature,
-               domain: Domain) -> bool:
+    def verify(
+        message_hash: Hash32, pubkey: BLSPubkey, signature: BLSSignature, domain: Domain
+    ) -> bool:
         if pubkey == EMPTY_PUBKEY:
-            raise ValueError(f"Empty public key breaks Milagro binding  pubkey={pubkey}")
+            raise ValueError(
+                f"Empty public key breaks Milagro binding  pubkey={pubkey}"
+            )
         return verify(message_hash, pubkey, signature, to_int(domain))
 
     @staticmethod
     def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignature:
-        non_empty_signatures = tuple(sig for sig in signatures if sig != EMPTY_SIGNATURE)
+        non_empty_signatures = tuple(
+            sig for sig in signatures if sig != EMPTY_SIGNATURE
+        )
         if len(non_empty_signatures) == 0:
             return EMPTY_SIGNATURE
         return aggregate_signatures(list(non_empty_signatures))
@@ -84,12 +69,16 @@ class MilagroBackend(BaseBLSBackend):
         return aggregate_pubkeys(list(non_empty_pubkeys))
 
     @staticmethod
-    def verify_multiple(pubkeys: Sequence[BLSPubkey],
-                        message_hashes: Sequence[Hash32],
-                        signature: BLSSignature,
-                        domain: Domain) -> bool:
+    def verify_multiple(
+        pubkeys: Sequence[BLSPubkey],
+        message_hashes: Sequence[Hash32],
+        signature: BLSSignature,
+        domain: Domain,
+    ) -> bool:
         if signature == EMPTY_SIGNATURE:
-            raise ValueError(f"Empty signature breaks Milagro binding  signature={signature}")
+            raise ValueError(
+                f"Empty signature breaks Milagro binding  signature={signature}"
+            )
 
         non_empty_pubkeys, filtered_message_hashes = zip(
             *filter_non_empty_pair(pubkeys, message_hashes)

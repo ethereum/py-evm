@@ -1,51 +1,29 @@
 #!/usr/bin/env python
 
 import asyncio
-from collections import (
-    defaultdict,
-)
+from collections import defaultdict
 import logging
 import signal
 import sys
 import time
-from typing import (
-    ClassVar,
-    Dict,
-    List,
-    MutableSet,
-    NamedTuple,
-    Optional,
-    Tuple,
-)
+from typing import ClassVar, Dict, List, MutableSet, NamedTuple, Optional, Tuple
 
 from pathlib import Path
 
-from libp2p.peer.id import (
-    ID,
-)
+from libp2p.peer.id import ID
 
-from eth_keys.datatypes import (
-    PrivateKey,
-)
+from eth_keys.datatypes import PrivateKey
 
-from eth_utils import (
-    remove_0x_prefix,
-)
+from eth_utils import remove_0x_prefix
 
-from multiaddr import (
-    Multiaddr,
-)
+from multiaddr import Multiaddr
 
-from trinity.protocol.bcc_libp2p.utils import (
-    peer_id_from_pubkey,
-)
+from trinity.protocol.bcc_libp2p.utils import peer_id_from_pubkey
 
 
 async def run(cmd):
     proc = await asyncio.create_subprocess_shell(
-        cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
+        cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
     )
     return proc
 
@@ -85,11 +63,12 @@ class Node:
     )
 
     def __init__(
-            self,
-            name: str,
-            node_privkey: str,
-            port: int,
-            preferred_nodes: Optional[Tuple["Node", ...]] = None) -> None:
+        self,
+        name: str,
+        node_privkey: str,
+        port: int,
+        preferred_nodes: Optional[Tuple["Node", ...]] = None,
+    ) -> None:
         self.name = name
         self.node_privkey = PrivateKey(bytes.fromhex(node_privkey))
         self.port = port
@@ -137,7 +116,9 @@ class Node:
             "-l debug2",
         ]
         if len(self.preferred_nodes) != 0:
-            preferred_nodes_str = ",".join([str(node.maddr) for node in self.preferred_nodes])
+            preferred_nodes_str = ",".join(
+                [str(node.maddr) for node in self.preferred_nodes]
+            )
             _cmds.append(f"--preferred_nodes={preferred_nodes_str}")
         _cmd = " ".join(_cmds)
         return _cmd
@@ -162,8 +143,12 @@ class Node:
         print(f"Spinning up {self.name}")
         self.proc = await run(self.cmd)
         self.running_nodes.append(self)
-        self.tasks.append(asyncio.ensure_future(self._print_logs('stdout', self.proc.stdout)))
-        self.tasks.append(asyncio.ensure_future(self._print_logs('stderr', self.proc.stderr)))
+        self.tasks.append(
+            asyncio.ensure_future(self._print_logs("stdout", self.proc.stdout))
+        )
+        self.tasks.append(
+            asyncio.ensure_future(self._print_logs("stderr", self.proc.stderr))
+        )
         try:
             await self._log_monitor()
         except EventTimeOutError as e:
@@ -185,9 +170,11 @@ class Node:
                         )
             await asyncio.sleep(0.1)
 
-    async def _print_logs(self, from_stream: str, stream_reader: asyncio.StreamReader) -> None:
+    async def _print_logs(
+        self, from_stream: str, stream_reader: asyncio.StreamReader
+    ) -> None:
         async for line_bytes in stream_reader:
-            line = line_bytes.decode('utf-8').replace('\n', '')
+            line = line_bytes.decode("utf-8").replace("\n", "")
             # TODO: Preprocessing
             self._record_happenning_logs(from_stream, line)
             print(f"{self.logging_name}.{from_stream}\t: {line}")
@@ -203,24 +190,22 @@ async def main():
     num_validators = 9
     genesis_delay = 20
 
-    proc = await run(
-        f"rm -rf {Node.dir_root}"
-    )
+    proc = await run(f"rm -rf {Node.dir_root}")
     await proc.wait()
-    proc = await run(
-        f"mkdir -p {Node.dir_root}"
-    )
+    proc = await run(f"mkdir -p {Node.dir_root}")
     await proc.wait()
 
     print("Generating genesis file")
     proc = await run(
-        " ".join((
-            "trinity-beacon",
-            "testnet",
-            f"--num={num_validators}",
-            f"--network-dir={Node.dir_root}",
-            f"--genesis-delay={genesis_delay}",
-        ))
+        " ".join(
+            (
+                "trinity-beacon",
+                "testnet",
+                f"--num={num_validators}",
+                f"--network-dir={Node.dir_root}",
+                f"--genesis-delay={genesis_delay}",
+            )
+        )
     )
     await proc.wait()
 

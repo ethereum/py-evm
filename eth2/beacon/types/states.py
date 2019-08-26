@@ -1,40 +1,17 @@
-from typing import (
-    Any,
-    Callable,
-    Sequence,
-)
+from typing import Any, Callable, Sequence
 
-from eth_typing import (
-    Hash32,
-)
-from eth_utils import (
-    encode_hex,
-)
+from eth_typing import Hash32
+from eth_utils import encode_hex
 
 import ssz
-from ssz.sedes import (
-    Bitvector,
-    List,
-    Vector,
-    bytes32,
-    uint64,
-)
+from ssz.sedes import Bitvector, List, Vector, bytes32, uint64
 
-from eth.constants import (
-    ZERO_HASH32,
-)
+from eth.constants import ZERO_HASH32
 
-from eth2._utils.tuple import (
-    update_tuple_item,
-    update_tuple_item_with_fn,
-)
+from eth2._utils.tuple import update_tuple_item, update_tuple_item_with_fn
 from eth2.configs import Eth2Config
-from eth2.beacon.constants import (
-    JUSTIFICATION_BITS_LENGTH,
-)
-from eth2.beacon.helpers import (
-    compute_epoch_of_slot,
-)
+from eth2.beacon.constants import JUSTIFICATION_BITS_LENGTH
+from eth2.beacon.helpers import compute_epoch_of_slot
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
@@ -45,26 +22,11 @@ from eth2.beacon.typing import (
     Bitfield,
 )
 
-from .block_headers import (
-    BeaconBlockHeader,
-    default_beacon_block_header,
-)
-from .eth1_data import (
-    Eth1Data,
-    default_eth1_data,
-)
-from .checkpoints import (
-    Checkpoint,
-    default_checkpoint,
-)
-from .crosslinks import (
-    Crosslink,
-    default_crosslink,
-)
-from .forks import (
-    Fork,
-    default_fork,
-)
+from .block_headers import BeaconBlockHeader, default_beacon_block_header
+from .eth1_data import Eth1Data, default_eth1_data
+from .checkpoints import Checkpoint, default_checkpoint
+from .crosslinks import Crosslink, default_crosslink
+from .forks import Fork, default_fork
 from .pending_attestations import PendingAttestation
 from .validators import Validator
 
@@ -84,80 +46,81 @@ class BeaconState(ssz.Serializable):
 
     fields = [
         # Versioning
-        ('genesis_time', uint64),
-        ('slot', uint64),
-        ('fork', Fork),
-
+        ("genesis_time", uint64),
+        ("slot", uint64),
+        ("fork", Fork),
         # History
-        ('latest_block_header', BeaconBlockHeader),
-        ('block_roots', Vector(bytes32, 1)),  # Needed to process attestations, older to newer  # noqa: E501
-        ('state_roots', Vector(bytes32, 1)),
-        ('historical_roots', List(bytes32, 1)),  # allow for a log-sized Merkle proof from any block to any historical block root  # noqa: E501
-
+        ("latest_block_header", BeaconBlockHeader),
+        (
+            "block_roots",
+            Vector(bytes32, 1),
+        ),  # Needed to process attestations, older to newer  # noqa: E501
+        ("state_roots", Vector(bytes32, 1)),
+        (
+            "historical_roots",
+            List(bytes32, 1),
+        ),  # allow for a log-sized Merkle proof from any block to any historical block root  # noqa: E501
         # Ethereum 1.0 chain
-        ('eth1_data', Eth1Data),
-        ('eth1_data_votes', List(Eth1Data, 1)),
-        ('eth1_deposit_index', uint64),
-
+        ("eth1_data", Eth1Data),
+        ("eth1_data_votes", List(Eth1Data, 1)),
+        ("eth1_deposit_index", uint64),
         # Validator registry
-        ('validators', List(Validator, 1)),
-        ('balances', List(uint64, 1)),
-
+        ("validators", List(Validator, 1)),
+        ("balances", List(uint64, 1)),
         # Shuffling
-        ('start_shard', uint64),
-        ('randao_mixes', Vector(bytes32, 1)),
-        ('active_index_roots', Vector(bytes32, 1)),
-        ('compact_committees_roots', Vector(bytes32, 1)),
-
+        ("start_shard", uint64),
+        ("randao_mixes", Vector(bytes32, 1)),
+        ("active_index_roots", Vector(bytes32, 1)),
+        ("compact_committees_roots", Vector(bytes32, 1)),
         # Slashings
-        ('slashings', Vector(uint64, 1)),  # Balances slashed at every withdrawal period  # noqa: E501
-
+        (
+            "slashings",
+            Vector(uint64, 1),
+        ),  # Balances slashed at every withdrawal period  # noqa: E501
         # Attestations
-        ('previous_epoch_attestations', List(PendingAttestation, 1)),
-        ('current_epoch_attestations', List(PendingAttestation, 1)),
-
+        ("previous_epoch_attestations", List(PendingAttestation, 1)),
+        ("current_epoch_attestations", List(PendingAttestation, 1)),
         # Crosslinks
-        ('previous_crosslinks', Vector(Crosslink, 1)),
-        ('current_crosslinks', Vector(Crosslink, 1)),
-
+        ("previous_crosslinks", Vector(Crosslink, 1)),
+        ("current_crosslinks", Vector(Crosslink, 1)),
         # Justification
-        ('justification_bits', Bitvector(JUSTIFICATION_BITS_LENGTH)),
-        ('previous_justified_checkpoint', Checkpoint),
-        ('current_justified_checkpoint', Checkpoint),
-
+        ("justification_bits", Bitvector(JUSTIFICATION_BITS_LENGTH)),
+        ("previous_justified_checkpoint", Checkpoint),
+        ("current_justified_checkpoint", Checkpoint),
         # Finality
-        ('finalized_checkpoint', Checkpoint),
+        ("finalized_checkpoint", Checkpoint),
     ]
 
     def __init__(
-            self,
-            *,
-            genesis_time: Timestamp=default_timestamp,
-            slot: Slot=default_slot,
-            fork: Fork=default_fork,
-            latest_block_header: BeaconBlockHeader=default_beacon_block_header,
-            block_roots: Sequence[Hash32]=default_tuple,
-            state_roots: Sequence[Hash32]=default_tuple,
-            historical_roots: Sequence[Hash32]=default_tuple,
-            eth1_data: Eth1Data=default_eth1_data,
-            eth1_data_votes: Sequence[Eth1Data]=default_tuple,
-            eth1_deposit_index: int=0,
-            validators: Sequence[Validator]=default_tuple,
-            balances: Sequence[Gwei]=default_tuple,
-            start_shard: Shard=default_shard,
-            randao_mixes: Sequence[Hash32]=default_tuple,
-            active_index_roots: Sequence[Hash32]=default_tuple,
-            compact_committees_roots: Sequence[Hash32]=default_tuple,
-            slashings: Sequence[Gwei]=default_tuple,
-            previous_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
-            current_epoch_attestations: Sequence[PendingAttestation]=default_tuple,
-            previous_crosslinks: Sequence[Crosslink]=default_tuple,
-            current_crosslinks: Sequence[Crosslink]=default_tuple,
-            justification_bits: Bitfield=default_justification_bits,
-            previous_justified_checkpoint: Checkpoint=default_checkpoint,
-            current_justified_checkpoint: Checkpoint=default_checkpoint,
-            finalized_checkpoint: Checkpoint=default_checkpoint,
-            config: Eth2Config=None) -> None:
+        self,
+        *,
+        genesis_time: Timestamp = default_timestamp,
+        slot: Slot = default_slot,
+        fork: Fork = default_fork,
+        latest_block_header: BeaconBlockHeader = default_beacon_block_header,
+        block_roots: Sequence[Hash32] = default_tuple,
+        state_roots: Sequence[Hash32] = default_tuple,
+        historical_roots: Sequence[Hash32] = default_tuple,
+        eth1_data: Eth1Data = default_eth1_data,
+        eth1_data_votes: Sequence[Eth1Data] = default_tuple,
+        eth1_deposit_index: int = 0,
+        validators: Sequence[Validator] = default_tuple,
+        balances: Sequence[Gwei] = default_tuple,
+        start_shard: Shard = default_shard,
+        randao_mixes: Sequence[Hash32] = default_tuple,
+        active_index_roots: Sequence[Hash32] = default_tuple,
+        compact_committees_roots: Sequence[Hash32] = default_tuple,
+        slashings: Sequence[Gwei] = default_tuple,
+        previous_epoch_attestations: Sequence[PendingAttestation] = default_tuple,
+        current_epoch_attestations: Sequence[PendingAttestation] = default_tuple,
+        previous_crosslinks: Sequence[Crosslink] = default_tuple,
+        current_crosslinks: Sequence[Crosslink] = default_tuple,
+        justification_bits: Bitfield = default_justification_bits,
+        previous_justified_checkpoint: Checkpoint = default_checkpoint,
+        current_justified_checkpoint: Checkpoint = default_checkpoint,
+        finalized_checkpoint: Checkpoint = default_checkpoint,
+        config: Eth2Config = None,
+    ) -> None:
         if len(validators) != len(balances):
             raise ValueError(
                 "The length of validators and balances lists should be the same."
@@ -166,38 +129,36 @@ class BeaconState(ssz.Serializable):
         if config:
             # try to provide sane defaults
             if block_roots == default_tuple:
-                block_roots = default_tuple_of_size(config.SLOTS_PER_HISTORICAL_ROOT, ZERO_HASH32)
+                block_roots = default_tuple_of_size(
+                    config.SLOTS_PER_HISTORICAL_ROOT, ZERO_HASH32
+                )
             if state_roots == default_tuple:
-                state_roots = default_tuple_of_size(config.SLOTS_PER_HISTORICAL_ROOT, ZERO_HASH32)
+                state_roots = default_tuple_of_size(
+                    config.SLOTS_PER_HISTORICAL_ROOT, ZERO_HASH32
+                )
             if randao_mixes == default_tuple:
                 randao_mixes = default_tuple_of_size(
-                    config.EPOCHS_PER_HISTORICAL_VECTOR,
-                    ZERO_HASH32
+                    config.EPOCHS_PER_HISTORICAL_VECTOR, ZERO_HASH32
                 )
             if active_index_roots == default_tuple:
                 active_index_roots = default_tuple_of_size(
-                    config.EPOCHS_PER_HISTORICAL_VECTOR,
-                    ZERO_HASH32
+                    config.EPOCHS_PER_HISTORICAL_VECTOR, ZERO_HASH32
                 )
             if compact_committees_roots == default_tuple:
                 compact_committees_roots = default_tuple_of_size(
-                    config.EPOCHS_PER_HISTORICAL_VECTOR,
-                    ZERO_HASH32
+                    config.EPOCHS_PER_HISTORICAL_VECTOR, ZERO_HASH32
                 )
             if slashings == default_tuple:
                 slashings = default_tuple_of_size(
-                    config.EPOCHS_PER_SLASHINGS_VECTOR,
-                    Gwei(0),
+                    config.EPOCHS_PER_SLASHINGS_VECTOR, Gwei(0)
                 )
             if previous_crosslinks == default_tuple:
                 previous_crosslinks = default_tuple_of_size(
-                    config.SHARD_COUNT,
-                    default_crosslink,
+                    config.SHARD_COUNT, default_crosslink
                 )
             if current_crosslinks == default_tuple:
                 current_crosslinks = default_tuple_of_size(
-                    config.SHARD_COUNT,
-                    default_crosslink,
+                    config.SHARD_COUNT, default_crosslink
                 )
 
         super().__init__(
@@ -235,10 +196,12 @@ class BeaconState(ssz.Serializable):
     def validator_count(self) -> int:
         return len(self.validators)
 
-    def update_validator(self,
-                         validator_index: ValidatorIndex,
-                         validator: Validator,
-                         balance: Gwei=None) -> 'BeaconState':
+    def update_validator(
+        self,
+        validator_index: ValidatorIndex,
+        validator: Validator,
+        balance: Gwei = None,
+    ) -> "BeaconState":
         """
         Replace ``self.validators[validator_index]`` with ``validator``.
 
@@ -246,28 +209,24 @@ class BeaconState(ssz.Serializable):
         ``self.balances[validator_index] with ``balance``.
         """
         if (
-                validator_index >= len(self.validators) or
-                validator_index >= len(self.balances) or
-                validator_index < 0
+            validator_index >= len(self.validators)
+            or validator_index >= len(self.balances)
+            or validator_index < 0
         ):
             raise IndexError("Incorrect validator index")
 
-        state = self.update_validator_with_fn(
-            validator_index,
-            lambda *_: validator,
-        )
+        state = self.update_validator_with_fn(validator_index, lambda *_: validator)
         if balance:
-            return state._update_validator_balance(
-                validator_index,
-                balance,
-            )
+            return state._update_validator_balance(validator_index, balance)
         else:
             return state
 
-    def update_validator_with_fn(self,
-                                 validator_index: ValidatorIndex,
-                                 fn: Callable[[Validator, Any], Validator],
-                                 *args: Any) -> 'BeaconState':
+    def update_validator_with_fn(
+        self,
+        validator_index: ValidatorIndex,
+        fn: Callable[[Validator, Any], Validator],
+        *args: Any,
+    ) -> "BeaconState":
         """
         Replace ``self.validators[validator_index]`` with
         the result of calling ``fn`` on the existing ``validator``.
@@ -279,16 +238,13 @@ class BeaconState(ssz.Serializable):
 
         return self.copy(
             validators=update_tuple_item_with_fn(
-                self.validators,
-                validator_index,
-                fn,
-                *args,
-            ),
+                self.validators, validator_index, fn, *args
+            )
         )
 
-    def _update_validator_balance(self,
-                                  validator_index: ValidatorIndex,
-                                  balance: Gwei) -> 'BeaconState':
+    def _update_validator_balance(
+        self, validator_index: ValidatorIndex, balance: Gwei
+    ) -> "BeaconState":
         """
         Update the balance of validator of the given ``validator_index``.
         """
@@ -296,11 +252,7 @@ class BeaconState(ssz.Serializable):
             raise IndexError("Incorrect validator index")
 
         return self.copy(
-            balances=update_tuple_item(
-                self.balances,
-                validator_index,
-                balance,
-            )
+            balances=update_tuple_item(self.balances, validator_index, balance)
         )
 
     def current_epoch(self, slots_per_epoch: int) -> Epoch:

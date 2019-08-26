@@ -1,9 +1,6 @@
 import random
 
-from hypothesis import (
-    given,
-    strategies as st,
-)
+from hypothesis import given, strategies as st
 import pytest
 
 from eth2._utils.bitfield import (
@@ -16,15 +13,8 @@ from eth2._utils.bitfield import (
 
 
 @pytest.mark.parametrize(
-    'attester_count, bitfield_length',
-    [
-        (0, 0),
-        (1, 1),
-        (8, 1),
-        (9, 2),
-        (16, 2),
-        (17, 3),
-    ]
+    "attester_count, bitfield_length",
+    [(0, 0), (1, 1), (8, 1), (9, 2), (16, 2), (17, 3)],
 )
 def test_bitfield_length(attester_count, bitfield_length):
     assert get_bitfield_length(attester_count) == bitfield_length
@@ -42,24 +32,114 @@ def test_bitfield_single_votes():
     attesters = list(range(10))
     bitfield = get_empty_bitfield(len(attesters))
 
-    assert set_voted(bitfield, 0) == (True, False, False, False, False,
-                                      False, False, False, False, False)
-    assert set_voted(bitfield, 1) == (False, True, False, False, False,
-                                      False, False, False, False, False)
-    assert set_voted(bitfield, 2) == (False, False, True, False, False,
-                                      False, False, False, False, False)
-    assert set_voted(bitfield, 4) == (False, False, False, False, True,
-                                      False, False, False, False, False)
-    assert set_voted(bitfield, 5) == (False, False, False, False, False,
-                                      True, False, False, False, False)
-    assert set_voted(bitfield, 6) == (False, False, False, False, False,
-                                      False, True, False, False, False)
-    assert set_voted(bitfield, 7) == (False, False, False, False, False,
-                                      False, False, True, False, False)
-    assert set_voted(bitfield, 8) == (False, False, False, False, False,
-                                      False, False, False, True, False)
-    assert set_voted(bitfield, 9) == (False, False, False, False, False,
-                                      False, False, False, False, True)
+    assert set_voted(bitfield, 0) == (
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+    )
+    assert set_voted(bitfield, 1) == (
+        False,
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+    )
+    assert set_voted(bitfield, 2) == (
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+    )
+    assert set_voted(bitfield, 4) == (
+        False,
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
+        False,
+        False,
+    )
+    assert set_voted(bitfield, 5) == (
+        False,
+        False,
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
+        False,
+    )
+    assert set_voted(bitfield, 6) == (
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+        False,
+    )
+    assert set_voted(bitfield, 7) == (
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+    )
+    assert set_voted(bitfield, 8) == (
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        True,
+        False,
+    )
+    assert set_voted(bitfield, 9) == (
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        False,
+        True,
+    )
 
     for voter in attesters:
         bitfield = set_voted((False,) * 16, voter)
@@ -84,12 +164,7 @@ def test_bitfield_all_votes():
 
 def test_bitfield_some_votes():
     attesters = list(range(10))
-    voters = [
-        0,  # b'\x01\x00'
-        4,  # b'\x10\x00'
-        5,  # b'\x20\x00'
-        9,  # b'\x00\x02'
-    ]
+    voters = [0, 4, 5, 9]  # b'\x01\x00'  # b'\x10\x00'  # b'\x20\x00'  # b'\x00\x02'
 
     bitfield = get_empty_bitfield(len(attesters))
     for voter in voters:

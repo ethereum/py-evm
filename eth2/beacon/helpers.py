@@ -1,26 +1,12 @@
-from typing import (
-    Callable,
-    Sequence,
-    Set,
-    Tuple,
-    TYPE_CHECKING,
-)
+from typing import Callable, Sequence, Set, Tuple, TYPE_CHECKING
 
-from eth_utils import (
-    ValidationError,
-)
-from eth_typing import (
-    Hash32,
-)
+from eth_utils import ValidationError
+from eth_typing import Hash32
 
 from py_ecc.bls.typing import Domain
 
-from eth2._utils.hash import (
-    hash_eth2,
-)
-from eth2.beacon.signature_domain import (
-    SignatureDomain,
-)
+from eth2._utils.hash import hash_eth2
+from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.typing import (
     Epoch,
     Gwei,
@@ -30,9 +16,7 @@ from eth2.beacon.typing import (
     default_version,
     DomainType,
 )
-from eth2.configs import (
-    CommitteeConfig,
-)
+from eth2.configs import CommitteeConfig
 
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.validators import Validator
@@ -49,8 +33,9 @@ def compute_start_slot_of_epoch(epoch: Epoch, slots_per_epoch: int) -> Slot:
     return Slot(epoch * slots_per_epoch)
 
 
-def get_active_validator_indices(validators: Sequence[Validator],
-                                 epoch: Epoch) -> Tuple[ValidatorIndex, ...]:
+def get_active_validator_indices(
+    validators: Sequence[Validator], epoch: Epoch
+) -> Tuple[ValidatorIndex, ...]:
     """
     Get indices of active validators from ``validators``.
     """
@@ -62,10 +47,11 @@ def get_active_validator_indices(validators: Sequence[Validator],
 
 
 def _get_historical_root(
-        historical_roots: Sequence[Hash32],
-        state_slot: Slot,
-        slot: Slot,
-        slots_per_historical_root: int) -> Hash32:
+    historical_roots: Sequence[Hash32],
+    state_slot: Slot,
+    slot: Slot,
+    slots_per_historical_root: int,
+) -> Hash32:
     """
     Return the historical root at a recent ``slot``.
     """
@@ -84,24 +70,23 @@ def _get_historical_root(
     return historical_roots[slot % slots_per_historical_root]
 
 
-def get_block_root_at_slot(state: 'BeaconState',
-                           slot: Slot,
-                           slots_per_historical_root: int) -> Hash32:
+def get_block_root_at_slot(
+    state: "BeaconState", slot: Slot, slots_per_historical_root: int
+) -> Hash32:
     """
     Return the block root at a recent ``slot``.
     """
     return _get_historical_root(
-        state.block_roots,
-        state.slot,
-        slot,
-        slots_per_historical_root,
+        state.block_roots, state.slot, slot, slots_per_historical_root
     )
 
 
-def get_block_root(state: 'BeaconState',
-                   epoch: Epoch,
-                   slots_per_epoch: int,
-                   slots_per_historical_root: int) -> Hash32:
+def get_block_root(
+    state: "BeaconState",
+    epoch: Epoch,
+    slots_per_epoch: int,
+    slots_per_historical_root: int,
+) -> Hash32:
     return get_block_root_at_slot(
         state,
         compute_start_slot_of_epoch(epoch, slots_per_epoch),
@@ -109,18 +94,18 @@ def get_block_root(state: 'BeaconState',
     )
 
 
-def get_randao_mix(state: 'BeaconState',
-                   epoch: Epoch,
-                   epochs_per_historical_vector: int) -> Hash32:
+def get_randao_mix(
+    state: "BeaconState", epoch: Epoch, epochs_per_historical_vector: int
+) -> Hash32:
     """
     Return the randao mix at a recent ``epoch``.
     """
     return state.randao_mixes[epoch % epochs_per_historical_vector]
 
 
-def get_active_index_root(state: 'BeaconState',
-                          epoch: Epoch,
-                          epochs_per_historical_vector: int) -> Hash32:
+def get_active_index_root(
+    state: "BeaconState", epoch: Epoch, epochs_per_historical_vector: int
+) -> Hash32:
     """
     Return the index root at a recent ``epoch``.
     """
@@ -131,39 +116,39 @@ def _epoch_for_seed(epoch: Epoch) -> Hash32:
     return Hash32(epoch.to_bytes(32, byteorder="little"))
 
 
-RandaoProvider = Callable[['BeaconState', Epoch, int], Hash32]
-ActiveIndexRootProvider = Callable[['BeaconState', Epoch, int], Hash32]
+RandaoProvider = Callable[["BeaconState", Epoch, int], Hash32]
+ActiveIndexRootProvider = Callable[["BeaconState", Epoch, int], Hash32]
 
 
-def _get_seed(state: 'BeaconState',
-              epoch: Epoch,
-              randao_provider: RandaoProvider,
-              active_index_root_provider: ActiveIndexRootProvider,
-              epoch_provider: Callable[[Epoch], Hash32],
-              committee_config: CommitteeConfig) -> Hash32:
+def _get_seed(
+    state: "BeaconState",
+    epoch: Epoch,
+    randao_provider: RandaoProvider,
+    active_index_root_provider: ActiveIndexRootProvider,
+    epoch_provider: Callable[[Epoch], Hash32],
+    committee_config: CommitteeConfig,
+) -> Hash32:
     randao_mix = randao_provider(
         state,
         Epoch(
-            epoch +
-            committee_config.EPOCHS_PER_HISTORICAL_VECTOR -
-            committee_config.MIN_SEED_LOOKAHEAD -
-            1
+            epoch
+            + committee_config.EPOCHS_PER_HISTORICAL_VECTOR
+            - committee_config.MIN_SEED_LOOKAHEAD
+            - 1
         ),
         committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
     )
     active_index_root = active_index_root_provider(
-        state,
-        epoch,
-        committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
+        state, epoch, committee_config.EPOCHS_PER_HISTORICAL_VECTOR
     )
     epoch_as_bytes = epoch_provider(epoch)
 
     return hash_eth2(randao_mix + active_index_root + epoch_as_bytes)
 
 
-def get_seed(state: 'BeaconState',
-             epoch: Epoch,
-             committee_config: CommitteeConfig) -> Hash32:
+def get_seed(
+    state: "BeaconState", epoch: Epoch, committee_config: CommitteeConfig
+) -> Hash32:
     """
     Generate a seed for the given ``epoch``.
     """
@@ -177,18 +162,18 @@ def get_seed(state: 'BeaconState',
     )
 
 
-def get_total_balance(state: 'BeaconState',
-                      validator_indices: Set[ValidatorIndex]) -> Gwei:
+def get_total_balance(
+    state: "BeaconState", validator_indices: Set[ValidatorIndex]
+) -> Gwei:
     """
     Return the combined effective balance of an array of validators.
     """
     return Gwei(
         max(
             sum(
-                state.validators[index].effective_balance
-                for index in validator_indices
+                state.validators[index].effective_balance for index in validator_indices
             ),
-            1
+            1,
         )
     )
 
@@ -207,8 +192,9 @@ def _signature_domain_to_domain_type(s: SignatureDomain) -> DomainType:
     return DomainType(s.to_bytes(4, byteorder="little"))
 
 
-def compute_domain(signature_domain: SignatureDomain,
-                   fork_version: Version=default_version) -> Domain:
+def compute_domain(
+    signature_domain: SignatureDomain, fork_version: Version = default_version
+) -> Domain:
     """
     NOTE: we deviate from the spec here by taking the enum ``SignatureDomain`` and
     converting before creating the domain.
@@ -217,13 +203,17 @@ def compute_domain(signature_domain: SignatureDomain,
     return Domain(domain_type + fork_version)
 
 
-def get_domain(state: 'BeaconState',
-               signature_domain: SignatureDomain,
-               slots_per_epoch: int,
-               message_epoch: Epoch=None) -> Domain:
+def get_domain(
+    state: "BeaconState",
+    signature_domain: SignatureDomain,
+    slots_per_epoch: int,
+    message_epoch: Epoch = None,
+) -> Domain:
     """
     Return the domain number of the current fork and ``domain_type``.
     """
-    epoch = state.current_epoch(slots_per_epoch) if message_epoch is None else message_epoch
+    epoch = (
+        state.current_epoch(slots_per_epoch) if message_epoch is None else message_epoch
+    )
     fork_version = _get_fork_version(state.fork, epoch)
     return compute_domain(signature_domain, fork_version)

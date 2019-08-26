@@ -1,43 +1,30 @@
-from eth2._utils.bls import (
-    bls,
-)
+from eth2._utils.bls import bls
 
-from eth_utils import (
-    ValidationError,
-)
+from eth_utils import ValidationError
 
 from eth2.beacon.helpers import (
     get_active_validator_indices,
     get_domain,
     compute_start_slot_of_epoch,
 )
-from eth2.beacon.committee_helpers import (
-    get_committee_count,
-    get_start_shard,
-)
+from eth2.beacon.committee_helpers import get_committee_count, get_start_shard
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.attestation_data_and_custody_bits import AttestationDataAndCustodyBit
+from eth2.beacon.types.attestation_data_and_custody_bits import (
+    AttestationDataAndCustodyBit,
+)
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import (
-    Slot,
-)
-from eth2.configs import (
-    CommitteeConfig,
-    Eth2Config,
-)
-from eth2.beacon.exceptions import (
-    SignatureError,
-)
+from eth2.beacon.typing import Slot
+from eth2.configs import CommitteeConfig, Eth2Config
+from eth2.beacon.exceptions import SignatureError
 
 
-def get_attestation_data_slot(state: BeaconState,
-                              data: AttestationData,
-                              config: Eth2Config) -> Slot:
+def get_attestation_data_slot(
+    state: BeaconState, data: AttestationData, config: Eth2Config
+) -> Slot:
     active_validator_indices = get_active_validator_indices(
-        state.validators,
-        data.target.epoch,
+        state.validators, data.target.epoch
     )
     committee_count = get_committee_count(
         len(active_validator_indices),
@@ -46,42 +33,34 @@ def get_attestation_data_slot(state: BeaconState,
         config.TARGET_COMMITTEE_SIZE,
     )
     offset = (
-        data.crosslink.shard + config.SHARD_COUNT - get_start_shard(
-            state,
-            data.target.epoch,
-            CommitteeConfig(config),
-        )
+        data.crosslink.shard
+        + config.SHARD_COUNT
+        - get_start_shard(state, data.target.epoch, CommitteeConfig(config))
     ) % config.SHARD_COUNT
     committees_per_slot = committee_count // config.SLOTS_PER_EPOCH
-    return compute_start_slot_of_epoch(
-        data.target.epoch,
-        config.SLOTS_PER_EPOCH,
-    ) + offset // committees_per_slot
+    return (
+        compute_start_slot_of_epoch(data.target.epoch, config.SLOTS_PER_EPOCH)
+        + offset // committees_per_slot
+    )
 
 
-def validate_indexed_attestation_aggregate_signature(state: BeaconState,
-                                                     indexed_attestation: IndexedAttestation,
-                                                     slots_per_epoch: int) -> None:
+def validate_indexed_attestation_aggregate_signature(
+    state: BeaconState, indexed_attestation: IndexedAttestation, slots_per_epoch: int
+) -> None:
     bit_0_indices = indexed_attestation.custody_bit_0_indices
     bit_1_indices = indexed_attestation.custody_bit_1_indices
 
     pubkeys = (
-        bls.aggregate_pubkeys(
-            tuple(state.validators[i].pubkey for i in bit_0_indices)
-        ),
-        bls.aggregate_pubkeys(
-            tuple(state.validators[i].pubkey for i in bit_1_indices)
-        ),
+        bls.aggregate_pubkeys(tuple(state.validators[i].pubkey for i in bit_0_indices)),
+        bls.aggregate_pubkeys(tuple(state.validators[i].pubkey for i in bit_1_indices)),
     )
 
     message_hashes = (
         AttestationDataAndCustodyBit(
-            data=indexed_attestation.data,
-            custody_bit=False
+            data=indexed_attestation.data, custody_bit=False
         ).hash_tree_root,
         AttestationDataAndCustodyBit(
-            data=indexed_attestation.data,
-            custody_bit=True,
+            data=indexed_attestation.data, custody_bit=True
         ).hash_tree_root,
     )
 
@@ -99,10 +78,12 @@ def validate_indexed_attestation_aggregate_signature(state: BeaconState,
     )
 
 
-def validate_indexed_attestation(state: BeaconState,
-                                 indexed_attestation: IndexedAttestation,
-                                 max_validators_per_committee: int,
-                                 slots_per_epoch: int) -> None:
+def validate_indexed_attestation(
+    state: BeaconState,
+    indexed_attestation: IndexedAttestation,
+    max_validators_per_committee: int,
+    slots_per_epoch: int,
+) -> None:
     """
     Derived from spec: `is_valid_indexed_attestation`.
     """
@@ -139,23 +120,28 @@ def validate_indexed_attestation(state: BeaconState,
         )
 
     try:
-        validate_indexed_attestation_aggregate_signature(state,
-                                                         indexed_attestation,
-                                                         slots_per_epoch)
+        validate_indexed_attestation_aggregate_signature(
+            state, indexed_attestation, slots_per_epoch
+        )
     except SignatureError as error:
         raise ValidationError(
-            f"Incorrect aggregate signature on the {indexed_attestation}",
-            error,
+            f"Incorrect aggregate signature on the {indexed_attestation}", error
         )
 
 
-def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationData) -> bool:
+def is_slashable_attestation_data(
+    data_1: AttestationData, data_2: AttestationData
+) -> bool:
     """
     Check if ``data_1`` and ``data_2`` are slashable according to Casper FFG rules.
     """
     return (
         # Double vote
-        (data_1 != data_2 and data_1.target.epoch == data_2.target.epoch) or
+        (data_1 != data_2 and data_1.target.epoch == data_2.target.epoch)
+        or
         # Surround vote
-        (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
+        (
+            data_1.source.epoch < data_2.source.epoch
+            and data_2.target.epoch < data_1.target.epoch
+        )
     )

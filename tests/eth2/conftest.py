@@ -5,9 +5,7 @@ import eth_utils.toolz as toolz
 import pytest
 
 from eth2._utils.bls import bls
-from eth2._utils.hash import (
-    hash_eth2,
-)
+from eth2._utils.hash import hash_eth2
 
 
 def _serialize_bls_pubkeys(key):
@@ -24,10 +22,7 @@ def _deserialize_bls_pubkey(key_data):
 
 def _deserialize_pair(pair):
     index, pubkey = pair
-    return (
-        int(index),
-        _deserialize_bls_pubkey(pubkey),
-    )
+    return (int(index), _deserialize_bls_pubkey(pubkey))
 
 
 class privkey_view:
@@ -47,10 +42,7 @@ class pubkey_view:
 
     def __getitem__(self, index):
         if isinstance(index, slice):
-            return list(
-                self.key_cache._get_pubkey_at(i)
-                for i in range(index.stop)
-            )
+            return list(self.key_cache._get_pubkey_at(i) for i in range(index.stop))
         return self.key_cache._get_pubkey_at(index)
 
 
@@ -69,8 +61,7 @@ class BLSKeyCache:
 
     def _restore_from_cache(self, cached_data):
         self.all_pubkeys_by_index = toolz.itemmap(
-            _deserialize_pair,
-            cached_data["pubkeys_by_index"],
+            _deserialize_pair, cached_data["pubkeys_by_index"]
         )
         for index, pubkey in self.all_pubkeys_by_index.items():
             privkey = self._get_privkey_for(index)
@@ -86,9 +77,8 @@ class BLSKeyCache:
         """
         return {
             "pubkeys_by_index": toolz.valmap(
-                _serialize_bls_pubkeys,
-                self.all_pubkeys_by_index,
-            ),
+                _serialize_bls_pubkeys, self.all_pubkeys_by_index
+            )
         }
 
     def _privkey_view(self):
@@ -113,7 +103,9 @@ class BLSKeyCache:
 
     def _get_privkey_for(self, index):
         # Want privkey an intger slightly less than the curve order
-        privkey = int.from_bytes(hash_eth2(index.to_bytes(32, 'little')), 'little') % 2**254
+        privkey = (
+            int.from_bytes(hash_eth2(index.to_bytes(32, "little")), "little") % 2 ** 254
+        )
         self.all_privkeys_by_index[index] = privkey
         return privkey
 
@@ -173,14 +165,8 @@ def _key_cache(request, _should_persist_bls_keys):
     cache_key = f"eth2/bls/key-cache/{bls.backend.__name__}"
 
     if _should_persist_bls_keys:
-        backing_cache_reader = functools.partial(
-            request.config.cache.get,
-            cache_key,
-        )
-        backing_cache_writer = functools.partial(
-            request.config.cache.set,
-            cache_key,
-        )
+        backing_cache_reader = functools.partial(request.config.cache.get, cache_key)
+        backing_cache_writer = functools.partial(request.config.cache.set, cache_key)
     else:
         backing_cache_reader = None
         backing_cache_writer = None

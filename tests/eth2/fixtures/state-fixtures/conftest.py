@@ -9,7 +9,7 @@ from eth2.beacon.operations.attestation_pool import AttestationPool
 #
 @pytest.fixture(autouse=True)
 def mock_bls(mocker, request):
-    if 'noautofixture' in request.keywords:
+    if "noautofixture" in request.keywords:
         bls.use(PyECCBackend)
     else:
         bls.use_noop_backend()

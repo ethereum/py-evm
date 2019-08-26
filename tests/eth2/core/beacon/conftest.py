@@ -1,26 +1,16 @@
 import pytest
 
-from eth.constants import (
-    ZERO_HASH32,
-)
-from eth_typing import (
-    BLSPubkey,
-)
+from eth.constants import ZERO_HASH32
+from eth_typing import BLSPubkey
 
-from eth2.configs import (
-    Eth2Config,
-    CommitteeConfig,
-    Eth2GenesisConfig,
-)
+from eth2.configs import Eth2Config, CommitteeConfig, Eth2GenesisConfig
 from eth2.beacon.constants import (
     DEPOSIT_CONTRACT_TREE_DEPTH,
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
     JUSTIFICATION_BITS_LENGTH,
 )
-from eth2.beacon.fork_choice.higher_slot import (
-    higher_slot_scoring,
-)
+from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
@@ -31,43 +21,19 @@ from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
 
-from eth2.beacon.genesis import (
-    get_genesis_block,
-)
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_lengths,
-)
-from eth2.beacon.tools.builder.state import (
-    create_mock_genesis_state_from_validators,
-)
-from eth2.beacon.types.blocks import (
-    BeaconBlockBody,
-    BeaconBlockHeader,
-)
-from eth2.beacon.types.forks import (
-    Fork,
-)
-from eth2.beacon.typing import (
-    Gwei,
-    ValidatorIndex,
-    Timestamp,
-    Version,
-)
-from eth2.beacon.state_machines.forks.serenity import (
-    SerenityStateMachine,
-)
-from eth2.beacon.state_machines.forks.serenity.blocks import (
-    SerenityBeaconBlock,
-)
+from eth2.beacon.genesis import get_genesis_block
+from eth2.beacon.tools.misc.ssz_vector import override_lengths
+from eth2.beacon.tools.builder.state import create_mock_genesis_state_from_validators
+from eth2.beacon.types.blocks import BeaconBlockBody, BeaconBlockHeader
+from eth2.beacon.types.forks import Fork
+from eth2.beacon.typing import Gwei, ValidatorIndex, Timestamp, Version
+from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
+from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
-from eth2.beacon.tools.builder.initializer import (
-    create_mock_validator,
-)
+from eth2.beacon.tools.builder.initializer import create_mock_validator
 
-from eth2.beacon.db.chain import (
-    BeaconChainDB,
-)
+from eth2.beacon.db.chain import BeaconChainDB
 
 
 # SSZ
@@ -295,48 +261,50 @@ def deposit_contract_address():
 
 
 @pytest.fixture
-def config(shard_count,
-           target_committee_size,
-           max_validators_per_committee,
-           min_per_epoch_churn_limit,
-           churn_limit_quotient,
-           shuffle_round_count,
-           min_genesis_active_validator_count,
-           min_genesis_time,
-           min_deposit_amount,
-           max_effective_balance,
-           ejection_balance,
-           effective_balance_increment,
-           genesis_slot,
-           genesis_epoch,
-           bls_withdrawal_prefix,
-           seconds_per_slot,
-           min_attestation_inclusion_delay,
-           slots_per_epoch,
-           min_seed_lookahead,
-           activation_exit_delay,
-           slots_per_eth1_voting_period,
-           slots_per_historical_root,
-           min_validator_withdrawability_delay,
-           persistent_committee_period,
-           max_epochs_per_crosslink,
-           min_epochs_to_inactivity_penalty,
-           epochs_per_historical_vector,
-           epochs_per_slashings_vector,
-           historical_roots_limit,
-           validator_registry_limit,
-           base_reward_factor,
-           whistleblower_reward_quotient,
-           proposer_reward_quotient,
-           inactivity_penalty_quotient,
-           min_slashing_penalty_quotient,
-           max_proposer_slashings,
-           max_attester_slashings,
-           max_attestations,
-           max_deposits,
-           max_voluntary_exits,
-           max_transfers,
-           deposit_contract_address):
+def config(
+    shard_count,
+    target_committee_size,
+    max_validators_per_committee,
+    min_per_epoch_churn_limit,
+    churn_limit_quotient,
+    shuffle_round_count,
+    min_genesis_active_validator_count,
+    min_genesis_time,
+    min_deposit_amount,
+    max_effective_balance,
+    ejection_balance,
+    effective_balance_increment,
+    genesis_slot,
+    genesis_epoch,
+    bls_withdrawal_prefix,
+    seconds_per_slot,
+    min_attestation_inclusion_delay,
+    slots_per_epoch,
+    min_seed_lookahead,
+    activation_exit_delay,
+    slots_per_eth1_voting_period,
+    slots_per_historical_root,
+    min_validator_withdrawability_delay,
+    persistent_committee_period,
+    max_epochs_per_crosslink,
+    min_epochs_to_inactivity_penalty,
+    epochs_per_historical_vector,
+    epochs_per_slashings_vector,
+    historical_roots_limit,
+    validator_registry_limit,
+    base_reward_factor,
+    whistleblower_reward_quotient,
+    proposer_reward_quotient,
+    inactivity_penalty_quotient,
+    min_slashing_penalty_quotient,
+    max_proposer_slashings,
+    max_attester_slashings,
+    max_attestations,
+    max_deposits,
+    max_voluntary_exits,
+    max_transfers,
+    deposit_contract_address,
+):
     # adding some config validity conditions here
     # abstract out into the config object?
     assert shard_count >= slots_per_epoch
@@ -402,126 +370,120 @@ def genesis_config(config):
 #
 @pytest.fixture
 def sample_signature():
-    return b'\56' * 96
+    return b"\56" * 96
 
 
 @pytest.fixture
 def sample_fork_params():
     return {
-        'previous_version': Version((0).to_bytes(4, 'little')),
-        'current_version': Version((0).to_bytes(4, 'little')),
-        'epoch': 2**32,
+        "previous_version": Version((0).to_bytes(4, "little")),
+        "current_version": Version((0).to_bytes(4, "little")),
+        "epoch": 2 ** 32,
     }
 
 
 @pytest.fixture
 def sample_validator_record_params():
     return {
-        'pubkey': b'\x67' * 48,
-        'withdrawal_credentials': b'\x01' * 32,
-        'effective_balance': Gwei(32 * GWEI_PER_ETH),
-        'slashed': False,
-        'activation_eligibility_epoch': FAR_FUTURE_EPOCH,
-        'activation_epoch': FAR_FUTURE_EPOCH,
-        'exit_epoch': FAR_FUTURE_EPOCH,
-        'withdrawable_epoch': FAR_FUTURE_EPOCH,
+        "pubkey": b"\x67" * 48,
+        "withdrawal_credentials": b"\x01" * 32,
+        "effective_balance": Gwei(32 * GWEI_PER_ETH),
+        "slashed": False,
+        "activation_eligibility_epoch": FAR_FUTURE_EPOCH,
+        "activation_epoch": FAR_FUTURE_EPOCH,
+        "exit_epoch": FAR_FUTURE_EPOCH,
+        "withdrawable_epoch": FAR_FUTURE_EPOCH,
     }
 
 
 @pytest.fixture
 def sample_crosslink_record_params():
     return {
-        'shard': 0,
-        'parent_root': b'\x34' * 32,
-        'start_epoch': 0,
-        'end_epoch': 1,
-        'data_root': b'\x43' * 32,
+        "shard": 0,
+        "parent_root": b"\x34" * 32,
+        "start_epoch": 0,
+        "end_epoch": 1,
+        "data_root": b"\x43" * 32,
     }
 
 
 @pytest.fixture
 def sample_attestation_data_params(sample_crosslink_record_params):
     return {
-        'beacon_block_root': b'\x11' * 32,
-        'source': Checkpoint(
-            epoch=11,
-            root=b'\x22' * 32,
-        ),
-        'target': Checkpoint(
-            epoch=12,
-            root=b'\x33' * 32,
-        ),
-        'crosslink': Crosslink(**sample_crosslink_record_params),
+        "beacon_block_root": b"\x11" * 32,
+        "source": Checkpoint(epoch=11, root=b"\x22" * 32),
+        "target": Checkpoint(epoch=12, root=b"\x33" * 32),
+        "crosslink": Crosslink(**sample_crosslink_record_params),
     }
 
 
 @pytest.fixture
 def sample_attestation_data_and_custody_bit_params(sample_attestation_data_params):
     return {
-        'data': AttestationData(**sample_attestation_data_params),
-        'custody_bit': False,
+        "data": AttestationData(**sample_attestation_data_params),
+        "custody_bit": False,
     }
 
 
 @pytest.fixture
 def sample_indexed_attestation_params(sample_signature, sample_attestation_data_params):
     return {
-        'custody_bit_0_indices': (10, 11, 12, 15, 28),
-        'custody_bit_1_indices': tuple(),
-        'data': AttestationData(**sample_attestation_data_params),
-        'signature': sample_signature,
+        "custody_bit_0_indices": (10, 11, 12, 15, 28),
+        "custody_bit_1_indices": tuple(),
+        "data": AttestationData(**sample_attestation_data_params),
+        "signature": sample_signature,
     }
 
 
 @pytest.fixture
 def sample_pending_attestation_record_params(sample_attestation_data_params):
     return {
-        'aggregation_bits': (True, False) * 4 * 16,
-        'data': AttestationData(**sample_attestation_data_params),
-        'inclusion_delay': 1,
-        'proposer_index': ValidatorIndex(12),
+        "aggregation_bits": (True, False) * 4 * 16,
+        "data": AttestationData(**sample_attestation_data_params),
+        "inclusion_delay": 1,
+        "proposer_index": ValidatorIndex(12),
     }
 
 
 @pytest.fixture
 def sample_eth1_data_params():
     return {
-        'deposit_root': b'\x43' * 32,
-        'deposit_count': 22,
-        'block_hash': b'\x46' * 32,
+        "deposit_root": b"\x43" * 32,
+        "deposit_count": 22,
+        "block_hash": b"\x46" * 32,
     }
 
 
 @pytest.fixture
 def sample_historical_batch_params(config):
     return {
-        'block_roots': tuple(
+        "block_roots": tuple(
             (bytes([i] * 32) for i in range(config.SLOTS_PER_HISTORICAL_ROOT))
         ),
-        'state_roots': tuple(
+        "state_roots": tuple(
             (bytes([i] * 32) for i in range(config.SLOTS_PER_HISTORICAL_ROOT))
-        )
+        ),
     }
 
 
 @pytest.fixture
 def sample_deposit_data_params(sample_signature):
     return {
-        'pubkey': BLSPubkey(b'\x67' * 48),
-        'withdrawal_credentials': b'\11' * 32,
-        'amount': Gwei(56),
-        'signature': sample_signature,
+        "pubkey": BLSPubkey(b"\x67" * 48),
+        "withdrawal_credentials": b"\11" * 32,
+        "amount": Gwei(56),
+        "signature": sample_signature,
     }
 
 
 @pytest.fixture
 def sample_block_header_params():
     return {
-        'slot': 10,
-        'parent_root': b'\x22' * 32,
-        'state_root': b'\x33' * 32,
-        'body_root': b'\x43' * 32,
-        'signature': b'\x56' * 96,
+        "slot": 10,
+        "parent_root": b"\x22" * 32,
+        "state_root": b"\x33" * 32,
+        "body_root": b"\x43" * 32,
+        "signature": b"\x56" * 96,
     }
 
 
@@ -529,146 +491,133 @@ def sample_block_header_params():
 def sample_proposer_slashing_params(sample_block_header_params):
     block_header_data = BeaconBlockHeader(**sample_block_header_params)
     return {
-        'proposer_index': 1,
-        'header_1': block_header_data,
-        'header_2': block_header_data,
+        "proposer_index": 1,
+        "header_1": block_header_data,
+        "header_2": block_header_data,
     }
 
 
 @pytest.fixture
 def sample_attester_slashing_params(sample_indexed_attestation_params):
-    indexed_attestation = IndexedAttestation(
-        **sample_indexed_attestation_params
-    )
-    return {
-        'attestation_1': indexed_attestation,
-        'attestation_2': indexed_attestation,
-    }
+    indexed_attestation = IndexedAttestation(**sample_indexed_attestation_params)
+    return {"attestation_1": indexed_attestation, "attestation_2": indexed_attestation}
 
 
 @pytest.fixture
 def sample_attestation_params(sample_signature, sample_attestation_data_params):
     return {
-        'aggregation_bits': (True,) * 16,
-        'data': AttestationData(**sample_attestation_data_params),
-        'custody_bits': (False,) * 16,
-        'signature': sample_signature,
+        "aggregation_bits": (True,) * 16,
+        "data": AttestationData(**sample_attestation_data_params),
+        "custody_bits": (False,) * 16,
+        "signature": sample_signature,
     }
 
 
 @pytest.fixture
 def sample_deposit_params(sample_deposit_data_params, deposit_contract_tree_depth):
     return {
-        'proof': (b'\x22' * 32,) * (deposit_contract_tree_depth + 1),
-        'data': DepositData(**sample_deposit_data_params)
+        "proof": (b"\x22" * 32,) * (deposit_contract_tree_depth + 1),
+        "data": DepositData(**sample_deposit_data_params),
     }
 
 
 @pytest.fixture
 def sample_voluntary_exit_params(sample_signature):
-    return {
-        'epoch': 123,
-        'validator_index': 15,
-        'signature': sample_signature,
-    }
+    return {"epoch": 123, "validator_index": 15, "signature": sample_signature}
 
 
 @pytest.fixture
 def sample_transfer_params():
     return {
-        'sender': 10,
-        'recipient': 12,
-        'amount': 10 * 10**9,
-        'fee': 5 * 10**9,
-        'slot': 5,
-        'pubkey': b'\x67' * 48,
-        'signature': b'\x43' * 96,
+        "sender": 10,
+        "recipient": 12,
+        "amount": 10 * 10 ** 9,
+        "fee": 5 * 10 ** 9,
+        "slot": 5,
+        "pubkey": b"\x67" * 48,
+        "signature": b"\x43" * 96,
     }
 
 
 @pytest.fixture
 def sample_beacon_block_body_params(sample_signature, sample_eth1_data_params):
     return {
-        'randao_reveal': sample_signature,
-        'eth1_data': Eth1Data(**sample_eth1_data_params),
-        'graffiti': ZERO_HASH32,
-        'proposer_slashings': (),
-        'attester_slashings': (),
-        'attestations': (),
-        'deposits': (),
-        'voluntary_exits': (),
-        'transfers': (),
+        "randao_reveal": sample_signature,
+        "eth1_data": Eth1Data(**sample_eth1_data_params),
+        "graffiti": ZERO_HASH32,
+        "proposer_slashings": (),
+        "attester_slashings": (),
+        "attestations": (),
+        "deposits": (),
+        "voluntary_exits": (),
+        "transfers": (),
     }
 
 
 @pytest.fixture
-def sample_beacon_block_params(sample_signature, sample_beacon_block_body_params, genesis_slot):
+def sample_beacon_block_params(
+    sample_signature, sample_beacon_block_body_params, genesis_slot
+):
     return {
-        'slot': genesis_slot + 10,
-        'parent_root': ZERO_HASH32,
-        'state_root': b'\x55' * 32,
-        'body': BeaconBlockBody(**sample_beacon_block_body_params),
-        'signature': sample_signature,
+        "slot": genesis_slot + 10,
+        "parent_root": ZERO_HASH32,
+        "state_root": b"\x55" * 32,
+        "body": BeaconBlockBody(**sample_beacon_block_body_params),
+        "signature": sample_signature,
     }
 
 
 @pytest.fixture
-def sample_beacon_state_params(config,
-                               genesis_slot,
-                               genesis_epoch,
-                               sample_fork_params,
-                               sample_eth1_data_params,
-                               sample_block_header_params,
-                               sample_crosslink_record_params):
+def sample_beacon_state_params(
+    config,
+    genesis_slot,
+    genesis_epoch,
+    sample_fork_params,
+    sample_eth1_data_params,
+    sample_block_header_params,
+    sample_crosslink_record_params,
+):
     return {
         # Versioning
-        'genesis_time': 0,
-        'slot': genesis_slot + 100,
-        'fork': Fork(**sample_fork_params),
+        "genesis_time": 0,
+        "slot": genesis_slot + 100,
+        "fork": Fork(**sample_fork_params),
         # History
-        'latest_block_header': BeaconBlockHeader(**sample_block_header_params),
-        'block_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
-        'state_roots': (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
-        'historical_roots': (),
+        "latest_block_header": BeaconBlockHeader(**sample_block_header_params),
+        "block_roots": (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
+        "state_roots": (ZERO_HASH32,) * config.SLOTS_PER_HISTORICAL_ROOT,
+        "historical_roots": (),
         # Eth1
-        'eth1_data': Eth1Data(**sample_eth1_data_params),
-        'eth1_data_votes': (),
-        'eth1_deposit_index': 0,
+        "eth1_data": Eth1Data(**sample_eth1_data_params),
+        "eth1_data_votes": (),
+        "eth1_deposit_index": 0,
         # Registry
-        'validators': (),
-        'balances': (),
+        "validators": (),
+        "balances": (),
         # Shuffling
-        'start_shard': 1,
-        'randao_mixes': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
-        'active_index_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
-        'compact_committees_roots': (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
+        "start_shard": 1,
+        "randao_mixes": (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
+        "active_index_roots": (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
+        "compact_committees_roots": (ZERO_HASH32,)
+        * config.EPOCHS_PER_HISTORICAL_VECTOR,
         # Slashings
-        'slashings': (0,) * config.EPOCHS_PER_SLASHINGS_VECTOR,
+        "slashings": (0,) * config.EPOCHS_PER_SLASHINGS_VECTOR,
         # Attestations
-        'previous_epoch_attestations': (),
-        'current_epoch_attestations': (),
+        "previous_epoch_attestations": (),
+        "current_epoch_attestations": (),
         # Crosslinks
-        'previous_crosslinks': (
+        "previous_crosslinks": (
             (Crosslink(**sample_crosslink_record_params),) * config.SHARD_COUNT
         ),
-        'current_crosslinks': (
+        "current_crosslinks": (
             (Crosslink(**sample_crosslink_record_params),) * config.SHARD_COUNT
         ),
         # Justification
-        'justification_bits': (False,) * JUSTIFICATION_BITS_LENGTH,
-        'previous_justified_checkpoint': Checkpoint(
-            epoch=0,
-            root=b'\x99' * 32,
-        ),
-        'current_justified_checkpoint': Checkpoint(
-            epoch=0,
-            root=b'\x55' * 32,
-        ),
+        "justification_bits": (False,) * JUSTIFICATION_BITS_LENGTH,
+        "previous_justified_checkpoint": Checkpoint(epoch=0, root=b"\x99" * 32),
+        "current_justified_checkpoint": Checkpoint(epoch=0, root=b"\x55" * 32),
         # Finality
-        'finalized_checkpoint': Checkpoint(
-            epoch=0,
-            root=b'\x33' * 32,
-        )
+        "finalized_checkpoint": Checkpoint(epoch=0, root=b"\x33" * 32),
     }
 
 
@@ -696,10 +645,8 @@ def genesis_validators(validator_count, pubkeys, config):
     Returns ``validator_count`` number of activated validators.
     """
     return tuple(
-        create_mock_validator(
-            pubkey=pubkey,
-            config=config,
-        ) for pubkey in pubkeys[:validator_count]
+        create_mock_validator(pubkey=pubkey, config=config)
+        for pubkey in pubkeys[:validator_count]
     )
 
 
@@ -709,30 +656,21 @@ def genesis_balances(validator_count, max_effective_balance):
 
 
 @pytest.fixture
-def genesis_state(genesis_validators,
-                  genesis_balances,
-                  genesis_time,
-                  sample_eth1_data_params,
-                  config):
+def genesis_state(
+    genesis_validators, genesis_balances, genesis_time, sample_eth1_data_params, config
+):
     genesis_eth1_data = Eth1Data(**sample_eth1_data_params).copy(
-        deposit_count=len(genesis_validators),
+        deposit_count=len(genesis_validators)
     )
 
     return create_mock_genesis_state_from_validators(
-        genesis_time,
-        genesis_eth1_data,
-        genesis_validators,
-        genesis_balances,
-        config,
+        genesis_time, genesis_eth1_data, genesis_validators, genesis_balances, config
     )
 
 
 @pytest.fixture
 def genesis_block(genesis_state):
-    return get_genesis_block(
-        genesis_state.hash_tree_root,
-        SerenityBeaconBlock,
-    )
+    return get_genesis_block(genesis_state.hash_tree_root, SerenityBeaconBlock)
 
 
 #
@@ -741,9 +679,9 @@ def genesis_block(genesis_state):
 @pytest.fixture
 def fixture_sm_class(config, fork_choice_scoring):
     return SerenityStateMachine.configure(
-        __name__='SerenityStateMachineForTesting',
+        __name__="SerenityStateMachineForTesting",
         config=config,
-        get_fork_choice_scoring=lambda self: fork_choice_scoring
+        get_fork_choice_scoring=lambda self: fork_choice_scoring,
     )
 
 

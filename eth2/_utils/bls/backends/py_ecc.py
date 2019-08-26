@@ -1,17 +1,9 @@
-from typing import (
-    Sequence,
-)
+from typing import Sequence
 
-from eth_typing import (
-    BLSPubkey,
-    BLSSignature,
-    Hash32,
-)
+from eth_typing import BLSPubkey, BLSSignature, Hash32
 
 
-from eth2._utils.bls.backends.base import (
-    BaseBLSBackend,
-)
+from eth2._utils.bls.backends.base import BaseBLSBackend
 from py_ecc.bls import (
     aggregate_pubkeys,
     aggregate_signatures,
@@ -22,10 +14,7 @@ from py_ecc.bls import (
 )
 from py_ecc.bls.typing import Domain
 
-from eth2.beacon.constants import (
-    EMPTY_PUBKEY,
-    EMPTY_SIGNATURE,
-)
+from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE
 
 
 class PyECCBackend(BaseBLSBackend):
@@ -34,16 +23,13 @@ class PyECCBackend(BaseBLSBackend):
         return privtopub(k)
 
     @staticmethod
-    def sign(message_hash: Hash32,
-             privkey: int,
-             domain: Domain) -> BLSSignature:
+    def sign(message_hash: Hash32, privkey: int, domain: Domain) -> BLSSignature:
         return sign(message_hash, privkey, domain)
 
     @staticmethod
-    def verify(message_hash: Hash32,
-               pubkey: BLSPubkey,
-               signature: BLSSignature,
-               domain: Domain) -> bool:
+    def verify(
+        message_hash: Hash32, pubkey: BLSPubkey, signature: BLSSignature, domain: Domain
+    ) -> bool:
         return verify(message_hash, pubkey, signature, domain)
 
     @staticmethod
@@ -61,8 +47,10 @@ class PyECCBackend(BaseBLSBackend):
         return aggregate_pubkeys(pubkeys)
 
     @staticmethod
-    def verify_multiple(pubkeys: Sequence[BLSPubkey],
-                        message_hashes: Sequence[Hash32],
-                        signature: BLSSignature,
-                        domain: Domain) -> bool:
+    def verify_multiple(
+        pubkeys: Sequence[BLSPubkey],
+        message_hashes: Sequence[Hash32],
+        signature: BLSSignature,
+        domain: Domain,
+    ) -> bool:
         return verify_multiple(pubkeys, message_hashes, signature, domain)

@@ -1,31 +1,13 @@
-from typing import (
-    Sequence,
-    cast,
-)
+from typing import Sequence, cast
 
-from blspy import (
-    AggregationInfo,
-    InsecureSignature,
-    PrivateKey,
-    PublicKey,
-    Signature,
-)
-from eth_typing import (
-    BLSPubkey,
-    BLSSignature,
-    Hash32,
-)
-from eth_utils import (
-    ValidationError,
-)
+from blspy import AggregationInfo, InsecureSignature, PrivateKey, PublicKey, Signature
+from eth_typing import BLSPubkey, BLSSignature, Hash32
+from eth_utils import ValidationError
 
 
 from py_ecc.bls.typing import Domain
 
-from eth2.beacon.constants import (
-    EMPTY_PUBKEY,
-    EMPTY_SIGNATURE,
-)
+from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE
 
 
 def _privkey_from_int(privkey: int) -> PrivateKey:
@@ -54,13 +36,9 @@ def combine_domain(message_hash: Hash32, domain: Domain) -> bytes:
     return message_hash + domain
 
 
-def sign(message_hash: Hash32,
-         privkey: int,
-         domain: Domain) -> BLSSignature:
+def sign(message_hash: Hash32, privkey: int, domain: Domain) -> BLSSignature:
     privkey_chia = _privkey_from_int(privkey)
-    sig_chia = privkey_chia.sign_insecure(
-        combine_domain(message_hash, domain)
-    )
+    sig_chia = privkey_chia.sign_insecure(combine_domain(message_hash, domain))
     sig_chia_bytes = sig_chia.serialize()
     return cast(BLSSignature, sig_chia_bytes)
 
@@ -70,17 +48,13 @@ def privtopub(k: int) -> BLSPubkey:
     return cast(BLSPubkey, privkey_chia.get_public_key().serialize())
 
 
-def verify(message_hash: Hash32,
-           pubkey: BLSPubkey,
-           signature: BLSSignature,
-           domain: Domain) -> bool:
+def verify(
+    message_hash: Hash32, pubkey: BLSPubkey, signature: BLSSignature, domain: Domain
+) -> bool:
     pubkey_chia = _pubkey_from_bytes(pubkey)
     signature_chia = _signature_from_bytes(signature)
     signature_chia.set_aggregation_info(
-        AggregationInfo.from_msg(
-            pubkey_chia,
-            combine_domain(message_hash, domain),
-        )
+        AggregationInfo.from_msg(pubkey_chia, combine_domain(message_hash, domain))
     )
     return cast(bool, signature_chia.verify())
 
@@ -90,8 +64,7 @@ def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignature:
         return EMPTY_SIGNATURE
 
     signatures_chia = [
-        InsecureSignature.from_bytes(signature)
-        for signature in signatures
+        InsecureSignature.from_bytes(signature) for signature in signatures
     ]
     aggregated_signature = InsecureSignature.aggregate(signatures_chia)
     aggregated_signature_bytes = aggregated_signature.serialize()
@@ -101,31 +74,28 @@ def aggregate_signatures(signatures: Sequence[BLSSignature]) -> BLSSignature:
 def aggregate_pubkeys(pubkeys: Sequence[BLSPubkey]) -> BLSPubkey:
     if len(pubkeys) == 0:
         return EMPTY_PUBKEY
-    pubkeys_chia = [
-        _pubkey_from_bytes(pubkey)
-        for pubkey in pubkeys
-    ]
+    pubkeys_chia = [_pubkey_from_bytes(pubkey) for pubkey in pubkeys]
     aggregated_pubkey_chia = PublicKey.aggregate_insecure(pubkeys_chia)
     return cast(BLSPubkey, aggregated_pubkey_chia.serialize())
 
 
-def verify_multiple(pubkeys: Sequence[BLSPubkey],
-                    message_hashes: Sequence[Hash32],
-                    signature: BLSSignature,
-                    domain: Domain) -> bool:
+def verify_multiple(
+    pubkeys: Sequence[BLSPubkey],
+    message_hashes: Sequence[Hash32],
+    signature: BLSSignature,
+    domain: Domain,
+) -> bool:
     len_msgs = len(message_hashes)
     len_pubkeys = len(pubkeys)
 
     if len_pubkeys != len_msgs:
         raise ValueError(
-            "len(pubkeys) (%s) should be equal to len(message_hashes) (%s)" % (
-                len_pubkeys, len_msgs
-            )
+            "len(pubkeys) (%s) should be equal to len(message_hashes) (%s)"
+            % (len_pubkeys, len_msgs)
         )
 
     message_hashes_with_domain = [
-        combine_domain(message_hash, domain)
-        for message_hash in message_hashes
+        combine_domain(message_hash, domain) for message_hash in message_hashes
     ]
     pubkeys_chia = map(_pubkey_from_bytes, pubkeys)
     aggregate_infos = [

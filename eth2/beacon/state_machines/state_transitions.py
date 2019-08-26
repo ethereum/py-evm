@@ -1,11 +1,6 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
+from abc import ABC, abstractmethod
 
-from eth._utils.datatypes import (
-    Configurable,
-)
+from eth._utils.datatypes import Configurable
 
 from eth2.configs import Eth2Config
 from eth2.beacon.types.blocks import BaseBeaconBlock
@@ -20,11 +15,13 @@ class BaseStateTransition(Configurable, ABC):
         self.config = config
 
     @abstractmethod
-    def apply_state_transition(self,
-                               state: BeaconState,
-                               block: BaseBeaconBlock=None,
-                               future_slot: Slot=None,
-                               check_proposer_signature: bool=True) -> BeaconState:
+    def apply_state_transition(
+        self,
+        state: BeaconState,
+        block: BaseBeaconBlock = None,
+        future_slot: Slot = None,
+        check_proposer_signature: bool = True,
+    ) -> BeaconState:
         """
         Applies the state transition function to ``state`` based on data in
         ``block`` or ``future_slot``. The ``block.slot`` or the ``future_slot``

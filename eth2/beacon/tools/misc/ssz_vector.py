@@ -3,9 +3,7 @@ from typing import Dict
 import ssz
 import ssz.sedes as sedes
 
-from eth2.configs import (
-    Eth2Config,
-)
+from eth2.configs import Eth2Config
 
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.blocks import BeaconBlockBody
@@ -40,8 +38,10 @@ def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:
             "active_index_roots": config.EPOCHS_PER_HISTORICAL_VECTOR,
             "compact_committees_roots": config.EPOCHS_PER_HISTORICAL_VECTOR,
             "slashings": config.EPOCHS_PER_SLASHINGS_VECTOR,
-            "previous_epoch_attestations": config.MAX_ATTESTATIONS * config.SLOTS_PER_EPOCH,
-            "current_epoch_attestations": config.MAX_ATTESTATIONS * config.SLOTS_PER_EPOCH,
+            "previous_epoch_attestations": config.MAX_ATTESTATIONS
+            * config.SLOTS_PER_EPOCH,
+            "current_epoch_attestations": config.MAX_ATTESTATIONS
+            * config.SLOTS_PER_EPOCH,
             "previous_crosslinks": config.SHARD_COUNT,
             "current_crosslinks": config.SHARD_COUNT,
         },
@@ -57,9 +57,7 @@ def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:
             "custody_bit_0_indices": config.MAX_VALIDATORS_PER_COMMITTEE,
             "custody_bit_1_indices": config.MAX_VALIDATORS_PER_COMMITTEE,
         },
-        PendingAttestation: {
-            "aggregation_bits": config.MAX_VALIDATORS_PER_COMMITTEE,
-        },
+        PendingAttestation: {"aggregation_bits": config.MAX_VALIDATORS_PER_COMMITTEE},
     }
 
 

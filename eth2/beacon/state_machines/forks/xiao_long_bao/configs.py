@@ -1,6 +1,4 @@
-from eth2.beacon.state_machines.forks.serenity.configs import (
-    SERENITY_CONFIG,
-)
+from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
 
 XIAO_LONG_BAO_CONFIG = SERENITY_CONFIG._replace(
@@ -9,7 +7,7 @@ XIAO_LONG_BAO_CONFIG = SERENITY_CONFIG._replace(
     SHARD_COUNT=4,
     MIN_ATTESTATION_INCLUSION_DELAY=2,
     # Shorten the HISTORICAL lengths to make genesis yaml lighter
-    EPOCHS_PER_HISTORICAL_VECTOR=2**7,
-    SLOTS_PER_HISTORICAL_ROOT=2**4,
-    EPOCHS_PER_SLASHINGS_VECTOR=2**4,
+    EPOCHS_PER_HISTORICAL_VECTOR=2 ** 7,
+    SLOTS_PER_HISTORICAL_ROOT=2 ** 4,
+    EPOCHS_PER_SLASHINGS_VECTOR=2 ** 4,
 )

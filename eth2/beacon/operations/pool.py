@@ -11,7 +11,7 @@ class Operation(Protocol):
     hash_tree_root: HashTreeRoot
 
 
-T = TypeVar('T', bound='Operation')
+T = TypeVar("T", bound="Operation")
 
 
 class OperationPool(Generic[T]):

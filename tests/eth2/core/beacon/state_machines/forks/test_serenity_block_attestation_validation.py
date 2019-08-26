@@ -1,18 +1,10 @@
 import pytest
 
-from eth_utils import (
-    ValidationError,
-)
+from eth_utils import ValidationError
 
-from eth.constants import (
-    ZERO_HASH32,
-)
-from eth2.beacon.committee_helpers import (
-    get_start_shard,
-)
-from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
-)
+from eth.constants import ZERO_HASH32
+from eth2.beacon.committee_helpers import get_start_shard
+from eth2.beacon.helpers import compute_start_slot_of_epoch
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
     _validate_attestation_data,
@@ -26,17 +18,10 @@ from eth2.configs import CommitteeConfig
 
 
 @pytest.mark.parametrize(
-    ('slots_per_epoch', 'min_attestation_inclusion_delay'),
-    [
-        (4, 2),
-    ]
+    ("slots_per_epoch", "min_attestation_inclusion_delay"), [(4, 2)]
 )
 @pytest.mark.parametrize(
-    (
-        'attestation_slot,'
-        'state_slot,'
-        'is_valid,'
-    ),
+    ("attestation_slot," "state_slot," "is_valid,"),
     [
         # in bounds at lower end
         (8, 2 + 8, True),
@@ -46,13 +31,15 @@ from eth2.configs import CommitteeConfig
         (8, 8 + 4 + 1, False),
         # attestation_slot + min_attestation_inclusion_delay > state_slot
         (8, 8 - 2, False),
-    ]
+    ],
 )
-def test_validate_attestation_slot(attestation_slot,
-                                   state_slot,
-                                   slots_per_epoch,
-                                   min_attestation_inclusion_delay,
-                                   is_valid):
+def test_validate_attestation_slot(
+    attestation_slot,
+    state_slot,
+    slots_per_epoch,
+    min_attestation_inclusion_delay,
+    is_valid,
+):
 
     if is_valid:
         validate_attestation_slot(
@@ -73,53 +60,41 @@ def test_validate_attestation_slot(attestation_slot,
 
 @pytest.mark.parametrize(
     (
-        'current_epoch',
-        'previous_justified_epoch',
-        'current_justified_epoch',
-        'slots_per_epoch',
+        "current_epoch",
+        "previous_justified_epoch",
+        "current_justified_epoch",
+        "slots_per_epoch",
     ),
-    [
-        (3, 1, 2, 8)
-    ]
+    [(3, 1, 2, 8)],
 )
 @pytest.mark.parametrize(
-    (
-        'attestation_source_epoch',
-        'attestation_target_epoch',
-        'is_valid',
-    ),
+    ("attestation_source_epoch", "attestation_target_epoch", "is_valid"),
     [
         (2, 3, True),
         # wrong target_epoch
         (0, 1, False),
         # wrong source checkpoint
         (1, 3, False),
-    ]
+    ],
 )
-def test_validate_attestation_data(genesis_state,
-                                   sample_attestation_data_params,
-                                   attestation_source_epoch,
-                                   attestation_target_epoch,
-                                   current_epoch,
-                                   previous_justified_epoch,
-                                   current_justified_epoch,
-                                   slots_per_epoch,
-                                   config,
-                                   is_valid):
+def test_validate_attestation_data(
+    genesis_state,
+    sample_attestation_data_params,
+    attestation_source_epoch,
+    attestation_target_epoch,
+    current_epoch,
+    previous_justified_epoch,
+    current_justified_epoch,
+    slots_per_epoch,
+    config,
+    is_valid,
+):
     state = genesis_state.copy(
         slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch) + 5,
-        previous_justified_checkpoint=Checkpoint(
-            epoch=previous_justified_epoch,
-        ),
-        current_justified_checkpoint=Checkpoint(
-            epoch=current_justified_epoch,
-        ),
+        previous_justified_checkpoint=Checkpoint(epoch=previous_justified_epoch),
+        current_justified_checkpoint=Checkpoint(epoch=current_justified_epoch),
     )
-    start_shard = get_start_shard(
-        state,
-        current_epoch,
-        CommitteeConfig(config),
-    )
+    start_shard = get_start_shard(state, current_epoch, CommitteeConfig(config))
     if attestation_target_epoch == current_epoch:
         crosslinks = state.current_crosslinks
     else:
@@ -127,12 +102,8 @@ def test_validate_attestation_data(genesis_state,
 
     parent_crosslink = crosslinks[start_shard]
     attestation_data = AttestationData(**sample_attestation_data_params).copy(
-        source=Checkpoint(
-            epoch=attestation_source_epoch,
-        ),
-        target=Checkpoint(
-            epoch=attestation_target_epoch,
-        ),
+        source=Checkpoint(epoch=attestation_source_epoch),
+        target=Checkpoint(epoch=attestation_target_epoch),
         crosslink=Crosslink(
             start_epoch=parent_crosslink.end_epoch,
             end_epoch=attestation_target_epoch,
@@ -142,49 +113,27 @@ def test_validate_attestation_data(genesis_state,
     )
 
     if is_valid:
-        _validate_attestation_data(
-            state,
-            attestation_data,
-            config,
-        )
+        _validate_attestation_data(state, attestation_data, config)
     else:
         with pytest.raises(ValidationError):
-            _validate_attestation_data(
-                state,
-                attestation_data,
-                config,
-            )
+            _validate_attestation_data(state, attestation_data, config)
 
 
 @pytest.mark.parametrize(
-    (
-        'mutator',
-        'is_valid',
-    ),
+    ("mutator", "is_valid"),
     [
         (lambda c: c, True),
         # crosslink.start_epoch != end_epoch
-        (lambda c: c.copy(
-            start_epoch=c.start_epoch + 1,
-        ), False),
+        (lambda c: c.copy(start_epoch=c.start_epoch + 1), False),
         # end_epoch does not match expected
-        (lambda c: c.copy(
-            end_epoch=c.start_epoch + 10,
-        ), False),
+        (lambda c: c.copy(end_epoch=c.start_epoch + 10), False),
         # parent_root does not match
-        (lambda c: c.copy(
-            parent_root=b'\x33' * 32,
-        ), False),
+        (lambda c: c.copy(parent_root=b"\x33" * 32), False),
         # data_root is nonzero
-        (lambda c: c.copy(
-            data_root=b'\x33' * 32,
-        ), False),
-    ]
+        (lambda c: c.copy(data_root=b"\x33" * 32), False),
+    ],
 )
-def test_validate_crosslink(genesis_state,
-                            mutator,
-                            is_valid,
-                            config):
+def test_validate_crosslink(genesis_state, mutator, is_valid, config):
     some_shard = 3
     parent = genesis_state.current_crosslinks[some_shard]
     target_epoch = config.GENESIS_EPOCH + 1
@@ -200,10 +149,7 @@ def test_validate_crosslink(genesis_state,
 
     if is_valid:
         _validate_crosslink(
-            candidate_crosslink,
-            target_epoch,
-            parent,
-            config.MAX_EPOCHS_PER_CROSSLINK,
+            candidate_crosslink, target_epoch, parent, config.MAX_EPOCHS_PER_CROSSLINK
         )
     else:
         with pytest.raises(ValidationError):

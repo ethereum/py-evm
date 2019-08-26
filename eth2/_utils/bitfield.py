@@ -1,6 +1,4 @@
-from cytoolz import (
-    curry,
-)
+from cytoolz import curry
 from eth2.beacon.typing import Bitfield
 from .tuple import update_tuple_item
 
@@ -12,13 +10,7 @@ def has_voted(bitfield: Bitfield, index: int) -> bool:
 
 @curry
 def set_voted(bitfield: Bitfield, index: int) -> Bitfield:
-    return Bitfield(
-        update_tuple_item(
-            bitfield,
-            index,
-            True,
-        )
-    )
+    return Bitfield(update_tuple_item(bitfield, index, True))
 
 
 def get_bitfield_length(bit_count: int) -> int:
@@ -32,9 +24,5 @@ def get_empty_bitfield(bit_count: int) -> Bitfield:
 
 def get_vote_count(bitfield: Bitfield) -> int:
     return len(
-        tuple(
-            index
-            for index in range(len(bitfield))
-            if has_voted(bitfield, index)
-        )
+        tuple(index for index in range(len(bitfield)) if has_voted(bitfield, index))
     )

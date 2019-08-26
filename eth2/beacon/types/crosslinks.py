@@ -1,49 +1,35 @@
-from eth_typing import (
-    Hash32,
-)
+from eth_typing import Hash32
 
 import ssz
-from ssz.sedes import (
-    uint64,
-    bytes32,
-)
+from ssz.sedes import uint64, bytes32
 
-from eth2.beacon.constants import (
-    ZERO_HASH32,
-)
-from eth2.beacon.typing import (
-    Epoch,
-    Shard,
-)
-from eth_utils import (
-    encode_hex,
-    humanize_hash,
-)
+from eth2.beacon.constants import ZERO_HASH32
+from eth2.beacon.typing import Epoch, Shard
+from eth_utils import encode_hex, humanize_hash
 
-from .defaults import (
-    default_shard,
-    default_epoch,
-)
+from .defaults import default_shard, default_epoch
 
 
 class Crosslink(ssz.Serializable):
 
     fields = [
-        ('shard', uint64),
-        ('parent_root', bytes32),
+        ("shard", uint64),
+        ("parent_root", bytes32),
         # Crosslinking data from epochs [start....end-1]
-        ('start_epoch', uint64),
-        ('end_epoch', uint64),
+        ("start_epoch", uint64),
+        ("end_epoch", uint64),
         # Root of the crosslinked shard data since the previous crosslink
-        ('data_root', bytes32),
+        ("data_root", bytes32),
     ]
 
-    def __init__(self,
-                 shard: Shard=default_shard,
-                 parent_root: Hash32=ZERO_HASH32,
-                 start_epoch: Epoch=default_epoch,
-                 end_epoch: Epoch=default_epoch,
-                 data_root: Hash32=ZERO_HASH32) -> None:
+    def __init__(
+        self,
+        shard: Shard = default_shard,
+        parent_root: Hash32 = ZERO_HASH32,
+        start_epoch: Epoch = default_epoch,
+        end_epoch: Epoch = default_epoch,
+        data_root: Hash32 = ZERO_HASH32,
+    ) -> None:
         super().__init__(
             shard=shard,
             parent_root=parent_root,
