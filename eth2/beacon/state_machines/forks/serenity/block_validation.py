@@ -12,7 +12,10 @@ from eth2.beacon.attestation_helpers import (
     is_slashable_attestation_data,
     validate_indexed_attestation,
 )
-from eth2.beacon.committee_helpers import get_beacon_proposer_index
+from eth2.beacon.committee_helpers import (
+    get_beacon_proposer_index,
+    get_crosslink_committee,
+)
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import get_indexed_attestation
 from eth2.beacon.exceptions import SignatureError
@@ -397,6 +400,26 @@ def _validate_attestation_data(
     )
 
 
+def _validate_aggregation_bits(
+    state: BeaconState, attestation: Attestation, config: CommitteeConfig
+) -> None:
+    data = attestation.data
+    committee = get_crosslink_committee(
+        state, data.target.epoch, data.crosslink.shard, config
+    )
+    if not (
+        len(attestation.aggregation_bits)
+        == len(attestation.custody_bits)
+        == len(committee)
+    ):
+        raise ValidationError(
+            f"The attestation bit lengths not match:"
+            f"\tlen(attestation.aggregation_bits)={len(attestation.aggregation_bits)}\n"
+            f"\tlen(attestation.custody_bits)={len(attestation.custody_bits)}"
+            f"\tlen(committee)={len(committee)}"
+        )
+
+
 def validate_attestation(
     state: BeaconState, attestation: Attestation, config: Eth2Config
 ) -> None:
@@ -411,6 +434,7 @@ def validate_attestation(
         config.MAX_VALIDATORS_PER_COMMITTEE,
         config.SLOTS_PER_EPOCH,
     )
+    _validate_aggregation_bits(state, attestation, CommitteeConfig(config))
 
 
 #
