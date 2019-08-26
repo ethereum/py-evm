@@ -1,46 +1,24 @@
 import time
-import factory
-from typing import (
-    Any,
-    Type,
-    TypeVar,
-)
-
-from eth2._utils.bls import bls
-
-from eth2._utils.hash import (
-    hash_eth2,
-)
-from eth2.beacon.state_machines.forks.serenity.blocks import (
-    SerenityBeaconBlock,
-)
-from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
-    XIAO_LONG_BAO_CONFIG,
-)
-from eth2.beacon.tools.builder.initializer import (
-    create_mock_genesis,
-)
+from typing import Any, Type, TypeVar
 
 from eth.db.atomic import AtomicDB
-from eth2.beacon.typing import (
-    Timestamp,
-)
-from eth2.beacon.chains.base import (
-    BaseBeaconChain,
-)
-from eth2.beacon.chains.testnet import (
-    TestnetChain,
-)
-from eth2.configs import (
-    Eth2GenesisConfig,
-)
+import factory
 
+from eth2._utils.bls import bls
+from eth2._utils.hash import hash_eth2
+from eth2.beacon.chains.base import BaseBeaconChain
+from eth2.beacon.chains.testnet import TestnetChain
+from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
+from eth2.beacon.state_machines.forks.xiao_long_bao.configs import XIAO_LONG_BAO_CONFIG
+from eth2.beacon.tools.builder.initializer import create_mock_genesis
+from eth2.beacon.typing import Timestamp
+from eth2.configs import Eth2GenesisConfig
 
 NUM_VALIDATORS = 8
 
 
-privkeys = tuple(int.from_bytes(
-    hash_eth2(str(i).encode('utf-8'))[:4], 'big')
+privkeys = tuple(
+    int.from_bytes(hash_eth2(str(i).encode("utf-8"))[:4], "big")
     for i in range(NUM_VALIDATORS)
 )
 index_to_pubkey = {}

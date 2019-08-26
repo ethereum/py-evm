@@ -114,6 +114,10 @@ deps = {
         "milagro-bls-binding==0.1.3",
         "blspy>=0.1.8,<1",  # for `bls_chia`
     ],
+    'eth2-lint': [
+        "black==19.3b0",
+        "isort==4.3.21",
+    ],
 }
 
 # NOTE: Snappy breaks RTD builds. Until we have a more mature solution
@@ -129,7 +133,8 @@ deps['dev'] = (
     deps['test'] +
     deps['doc'] +
     deps['lint'] +
-    deps['eth2']
+    deps['eth2'] +
+    deps['eth2-lint']
 )
 
 

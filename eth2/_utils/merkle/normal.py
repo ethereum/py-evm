@@ -6,40 +6,27 @@ not considered to be part of the tree.
 """
 
 import math
-from typing import (
-    Sequence,
-    Union,
-)
+from typing import Sequence, Union
 
-from cytoolz import (
-    identity,
-    iterate,
-    reduce,
-    take,
-)
+from cytoolz import identity, iterate, reduce, take
+from eth_typing import Hash32
 
-from eth_typing import (
-    Hash32,
-)
+from eth2._utils.hash import hash_eth2
 
-from eth2._utils.hash import (
-    hash_eth2,
-)
 from .common import (  # noqa: F401
+    MerkleProof,
+    MerkleTree,
     _calc_parent_hash,
     _hash_layer,
     get_branch_indices,
     get_merkle_proof,
     get_root,
-    MerkleTree,
-    MerkleProof,
 )
 
 
-def verify_merkle_proof(root: Hash32,
-                        item: Union[bytes, bytearray],
-                        item_index: int,
-                        proof: MerkleProof) -> bool:
+def verify_merkle_proof(
+    root: Hash32, item: Union[bytes, bytearray], item_index: int, proof: MerkleProof
+) -> bool:
     """
     Verify a Merkle proof against a root hash.
     """
@@ -50,7 +37,9 @@ def verify_merkle_proof(root: Hash32,
         for branch_index in branch_indices
     ]
     proof_root = reduce(
-        lambda n1, n2_and_order: _calc_parent_hash(*n2_and_order[1]([n1, n2_and_order[0]])),
+        lambda n1, n2_and_order: _calc_parent_hash(
+            *n2_and_order[1]([n1, n2_and_order[0]])
+        ),
         zip(proof, node_orderers),
         leaf,
     )

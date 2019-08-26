@@ -25,6 +25,9 @@ clean-pyc:
 lint:
 	tox -epy3{6,5}-lint
 
+lint-eth2:
+	tox -epy37-lint-eth2
+
 test:
 	py.test --tb native tests
 

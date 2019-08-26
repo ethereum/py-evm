@@ -1,7 +1,5 @@
 from hashlib import sha256
-from typing import (
-    Union,
-)
+from typing import Union
 
 from eth_typing import Hash32
 

@@ -1,22 +1,16 @@
 import asyncio
-from typing import (
-    NamedTuple,
-)
-
-import pytest
+from typing import NamedTuple
 
 from eth_keys import datatypes
+from libp2p.peer.id import ID
+import pytest
 
-from trinity.protocol.bcc_libp2p.configs import (
-    ResponseCode,
-)
+from trinity.protocol.bcc_libp2p.configs import ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import (
     ReadMessageFailure,
     WriteMessageFailure,
 )
-from trinity.protocol.bcc_libp2p.messages import (
-    HelloRequest,
-)
+from trinity.protocol.bcc_libp2p.messages import HelloRequest
 from trinity.protocol.bcc_libp2p.utils import (
     peer_id_from_pubkey,
     read_req,
@@ -25,18 +19,13 @@ from trinity.protocol.bcc_libp2p.utils import (
     write_resp,
 )
 
-from libp2p.peer.id import (
-    ID,
-)
-
-
 # Wrong type of `fork_version`, which should be `bytes4`.
 invalid_ssz_msg = HelloRequest(fork_version="1")
 
 
 def test_peer_id_from_pubkey():
     pubkey = datatypes.PublicKey(
-        b'n\x85UD\xe9^\xbfo\x05\xd1z\xbd\xe5k\x87Y\xe9\xfa\xb3z:\xf8z\xc5\xd7K\xa6\x00\xbbc\xda4M\x10\x1cO\x88\tl\x82\x7f\xd7\xec6\xd8\xdc\xe2\x9c\xdcG\xa5\xea|\x9e\xc57\xf8G\xbe}\xfa\x10\xe9\x12'  # noqa: E501
+        b"n\x85UD\xe9^\xbfo\x05\xd1z\xbd\xe5k\x87Y\xe9\xfa\xb3z:\xf8z\xc5\xd7K\xa6\x00\xbbc\xda4M\x10\x1cO\x88\tl\x82\x7f\xd7\xec6\xd8\xdc\xe2\x9c\xdcG\xa5\xea|\x9e\xc57\xf8G\xbe}\xfa\x10\xe9\x12"  # noqa: E501
     )
     peer_id_expected = ID.from_base58("QmQiv6sR3qHqhUVgC5qUBVWi8YzM6HknYbu4oQKVAqPCGF")
     assert peer_id_from_pubkey(pubkey) == peer_id_expected
@@ -57,7 +46,7 @@ class FakeNetStream:
         buf = bytearray()
         # Exit with empty bytes directly if `n == 0`.
         if n == 0:
-            return b''
+            return b""
         # Force to blocking wait for first byte.
         buf.extend(await self._queue.get())
         while not self._queue.empty():
@@ -72,12 +61,7 @@ class FakeNetStream:
         return len(data)
 
 
-@pytest.mark.parametrize(
-    "msg",
-    (
-        HelloRequest(),
-    )
-)
+@pytest.mark.parametrize("msg", (HelloRequest(),))
 @pytest.mark.asyncio
 async def test_read_write_req_msg(msg):
     s = FakeNetStream()
@@ -86,12 +70,7 @@ async def test_read_write_req_msg(msg):
     assert msg_read == msg
 
 
-@pytest.mark.parametrize(
-    "msg",
-    (
-        HelloRequest(),
-    )
-)
+@pytest.mark.parametrize("msg", (HelloRequest(),))
 @pytest.mark.asyncio
 async def test_read_write_resp_msg(msg):
     s = FakeNetStream()
@@ -150,7 +129,8 @@ async def test_read_resp_failure(monkeypatch, mock_timeout):
 
     async def _fake_read(n):
         return b""
-    monkeypatch.setattr(s, 'read', _fake_read)
+
+    monkeypatch.setattr(s, "read", _fake_read)
     with pytest.raises(ReadMessageFailure):
         await read_resp(s, HelloRequest)
 

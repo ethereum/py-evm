@@ -1,8 +1,7 @@
 from typing import Dict, Generic, Iterator, Tuple, TypeVar
-from typing_extensions import Protocol
 
 from eth_typing import Hash32
-
+from typing_extensions import Protocol
 
 HashTreeRoot = Hash32
 
@@ -11,7 +10,7 @@ class Operation(Protocol):
     hash_tree_root: HashTreeRoot
 
 
-T = TypeVar('T', bound='Operation')
+T = TypeVar("T", bound="Operation")
 
 
 class OperationPool(Generic[T]):

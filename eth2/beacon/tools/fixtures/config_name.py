@@ -1,9 +1,6 @@
-from typing import (
-    NewType,
-)
+from typing import NewType
 
-
-ConfigName = NewType('ConfigName', str)
+ConfigName = NewType("ConfigName", str)
 
 Mainnet = "mainnet"
 Minimal = "minimal"

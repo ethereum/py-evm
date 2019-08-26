@@ -1,17 +1,7 @@
-from abc import (
-    ABC,
-    abstractmethod,
-)
-from typing import (
-    Sequence,
-)
+from abc import ABC, abstractmethod
+from typing import Sequence
 
-from eth_typing import (
-    BLSPubkey,
-    BLSSignature,
-    Hash32,
-)
-
+from eth_typing import BLSPubkey, BLSSignature, Hash32
 from py_ecc.bls.typing import Domain
 
 
@@ -23,17 +13,14 @@ class BaseBLSBackend(ABC):
 
     @staticmethod
     @abstractmethod
-    def sign(message_hash: Hash32,
-             privkey: int,
-             domain: Domain) -> BLSSignature:
+    def sign(message_hash: Hash32, privkey: int, domain: Domain) -> BLSSignature:
         ...
 
     @staticmethod
     @abstractmethod
-    def verify(message_hash: Hash32,
-               pubkey: BLSPubkey,
-               signature: BLSSignature,
-               domain: Domain) -> bool:
+    def verify(
+        message_hash: Hash32, pubkey: BLSPubkey, signature: BLSSignature, domain: Domain
+    ) -> bool:
         ...
 
     @staticmethod
@@ -48,8 +35,10 @@ class BaseBLSBackend(ABC):
 
     @staticmethod
     @abstractmethod
-    def verify_multiple(pubkeys: Sequence[BLSPubkey],
-                        message_hashes: Sequence[Hash32],
-                        signature: BLSSignature,
-                        domain: Domain) -> bool:
+    def verify_multiple(
+        pubkeys: Sequence[BLSPubkey],
+        message_hashes: Sequence[Hash32],
+        signature: BLSSignature,
+        domain: Domain,
+    ) -> bool:
         ...

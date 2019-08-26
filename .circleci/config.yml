@@ -134,6 +134,18 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-lint
+  py36-lint-eth2:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-lint-eth2
+  py37-lint-eth2:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-lint-eth2
 
   py36-docs:
     <<: *common
@@ -418,6 +430,8 @@ workflows:
       - py36-long_run_integration
 
       - py36-lint
+      - py36-lint-eth2
       - py37-lint
+      - py37-lint-eth2
 
       - docker-image-build-test

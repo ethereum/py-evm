@@ -1,8 +1,6 @@
 import decimal
 
-from eth_typing import (
-    Hash32,
-)
+from eth_typing import Hash32
 
 
 def bitwise_xor(a: Hash32, b: Hash32) -> Hash32:
@@ -22,17 +20,9 @@ def integer_squareroot(value: int) -> int:
     root of a 256-bit integer is a 128-bit integer.
     """
     if not isinstance(value, int) or isinstance(value, bool):
-        raise ValueError(
-            "Value must be an integer: Got: {0}".format(
-                type(value),
-            )
-        )
+        raise ValueError("Value must be an integer: Got: {0}".format(type(value)))
     if value < 0:
-        raise ValueError(
-            "Value cannot be negative: Got: {0}".format(
-                value,
-            )
-        )
+        raise ValueError("Value cannot be negative: Got: {0}".format(value))
 
     with decimal.localcontext() as ctx:
         ctx.prec = 128

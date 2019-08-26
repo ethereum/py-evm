@@ -1,23 +1,19 @@
 import pytest
 
-from eth2.beacon.state_machines.forks.serenity.blocks import (
-    SerenityBeaconBlock,
-)
-from eth2.beacon.tools.builder.proposer import (
-    create_mock_block,
-)
+from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
+from eth2.beacon.tools.builder.proposer import create_mock_block
 from eth2.beacon.types.historical_batch import HistoricalBatch
 
 
 @pytest.mark.parametrize(
     (
-        'validator_count,'
-        'slots_per_epoch,'
-        'min_attestation_inclusion_delay,'
-        'target_committee_size,'
-        'shard_count,'
-        'state_slot,'
-        'slots_per_historical_root'
+        "validator_count,"
+        "slots_per_epoch,"
+        "min_attestation_inclusion_delay,"
+        "target_committee_size,"
+        "shard_count,"
+        "state_slot,"
+        "slots_per_historical_root"
     ),
     [
         (10, 10, 1, 2, 10, 2, 8192),
@@ -35,17 +31,19 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
         # updated_state.slot % SLOTS_PER_HISTORICAL_ROOT = 0
         # (11, 4, 1, 2, 4, 15, 8),
         # (16, 4, 1, 2, 4, 31, 8),
-    ]
+    ],
 )
-def test_per_slot_transition(chaindb,
-                             genesis_block,
-                             genesis_state,
-                             fixture_sm_class,
-                             config,
-                             state_slot,
-                             fork_choice_scoring,
-                             empty_attestation_pool,
-                             keymap):
+def test_per_slot_transition(
+    chaindb,
+    genesis_block,
+    genesis_state,
+    fixture_sm_class,
+    config,
+    state_slot,
+    fork_choice_scoring,
+    empty_attestation_pool,
+    keymap,
+):
     chaindb.persist_block(genesis_block, SerenityBeaconBlock, fork_choice_scoring)
     chaindb.persist_state(genesis_state)
 
@@ -56,9 +54,7 @@ def test_per_slot_transition(chaindb,
         state=state,
         config=config,
         state_machine=fixture_sm_class(
-            chaindb,
-            empty_attestation_pool,
-            genesis_block.slot,
+            chaindb, empty_attestation_pool, genesis_block.slot
         ),
         block_class=SerenityBeaconBlock,
         parent_block=genesis_block,
@@ -70,11 +66,7 @@ def test_per_slot_transition(chaindb,
     chaindb.persist_block(block, SerenityBeaconBlock, fork_choice_scoring)
 
     # Get state machine instance
-    sm = fixture_sm_class(
-        chaindb,
-        empty_attestation_pool,
-        block.slot,
-    )
+    sm = fixture_sm_class(chaindb, empty_attestation_pool, block.slot)
 
     # Get state transition instance
     st = sm.state_transition_class(sm.config)
@@ -94,8 +86,7 @@ def test_per_slot_transition(chaindb,
     # historical_roots
     if updated_state.slot % st.config.SLOTS_PER_HISTORICAL_ROOT == 0:
         historical_batch = HistoricalBatch(
-            block_roots=state.block_roots,
-            state_roots=state.state_roots,
+            block_roots=state.block_roots, state_roots=state.state_roots
         )
         assert updated_state.historical_roots[-1] == historical_batch.hash_tree_root
     else:
