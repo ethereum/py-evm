@@ -1,43 +1,39 @@
 from typing import Any, Callable, Sequence
 
+from eth.constants import ZERO_HASH32
 from eth_typing import Hash32
 from eth_utils import encode_hex
-
 import ssz
 from ssz.sedes import Bitvector, List, Vector, bytes32, uint64
 
-from eth.constants import ZERO_HASH32
-
 from eth2._utils.tuple import update_tuple_item, update_tuple_item_with_fn
-from eth2.configs import Eth2Config
 from eth2.beacon.constants import JUSTIFICATION_BITS_LENGTH
 from eth2.beacon.helpers import compute_epoch_of_slot
 from eth2.beacon.typing import (
+    Bitfield,
     Epoch,
     Gwei,
     Shard,
     Slot,
     Timestamp,
     ValidatorIndex,
-    Bitfield,
 )
+from eth2.configs import Eth2Config
 
 from .block_headers import BeaconBlockHeader, default_beacon_block_header
-from .eth1_data import Eth1Data, default_eth1_data
 from .checkpoints import Checkpoint, default_checkpoint
 from .crosslinks import Crosslink, default_crosslink
+from .defaults import (
+    default_shard,
+    default_slot,
+    default_timestamp,
+    default_tuple,
+    default_tuple_of_size,
+)
+from .eth1_data import Eth1Data, default_eth1_data
 from .forks import Fork, default_fork
 from .pending_attestations import PendingAttestation
 from .validators import Validator
-
-from .defaults import (
-    default_timestamp,
-    default_slot,
-    default_tuple,
-    default_tuple_of_size,
-    default_shard,
-)
-
 
 default_justification_bits = Bitfield((False,) * JUSTIFICATION_BITS_LENGTH)
 

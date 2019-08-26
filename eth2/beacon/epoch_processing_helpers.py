@@ -1,8 +1,7 @@
 from typing import Iterable, Sequence, Set, Tuple
 
 from eth_typing import Hash32
-
-from eth_utils import to_tuple, ValidationError
+from eth_utils import ValidationError, to_tuple
 from eth_utils.toolz import curry, groupby, thread_first
 
 from eth2._utils.bitfield import Bitfield, has_voted
@@ -11,7 +10,6 @@ from eth2._utils.tuple import update_tuple_item_with_fn
 from eth2.beacon.attestation_helpers import get_attestation_data_slot
 from eth2.beacon.committee_helpers import get_crosslink_committee
 from eth2.beacon.constants import BASE_REWARDS_PER_EPOCH
-from eth2.configs import Eth2Config, CommitteeConfig
 from eth2.beacon.exceptions import InvalidEpochError
 from eth2.beacon.helpers import (
     get_active_validator_indices,
@@ -19,13 +17,13 @@ from eth2.beacon.helpers import (
     get_block_root_at_slot,
     get_total_balance,
 )
-from eth2.beacon.typing import Epoch, Gwei, Shard, ValidatorIndex
-
+from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
-from eth2.beacon.types.attestations import Attestation, IndexedAttestation
-from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.typing import Epoch, Gwei, Shard, ValidatorIndex
+from eth2.configs import CommitteeConfig, Eth2Config
 
 
 def increase_balance(

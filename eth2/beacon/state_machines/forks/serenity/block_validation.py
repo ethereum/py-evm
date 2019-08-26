@@ -1,26 +1,25 @@
-from typing import cast, Iterable, Sequence, Tuple  # noqa: F401
-
-from eth_typing import BLSPubkey, BLSSignature, Hash32
-from eth_utils import encode_hex, ValidationError
-import ssz
+from typing import Iterable, Sequence, Tuple, cast  # noqa: F401
 
 from eth.constants import ZERO_HASH32
-from eth2._utils.hash import hash_eth2
-from eth2._utils.bls import bls
+from eth_typing import BLSPubkey, BLSSignature, Hash32
+from eth_utils import ValidationError, encode_hex
+import ssz
 
-from eth2.configs import CommitteeConfig
+from eth2._utils.bls import bls
+from eth2._utils.hash import hash_eth2
 from eth2.beacon.attestation_helpers import (
     get_attestation_data_slot,
-    validate_indexed_attestation,
     is_slashable_attestation_data,
+    validate_indexed_attestation,
 )
 from eth2.beacon.committee_helpers import get_beacon_proposer_index
-from eth2.beacon.epoch_processing_helpers import get_indexed_attestation
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
+from eth2.beacon.epoch_processing_helpers import get_indexed_attestation
+from eth2.beacon.exceptions import SignatureError
+from eth2.beacon.helpers import compute_epoch_of_slot, get_domain
 from eth2.beacon.signature_domain import SignatureDomain
-from eth2.beacon.helpers import get_domain, compute_epoch_of_slot
-from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
@@ -28,11 +27,10 @@ from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.transfers import Transfer
-from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.types.validators import Validator
+from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.typing import Epoch, Shard, Slot
-from eth2.configs import Eth2Config
-from eth2.beacon.exceptions import SignatureError
+from eth2.configs import CommitteeConfig, Eth2Config
 
 
 def validate_correct_number_of_deposits(

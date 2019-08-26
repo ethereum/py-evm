@@ -1,9 +1,9 @@
 import ssz
 from ssz.sedes import uint64
 
-from .block_headers import BeaconBlockHeader, default_beacon_block_header
 from eth2.beacon.typing import ValidatorIndex
 
+from .block_headers import BeaconBlockHeader, default_beacon_block_header
 from .defaults import default_validator_index
 
 

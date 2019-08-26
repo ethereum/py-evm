@@ -3,19 +3,15 @@
 import asyncio
 from collections import defaultdict
 import logging
+from pathlib import Path
 import signal
 import sys
 import time
 from typing import ClassVar, Dict, List, MutableSet, NamedTuple, Optional, Tuple
 
-from pathlib import Path
-
-from libp2p.peer.id import ID
-
 from eth_keys.datatypes import PrivateKey
-
 from eth_utils import remove_0x_prefix
-
+from libp2p.peer.id import ID
 from multiaddr import Multiaddr
 
 from trinity.protocol.bcc_libp2p.utils import peer_id_from_pubkey

@@ -2,28 +2,28 @@ from typing import Tuple
 
 from eth_utils import ValidationError
 
-from eth2.configs import Eth2Config, CommitteeConfig
+from eth2.beacon.attestation_helpers import get_attestation_data_slot
+from eth2.beacon.committee_helpers import get_beacon_proposer_index
+from eth2.beacon.deposit_helpers import process_deposit
+from eth2.beacon.epoch_processing_helpers import decrease_balance, increase_balance
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.pending_attestations import PendingAttestation
+from eth2.beacon.types.states import BeaconState
 from eth2.beacon.validator_status_helpers import (
     initiate_validator_exit,
     slash_validator,
 )
-from eth2.beacon.attestation_helpers import get_attestation_data_slot
-from eth2.beacon.committee_helpers import get_beacon_proposer_index
-from eth2.beacon.epoch_processing_helpers import increase_balance, decrease_balance
-from eth2.beacon.types.blocks import BaseBeaconBlock
-from eth2.beacon.types.pending_attestations import PendingAttestation
-from eth2.beacon.types.states import BeaconState
-from eth2.beacon.deposit_helpers import process_deposit
+from eth2.configs import CommitteeConfig, Eth2Config
 
 from .block_validation import (
     validate_attestation,
     validate_attester_slashing,
-    validate_proposer_slashing,
-    validate_voluntary_exit,
     validate_correct_number_of_deposits,
+    validate_proposer_slashing,
     validate_some_slashing,
     validate_transfer,
     validate_unique_transfers,
+    validate_voluntary_exit,
 )
 
 

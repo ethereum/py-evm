@@ -1,8 +1,8 @@
-from typing import Sequence
 from dataclasses import dataclass
+from typing import Sequence
 
-from eth2.configs import Eth2Config
 from eth2.beacon.tools.fixtures.test_case import BaseTestCase
+from eth2.configs import Eth2Config
 
 
 @dataclass

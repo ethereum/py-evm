@@ -1,7 +1,6 @@
 import functools
 
 import eth_utils.toolz as toolz
-
 import pytest
 
 from eth2._utils.bls import bls

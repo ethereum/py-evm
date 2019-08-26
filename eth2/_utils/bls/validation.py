@@ -1,8 +1,10 @@
-from py_ecc.optimized_bls12_381 import curve_order
-from eth_typing import BLSSignature, BLSPubkey
-from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE
-from eth2.beacon.exceptions import SignatureError, PublicKeyError
 from typing import Sequence
+
+from eth_typing import BLSPubkey, BLSSignature
+from py_ecc.optimized_bls12_381 import curve_order
+
+from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE
+from eth2.beacon.exceptions import PublicKeyError, SignatureError
 
 
 def validate_private_key(privkey: int) -> None:

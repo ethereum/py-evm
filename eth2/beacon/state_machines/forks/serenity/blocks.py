@@ -1,6 +1,5 @@
-from eth2.beacon.typing import FromBlockParams
-
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock
+from eth2.beacon.typing import FromBlockParams
 
 
 class SerenityBeaconBlock(BeaconBlock):

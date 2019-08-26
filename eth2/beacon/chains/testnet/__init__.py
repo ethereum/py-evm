@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING
+
 from eth2.beacon.chains.base import BeaconChain
 from eth2.beacon.state_machines.forks.xiao_long_bao import XiaoLongBaoStateMachine
+
 from .constants import TESTNET_CHAIN_ID
 
 if TYPE_CHECKING:

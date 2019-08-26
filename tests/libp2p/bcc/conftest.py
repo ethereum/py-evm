@@ -3,11 +3,8 @@ import asyncio
 import pytest
 
 from eth2.beacon.tools.factories import BeaconChainFactory
-
 from trinity.protocol.bcc_libp2p import utils
-
 from trinity.tools.bcc_factories import NodeFactory
-
 
 MOCK_TIME = 0.01
 

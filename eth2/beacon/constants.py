@@ -1,7 +1,7 @@
 from eth.constants import ZERO_HASH32
-from eth_typing import BLSSignature, BLSPubkey
-from eth2.beacon.typing import Epoch, Timestamp
+from eth_typing import BLSPubkey, BLSSignature
 
+from eth2.beacon.typing import Epoch, Timestamp
 
 EMPTY_SIGNATURE = BLSSignature(b"\x00" * 96)
 EMPTY_PUBKEY = BLSPubkey(b"\x00" * 48)

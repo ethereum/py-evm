@@ -1,9 +1,7 @@
+from eth_utils import ValidationError
 import pytest
 
-from eth_utils import ValidationError
-
 from eth2.beacon.deposit_helpers import process_deposit, validate_deposit_proof
-
 from eth2.beacon.tools.builder.initializer import create_mock_deposit
 
 

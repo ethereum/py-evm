@@ -1,8 +1,23 @@
+from eth_utils import ValidationError
 import pytest
 
-from eth_utils import ValidationError
-
 from eth2.beacon.exceptions import SignatureError
+from eth2.beacon.state_machines.forks.serenity.operation_processing import (
+    process_attestations,
+    process_attester_slashings,
+    process_deposits,
+    process_proposer_slashings,
+    process_transfers,
+    process_voluntary_exits,
+)
+from eth2.beacon.tools.fixtures.config_name import ONLY_MINIMAL
+from eth2.beacon.tools.fixtures.helpers import validate_state
+from eth2.beacon.tools.fixtures.loading import (
+    get_bls_setting,
+    get_operation_or_header,
+    get_states,
+)
+from eth2.beacon.tools.fixtures.test_case import OperationCase
 from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
@@ -12,28 +27,8 @@ from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
-
-
-from eth2.beacon.tools.fixtures.config_name import ONLY_MINIMAL
-from eth2.beacon.tools.fixtures.helpers import validate_state
-from eth2.beacon.state_machines.forks.serenity.operation_processing import (
-    process_attestations,
-    process_attester_slashings,
-    process_deposits,
-    process_proposer_slashings,
-    process_transfers,
-    process_voluntary_exits,
-)
-from eth2.beacon.tools.fixtures.loading import (
-    get_bls_setting,
-    get_operation_or_header,
-    get_states,
-)
-from eth2.beacon.tools.fixtures.test_case import OperationCase
-
 from tests.eth2.fixtures.helpers import get_test_cases
 from tests.eth2.fixtures.path import BASE_FIXTURE_PATH, ROOT_PROJECT_DIR
-
 
 # Test files
 RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / "operations"

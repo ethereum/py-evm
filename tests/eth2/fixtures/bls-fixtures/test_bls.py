@@ -1,8 +1,9 @@
-from typing import Tuple
 from dataclasses import dataclass
-import pytest
+from typing import Tuple
 
+from eth_typing import BLSPubkey, BLSSignature, Hash32
 from py_ecc.bls.typing import Domain
+import pytest
 
 from eth2._utils.bls import bls
 from eth2._utils.bls.backends import MilagroBackend
@@ -15,12 +16,8 @@ from eth2.beacon.tools.fixtures.loading import (
     get_output_bls_signature,
 )
 from eth2.beacon.tools.fixtures.test_case import BaseTestCase
-from eth_typing import BLSPubkey, BLSSignature, Hash32
-
-
 from tests.eth2.fixtures.helpers import get_test_cases
 from tests.eth2.fixtures.path import BASE_FIXTURE_PATH, ROOT_PROJECT_DIR
-
 
 # Test files
 RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / "bls"

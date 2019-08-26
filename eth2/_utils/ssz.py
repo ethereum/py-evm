@@ -1,9 +1,8 @@
 from typing import Iterable, Optional, Tuple
 
-import ssz
-
-from eth_utils import to_tuple, ValidationError
+from eth_utils import ValidationError, to_tuple
 from eth_utils.toolz import curry
+import ssz
 
 from eth2.beacon.types.blocks import BaseBeaconBlock
 

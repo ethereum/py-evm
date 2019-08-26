@@ -1,6 +1,5 @@
-import pytest
-
 from eth_utils import ValidationError
+import pytest
 
 from eth2._utils.tuple import update_tuple_item
 

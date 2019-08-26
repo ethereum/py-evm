@@ -1,6 +1,5 @@
 from typing import NewType
 
-
 ConfigName = NewType("ConfigName", str)
 
 Mainnet = "mainnet"

@@ -1,12 +1,11 @@
+from eth_utils import ValidationError
 import pytest
 
-from eth_utils import ValidationError
-
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
+    validate_block_header_signature,
     validate_proposer_slashing,
     validate_proposer_slashing_epoch,
     validate_proposer_slashing_headers,
-    validate_block_header_signature,
 )
 from eth2.beacon.tools.builder.validator import create_mock_proposer_slashing_at_block
 

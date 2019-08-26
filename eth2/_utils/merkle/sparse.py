@@ -5,21 +5,22 @@ only a single element, the leaves as many as there are data items in the tree. T
 not considered to be part of the tree.
 """
 
-from typing import Sequence, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence, Union
 
+from eth_typing import Hash32
 from eth_utils.toolz import cons, iterate, take
+
 from eth2._utils.hash import hash_eth2
 from eth2._utils.tuple import update_tuple_item
-from eth_typing import Hash32
 
 from .common import (  # noqa: F401
+    MerkleProof,
+    MerkleTree,
     _calc_parent_hash,
     _hash_layer,
     get_branch_indices,
     get_merkle_proof,
     get_root,
-    MerkleTree,
-    MerkleProof,
 )
 
 if TYPE_CHECKING:

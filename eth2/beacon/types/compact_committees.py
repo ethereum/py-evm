@@ -1,9 +1,8 @@
 from typing import Sequence
 
 from eth_typing import BLSPubkey
-
 import ssz
-from ssz.sedes import bytes48, List, uint64
+from ssz.sedes import List, bytes48, uint64
 
 from .defaults import default_tuple
 

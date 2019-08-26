@@ -1,6 +1,5 @@
 from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
 
-
 XIAO_LONG_BAO_CONFIG = SERENITY_CONFIG._replace(
     SLOTS_PER_EPOCH=4,
     TARGET_COMMITTEE_SIZE=2,

@@ -1,26 +1,25 @@
+from eth_utils import ValidationError
 import pytest
 
-from eth_utils import ValidationError
-
-from eth2.configs import CommitteeConfig
 from eth2.beacon.committee_helpers import get_beacon_proposer_index
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.helpers import compute_start_slot_of_epoch
-from eth2.beacon.types.blocks import BeaconBlockBody
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_attestations,
-    process_proposer_slashings,
     process_attester_slashings,
+    process_proposer_slashings,
     process_voluntary_exits,
 )
 from eth2.beacon.tools.builder.validator import (
     create_mock_attester_slashing_is_double_vote,
-    create_mock_signed_attestations_at_slot,
     create_mock_proposer_slashing_at_block,
+    create_mock_signed_attestations_at_slot,
     create_mock_voluntary_exit,
 )
+from eth2.beacon.types.blocks import BeaconBlockBody
+from eth2.beacon.types.crosslinks import Crosslink
+from eth2.configs import CommitteeConfig
 
 
 @pytest.mark.parametrize(("validator_count,"), [(100)])

@@ -1,8 +1,8 @@
+from typing import Tuple, Type  # noqa: F401
+
+from .base import BaseBLSBackend  # noqa: F401
 from .noop import NoOpBackend
 from .py_ecc import PyECCBackend
-from .base import BaseBLSBackend  # noqa: F401
-from typing import Type, Tuple  # noqa: F401
-
 
 AVAILABLE_BACKENDS = (
     NoOpBackend,

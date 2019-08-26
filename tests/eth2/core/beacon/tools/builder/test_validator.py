@@ -1,12 +1,12 @@
-import pytest
-from hypothesis import given, settings, strategies as st
-
 from eth_utils import ValidationError
+from hypothesis import given, settings
+from hypothesis import strategies as st
+import pytest
 
+from eth2._utils.bitfield import get_empty_bitfield, has_voted
 from eth2._utils.bls import bls
 from eth2._utils.bls.backends.chia import ChiaBackend
 from eth2._utils.bls.backends.milagro import MilagroBackend
-from eth2._utils.bitfield import get_empty_bitfield, has_voted
 from eth2.beacon.helpers import compute_domain
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.tools.builder.validator import aggregate_votes, verify_votes

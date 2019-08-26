@@ -1,13 +1,12 @@
 from eth_typing import Hash32
-
+from eth_utils import encode_hex, humanize_hash
 import ssz
-from ssz.sedes import uint64, bytes32
+from ssz.sedes import bytes32, uint64
 
 from eth2.beacon.constants import ZERO_HASH32
 from eth2.beacon.typing import Epoch, Shard
-from eth_utils import encode_hex, humanize_hash
 
-from .defaults import default_shard, default_epoch
+from .defaults import default_epoch, default_shard
 
 
 class Crosslink(ssz.Serializable):

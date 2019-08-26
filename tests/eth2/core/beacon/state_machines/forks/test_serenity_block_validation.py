@@ -1,18 +1,18 @@
-import pytest
 from eth_utils import ValidationError
+import pytest
+
 from eth2._utils.bls import bls
-from eth2.configs import CommitteeConfig
+from eth2.beacon.helpers import compute_start_slot_of_epoch, get_domain
 from eth2.beacon.signature_domain import SignatureDomain
-from eth2.beacon.helpers import get_domain, compute_start_slot_of_epoch
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_block_slot,
     validate_proposer_signature,
     validate_randao_reveal,
 )
+from eth2.beacon.tools.builder.initializer import create_mock_validator
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.states import BeaconState
-
-from eth2.beacon.tools.builder.initializer import create_mock_validator
+from eth2.configs import CommitteeConfig
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,5 @@
 import random
 
-import pytest
 from eth_utils import to_dict
 from eth_utils.toolz import (
     first,
@@ -11,6 +10,7 @@ from eth_utils.toolz import (
     second,
     sliding_window,
 )
+import pytest
 
 from eth2._utils import bitfield
 from eth2.beacon.attestation_helpers import get_attestation_data_slot
@@ -27,8 +27,8 @@ from eth2.beacon.fork_choice.lmd_ghost import (
     score_block_by_root,
 )
 from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
     compute_epoch_of_slot,
+    compute_start_slot_of_epoch,
     get_active_validator_indices,
 )
 from eth2.beacon.tools.builder.validator import get_crosslink_committees_at_slot

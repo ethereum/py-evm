@@ -2,7 +2,6 @@ from typing import NamedTuple
 
 from eth2.beacon.typing import Epoch, Gwei, Second, Slot
 
-
 Eth2Config = NamedTuple(
     "Eth2Config",
     (

@@ -1,20 +1,18 @@
 import time
-import factory
 from typing import Any, Type, TypeVar
 
-from eth2._utils.bls import bls
+from eth.db.atomic import AtomicDB
+import factory
 
+from eth2._utils.bls import bls
 from eth2._utils.hash import hash_eth2
+from eth2.beacon.chains.base import BaseBeaconChain
+from eth2.beacon.chains.testnet import TestnetChain
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import XIAO_LONG_BAO_CONFIG
 from eth2.beacon.tools.builder.initializer import create_mock_genesis
-
-from eth.db.atomic import AtomicDB
 from eth2.beacon.typing import Timestamp
-from eth2.beacon.chains.base import BaseBeaconChain
-from eth2.beacon.chains.testnet import TestnetChain
 from eth2.configs import Eth2GenesisConfig
-
 
 NUM_VALIDATORS = 8
 

@@ -1,16 +1,16 @@
 import random
 
+from eth_utils.toolz import first, groupby, update_in
 import pytest
 
-from eth_utils.toolz import first, update_in, groupby
-
-from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.committee_helpers import get_beacon_proposer_index
-from eth2.beacon.helpers import compute_start_slot_of_epoch
+from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import (
     compute_activation_exit_epoch,
     get_validator_churn_limit,
 )
+from eth2.beacon.helpers import compute_start_slot_of_epoch
+from eth2.beacon.tools.builder.initializer import create_mock_validator
 from eth2.beacon.validator_status_helpers import (
     _compute_exit_queue_epoch,
     _set_validator_slashed,
@@ -18,7 +18,6 @@ from eth2.beacon.validator_status_helpers import (
     initiate_exit_for_validator,
     slash_validator,
 )
-from eth2.beacon.tools.builder.initializer import create_mock_validator
 from eth2.configs import CommitteeConfig
 
 

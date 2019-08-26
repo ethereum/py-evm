@@ -1,5 +1,6 @@
+from hypothesis import given
+from hypothesis import strategies as st
 import pytest
-from hypothesis import given, strategies as st
 
 from eth2._utils.numeric import integer_squareroot
 

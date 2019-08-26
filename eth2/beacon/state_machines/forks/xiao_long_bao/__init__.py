@@ -1,5 +1,5 @@
-from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
+from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.state_machines.base import BeaconStateMachine
 from eth2.beacon.state_machines.forks.serenity.blocks import (
     SerenityBeaconBlock,

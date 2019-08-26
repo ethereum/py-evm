@@ -1,14 +1,13 @@
-import pytest
-
 from eth_utils import ValidationError
+import pytest
 
 from eth2._utils.hash import hash_eth2
 from eth2._utils.merkle.normal import (
-    get_merkle_root_from_items,
     calc_merkle_tree,
-    get_root,
     get_merkle_proof,
     get_merkle_root,
+    get_merkle_root_from_items,
+    get_root,
     verify_merkle_proof,
 )
 

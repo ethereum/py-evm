@@ -1,19 +1,18 @@
 from typing import Iterable, Sequence, Tuple
 
-from eth_utils import to_tuple, ValidationError
-from eth_typing import Hash32, BLSPubkey
-
+from eth_typing import BLSPubkey, Hash32
+from eth_utils import ValidationError, to_tuple
 import ssz
 
 from eth2._utils.hash import hash_eth2
 from eth2._utils.tuple import update_tuple_item
-from eth2.configs import CommitteeConfig
-from eth2.beacon.constants import MAX_RANDOM_BYTE, MAX_INDEX_COUNT
-from eth2.beacon.helpers import get_seed, get_active_validator_indices
-from eth2.beacon.typing import Epoch, Gwei, Shard, Slot, ValidatorIndex
+from eth2.beacon.constants import MAX_INDEX_COUNT, MAX_RANDOM_BYTE
+from eth2.beacon.helpers import get_active_validator_indices, get_seed
 from eth2.beacon.types.compact_committees import CompactCommittee
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
+from eth2.beacon.typing import Epoch, Gwei, Shard, Slot, ValidatorIndex
+from eth2.configs import CommitteeConfig
 
 
 def get_committees_per_slot(

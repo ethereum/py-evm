@@ -1,5 +1,4 @@
 import pytest
-
 import ssz
 
 from eth2.beacon.types.attestations import Attestation

@@ -1,16 +1,14 @@
 import random
 
-import pytest
-
-from hypothesis import given, strategies as st
-
-import ssz
-
 from eth.constants import GENESIS_PARENT_HASH
 from eth.exceptions import BlockNotFound, ParentNotFound
+from hypothesis import given
+from hypothesis import strategies as st
+import pytest
+import ssz
+
 from eth2._utils.hash import hash_eth2
 from eth2._utils.ssz import validate_ssz_equal
-
 from eth2.beacon.db.exceptions import (
     AttestationRootNotFound,
     FinalizedHeadNotFound,
@@ -20,8 +18,8 @@ from eth2.beacon.db.exceptions import (
 from eth2.beacon.db.schema import SchemaV1
 from eth2.beacon.state_machines.forks.serenity.blocks import BeaconBlock
 from eth2.beacon.types.attestations import Attestation
-from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.checkpoints import Checkpoint
+from eth2.beacon.types.states import BeaconState
 
 
 @pytest.fixture(params=[1, 10, 999])

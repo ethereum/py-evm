@@ -1,28 +1,22 @@
-import pytest
-
 from eth.constants import ZERO_HASH32
 from eth_utils import ValidationError
-from eth_utils.toolz import first, mapcat, concat
+from eth_utils.toolz import concat, first, mapcat
+import pytest
 
 from eth2._utils.bls import bls
-
-from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
-from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.states import BeaconState
+from eth2.beacon.helpers import compute_start_slot_of_epoch, get_domain
 from eth2.beacon.signature_domain import SignatureDomain
-
-from eth2.beacon.helpers import get_domain, compute_start_slot_of_epoch
-
-from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
-from eth2.beacon.state_machines.forks.serenity.states import SerenityBeaconState
-
 from eth2.beacon.state_machines.forks.serenity.block_processing import (
     process_eth1_data,
     process_randao,
 )
-from eth2.beacon.tools.builder.proposer import _generate_randao_reveal
-
+from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
+from eth2.beacon.state_machines.forks.serenity.states import SerenityBeaconState
 from eth2.beacon.tools.builder.initializer import create_mock_validator
+from eth2.beacon.tools.builder.proposer import _generate_randao_reveal
+from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
+from eth2.beacon.types.eth1_data import Eth1Data
+from eth2.beacon.types.states import BeaconState
 
 
 def test_randao_processing(

@@ -1,19 +1,18 @@
+from eth.constants import ZERO_HASH32
 import pytest
 
-from eth.constants import ZERO_HASH32
-
 from eth2.beacon.constants import EMPTY_SIGNATURE, JUSTIFICATION_BITS_LENGTH
-from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
+from eth2.beacon.genesis import (
+    _genesis_time_from_eth1_timestamp,
+    get_genesis_block,
+    initialize_beacon_state_from_eth1,
+)
+from eth2.beacon.tools.builder.initializer import create_mock_deposits_and_root
 from eth2.beacon.types.block_headers import BeaconBlockHeader
+from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.genesis import (
-    get_genesis_block,
-    initialize_beacon_state_from_eth1,
-    _genesis_time_from_eth1_timestamp,
-)
-from eth2.beacon.tools.builder.initializer import create_mock_deposits_and_root
 from eth2.beacon.typing import Gwei
 
 

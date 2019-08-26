@@ -1,22 +1,21 @@
-from typing import Tuple, NamedTuple
+from typing import NamedTuple, Tuple
 
 from eth_utils import ValidationError
 
-from eth2.configs import CommitteeConfig, Eth2Config
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-    get_crosslink_committee,
     get_committee_count,
+    get_crosslink_committee,
     get_start_shard,
 )
+from eth2.beacon.exceptions import NoCommitteeAssignment
 from eth2.beacon.helpers import (
-    get_active_validator_indices,
     compute_start_slot_of_epoch,
+    get_active_validator_indices,
 )
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import Shard, Slot, ValidatorIndex, Epoch
-from eth2.beacon.exceptions import NoCommitteeAssignment
-
+from eth2.beacon.typing import Epoch, Shard, Slot, ValidatorIndex
+from eth2.configs import CommitteeConfig, Eth2Config
 
 CommitteeAssignment = NamedTuple(
     "CommitteeAssignment",

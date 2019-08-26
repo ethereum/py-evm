@@ -1,14 +1,13 @@
 from typing import Sequence
 
+from eth_typing import BLSSignature
 import ssz
-from ssz.sedes import Bitlist, bytes96, List, uint64
+from ssz.sedes import Bitlist, List, bytes96, uint64
+
+from eth2.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.typing import Bitfield, ValidatorIndex
 
 from .attestation_data import AttestationData, default_attestation_data
-
-from eth2.beacon.typing import Bitfield, ValidatorIndex
-from eth2.beacon.constants import EMPTY_SIGNATURE
-from eth_typing import BLSSignature
-
 from .defaults import default_bitfield, default_tuple
 
 

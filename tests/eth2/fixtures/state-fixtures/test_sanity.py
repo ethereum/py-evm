@@ -1,28 +1,26 @@
 from dataclasses import dataclass
-import pytest
 
 from eth_utils import ValidationError
+import pytest
 
-from eth2.beacon.tools.misc.ssz_vector import override_lengths
-from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.types.states import BeaconState
 from eth2.beacon.tools.fixtures.config_name import ONLY_MINIMAL
 from eth2.beacon.tools.fixtures.helpers import run_state_execution, validate_state
 from eth2.beacon.tools.fixtures.loading import (
-    get_bls_setting,
     get_blocks,
+    get_bls_setting,
     get_slots,
     get_states,
 )
 from eth2.beacon.tools.fixtures.test_case import StateTestCase
-
+from eth2.beacon.tools.misc.ssz_vector import override_lengths
+from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.states import BeaconState
 from tests.eth2.fixtures.helpers import (
-    get_test_cases,
     get_chaindb_of_config,
     get_sm_class_of_config,
+    get_test_cases,
 )
 from tests.eth2.fixtures.path import BASE_FIXTURE_PATH, ROOT_PROJECT_DIR
-
 
 # Test files
 RUNNER_FIXTURE_PATH = BASE_FIXTURE_PATH / "sanity"

@@ -1,10 +1,8 @@
 import pytest
-
 import ssz
 
-from eth2.beacon.types.states import BeaconState
-
 from eth2.beacon.tools.builder.initializer import create_mock_validator
+from eth2.beacon.types.states import BeaconState
 
 
 def test_defaults(sample_beacon_state_params):

@@ -5,18 +5,17 @@ from eth_utils import to_tuple
 from eth_utils.toolz import curry, first, mapcat, merge, merge_with, second, valmap
 
 from eth2.beacon.attestation_helpers import get_attestation_data_slot
-from eth2.beacon.epoch_processing_helpers import get_attesting_indices
-from eth2.beacon.helpers import get_active_validator_indices, compute_epoch_of_slot
 from eth2.beacon.db.chain import BeaconChainDB
+from eth2.beacon.epoch_processing_helpers import get_attesting_indices
+from eth2.beacon.helpers import compute_epoch_of_slot, get_active_validator_indices
 from eth2.beacon.operations.attestation_pool import AttestationPool
-from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attestation_data import AttestationData
+from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import Gwei, Slot, ValidatorIndex
-from eth2.configs import Eth2Config, CommitteeConfig
-
+from eth2.configs import CommitteeConfig, Eth2Config
 
 # TODO(ralexstokes) integrate `AttestationPool` once it has been merged
 AttestationIndex = Dict[ValidatorIndex, AttestationData]

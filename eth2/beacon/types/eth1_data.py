@@ -1,9 +1,7 @@
+from eth.constants import ZERO_HASH32
 from eth_typing import Hash32
-
 import ssz
 from ssz.sedes import bytes32, uint64
-
-from eth.constants import ZERO_HASH32
 
 
 class Eth1Data(ssz.Serializable):

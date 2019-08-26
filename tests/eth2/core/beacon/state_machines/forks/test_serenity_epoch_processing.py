@@ -1,53 +1,52 @@
 import random
-import pytest
 
+import pytest
 import ssz
 
-from eth2._utils.bitfield import set_voted, get_empty_bitfield
-from eth2.configs import CommitteeConfig
+from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2.beacon.committee_helpers import (
     get_beacon_proposer_index,
-    get_start_shard,
     get_shard_delta,
+    get_start_shard,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
     JUSTIFICATION_BITS_LENGTH,
 )
+from eth2.beacon.epoch_processing_helpers import get_base_reward
 from eth2.beacon.helpers import (
+    compute_epoch_of_slot,
+    compute_start_slot_of_epoch,
     get_active_validator_indices,
     get_block_root,
     get_block_root_at_slot,
-    compute_start_slot_of_epoch,
-    compute_epoch_of_slot,
 )
-from eth2.beacon.epoch_processing_helpers import get_base_reward
+from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
+    _bft_threshold_met,
+    _compute_next_active_index_roots,
+    _determine_new_finalized_epoch,
+    _determine_slashing_penalty,
+    compute_activation_exit_epoch,
+    get_attestation_deltas,
+    get_crosslink_deltas,
+    process_crosslinks,
+    process_justification_and_finalization,
+    process_registry_updates,
+    process_slashings,
+)
+from eth2.beacon.tools.builder.validator import (
+    get_crosslink_committees_at_slot,
+    mk_all_pending_attestations_with_full_participation_in_epoch,
+    mk_all_pending_attestations_with_some_participation_in_epoch,
+)
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
-from eth2.beacon.typing import Gwei
-from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
-    _bft_threshold_met,
-    _determine_new_finalized_epoch,
-    _determine_slashing_penalty,
-    compute_activation_exit_epoch,
-    process_crosslinks,
-    process_justification_and_finalization,
-    process_slashings,
-    _compute_next_active_index_roots,
-    process_registry_updates,
-    get_crosslink_deltas,
-    get_attestation_deltas,
-)
-
 from eth2.beacon.types.validators import Validator
-from eth2.beacon.tools.builder.validator import (
-    mk_all_pending_attestations_with_full_participation_in_epoch,
-    mk_all_pending_attestations_with_some_participation_in_epoch,
-    get_crosslink_committees_at_slot,
-)
+from eth2.beacon.typing import Gwei
+from eth2.configs import CommitteeConfig
 
 
 @pytest.mark.parametrize(

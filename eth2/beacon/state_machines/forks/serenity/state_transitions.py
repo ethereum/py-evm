@@ -1,8 +1,8 @@
-from eth2.configs import Eth2Config
 from eth2.beacon.state_machines.state_transitions import BaseStateTransition
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import Slot
+from eth2.configs import Eth2Config
 
 from .block_processing import process_block
 from .slot_processing import process_slots

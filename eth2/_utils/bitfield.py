@@ -1,5 +1,7 @@
 from cytoolz import curry
+
 from eth2.beacon.typing import Bitfield
+
 from .tuple import update_tuple_item
 
 

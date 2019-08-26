@@ -1,13 +1,10 @@
 from typing import Iterable, NewType, Sequence
 
 from cytoolz import iterate, partition, take
-
-from eth_utils import to_tuple
+from eth_typing import Hash32
+from eth_utils import ValidationError, to_tuple
 
 from eth2._utils.hash import hash_eth2
-from eth_typing import Hash32
-from eth_utils import ValidationError
-
 
 MerkleTree = NewType("MerkleTree", Sequence[Sequence[Hash32]])
 MerkleProof = NewType("MerkleProof", Sequence[Hash32])

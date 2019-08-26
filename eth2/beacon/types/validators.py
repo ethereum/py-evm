@@ -2,9 +2,9 @@ from eth_typing import BLSPubkey, Hash32
 import ssz
 from ssz.sedes import boolean, bytes32, bytes48, uint64
 
-from eth2.configs import Eth2Config
 from eth2.beacon.constants import FAR_FUTURE_EPOCH, ZERO_HASH32
 from eth2.beacon.typing import Epoch, Gwei
+from eth2.configs import Eth2Config
 
 from .defaults import default_bls_pubkey, default_epoch, default_gwei
 

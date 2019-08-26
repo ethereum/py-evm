@@ -2,14 +2,13 @@ import copy
 
 import pytest
 
-
-from eth2.beacon.exceptions import BlockClassError
 from eth2.beacon.chains.base import BeaconChain
 from eth2.beacon.db.exceptions import AttestationRootNotFound, StateSlotNotFound
-from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.exceptions import BlockClassError
+from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.tools.builder.proposer import create_mock_block
 from eth2.beacon.tools.builder.validator import create_mock_signed_attestations_at_slot
-from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
+from eth2.beacon.types.blocks import BeaconBlock
 
 
 @pytest.fixture

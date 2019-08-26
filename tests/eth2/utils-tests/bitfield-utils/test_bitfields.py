@@ -1,14 +1,15 @@
 import random
 
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
 import pytest
 
 from eth2._utils.bitfield import (
-    has_voted,
-    set_voted,
     get_bitfield_length,
     get_empty_bitfield,
     get_vote_count,
+    has_voted,
+    set_voted,
 )
 
 

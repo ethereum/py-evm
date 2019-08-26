@@ -2,7 +2,6 @@ from typing import Any, Callable, Tuple, TypeVar
 
 from eth_utils import ValidationError
 
-
 VType = TypeVar("VType")
 
 

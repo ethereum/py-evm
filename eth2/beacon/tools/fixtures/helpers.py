@@ -1,12 +1,12 @@
 from typing import Tuple, Type
 
-from eth_utils import encode_hex, ValidationError
+from eth_utils import ValidationError, encode_hex
 from ssz.tools import to_formatted_dict
 
 from eth2.beacon.db.chain import BeaconChainDB
-from eth2.beacon.tools.builder.proposer import advance_to_slot
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
+from eth2.beacon.tools.builder.proposer import advance_to_slot
 from eth2.beacon.tools.fixtures.test_case import StateTestCase
 from eth2.beacon.types.states import BeaconState
 

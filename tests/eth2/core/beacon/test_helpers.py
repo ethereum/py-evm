@@ -1,25 +1,21 @@
+from eth.constants import ZERO_HASH32
+from eth_utils import ValidationError, to_tuple
 import pytest
 
-from eth_utils import ValidationError, to_tuple
-
-from eth.constants import ZERO_HASH32
-
 from eth2._utils.hash import hash_eth2
-from eth2.beacon.constants import GWEI_PER_ETH, FAR_FUTURE_EPOCH
-
-from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.validators import Validator
-
+from eth2.beacon.constants import FAR_FUTURE_EPOCH, GWEI_PER_ETH
 from eth2.beacon.helpers import (
+    _get_fork_version,
     _get_seed,
+    compute_start_slot_of_epoch,
     get_active_validator_indices,
     get_block_root_at_slot,
-    compute_start_slot_of_epoch,
     get_domain,
-    _get_fork_version,
     get_total_balance,
 )
+from eth2.beacon.types.forks import Fork
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.types.validators import Validator
 
 
 @to_tuple

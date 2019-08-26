@@ -1,4 +1,5 @@
 import pytest
+
 from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
 
 

@@ -1,7 +1,6 @@
 from typing import Sequence
 
 from eth_typing import BLSPubkey, BLSSignature, Hash32
-
 from py_ecc.bls.typing import Domain
 
 from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE

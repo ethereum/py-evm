@@ -2,7 +2,6 @@ import pytest
 
 from eth2.beacon.exceptions import NoCommitteeAssignment
 from eth2.beacon.helpers import compute_start_slot_of_epoch
-
 from eth2.beacon.tools.builder.committee_assignment import get_committee_assignment
 
 

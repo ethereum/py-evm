@@ -1,24 +1,22 @@
 from typing import Sequence, Type
 
 from eth_typing import Hash32
-
 import ssz
 
-from eth2.beacon.constants import SECONDS_PER_DAY, DEPOSIT_CONTRACT_TREE_DEPTH
 from eth2.beacon.committee_helpers import get_compact_committees_root
+from eth2.beacon.constants import DEPOSIT_CONTRACT_TREE_DEPTH, SECONDS_PER_DAY
 from eth2.beacon.deposit_helpers import process_deposit
 from eth2.beacon.helpers import get_active_validator_indices
-
-from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockBody
 from eth2.beacon.types.block_headers import BeaconBlockHeader
-from eth2.beacon.types.deposits import Deposit
+from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockBody
 from eth2.beacon.types.deposit_data import DepositData
+from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import calculate_effective_balance
 from eth2.beacon.typing import Timestamp, ValidatorIndex
 from eth2.beacon.validator_status_helpers import activate_validator
-from eth2.configs import Eth2Config, CommitteeConfig
+from eth2.configs import CommitteeConfig, Eth2Config
 
 
 def is_genesis_trigger(

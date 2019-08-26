@@ -1,19 +1,17 @@
+from eth.constants import ZERO_HASH32
+from eth_utils import ValidationError
 import pytest
 
-from eth_utils import ValidationError
-
-from eth.constants import ZERO_HASH32
 from eth2.beacon.committee_helpers import get_start_shard
 from eth2.beacon.helpers import compute_start_slot_of_epoch
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
-    validate_attestation_slot,
     _validate_attestation_data,
     _validate_crosslink,
+    validate_attestation_slot,
 )
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
-
 from eth2.configs import CommitteeConfig
 
 

@@ -1,31 +1,25 @@
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Sequence
 
-from typing import Sequence, TYPE_CHECKING
-
+from eth._utils.datatypes import Configurable
 from eth.constants import ZERO_HASH32
-
 from eth_typing import BLSSignature, Hash32
 from eth_utils import encode_hex
 import ssz
 from ssz.sedes import List, bytes32, bytes96, uint64
 
-
-from eth._utils.datatypes import Configurable
-
 from eth2.beacon.constants import EMPTY_SIGNATURE, GENESIS_PARENT_ROOT
-from eth2.beacon.typing import Slot, FromBlockParams
-
+from eth2.beacon.typing import FromBlockParams, Slot
 
 from .attestations import Attestation
 from .attester_slashings import AttesterSlashing
 from .block_headers import BeaconBlockHeader
-from .defaults import default_tuple, default_slot
+from .defaults import default_slot, default_tuple
 from .deposits import Deposit
 from .eth1_data import Eth1Data, default_eth1_data
 from .proposer_slashings import ProposerSlashing
 from .transfers import Transfer
 from .voluntary_exits import VoluntaryExit
-
 
 if TYPE_CHECKING:
     from eth2.beacon.db.chain import BaseBeaconChainDB  # noqa: F401

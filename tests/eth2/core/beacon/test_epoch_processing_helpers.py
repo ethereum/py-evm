@@ -1,36 +1,36 @@
 import random
-import pytest
 
 from eth_utils.toolz import random_sample
+import pytest
 
-from eth2._utils.bitfield import set_voted, get_empty_bitfield
+from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2._utils.tuple import update_tuple_item
-from eth2.configs import CommitteeConfig
-from eth2.beacon.constants import FAR_FUTURE_EPOCH, GWEI_PER_ETH
-from eth2.beacon.exceptions import InvalidEpochError
 from eth2.beacon.committee_helpers import get_crosslink_committee
+from eth2.beacon.constants import FAR_FUTURE_EPOCH, GWEI_PER_ETH
 from eth2.beacon.epoch_processing_helpers import (
-    increase_balance,
-    decrease_balance,
-    get_attesting_indices,
-    compute_activation_exit_epoch,
-    get_validator_churn_limit,
-    get_matching_source_attestations,
-    get_matching_target_attestations,
-    get_matching_head_attestations,
-    get_unslashed_attesting_indices,
+    _find_winning_crosslink_and_attesting_indices_from_candidates,
     _get_attestations_for_shard,
     _get_attestations_for_valid_crosslink,
-    _find_winning_crosslink_and_attesting_indices_from_candidates,
+    compute_activation_exit_epoch,
+    decrease_balance,
+    get_attesting_indices,
     get_base_reward,
+    get_matching_head_attestations,
+    get_matching_source_attestations,
+    get_matching_target_attestations,
+    get_unslashed_attesting_indices,
+    get_validator_churn_limit,
+    increase_balance,
 )
+from eth2.beacon.exceptions import InvalidEpochError
 from eth2.beacon.helpers import compute_start_slot_of_epoch
+from eth2.beacon.tools.builder.validator import mk_pending_attestation_from_committee
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.typing import Gwei
-from eth2.beacon.tools.builder.validator import mk_pending_attestation_from_committee
+from eth2.configs import CommitteeConfig
 
 
 @pytest.mark.parametrize(

@@ -2,9 +2,8 @@ from typing import Sequence
 
 from eth.constants import ZERO_HASH32
 from eth_typing import Hash32
-
 import ssz
-from ssz.sedes import bytes32, Vector
+from ssz.sedes import Vector, bytes32
 
 from eth2.configs import Eth2Config
 

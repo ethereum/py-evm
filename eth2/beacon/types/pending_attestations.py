@@ -4,7 +4,6 @@ from ssz.sedes import Bitlist, uint64
 from eth2.beacon.typing import Bitfield, ValidatorIndex
 
 from .attestation_data import AttestationData, default_attestation_data
-
 from .defaults import default_bitfield, default_validator_index
 
 

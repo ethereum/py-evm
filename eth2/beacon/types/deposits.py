@@ -1,16 +1,15 @@
 from typing import Sequence
 
 from eth.constants import ZERO_HASH32
-from eth_utils import encode_hex
 from eth_typing import Hash32
+from eth_utils import encode_hex
 import ssz
 from ssz.sedes import Vector, bytes32
 
 from eth2.beacon.constants import DEPOSIT_CONTRACT_TREE_DEPTH
 
-from .deposit_data import DepositData, default_deposit_data
-
 from .defaults import default_tuple_of_size
+from .deposit_data import DepositData, default_deposit_data
 
 DEPOSIT_PROOF_VECTOR_SIZE = DEPOSIT_CONTRACT_TREE_DEPTH + 1
 

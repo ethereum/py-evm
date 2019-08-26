@@ -1,14 +1,13 @@
 from typing import Sequence, Tuple
 
 from eth.constants import ZERO_HASH32
-
 from eth_typing import Hash32
 from eth_utils import ValidationError
 
 from eth2._utils.tuple import update_tuple_item
-from eth2.configs import Eth2Config
-from eth2.beacon.typing import Slot
 from eth2.beacon.types.states import BeaconState
+from eth2.beacon.typing import Slot
+from eth2.configs import Eth2Config
 
 from .epoch_processing import process_epoch
 

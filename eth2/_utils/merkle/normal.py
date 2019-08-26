@@ -9,18 +9,18 @@ import math
 from typing import Sequence, Union
 
 from cytoolz import identity, iterate, reduce, take
-
 from eth_typing import Hash32
 
 from eth2._utils.hash import hash_eth2
+
 from .common import (  # noqa: F401
+    MerkleProof,
+    MerkleTree,
     _calc_parent_hash,
     _hash_layer,
     get_branch_indices,
     get_merkle_proof,
     get_root,
-    MerkleTree,
-    MerkleProof,
 )
 
 

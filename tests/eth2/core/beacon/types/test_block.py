@@ -1,6 +1,5 @@
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
-
 from eth2.beacon.typing import FromBlockParams
 
 

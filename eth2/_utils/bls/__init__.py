@@ -1,7 +1,6 @@
 from typing import Sequence, Type
 
 from eth_typing import BLSPubkey, BLSSignature, Hash32
-
 from py_ecc.bls.typing import Domain
 
 from eth2.beacon.exceptions import SignatureError
@@ -9,10 +8,10 @@ from eth2.beacon.exceptions import SignatureError
 from .backends import DEFAULT_BACKEND, NoOpBackend
 from .backends.base import BaseBLSBackend
 from .validation import (
-    validate_private_key,
-    validate_signature,
-    validate_public_key,
     validate_many_public_keys,
+    validate_private_key,
+    validate_public_key,
+    validate_signature,
 )
 
 

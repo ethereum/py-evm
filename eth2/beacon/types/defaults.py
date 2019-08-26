@@ -1,18 +1,18 @@
 """
 This module contains default values to be shared across types in the parent module.
 """
-from typing import Tuple, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple, TypeVar
 
 from eth2.beacon.constants import EMPTY_PUBKEY
 from eth2.beacon.typing import (  # noqa: F401
-    default_epoch,
-    default_slot,
-    default_shard,
-    default_validator_index,
-    default_gwei,
-    default_timestamp,
-    default_second,
     default_bitfield,
+    default_epoch,
+    default_gwei,
+    default_second,
+    default_shard,
+    default_slot,
+    default_timestamp,
+    default_validator_index,
     default_version,
 )
 

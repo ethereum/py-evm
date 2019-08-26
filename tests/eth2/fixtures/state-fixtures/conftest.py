@@ -1,4 +1,5 @@
 import pytest
+
 from eth2._utils.bls import bls
 from eth2._utils.bls.backends import PyECCBackend
 from eth2.beacon.operations.attestation_pool import AttestationPool

@@ -1,11 +1,10 @@
+from eth_utils import to_tuple
 import pytest
 
-from eth_utils import to_tuple
-
-from eth2.configs import Eth2GenesisConfig
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
 from eth2.beacon.tools.fixtures.loading import get_all_test_files
+from eth2.configs import Eth2GenesisConfig
 
 
 #

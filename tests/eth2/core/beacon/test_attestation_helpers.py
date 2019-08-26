@@ -1,20 +1,18 @@
 import copy
 import random
 
+from eth_utils import ValidationError
+from eth_utils.toolz import assoc
 import pytest
 
 from eth2._utils.bls import bls
-
-from eth_utils import ValidationError
-from eth_utils.toolz import assoc
-
-from eth2.beacon.helpers import get_domain
-from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.attestation_helpers import (
     is_slashable_attestation_data,
-    validate_indexed_attestation_aggregate_signature,
     validate_indexed_attestation,
+    validate_indexed_attestation_aggregate_signature,
 )
+from eth2.beacon.helpers import get_domain
+from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,

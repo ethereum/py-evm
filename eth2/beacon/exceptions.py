@@ -1,5 +1,4 @@
 from eth.exceptions import PyEVMError
-
 from eth_utils import ValidationError
 
 

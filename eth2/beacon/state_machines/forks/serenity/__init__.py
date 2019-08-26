@@ -1,21 +1,19 @@
 from typing import Type  # noqa: F401
 
-from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.fork_choice.lmd_ghost import lmd_ghost_scoring
-from eth2.beacon.typing import FromBlockParams
-
+from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
+from eth2.beacon.state_machines.base import BeaconStateMachine
+from eth2.beacon.state_machines.state_transitions import (  # noqa: F401
+    BaseStateTransition,
+)
 from eth2.beacon.types.blocks import BaseBeaconBlock  # noqa: F401
 from eth2.beacon.types.states import BeaconState  # noqa: F401
+from eth2.beacon.typing import FromBlockParams
 
-from eth2.beacon.state_machines.base import BeaconStateMachine
-from eth2.beacon.state_machines.state_transitions import (
-    BaseStateTransition,
-)  # noqa: F401
-
+from .blocks import SerenityBeaconBlock, create_serenity_block_from_parent
 from .configs import SERENITY_CONFIG
-from .blocks import create_serenity_block_from_parent, SerenityBeaconBlock
-from .states import SerenityBeaconState
 from .state_transitions import SerenityStateTransition
+from .states import SerenityBeaconState
 
 
 class SerenityStateMachine(BeaconStateMachine):

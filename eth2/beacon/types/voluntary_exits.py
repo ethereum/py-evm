@@ -2,10 +2,10 @@ from eth_typing import BLSSignature
 import ssz
 from ssz.sedes import bytes96, uint64
 
-from eth2.beacon.typing import Epoch, ValidatorIndex
 from eth2.beacon.constants import EMPTY_SIGNATURE
+from eth2.beacon.typing import Epoch, ValidatorIndex
 
-from .defaults import default_validator_index, default_epoch
+from .defaults import default_epoch, default_validator_index
 
 
 class VoluntaryExit(ssz.SignedSerializable):

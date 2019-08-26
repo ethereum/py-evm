@@ -3,14 +3,13 @@ from typing import Dict
 import ssz
 import ssz.sedes as sedes
 
-from eth2.configs import Eth2Config
-
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.blocks import BeaconBlockBody
 from eth2.beacon.types.compact_committees import CompactCommittee
 from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
+from eth2.configs import Eth2Config
 
 
 def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:

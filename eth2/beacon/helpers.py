@@ -1,25 +1,23 @@
-from typing import Callable, Sequence, Set, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Sequence, Set, Tuple
 
-from eth_utils import ValidationError
 from eth_typing import Hash32
-
+from eth_utils import ValidationError
 from py_ecc.bls.typing import Domain
 
 from eth2._utils.hash import hash_eth2
 from eth2.beacon.signature_domain import SignatureDomain
+from eth2.beacon.types.forks import Fork
+from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import (
+    DomainType,
     Epoch,
     Gwei,
     Slot,
     ValidatorIndex,
     Version,
     default_version,
-    DomainType,
 )
 from eth2.configs import CommitteeConfig
-
-from eth2.beacon.types.forks import Fork
-from eth2.beacon.types.validators import Validator
 
 if TYPE_CHECKING:
     from eth2.beacon.types.states import BeaconState  # noqa: F401

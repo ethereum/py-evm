@@ -3,8 +3,6 @@ from typing import Sequence, cast
 from blspy import AggregationInfo, InsecureSignature, PrivateKey, PublicKey, Signature
 from eth_typing import BLSPubkey, BLSSignature, Hash32
 from eth_utils import ValidationError
-
-
 from py_ecc.bls.typing import Domain
 
 from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE

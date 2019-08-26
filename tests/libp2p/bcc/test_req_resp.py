@@ -2,10 +2,10 @@ import asyncio
 
 import pytest
 
-from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
 from trinity.protocol.bcc_libp2p.configs import ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import HandshakeFailure
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
+from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
 from trinity.protocol.bcc_libp2p.utils import read_req, write_resp
 
 

@@ -1,9 +1,9 @@
 import asyncio
 from typing import NamedTuple
 
-import pytest
-
 from eth_keys import datatypes
+from libp2p.peer.id import ID
+import pytest
 
 from trinity.protocol.bcc_libp2p.configs import ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import (
@@ -18,9 +18,6 @@ from trinity.protocol.bcc_libp2p.utils import (
     write_req,
     write_resp,
 )
-
-from libp2p.peer.id import ID
-
 
 # Wrong type of `fork_version`, which should be `bytes4`.
 invalid_ssz_msg = HelloRequest(fork_version="1")

@@ -2,7 +2,7 @@ from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey, BLSSignature, Hash32
 from eth_utils import encode_hex
 import ssz
-from ssz.sedes import uint64, bytes32, bytes48, bytes96
+from ssz.sedes import bytes32, bytes48, bytes96, uint64
 
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.typing import Gwei

@@ -1,12 +1,11 @@
-import pytest
-
 from eth_utils import ValidationError
+import pytest
 
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.helpers import compute_start_slot_of_epoch
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
-    _validate_validator_has_not_exited,
     _validate_eligible_exit_epoch,
+    _validate_validator_has_not_exited,
     _validate_validator_minimum_lifespan,
     _validate_voluntary_exit_signature,
     validate_voluntary_exit,

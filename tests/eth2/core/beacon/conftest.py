@@ -1,39 +1,34 @@
-import pytest
-
 from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey
+import pytest
 
-from eth2.configs import Eth2Config, CommitteeConfig, Eth2GenesisConfig
 from eth2.beacon.constants import (
     DEPOSIT_CONTRACT_TREE_DEPTH,
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
     JUSTIFICATION_BITS_LENGTH,
 )
+from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
+from eth2.beacon.genesis import get_genesis_block
 from eth2.beacon.operations.attestation_pool import AttestationPool
-from eth2.beacon.types.attestations import IndexedAttestation
+from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
+from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
+from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
+from eth2.beacon.tools.builder.initializer import create_mock_validator
+from eth2.beacon.tools.builder.state import create_mock_genesis_state_from_validators
+from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.types.attestations import IndexedAttestation
+from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody, BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2.beacon.types.states import BeaconState
-
-from eth2.beacon.genesis import get_genesis_block
-from eth2.beacon.tools.misc.ssz_vector import override_lengths
-from eth2.beacon.tools.builder.state import create_mock_genesis_state_from_validators
-from eth2.beacon.types.blocks import BeaconBlockBody, BeaconBlockHeader
 from eth2.beacon.types.forks import Fork
-from eth2.beacon.typing import Gwei, ValidatorIndex, Timestamp, Version
-from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
-from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
-from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
-
-from eth2.beacon.tools.builder.initializer import create_mock_validator
-
-from eth2.beacon.db.chain import BeaconChainDB
+from eth2.beacon.types.states import BeaconState
+from eth2.beacon.typing import Gwei, Timestamp, ValidatorIndex, Version
+from eth2.configs import CommitteeConfig, Eth2Config, Eth2GenesisConfig
 
 
 # SSZ

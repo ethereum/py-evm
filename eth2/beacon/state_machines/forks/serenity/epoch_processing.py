@@ -1,33 +1,31 @@
 from typing import Sequence, Set, Tuple
 
+from eth_typing import Hash32
 from eth_utils.toolz import curry
 import ssz
 
-from eth_typing import Hash32
-
 from eth2._utils.tuple import update_tuple_item, update_tuple_item_with_fn
-from eth2.configs import Eth2Config, CommitteeConfig
-from eth2.beacon.constants import BASE_REWARDS_PER_EPOCH, FAR_FUTURE_EPOCH
 from eth2.beacon.committee_helpers import (
-    get_crosslink_committee,
-    get_compact_committees_root,
     get_committee_count,
-    get_start_shard,
+    get_compact_committees_root,
+    get_crosslink_committee,
     get_shard_delta,
+    get_start_shard,
 )
+from eth2.beacon.constants import BASE_REWARDS_PER_EPOCH, FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import (
+    compute_activation_exit_epoch,
     decrease_balance,
     get_attesting_balance,
     get_attesting_indices,
     get_base_reward,
-    get_validator_churn_limit,
-    compute_activation_exit_epoch,
     get_matching_head_attestations,
     get_matching_source_attestations,
     get_matching_target_attestations,
     get_total_active_balance,
     get_total_balance,
     get_unslashed_attesting_indices,
+    get_validator_churn_limit,
     get_winning_crosslink_and_attesting_indices,
     increase_balance,
 )
@@ -36,7 +34,6 @@ from eth2.beacon.helpers import (
     get_block_root,
     get_randao_mix,
 )
-from eth2.beacon.validator_status_helpers import initiate_exit_for_validator
 from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.historical_batch import HistoricalBatch
@@ -44,6 +41,8 @@ from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import Bitfield, Epoch, Gwei, Shard, ValidatorIndex
+from eth2.beacon.validator_status_helpers import initiate_exit_for_validator
+from eth2.configs import CommitteeConfig, Eth2Config
 
 
 def _bft_threshold_met(participation: Gwei, total: Gwei) -> bool:

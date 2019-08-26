@@ -1,38 +1,37 @@
 import math
 import random
-
 from typing import Dict, Iterable, Sequence, Tuple
 
-from eth_typing import BLSPubkey, BLSSignature, Hash32
-
 from eth.constants import ZERO_HASH32
+from eth_typing import BLSPubkey, BLSSignature, Hash32
 from eth_utils import to_tuple
-from eth_utils.toolz import pipe, keymap as keymapper
-from eth2._utils.bls import bls, Domain
+from eth_utils.toolz import keymap as keymapper
+from eth_utils.toolz import pipe
 
 from eth2._utils.bitfield import get_empty_bitfield, set_voted
-from eth2.configs import CommitteeConfig, Eth2Config
-from eth2.beacon.signature_domain import SignatureDomain
+from eth2._utils.bls import Domain, bls
 from eth2.beacon.committee_helpers import (
-    get_crosslink_committee,
     get_committee_count,
-    get_start_shard,
+    get_crosslink_committee,
     get_shard_delta,
+    get_start_shard,
 )
 from eth2.beacon.helpers import (
     compute_domain,
-    get_block_root_at_slot,
-    get_block_root,
-    get_domain,
-    compute_start_slot_of_epoch,
     compute_epoch_of_slot,
+    compute_start_slot_of_epoch,
     get_active_validator_indices,
+    get_block_root,
+    get_block_root_at_slot,
+    get_domain,
 )
-from eth2.beacon.types.attestations import Attestation, IndexedAttestation
+from eth2.beacon.signature_domain import SignatureDomain
+from eth2.beacon.state_machines.base import BaseBeaconStateMachine
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,
 )
+from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
@@ -54,7 +53,7 @@ from eth2.beacon.typing import (
     default_epoch,
     default_shard,
 )
-from eth2.beacon.state_machines.base import BaseBeaconStateMachine
+from eth2.configs import CommitteeConfig, Eth2Config
 
 
 # TODO(ralexstokes) merge w/ below

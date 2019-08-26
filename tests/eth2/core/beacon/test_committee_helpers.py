@@ -1,22 +1,21 @@
 import random
 
+from eth_utils import ValidationError
 import pytest
 
-from eth_utils import ValidationError
-
 from eth2.beacon.committee_helpers import (
-    get_committees_per_slot,
+    _calculate_first_committee_at_slot,
+    _find_proposer_in_committee,
+    get_beacon_proposer_index,
     get_committee_count,
+    get_committees_per_slot,
+    get_crosslink_committee,
     get_shard_delta,
     get_start_shard,
-    _find_proposer_in_committee,
-    _calculate_first_committee_at_slot,
-    get_beacon_proposer_index,
-    get_crosslink_committee,
 )
 from eth2.beacon.helpers import (
-    get_active_validator_indices,
     compute_start_slot_of_epoch,
+    get_active_validator_indices,
 )
 from eth2.configs import CommitteeConfig
 

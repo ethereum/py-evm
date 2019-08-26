@@ -3,13 +3,13 @@ from typing import Tuple, Type
 
 from eth._utils.datatypes import Configurable
 
-from eth2.configs import Eth2Config  # noqa: F401
 from eth2.beacon.db.chain import BaseBeaconChainDB
 from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import FromBlockParams, Slot
+from eth2.configs import Eth2Config  # noqa: F401
 
 from .state_transitions import BaseStateTransition
 

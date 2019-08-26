@@ -1,26 +1,22 @@
 from eth2._utils.hash import hash_eth2
-from eth2._utils.tuple import update_tuple_item
 from eth2._utils.numeric import bitwise_xor
-
-from eth2.configs import Eth2Config, CommitteeConfig
-from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.blocks import BaseBeaconBlock
-from eth2.beacon.types.block_headers import BeaconBlockHeader
-
+from eth2._utils.tuple import update_tuple_item
+from eth2.beacon.committee_helpers import get_beacon_proposer_index
+from eth2.beacon.helpers import get_randao_mix
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_randao_reveal,
 )
-
-from eth2.beacon.helpers import get_randao_mix
-from eth2.beacon.committee_helpers import get_beacon_proposer_index
+from eth2.beacon.types.block_headers import BeaconBlockHeader
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.types.states import BeaconState
+from eth2.configs import CommitteeConfig, Eth2Config
 
 from .block_validation import (
-    validate_block_slot,
     validate_block_parent_root,
-    validate_proposer_signature,
+    validate_block_slot,
     validate_proposer_is_not_slashed,
+    validate_proposer_signature,
 )
-
 from .operation_processing import process_operations
 
 

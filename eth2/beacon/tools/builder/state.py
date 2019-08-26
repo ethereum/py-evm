@@ -1,14 +1,14 @@
 from typing import Sequence
 
-from eth2.configs import Eth2Config
 from eth2.beacon.genesis import (
-    state_with_validator_digests,
     initialize_beacon_state_from_eth1,
+    state_with_validator_digests,
 )
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import Epoch, Gwei, Timestamp
+from eth2.configs import Eth2Config
 
 
 def _check_distinct_pubkeys(validators: Sequence[Validator]) -> None:

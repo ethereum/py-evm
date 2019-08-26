@@ -1,13 +1,11 @@
 from eth.constants import ZERO_HASH32
-
 from eth_typing import Hash32
-
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import bytes32
 
 from eth2.beacon.types.checkpoints import Checkpoint, default_checkpoint
 from eth2.beacon.types.crosslinks import Crosslink, default_crosslink
-from eth_utils import humanize_hash
 
 
 class AttestationData(ssz.Serializable):

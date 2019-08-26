@@ -1,21 +1,19 @@
 from typing import Dict, Sequence, Type
+
 from eth_typing import BLSPubkey, BLSSignature
 import ssz
 
-
-from eth2.configs import CommitteeConfig, Eth2Config
-from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.committee_helpers import get_beacon_proposer_index
 from eth2.beacon.exceptions import ProposerIndexError
 from eth2.beacon.helpers import compute_epoch_of_slot
+from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.state_machines.base import BaseBeaconStateMachine
-
+from eth2.beacon.tools.builder.validator import sign_transaction
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockBody
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import FromBlockParams, Slot, ValidatorIndex
-
-from eth2.beacon.tools.builder.validator import sign_transaction
+from eth2.configs import CommitteeConfig, Eth2Config
 
 
 def _generate_randao_reveal(

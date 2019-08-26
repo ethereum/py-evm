@@ -1,23 +1,22 @@
-from eth2._utils.bls import bls
-
 from eth_utils import ValidationError
 
+from eth2._utils.bls import bls
+from eth2.beacon.committee_helpers import get_committee_count, get_start_shard
+from eth2.beacon.exceptions import SignatureError
 from eth2.beacon.helpers import (
+    compute_start_slot_of_epoch,
     get_active_validator_indices,
     get_domain,
-    compute_start_slot_of_epoch,
 )
-from eth2.beacon.committee_helpers import get_committee_count, get_start_shard
 from eth2.beacon.signature_domain import SignatureDomain
-from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import (
     AttestationDataAndCustodyBit,
 )
+from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import Slot
 from eth2.configs import CommitteeConfig, Eth2Config
-from eth2.beacon.exceptions import SignatureError
 
 
 def get_attestation_data_slot(

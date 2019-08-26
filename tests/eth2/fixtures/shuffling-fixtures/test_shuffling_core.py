@@ -1,18 +1,15 @@
-import pytest
+from dataclasses import dataclass
 from typing import Tuple
 
-from dataclasses import dataclass
-
 from eth_utils import decode_hex
+import pytest
 
-from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.beacon.committee_helpers import compute_shuffled_index
 from eth2.beacon.tools.fixtures.config_name import ONLY_MINIMAL
 from eth2.beacon.tools.fixtures.test_case import BaseTestCase
-
+from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from tests.eth2.fixtures.helpers import get_test_cases
 from tests.eth2.fixtures.path import BASE_FIXTURE_PATH, ROOT_PROJECT_DIR
-
 
 # Test files
 SHUFFLING_FIXTURE_PATH = BASE_FIXTURE_PATH / "shuffling"

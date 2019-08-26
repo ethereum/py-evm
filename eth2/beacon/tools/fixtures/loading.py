@@ -1,22 +1,21 @@
 import os
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, Sequence, Tuple, Type, Union
-from ruamel.yaml import YAML
 
-from eth_utils import decode_hex, to_tuple
 from eth_typing import BLSPubkey, BLSSignature
+from eth_utils import decode_hex, to_tuple
 from eth_utils.toolz import assoc, keyfilter
+from ruamel.yaml import YAML
 from ssz.tools import from_formatted_dict
 
 from eth2.beacon.helpers import compute_epoch_of_slot
+from eth2.beacon.tools.fixtures.config_name import ALL_CONFIG_NAMES, ConfigName
+from eth2.beacon.tools.fixtures.test_case import OperationOrBlockHeader
+from eth2.beacon.tools.fixtures.test_file import TestFile
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.states import BeaconState
 from eth2.configs import Eth2Config
-
-from eth2.beacon.tools.fixtures.config_name import ALL_CONFIG_NAMES, ConfigName
-from eth2.beacon.tools.fixtures.test_case import OperationOrBlockHeader
-from eth2.beacon.tools.fixtures.test_file import TestFile
 
 
 #
