@@ -139,12 +139,12 @@ class Store:
         Return the block in the chain that is a
         predecessor of ``block`` at the requested ``slot``.
         """
-        if block.slot == slot:
-            return block
-        elif block.slot < slot:
-            return None
-        else:
+        if block.slot > slot:
             return self.get_ancestor(self._get_parent_block(block), slot)
+        elif block.slot == slot:
+            return block
+        else:
+            return None
 
 
 AttestationTarget = Tuple[ValidatorIndex, Optional[BaseBeaconBlock]]
