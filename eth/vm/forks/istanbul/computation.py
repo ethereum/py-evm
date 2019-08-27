@@ -30,6 +30,7 @@ ISTANBUL_PRECOMPILES = merge(
             gas_cost_base=GAS_ECPAIRING_BASE,
             gas_cost_per_point=GAS_ECPAIRING_PER_POINT,
         ),
+        force_bytes_to_address(b'\x09'): precompiles.blake2b_fcompress,
     },
 )
 
