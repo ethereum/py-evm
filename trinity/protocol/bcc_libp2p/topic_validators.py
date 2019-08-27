@@ -6,6 +6,8 @@ import ssz
 
 from eth_utils import ValidationError
 
+from eth.exceptions import BlockNotFound
+
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.exceptions import SignatureError
 from eth2.beacon.helpers import compute_epoch_of_slot
@@ -66,6 +68,19 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
         state_machine = chain.get_state_machine()
         config = state_machine.config
         state = state_machine.state
+        attesting_block_roots = set(
+            [
+                attestation.data.beacon_block_root
+                for attestation in attestations
+            ]
+        )
+        # Check that beacon blocks attested to by the attestations are validated
+        for block_root in attesting_block_roots:
+            try:
+                chain.get_block_by_root(block_root)
+            except BlockNotFound:
+                return False
+
         for attestation in attestations:
             # Fast forward to state in future slot in order to pass
             # attestation.data.slot validity check
