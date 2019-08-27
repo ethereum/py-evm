@@ -36,6 +36,7 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )
 from eth2.beacon.typing import (
+    Epoch,
     Slot,
 )
 
@@ -358,6 +359,22 @@ class Node(BaseService):
             head_slot=state.slot,
         )
 
+    def _compare_chain_tip_and_finalized_epoch(self,
+                                               peer_finalized_epoch: Epoch,
+                                               peer_head_slot: Slot) -> None:
+        checkpoint = self.chain.get_state_machine().state.finalized_checkpoint
+        head_block = self.chain.get_canonical_head()
+        peer_has_higher_finalized_epoch = peer_finalized_epoch > checkpoint.epoch
+        peer_has_equal_finalized_epoch = peer_finalized_epoch == checkpoint.epoch
+        peer_has_higher_head_slot = peer_head_slot > head_block.slot
+        if (
+            peer_has_higher_finalized_epoch or
+            (peer_has_equal_finalized_epoch and peer_has_higher_head_slot)
+        ):
+            # TODO: kickoff syncing process with this peer
+            self.logger.debug("Peer's chain is ahead of us, start syncing with the peer.")
+            pass
+
     async def _handle_hello(self, stream: INetStream) -> None:
         # TODO: Find out when we should respond the `ResponseCode`
         #   other than `ResponseCode.SUCCESS`.
@@ -418,17 +435,10 @@ class Node(BaseService):
         )
 
         # Check if we are behind the peer
-        checkpoint = self.chain.get_state_machine().state.finalized_checkpoint
-        head_block = self.chain.get_canonical_head()
-        peer_has_higher_finalized_epoch = hello_other_side.finalized_epoch > checkpoint.epoch
-        peer_has_equal_finalized_epoch = hello_other_side.finalized_epoch == checkpoint.epoch
-        peer_has_higher_head_slot = hello_other_side.head_slot > head_block.slot
-        if (
-            peer_has_higher_finalized_epoch or
-            (peer_has_equal_finalized_epoch and peer_has_higher_head_slot)
-        ):
-            # TODO: kickoff syncing process with this peer
-            pass
+        self._compare_chain_tip_and_finalized_epoch(
+            hello_other_side.finalized_epoch,
+            hello_other_side.head_slot,
+        )
 
         await stream.close()
 
@@ -512,17 +522,10 @@ class Node(BaseService):
         )
 
         # Check if we are behind the peer
-        checkpoint = self.chain.get_state_machine().state.finalized_checkpoint
-        head_block = self.chain.get_canonical_head()
-        peer_has_higher_finalized_epoch = hello_other_side.finalized_epoch > checkpoint.epoch
-        peer_has_equal_finalized_epoch = hello_other_side.finalized_epoch == checkpoint.epoch
-        peer_has_higher_head_slot = hello_other_side.head_slot > head_block.slot
-        if (
-            peer_has_higher_finalized_epoch or
-            (peer_has_equal_finalized_epoch and peer_has_higher_head_slot)
-        ):
-            # TODO: kickoff syncing process with this peer
-            pass
+        self._compare_chain_tip_and_finalized_epoch(
+            hello_other_side.finalized_epoch,
+            hello_other_side.head_slot,
+        )
 
         await stream.close()
 
@@ -721,9 +724,9 @@ class Node(BaseService):
             # await stream.reset()
             raise RequestFailure(error_msg)
 
-        beacon_blocks_response = cast(BeaconBlocksResponse, beacon_blocks_response)
-        asyncio.ensure_future(stream.close())
+        await stream.close()
 
+        beacon_blocks_response = cast(BeaconBlocksResponse, beacon_blocks_response)
         return beacon_blocks_response.blocks
 
     async def _handle_recent_beacon_blocks(self, stream: INetStream) -> None:
@@ -769,7 +772,6 @@ class Node(BaseService):
                 recent_beacon_blocks_response,
             )
             # await stream.reset()
-            # TODO: Disconnect
             return
 
         self.logger.debug(
@@ -839,10 +841,10 @@ class Node(BaseService):
             # await stream.reset()
             raise RequestFailure(error_msg)
 
+        await stream.close()
+
         recent_beacon_blocks_response = cast(
             RecentBeaconBlocksResponse,
             recent_beacon_blocks_response,
         )
-        asyncio.ensure_future(stream.close())
-
         return recent_beacon_blocks_response.blocks
