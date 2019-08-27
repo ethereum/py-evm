@@ -127,7 +127,7 @@ class OrphanBlockPool:
     def __init__(self) -> None:
         self._pool = set()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._pool)
 
     def __contains__(self, block_or_block_root: Union[BaseBeaconBlock, Hash32]) -> bool:
@@ -229,7 +229,10 @@ class BCCReceiveServer(BaseService):
             for peer_id in peers_to_request:
                 if len(parent_roots) == 0:
                     break
-                blocks = await self.p2p_node.request_recent_beacon_blocks(peer_id, parent_roots)
+                blocks = await self.p2p_node.request_recent_beacon_blocks(
+                    peer_id,
+                    tuple(parent_roots),
+                )
                 for block in blocks:
                     try:
                         parent_roots.remove(block.signing_root)

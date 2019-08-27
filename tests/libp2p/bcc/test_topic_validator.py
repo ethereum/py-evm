@@ -6,12 +6,7 @@ from trinity.protocol.bcc_libp2p.configs import (
 )
 
 
-@pytest.mark.parametrize(
-    "num_nodes",
-    (
-        1,
-    )
-)
+@pytest.mark.parametrize("num_nodes", (1,))
 @pytest.mark.asyncio
 async def test_setup_topic_validators(nodes):
     node = nodes[0]
