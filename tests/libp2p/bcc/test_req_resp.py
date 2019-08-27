@@ -1,18 +1,16 @@
 import asyncio
 
-import pytest
-
 from eth.constants import ZERO_HASH32
 from eth.exceptions import BlockNotFound
 from eth.validation import validate_word
+import pytest
 
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
-
-from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
 from trinity.protocol.bcc_libp2p.configs import ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import HandshakeFailure, RequestFailure
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
+from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
 from trinity.protocol.bcc_libp2p.utils import read_req, write_resp
 
 

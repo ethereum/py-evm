@@ -4,7 +4,6 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    cast,
 )
 
 from eth_keys import datatypes
@@ -42,7 +41,6 @@ from .exceptions import (
 
 
 MsgType = TypeVar("MsgType", bound=ssz.Serializable)
-ErrorMsgType = TypeVar("ErrorMsgType", bound=str)
 
 
 def peer_id_from_pubkey(pubkey: datatypes.PublicKey) -> ID:
@@ -97,11 +95,11 @@ async def write_req(
 async def read_resp(
     stream: INetStream,
     msg_type: Type[MsgType],
-) -> Tuple[ResponseCode, Union[MsgType, ErrorMsgType]]:
+) -> Tuple[ResponseCode, Union[MsgType, str]]:
     """
     Read a `MsgType` response message from the `stream`.
     `ReadMessageFailure` is raised if fail to read the message.
-    Returns a `ErrorMsgType` error message if the response code is not SUCCESS, otherwise returns
+    Returns the error message(type `str`) if the response code is not SUCCESS, otherwise returns
     the `MsgType` response message.
     """
     try:
@@ -117,24 +115,24 @@ async def read_resp(
         resp_code = ResponseCode(result_bytes[0])
     except ValueError:
         raise ReadMessageFailure(f"unknown resp_code={result_bytes[0]}")
-    msg: Union[MsgType, ErrorMsgType]
+    msg: Union[MsgType, str]
     # `MsgType`
     if resp_code == ResponseCode.SUCCESS:
         msg = await _read_ssz_msg(stream, msg_type, timeout=RESP_TIMEOUT)
-    # `ErrorMsgType`
+    # error message
     else:
         msg_bytes = await _read_varint_prefixed_bytes(stream, timeout=RESP_TIMEOUT)
-        msg = cast(ErrorMsgType, msg_bytes.decode("utf-8"))
+        msg = msg_bytes.decode("utf-8")
     return resp_code, msg
 
 
 async def write_resp(
     stream: INetStream,
-    msg: Union[MsgType, ErrorMsgType],
+    msg: Union[MsgType, str],
     resp_code: ResponseCode,
 ) -> None:
     """
-    Write either a `MsgType` response message or an `ErrorMsgType` error message to the `stream`.
+    Write either a `MsgType` response message or an error message to the `stream`.
     `WriteMessageFailure` is raised if fail to read the message.
     """
     try:
@@ -154,7 +152,7 @@ async def write_resp(
                 "type of `msg` should be `ssz.Serializable` if response code is SUCCESS, "
                 f"type(msg)={type(msg)}"
             )
-    # ErrorMsgType: `msg` is of type `str` if response code is not success.
+    # error msg is of type `str` if response code is not SUCCESS.
     else:
         if isinstance(msg, str):
             msg_bytes = _serialize_bytes(msg.encode("utf-8"))

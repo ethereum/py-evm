@@ -5,6 +5,7 @@ from typing import (
     Set,
     Sequence,
     Tuple,
+    cast,
 )
 
 from cancel_token import (
@@ -488,6 +489,7 @@ class Node(BaseService):
             # TODO: Disconnect
             raise HandshakeFailure(error_msg)
 
+        hello_other_side = cast(HelloRequest, hello_other_side)
         try:
             await self._validate_hello_req(hello_other_side)
         except ValidationError as error:
@@ -719,6 +721,7 @@ class Node(BaseService):
             # await stream.reset()
             raise RequestFailure(error_msg)
 
+        beacon_blocks_response = cast(BeaconBlocksResponse, beacon_blocks_response)
         asyncio.ensure_future(stream.close())
 
         return beacon_blocks_response.blocks
@@ -836,6 +839,10 @@ class Node(BaseService):
             # await stream.reset()
             raise RequestFailure(error_msg)
 
+        recent_beacon_blocks_response = cast(
+            RecentBeaconBlocksResponse,
+            recent_beacon_blocks_response,
+        )
         asyncio.ensure_future(stream.close())
 
         return recent_beacon_blocks_response.blocks
