@@ -1,19 +1,14 @@
 from pathlib import Path
-from typing import (
-    Any,
-    Dict,
-)
+from typing import Any, Dict
 
-from ssz.tools import (
-    from_formatted_dict,
-)
+from ssz.tools import from_formatted_dict
 
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_crosslinks,
+    process_final_updates,
     process_justification_and_finalization,
     process_registry_updates,
     process_slashings,
-    process_final_updates,
 )
 from eth2.beacon.tools.fixtures.conditions import verify_state
 from eth2.beacon.tools.fixtures.config_types import ConfigType
@@ -25,22 +20,13 @@ from . import TestType
 
 
 class EpochProcessingHandler(TestHandler):
-    def parse_inputs(self,
-                     test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(
-            test_case_data["pre"],
-            BeaconState,
-        )
+    def parse_inputs(self, test_case_data: Dict[str, Any]) -> BeaconState:
+        return from_formatted_dict(test_case_data["pre"], BeaconState)
 
     def parse_outputs(self, test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(
-            test_case_data["post"],
-            BeaconState,
-        )
+        return from_formatted_dict(test_case_data["post"], BeaconState)
 
-    def run_with(self,
-                 inputs: BeaconState,
-                 config: Eth2Config) -> BeaconState:
+    def run_with(self, inputs: BeaconState, config: Eth2Config) -> BeaconState:
         state = inputs
         return self.__class__.processor(state, config)
 
@@ -85,9 +71,10 @@ class EpochProcessingTestType(TestType):
     )
 
     @classmethod
-    def build_path(cls,
-                   tests_root_path: Path,
-                   test_handler: TestHandler,
-                   config_type: ConfigType) -> Path:
+    def build_path(
+        cls, tests_root_path: Path, test_handler: TestHandler, config_type: ConfigType
+    ) -> Path:
         file_name = f"{test_handler.name}_{config_type.name}.yaml"
-        return tests_root_path / Path(cls.name) / Path(test_handler.name) / Path(file_name)
+        return (
+            tests_root_path / Path(cls.name) / Path(test_handler.name) / Path(file_name)
+        )

@@ -1,6 +1,4 @@
-from ssz.tools import (
-    to_formatted_dict,
-)
+from ssz.tools import to_formatted_dict
 
 from eth2.beacon.types.states import BeaconState
 

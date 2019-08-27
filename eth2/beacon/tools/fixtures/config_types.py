@@ -13,6 +13,7 @@ class Full(ConfigType):
     """
     ``Full`` is an alias for ``Mainnet``.
     """
+
     name = "mainnet"
     path = "tests/eth2/fixtures/mainnet.yaml"
 
