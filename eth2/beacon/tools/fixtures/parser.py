@@ -39,13 +39,17 @@ def _load_test_suite(
     return TestSuite(config, test_handler, test_suite_data)
 
 
+class DirectoryNotFoundException(Exception):
+    pass
+
+
 def _search_for_dir(target_dir, p):
     for child in p.iterdir():
         if not child.is_dir():
             continue
         if child.name == target_dir.name:
             return child
-    return None
+    raise DirectoryNotFoundException()
 
 
 def _find_project_root_dir(target: Path) -> Path:
@@ -54,10 +58,11 @@ def _find_project_root_dir(target: Path) -> Path:
     """
     p = Path(".").resolve()
     for _ in range(1000):
-        candidate = _search_for_dir(target, p)
-        if candidate:
+        try:
+            candidate = _search_for_dir(target, p)
             return candidate.parent
-        p = p.parent
+        except DirectoryNotFoundException:
+            p = p.parent
 
 
 def parse_test_suite(

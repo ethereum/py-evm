@@ -9,13 +9,8 @@ class Mainnet(ConfigType):
     path = "tests/eth2/fixtures/mainnet.yaml"
 
 
-class Full(ConfigType):
-    """
-    ``Full`` is an alias for ``Mainnet``.
-    """
-
-    name = "mainnet"
-    path = "tests/eth2/fixtures/mainnet.yaml"
+class Full(Mainnet):
+    pass
 
 
 class Minimal(ConfigType):

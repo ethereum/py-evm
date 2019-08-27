@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Any, Dict, Sequence, Tuple, Union
 
 from eth2._utils.bls import bls
@@ -18,12 +19,19 @@ from eth2.configs import Eth2Config
 from .test_handler import TestHandler
 
 
-def _select_bls_backend(bls_setting: int) -> None:
-    if bls_setting == 2:
+class BLSSetting(Enum):
+    Optional = 0
+    Enabled = 1
+    Disabled = 2
+
+
+def _select_bls_backend(bls_setting: BLSSetting) -> None:
+    if bls_setting == BLSSetting.Disabled:
         bls.use_noop_backend()
-    elif bls_setting == 1:
+    elif bls_setting == BLSSetting.Enabled:
         bls.use(PyECCBackend)
-    else:  # do not verify BLS to save time
+    elif bls_setting == BLSSetting.Optional:
+        # do not verify BLS to save time
         bls.use_noop_backend()
 
 
@@ -70,7 +78,7 @@ class TestCase:
     ) -> None:
         self.index = index
         self.description = test_case_data.get("description", "")
-        self.bls_setting = test_case_data.get("bls_setting", 0)
+        self.bls_setting = BLSSetting(test_case_data.get("bls_setting", 0))
         self.config = config
         self.test_case_data = test_case_data
         self.handler = handler

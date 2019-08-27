@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from ssz.tools import from_formatted_dict
 
@@ -10,7 +10,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_registry_updates,
     process_slashings,
 )
-from eth2.beacon.tools.fixtures.conditions import verify_state
+from eth2.beacon.tools.fixtures.conditions import validate_state
 from eth2.beacon.tools.fixtures.config_types import ConfigType
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
 from eth2.beacon.types.states import BeaconState
@@ -20,6 +20,8 @@ from . import TestType
 
 
 class EpochProcessingHandler(TestHandler):
+    processor: Callable[[BeaconState, Eth2Config], BeaconState]
+
     def parse_inputs(self, test_case_data: Dict[str, Any]) -> BeaconState:
         return from_formatted_dict(test_case_data["pre"], BeaconState)
 
@@ -31,7 +33,7 @@ class EpochProcessingHandler(TestHandler):
         return self.__class__.processor(state, config)
 
     def condition(self, output: BeaconState, expected_output: BeaconState) -> None:
-        verify_state(output, expected_output)
+        validate_state(output, expected_output)
 
 
 class JustificationAndFinalizationHandler(EpochProcessingHandler):

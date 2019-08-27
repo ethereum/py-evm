@@ -3,7 +3,7 @@ from ssz.tools import to_formatted_dict
 from eth2.beacon.types.states import BeaconState
 
 
-def verify_state(post_state: BeaconState, expected_state: BeaconState) -> None:
+def validate_state(post_state: BeaconState, expected_state: BeaconState) -> None:
     # Use dict diff, easier to see the diff
     dict_post_state = to_formatted_dict(post_state, BeaconState)
     dict_expected_state = to_formatted_dict(expected_state, BeaconState)

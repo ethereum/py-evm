@@ -49,15 +49,15 @@ def _generate_test_suite_descriptors_from(eth2_fixture_request):
 def _generate_pytest_case_from(test_type, handler_type, config_type, test_case):
     # special case only one handler "core"
     if len(test_type.handlers) == 1 or handler_type.name == "core":
-        _id = f"{test_type.name}_{config_type.name}.yaml:" f"{test_case.index}"
+        test_id = f"{test_type.name}_{config_type.name}.yaml:" f"{test_case.index}"
     else:
-        _id = (
+        test_id = (
             f"{test_type.name}_{handler_type.name}_{config_type.name}.yaml:"
             f"{test_case.index}"
         )
     if test_case.description:
-        _id += f":{test_case.description}"
-    return test_case, _id
+        test_id += f":{test_case.description}"
+    return test_case, test_id
 
 
 def _generate_pytest_cases_from_test_suite_descriptors(test_suite_descriptors):
@@ -79,10 +79,9 @@ def generate_pytests_from_eth2_fixture(metafunc) -> None:
     pytest_cases = _generate_pytest_cases_from_test_suite_descriptors(
         test_suite_descriptors
     )
-    argvals = tuple()
-    ids = tuple()
-    for test, _id in pytest_cases:
-        argvals += (test,)
-        ids += (_id,)
+    if pytest_cases:
+        argvals, ids = zip(*pytest_cases)
+    else:
+        argvals, ids = (), ()
 
     metafunc.parametrize("test_case", argvals, ids=ids)

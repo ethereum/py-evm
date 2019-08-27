@@ -7,7 +7,7 @@ from ssz.tools import from_formatted_dict
 from eth2.beacon.state_machines.forks.serenity.block_processing import (
     process_block_header,
 )
-from eth2.beacon.tools.fixtures.conditions import verify_state
+from eth2.beacon.tools.fixtures.conditions import validate_state
 from eth2.beacon.tools.fixtures.config_types import ConfigType
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
 from eth2.beacon.types.blocks import BeaconBlock
@@ -44,7 +44,7 @@ class BlockHeaderHandler(TestHandler):
             raise ValidationError(e)
 
     def condition(self, output: BeaconState, expected_output: BeaconState) -> None:
-        verify_state(output, expected_output)
+        validate_state(output, expected_output)
 
 
 class OperationsTestType(TestType):

@@ -1,10 +1,13 @@
+import abc
 from pathlib import Path
 
 from eth2.beacon.tools.fixtures.config_types import ConfigType
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
 
 
-class TestType:
+class TestType(abc.ABC):
+    name: str
+
     # TODO(ralexstokes) simplify to just ``file_name``?
     @classmethod
     def build_path(

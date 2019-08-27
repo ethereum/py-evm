@@ -7,7 +7,7 @@ from eth2.beacon.state_machines.forks.serenity.slot_processing import process_sl
 from eth2.beacon.state_machines.forks.serenity.state_transitions import (
     SerenityStateTransition,
 )
-from eth2.beacon.tools.fixtures.conditions import verify_state
+from eth2.beacon.tools.fixtures.conditions import validate_state
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.states import BeaconState
@@ -51,7 +51,7 @@ class BlocksHandler(TestHandler):
         return state
 
     def condition(self, output: BeaconState, expected_output: BeaconState) -> None:
-        verify_state(output, expected_output)
+        validate_state(output, expected_output)
 
 
 class SlotsHandler(TestHandler):
@@ -77,7 +77,7 @@ class SlotsHandler(TestHandler):
         return process_slots(state, target_slot, config)
 
     def condition(self, output: BeaconState, expected_output: BeaconState) -> None:
-        verify_state(output, expected_output)
+        validate_state(output, expected_output)
 
 
 class SanityTestType(TestType):

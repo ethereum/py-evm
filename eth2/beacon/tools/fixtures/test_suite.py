@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterable, Sequence
+from typing import Any, Dict, Generator, Sequence
 
 from eth2.configs import Eth2Config
 
@@ -8,7 +8,7 @@ from .test_handler import TestHandler
 
 def _parse_test_cases(
     config: Eth2Config, test_handler: TestHandler, test_cases: Sequence[Dict[str, Any]]
-) -> Iterable[TestCase]:
+) -> Generator[TestCase, None, None]:
     for index, test_case in enumerate(test_cases):
         yield TestCase(index, test_case, test_handler(), config)
 
