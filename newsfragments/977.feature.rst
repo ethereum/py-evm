@@ -1,0 +1,1 @@
+Expose the ``MiningChain`` on the `db-shell` REPL to allow creating blocks on a REPL

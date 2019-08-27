@@ -9,6 +9,7 @@ from typing import (
 from eth_utils import encode_hex
 from eth_utils.toolz import merge
 
+from eth.chains.base import MiningChain
 from eth.db.chain import ChainDB
 from eth.db.backends.level import LevelDB
 
@@ -101,11 +102,14 @@ def console(ipc_path: Path,
 
 
 def db_shell(use_ipython: bool, config: Dict[str, str]) -> None:
-    greeter = """
-    Head: #%(block_number)s
-    Hash: %(hex_hash)s
-    State Root: %(state_root_hex)s
-    Inspecting active Trinity? %(trinity_already_running)s
+    has_mining_chain = 'mining_chain' in config
+    mining_chain_text = '- `mining_chain: `MiningChain` instance. (use a REPL to create blocks)'
+
+    greeter = f"""
+    Head: #{config['block_number']}
+    Hash: {config['hex_hash']}
+    State Root: {config['state_root_hex']}
+    Inspecting active Trinity? {config['trinity_already_running']}
 
     Available Context Variables:
       - `db`: base database object
@@ -113,7 +117,8 @@ def db_shell(use_ipython: bool, config: Dict[str, str]) -> None:
       - `trinity_config`: `TrinityConfig` instance
       - `chain_config`: `ChainConfig` instance
       - `chain`: `Chain` instance
-    """ % config
+      {mining_chain_text if has_mining_chain else ''}
+    """
 
     namespace = {
         'db': config.get("db"),
@@ -122,6 +127,10 @@ def db_shell(use_ipython: bool, config: Dict[str, str]) -> None:
         'chain_config': config.get("chain_config"),
         'chain': config.get("chain"),
     }
+
+    if has_mining_chain:
+        namespace['mining_chain'] = config.get('mining_chain')
+
     shell(use_ipython, namespace, DB_SHELL_BANNER + greeter)
 
 
@@ -139,12 +148,20 @@ def get_eth1_shell_context(database_dir: Path, trinity_config: TrinityConfig) ->
     head = chaindb.get_canonical_head()
     chain_config = app_config.get_chain_config()
     chain = chain_config.full_chain_class(db)
+
+    mining_chain_class = MiningChain.configure(
+        __name__=chain_config.full_chain_class.__name__,
+        vm_configuration=chain.vm_configuration,
+        chain_id=chain.chain_id,
+    )
+    mining_chain = mining_chain_class(db)
     return {
         'db': db,
         'chaindb': chaindb,
         'trinity_config': trinity_config,
         'chain_config': chain_config,
         'chain': chain,
+        'mining_chain': mining_chain,
         'block_number': head.block_number,
         'hex_hash': head.hex_hash,
         'state_root_hex': encode_hex(head.state_root),
