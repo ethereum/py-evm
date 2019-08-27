@@ -1,3 +1,5 @@
+from functools import partial
+
 import rlp
 
 from eth_keys.datatypes import PrivateKey
@@ -31,7 +33,20 @@ from eth._utils.transactions import (
     create_transaction_signature,
     extract_transaction_sender,
     validate_transaction_signature,
+    IntrinsicGasSchedule,
+    calculate_intrinsic_gas,
 )
+
+
+FRONTIER_TX_GAS_SCHEDULE = IntrinsicGasSchedule(
+    gas_tx=GAS_TX,
+    gas_txcreate=0,
+    gas_txdatazero=GAS_TXDATAZERO,
+    gas_txdatanonzero=GAS_TXDATANONZERO,
+)
+
+
+get_intrinsic_gas = partial(calculate_intrinsic_gas, FRONTIER_TX_GAS_SCHEDULE)
 
 
 class FrontierTransaction(BaseTransaction):
@@ -74,7 +89,7 @@ class FrontierTransaction(BaseTransaction):
         return extract_transaction_sender(self)
 
     def get_intrinsic_gas(self) -> int:
-        return _get_frontier_intrinsic_gas(self.data)
+        return get_intrinsic_gas(self)
 
     def get_message_for_signing(self) -> bytes:
         return rlp.encode(FrontierUnsignedTransaction(
@@ -125,14 +140,4 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
         )
 
     def get_intrinsic_gas(self) -> int:
-        return _get_frontier_intrinsic_gas(self.data)
-
-
-def _get_frontier_intrinsic_gas(transaction_data: bytes) -> int:
-    num_zero_bytes = transaction_data.count(b'\x00')
-    num_non_zero_bytes = len(transaction_data) - num_zero_bytes
-    return (
-        GAS_TX +
-        num_zero_bytes * GAS_TXDATAZERO +
-        num_non_zero_bytes * GAS_TXDATANONZERO
-    )
+        return get_intrinsic_gas(self)

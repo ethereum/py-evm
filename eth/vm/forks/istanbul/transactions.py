@@ -1,3 +1,5 @@
+from functools import partial
+
 from eth_keys.datatypes import PrivateKey
 from eth_typing import Address
 
@@ -8,7 +10,22 @@ from eth.vm.forks.constantinople.transactions import (
 
 from eth._utils.transactions import (
     create_transaction_signature,
+    calculate_intrinsic_gas,
 )
+from eth.vm.forks.homestead.transactions import (
+    HOMESTEAD_TX_GAS_SCHEDULE,
+)
+
+from .constants import (
+    GAS_TXDATANONZERO_EIP2028,
+)
+
+ISTANBUL_TX_GAS_SCHEDULE = HOMESTEAD_TX_GAS_SCHEDULE._replace(
+    gas_txdatanonzero=GAS_TXDATANONZERO_EIP2028,
+)
+
+
+get_intrinsic_gas = partial(calculate_intrinsic_gas, ISTANBUL_TX_GAS_SCHEDULE)
 
 
 class IstanbulTransaction(ConstantinopleTransaction):
@@ -22,6 +39,9 @@ class IstanbulTransaction(ConstantinopleTransaction):
                                     value: int,
                                     data: bytes) -> 'IstanbulUnsignedTransaction':
         return IstanbulUnsignedTransaction(nonce, gas_price, gas, to, value, data)
+
+    def get_intrinsic_gas(self) -> int:
+        return get_intrinsic_gas(self)
 
 
 class IstanbulUnsignedTransaction(ConstantinopleUnsignedTransaction):
@@ -40,3 +60,6 @@ class IstanbulUnsignedTransaction(ConstantinopleUnsignedTransaction):
             r=r,
             s=s,
         )
+
+    def get_intrinsic_gas(self) -> int:
+        return get_intrinsic_gas(self)

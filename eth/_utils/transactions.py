@@ -1,3 +1,5 @@
+from typing import NamedTuple
+
 import rlp
 
 from eth_keys import keys
@@ -9,6 +11,10 @@ from eth_keys.exceptions import (
 from eth_utils import (
     int_to_big_endian,
     ValidationError,
+)
+
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
 )
 from eth.typing import (
     Address,
@@ -110,3 +116,28 @@ def extract_transaction_sender(transaction: BaseTransaction) -> Address:
     public_key = signature.recover_public_key_from_msg(message)
     sender = public_key.to_canonical_address()
     return Address(sender)
+
+
+class IntrinsicGasSchedule(NamedTuple):
+    gas_tx: int
+    gas_txcreate: int
+    gas_txdatazero: int
+    gas_txdatanonzero: int
+
+
+def calculate_intrinsic_gas(
+        gas_schedule: IntrinsicGasSchedule,
+        transaction: BaseTransaction,
+) -> int:
+    num_zero_bytes = transaction.data.count(b'\x00')
+    num_non_zero_bytes = len(transaction.data) - num_zero_bytes
+    if transaction.to == CREATE_CONTRACT_ADDRESS:
+        create_cost = gas_schedule.gas_txcreate
+    else:
+        create_cost = 0
+    return (
+        gas_schedule.gas_tx +
+        num_zero_bytes * gas_schedule.gas_txdatazero +
+        num_non_zero_bytes * gas_schedule.gas_txdatanonzero +
+        create_cost
+    )
