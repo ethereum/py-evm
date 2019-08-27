@@ -26,11 +26,8 @@ from trinity.protocol.bcc_libp2p.configs import (
     PUBSUB_TOPIC_BEACON_BLOCK,
     SSZ_MAX_LIST_SIZE,
 )
-from trinity.protocol.bcc_libp2p.servers import (
-    AttestationPool,
-    BCCReceiveServer,
-    OrphanBlockPool,
-)
+from trinity.protocol.bcc_libp2p.servers import AttestationPool, OrphanBlockPool
+from trinity.tools.bcc_factories import ReceiveServerFactory
 
 bcc_helpers = importlib.import_module("tests.core.p2p-proto.bcc.helpers")
 
@@ -83,13 +80,13 @@ def get_blocks(
 
 
 @pytest.fixture
-async def receive_server(nodes):
+async def receive_server():
     topic_msg_queues = {
         PUBSUB_TOPIC_BEACON_BLOCK: asyncio.Queue(),
         PUBSUB_TOPIC_BEACON_ATTESTATION: asyncio.Queue(),
     }
     chain = await get_fake_chain()
-    server = BCCReceiveServer(chain, nodes[0], topic_msg_queues)
+    server = ReceiveServerFactory(chain=chain, topic_msg_queues=topic_msg_queues)
     asyncio.ensure_future(server.run())
     await server.events.started.wait()
     try:
@@ -100,14 +97,14 @@ async def receive_server(nodes):
 
 @pytest.fixture
 async def receive_server_with_mock_process_orphan_blocks_period(
-    nodes, mock_process_orphan_blocks_period
+    mock_process_orphan_blocks_period
 ):
     topic_msg_queues = {
         PUBSUB_TOPIC_BEACON_BLOCK: asyncio.Queue(),
         PUBSUB_TOPIC_BEACON_ATTESTATION: asyncio.Queue(),
     }
     chain = await get_fake_chain()
-    server = BCCReceiveServer(chain, nodes[0], topic_msg_queues)
+    server = ReceiveServerFactory(chain=chain, topic_msg_queues=topic_msg_queues)
     asyncio.ensure_future(server.run())
     await server.events.started.wait()
     try:
@@ -183,7 +180,6 @@ def test_orphan_block_pool():
     assert len(pool._pool) == 0
 
 
-@pytest.mark.parametrize("num_nodes", (1,))
 @pytest.mark.asyncio
 async def test_bcc_receive_server_try_import_orphan_blocks(receive_server):
     blocks = get_blocks(receive_server.chain, num_blocks=4)
@@ -227,7 +223,6 @@ async def test_bcc_receive_server_try_import_orphan_blocks(receive_server):
     )
 
 
-@pytest.mark.parametrize("num_nodes", (1,))
 @pytest.mark.asyncio
 async def test_bcc_receive_server_process_received_block(receive_server, monkeypatch):
     block_not_orphan, block_orphan = get_blocks(receive_server.chain, num_blocks=2)
@@ -263,7 +258,6 @@ async def test_bcc_receive_server_process_received_block(receive_server, monkeyp
         assert event.is_set()
 
 
-@pytest.mark.parametrize("num_nodes", (1,))
 @pytest.mark.asyncio
 async def test_bcc_receive_server_handle_beacon_blocks(receive_server):
     block = get_blocks(receive_server.chain, num_blocks=1)[0]
@@ -284,7 +278,6 @@ async def test_bcc_receive_server_handle_beacon_blocks(receive_server):
     assert receive_server.chain.get_canonical_head() == block
 
 
-@pytest.mark.parametrize("num_nodes", (1,))
 @pytest.mark.asyncio
 async def test_bcc_receive_server_handle_beacon_attestations(receive_server):
     attestation = Attestation()
@@ -328,7 +321,6 @@ async def test_bcc_receive_server_handle_beacon_attestations(receive_server):
     assert attestation not in receive_server.attestation_pool
 
 
-@pytest.mark.parametrize("num_nodes", (1,))
 @pytest.mark.asyncio
 async def test_bcc_receive_server_handle_orphan_block_loop(
     receive_server_with_mock_process_orphan_blocks_period, monkeypatch
@@ -394,7 +386,6 @@ async def test_bcc_receive_server_handle_orphan_block_loop(
         assert len(receive_server.orphan_block_pool) == 0
 
 
-@pytest.mark.parametrize("num_nodes", (1,))
 @pytest.mark.asyncio
 async def test_bcc_receive_server_get_ready_attestations(receive_server, mocker):
     class MockState:
