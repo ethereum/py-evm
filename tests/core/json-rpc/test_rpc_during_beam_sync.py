@@ -1,9 +1,11 @@
 import asyncio
-import contextlib
 import json
 import os
 import pytest
 import time
+from typing import Dict
+
+from async_generator import asynccontextmanager
 
 from eth_hash.auto import keccak
 from eth_utils.toolz import (
@@ -91,8 +93,8 @@ async def get_ipc_response(
 
 
 @pytest.fixture
-def chain(chain_with_block_validation):
-    return chain_with_block_validation
+def chain(chain_without_block_validation):
+    return chain_without_block_validation
 
 
 @pytest.fixture
@@ -156,26 +158,31 @@ def ipc_request(jsonrpc_ipc_pipe_path, event_loop, event_bus, ipc_server):
 
 @pytest.fixture
 def fake_beam_syncer(chain, event_bus):
-    @contextlib.asynccontextmanager
-    async def fake_beam_sync(removed_hash, removed_node):
+    @asynccontextmanager
+    async def fake_beam_sync(removed_nodes: Dict):
         # beam sync starts, it fetches requested nodes from remote peers
 
+        def replace_missing_node(missing_node_hash):
+            if missing_node_hash not in removed_nodes:
+                raise Exception(f'An unexpected node was requested: {missing_node_hash}')
+            chain.chaindb.db[missing_node_hash] = removed_nodes.pop(missing_node_hash)
+
         async def collect_accounts(event: CollectMissingAccount):
-            chain.chaindb.db[removed_hash] = removed_node
+            replace_missing_node(event.missing_node_hash)
             await event_bus.broadcast(
                 MissingAccountCollected(1), event.broadcast_config()
             )
         accounts_sub = event_bus.subscribe(CollectMissingAccount, collect_accounts)
 
         async def collect_bytecodes(event: CollectMissingBytecode):
-            chain.chaindb.db[removed_hash] = removed_node
+            replace_missing_node(event.bytecode_hash)
             await event_bus.broadcast(
                 MissingBytecodeCollected(), event.broadcast_config()
             )
         bytecode_sub = event_bus.subscribe(CollectMissingBytecode, collect_bytecodes)
 
         async def collect_storage(event: CollectMissingStorage):
-            chain.chaindb.db[removed_hash] = removed_node
+            replace_missing_node(event.missing_node_hash)
             await event_bus.broadcast(
                 MissingStorageCollected(1), event.broadcast_config()
             )
@@ -220,7 +227,7 @@ async def test_getBalance_during_beam_sync(
     assert response['error'].startswith('State trie database is missing node for hash')
 
     # with a beam syncer running it should work again! It sends requests to the syncer
-    async with fake_beam_syncer(state_root_hash, state_root):
+    async with fake_beam_syncer({state_root_hash: state_root}):
         response = await ipc_request('eth_getBalance', [funded_address.hex(), 'latest'])
         assert 'error' not in response
         assert response['result'] == hex(funded_address_initial_balance)
@@ -249,7 +256,7 @@ async def test_getCode_during_beam_sync(
     assert response['error'].startswith('Database is missing bytecode for code hash')
 
     # with a beam syncer running it should work again! It sends requests to the syncer
-    async with fake_beam_syncer(contract_code_hash, missing_bytecode):
+    async with fake_beam_syncer({contract_code_hash: missing_bytecode}):
         response = await ipc_request('eth_getCode', [simple_contract_address.hex(), 'latest'])
         assert 'error' not in response
         assert keccak(decode_hex(response['result'])) == contract_code_hash
@@ -269,21 +276,23 @@ def storage_root(chain, simple_contract_address):
 async def test_getStorageAt_during_beam_sync(
         ipc_request, simple_contract_address, storage_root, chain, fake_beam_syncer):
 
+    params = [simple_contract_address.hex(), 1, 'latest']
+
     # sanity check, by default it works
-    response = await ipc_request('eth_getStorageAt', [simple_contract_address.hex(), 1, 'latest'])
+    response = await ipc_request('eth_getStorageAt', params)
     assert 'error' not in response
     assert response['result'] == '0x01'  # this was set in the genesis_state fixture
 
     missing_node = chain.chaindb.db.pop(storage_root)
 
     # now that the hash is missing we should receive an error
-    response = await ipc_request('eth_getStorageAt', [simple_contract_address.hex(), 1, 'latest'])
+    response = await ipc_request('eth_getStorageAt', params)
     assert 'error' in response
     assert response['error'].startswith('Storage trie database is missing hash')
 
     # with a beam syncer running it should work again! It sends requests to the syncer
-    async with fake_beam_syncer(storage_root, missing_node):
-        response = await ipc_request('eth_getStorageAt', [simple_contract_address.hex(), 1, 'latest'])
+    async with fake_beam_syncer({storage_root: missing_node}):
+        response = await ipc_request('eth_getStorageAt', params)
         assert 'error' not in response
         assert response['result'] == '0x01'  # this was set in the genesis_state fixture
 
@@ -316,7 +325,31 @@ async def test_eth_call(
     assert response['error'].startswith('Database is missing bytecode for code hash')
 
     # with a beam syncer running it should work again! It sends requests to the syncer
-    async with fake_beam_syncer(contract_code_hash, bytecode):
+    async with fake_beam_syncer({contract_code_hash: bytecode}):
+        response = await ipc_request('eth_call', [transaction, 'latest'])
+        assert 'error' not in response
+        assert response['result'].endswith('002a')
+
+
+@pytest.mark.asyncio
+async def test_eth_call_multiple_missing_nodes(
+        ipc_request, contract_code_hash, storage_root,
+        chain, transaction, fake_beam_syncer):
+
+    state_root_hash = chain.get_canonical_head().state_root
+    missing_nodes = {
+        state_root_hash: chain.chaindb.db.pop(state_root_hash),
+        contract_code_hash: chain.chaindb.db.pop(contract_code_hash),
+        storage_root: chain.chaindb.db.pop(storage_root),
+    }
+
+    # now that the hash is missing we should receive an error
+    response = await ipc_request('eth_call', [transaction, 'latest'])
+    assert 'error' in response
+    assert 'missing' in response['error']
+
+    # with a beam syncer running it should work again! It sends requests to the syncer
+    async with fake_beam_syncer(missing_nodes):
         response = await ipc_request('eth_call', [transaction, 'latest'])
         assert 'error' not in response
         assert response['result'].endswith('002a')
@@ -339,7 +372,31 @@ async def test_eth_estimateGas(
     assert response['error'].startswith('Database is missing bytecode for code hash')
 
     # with a beam syncer running it should work again! It sends requests to the syncer
-    async with fake_beam_syncer(contract_code_hash, bytecode):
+    async with fake_beam_syncer({contract_code_hash: bytecode}):
         response = await ipc_request('eth_estimateGas', [transaction, 'latest'])
         assert 'error' not in response
         assert response['result'] == '0x82a8'
+
+
+@pytest.mark.asyncio
+async def test_rpc_with_old_block(
+        ipc_request, contract_code_hash, transaction, chain, fake_beam_syncer):
+    response = await ipc_request('eth_estimateGas', [transaction, 'latest'])
+    assert 'error' not in response
+    assert response['result'] == '0x82a8'
+
+    for _ in range(65):
+        chain.mine_block()
+
+    bytecode = chain.chaindb.db.pop(contract_code_hash)
+
+    # if there is no beam syncer we return the original error
+    response = await ipc_request('eth_estimateGas', [transaction, 'earliest'])
+    assert 'error' in response
+    assert response['error'].startswith('Database is missing bytecode for code hash')
+
+    # if there is a beam syncer we return a more useful error
+    async with fake_beam_syncer({contract_code_hash: bytecode}):
+        response = await ipc_request('eth_estimateGas', [transaction, 'earliest'])
+        assert 'error' in response
+        assert response['error'].startswith('block "earliest" is too old to be fetched')
