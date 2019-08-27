@@ -10,7 +10,7 @@ class Mainnet(ConfigType):
 
 
 class Full(Mainnet):
-    pass
+    name = "full"
 
 
 class Minimal(ConfigType):
