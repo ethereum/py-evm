@@ -24,7 +24,7 @@ from eth.exceptions import (
 )
 
 from eth2.beacon.helpers import (
-    get_block_root,
+    compute_start_slot_of_epoch,
 )
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
@@ -321,17 +321,20 @@ class Node(BaseService):
             return
 
         # Get the finalized root at `hello_other_side.finalized_epoch`
-        # FIXME: This check is added here because `get_block_root` would fail when
-        # `state.slot == 0`.
-        if hello_other_side.finalized_epoch == 0 and state.slot == 0:
-            finalized_root = ZERO_HASH32
-        else:
-            finalized_root = get_block_root(
-                state,
-                hello_other_side.finalized_epoch,
-                config.SLOTS_PER_EPOCH,
-                config.SLOTS_PER_HISTORICAL_ROOT,
-            )
+        # Edge case where nothing is finalized yet
+        if (
+            hello_other_side.finalized_epoch == 0 and
+            hello_other_side.finalized_root == ZERO_HASH32
+        ):
+            return
+
+        finalized_epoch_start_slot = compute_start_slot_of_epoch(
+            hello_other_side.finalized_epoch,
+            config.SLOTS_PER_EPOCH,
+        )
+        block = self.chain.get_canonical_block_by_slot(finalized_epoch_start_slot)
+        finalized_root = block.signing_root
+
         if hello_other_side.finalized_root != finalized_root:
             raise ValidationError(
                 "`finalized_root` mismatches: "
