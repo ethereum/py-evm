@@ -22,7 +22,7 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
     def beacon_block_validator(msg_forwarder: ID, msg: rpc_pb2.Message) -> bool:
         try:
             block = ssz.decode(msg.data, BaseBeaconBlock)
-        except TypeError:
+        except (TypeError, ssz.DeserializationError):
             return False
 
         state_machine = chain.get_state_machine()
@@ -59,7 +59,7 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
     def beacon_attestation_validator(msg_forwarder: ID, msg: rpc_pb2.Message) -> bool:
         try:
             attestations = ssz.decode(msg.data, sedes=ssz.sedes.CountableList(Attestation))
-        except TypeError:
+        except (TypeError, ssz.DeserializationError):
             # Not correctly encoded
             return False
 

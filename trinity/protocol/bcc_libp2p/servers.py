@@ -190,7 +190,7 @@ class BCCReceiveServer(BaseService):
         self.orphan_block_pool = OrphanBlockPool()
 
     async def _run(self) -> None:
-        self.logger.info(f"BCCReceiveServer up")
+        self.logger.info("BCCReceiveServer up")
         self.run_daemon_task(self._handle_beacon_attestation_loop())
         self.run_daemon_task(self._handle_beacon_block_loop())
         self.run_daemon_task(self._process_orphan_blocks_loop())
@@ -212,8 +212,8 @@ class BCCReceiveServer(BaseService):
         orphan blocks in the orphan block pool.
         """
         while True:
+            await self.sleep(PROCESS_ORPHAN_BLOCKS_PERIOD)
             if len(self.orphan_block_pool) == 0:
-                await self.sleep(PROCESS_ORPHAN_BLOCKS_PERIOD)
                 continue
             orphan_blocks = self.orphan_block_pool.to_list()
             parent_roots = set([block.parent_root for block in orphan_blocks])
@@ -237,6 +237,7 @@ class BCCReceiveServer(BaseService):
                     try:
                         parent_roots.remove(block.signing_root)
                     except ValueError:
+                        self.logger.deubg(f"peer={peer_id} sent incorrect block={block}")
                         # This should not happen if peers are returning correct blocks
                         continue
                     else:
@@ -269,11 +270,10 @@ class BCCReceiveServer(BaseService):
         """
         Check if the attestation is already in the database or the attestion pool.
         """
+        if attestation.hash_tree_root in self.attestation_pool:
+            return False
         try:
-            if attestation.hash_tree_root in self.attestation_pool:
-                return True
-            else:
-                return not self.chain.attestation_exists(attestation.hash_tree_root)
+            return not self.chain.attestation_exists(attestation.hash_tree_root)
         except AttestationNotFound:
             return True
 
@@ -363,8 +363,6 @@ class BCCReceiveServer(BaseService):
                     config.MIN_ATTESTATION_INCLUSION_DELAY,
                 )
             except ValidationError:
-                # TODO: Should clean up attestations with invalid slot because
-                # they are no longer available for inclusion into block.
                 continue
             else:
                 yield attestation

@@ -374,7 +374,7 @@ async def test_bcc_receive_server_handle_orphan_block_loop(
         return requested_blocks
 
     with monkeypatch.context() as m:
-        m.setattr(receive_server.p2p_node, "handshaked_peers", fake_peers)
+        m.setattr(receive_server.p2p_node, "handshaked_peers", set(fake_peers))
         m.setattr(
             receive_server.p2p_node,
             "request_recent_beacon_blocks",

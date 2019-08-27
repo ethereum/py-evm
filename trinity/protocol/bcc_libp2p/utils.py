@@ -198,7 +198,7 @@ async def _read_ssz_msg(
     payload = await _read_varint_prefixed_bytes(stream, timeout=timeout)
     try:
         return ssz.decode(payload, msg_type)
-    except ssz.DeserializationError as error:
+    except (TypeError, ssz.DeserializationError) as error:
         raise ReadMessageFailure("failed to read the payload") from error
 
 
