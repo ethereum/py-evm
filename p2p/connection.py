@@ -1,13 +1,21 @@
 import asyncio
 import collections
 import functools
-from typing import Any, Callable, DefaultDict, Sequence, Set, Type
+from typing import (
+    Any,
+    Callable,
+    DefaultDict,
+    Sequence,
+    Set,
+    Type,
+)
 
 from eth_keys import keys
 
 from p2p.abc import (
     CommandAPI,
     HandlerSubscriptionAPI,
+    HandshakeReceiptAPI,
     MultiplexerAPI,
     NodeAPI,
     ProtocolAPI,
@@ -20,7 +28,7 @@ from p2p.exceptions import (
     UnknownProtocol,
     UnknownProtocolCommand,
 )
-from p2p.handshake import DevP2PReceipt, HandshakeReceipt
+from p2p.handshake import DevP2PReceipt
 from p2p.service import BaseService
 from p2p.p2p_proto import BaseP2PProtocol
 from p2p.typing import Capabilities
@@ -47,7 +55,7 @@ class Connection(ConnectionAPI, BaseService):
     def __init__(self,
                  multiplexer: MultiplexerAPI,
                  devp2p_receipt: DevP2PReceipt,
-                 protocol_receipts: Sequence[HandshakeReceipt],
+                 protocol_receipts: Sequence[HandshakeReceiptAPI],
                  is_dial_out: bool) -> None:
         super().__init__(token=multiplexer.cancel_token, loop=multiplexer.cancel_token.loop)
         self._multiplexer = multiplexer
@@ -87,9 +95,6 @@ class Connection(ConnectionAPI, BaseService):
                 await self.cancellation()
         except (PeerConnectionLost, asyncio.CancelledError):
             pass
-
-    async def _cleanup(self) -> None:
-        self._multiplexer.close()
 
     async def _cleanup(self) -> None:
         self._multiplexer.close()
