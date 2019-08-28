@@ -118,7 +118,7 @@ class BaseP2PProtocol(Protocol):
         self.transport.send(header, body)
 
     def send_disconnect(self, reason: _DisconnectReason) -> None:
-        msg: Dict[str, Any] = {"reason": reason}
+        msg: Dict[str, Any] = {"reason": reason.value}
         header, body = Disconnect(
             self.cmd_id_offset,
             self.snappy_support
