@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Any, Dict
 
 from eth2._utils.bls import bls
-from eth2._utils.bls.backends import PyECCBackend
+from eth2._utils.bls.backends import MilagroBackend
 from eth2.configs import Eth2Config
 
 from .test_handler import Input, Output, TestHandler
@@ -18,7 +18,7 @@ def _select_bls_backend(bls_setting: BLSSetting) -> None:
     if bls_setting == BLSSetting.Disabled:
         bls.use_noop_backend()
     elif bls_setting == BLSSetting.Enabled:
-        bls.use(PyECCBackend)
+        bls.use(MilagroBackend)
     elif bls_setting == BLSSetting.Optional:
         # do not verify BLS to save time
         bls.use_noop_backend()
