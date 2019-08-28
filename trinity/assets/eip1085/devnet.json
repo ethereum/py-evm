@@ -1,0 +1,24 @@
+{
+  "accounts":{
+     "0x00000000000000000000000000000000deadbeef":{
+        "balance":"0x0ad78ebc5ac6200000"
+     },
+     "0x00000000000000000000000000000000deadcafe":{
+        "balance":"0x0ad78ebc5ac6200000"
+     }
+  },
+  "genesis":{
+     "author":"0x0000000000000000000000000000000000000000",
+     "difficulty":"0x1",
+     "extraData":"0xdeadbeef",
+     "gasLimit":"0x900000",
+     "nonce":"0x00000000deadbeef",
+     "timestamp":"0x0"
+  },
+  "params":{
+     "petersburgForkBlock":"0x0",
+     "chainId":"0xdeadbeef",
+     "miningMethod":"ethash"
+  },
+  "version":"1"
+}

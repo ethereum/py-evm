@@ -281,7 +281,7 @@ class EIP1085GenesisLoader(argparse.Action):
 chain_parser.add_argument(
     '--genesis',
     help=(
-        "File containing a custom genesis block header"
+        "File containing a custom genesis configuration file per EIP1085"
     ),
     action=EIP1085GenesisLoader,
 )

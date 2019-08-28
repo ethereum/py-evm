@@ -5,12 +5,8 @@ import time
 import pexpect
 import pytest
 
-from eth_utils import (
-    encode_hex,
-)
 from eth.constants import (
     GENESIS_BLOCK_NUMBER,
-    GENESIS_PARENT_HASH,
 )
 
 from tests.integration.helpers import (
@@ -21,10 +17,16 @@ from tests.integration.helpers import (
 from trinity.config import (
     TrinityConfig,
 )
+from trinity.constants import (
+    ASSETS_DIR,
+)
 from trinity._utils.async_iter import (
     contains_all
 )
 
+
+ROPSTEN_GENESIS_HASH = '0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d'
+MAINNET_GENESIS_HASH = '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3'
 
 # IMPORTANT: Test names are intentionally short here because they end up
 # in the path name of the isolated Trinity paths that pytest produces for
@@ -120,13 +122,35 @@ async def test_light_boot(async_process_runner, command):
 
 
 @pytest.mark.parametrize(
-    'command',
+    'command, expected_network_id, expected_genesis_hash',
     (
-        ('trinity', ),
+        (('trinity',), 1, MAINNET_GENESIS_HASH),
+        (('trinity', '--ropsten'), 3, ROPSTEN_GENESIS_HASH),
+        (
+            (
+                'trinity',
+                f'--genesis={ASSETS_DIR}/eip1085/devnet.json',
+                # We don't have a way to refer to the tmp xdg_trinity_root here so we
+                # make up this replacement marker
+                '--data-dir={trinity_root_path}/devnet',
+                '--network-id=5'
+            ), 5, '0x065fd78e53dcef113bf9d7732dac7c5132dcf85c9588a454d832722ceb097422'),
     )
 )
 @pytest.mark.asyncio
-async def test_web3(command, async_process_runner):
+async def test_web3(command,
+                    expected_network_id,
+                    expected_genesis_hash,
+                    xdg_trinity_root,
+                    async_process_runner):
+
+    command = tuple(
+        fragment.replace('{trinity_root_path}', str(xdg_trinity_root))
+        for fragment
+        in command
+    )
+    attach_cmd = list(command[1:] + ('attach',))
+
     await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
@@ -139,17 +163,17 @@ async def test_web3(command, async_process_runner):
         "EventBus Endpoint bjson-rpc-api connecting to other Endpoints",
     })
 
-    attached_trinity = pexpect.spawn('trinity', ['attach'], logfile=sys.stdout, encoding="utf-8")
+    attached_trinity = pexpect.spawn('trinity', attach_cmd, logfile=sys.stdout, encoding="utf-8")
     try:
         attached_trinity.expect("An instance of Web3 connected to the running chain")
         attached_trinity.sendline("w3.net.version")
-        attached_trinity.expect("'1'")
+        attached_trinity.expect(f"'{expected_network_id}'")
         attached_trinity.sendline("w3")
         attached_trinity.expect("web3.main.Web3")
         attached_trinity.sendline("w3.eth.getBlock('latest').blockNumber")
         attached_trinity.expect(str(GENESIS_BLOCK_NUMBER))
-        attached_trinity.sendline("w3.eth.getBlock('latest').parentHash")
-        attached_trinity.expect(encode_hex(GENESIS_PARENT_HASH))
+        attached_trinity.sendline("w3.eth.getBlock('latest').hash")
+        attached_trinity.expect(expected_genesis_hash)
     except pexpect.TIMEOUT:
         raise Exception("Trinity attach timeout")
     finally:
