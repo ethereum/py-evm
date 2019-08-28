@@ -193,6 +193,9 @@ class Transport(TransportAPI):
         auth_ack_msg = responder.create_auth_ack_message(responder_nonce)
         auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)
 
+        if writer.transport.is_closing() or reader.at_eof():
+            raise HandshakeFailure("Connection is closing")
+
         # Use the `writer` to send the reply to the remote
         writer.write(auth_ack_ciphertext)
         await token.cancellable_wait(writer.drain())

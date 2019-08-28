@@ -1,0 +1,1 @@
+Add missing exception handling inside of ``Connection.run`` for ``PeerConnectionLost`` exception that bubbles from multiplexer.  ``Connection`` is now responsible for calling ``Multiplexer.close`` on shutdown.  Detect a closed connection during handshake.
