@@ -34,15 +34,43 @@ def _read_request_from_metafunc(metafunc: Metafunc) -> Dict[str, Any]:
     return fn.__eth2_fixture_config
 
 
+requested_config_types = set()
+
+
+def _add_config_type_to_tracking_set(config: ConfigType) -> None:
+    if len(requested_config_types) == 0:
+        requested_config_types.add(config)
+
+
+def _check_only_one_config_type(config_type: ConfigType) -> None:
+    """
+    Given the way we currently handle setting the size of dynamic SSZ types,
+    we can only run one type of configuration *per process*.
+    """
+    if config_type not in requested_config_types:
+        raise Exception(
+            "Can only run a _single_ type of configuration per process; "
+            "please inspect pytest configuration."
+        )
+
+
 def _generate_test_suite_descriptors_from(
     eth2_fixture_request: Dict[str, Any]
 ) -> Tuple[TestSuiteDescriptor, ...]:
     if "config_types" in eth2_fixture_request:
         config_types = eth2_fixture_request["config_types"]
+        # NOTE: in an ideal world, a user of the test generator can
+        # specify multiple types of config in one test run. They could also specify
+        # multiple test runs w/ disparate configurations. Given the way we currently
+        # handle setting SSZ bounds (globally!), we have to enforce the invariant of only
+        # one type of config per process.
         if len(config_types) != 1:
             raise Exception(
                 "only run one config type per process, due to overwriting SSZ bounds"
             )
+        config_type = config_types[0]
+        _add_config_type_to_tracking_set(config_type)
+        _check_only_one_config_type(config_type)
     else:
         config_types = (None,)
 
