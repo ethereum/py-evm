@@ -172,8 +172,9 @@ class Protocol(ProtocolAPI):
         header, body = command.encode(request.command_payload)
         self.transport.send(header, body)
 
-    def supports_command(self, cmd_type: Type[CommandAPI]) -> bool:
-        return cmd_type in self.cmd_by_type
+    @classmethod
+    def supports_command(cls, cmd_type: Type[CommandAPI]) -> bool:
+        return cmd_type in cls._commands
 
     @classmethod
     def as_capability(cls) -> Capability:
