@@ -552,7 +552,7 @@ class Node(BaseService):
         self,
         start_slot: Slot,
         peer_head_block: BaseBeaconBlock,
-        slot_of_requested_blocks: Sequence[BaseBeaconBlock],
+        slot_of_requested_blocks: Sequence[Slot],
     ) -> Iterable[BaseBeaconBlock]:
         # Peer's head block is on a fork chain,
         # start getting the requested blocks by
