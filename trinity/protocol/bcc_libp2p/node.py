@@ -1,6 +1,7 @@
 import asyncio
 from typing import (
     Dict,
+    Iterable,
     Optional,
     Set,
     Sequence,
@@ -16,7 +17,7 @@ from eth_typing import (
     Hash32,
 )
 
-from eth_utils import ValidationError
+from eth_utils import ValidationError, to_tuple
 
 from eth.constants import ZERO_HASH32
 from eth.exceptions import (
@@ -531,6 +532,98 @@ class Node(BaseService):
 
         await stream.close()
 
+    @to_tuple
+    def _get_blocks_from_canonical_chain_by_slot(
+        self,
+        slot_of_requested_blocks: Sequence[BaseBeaconBlock],
+    ) -> Iterable[BaseBeaconBlock]:
+        # If peer's head block is on our canonical chain,
+        # start getting the requested blocks by slots.
+        for slot in slot_of_requested_blocks:
+            try:
+                block = self.chain.get_canonical_block_by_slot(slot)
+            except BlockNotFound:
+                pass
+            else:
+                yield block
+
+    @to_tuple
+    def _get_blocks_from_fork_chain_by_root(
+        self,
+        start_slot: Slot,
+        peer_head_block: BaseBeaconBlock,
+        slot_of_requested_blocks: Sequence[BaseBeaconBlock],
+    ) -> Iterable[BaseBeaconBlock]:
+        # Peer's head block is on a fork chain,
+        # start getting the requested blocks by
+        # traversing the history from the head.
+
+        # `slot_of_requested_blocks` starts with earliest slot
+        # and end with most recent slot, so we start traversing
+        # from the most recent slot.
+        cur_index = len(slot_of_requested_blocks) - 1
+        block = peer_head_block
+        if block.slot == slot_of_requested_blocks[cur_index]:
+            yield block
+            cur_index -= 1
+        while block.slot > start_slot and cur_index >= 0:
+            try:
+                block = self.chain.get_block_by_root(block.parent_root)
+            except (BlockNotFound, ValidationError):
+                # This should not happen as we only persist block if its
+                # ancestors are also in the database.
+                break
+            else:
+                while block.slot < slot_of_requested_blocks[cur_index]:
+                    if cur_index > 0:
+                        cur_index -= 1
+                    else:
+                        break
+                if block.slot == slot_of_requested_blocks[cur_index]:
+                    yield block
+
+    def _get_requested_beacon_blocks(
+        self,
+        beacon_blocks_request: BeaconBlocksRequest,
+        peer_head_block: BaseBeaconBlock,
+    ) -> Tuple[BaseBeaconBlock, ...]:
+        slot_of_requested_blocks = tuple(
+            beacon_blocks_request.start_slot + i * beacon_blocks_request.step
+            for i in range(beacon_blocks_request.count)
+        )
+        slot_of_requested_blocks = tuple(filter(
+            lambda slot: slot <= peer_head_block.slot,
+            slot_of_requested_blocks,
+        ))
+
+        if len(slot_of_requested_blocks) == 0:
+            return tuple()
+
+        # We have the peer's head block in our database,
+        # next check if the head block is on our canonical chain.
+        try:
+            canonical_block_at_slot = self.chain.get_canonical_block_by_slot(
+                peer_head_block.slot
+            )
+        except BlockNotFound:
+            # Peer's head block is not on our canonical chain
+            return self._get_blocks_from_fork_chain_by_root(
+                beacon_blocks_request.start_slot,
+                peer_head_block,
+                slot_of_requested_blocks,
+            )
+        else:
+            if canonical_block_at_slot != peer_head_block:
+                # Peer's head block is not on our canonical chain
+                return self._get_blocks_from_fork_chain_by_root(
+                    beacon_blocks_request.start_slot,
+                    peer_head_block,
+                    slot_of_requested_blocks,
+                )
+            else:
+                # Peer's head block is on our canonical chain
+                return self._get_blocks_from_canonical_chain_by_slot(slot_of_requested_blocks)
+
     async def _handle_beacon_blocks(self, stream: INetStream) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
         peer_id = stream.mplex_conn.peer_id
@@ -554,13 +647,13 @@ class Node(BaseService):
 
         # TODO: Validate `start_slot`(>0)?
 
-        requested_beacon_blocks = []
-        head_block_not_found = False
         try:
             peer_head_block = self.chain.get_block_by_root(beacon_blocks_request.head_block_root)
-        except BlockNotFound:
-            head_block_not_found = True
+        except (BlockNotFound, ValidationError):
+            # We don't have the chain data peer is requesting
+            requested_beacon_blocks: Tuple[BaseBeaconBlock, ...] = tuple()
         else:
+            # Check if slot of specified head block is greater than specified start slot
             if peer_head_block.slot < beacon_blocks_request.start_slot:
                 reason = (
                     f"Invalid request: head block slot({peer_head_block.slot})"
@@ -573,65 +666,13 @@ class Node(BaseService):
                         "Processing beacon blocks request failed: failed to write message %s",
                         reason,
                     )
-                    # await stream.reset()
-                    # TODO: Disconnect
-                    return
-
-        not_on_canonical_chain = False
-        # If we have the peer's head block in our database,
-        # check if the head block is on our canonical chain.
-        if not head_block_not_found:
-            try:
-                canonical_block_at_slot = self.chain.get_canonical_block_by_slot(
-                    peer_head_block.slot
+                # await stream.reset()
+                return
+            else:
+                requested_beacon_blocks = self._get_requested_beacon_blocks(
+                    beacon_blocks_request,
+                    peer_head_block,
                 )
-            except BlockNotFound:
-                # Peer's head block is not on our canonical chain
-                not_on_canonical_chain = True
-            else:
-                if canonical_block_at_slot != peer_head_block:
-                    # Peer's head block is not on our canonical chain
-                    not_on_canonical_chain = True
-
-        if not head_block_not_found:
-            slot_of_requested_blocks = [
-                beacon_blocks_request.start_slot + i * beacon_blocks_request.step
-                for i in range(beacon_blocks_request.count)
-            ]
-            slot_of_requested_blocks = list(filter(
-                lambda slot: slot <= peer_head_block.slot,
-                slot_of_requested_blocks,
-            ))
-            # If peer's head block is on our canonical chain,
-            # start getting the requested blocks by slots.
-            if not not_on_canonical_chain:
-                for slot in slot_of_requested_blocks:
-                    try:
-                        block = self.chain.get_canonical_block_by_slot(slot)
-                    except BlockNotFound:
-                        pass
-                    else:
-                        requested_beacon_blocks.append(block)
-            # If peer's head block is on a fork chain,
-            # start getting the requested blocks by
-            # traversing the history from the head.
-            else:
-                block = peer_head_block
-                if block.slot == slot_of_requested_blocks[-1]:
-                    requested_beacon_blocks.append(block)
-                    slot_of_requested_blocks.pop()
-                while block.slot > beacon_blocks_request.start_slot:
-                    try:
-                        block = self.chain.get_block_by_root(block.parent_root)
-                    except BlockNotFound:
-                        # This should not happen as we only persist block if its
-                        # ancestors are also in the database.
-                        break
-                    else:
-                        while block.slot < slot_of_requested_blocks[-1]:
-                            slot_of_requested_blocks.pop()
-                        if block.slot == slot_of_requested_blocks[-1]:
-                            requested_beacon_blocks.append(block)
 
         # TODO: Should it be a successful response if peer is requesting
         # blocks on a fork we don't have data for?
@@ -645,7 +686,6 @@ class Node(BaseService):
                 beacon_blocks_response,
             )
             # await stream.reset()
-            # TODO: Disconnect
             return
 
         self.logger.debug(
@@ -746,7 +786,7 @@ class Node(BaseService):
         for block_root in recent_beacon_blocks_request.block_roots:
             try:
                 block = self.chain.get_block_by_root(block_root)
-            except (BlockNotFound, ValidationError) as error:
+            except (BlockNotFound, ValidationError):
                 pass
             else:
                 recent_beacon_blocks.append(block)
