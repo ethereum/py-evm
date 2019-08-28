@@ -14,9 +14,9 @@ class HeadStateSlotNotFound(BeaconDBException):
     pass
 
 
-class StateSlotNotFound(BeaconDBException):
+class StateNotFound(BeaconDBException):
     """
-    Exception raised if state root with the given slot number does not exist.
+    Exception raised if state with the given state does not exist.
     """
 
     pass

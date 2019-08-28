@@ -53,7 +53,7 @@ def apply_blocks(
     post_state = state.copy()
     for block in test_case.blocks:
         sm = sm_class(chaindb, attestation_pool, None, post_state)
-        post_state, imported_block = sm.import_block(block)
+        post_state, imported_block = sm.import_block(block, post_state)
         chaindb.persist_state(post_state)
         if imported_block.state_root != block.state_root:
             raise ValidationError(

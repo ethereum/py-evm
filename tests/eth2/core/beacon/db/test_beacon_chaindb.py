@@ -159,9 +159,9 @@ def test_chaindb_get_head_state_slot(chaindb, state):
 def test_chaindb_state(chaindb, state):
     chaindb.persist_state(state)
     state_class = BeaconState
+    result_state_root = chaindb.get_state_root_by_slot(state.slot)
+    assert result_state_root == state.hash_tree_root
     result_state = chaindb.get_state_by_root(state.hash_tree_root, state_class)
-    assert result_state.hash_tree_root == state.hash_tree_root
-    result_state = chaindb.get_state_by_slot(state.slot, state_class)
     assert result_state.hash_tree_root == state.hash_tree_root
 
 
