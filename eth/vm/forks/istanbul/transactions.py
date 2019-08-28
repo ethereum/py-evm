@@ -25,7 +25,7 @@ ISTANBUL_TX_GAS_SCHEDULE = HOMESTEAD_TX_GAS_SCHEDULE._replace(
 )
 
 
-get_intrinsic_gas = partial(calculate_intrinsic_gas, ISTANBUL_TX_GAS_SCHEDULE)
+istanbul_get_intrinsic_gas = partial(calculate_intrinsic_gas, ISTANBUL_TX_GAS_SCHEDULE)
 
 
 class IstanbulTransaction(ConstantinopleTransaction):
@@ -41,7 +41,7 @@ class IstanbulTransaction(ConstantinopleTransaction):
         return IstanbulUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
     def get_intrinsic_gas(self) -> int:
-        return get_intrinsic_gas(self)
+        return istanbul_get_intrinsic_gas(self)
 
 
 class IstanbulUnsignedTransaction(ConstantinopleUnsignedTransaction):
@@ -62,4 +62,4 @@ class IstanbulUnsignedTransaction(ConstantinopleUnsignedTransaction):
         )
 
     def get_intrinsic_gas(self) -> int:
-        return get_intrinsic_gas(self)
+        return istanbul_get_intrinsic_gas(self)

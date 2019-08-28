@@ -46,7 +46,7 @@ FRONTIER_TX_GAS_SCHEDULE = IntrinsicGasSchedule(
 )
 
 
-get_intrinsic_gas = partial(calculate_intrinsic_gas, FRONTIER_TX_GAS_SCHEDULE)
+frontier_get_intrinsic_gas = partial(calculate_intrinsic_gas, FRONTIER_TX_GAS_SCHEDULE)
 
 
 class FrontierTransaction(BaseTransaction):
@@ -89,7 +89,7 @@ class FrontierTransaction(BaseTransaction):
         return extract_transaction_sender(self)
 
     def get_intrinsic_gas(self) -> int:
-        return get_intrinsic_gas(self)
+        return frontier_get_intrinsic_gas(self)
 
     def get_message_for_signing(self) -> bytes:
         return rlp.encode(FrontierUnsignedTransaction(
@@ -140,4 +140,4 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
         )
 
     def get_intrinsic_gas(self) -> int:
-        return get_intrinsic_gas(self)
+        return frontier_get_intrinsic_gas(self)
