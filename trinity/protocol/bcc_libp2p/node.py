@@ -333,8 +333,8 @@ class Node(BaseService):
             hello_other_side.finalized_epoch,
             config.SLOTS_PER_EPOCH,
         )
-        block = self.chain.get_canonical_block_by_slot(finalized_epoch_start_slot)
-        finalized_root = block.signing_root
+        finalized_root = self.chain.get_canonical_block_by_slot(
+            finalized_epoch_start_slot).block.signing_root
 
         if hello_other_side.finalized_root != finalized_root:
             raise ValidationError(
@@ -645,7 +645,26 @@ class Node(BaseService):
             return
         self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
 
-        # TODO: Validate `start_slot`(>0)?
+        # Validate `beacon_blocks_request.start_slot`
+        state_machine = self.chain.get_state_machine()
+        finalized_epoch_start_slot = compute_start_slot_of_epoch(
+            epoch=state_machine.state.finalized_checkpoint.epoch,
+            slots_per_epoch=state_machine.config.SLOTS_PER_EPOCH,
+        )
+        if beacon_blocks_request.start_slot < max(0, finalized_epoch_start_slot):
+            reason = (
+                f"Invalid request: `start_slot`({beacon_blocks_request.start_slot})"
+                f" lower than our latest finalized slot({finalized_epoch_start_slot})"
+            )
+            try:
+                await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
+            except WriteMessageFailure as error:
+                self.logger.info(
+                    "Processing beacon blocks request failed: failed to write message %s",
+                    reason,
+                )
+            # await stream.reset()
+            return
 
         try:
             peer_head_block = self.chain.get_block_by_root(beacon_blocks_request.head_block_root)

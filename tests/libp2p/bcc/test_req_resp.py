@@ -167,7 +167,7 @@ async def test_request_beacon_blocks_invalid_request(nodes_with_chain, monkeypat
     assert nodes[1].peer_id in nodes[0].handshaked_peers
     assert nodes[0].peer_id in nodes[1].handshaked_peers
 
-    head_slot = 5
+    head_slot = 1
     request_head_block_root = b"\x56" * 32
     head_block = BeaconBlock(
         slot=head_slot,
@@ -177,15 +177,42 @@ async def test_request_beacon_blocks_invalid_request(nodes_with_chain, monkeypat
         body=BeaconBlockBody(),
     )
 
+    # TEST: Can not request blocks with `start_slot` greater than head block slot
+    start_slot = 2
+
     def get_block_by_root(root):
         return head_block
 
     monkeypatch.setattr(nodes[1].chain, "get_block_by_root", get_block_by_root)
 
-    # Test: Can not request blocks with `start_slot` greater than head block slot
-    start_slot = 6
-    count = 5
+    count = 1
     step = 1
+    with pytest.raises(RequestFailure):
+        await nodes[0].request_beacon_blocks(
+            peer_id=nodes[1].peer_id,
+            head_block_root=request_head_block_root,
+            start_slot=start_slot,
+            count=count,
+            step=step,
+        )
+
+    # TEST: Can not request blocks with `start_slot` lower than peer's latest finalized slot
+    start_slot = head_slot
+    state_machine = nodes[1].chain.get_state_machine()
+    old_state = state_machine.state
+    new_checkpoint = old_state.finalized_checkpoint.copy(
+        epoch=old_state.finalized_checkpoint.epoch + 1
+    )
+
+    def get_state_machine(at_slot=None):
+        class MockStateMachine:
+            state = old_state.copy(finalized_checkpoint=new_checkpoint)
+            config = state_machine.config
+
+        return MockStateMachine()
+
+    monkeypatch.setattr(nodes[1].chain, "get_state_machine", get_state_machine)
+
     with pytest.raises(RequestFailure):
         await nodes[0].request_beacon_blocks(
             peer_id=nodes[1].peer_id,
