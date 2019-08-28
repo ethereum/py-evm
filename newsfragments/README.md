@@ -10,6 +10,7 @@ Each file should be named like `<ISSUE>.<TYPE>.rst`, where
 
 * `feature`
 * `bugfix`
+* `performance`
 * `doc`
 * `removal`
 * `misc`
