@@ -278,8 +278,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         receipt_db = HexaryTrie(db=self.db, root_hash=header.receipt_root)
         for receipt_idx in itertools.count():
             receipt_key = rlp.encode(receipt_idx)
-            if receipt_key in receipt_db:
-                receipt_data = receipt_db[receipt_key]
+            receipt_data = receipt_db[receipt_key]
+            if receipt_data != b'':
                 yield rlp.decode(receipt_data, sedes=receipt_class)
             else:
                 break
@@ -301,8 +301,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             raise TransactionNotFound("Block {} is not in the canonical chain".format(block_number))
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         encoded_index = rlp.encode(transaction_index)
-        if encoded_index in transaction_db:
-            encoded_transaction = transaction_db[encoded_index]
+        encoded_transaction = transaction_db[encoded_index]
+        if encoded_transaction != b'':
             return rlp.decode(encoded_transaction, sedes=transaction_class)
         else:
             raise TransactionNotFound(
@@ -341,8 +341,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
 
         receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_key = rlp.encode(receipt_index)
-        if receipt_key in receipt_db:
-            receipt_data = receipt_db[receipt_key]
+        receipt_data = receipt_db[receipt_key]
+        if receipt_data != b'':
             return rlp.decode(receipt_data, sedes=Receipt)
         else:
             raise ReceiptNotFound(
@@ -356,8 +356,9 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         transaction_db = HexaryTrie(db, root_hash=transaction_root)
         for transaction_idx in itertools.count():
             transaction_key = rlp.encode(transaction_idx)
-            if transaction_key in transaction_db:
-                yield transaction_db[transaction_key]
+            encoded = transaction_db[transaction_key]
+            if encoded != b'':
+                yield encoded
             else:
                 break
 
