@@ -165,8 +165,8 @@ class LESPeerFactory(BaseChainPeerFactory):
             head_num=head.block_number,
             genesis_hash=genesis_hash,
             serve_headers=True,
-            serve_chain_since=0,
             # TODO: these should be configurable to allow us to serve this data.
+            serve_chain_since=None,
             serve_state_since=None,
             serve_recent_state=None,
             serve_recent_chain=None,
