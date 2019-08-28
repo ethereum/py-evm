@@ -535,7 +535,7 @@ class Node(BaseService):
     @to_tuple
     def _get_blocks_from_canonical_chain_by_slot(
         self,
-        slot_of_requested_blocks: Sequence[BaseBeaconBlock],
+        slot_of_requested_blocks: Sequence[Slot],
     ) -> Iterable[BaseBeaconBlock]:
         # If peer's head block is on our canonical chain,
         # start getting the requested blocks by slots.
