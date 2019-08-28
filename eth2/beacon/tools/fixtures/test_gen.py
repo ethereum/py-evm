@@ -1,28 +1,43 @@
 import itertools
-from typing import Any, Dict, NewType, Optional, Tuple
+from typing import Any, Callable, Dict, Generator, Iterator, Set, Tuple
 
 from eth_utils.toolz import thread_last
+from typing_extensions import Protocol
 
 from eth2.beacon.tools.fixtures.config_types import ConfigType
 from eth2.beacon.tools.fixtures.parser import parse_test_suite
 from eth2.beacon.tools.fixtures.test_case import TestCase
-from eth2.beacon.tools.fixtures.test_handler import TestHandler
-from eth2.beacon.tools.fixtures.test_types import TestType
+from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
+from eth2.beacon.tools.fixtures.test_types import HandlerType, TestType
+
+TestSuiteDescriptor = Tuple[Tuple[TestType[Any], TestHandler[Any, Any]], ConfigType]
+
+
+class DecoratorTarget(Protocol):
+    __eth2_fixture_config: Dict[str, Any]
+
 
 # NOTE: ``pytest`` does not export the ``Metafunc`` class so we
 # make a new type here to stand in for it.
-Metafunc = NewType("Metafunc", object)
-TestSuiteDescriptor = Tuple[Tuple[TestType, TestHandler], ConfigType]
+class Metafunc(Protocol):
+    function: DecoratorTarget
+
+    def parametrize(
+        self, param_name: str, argvals: Tuple[TestCase, ...], ids: Tuple[str, ...]
+    ) -> None:
+        ...
 
 
-def pytest_from_eth2_fixture(config: Dict[str, Any]):
+def pytest_from_eth2_fixture(
+    config: Dict[str, Any]
+) -> Callable[[DecoratorTarget], DecoratorTarget]:
     """
     This function attaches the ``config`` to the ``func`` via the
     ``decorator``. The idea here is to just communicate this data to
     later stages of the test generation.
     """
 
-    def decorator(func):
+    def decorator(func: DecoratorTarget) -> DecoratorTarget:
         func.__eth2_fixture_config = config
         return func
 
@@ -34,7 +49,7 @@ def _read_request_from_metafunc(metafunc: Metafunc) -> Dict[str, Any]:
     return fn.__eth2_fixture_config
 
 
-requested_config_types = set()
+requested_config_types: Set[ConfigType] = set()
 
 
 def _add_config_type_to_tracking_set(config: ConfigType) -> None:
@@ -82,18 +97,19 @@ def _generate_test_suite_descriptors_from(
             _type: lambda handler: handler.name == "core" for _type in test_types
         }
 
-    selected_handlers = tuple()
+    selected_handlers: Tuple[Tuple[TestType[Any], TestHandler[Any, Any]], ...] = tuple()
     for test_type, handler_filter in test_types.items():
         for handler in test_type.handlers:
             if handler_filter(handler) or handler.name == "core":
                 selected_handler = (test_type, handler)
                 selected_handlers += selected_handler
-    return itertools.product((selected_handlers,), config_types)
+    result: Iterator[Any] = itertools.product((selected_handlers,), config_types)
+    return tuple(result)
 
 
 def _generate_pytest_case_from(
-    test_type: TestType,
-    handler_type: TestHandler,
+    test_type: TestType[HandlerType],
+    handler_type: TestHandler[Input, Output],
     config_type: ConfigType,
     test_case: TestCase,
 ) -> Tuple[TestCase, str]:
@@ -123,7 +139,7 @@ def _generate_pytest_case_from(
 
 def _generate_pytest_cases_from_test_suite_descriptors(
     test_suite_descriptors: Tuple[TestSuiteDescriptor, ...]
-):
+) -> Generator[Tuple[TestCase, str], None, None]:
     for (test_type, handler_type), config_type in test_suite_descriptors:
         test_suite = parse_test_suite(test_type, handler_type, config_type)
         for test_case in test_suite:

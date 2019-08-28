@@ -1,5 +1,9 @@
-class ConfigType:
-    pass
+import abc
+
+
+class ConfigType(abc.ABC):
+    name: str
+    path: str
 
 
 class Mainnet(ConfigType):

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Tuple, Type
 
 from ssz.tools import from_formatted_dict
 
@@ -12,27 +12,31 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
 from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.test_handler import TestHandler
+from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
 from eth2.beacon.types.states import BeaconState
 from eth2.configs import Eth2Config
 
 from . import TestType
 
 
-class EpochProcessingHandler(TestHandler):
+class EpochProcessingHandler(TestHandler[BeaconState, BeaconState]):
     processor: Callable[[BeaconState, Eth2Config], BeaconState]
 
-    def parse_inputs(self, test_case_data: Dict[str, Any]) -> BeaconState:
+    @classmethod
+    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> BeaconState:
         return from_formatted_dict(test_case_data["pre"], BeaconState)
 
-    def parse_outputs(self, test_case_data: Dict[str, Any]) -> BeaconState:
+    @staticmethod
+    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
         return from_formatted_dict(test_case_data["post"], BeaconState)
 
-    def run_with(self, inputs: BeaconState, config: Eth2Config) -> BeaconState:
+    @classmethod
+    def run_with(cls, inputs: BeaconState, config: Eth2Config) -> BeaconState:
         state = inputs
-        return self.__class__.processor(state, config)
+        return cls.processor(state, config)
 
-    def condition(self, output: BeaconState, expected_output: BeaconState) -> None:
+    @staticmethod
+    def condition(output: BeaconState, expected_output: BeaconState) -> None:
         validate_state(output, expected_output)
 
 
@@ -61,7 +65,16 @@ class FinalUpdatesHandler(EpochProcessingHandler):
     processor = process_final_updates
 
 
-class EpochProcessingTestType(TestType):
+EpochProcessingHandlerType = Tuple[
+    Type[JustificationAndFinalizationHandler],
+    Type[CrosslinksHandler],
+    Type[RegistryUpdatesHandler],
+    Type[SlashingsHandler],
+    Type[FinalUpdatesHandler],
+]
+
+
+class EpochProcessingTestType(TestType[EpochProcessingHandlerType]):
     name = "epoch_processing"
 
     handlers = (
@@ -74,7 +87,10 @@ class EpochProcessingTestType(TestType):
 
     @classmethod
     def build_path(
-        cls, tests_root_path: Path, test_handler: TestHandler, config_type: ConfigType
+        cls,
+        tests_root_path: Path,
+        test_handler: TestHandler[Input, Output],
+        config_type: ConfigType,
     ) -> Path:
         file_name = f"{test_handler.name}_{config_type.name}.yaml"
         return (

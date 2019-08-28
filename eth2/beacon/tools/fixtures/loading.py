@@ -72,9 +72,7 @@ def get_input_bls_privkey(test_case: Dict[str, Any]) -> Dict[str, int]:
     return {"privkey": int.from_bytes(decode_hex(test_case["input"]), "big")}
 
 
-def get_input_sign_message(
-    test_case: Dict[str, Any]
-) -> Dict[str, Union[int, bytes, bytes]]:
+def get_input_sign_message(test_case: Dict[str, Any]) -> Dict[str, Union[int, bytes]]:
     return {
         "privkey": int.from_bytes(decode_hex(test_case["input"]["privkey"]), "big"),
         "message_hash": decode_hex(test_case["input"]["message"]),

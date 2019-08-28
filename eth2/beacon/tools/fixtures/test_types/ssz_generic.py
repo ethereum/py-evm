@@ -1,5 +1,10 @@
+from typing import Tuple
+
 from . import TestType
 
+# temporary
+SSZGenericHandlerType = Tuple[None]
 
-class SSZGeneric(TestType):
+
+class SSZGeneric(TestType[SSZGenericHandlerType]):
     pass
