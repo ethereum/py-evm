@@ -26,7 +26,7 @@ async def test_connection_waits_to_feed_protocol_streams():
     async with ConnectionPairFactory(start_streams=False) as (alice_connection, bob_connection):
         got_ping = asyncio.Event()
 
-        async def _handle_ping(msg):
+        async def _handle_ping(conn, msg):
             got_ping.set()
 
         alice_connection.add_command_handler(Ping, _handle_ping)
@@ -142,16 +142,16 @@ async def test_connection_protocol_and_command_handlers():
 
         done = asyncio.Event()
 
-        async def _handler_second_protocol(cmd, msg):
+        async def _handler_second_protocol(conn, cmd, msg):
             messages_second_protocol.append((cmd, msg))
 
-        async def _handler_cmd_A(msg):
+        async def _handler_cmd_A(conn, msg):
             messages_cmd_A.append(msg)
 
-        async def _handler_cmd_D(msg):
+        async def _handler_cmd_D(conn, msg):
             messages_cmd_D.append(msg)
 
-        async def _handler_cmd_C(msg):
+        async def _handler_cmd_C(conn, msg):
             done.set()
 
         alice_connection.add_protocol_handler(SecondProtocol, _handler_second_protocol)

@@ -339,10 +339,10 @@ class BasePeer(BaseService):
 
         await self.cancellation()
 
-    async def _ping_handler(self, msg: Payload) -> None:
+    async def _ping_handler(self, connection: ConnectionAPI, msg: Payload) -> None:
         self.base_protocol.send_pong()
 
-    async def _disconnect_handler(self, msg: Payload) -> None:
+    async def _disconnect_handler(self, connection: ConnectionAPI, msg: Payload) -> None:
         msg = cast(Dict[str, Any], msg)
         try:
             reason = DisconnectReason(msg['reason'])
@@ -353,7 +353,10 @@ class BasePeer(BaseService):
 
         self.cancel_nowait()
 
-    async def _handle_subscriber_message(self, cmd: CommandAPI, msg: Payload) -> None:
+    async def _handle_subscriber_message(self,
+                                         connection: ConnectionAPI,
+                                         cmd: CommandAPI,
+                                         msg: Payload) -> None:
         subscriber_msg = PeerMessage(self, cmd, msg)
         for subscriber in self._subscribers:
             subscriber.add_msg(subscriber_msg)

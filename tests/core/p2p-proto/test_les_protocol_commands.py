@@ -39,7 +39,7 @@ async def test_les_protocol_methods_request_id(
     messages = []
     got_message = asyncio.Event()
 
-    async def collect_messages(cmd, msg):
+    async def collect_messages(conn, cmd, msg):
         messages.append((cmd, msg))
         got_message.set()
 
