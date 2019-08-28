@@ -70,7 +70,7 @@ class BaseBeaconStateMachine(Configurable, ABC):
         state: BeaconState,
         check_proposer_signature: bool = True,
     ) -> Tuple[BeaconState, BaseBeaconBlock]:
-        pass
+        ...
 
     @staticmethod
     @abstractmethod
