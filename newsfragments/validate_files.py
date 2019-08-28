@@ -9,6 +9,7 @@ import pathlib
 ALLOWED_EXTENSIONS = {
     '.feature.rst',
     '.bugfix.rst',
+    '.performance.rst',
     '.doc.rst',
     '.removal.rst',
     '.misc.rst',

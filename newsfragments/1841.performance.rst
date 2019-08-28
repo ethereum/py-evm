@@ -1,0 +1,2 @@
+~20% speedup on "simple value transfer" benchmarks, ~10% overall benchmark lift. Optimized retrieval
+of transactions and receipts from the trie database.
