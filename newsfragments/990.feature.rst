@@ -1,0 +1,1 @@
+Handler functions for ``Connection.add_protocol_handler`` and ``Connection.add_command_handler`` now expect the ``Connection`` instance as the first argument.

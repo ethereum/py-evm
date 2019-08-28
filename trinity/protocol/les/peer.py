@@ -25,7 +25,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.abc import CommandAPI, ConnectionAPI, HandshakeReceiptAPI, NodeAPI
 from p2p.handshake import DevP2PReceipt, Handshaker
 from p2p.peer_pool import BasePeerPool
 from p2p.typing import Payload
@@ -113,7 +113,7 @@ class LESPeer(BaseChainPeer):
     def setup_protocol_handlers(self) -> None:
         self.connection.add_command_handler(Announce, self._handle_announce)
 
-    async def _handle_announce(self, msg: Payload) -> None:
+    async def _handle_announce(self, connection: ConnectionAPI, msg: Payload) -> None:
         head_info = cast(Dict[str, Union[int, Hash32, BlockNumber]], msg)
         self.head_td = cast(int, head_info['head_td'])
         self.head_hash = cast(Hash32, head_info['head_hash'])

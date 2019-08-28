@@ -9,11 +9,11 @@ async def do_ping_pong_test(alice_connection: ConnectionAPI, bob_connection: Con
     got_ping = asyncio.Event()
     got_pong = asyncio.Event()
 
-    async def _handle_ping(msg: Any) -> None:
+    async def _handle_ping(connection: ConnectionAPI, msg: Any) -> None:
         got_ping.set()
         bob_connection.get_base_protocol().send_pong()
 
-    async def _handle_pong(msg: Any) -> None:
+    async def _handle_pong(connection: ConnectionAPI, msg: Any) -> None:
         got_pong.set()
 
     alice_connection.add_command_handler(Pong, _handle_pong)

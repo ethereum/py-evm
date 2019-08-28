@@ -396,6 +396,10 @@ class HandlerSubscriptionAPI:
         ...
 
 
+ProtocolHandlerFn = Callable[['ConnectionAPI', CommandAPI, Payload], Awaitable[Any]]
+CommandHandlerFn = Callable[['ConnectionAPI', Payload], Awaitable[Any]]
+
+
 class ConnectionAPI(AsyncioServiceAPI):
     protocol_receipts: Tuple[HandshakeReceiptAPI, ...]
 
@@ -422,14 +426,14 @@ class ConnectionAPI(AsyncioServiceAPI):
     @abstractmethod
     def add_protocol_handler(self,
                              protocol_type: Type[ProtocolAPI],
-                             handler_fn: Callable[[CommandAPI, Payload], Awaitable[Any]],
+                             handler_fn: ProtocolHandlerFn,
                              ) -> HandlerSubscriptionAPI:
         ...
 
     @abstractmethod
     def add_command_handler(self,
                             command_type: Type[CommandAPI],
-                            handler_fn: Callable[[Payload], Awaitable[Any]],
+                            handler_fn: CommandHandlerFn,
                             ) -> HandlerSubscriptionAPI:
         ...
 

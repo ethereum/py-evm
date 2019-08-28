@@ -16,7 +16,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.abc import CommandAPI, ConnectionAPI, HandshakeReceiptAPI, NodeAPI
 from p2p.handshake import DevP2PReceipt
 from p2p.protocol import (
     Payload,
@@ -109,7 +109,7 @@ class ETHPeer(BaseChainPeer):
     def setup_protocol_handlers(self) -> None:
         self.connection.add_command_handler(NewBlock, self._handle_new_block)
 
-    async def _handle_new_block(self, msg: Payload) -> None:
+    async def _handle_new_block(self, connection: ConnectionAPI, msg: Payload) -> None:
         msg = cast(Dict[str, Any], msg)
         header, _, _ = msg['block']
         actual_head = header.parent_hash

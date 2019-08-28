@@ -12,11 +12,11 @@ async def test_connection_factory_with_ParagonPeer():
         got_ping = asyncio.Event()
         got_pong = asyncio.Event()
 
-        async def handle_ping(msg):
+        async def handle_ping(conn, msg):
             got_ping.set()
             bob.base_protocol.send_pong()
 
-        async def handle_pong(msg):
+        async def handle_pong(conn, msg):
             got_pong.set()
 
         alice.connection.add_command_handler(Pong, handle_pong)
