@@ -23,5 +23,5 @@ async def test_connection_factory_with_ParagonPeer():
 
         alice.base_protocol.send_ping()
 
-        await asyncio.wait_for(got_ping.wait(), timeout=0.1)
-        await asyncio.wait_for(got_pong.wait(), timeout=0.1)
+        await asyncio.wait_for(got_ping.wait(), timeout=1)
+        await asyncio.wait_for(got_pong.wait(), timeout=1)
