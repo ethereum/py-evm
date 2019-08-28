@@ -87,6 +87,9 @@ class Connection(ConnectionAPI, BaseService):
 
             await self.cancellation()
 
+    async def _cleanup(self) -> None:
+        self._multiplexer.close()
+
     #
     # Subscriptions/Handler API
     #

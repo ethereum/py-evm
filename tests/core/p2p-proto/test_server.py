@@ -144,10 +144,7 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
         protocol_receipts=protocol_receipts,
         is_dial_out=False,
     )
-    initiator_peer = factory.create_peer(
-        connection=connection,
-        inbound=False,
-    )
+    initiator_peer = factory.create_peer(connection=connection)
 
     # wait for peer to be processed
     for _ in range(100):

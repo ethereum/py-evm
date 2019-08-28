@@ -308,7 +308,7 @@ class BasePeer(BaseService):
             self._subscribers.remove(subscriber)
 
     async def _cleanup(self) -> None:
-        self.multiplexer.close()
+        self.connection.cancel_nowait()
 
     def setup_protocol_handlers(self) -> None:
         """
@@ -354,8 +354,9 @@ class BasePeer(BaseService):
         self.cancel_nowait()
 
     async def _handle_subscriber_message(self, cmd: CommandAPI, msg: Payload) -> None:
+        subscriber_msg = PeerMessage(self, cmd, msg)
         for subscriber in self._subscribers:
-            subscriber.add_msg(PeerMessage(self, cmd, msg))
+            subscriber.add_msg(subscriber_msg)
 
     def _disconnect(self, reason: DisconnectReason) -> None:
         if reason is DisconnectReason.bad_protocol:
@@ -581,11 +582,10 @@ class BasePeerFactory(ABC):
             protocol_handshakers=handshakers,
             token=self.cancel_token
         )
-        return self.create_peer(connection, inbound=False)
+        return self.create_peer(connection)
 
     def create_peer(self,
-                    connection: ConnectionAPI,
-                    inbound: bool = False) -> BasePeer:
+                    connection: ConnectionAPI) -> BasePeer:
         return self.peer_class(
             connection=connection,
             context=self.context,

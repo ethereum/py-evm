@@ -177,7 +177,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         )
 
         # Create and register peer in peer_pool
-        peer = factory.create_peer(connection, inbound=True)
+        peer = factory.create_peer(connection)
 
         if self.peer_pool.is_full:
             await peer.disconnect(DisconnectReason.too_many_peers)

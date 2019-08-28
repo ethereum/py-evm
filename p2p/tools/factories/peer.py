@@ -70,8 +70,8 @@ async def PeerPairFactory(*,
         cancel_token=cancel_token,
     )
     async with connection_pair as (alice_connection, bob_connection):
-        alice = alice_factory.create_peer(connection=alice_connection, inbound=False)
-        bob = bob_factory.create_peer(connection=bob_connection, inbound=False)
+        alice = alice_factory.create_peer(connection=alice_connection)
+        bob = bob_factory.create_peer(connection=bob_connection)
 
         async with run_service(alice), run_service(bob):
             yield alice, bob
