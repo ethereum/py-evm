@@ -107,7 +107,7 @@ class LESPeer(BaseChainPeer):
     @property
     def requests(self) -> LESExchangeHandler:
         if self._requests is None:
-            self._requests = LESExchangeHandler(self)
+            self._requests = LESExchangeHandler(self.connection)
         return self._requests
 
     def setup_protocol_handlers(self) -> None:

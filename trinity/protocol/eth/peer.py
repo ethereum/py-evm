@@ -103,7 +103,7 @@ class ETHPeer(BaseChainPeer):
     @property
     def requests(self) -> ETHExchangeHandler:
         if self._requests is None:
-            self._requests = ETHExchangeHandler(self)
+            self._requests = ETHExchangeHandler(self.connection)
         return self._requests
 
     def setup_protocol_handlers(self) -> None:

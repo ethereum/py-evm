@@ -94,7 +94,7 @@ class BCCPeer(BasePeer):
     @property
     def requests(self) -> BCCExchangeHandler:
         if self._requests is None:
-            self._requests = BCCExchangeHandler(self)
+            self._requests = BCCExchangeHandler(self.connection)
         return self._requests
 
 
