@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Sequence, Tuple
 
 from eth_utils import ValidationError
 from ssz.tools import from_formatted_dict

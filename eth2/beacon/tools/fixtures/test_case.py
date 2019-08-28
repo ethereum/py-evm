@@ -1,19 +1,8 @@
-from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any, Dict, Sequence
 
 from eth2._utils.bls import bls
 from eth2._utils.bls.backends import PyECCBackend
-from eth2.beacon.types.attestations import Attestation
-from eth2.beacon.types.attester_slashings import AttesterSlashing
-from eth2.beacon.types.block_headers import BeaconBlockHeader
-from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.types.deposits import Deposit
-from eth2.beacon.types.proposer_slashings import ProposerSlashing
-from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.transfers import Transfer
-from eth2.beacon.types.voluntary_exits import VoluntaryExit
-from eth2.beacon.typing import Slot
 from eth2.configs import Eth2Config
 
 from .test_handler import TestHandler
@@ -33,39 +22,6 @@ def _select_bls_backend(bls_setting: BLSSetting) -> None:
     elif bls_setting == BLSSetting.Optional:
         # do not verify BLS to save time
         bls.use_noop_backend()
-
-
-Operation = Union[
-    ProposerSlashing, AttesterSlashing, Attestation, Deposit, VoluntaryExit, Transfer
-]
-OperationOrBlockHeader = Union[Operation, BeaconBlockHeader]
-
-
-@dataclass
-class BaseTestCase:
-    handler: str
-    index: int
-
-
-@dataclass
-class StateTestCase(BaseTestCase):
-    bls_setting: bool
-    description: str
-    pre: BeaconState
-    post: BeaconState
-    slots: Slot = Slot(0)
-    blocks: Tuple[BeaconBlock, ...] = field(default_factory=tuple)
-    is_valid: bool = True
-
-
-@dataclass
-class OperationCase(BaseTestCase):
-    bls_setting: bool
-    description: str
-    pre: BeaconState
-    operation: OperationOrBlockHeader
-    post: BeaconState
-    is_valid: bool = True
 
 
 class TestCase:
