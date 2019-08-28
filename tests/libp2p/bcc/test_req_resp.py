@@ -107,40 +107,36 @@ async def test_request_beacon_blocks_fail(nodes_with_chain, monkeypatch):
         )
 
 
-@pytest.mark.parametrize("num_nodes", (2,))
+@pytest.mark.parametrize("num_nodes", (1,))
+@pytest.mark.parametrize(
+    "db_block_slots, slot_of_requested_blocks, expected_block_slots",
+    (
+        (range(5), [0, 2, 4], [0, 2, 4]),
+        ([1, 3, 5], [0, 2, 4], []),
+        ([2, 4], range(5), [2, 4]),
+    ),
+)
 @pytest.mark.asyncio
-async def test_request_beacon_blocks_on_canonical_chain(nodes_with_chain, monkeypatch):
-    nodes = nodes_with_chain
-    await nodes[0].dial_peer_maddr(nodes[1].listen_maddr_with_peer_id)
-    await nodes[0].say_hello(nodes[1].peer_id)
-    await asyncio.sleep(0.01)
-    assert nodes[1].peer_id in nodes[0].handshaked_peers
-    assert nodes[0].peer_id in nodes[1].handshaked_peers
+async def test_get_blocks_from_canonical_chain_by_slot(
+    nodes_with_chain,
+    monkeypatch,
+    db_block_slots,
+    slot_of_requested_blocks,
+    expected_block_slots,
+):
+    node = nodes_with_chain[0]
 
     # Mock up block database
-    head_slot = 5
-    request_head_block_root = b"\x56" * 32
-    head_block = BeaconBlock(
-        slot=head_slot,
-        parent_root=ZERO_HASH32,
-        state_root=ZERO_HASH32,
-        signature=EMPTY_SIGNATURE,
-        body=BeaconBlockBody(),
-    )
-    blocks = [head_block.copy(slot=slot) for slot in range(5)]
     mock_slot_to_block_db = {
-        5: head_block,
-        4: blocks[4],
-        3: blocks[3],
-        2: blocks[2],
-        1: blocks[1],
-        0: blocks[0],
+        slot: BeaconBlock(
+            slot=slot,
+            parent_root=ZERO_HASH32,
+            state_root=ZERO_HASH32,
+            signature=EMPTY_SIGNATURE,
+            body=BeaconBlockBody(),
+        )
+        for slot in db_block_slots
     }
-
-    def get_block_by_root(root):
-        return head_block
-
-    monkeypatch.setattr(nodes[1].chain, "get_block_by_root", get_block_by_root)
 
     def get_canonical_block_by_slot(slot):
         if slot in mock_slot_to_block_db:
@@ -149,27 +145,16 @@ async def test_request_beacon_blocks_on_canonical_chain(nodes_with_chain, monkey
             raise BlockNotFound
 
     monkeypatch.setattr(
-        nodes[1].chain, "get_canonical_block_by_slot", get_canonical_block_by_slot
+        node.chain, "get_canonical_block_by_slot", get_canonical_block_by_slot
     )
 
-    start_slot = 0
-    count = 5
-    step = 3
-    requested_blocks = await nodes[0].request_beacon_blocks(
-        peer_id=nodes[1].peer_id,
-        head_block_root=request_head_block_root,
-        start_slot=start_slot,
-        count=count,
-        step=step,
+    result_blocks = node._get_blocks_from_canonical_chain_by_slot(
+        slot_of_requested_blocks=slot_of_requested_blocks
     )
 
-    expected_blocks = [
-        blocks[start_slot + i * step]
-        for i in range(count)
-        if start_slot + i * step < len(blocks)
-    ]
-    assert len(requested_blocks) == len(expected_blocks)
-    assert set(requested_blocks) == set(expected_blocks)
+    expected_blocks = [mock_slot_to_block_db[slot] for slot in expected_block_slots]
+    assert len(result_blocks) == len(expected_blocks)
+    assert set(result_blocks) == set(expected_blocks)
 
 
 @pytest.mark.parametrize("num_nodes", (2,))
@@ -211,42 +196,33 @@ async def test_request_beacon_blocks_invalid_request(nodes_with_chain, monkeypat
         )
 
 
-@pytest.mark.parametrize("num_nodes", (2,))
+@pytest.mark.parametrize("num_nodes", (1,))
 @pytest.mark.parametrize(
-    "fork_chain_block_slots, start_slot, count, step, expected_block_slots",
+    "fork_chain_block_slots, slot_of_requested_blocks, expected_block_slots",
     (
-        (range(10), 0, 5, 1, range(5)),
-        (range(10), 1, 2, 3, [1, 4]),
-        ([0, 2, 3, 7, 8], 0, 4, 2, [0, 2]),
-        ([0, 4, 5], 4, 2, 2, [4]),
+        (range(10), [1, 4], [1, 4]),
+        ([0, 2, 3, 7, 8], list(range(1, 9, 2)), [3, 7]),
+        ([0, 2, 5], list(range(1, 6)), [2, 5]),
+        ([0, 4, 5], [2, 3], []),
     ),
 )
 @pytest.mark.asyncio
-async def test_request_beacon_blocks_on_fork_chain(
+async def test_get_blocks_from_fork_chain_by_root(
     nodes_with_chain,
     monkeypatch,
     fork_chain_block_slots,
-    start_slot,
-    count,
-    step,
+    slot_of_requested_blocks,
     expected_block_slots,
 ):
-    nodes = nodes_with_chain
-    await nodes[0].dial_peer_maddr(nodes[1].listen_maddr_with_peer_id)
-    await nodes[0].say_hello(nodes[1].peer_id)
-    await asyncio.sleep(0.01)
-    assert nodes[1].peer_id in nodes[0].handshaked_peers
-    assert nodes[0].peer_id in nodes[1].handshaked_peers
+    node = nodes_with_chain[0]
 
-    canonical_head_slot = fork_chain_block_slots[-1] + 1
     mock_block = BeaconBlock(
-        slot=canonical_head_slot,
+        slot=0,
         parent_root=ZERO_HASH32,
         state_root=ZERO_HASH32,
         signature=EMPTY_SIGNATURE,
         body=BeaconBlockBody(),
     )
-    canonical_head = mock_block
 
     # Mock up fork chain block database
     fork_chain_blocks = []
@@ -267,21 +243,12 @@ async def test_request_beacon_blocks_on_fork_chain(
         else:
             raise BlockNotFound
 
-    monkeypatch.setattr(nodes[1].chain, "get_block_by_root", get_block_by_root)
+    monkeypatch.setattr(node.chain, "get_block_by_root", get_block_by_root)
 
-    def get_canonical_block_by_slot(slot):
-        return canonical_head
-
-    monkeypatch.setattr(
-        nodes[1].chain, "get_canonical_block_by_slot", get_canonical_block_by_slot
-    )
-
-    requested_blocks = await nodes[0].request_beacon_blocks(
-        peer_id=nodes[1].peer_id,
-        head_block_root=fork_chain_blocks[-1].signing_root,
-        start_slot=start_slot,
-        count=count,
-        step=step,
+    requested_blocks = node._get_blocks_from_fork_chain_by_root(
+        start_slot=slot_of_requested_blocks[0],
+        peer_head_block=fork_chain_blocks[-1],
+        slot_of_requested_blocks=slot_of_requested_blocks,
     )
 
     expected_blocks = [
