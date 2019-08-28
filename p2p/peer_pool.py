@@ -463,7 +463,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             # Yield control to ensure we process any disconnection requests from peers. Otherwise
             # we could return peers that should have been disconnected already.
             await asyncio.sleep(0)
-            if not peer.is_closing:
+            if peer.is_operational and not peer.is_closing:
                 yield peer
 
     async def _periodically_report_stats(self) -> None:
