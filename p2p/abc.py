@@ -407,6 +407,8 @@ class ConnectionAPI(AsyncioServiceAPI):
     #
     # Primary properties of the connection
     #
+    is_dial_out: bool
+
     @property
     @abstractmethod
     def is_dial_in(self) -> bool:
