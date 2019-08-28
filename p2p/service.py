@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import asyncio
 import concurrent
 import functools
@@ -25,10 +25,11 @@ from eth_utils import (
 
 from eth.tools.logging import ExtendedDebugLogger
 
+from p2p.abc import ServiceEventsAPI, AsyncioServiceAPI
 from p2p.cancellable import CancellableMixin
 
 
-class ServiceEvents:
+class ServiceEvents(ServiceEventsAPI):
     def __init__(self) -> None:
         self.started = asyncio.Event()
         self.stopped = asyncio.Event()
@@ -37,12 +38,12 @@ class ServiceEvents:
         self.finished = asyncio.Event()
 
 
-class BaseService(ABC, CancellableMixin):
+class BaseService(CancellableMixin, AsyncioServiceAPI):
     logger: ExtendedDebugLogger = None
     # Use a WeakSet so that we don't have to bother updating it when tasks finish.
-    _child_services: 'WeakSet[BaseService]'
+    _child_services: 'WeakSet[AsyncioServiceAPI]'
     _tasks: 'WeakSet[asyncio.Future[Any]]'
-    _finished_callbacks: List[Callable[['BaseService'], None]]
+    _finished_callbacks: List[Callable[[AsyncioServiceAPI], None]]
     # Number of seconds cancel() will wait for run() to finish.
     _wait_until_finished_timeout = 5
 
@@ -95,7 +96,7 @@ class BaseService(ABC, CancellableMixin):
 
     async def run(
             self,
-            finished_callback: Optional[Callable[['BaseService'], None]] = None) -> None:
+            finished_callback: Optional[Callable[[AsyncioServiceAPI], None]] = None) -> None:
         """Await for the service's _run() coroutine.
 
         Once _run() returns, triggers the cancel token, call cleanup() and
@@ -141,7 +142,7 @@ class BaseService(ABC, CancellableMixin):
             self.events.finished.set()
             self.logger.debug("%s halted cleanly", self)
 
-    def add_finished_callback(self, finished_callback: Callable[['BaseService'], None]) -> None:
+    def add_finished_callback(self, finished_callback: Callable[[AsyncioServiceAPI], None]) -> None:
         self._finished_callbacks.append(finished_callback)
 
     def run_task(self, awaitable: Awaitable[Any]) -> None:
@@ -185,7 +186,7 @@ class BaseService(ABC, CancellableMixin):
                     self.cancel_nowait()
         self.run_task(_run_daemon_task_wrapper())
 
-    def run_child_service(self, child_service: 'BaseService') -> None:
+    def run_child_service(self, child_service: AsyncioServiceAPI) -> None:
         """
         Run a child service and keep a reference to it to be considered during the cleanup.
         """
@@ -201,7 +202,7 @@ class BaseService(ABC, CancellableMixin):
         self._child_services.add(child_service)
         self.run_task(child_service.run())
 
-    def run_daemon(self, service: 'BaseService') -> None:
+    def run_daemon(self, service: AsyncioServiceAPI) -> None:
         """
         Run a service and keep a reference to it to be considered during the cleanup.
 
@@ -396,7 +397,7 @@ def service_timeout(timeout: int) -> Callable[..., Any]:
     """
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
-        async def wrapped(service: BaseService, *args: Any, **kwargs: Any) -> Any:
+        async def wrapped(service: AsyncioServiceAPI, *args: Any, **kwargs: Any) -> Any:
             return await service.wait(
                 func(service, *args, **kwargs),
                 timeout=timeout,
@@ -413,7 +414,7 @@ class EmptyService(BaseService):
         pass
 
 
-TService = TypeVar('TService', bound=BaseService)
+TService = TypeVar('TService', bound=AsyncioServiceAPI)
 
 
 @asynccontextmanager

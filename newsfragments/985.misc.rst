@@ -1,0 +1,1 @@
+Add ``ABC`` base class for ``p2p.service.BaseService``
