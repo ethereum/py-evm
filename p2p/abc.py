@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import asyncio
 from typing import (
     Any,
     AsyncContextManager,
@@ -9,6 +10,7 @@ from typing import (
     Dict,
     Generic,
     List,
+    Optional,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -21,11 +23,14 @@ from rlp import sedes
 
 from cancel_token import CancelToken
 
+from eth_utils import ExtendedDebugLogger
+
 from eth_keys import datatypes
 
 from p2p.typing import Capability, Capabilities, Payload, Structure
 
 if TYPE_CHECKING:
+    from p2p.handshake import DevP2PReceipt  # noqa: F401
     from p2p.p2p_proto import (  # noqa: F401
         BaseP2PProtocol,
     )
@@ -325,13 +330,75 @@ class MultiplexerAPI(ABC):
         ...
 
 
+class ServiceEventsAPI(ABC):
+    started: asyncio.Event
+    stopped: asyncio.Event
+    cleaned_up: asyncio.Event
+    cancelled: asyncio.Event
+    finished: asyncio.Event
+
+
+TReturn = TypeVar('TReturn')
+
+
+class AsyncioServiceAPI(ABC):
+    events: ServiceEventsAPI
+    cancel_token: CancelToken
+
+    @property
+    @abstractmethod
+    def logger(self) -> ExtendedDebugLogger:
+        ...
+
+    @abstractmethod
+    def cancel_nowait(self) -> None:
+        ...
+
+    @property
+    @abstractmethod
+    def is_cancelled(self) -> bool:
+        ...
+
+    @property
+    @abstractmethod
+    def is_running(self) -> bool:
+        ...
+
+    @abstractmethod
+    async def run(
+            self,
+            finished_callback: Optional[Callable[['AsyncioServiceAPI'], None]] = None) -> None:
+        ...
+
+    @abstractmethod
+    async def cancel(self) -> None:
+        ...
+
+    @abstractmethod
+    def run_daemon(self, service: 'AsyncioServiceAPI') -> None:
+        ...
+
+    @abstractmethod
+    async def wait(self,
+                   awaitable: Awaitable[TReturn],
+                   token: CancelToken = None,
+                   timeout: float = None) -> TReturn:
+        ...
+
+
+class HandshakeReceiptAPI(ABC):
+    protocol: ProtocolAPI
+
+
 class HandlerSubscriptionAPI:
     @abstractmethod
     def cancel(self) -> None:
         ...
 
 
-class ConnectionAPI(ABC):
+class ConnectionAPI(AsyncioServiceAPI):
+    protocol_receipts: Tuple[HandshakeReceiptAPI, ...]
+
     #
     # Primary properties of the connection
     #
@@ -348,6 +415,10 @@ class ConnectionAPI(ABC):
     #
     # Subscriptions/Handler API
     #
+    @abstractmethod
+    def start_protocol_streams(self) -> None:
+        ...
+
     @abstractmethod
     def add_protocol_handler(self,
                              protocol_type: Type[ProtocolAPI],
@@ -376,6 +447,13 @@ class ConnectionAPI(ABC):
     def get_base_protocol(self) -> 'BaseP2PProtocol':
         ...
 
+    @abstractmethod
+    def get_p2p_receipt(self) -> 'DevP2PReceipt':
+        ...
+
+    #
+    # Connection Metadata
+    #
     @property
     @abstractmethod
     def remote_capabilities(self) -> Capabilities:

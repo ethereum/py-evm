@@ -28,20 +28,23 @@ from eth_keys import datatypes
 
 from cancel_token import CancelToken
 
-from p2p.abc import CommandAPI, MultiplexerAPI, NodeAPI, ProtocolAPI
+from p2p.abc import (
+    CommandAPI,
+    ConnectionAPI,
+    HandshakeReceiptAPI,
+    NodeAPI,
+    ProtocolAPI,
+)
 from p2p.constants import BLACKLIST_SECONDS_BAD_PROTOCOL
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
-    MalformedMessage,
-    PeerConnectionLost,
-    UnexpectedMessage,
     UnknownProtocol,
 )
+from p2p.connection import Connection
 from p2p.handshake import (
     negotiate_protocol_handshakes,
     DevP2PHandshakeParams,
     DevP2PReceipt,
-    HandshakeReceipt,
     Handshaker,
 )
 from p2p.service import BaseService
@@ -49,7 +52,6 @@ from p2p.p2p_proto import (
     BaseP2PProtocol,
     Disconnect,
     Ping,
-    Pong,
 )
 from p2p.protocol import (
     Command,
@@ -61,7 +63,6 @@ from p2p.tracking.connection import (
     NoopConnectionTracker,
 )
 
-
 if TYPE_CHECKING:
     from p2p.peer_pool import BasePeerPool  # noqa: F401
 
@@ -70,12 +71,11 @@ async def handshake(remote: NodeAPI,
                     private_key: datatypes.PrivateKey,
                     p2p_handshake_params: DevP2PHandshakeParams,
                     protocol_handshakers: Tuple[Handshaker, ...],
-                    token: CancelToken,
-                    ) -> Tuple[MultiplexerAPI, DevP2PReceipt, Tuple[HandshakeReceipt, ...]]:
+                    token: CancelToken) -> ConnectionAPI:
     """
     Perform the auth and P2P handshakes with the given remote.
 
-    Return a `Multiplexer` object along with the handshake receipts.
+    Return a `Connection` object housing all of the negotiated sub protocols.
 
     Raises UnreachablePeer if we cannot connect to the peer or
     HandshakeFailure if the remote disconnects before completing the
@@ -104,7 +104,13 @@ async def handshake(remote: NodeAPI,
         await asyncio.sleep(0)
         raise
 
-    return multiplexer, devp2p_receipt, protocol_receipts
+    connection = Connection(
+        multiplexer=multiplexer,
+        devp2p_receipt=devp2p_receipt,
+        protocol_receipts=protocol_receipts,
+        is_dial_out=True,
+    )
+    return connection
 
 
 async def receive_handshake(reader: asyncio.StreamReader,
@@ -112,8 +118,7 @@ async def receive_handshake(reader: asyncio.StreamReader,
                             private_key: datatypes.PrivateKey,
                             p2p_handshake_params: DevP2PHandshakeParams,
                             protocol_handshakers: Tuple[Handshaker, ...],
-                            token: CancelToken,
-                            ) -> Tuple[MultiplexerAPI, DevP2PReceipt, Tuple[HandshakeReceipt, ...]]:
+                            token: CancelToken) -> Connection:
     transport = await Transport.receive_connection(
         reader=reader,
         writer=writer,
@@ -136,7 +141,13 @@ async def receive_handshake(reader: asyncio.StreamReader,
         await asyncio.sleep(0)
         raise
 
-    return multiplexer, devp2p_receipt, protocol_receipts
+    connection = Connection(
+        multiplexer=multiplexer,
+        devp2p_receipt=devp2p_receipt,
+        protocol_receipts=protocol_receipts,
+        is_dial_out=False,
+    )
+    return connection
 
 
 class BasePeerBootManager(BaseService):
@@ -181,23 +192,20 @@ class BasePeer(BaseService):
     base_protocol: BaseP2PProtocol
 
     def __init__(self,
-                 multiplexer: MultiplexerAPI,
-                 devp2p_receipt: DevP2PReceipt,
-                 protocol_receipts: Sequence[HandshakeReceipt],
+                 connection: ConnectionAPI,
                  context: BasePeerContext,
-                 inbound: bool,
                  event_bus: EndpointAPI = None,
                  ) -> None:
-        super().__init__(token=multiplexer.cancel_token, loop=multiplexer.cancel_token.loop)
+        super().__init__(token=connection.cancel_token, loop=connection.cancel_token.loop)
 
-        # This is currently only used to have access to the `vm_configuration`
-        # for ETH/LES peers to do their DAO fork check.
+        # Peer context object
         self.context = context
 
         # Connection instance
-        self.multiplexer = multiplexer
+        self.connection = connection
+        self.multiplexer = connection.get_multiplexer()
 
-        self.base_protocol = self.multiplexer.get_base_protocol()
+        self.base_protocol = self.connection.get_base_protocol()
 
         # TODO: need to remove this property but for now it is here to support
         # backwards compat
@@ -210,10 +218,9 @@ class BasePeer(BaseService):
                 break
         else:
             raise ValidationError("No supported subprotocols found in multiplexer")
-        self.sub_proto = self.multiplexer.get_protocols()[1]
 
         # The self-identifying string that the remote names itself.
-        self.client_version_string = devp2p_receipt.client_version_string
+        self.client_version_string = self.connection.safe_client_version_string
 
         # Optional event bus handle
         self._event_bus = event_bus
@@ -222,7 +229,7 @@ class BasePeer(BaseService):
         # established from a dial-out or dial-in (True: dial-in, False:
         # dial-out)
         # TODO: rename to `dial_in` and have a computed property for `dial_out`
-        self.inbound = inbound
+        self.inbound = connection.is_dial_in
         self._subscribers: List[PeerSubscriber] = []
 
         # A counter of the number of messages this peer has received for each
@@ -233,13 +240,16 @@ class BasePeer(BaseService):
         self.boot_manager = self.get_boot_manager()
         self.connection_tracker = self.setup_connection_tracker()
 
-        self.process_handshake_receipts(devp2p_receipt, protocol_receipts)
+        self.process_handshake_receipts(
+            connection.get_p2p_receipt(),
+            connection.protocol_receipts,
+        )
 
     def process_handshake_receipts(self,
                                    devp2p_receipt: DevP2PReceipt,
-                                   protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+                                   protocol_receipts: Sequence[HandshakeReceiptAPI]) -> None:
         """
-        Hook for subclasses to initialize data based on the protocol handshake.
+        Noop implementation for subclasses to override.
         """
         pass
 
@@ -270,7 +280,7 @@ class BasePeer(BaseService):
     #
     @cached_property
     def remote(self) -> NodeAPI:
-        return self.multiplexer.remote
+        return self.connection.remote
 
     @property
     def is_closing(self) -> bool:
@@ -298,84 +308,57 @@ class BasePeer(BaseService):
             self._subscribers.remove(subscriber)
 
     async def _cleanup(self) -> None:
-        self.multiplexer.close()
+        self.connection.cancel_nowait()
+
+    def setup_protocol_handlers(self) -> None:
+        """
+        Hook for subclasses to setup handlers for protocols specific messages.
+        """
+        pass
 
     async def _run(self) -> None:
+        # setup handler to respond to ping messages
+        self.connection.add_command_handler(Ping, self._ping_handler)
+
+        # setup handler for disconnect messages
+        self.connection.add_command_handler(Disconnect, self._disconnect_handler)
+
+        # setup handler for protocol messages to pass messages to subscribers
+        for protocol in self.multiplexer.get_protocols():
+            self.connection.add_protocol_handler(type(protocol), self._handle_subscriber_message)
+
+        self.setup_protocol_handlers()
+
         # The `boot` process is run in the background to allow the `run` loop
         # to continue so that all of the Peer APIs can be used within the
         # `boot` task.
         self.run_child_service(self.boot_manager)
+
+        # Trigger the connection to start feeding messages though the handlers
+        self.connection.start_protocol_streams()
+
+        await self.cancellation()
+
+    async def _ping_handler(self, msg: Payload) -> None:
+        self.base_protocol.send_pong()
+
+    async def _disconnect_handler(self, msg: Payload) -> None:
+        msg = cast(Dict[str, Any], msg)
         try:
-            async with self.multiplexer.multiplex():
-                self.run_daemon_task(self.handle_p2p_proto_stream())
-                self.run_daemon_task(self.handle_sub_proto_stream())
-                await self.cancellation()
-        except PeerConnectionLost as err:
-            self.logger.debug('Peer connection lost: %s: %r', self, err)
-            self.cancel_nowait()
-        except MalformedMessage as err:
-            self.logger.debug('MalformedMessage error with peer: %s: %r', self, err)
-            await self.disconnect(DisconnectReason.subprotocol_error)
-        except TimeoutError as err:
-            # TODO: we should send a ping and see if we get back a pong...
-            self.logger.debug('TimeoutError error with peer: %s: %r', self, err)
-            await self.disconnect(DisconnectReason.timeout)
-
-    async def handle_p2p_proto_stream(self) -> None:
-        """Handle the base protocol (P2P) messages."""
-        async for cmd, msg in self.multiplexer.stream_protocol_messages(self.base_protocol):
-            self.handle_p2p_msg(cmd, msg)
-
-    def handle_p2p_msg(self, cmd: CommandAPI, msg: Payload) -> None:
-        """Handle the base protocol (P2P) messages."""
-        if isinstance(cmd, Disconnect):
-            msg = cast(Dict[str, Any], msg)
-            try:
-                reason = DisconnectReason(msg['reason'])
-            except TypeError:
-                self.logger.info('Unrecognized reason: %s', msg['reason'])
-            else:
-                self.disconnect_reason = reason
-            self.cancel_nowait()
-            return
-        elif isinstance(cmd, Ping):
-            self.base_protocol.send_pong()
-        elif isinstance(cmd, Pong):
-            # Currently we don't do anything when we get a pong, but eventually we should
-            # update the last time we heard from a peer in our DB (which doesn't exist yet).
-            pass
+            reason = DisconnectReason(msg['reason'])
+        except TypeError:
+            self.logger.info('Unrecognized reason: %s', msg['reason_name'])
         else:
-            raise UnexpectedMessage(f"Unexpected msg: {cmd} ({msg})")
+            self.disconnect_reason = reason
 
-    async def handle_sub_proto_stream(self) -> None:
-        async for cmd, msg in self.multiplexer.stream_protocol_messages(self.sub_proto):
-            self.handle_sub_proto_msg(cmd, msg)
+        self.cancel_nowait()
 
-    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: Payload) -> None:
-        cmd_type = type(cmd)
-
-        if self._subscribers:
-            was_added = tuple(
-                subscriber.add_msg(PeerMessage(self, cmd, msg))
-                for subscriber
-                in self._subscribers
-            )
-            if not any(was_added):
-                self.logger.warning(
-                    "Peer %s has no subscribers for msg type %s",
-                    self,
-                    cmd_type.__name__,
-                )
-        else:
-            self.logger.warning("Peer %s has no subscribers, discarding %s msg", self, cmd)
+    async def _handle_subscriber_message(self, cmd: CommandAPI, msg: Payload) -> None:
+        subscriber_msg = PeerMessage(self, cmd, msg)
+        for subscriber in self._subscribers:
+            subscriber.add_msg(subscriber_msg)
 
     def _disconnect(self, reason: DisconnectReason) -> None:
-        if not isinstance(reason, DisconnectReason):
-            raise ValueError(
-                f"Reason must be an item of DisconnectReason, got {reason}"
-            )
-
-        self.disconnect_reason = reason
         if reason is DisconnectReason.bad_protocol:
             self.connection_tracker.record_blacklist(
                 self.remote,
@@ -385,7 +368,7 @@ class BasePeer(BaseService):
 
         self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
         self.base_protocol.send_disconnect(reason.value)
-        self.multiplexer.close()
+        self.cancel_nowait()
 
     async def disconnect(self, reason: DisconnectReason) -> None:
         """Send a disconnect msg to the remote node and stop this Peer.
@@ -592,30 +575,19 @@ class BasePeerFactory(ABC):
             self.context.p2p_version,
         )
         handshakers = await self.get_handshakers()
-        multiplexer, devp2p_receipt, protocol_receipts = await handshake(
+        connection = await handshake(
             remote=remote,
             private_key=self.privkey,
             p2p_handshake_params=p2p_handshake_params,
             protocol_handshakers=handshakers,
             token=self.cancel_token
         )
-        return self.create_peer(
-            multiplexer=multiplexer,
-            devp2p_receipt=devp2p_receipt,
-            protocol_receipts=protocol_receipts,
-            inbound=False,
-        )
+        return self.create_peer(connection)
 
     def create_peer(self,
-                    multiplexer: MultiplexerAPI,
-                    devp2p_receipt: DevP2PReceipt,
-                    protocol_receipts: Sequence[HandshakeReceipt],
-                    inbound: bool) -> BasePeer:
+                    connection: ConnectionAPI) -> BasePeer:
         return self.peer_class(
-            multiplexer=multiplexer,
-            devp2p_receipt=devp2p_receipt,
-            protocol_receipts=protocol_receipts,
+            connection=connection,
             context=self.context,
-            inbound=False,
             event_bus=self.event_bus,
         )

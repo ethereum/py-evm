@@ -10,6 +10,7 @@ from eth.db.atomic import AtomicDB
 from eth.db.chain import ChainDB
 
 from p2p.auth import HandshakeInitiator, _handshake
+from p2p.connection import Connection
 from p2p.kademlia import (
     Node,
     Address,
@@ -137,12 +138,13 @@ async def test_server_incoming_connection(monkeypatch, server, event_loop):
         protocol_handshakers=handshakers,
         token=token,
     )
-    initiator_peer = factory.create_peer(
+    connection = Connection(
         multiplexer=multiplexer,
         devp2p_receipt=devp2p_receipt,
         protocol_receipts=protocol_receipts,
-        inbound=False,
+        is_dial_out=False,
     )
+    initiator_peer = factory.create_peer(connection=connection)
 
     # wait for peer to be processed
     for _ in range(100):

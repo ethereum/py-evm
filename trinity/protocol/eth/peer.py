@@ -16,8 +16,8 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, NodeAPI
-from p2p.handshake import DevP2PReceipt, HandshakeReceipt
+from p2p.abc import CommandAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.handshake import DevP2PReceipt
 from p2p.protocol import (
     Payload,
 )
@@ -80,7 +80,7 @@ class ETHPeer(BaseChainPeer):
 
     def process_handshake_receipts(self,
                                    devp2p_receipt: DevP2PReceipt,
-                                   protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+                                   protocol_receipts: Sequence[HandshakeReceiptAPI]) -> None:
         super().process_handshake_receipts(devp2p_receipt, protocol_receipts)
         for receipt in protocol_receipts:
             if isinstance(receipt, ETHHandshakeReceipt):
@@ -106,17 +106,18 @@ class ETHPeer(BaseChainPeer):
             self._requests = ETHExchangeHandler(self)
         return self._requests
 
-    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: Payload) -> None:
-        if isinstance(cmd, NewBlock):
-            msg = cast(Dict[str, Any], msg)
-            header, _, _ = msg['block']
-            actual_head = header.parent_hash
-            actual_td = msg['total_difficulty'] - header.difficulty
-            if actual_td > self.head_td:
-                self.head_hash = actual_head
-                self.head_td = actual_td
+    def setup_protocol_handlers(self) -> None:
+        self.connection.add_command_handler(NewBlock, self._handle_new_block)
 
-        super().handle_sub_proto_msg(cmd, msg)
+    async def _handle_new_block(self, msg: Payload) -> None:
+        msg = cast(Dict[str, Any], msg)
+        header, _, _ = msg['block']
+        actual_head = header.parent_hash
+        actual_td = msg['total_difficulty'] - header.difficulty
+
+        if actual_td > self.head_td:
+            self.head_hash = actual_head
+            self.head_td = actual_td
 
 
 class ETHProxyPeer(BaseProxyPeer):

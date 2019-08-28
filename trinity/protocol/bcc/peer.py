@@ -10,8 +10,8 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, NodeAPI
-from p2p.handshake import DevP2PReceipt, HandshakeReceipt
+from p2p.abc import CommandAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.handshake import DevP2PReceipt
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
@@ -78,7 +78,7 @@ class BCCPeer(BasePeer):
 
     def process_handshake_receipts(self,
                                    devp2p_receipt: DevP2PReceipt,
-                                   protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+                                   protocol_receipts: Sequence[HandshakeReceiptAPI]) -> None:
         super().process_handshake_receipts(devp2p_receipt, protocol_receipts)
         for receipt in protocol_receipts:
             if isinstance(receipt, BCCHandshakeReceipt):

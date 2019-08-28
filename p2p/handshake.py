@@ -21,7 +21,12 @@ from eth_utils.toolz import groupby, valmap
 from eth.tools.logging import ExtendedDebugLogger
 
 from p2p._utils import duplicates
-from p2p.abc import TransportAPI, MultiplexerAPI, ProtocolAPI
+from p2p.abc import (
+    HandshakeReceiptAPI,
+    MultiplexerAPI,
+    ProtocolAPI,
+    TransportAPI,
+)
 from p2p.constants import (
     DEVP2P_V5,
 )
@@ -46,7 +51,7 @@ from p2p.typing import (
 )
 
 
-class HandshakeReceipt:
+class HandshakeReceipt(HandshakeReceiptAPI):
     """
     Data storage object for ephemeral data exchanged during protocol
     handshakes.

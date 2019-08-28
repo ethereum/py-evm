@@ -33,7 +33,7 @@ from trinity.protocol.eth.handshaker import ETHHandshaker
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerFactory
 from trinity.protocol.eth.proto import ETHHandshakeParams, ETHProtocol
 
-from trinity.protocol.les.handshaker import LESV1Handshaker
+from trinity.protocol.les.handshaker import LESV2Handshaker, LESV1Handshaker
 from trinity.protocol.les.peer import LESPeer, LESPeerFactory
 from trinity.protocol.les.proto import LESHandshakeParams, LESProtocol, LESProtocolV2
 
@@ -186,6 +186,20 @@ class LESHandshakeParamsFactory(factory.Factory):
     announce_type = factory.LazyAttribute(
         lambda o: o.version if o.version >= LESProtocolV2.version else None
     )
+
+
+class LESV1HandshakerFactory(factory.Factory):
+    class Meta:
+        model = LESV1Handshaker
+
+    handshake_params = factory.SubFactory(LESHandshakeParamsFactory, version=LESProtocol.version)
+
+
+class LESV2HandshakerFactory(factory.Factory):
+    class Meta:
+        model = LESV2Handshaker
+
+    handshake_params = factory.SubFactory(LESHandshakeParamsFactory, version=LESProtocolV2.version)
 
 
 class LESV1Peer(LESPeer):

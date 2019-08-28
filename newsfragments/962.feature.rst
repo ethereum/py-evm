@@ -1,0 +1,1 @@
+``p2p.peer.BasePeer`` now uses ``ConnectionAPI`` for underlying protocol interactions.

@@ -25,14 +25,12 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, NodeAPI
-from p2p.handshake import DevP2PReceipt, HandshakeReceipt
+from p2p.abc import CommandAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.handshake import DevP2PReceipt, Handshaker
 from p2p.peer_pool import BasePeerPool
 from p2p.typing import Payload
 
 from trinity.rlp.block_body import BlockBody
-from p2p.handshake import Handshaker
-
 from trinity.protocol.common.peer import (
     BaseChainPeer,
     BaseProxyPeer,
@@ -85,7 +83,7 @@ class LESPeer(BaseChainPeer):
 
     def process_handshake_receipts(self,
                                    devp2p_receipt: DevP2PReceipt,
-                                   protocol_receipts: Sequence[HandshakeReceipt]) -> None:
+                                   protocol_receipts: Sequence[HandshakeReceiptAPI]) -> None:
         super().process_handshake_receipts(devp2p_receipt, protocol_receipts)
         for receipt in protocol_receipts:
             if isinstance(receipt, LESHandshakeReceipt):
@@ -112,14 +110,14 @@ class LESPeer(BaseChainPeer):
             self._requests = LESExchangeHandler(self)
         return self._requests
 
-    def handle_sub_proto_msg(self, cmd: CommandAPI, msg: Payload) -> None:
-        if isinstance(cmd, Announce):
-            head_info = cast(Dict[str, Union[int, Hash32, BlockNumber]], msg)
-            self.head_td = cast(int, head_info['head_td'])
-            self.head_hash = cast(Hash32, head_info['head_hash'])
-            self.head_number = cast(BlockNumber, head_info['head_number'])
+    def setup_protocol_handlers(self) -> None:
+        self.connection.add_command_handler(Announce, self._handle_announce)
 
-        super().handle_sub_proto_msg(cmd, msg)
+    async def _handle_announce(self, msg: Payload) -> None:
+        head_info = cast(Dict[str, Union[int, Hash32, BlockNumber]], msg)
+        self.head_td = cast(int, head_info['head_td'])
+        self.head_hash = cast(Hash32, head_info['head_hash'])
+        self.head_number = cast(BlockNumber, head_info['head_number'])
 
 
 class LESProxyPeer(BaseProxyPeer):
@@ -165,8 +163,8 @@ class LESPeerFactory(BaseChainPeerFactory):
             head_num=head.block_number,
             genesis_hash=genesis_hash,
             serve_headers=True,
-            serve_chain_since=0,
             # TODO: these should be configurable to allow us to serve this data.
+            serve_chain_since=None,
             serve_state_since=None,
             serve_recent_state=None,
             serve_recent_chain=None,
