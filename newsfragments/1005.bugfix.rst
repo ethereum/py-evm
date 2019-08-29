@@ -1,0 +1,3 @@
+Fix a bug where trying to start beam sync from a checkpoint would throw an error
+due to an uninitialized var if a request to a peer would raise an error while
+we are trying to resolve a header from it.

@@ -3,6 +3,7 @@ from abc import (
     abstractmethod
 )
 import asyncio
+import logging
 
 from eth_typing import (
     BlockNumber,
@@ -77,6 +78,8 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
     min_block_number = BlockNumber(0)
 
+    logger = logging.getLogger('trinity.sync.common.strategies.FromCheckpointLaunchStrategy')
+
     def __init__(self,
                  db: BaseAsyncHeaderDB,
                  chain: AsyncChainAPI,
@@ -113,11 +116,13 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
             except (TimeoutError, PeerConnectionLost, ValidationError):
                 # Nothing to do here. The ExchangeManager will disconnect if appropriate
                 # and eventually lead us to a better peer.
-                pass
+                continue
 
             if not headers:
-                await peer.disconnect(DisconnectReason.useless_peer)
-            elif headers[0].hash != self._checkpoint.block_hash:
+                self.logger.debug(
+                    "Disconnecting from %s. Returned no header while resolving checkpoint",
+                    peer
+                )
                 await peer.disconnect(DisconnectReason.useless_peer)
             else:
                 self.min_block_number = headers[0].block_number
