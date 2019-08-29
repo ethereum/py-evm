@@ -187,15 +187,3 @@ class OperationsTestType(TestType[OperationsHandlerType]):
         TransferHandler,
         VoluntaryExitHandler,
     )
-
-    @classmethod
-    def build_path(
-        cls,
-        tests_root_path: Path,
-        test_handler: TestHandler[Input, Output],
-        config_type: ConfigType,
-    ) -> Path:
-        file_name = f"{test_handler.name}_{config_type.name}.yaml"
-        return (
-            tests_root_path / Path(cls.name) / Path(test_handler.name) / Path(file_name)
-        )

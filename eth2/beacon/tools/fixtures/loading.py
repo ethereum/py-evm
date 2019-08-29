@@ -24,15 +24,9 @@ def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
     )
 
 
-def _load_yaml_at(p: Path) -> Dict[str, Any]:
+def load_yaml_at(p: Path) -> Dict[str, Any]:
     y = YAML(typ="unsafe")
     return y.load(p)
-
-
-# NOTE: should cache test suite data if users are running
-# the same test suite at different points during testing.
-def load_test_suite_at(p: Path) -> Dict[str, Any]:
-    return _load_yaml_at(p)
 
 
 config_cache: Dict[Path, Eth2Config] = {}
@@ -42,7 +36,7 @@ def load_config_at_path(p: Path) -> Eth2Config:
     if p in config_cache:
         return config_cache[p]
 
-    config_data = _load_yaml_at(p)
+    config_data = load_yaml_at(p)
     config = generate_config_by_dict(config_data)
     config_cache[p] = config
     return config

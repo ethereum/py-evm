@@ -4,13 +4,17 @@ from typing import Any, Callable, Dict, Generator, Iterator, Set, Tuple
 from eth_utils.toolz import thread_last
 from typing_extensions import Protocol
 
-from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.parser import parse_test_suite
+from eth2.beacon.tools.fixtures.config_types import ConfigType, General
+from eth2.beacon.tools.fixtures.fork_types import ForkType, Phase0
+from eth2.beacon.tools.fixtures.format_type import FormatType, YAMLType
+from eth2.beacon.tools.fixtures.parser import parse_test_suites
 from eth2.beacon.tools.fixtures.test_case import TestCase
 from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
 from eth2.beacon.tools.fixtures.test_types import HandlerType, TestType
 
-TestSuiteDescriptor = Tuple[Tuple[TestType[Any], TestHandler[Any, Any]], ConfigType]
+TestSuiteDescriptor = Tuple[
+    Tuple[TestType[Any], TestHandler[Any, Any]], ConfigType, ForkType, FormatType
+]
 
 
 class DecoratorTarget(Protocol):
@@ -72,6 +76,11 @@ def _check_only_one_config_type(config_type: ConfigType) -> None:
 def _generate_test_suite_descriptors_from(
     eth2_fixture_request: Dict[str, Any]
 ) -> Tuple[TestSuiteDescriptor, ...]:
+    # NOTE: fork types are not currently configurable
+    fork_types = (Phase0,)
+    # NOTE: format types are not currently configurable
+    format_types = (YAMLType,)
+
     if "config_types" in eth2_fixture_request:
         config_types = eth2_fixture_request["config_types"]
         # NOTE: in an ideal world, a user of the test generator can
@@ -87,7 +96,7 @@ def _generate_test_suite_descriptors_from(
         _add_config_type_to_tracking_set(config_type)
         _check_only_one_config_type(config_type)
     else:
-        config_types = (None,)
+        config_types = (General,)
 
     test_types = eth2_fixture_request["test_types"]
 
@@ -103,16 +112,25 @@ def _generate_test_suite_descriptors_from(
             if handler_filter(handler) or handler.name == "core":
                 selected_handler = (test_type, handler)
                 selected_handlers += selected_handler
-    result: Iterator[Any] = itertools.product((selected_handlers,), config_types)
+    result: Iterator[Any] = itertools.product(
+        (selected_handlers,), config_types, fork_types, format_types
+    )
     return tuple(result)
 
 
 def _generate_pytest_case_from(
     test_type: TestType[HandlerType],
     handler_type: TestHandler[Input, Output],
+    suite_name: str,
     config_type: ConfigType,
+    fork_type: ForkType,
+    format_type: FormatType,
     test_case: TestCase,
 ) -> Tuple[TestCase, str]:
+    """
+    id format:
+      f"{TEST_TYPE_NAME}_{HANDLER_TYPE_NAME}_{TEST_SUITE_NAME}_{TEST_CASE_NAME}.{FORMAT_TYPE_NAME}:{CONFIG_TYPE_NAME}_{FORK_TYPE_NAME}"  # noqa: E501
+    """
     # special case only one handler "core"
     test_name = test_type.name
     if len(test_type.handlers) == 1 or handler_type.name == "core":
@@ -120,32 +138,38 @@ def _generate_pytest_case_from(
     else:
         handler_name = handler_type.name
 
-    if config_type:
-        config_name = config_type.name
-    else:
-        config_name = ""
-
     test_id_prefix = thread_last(
-        (test_name, handler_name, config_name),
+        (test_name, handler_name, suite_name, test_case.name),
         (filter, lambda component: component != ""),
         lambda components: "_".join(components),
     )
-    test_id = f"{test_id_prefix}.yaml:{test_case.index}"
-
-    if test_case.description:
-        test_id += f":{test_case.description}"
+    test_id = f"{test_id_prefix}.{format_type.name}:{config_type.name}_{fork_type.name}"
     return test_case, test_id
 
 
 def _generate_pytest_cases_from_test_suite_descriptors(
     test_suite_descriptors: Tuple[TestSuiteDescriptor, ...]
 ) -> Generator[Tuple[TestCase, str], None, None]:
-    for (test_type, handler_type), config_type in test_suite_descriptors:
-        test_suite = parse_test_suite(test_type, handler_type, config_type)
-        for test_case in test_suite:
-            yield _generate_pytest_case_from(
-                test_type, handler_type, config_type, test_case
-            )
+    for (
+        (test_type, handler_type),
+        config_type,
+        fork_type,
+        format_type,
+    ) in test_suite_descriptors:
+        test_suites = parse_test_suites(
+            test_type, handler_type, config_type, fork_type, format_type
+        )
+        for suite in test_suites:
+            for test_case in suite.test_cases:
+                yield _generate_pytest_case_from(
+                    test_type,
+                    handler_type,
+                    suite.name,
+                    config_type,
+                    fork_type,
+                    format_type,
+                    test_case,
+                )
 
 
 def generate_pytests_from_eth2_fixture(metafunc: Metafunc) -> None:

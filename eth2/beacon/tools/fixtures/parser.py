@@ -1,13 +1,28 @@
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Generator, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    Generic,
+    Iterable,
+    Iterator,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from eth_typing import BLSPubkey, BLSSignature
-from eth_utils import decode_hex
+from eth_utils import decode_hex, to_tuple
 
 from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.loading import load_config_at_path, load_test_suite_at
+from eth2.beacon.tools.fixtures.fork_types import ForkType
+from eth2.beacon.tools.fixtures.format_type import FormatType
+from eth2.beacon.tools.fixtures.loading import load_config_at_path, load_yaml_at
 from eth2.beacon.tools.fixtures.test_case import TestCase
 from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
+from eth2.beacon.tools.fixtures.test_suite import TestSuite
 from eth2.beacon.tools.fixtures.test_types import HandlerType, TestType
 from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.configs import Eth2Config
@@ -17,41 +32,106 @@ from eth2.configs import Eth2Config
 TESTS_ROOT_PATH = Path("eth2-fixtures")
 TESTS_PATH = Path("tests")
 
-TestSuite = Generator[TestCase, None, None]
+
+@dataclass
+class TestCaseDescriptor:
+    name: str
+    parts: Tuple[Path]
+    format_type: FormatType
 
 
-def _build_test_suite_path(
-    tests_root_path: Path,
+@dataclass
+class TestSuiteDescriptor:
+    name: str
+    test_case_descriptors: Tuple[TestCaseDescriptor]
+
+
+def _build_test_handler_path(
+    tests_path: Path,
     test_type: TestType[HandlerType],
     test_handler: TestHandler[Input, Output],
-    config_type: Optional[ConfigType],
+    config_type: ConfigType,
+    fork_type: ForkType,
 ) -> Path:
-    return test_type.build_path(tests_root_path, test_handler, config_type)
-
-
-def _parse_test_cases(
-    config: Eth2Config,
-    test_handler: TestHandler[Input, Output],
-    test_cases: Sequence[Dict[str, Any]],
-) -> TestSuite:
-    for index, test_case in enumerate(test_cases):
-        yield TestCase(index, test_case, test_handler, config)
-
-
-def _load_test_suite(
-    tests_root_path: Path,
-    test_type: TestType[HandlerType],
-    test_handler: TestHandler[Input, Output],
-    config_type: Optional[ConfigType],
-    config: Optional[Eth2Config],
-) -> TestSuite:
-    test_suite_path = _build_test_suite_path(
-        tests_root_path, test_type, test_handler, config_type
+    return (
+        tests_path
+        / Path(config_type.name)
+        / Path(fork_type.name)
+        / Path(test_type.name)
+        / Path(test_handler.name)
     )
 
-    test_suite_data = load_test_suite_at(test_suite_path)
 
-    return _parse_test_cases(config, test_handler, test_suite_data["test_cases"])
+def _load_parts(
+    parts: Iterable[Path], format_type: FormatType
+) -> Dict[str, Dict[str, Any]]:
+    return {
+        part.name.replace(f".{format_type.name}", ""): load_yaml_at(part)
+        for part in parts
+    }
+
+
+@to_tuple
+def _parse_test_cases(
+    config: Optional[Eth2Config],
+    test_handler: TestHandler[Input, Output],
+    test_case_descriptors: Iterable[TestCaseDescriptor],
+) -> Iterator[TestCase]:
+    for descriptor in test_case_descriptors:
+        test_case_parts = _load_parts(descriptor.parts, descriptor.format_type)
+        yield TestCase(descriptor.name, test_handler, test_case_parts, config)
+
+
+def _load_test_case(
+    test_case_path: Path, format_type: FormatType
+) -> TestCaseDescriptor:
+    parts = (
+        part_path
+        for part_path in test_case_path.iterdir()
+        if part_path.suffix[1:] == format_type.name
+    )
+    return TestCaseDescriptor(test_case_path.name, parts, format_type)
+
+
+@to_tuple
+def _discover_test_suite_from(
+    test_handler_path: Path, format_type: FormatType
+) -> Iterator[TestSuiteDescriptor]:
+    for test_suite in test_handler_path.iterdir():
+        test_case_descriptors = (
+            _load_test_case(test_case_path, format_type)
+            for test_case_path in test_suite.iterdir()
+        )
+        yield TestSuiteDescriptor(test_suite.name, test_case_descriptors)
+
+
+@to_tuple
+def _load_and_parse_test_suites(
+    tests_path: Path,
+    test_type: TestType[HandlerType],
+    test_handler: TestHandler[Input, Output],
+    config_type: ConfigType,
+    fork_type: ForkType,
+    format_type: FormatType,
+) -> Iterator[TestSuite]:
+    test_handler_path = _build_test_handler_path(
+        tests_path, test_type, test_handler, config_type, fork_type
+    )
+
+    test_suite_descriptors = _discover_test_suite_from(test_handler_path, format_type)
+
+    if config_type.has_config():
+        config_path = tests_path / Path(config_type.name) / Path(config_type.path)
+        config = load_config_at_path(config_path)
+        override_lengths(config)
+    else:
+        config = None
+
+    for descriptor in test_suite_descriptors:
+        yield TestSuite(
+            descriptor.name,
+            _parse_test_cases(config, test_handler, descriptor.test_case_descriptors),
+        )
 
 
 class DirectoryNotFoundException(Exception):
@@ -81,21 +161,25 @@ def _find_project_root_dir(target: Path) -> Path:
     raise DirectoryNotFoundException
 
 
-def parse_test_suite(
+def parse_test_suites(
     test_type: TestType[HandlerType],
     test_handler: TestHandler[Input, Output],
-    config_type: Optional[ConfigType],
-) -> TestSuite:
+    config_type: ConfigType,
+    fork_type: ForkType,
+    format_type: FormatType,
+) -> Tuple[TestSuite]:
+    """
+    Find all of the test suites (including their respective test cases) given a fixed
+    ``test_type``, ``test_handler``, ``config_type``, ``fork_type`` and ``format_type``.
+
+    This search directly corresponds to finding subtrees of the file hierarchy
+    under particular paths fixed by the function arguments.
+    """
     project_root_dir = _find_project_root_dir(TESTS_ROOT_PATH)
     tests_path = project_root_dir / TESTS_ROOT_PATH / TESTS_PATH
-    if config_type:
-        config_path = project_root_dir / config_type.path
-        config = load_config_at_path(config_path)
-        override_lengths(config)
-    else:
-        config = None
-
-    return _load_test_suite(tests_path, test_type, test_handler, config_type, config)
+    return _load_and_parse_test_suites(
+        tests_path, test_type, test_handler, config_type, fork_type, format_type
+    )
 
 
 def get_input_bls_pubkeys(

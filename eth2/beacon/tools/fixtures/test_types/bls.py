@@ -143,16 +143,3 @@ class BLSTestType(TestType[BLSHandlerType]):
         PrivateToPublicKeyHandler,
         SignMessageHandler,
     )
-
-    @classmethod
-    def build_path(
-        cls,
-        tests_root_path: Path,
-        test_handler: TestHandler[Input, Output],
-        config_type: Optional[ConfigType],
-    ) -> Path:
-        file_name = f"{test_handler.name}.yaml"
-
-        return (
-            tests_root_path / Path(cls.name) / Path(test_handler.name) / Path(file_name)
-        )
