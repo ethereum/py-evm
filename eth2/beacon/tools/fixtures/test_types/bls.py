@@ -6,7 +6,7 @@ from py_ecc.bls.typing import Domain
 from eth2._utils.bls import BLSPubkey, BLSSignature, Hash32, bls
 from eth2._utils.bls.backends import MilagroBackend
 from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.loading import (
+from eth2.beacon.tools.fixtures.parser import (
     get_input_bls_privkey,
     get_input_bls_pubkeys,
     get_input_bls_signatures,

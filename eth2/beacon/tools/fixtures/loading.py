@@ -1,8 +1,6 @@
 from pathlib import Path
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict
 
-from eth_typing import BLSPubkey, BLSSignature
-from eth_utils import decode_hex
 from eth_utils.toolz import assoc, keyfilter
 from ruamel.yaml import YAML
 
@@ -48,41 +46,3 @@ def load_config_at_path(p: Path) -> Eth2Config:
     config = generate_config_by_dict(config_data)
     config_cache[p] = config
     return config
-
-
-def get_input_bls_pubkeys(
-    test_case: Dict[str, Any]
-) -> Dict[str, Tuple[BLSPubkey, ...]]:
-    return {
-        "pubkeys": tuple(BLSPubkey(decode_hex(item)) for item in test_case["input"])
-    }
-
-
-def get_input_bls_signatures(
-    test_case: Dict[str, Any]
-) -> Dict[str, Tuple[BLSSignature, ...]]:
-    return {
-        "signatures": tuple(
-            BLSSignature(decode_hex(item)) for item in test_case["input"]
-        )
-    }
-
-
-def get_input_bls_privkey(test_case: Dict[str, Any]) -> Dict[str, int]:
-    return {"privkey": int.from_bytes(decode_hex(test_case["input"]), "big")}
-
-
-def get_input_sign_message(test_case: Dict[str, Any]) -> Dict[str, Union[int, bytes]]:
-    return {
-        "privkey": int.from_bytes(decode_hex(test_case["input"]["privkey"]), "big"),
-        "message_hash": decode_hex(test_case["input"]["message"]),
-        "domain": decode_hex(test_case["input"]["domain"]),
-    }
-
-
-def get_output_bls_pubkey(test_case: Dict[str, Any]) -> BLSPubkey:
-    return BLSPubkey(decode_hex(test_case["output"]))
-
-
-def get_output_bls_signature(test_case: Dict[str, Any]) -> BLSSignature:
-    return BLSSignature(decode_hex(test_case["output"]))
