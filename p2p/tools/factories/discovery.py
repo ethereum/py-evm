@@ -43,6 +43,9 @@ from p2p.discv5.handshake import (
     HandshakeInitiator,
     HandshakeRecipient,
 )
+from p2p.discv5.typing import (
+    NodeID,
+)
 from p2p.ecies import generate_privkey
 
 from .cancel_token import CancelTokenFactory
@@ -118,6 +121,14 @@ class IncomingPacketFactory(factory.Factory):
 
     packet = factory.SubFactory(AuthTagPacketFactory)
     sender_endpoint = factory.SubFactory(EndpointFactory)
+
+
+class NodeIDFactory(factory.Factory):
+    class Meta:
+        model = NodeID
+        inline_args = ("node_id",)
+
+    node_id = factory.Faker("binary", length=32)
 
 
 class ENRFactory(factory.Factory):
