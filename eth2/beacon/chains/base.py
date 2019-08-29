@@ -272,9 +272,7 @@ class BeaconChain(BaseBeaconChain):
             slot = at_slot
         sm_class = self.get_state_machine_class_for_block_slot(slot)
 
-        return sm_class(
-            chaindb=self.chaindb, attestation_pool=self.attestation_pool, slot=slot
-        )
+        return sm_class(chaindb=self.chaindb, attestation_pool=self.attestation_pool)
 
     @classmethod
     def get_genesis_state_machine_class(cls) -> Type["BaseBeaconStateMachine"]:
