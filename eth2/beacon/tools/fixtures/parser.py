@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, Iterator, Optional, Tuple
 
-from eth_typing import BLSPubkey, BLSSignature
-from eth_utils import decode_hex, to_tuple
+from eth_utils import to_tuple
 
 from eth2.beacon.tools.fixtures.config_types import ConfigType
 from eth2.beacon.tools.fixtures.fork_types import ForkType
@@ -169,41 +168,3 @@ def parse_test_suites(
     return _load_and_parse_test_suites(
         tests_path, test_type, test_handler, config_type, fork_type, format_type
     )
-
-
-def get_input_bls_pubkeys(
-    test_case: Dict[str, Any]
-) -> Dict[str, Tuple[BLSPubkey, ...]]:
-    return {
-        "pubkeys": tuple(BLSPubkey(decode_hex(item)) for item in test_case["input"])
-    }
-
-
-def get_input_bls_signatures(
-    test_case: Dict[str, Any]
-) -> Dict[str, Tuple[BLSSignature, ...]]:
-    return {
-        "signatures": tuple(
-            BLSSignature(decode_hex(item)) for item in test_case["input"]
-        )
-    }
-
-
-def get_input_bls_privkey(test_case: Dict[str, Any]) -> Dict[str, int]:
-    return {"privkey": int.from_bytes(decode_hex(test_case["input"]), "big")}
-
-
-def get_input_sign_message(test_case: Dict[str, Any]) -> Dict[str, Union[int, bytes]]:
-    return {
-        "privkey": int.from_bytes(decode_hex(test_case["input"]["privkey"]), "big"),
-        "message_hash": decode_hex(test_case["input"]["message"]),
-        "domain": decode_hex(test_case["input"]["domain"]),
-    }
-
-
-def get_output_bls_pubkey(test_case: Dict[str, Any]) -> BLSPubkey:
-    return BLSPubkey(decode_hex(test_case["output"]))
-
-
-def get_output_bls_signature(test_case: Dict[str, Any]) -> BLSSignature:
-    return BLSSignature(decode_hex(test_case["output"]))

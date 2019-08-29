@@ -1,17 +1,10 @@
 from typing import Any, Dict, Optional, Tuple, Type, Union, cast
 
+from eth_utils import decode_hex
 from py_ecc.bls.typing import Domain
 
 from eth2._utils.bls import BLSPubkey, BLSSignature, Hash32, bls
 from eth2._utils.bls.backends import MilagroBackend
-from eth2.beacon.tools.fixtures.parser import (
-    get_input_bls_privkey,
-    get_input_bls_pubkeys,
-    get_input_bls_signatures,
-    get_input_sign_message,
-    get_output_bls_pubkey,
-    get_output_bls_signature,
-)
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
 from eth2.configs import Eth2Config
 
@@ -20,6 +13,44 @@ from . import TestType
 SequenceOfBLSPubkey = Tuple[BLSPubkey, ...]
 SequenceOfBLSSignature = Tuple[BLSSignature, ...]
 SignatureDescriptor = Dict[str, Union[int, bytes]]
+
+
+def get_input_bls_pubkeys(
+    test_case: Dict[str, Any]
+) -> Dict[str, Tuple[BLSPubkey, ...]]:
+    return {
+        "pubkeys": tuple(BLSPubkey(decode_hex(item)) for item in test_case["input"])
+    }
+
+
+def get_input_bls_signatures(
+    test_case: Dict[str, Any]
+) -> Dict[str, Tuple[BLSSignature, ...]]:
+    return {
+        "signatures": tuple(
+            BLSSignature(decode_hex(item)) for item in test_case["input"]
+        )
+    }
+
+
+def get_input_bls_privkey(test_case: Dict[str, Any]) -> Dict[str, int]:
+    return {"privkey": int.from_bytes(decode_hex(test_case["input"]), "big")}
+
+
+def get_input_sign_message(test_case: Dict[str, Any]) -> Dict[str, Union[int, bytes]]:
+    return {
+        "privkey": int.from_bytes(decode_hex(test_case["input"]["privkey"]), "big"),
+        "message_hash": decode_hex(test_case["input"]["message"]),
+        "domain": decode_hex(test_case["input"]["domain"]),
+    }
+
+
+def get_output_bls_pubkey(test_case: Dict[str, Any]) -> BLSPubkey:
+    return BLSPubkey(decode_hex(test_case["output"]))
+
+
+def get_output_bls_signature(test_case: Dict[str, Any]) -> BLSSignature:
+    return BLSSignature(decode_hex(test_case["output"]))
 
 
 class AggregatePubkeysHandler(TestHandler[SequenceOfBLSPubkey, BLSPubkey]):
