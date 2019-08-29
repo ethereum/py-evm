@@ -1,0 +1,1 @@
+Relax some input types from ``Tuple[thing, ...]`` to ``Sequence[thing]``

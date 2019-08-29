@@ -9,6 +9,7 @@ from typing import (
     Dict,
     Iterable,
     NamedTuple,
+    Sequence,
     Type,
     Tuple,
 )
@@ -205,7 +206,7 @@ async def _do_p2p_handshake(transport: TransportAPI,
 
 async def negotiate_protocol_handshakes(transport: TransportAPI,
                                         p2p_handshake_params: DevP2PHandshakeParams,
-                                        protocol_handshakers: Tuple[Handshaker, ...],
+                                        protocol_handshakers: Sequence[Handshaker],
                                         token: CancelToken,
                                         ) -> Tuple[MultiplexerAPI, DevP2PReceipt, Tuple[HandshakeReceipt, ...]]:  # noqa: E501
     """
