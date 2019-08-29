@@ -41,10 +41,10 @@ from eth.vm.spoof import (
     SpoofTransaction,
 )
 
+from trinity.chains.base import AsyncChainAPI
 from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
 )
-from trinity.chains.base import AsyncChainAPI
 from trinity.rpc.format import (
     block_to_dict,
     header_to_dict,
@@ -65,25 +65,7 @@ from trinity._utils.validation import (
     validate_transaction_gas_estimation_dict,
 )
 
-
-async def get_header(chain: AsyncChainAPI, at_block: Union[str, int]) -> BlockHeader:
-    if at_block == 'pending':
-        raise NotImplementedError("RPC interface does not support the 'pending' block at this time")
-    elif at_block == 'latest':
-        at_header = chain.get_canonical_head()
-    elif at_block == 'earliest':
-        # TODO find if genesis block can be non-zero. Why does 'earliest' option even exist?
-        block = await chain.coro_get_canonical_block_by_number(BlockNumber(0))
-        at_header = block.header
-    # mypy doesn't have user defined type guards yet
-    # https://github.com/python/mypy/issues/5206
-    elif is_integer(at_block) and at_block >= 0:  # type: ignore
-        block = await chain.coro_get_canonical_block_by_number(BlockNumber(int(at_block)))
-        at_header = block.header
-    else:
-        raise TypeError("Unrecognized block reference: %r" % at_block)
-
-    return at_header
+from ._util import get_header
 
 
 async def state_at_block(
@@ -151,6 +133,7 @@ class Eth(Eth1ChainRPCModule):
         num = self.chain.get_canonical_head().block_number
         return hex(num)
 
+    @retryable(which_block_arg_name='at_block')
     @format_params(identity, to_int_if_hex)
     async def call(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
         header = await get_header(self.chain, at_block)
@@ -164,6 +147,7 @@ class Eth(Eth1ChainRPCModule):
         coinbase_address = ZERO_ADDRESS
         return encode_hex(coinbase_address)
 
+    @retryable(which_block_arg_name='at_block')
     @format_params(identity, to_int_if_hex)
     async def estimateGas(self, txn_dict: Dict[str, Any], at_block: Union[str, int]) -> str:
         header = await get_header(self.chain, at_block)
@@ -175,7 +159,7 @@ class Eth(Eth1ChainRPCModule):
     async def gasPrice(self) -> str:
         return hex(int(os.environ.get('TRINITY_GAS_PRICE', to_wei(1, 'gwei'))))
 
-    @retryable
+    @retryable(which_block_arg_name='at_block')
     @format_params(decode_hex, to_int_if_hex)
     async def getBalance(self, address: Address, at_block: Union[str, int]) -> str:
         state = await state_at_block(self.chain, at_block)
@@ -207,14 +191,14 @@ class Eth(Eth1ChainRPCModule):
         block = await get_block_at_number(self.chain, at_block)
         return hex(len(block.transactions))
 
-    @retryable
+    @retryable(which_block_arg_name='at_block')
     @format_params(decode_hex, to_int_if_hex)
     async def getCode(self, address: Address, at_block: Union[str, int]) -> str:
         state = await state_at_block(self.chain, at_block)
         code = state.get_code(address)
         return encode_hex(code)
 
-    @retryable
+    @retryable(which_block_arg_name='at_block')
     @format_params(decode_hex, to_int_if_hex, to_int_if_hex)
     async def getStorageAt(self, address: Address, position: int, at_block: Union[str, int]) -> str:
         if not is_integer(position) or position < 0:

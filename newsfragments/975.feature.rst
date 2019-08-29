@@ -1,0 +1,2 @@
+Fetch missing data from remote peers, if requested over json-rpc during beam sync.
+Requests for data at an old block will fail; remote peers probably don't have it.

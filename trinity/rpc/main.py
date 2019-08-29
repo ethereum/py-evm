@@ -14,6 +14,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from trinity.chains.base import AsyncChainAPI
 from trinity.rpc.modules import (
     BaseRPCModule,
 )
@@ -64,9 +65,11 @@ class RPCServer:
 
     def __init__(self,
                  modules: Sequence[BaseRPCModule],
+                 chain: AsyncChainAPI=None,
                  event_bus: EndpointAPI=None) -> None:
         self.event_bus = event_bus
         self.modules: Dict[str, BaseRPCModule] = {}
+        self.chain = chain
 
         for module in modules:
             name = module.name.lower()
@@ -113,7 +116,7 @@ class RPCServer:
             method = self._lookup_method(request['method'])
             params = request.get('params', [])
             result = await execute_with_retries(
-                self.event_bus, method, params
+                self.event_bus, method, params, self.chain,
             )
 
             if request['method'] == 'evm_resetToGenesisFixture':

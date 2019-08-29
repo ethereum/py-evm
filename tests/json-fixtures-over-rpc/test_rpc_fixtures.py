@@ -434,9 +434,8 @@ class MainnetFullChain(FullChain):
 
 @pytest.mark.asyncio
 async def test_rpc_against_fixtures(event_bus, chain_fixture, fixture_data):
-    rpc = RPCServer(
-        initialize_eth1_modules(MainnetFullChain(None), event_bus), event_bus,
-    )
+    chain = MainnetFullChain(None)
+    rpc = RPCServer(initialize_eth1_modules(chain, event_bus), chain, event_bus)
 
     setup_result, setup_error = await call_rpc(rpc, 'evm_resetToGenesisFixture', [chain_fixture])
     # We need to advance the event loop for modules to be able to pickup the new chain

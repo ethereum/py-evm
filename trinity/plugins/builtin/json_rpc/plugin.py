@@ -3,9 +3,6 @@ from argparse import (
     _SubParsersAction,
 )
 import asyncio
-from typing import (
-    Tuple
-)
 
 from lahja import EndpointAPI
 
@@ -31,7 +28,6 @@ from trinity.rpc.main import (
     RPCServer,
 )
 from trinity.rpc.modules import (
-    BaseRPCModule,
     initialize_beacon_modules,
     initialize_eth1_modules,
 )
@@ -61,40 +57,44 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
             help="Disables the JSON-RPC Server",
         )
 
-    def setup_eth1_modules(self, trinity_config: TrinityConfig) -> Tuple[BaseRPCModule, ...]:
-        eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
+    def chain_for_eth1_config(self, trinity_config: TrinityConfig,
+                              eth1_app_config: Eth1AppConfig) -> AsyncChainAPI:
         chain_config = eth1_app_config.get_chain_config()
 
-        chain: AsyncChainAPI
         db = DBClient.connect(trinity_config.database_ipc_path)
 
         if eth1_app_config.database_mode is Eth1DbMode.LIGHT:
             header_db = HeaderDB(db)
             event_bus_light_peer_chain = EventBusLightPeerChain(self.event_bus)
-            chain = chain_config.light_chain_class(header_db, peer_chain=event_bus_light_peer_chain)
+            return chain_config.light_chain_class(
+                header_db, peer_chain=event_bus_light_peer_chain
+            )
         elif eth1_app_config.database_mode is Eth1DbMode.FULL:
-            chain = chain_config.full_chain_class(db)
+            return chain_config.full_chain_class(db)
         else:
             raise Exception(f"Unsupported Database Mode: {eth1_app_config.database_mode}")
 
-        return initialize_eth1_modules(chain, self.event_bus)
-
-    def setup_beacon_modules(self) -> Tuple[BaseRPCModule, ...]:
-
-        return initialize_beacon_modules(None, self.event_bus)
-
-    def do_start(self) -> None:
-
-        trinity_config = self.boot_info.trinity_config
-
-        if trinity_config.has_app_config(Eth1AppConfig):
-            modules = self.setup_eth1_modules(trinity_config)
-        elif trinity_config.has_app_config(BeaconAppConfig):
-            modules = self.setup_beacon_modules()
+    def chain_for_config(self, trinity_config: TrinityConfig) -> AsyncChainAPI:
+        if trinity_config.has_app_config(BeaconAppConfig):
+            return None
+        elif trinity_config.has_app_config(Eth1AppConfig):
+            eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
+            return self.chain_for_eth1_config(trinity_config, eth1_app_config)
         else:
             raise Exception("Unsupported Node Type")
 
-        rpc = RPCServer(modules, self.event_bus)
+    def do_start(self) -> None:
+        trinity_config = self.boot_info.trinity_config
+        chain = self.chain_for_config(trinity_config)
+
+        if trinity_config.has_app_config(Eth1AppConfig):
+            modules = initialize_eth1_modules(chain, self.event_bus)
+        elif trinity_config.has_app_config(BeaconAppConfig):
+            modules = initialize_beacon_modules(chain, self.event_bus)
+        else:
+            raise Exception("Unsupported Node Type")
+
+        rpc = RPCServer(modules, chain, self.event_bus)
         ipc_server = IPCServer(rpc, self.boot_info.trinity_config.jsonrpc_ipc_path)
 
         asyncio.ensure_future(exit_with_services(
