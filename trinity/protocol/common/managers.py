@@ -17,7 +17,6 @@ from eth_utils import (
     ValidationError,
 )
 
-from p2p._utils import ensure_global_asyncio_executor
 from p2p.abc import CommandAPI, RequestAPI, TRequestPayload
 from p2p.constants import BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS
 from p2p.exceptions import PeerConnectionLost
@@ -306,9 +305,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
 
                 if normalizer.is_normalization_slow:
                     result = await stream._run_in_executor(
-                        # We just retrieve the global executor that was created when the
-                        # Node launches. The node manages the lifecycle of the executor.
-                        ensure_global_asyncio_executor(),
+                        None,
                         normalizer.normalize_result,
                         payload
                     )

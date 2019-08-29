@@ -1,0 +1,7 @@
+Instead of the ``ProcessPoolExecutor`` use a ``ThreadPoolExecutor`` to normalize
+expensive messages. This fixes a bug where Trinity would leave idle processes
+from the ``ProcessPoolExecutor`` behind every time it shuts down after a sync.
+
+Performance wise, both methods should be roughly compareable and since many
+task have already been moved to their own managed processes over time, using
+a ``ThreadPoolExecutor`` strikes as a simple solution to fix that bug.
