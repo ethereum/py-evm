@@ -25,14 +25,14 @@ TESTS_PATH = Path("tests")
 @dataclass
 class TestCaseDescriptor:
     name: str
-    parts: Tuple[Path]
+    parts: Tuple[Path, ...]
     format_type: FormatType
 
 
 @dataclass
 class TestSuiteDescriptor:
     name: str
-    test_case_descriptors: Tuple[TestCaseDescriptor]
+    test_case_descriptors: Tuple[TestCaseDescriptor, ...]
 
 
 def _build_test_handler_path(
@@ -74,7 +74,7 @@ def _parse_test_cases(
 def _load_test_case(
     test_case_path: Path, format_type: FormatType
 ) -> TestCaseDescriptor:
-    parts = (
+    parts = tuple(
         part_path
         for part_path in test_case_path.iterdir()
         if part_path.suffix[1:] == format_type.name
@@ -87,7 +87,7 @@ def _discover_test_suite_from(
     test_handler_path: Path, format_type: FormatType
 ) -> Iterator[TestSuiteDescriptor]:
     for test_suite in test_handler_path.iterdir():
-        test_case_descriptors = (
+        test_case_descriptors = tuple(
             _load_test_case(test_case_path, format_type)
             for test_case_path in test_suite.iterdir()
         )
@@ -156,7 +156,7 @@ def parse_test_suites(
     config_type: ConfigType,
     fork_type: ForkType,
     format_type: FormatType,
-) -> Tuple[TestSuite]:
+) -> Tuple[TestSuite, ...]:
     """
     Find all of the test suites (including their respective test cases) given a fixed
     ``test_type``, ``test_handler``, ``config_type``, ``fork_type`` and ``format_type``.

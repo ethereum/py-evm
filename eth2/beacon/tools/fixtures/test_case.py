@@ -33,13 +33,13 @@ BLS_SETTING_KEY = "bls_setting"
 
 class TestCase:
     name: str
-    handler: TestHandler[Input, Output]
+    handler: TestHandler[Any, Any]
     test_case_parts: Dict[str, Dict[str, Any]]
     config: Optional[Eth2Config]
 
     def __init__(
         self,
-        name,
+        name: str,
         handler: TestHandler[Input, Output],
         test_case_parts: Dict[str, Dict[str, Any]],
         config: Optional[Eth2Config],
