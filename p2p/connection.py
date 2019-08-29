@@ -1,14 +1,7 @@
 import asyncio
 import collections
 import functools
-from typing import (
-    Any,
-    Callable,
-    DefaultDict,
-    Sequence,
-    Set,
-    Type,
-)
+from typing import DefaultDict, Sequence, Set, Type
 
 from eth_keys import keys
 
@@ -29,17 +22,10 @@ from p2p.exceptions import (
     UnknownProtocolCommand,
 )
 from p2p.handshake import DevP2PReceipt
+from p2p.handler_subscription import HandlerSubscription
 from p2p.service import BaseService
 from p2p.p2p_proto import BaseP2PProtocol
 from p2p.typing import Capabilities
-
-
-class HandlerSubscription(HandlerSubscriptionAPI):
-    def __init__(self, remove_fn: Callable[[], Any]) -> None:
-        self._remove_fn = remove_fn
-
-    def cancel(self) -> None:
-        self._remove_fn()
 
 
 class Connection(ConnectionAPI, BaseService):

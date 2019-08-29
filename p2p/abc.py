@@ -7,6 +7,7 @@ from typing import (
     Awaitable,
     Callable,
     ClassVar,
+    ContextManager,
     Dict,
     Generic,
     List,
@@ -393,7 +394,7 @@ class HandshakeReceiptAPI(ABC):
     protocol: ProtocolAPI
 
 
-class HandlerSubscriptionAPI:
+class HandlerSubscriptionAPI(ContextManager['HandlerSubscriptionAPI']):
     @abstractmethod
     def cancel(self) -> None:
         ...
