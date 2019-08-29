@@ -1,0 +1,1 @@
+``BasePeerPool.__aiter_`` now checks if the peer is operational.
