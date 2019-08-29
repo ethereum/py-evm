@@ -115,6 +115,10 @@ deps = {
     'eth2-lint': [
         "black==19.3b0",
         "isort==4.3.21",
+        "flake8==3.7.8",
+        "flake8-bugbear==19.8.0",
+        "mypy==0.720",
+        "sqlalchemy-stubs==0.2",
     ],
 }
 
