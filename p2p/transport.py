@@ -47,10 +47,17 @@ from p2p.exceptions import (
     UnreachablePeer,
 )
 from p2p.kademlia import Address, Node
+from p2p.transport_state import TransportState
 
 
 class Transport(TransportAPI):
-    logger = cast(ExtendedDebugLogger, logging.getLogger('p2p.connection.Transport'))
+    logger = cast(ExtendedDebugLogger, logging.getLogger('p2p.transport.Transport'))
+
+    # This status flag allows those managing a `Transport` to determine the
+    # proper cancellation strategy if the transport is mid-read.  Hard
+    # cancellations are allowed for both `IDLE` and `HEADER`.  A hard
+    # cancellation during `BODY` will leave the transport in a corrupt state.
+    read_state: TransportState = TransportState.IDLE
 
     def __init__(self,
                  remote: NodeAPI,
@@ -239,7 +246,30 @@ class Transport(TransportAPI):
         self._writer.write(data)
 
     async def recv(self, token: CancelToken) -> bytes:
-        header_data = await self.read(HEADER_LEN + MAC_LEN, token)
+        # Check that Transport read state is IDLE.
+        if self.read_state is not TransportState.IDLE:
+            # This is logged at INFO level because it indicates we are not
+            # properly managing the Transport and are interrupting it mid-read
+            # somewhere.
+            self.logger.info(
+                'Corrupted transport: %s - state=%s',
+                self,
+                self.read_state.name,
+            )
+            raise Exception(f"Corrupted transport: {self} - state={self.read_state.name}")
+
+        # Set status to indicate we are waiting to read the message header
+        self.read_state = TransportState.HEADER
+
+        try:
+            header_data = await self.read(HEADER_LEN + MAC_LEN, token)
+        except asyncio.CancelledError:
+            self.logger.debug('Transport cancelled during header read. resetting to IDLE state')
+            self.read_state = TransportState.IDLE
+            raise
+
+        # Set status to indicate we are waiting to read the message body
+        self.read_state = TransportState.BODY
         try:
             header = self._decrypt_header(header_data)
         except DecryptionError as err:
@@ -262,6 +292,8 @@ class Transport(TransportAPI):
             )
             raise MalformedMessage from err
 
+        # Reset status back to IDLE
+        self.read_state = TransportState.IDLE
         return msg
 
     def send(self, header: bytes, body: bytes) -> None:

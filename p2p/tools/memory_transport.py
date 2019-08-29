@@ -11,8 +11,9 @@ from cancel_token import CancelToken
 
 from p2p._utils import get_devp2p_cmd_id
 from p2p.abc import NodeAPI, TransportAPI
-from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.exceptions import PeerConnectionLost
+from p2p.tools.asyncio_streams import get_directly_connected_streams
+from p2p.transport_state import TransportState
 
 
 CONNECTION_LOST_ERRORS = (
@@ -24,6 +25,7 @@ CONNECTION_LOST_ERRORS = (
 
 class MemoryTransport(TransportAPI):
     logger = logging.getLogger('p2p.tools.memory_transport.MemoryTransport')
+    read_state = TransportState.IDLE
 
     def __init__(self,
                  remote: NodeAPI,
@@ -72,9 +74,16 @@ class MemoryTransport(TransportAPI):
         self._writer.write(data)
 
     async def recv(self, token: CancelToken) -> bytes:
-        encoded_size = await self.read(3, token)
+        self.read_state = TransportState.HEADER
+        try:
+            encoded_size = await self.read(3, token)
+        except asyncio.CancelledError:
+            self.read_state = TransportState.IDLE
+            raise
         (size,) = struct.unpack(b'>I', b'\x00' + encoded_size)
+        self.read_state = TransportState.BODY
         data = await self.read(size, token)
+        self.read_state = TransportState.IDLE
         return data
 
     def send(self, header: bytes, body: bytes) -> None:

@@ -39,6 +39,7 @@ from p2p.exceptions import (
 from p2p.p2p_proto import BaseP2PProtocol
 from p2p.protocol import Protocol
 from p2p.resource_lock import ResourceLock
+from p2p.transport_state import TransportState
 from p2p.typing import Payload
 
 
@@ -291,14 +292,53 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
                 'multiplex',
                 loop=self.cancel_token.loop,
             ).chain(self.cancel_token)
+
+            stop = asyncio.Event()
             self._multiplex_token = multiplex_token
-            fut = asyncio.ensure_future(self._do_multiplexing(multiplex_token))
+            fut = asyncio.ensure_future(self._do_multiplexing(stop, multiplex_token))
             # wait for the multiplexing to actually start
             try:
                 yield
             finally:
-                multiplex_token.trigger()
-                del self._multiplex_token
+                #
+                # Prevent corruption of the Transport:
+                #
+                # On exit the `Transport` can be in a few states:
+                #
+                # 1. IDLE: between reads
+                # 2. HEADER: waiting to read the bytes for the message header
+                # 3. BODY: already read the header, waiting for body bytes.
+                #
+                # In the IDLE case we get a clean shutdown by simply signaling
+                # to `_do_multiplexing` that it should exit which is done with
+                # an `asyncio.EVent`
+                #
+                # In the HEADER case we can issue a hard stop either via
+                # cancellation or the cancel token.  The read *should* be
+                # interrupted without consuming any bytes from the
+                # `StreamReader`.
+                #
+                # In the BODY case we want to give the `Transport.recv` call a
+                # moment to finish reading the body after which it will be IDLE
+                # and will exit via the IDLE exit mechanism.
+                stop.set()
+
+                # If the transport is waiting to read the body of the message
+                # we want to give it a moment to finish that read.  Otherwise
+                # this leaves the transport in a corrupt state.
+                if self._transport.read_state is TransportState.BODY:
+                    try:
+                        await asyncio.wait_for(fut, timeout=1)
+                    except asyncio.TimeoutError:
+                        pass
+
+                # After giving the transport an opportunity to shutdown
+                # cleanly, we issue a hard shutdown, first via cancellation and
+                # then via the cancel token.  This should only end up
+                # corrupting the transport in the case where the header data is
+                # read but the body data takes too long to arrive which should
+                # be very rare and would likely indicate a malicious or broken
+                # peer.
                 if fut.done():
                     fut.result()
                 else:
@@ -308,7 +348,10 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
                     except asyncio.CancelledError:
                         pass
 
-    async def _do_multiplexing(self, token: CancelToken) -> None:
+                multiplex_token.trigger()
+                del self._multiplex_token
+
+    async def _do_multiplexing(self, stop: asyncio.Event, token: CancelToken) -> None:
         """
         Background task that reads messages from the transport and feeds them
         into individual queues for each of the protocols.
@@ -338,3 +381,6 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
                     protocol,
                     cmd,
                 )
+
+            if stop.is_set():
+                break
