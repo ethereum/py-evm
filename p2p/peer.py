@@ -370,7 +370,7 @@ class BasePeer(BaseService):
             )
 
         self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
-        self.base_protocol.send_disconnect(reason.value)
+        self.base_protocol.send_disconnect(reason)
         self.cancel_nowait()
 
     async def disconnect(self, reason: DisconnectReason) -> None:
