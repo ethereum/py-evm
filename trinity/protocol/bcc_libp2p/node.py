@@ -384,15 +384,8 @@ class Node(BaseService):
         #   other than `ResponseCode.SUCCESS`.
 
         # TODO: Handle `stream.close` and `stream.reset`
+
         peer_id = stream.mplex_conn.peer_id
-        if peer_id in self.handshaked_peers:
-            self.logger.info(
-                "Handshake failed: already handshaked with %s before",
-                peer_id,
-            )
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
-            return
 
         self.logger.debug("Waiting for hello from the other side")
         try:
@@ -431,12 +424,12 @@ class Node(BaseService):
             # TODO: Disconnect
             return
 
-        self.handshaked_peers.add(peer_id)
-
-        self.logger.debug(
-            "Handshake from %s is finished. Added to the `handshake_peers`",
-            peer_id,
-        )
+        if peer_id not in self.handshaked_peers:
+            self.handshaked_peers.add(peer_id)
+            self.logger.debug(
+                "Handshake from %s is finished. Added to the `handshake_peers`",
+                peer_id,
+            )
 
         # Check if we are behind the peer
         self._compare_chain_tip_and_finalized_epoch(
@@ -448,10 +441,6 @@ class Node(BaseService):
 
     async def say_hello(self, peer_id: ID) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
-        if peer_id in self.handshaked_peers:
-            error_msg = f"already handshaked with {peer_id} before"
-            self.logger.info("Handshake failed: %s", error_msg)
-            raise HandshakeFailure(error_msg)
 
         hello_mine = self._make_hello_packet()
 
@@ -517,12 +506,12 @@ class Node(BaseService):
             # TODO: Disconnect
             raise HandshakeFailure(error_msg) from error
 
-        self.handshaked_peers.add(peer_id)
-
-        self.logger.debug(
-            "Handshake to peer=%s is finished. Added to the `handshake_peers`",
-            peer_id,
-        )
+        if peer_id not in self.handshaked_peers:
+            self.handshaked_peers.add(peer_id)
+            self.logger.debug(
+                "Handshake to peer=%s is finished. Added to the `handshake_peers`",
+                peer_id,
+            )
 
         # Check if we are behind the peer
         self._compare_chain_tip_and_finalized_epoch(
