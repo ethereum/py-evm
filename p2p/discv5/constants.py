@@ -32,3 +32,7 @@ DATAGRAM_BUFFER_SIZE = 2048
 
 MAX_REQUEST_ID = 2**32 - 1  # highest request id used for outgoing requests
 MAX_REQUEST_ID_ATTEMPTS = 100  # number of attempts we take to guess a available request id
+
+# ENR keys for endpoint information
+IP_V4_ADDRESS_ENR_KEY = b"ip"
+UDP_PORT_ENR_KEY = b"udp"

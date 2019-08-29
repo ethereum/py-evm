@@ -29,6 +29,9 @@ from p2p.discv5.channel_services import (
     Endpoint,
     IncomingPacket,
 )
+from p2p.discv5.endpoint_tracker import (
+    EndpointVote,
+)
 from p2p.discv5.enr import (
     ENR,
     UnsignedENR,
@@ -113,6 +116,15 @@ class EndpointFactory(factory.Factory):
 
     ip_address = factory.LazyFunction(lambda: socket.inet_aton(factory.Faker("ipv4").generate({})))
     port = factory.Faker("pyint", min_value=0, max_value=65535)
+
+
+class EndpointVoteFactory(factory.Factory):
+    class Meta:
+        model = EndpointVote
+
+    endpoint = factory.SubFactory(EndpointFactory)
+    node_id = factory.LazyFunction(lambda: ENRFactory().node_id)
+    timestamp = factory.Faker("unix_time")
 
 
 class IncomingPacketFactory(factory.Factory):
