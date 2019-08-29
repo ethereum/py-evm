@@ -1,24 +1,31 @@
 import abc
+from typing import Optional
 
 
 class ConfigType(abc.ABC):
     name: str
-    path: str
+    path: Optional[str] = "config.yaml"
+
+    @classmethod
+    def has_config(cls) -> bool:
+        """
+        Return ``True`` if this ``ConfigType`` has configuration that should be loaded.
+        """
+        return cls.path is not None
 
 
 class Mainnet(ConfigType):
-    # name is the human-readable name for this configuration.
     name = "mainnet"
-    # path is the file system path to the config as YAML, relative to the project root.
-    path = "tests/eth2/fixtures/mainnet.yaml"
-
-
-class Full(Mainnet):
-    name = "full"
 
 
 class Minimal(ConfigType):
-    # name is the human-readable name for this configuration.
     name = "minimal"
-    # path is the file system path to the config as YAML, relative to the project root.
-    path = "tests/eth2/fixtures/minimal.yaml"
+
+
+class General(ConfigType):
+    """
+    ``General`` covers the set of tests that function independent of a particular config.
+    """
+
+    name = "general"
+    path = None
