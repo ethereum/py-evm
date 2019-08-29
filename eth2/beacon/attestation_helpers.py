@@ -134,13 +134,8 @@ def is_slashable_attestation_data(
     """
     Check if ``data_1`` and ``data_2`` are slashable according to Casper FFG rules.
     """
-    return (
-        # Double vote
-        (data_1 != data_2 and data_1.target.epoch == data_2.target.epoch)
-        or
-        # Surround vote
-        (
-            data_1.source.epoch < data_2.source.epoch
-            and data_2.target.epoch < data_1.target.epoch
-        )
+    # NOTE: checking 'double vote' OR 'surround vote'
+    return (data_1 != data_2 and data_1.target.epoch == data_2.target.epoch) or (
+        data_1.source.epoch < data_2.source.epoch
+        and data_2.target.epoch < data_1.target.epoch
     )
