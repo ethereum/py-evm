@@ -1,11 +1,9 @@
-from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Type, Union, cast
 
 from py_ecc.bls.typing import Domain
 
 from eth2._utils.bls import BLSPubkey, BLSSignature, Hash32, bls
 from eth2._utils.bls.backends import MilagroBackend
-from eth2.beacon.tools.fixtures.config_types import ConfigType
 from eth2.beacon.tools.fixtures.parser import (
     get_input_bls_privkey,
     get_input_bls_pubkeys,
@@ -14,7 +12,7 @@ from eth2.beacon.tools.fixtures.parser import (
     get_output_bls_pubkey,
     get_output_bls_signature,
 )
-from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
+from eth2.beacon.tools.fixtures.test_handler import TestHandler
 from eth2.configs import Eth2Config
 
 from . import TestType

@@ -1,17 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import (
-    Any,
-    Dict,
-    Generator,
-    Generic,
-    Iterable,
-    Iterator,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Dict, Iterable, Iterator, Optional, Tuple, Union
 
 from eth_typing import BLSPubkey, BLSSignature
 from eth_utils import decode_hex, to_tuple

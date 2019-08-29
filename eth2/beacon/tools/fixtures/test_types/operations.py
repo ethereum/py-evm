@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from eth_utils import ValidationError
@@ -18,8 +17,7 @@ from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_voluntary_exits,
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
-from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
+from eth2.beacon.tools.fixtures.test_handler import TestHandler
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody

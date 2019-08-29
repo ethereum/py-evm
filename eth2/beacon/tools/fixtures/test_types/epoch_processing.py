@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from ssz.tools import from_formatted_dict
@@ -11,8 +10,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_slashings,
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
-from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
+from eth2.beacon.tools.fixtures.test_handler import TestHandler
 from eth2.beacon.types.states import BeaconState
 from eth2.configs import Eth2Config
 

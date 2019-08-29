@@ -1,6 +1,6 @@
 import abc
 from abc import abstractmethod
-from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
+from typing import Any, Dict, Generic, Optional, TypeVar
 
 from eth2.configs import Eth2Config
 
