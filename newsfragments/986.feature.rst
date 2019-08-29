@@ -1,0 +1,1 @@
+Add ``ConnectionAPI.get_p2p_receipt`` for fetching the ``HandshakeReceipt`` for the base ``p2p`` protocol.
