@@ -16,6 +16,7 @@ from p2p.abc import (
     ConnectionAPI,
 )
 from p2p.exceptions import (
+    PeerConnectionLost,
     UnknownProtocol,
     UnknownProtocolCommand,
 )
@@ -81,11 +82,17 @@ class Connection(ConnectionAPI, BaseService):
         return self._multiplexer.remote
 
     async def _run(self) -> None:
-        async with self._multiplexer.multiplex():
-            for protocol in self._multiplexer.get_protocols():
-                self.run_daemon_task(self._feed_protocol_handlers(protocol))
+        try:
+            async with self._multiplexer.multiplex():
+                for protocol in self._multiplexer.get_protocols():
+                    self.run_daemon_task(self._feed_protocol_handlers(protocol))
 
-            await self.cancellation()
+                await self.cancellation()
+        except (PeerConnectionLost, asyncio.CancelledError):
+            pass
+
+    async def _cleanup(self) -> None:
+        self._multiplexer.close()
 
     async def _cleanup(self) -> None:
         self._multiplexer.close()
