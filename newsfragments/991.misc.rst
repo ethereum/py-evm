@@ -1,0 +1,1 @@
+Add ``ConnectionAPI.is_dial_out`` and ``ConnectionAPI.start_protocol_streams`` to ABC definition.
