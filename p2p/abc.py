@@ -28,6 +28,7 @@ from eth_utils import ExtendedDebugLogger
 from eth_keys import datatypes
 
 from p2p.typing import Capability, Capabilities, Payload, Structure
+from p2p.transport_state import TransportState
 
 if TYPE_CHECKING:
     from p2p.handshake import DevP2PReceipt  # noqa: F401
@@ -195,6 +196,7 @@ class RequestAPI(ABC, Generic[TRequestPayload]):
 
 class TransportAPI(ABC):
     remote: NodeAPI
+    read_state: TransportState
 
     @property
     @abstractmethod
