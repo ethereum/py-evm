@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type
 
 from eth_utils import ValidationError
 from ssz.tools import from_formatted_dict
@@ -24,27 +24,30 @@ class BlocksHandler(
 
     @classmethod
     def parse_inputs(
-        _cls, test_case_data: Dict[str, Any]
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
     ) -> Tuple[BeaconState, Tuple[BeaconBlock, ...]]:
+        blocks_count = metadata["blocks_count"]
         return (
-            from_formatted_dict(test_case_data["pre"], BeaconState),
+            from_formatted_dict(test_case_parts["pre"], BeaconState),
             tuple(
-                from_formatted_dict(block_data, BeaconBlock)
-                for block_data in test_case_data["blocks"]
+                from_formatted_dict(test_case_parts[f"blocks_{i}"], BeaconBlock)
+                for i in range(blocks_count)
             ),
         )
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BeaconState:
+        return from_formatted_dict(test_case_parts["post"], BeaconState)
 
     @staticmethod
-    def valid(test_case_data: Dict[str, Any]) -> bool:
-        return bool(test_case_data["post"])
+    def valid(test_case_parts: Dict[str, Any]) -> bool:
+        return bool(test_case_parts.get("post", None))
 
     @classmethod
     def run_with(
-        _cls, inputs: Tuple[BeaconState, Tuple[BeaconBlock, ...]], config: Eth2Config
+        _cls,
+        inputs: Tuple[BeaconState, Tuple[BeaconBlock, ...]],
+        config: Optional[Eth2Config],
     ) -> BeaconState:
         state, blocks = inputs
         state_transition = SerenityStateTransition(config)
@@ -65,19 +68,21 @@ class SlotsHandler(TestHandler[Tuple[BeaconState, int], BeaconState]):
     name = "slots"
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> Tuple[BeaconState, int]:
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> Tuple[BeaconState, int]:
         return (
-            from_formatted_dict(test_case_data["pre"], BeaconState),
-            test_case_data["slots"],
+            from_formatted_dict(test_case_parts["pre"], BeaconState),
+            test_case_parts["slots"],
         )
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BeaconState:
+        return from_formatted_dict(test_case_parts["post"], BeaconState)
 
     @classmethod
     def run_with(
-        _cls, inputs: Tuple[BeaconState, int], config: Eth2Config
+        _cls, inputs: Tuple[BeaconState, int], config: Optional[Eth2Config]
     ) -> BeaconState:
         state, offset = inputs
         target_slot = Slot(state.slot + offset)

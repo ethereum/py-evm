@@ -28,15 +28,21 @@ class AggregatePubkeysHandler(TestHandler[SequenceOfBLSPubkey, BLSPubkey]):
     name = "aggregate_pubkeys"
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> SequenceOfBLSPubkey:
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> SequenceOfBLSPubkey:
+        test_case_data = test_case_parts["data"]
         return get_input_bls_pubkeys(test_case_data)["pubkeys"]
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BLSPubkey:
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BLSPubkey:
+        test_case_data = test_case_parts["data"]
         return get_output_bls_pubkey(test_case_data)
 
     @classmethod
-    def run_with(_cls, inputs: SequenceOfBLSPubkey, _config: Eth2Config) -> BLSPubkey:
+    def run_with(
+        _cls, inputs: SequenceOfBLSPubkey, _config: Optional[Eth2Config]
+    ) -> BLSPubkey:
         # BLS override
         bls.use(MilagroBackend)
 
@@ -51,16 +57,20 @@ class AggregateSignaturesHandler(TestHandler[SequenceOfBLSSignature, BLSSignatur
     name = "aggregate_sigs"
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> SequenceOfBLSSignature:
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> SequenceOfBLSSignature:
+        test_case_data = test_case_parts["data"]
         return get_input_bls_signatures(test_case_data)["signatures"]
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BLSSignature:
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BLSSignature:
+        test_case_data = test_case_parts["data"]
         return get_output_bls_signature(test_case_data)
 
     @classmethod
     def run_with(
-        _cls, inputs: SequenceOfBLSSignature, _config: Eth2Config
+        _cls, inputs: SequenceOfBLSSignature, _config: Optional[Eth2Config]
     ) -> BLSSignature:
         # BLS override
         bls.use(MilagroBackend)
@@ -76,15 +86,19 @@ class PrivateToPublicKeyHandler(TestHandler[int, BLSPubkey]):
     name = "priv_to_pub"
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> int:
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> int:
+        test_case_data = test_case_parts["data"]
         return get_input_bls_privkey(test_case_data)["privkey"]
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BLSPubkey:
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BLSPubkey:
+        test_case_data = test_case_parts["data"]
         return get_output_bls_pubkey(test_case_data)
 
     @classmethod
-    def run_with(_cls, inputs: int, _config: Eth2Config) -> BLSPubkey:
+    def run_with(_cls, inputs: int, _config: Optional[Eth2Config]) -> BLSPubkey:
         # BLS override
         bls.use(MilagroBackend)
 
@@ -99,16 +113,20 @@ class SignMessageHandler(TestHandler[SignatureDescriptor, BLSSignature]):
     name = "sign_msg"
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> SignatureDescriptor:
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> SignatureDescriptor:
+        test_case_data = test_case_parts["data"]
         return get_input_sign_message(test_case_data)
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BLSSignature:
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BLSSignature:
+        test_case_data = test_case_parts["data"]
         return get_output_bls_signature(test_case_data)
 
     @classmethod
     def run_with(
-        _cls, inputs: SignatureDescriptor, _config: Eth2Config
+        _cls, inputs: SignatureDescriptor, _config: Optional[Eth2Config]
     ) -> BLSSignature:
         # BLS override
         bls.use(MilagroBackend)

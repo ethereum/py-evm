@@ -1,6 +1,6 @@
 import abc
 from abc import abstractmethod
-from typing import Any, Dict, Generic, TypeVar
+from typing import Any, Dict, Generic, Optional, Tuple, TypeVar
 
 from eth2.configs import Eth2Config
 
@@ -13,7 +13,9 @@ class TestHandler(abc.ABC, Generic[Input, Output]):
 
     @classmethod
     @abstractmethod
-    def parse_inputs(cls, test_case_data: Dict[str, Any]) -> Input:
+    def parse_inputs(
+        cls, test_case_data: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> Input:
         ...
 
     @staticmethod
@@ -27,7 +29,7 @@ class TestHandler(abc.ABC, Generic[Input, Output]):
 
     @classmethod
     @abstractmethod
-    def run_with(cls, inputs: Input, config: Eth2Config) -> Output:
+    def run_with(cls, inputs: Input, config: Optional[Eth2Config]) -> Output:
         ...
 
     @staticmethod

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, Dict, Tuple, Type
+from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from ssz.tools import from_formatted_dict
 
@@ -23,15 +23,17 @@ class EpochProcessingHandler(TestHandler[BeaconState, BeaconState]):
     processor: Callable[[BeaconState, Eth2Config], BeaconState]
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["pre"], BeaconState)
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> BeaconState:
+        return from_formatted_dict(test_case_parts["pre"], BeaconState)
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BeaconState:
+        return from_formatted_dict(test_case_parts["post"], BeaconState)
 
     @classmethod
-    def run_with(cls, inputs: BeaconState, config: Eth2Config) -> BeaconState:
+    def run_with(cls, inputs: BeaconState, config: Optional[Eth2Config]) -> BeaconState:
         state = inputs
         return cls.processor(state, config)
 

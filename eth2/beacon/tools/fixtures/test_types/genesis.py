@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Type, cast
+from typing import Any, Dict, Optional, Tuple, Type, cast
 
 from eth_typing import Hash32
 from eth_utils import decode_hex
@@ -22,15 +22,19 @@ class ValidityHandler(TestHandler[BeaconState, bool]):
     name = "validity"
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["genesis"], BeaconState)
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> BeaconState:
+        return from_formatted_dict(test_case_parts["genesis"], BeaconState)
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> bool:
-        return bool(test_case_data["is_valid"])
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> bool:
+        return bool(test_case_parts["is_valid"])
 
     @classmethod
-    def run_with(_cls, genesis_state: BeaconState, config: Eth2Config) -> bool:
+    def run_with(
+        _cls, genesis_state: BeaconState, config: Optional[Eth2Config]
+    ) -> bool:
         return is_valid_genesis_state(genesis_state, config)
 
     @staticmethod
@@ -45,24 +49,30 @@ class InitializationHandler(
 
     @classmethod
     def parse_inputs(
-        _cls, test_case_data: Dict[str, Any]
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
     ) -> Tuple[Hash32, Timestamp, Tuple[Deposit, ...]]:
+        deposits_count = metadata["deposits_count"]
         return (
-            cast(Hash32, decode_hex(test_case_data["eth1_block_hash"])),
-            Timestamp(test_case_data["eth1_timestamp"]),
+            cast(Hash32, decode_hex(test_case_parts["eth1_block_hash"])),
+            Timestamp(test_case_parts["eth1_timestamp"]),
             tuple(
-                cast(Deposit, from_formatted_dict(deposit_data, Deposit))
-                for deposit_data in test_case_data["deposits"]
+                cast(
+                    Deposit,
+                    from_formatted_dict(test_case_parts[f"deposits_{i}"], Deposit),
+                )
+                for i in range(deposits_count)
             ),
         )
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["state"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BeaconState:
+        return from_formatted_dict(test_case_parts["state"], BeaconState)
 
     @classmethod
     def run_with(
-        _cls, inputs: Tuple[Hash32, Timestamp, Tuple[Deposit, ...]], config: Eth2Config
+        _cls,
+        inputs: Tuple[Hash32, Timestamp, Tuple[Deposit, ...]],
+        config: Optional[Eth2Config],
     ) -> BeaconState:
         eth1_block_hash, eth1_timestamp, deposits = inputs
 

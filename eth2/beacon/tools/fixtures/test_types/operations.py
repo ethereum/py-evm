@@ -48,22 +48,24 @@ class OperationHandler(
     expected_exceptions: Tuple[Type[Exception], ...] = ()
 
     @classmethod
-    def parse_inputs(cls, test_case_data: Dict[str, Any]) -> Tuple[BeaconState, Any]:
+    def parse_inputs(
+        cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> Tuple[BeaconState, Any]:
         operation_name = (
             cls.operation_name if hasattr(cls, "operation_name") else cls.name
         )
         return (
-            from_formatted_dict(test_case_data["pre"], BeaconState),
-            from_formatted_dict(test_case_data[operation_name], cls.operation_type),
+            from_formatted_dict(test_case_parts["pre"], BeaconState),
+            from_formatted_dict(test_case_parts[operation_name], cls.operation_type),
         )
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> BeaconState:
+        return from_formatted_dict(test_case_parts["post"], BeaconState)
 
     @staticmethod
-    def valid(test_case_data: Dict[str, Any]) -> bool:
-        return bool(test_case_data["post"])
+    def valid(test_case_parts: Dict[str, Any]) -> bool:
+        return bool(test_case_parts.get("post", None))
 
     @classmethod
     def _update_config_if_needed(cls, config: Eth2Config) -> Eth2Config:
@@ -78,7 +80,9 @@ class OperationHandler(
 
     @classmethod
     def run_with(
-        cls, inputs: Tuple[BeaconState, OperationOrBlockHeader], config: Eth2Config
+        cls,
+        inputs: Tuple[BeaconState, OperationOrBlockHeader],
+        config: Optional[Eth2Config],
     ) -> BeaconState:
         config = cls._update_config_if_needed(config)
         state, operation = inputs
@@ -130,7 +134,7 @@ class BlockHeaderHandler(OperationHandler):
 
     @classmethod
     def run_with(
-        _cls, inputs: Tuple[BeaconState, BeaconBlock], config: Eth2Config
+        _cls, inputs: Tuple[BeaconState, BeaconBlock], config: Optional[Eth2Config]
     ) -> BeaconState:
         state, block = inputs
         check_proposer_signature = True

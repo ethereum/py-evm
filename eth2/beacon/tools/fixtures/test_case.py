@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from eth2._utils.bls import bls
 from eth2._utils.bls.backends import MilagroBackend
@@ -36,31 +36,37 @@ class TestCase:
     name: str
     handler: TestHandler[Input, Output]
     test_case_parts: Dict[str, Dict[str, Any]]
-    config: Eth2Config
+    config: Optional[Eth2Config]
 
     def __init__(
         self,
         name,
         handler: TestHandler[Input, Output],
         test_case_parts: Dict[str, Dict[str, Any]],
-        config: Eth2Config,
+        config: Optional[Eth2Config],
     ) -> None:
         self.name = name
         self.handler = handler
         self.test_case_parts = test_case_parts
         self.config = config
 
-        self._process_meta(self.test_case_parts.get(META_KEY, {}))
+        self.metadata = self.test_case_parts.get(META_KEY, {})
+        self._process_meta(self.metadata)
 
     def _process_meta(self, metadata: Dict[str, Any]) -> None:
         self.bls_setting = BLSSetting(metadata.get(BLS_SETTING_KEY, 0))
 
     def valid(self) -> bool:
-        return self.handler.valid(self.test_case_data)
+        return self.handler.valid(self.test_case_parts)
 
     def execute(self) -> None:
         _select_bls_backend(self.bls_setting)
-        inputs = self.handler.parse_inputs(self.test_case_parts)
+        inputs = self.handler.parse_inputs(self.test_case_parts, self.metadata)
         outputs = self.handler.run_with(inputs, self.config)
+
+        # NOTE: parse outputs after running the handler as we may trigger
+        # an exception due to an invalid test case that should raise before
+        # invalid decoding of empty output we expect to be missing.
         expected_outputs = self.handler.parse_outputs(self.test_case_parts)
+
         self.handler.condition(outputs, expected_outputs)
