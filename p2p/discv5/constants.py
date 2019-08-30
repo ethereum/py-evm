@@ -22,8 +22,13 @@ IP_V6_SIZE = 16  # size of an IPv6 address
 
 ENR_REPR_PREFIX = "enr:"  # prefix used when printing an ENR
 MAX_ENR_SIZE = 300  # maximum allowed size of an ENR
+IP_V4_ADDRESS_ENR_KEY = b"ip"
+UDP_PORT_ENR_KEY = b"udp"
 
 WHO_ARE_YOU_MAGIC_SUFFIX = b"WHOAREYOU"
 
 # buffer size used for incoming UDP datagrams (should be larger than MAX_PACKET_SIZE)
 DATAGRAM_BUFFER_SIZE = 2048
+
+MAX_REQUEST_ID = 2**32 - 1  # highest request id used for outgoing requests
+MAX_REQUEST_ID_ATTEMPTS = 100  # number of attempts we take to guess a available request id

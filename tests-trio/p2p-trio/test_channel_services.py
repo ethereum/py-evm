@@ -1,4 +1,7 @@
 import trio
+from socket import (
+    inet_aton,
+)
 
 import pytest
 import pytest_trio
@@ -10,6 +13,7 @@ from p2p.trio_service import (
 from p2p.discv5.channel_services import (
     DatagramReceiver,
     DatagramSender,
+    Endpoint,
     IncomingDatagram,
     OutgoingDatagram,
     OutgoingPacket,
@@ -54,7 +58,7 @@ async def test_datagram_receiver(socket_pair):
             received_datagram = await receive_channel.receive()
 
         assert received_datagram.datagram == data
-        assert received_datagram.sender_endpoint.ip_address == sender_address[0]
+        assert received_datagram.sender_endpoint.ip_address == inet_aton(sender_address[0])
         assert received_datagram.sender_endpoint.port == sender_address[1]
 
 
@@ -66,7 +70,10 @@ async def test_datagram_sender(socket_pair):
 
     send_channel, receive_channel = trio.open_memory_channel(1)
     async with background_service(DatagramSender(receive_channel, sending_socket)):
-        outgoing_datagram = OutgoingDatagram(b"some packet", receiver_endpoint)
+        outgoing_datagram = OutgoingDatagram(
+            b"some packet",
+            Endpoint(inet_aton(receiver_endpoint[0]), receiver_endpoint[1]),
+        )
         await send_channel.send(outgoing_datagram)
 
         with trio.fail_after(0.5):
