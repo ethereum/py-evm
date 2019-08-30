@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, Iterator, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 from eth_utils import to_tuple
 
@@ -64,7 +64,7 @@ def _parse_test_cases(
     config: Optional[Eth2Config],
     test_handler: TestHandler[Input, Output],
     test_case_descriptors: Iterable[TestCaseDescriptor],
-) -> Iterator[TestCase]:
+) -> Iterable[TestCase]:
     for descriptor in test_case_descriptors:
         test_case_parts = _load_parts(descriptor.parts, descriptor.format_type)
         yield TestCase(descriptor.name, test_handler, test_case_parts, config)
@@ -84,7 +84,7 @@ def _load_test_case(
 @to_tuple
 def _discover_test_suite_from(
     test_handler_path: Path, format_type: FormatType
-) -> Iterator[TestSuiteDescriptor]:
+) -> Iterable[TestSuiteDescriptor]:
     for test_suite in test_handler_path.iterdir():
         test_case_descriptors = tuple(
             _load_test_case(test_case_path, format_type)
@@ -101,7 +101,7 @@ def _load_and_parse_test_suites(
     config_type: ConfigType,
     fork_type: ForkType,
     format_type: FormatType,
-) -> Iterator[TestSuite]:
+) -> Iterable[TestSuite]:
     test_handler_path = _build_test_handler_path(
         tests_path, test_type, test_handler, config_type, fork_type
     )
