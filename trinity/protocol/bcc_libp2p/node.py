@@ -333,8 +333,8 @@ class Node(BaseService):
             hello_other_side.finalized_epoch,
             config.SLOTS_PER_EPOCH,
         )
-        finalized_root = self.chain.get_canonical_block_by_slot(
-            finalized_epoch_start_slot).block.signing_root
+        finalized_root = self.chain.get_canonical_block_root(
+            finalized_epoch_start_slot)
 
         if hello_other_side.finalized_root != finalized_root:
             raise ValidationError(
