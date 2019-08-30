@@ -31,7 +31,7 @@ def is_block_hash(value: str) -> bool:
 
 
 def remove_non_digits(value: str) -> str:
-    return re.sub("\D", "", value)
+    return re.sub(r"\D", "", value)
 
 
 def parse_checkpoint_uri(uri: str) -> Checkpoint:
