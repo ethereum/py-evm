@@ -420,7 +420,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             pubkey_head = pubkey[:16]
             pubkey_tail = pubkey[-8:]
             self.logger.debug("full-bootnode: %s", uri)
-            self.logger.info("bootnode: %s...%s@%s", pubkey_head, pubkey_tail, uri_tail)
+            self.logger.debug("bootnode: %s...%s@%s", pubkey_head, pubkey_tail, uri_tail)
 
         try:
             bonding_queries = (

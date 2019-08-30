@@ -124,8 +124,8 @@ async def test_light_boot(async_process_runner, command):
 @pytest.mark.parametrize(
     'command, expected_network_id, expected_genesis_hash',
     (
-        (('trinity',), 1, MAINNET_GENESIS_HASH),
-        (('trinity', '--ropsten'), 3, ROPSTEN_GENESIS_HASH),
+        (('trinity', '--log-level=DEBUG'), 1, MAINNET_GENESIS_HASH),
+        (('trinity', '--ropsten', '--log-level=DEBUG'), 3, ROPSTEN_GENESIS_HASH),
         (
             (
                 'trinity',
@@ -133,7 +133,8 @@ async def test_light_boot(async_process_runner, command):
                 # We don't have a way to refer to the tmp xdg_trinity_root here so we
                 # make up this replacement marker
                 '--data-dir={trinity_root_path}/devnet',
-                '--network-id=5'
+                '--network-id=5',
+                '--log-level=DEBUG',
             ), 5, '0x065fd78e53dcef113bf9d7732dac7c5132dcf85c9588a454d832722ceb097422'),
     )
 )

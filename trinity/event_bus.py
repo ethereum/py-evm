@@ -151,7 +151,7 @@ class AsyncioEventBusService(BaseService):
                 for connection_config in ev.available_endpoints[index:]
                 if not self._endpoint.is_connected_to(connection_config.name)
             )
-            self._endpoint.logger.info(
+            self._endpoint.logger.debug(
                 "EventBus Endpoint %s connecting to other Endpoints %s",
                 self._endpoint.name,
                 ','.join((config.name for config in endpoints_to_connect_to)),
