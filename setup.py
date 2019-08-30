@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
+import re
 from setuptools import setup, find_packages
 
 PYEVM_DEPENDENCY = "py-evm==0.3.0a5"
@@ -18,6 +19,7 @@ deps = {
         "eth-keys>=0.2.4,<0.3.0",
         "netifaces>=0.10.7<1",
         "pysha3>=1.0.0,<2.0.0",
+        "python-snappy>=0.5.3",
         "SQLAlchemy>=1.3.3,<2",
         'trio==0.11.0,<0.12',
         'trio-typing>=0.2.0,<0.3',
@@ -118,11 +120,23 @@ deps = {
     ],
 }
 
-# NOTE: Snappy breaks RTD builds. Until we have a more mature solution
-# we conditionally add python-snappy based on the presence of an env var
-rtd_build_env = os.environ.get('READTHEDOCS', False)
-if not rtd_build_env:
-    deps['p2p'].append("python-snappy>=0.5.3")
+
+def to_package_name(dependency):
+    """
+    Turn a dependency (e.g. "blspy>=0.1.8,<1") into the package name (e.g. "blspy")
+    """
+    return re.sub("[!=<>](.|)+", "", dependency)
+
+
+def filter_dependencies(package_list, *package_name):
+    return list(filter(lambda x: to_package_name(x).lower() not in package_name, package_list))
+
+
+# NOTE: Some dependencies break RTD builds. We can not install system dependencies on the
+# RTD system so we have to exclude these dependencies when we are in an RTD environment.
+if os.environ.get('READTHEDOCS', False):
+    deps['eth2'] = filter_dependencies(deps['eth2'], 'blspy')
+    deps['p2p'] = filter_dependencies(deps['p2p'], 'python-snappy')
 
 deps['dev'] = (
     deps['dev'] +
