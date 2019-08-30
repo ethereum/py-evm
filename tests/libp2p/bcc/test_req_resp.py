@@ -196,12 +196,20 @@ async def test_request_beacon_blocks_invalid_request(nodes_with_chain, monkeypat
             step=step,
         )
 
-    # TEST: Can not request blocks with `start_slot` lower than peer's latest finalized slot
+    # TEST: Can not request fork chain blocks with `start_slot`
+    # lower than peer's latest finalized slot
     start_slot = head_slot
     state_machine = nodes[1].chain.get_state_machine()
     old_state = state_machine.state
     new_checkpoint = old_state.finalized_checkpoint.copy(
         epoch=old_state.finalized_checkpoint.epoch + 1
+    )
+
+    def get_canonical_block_by_slot(slot):
+        raise BlockNotFound
+
+    monkeypatch.setattr(
+        nodes[1].chain, "get_canonical_block_by_slot", get_canonical_block_by_slot
     )
 
     def get_state_machine(at_slot=None):

@@ -571,6 +571,18 @@ class Node(BaseService):
                 if block.slot == slot_of_requested_blocks[cur_index]:
                     yield block
 
+    def _validate_start_slot(self, start_slot: Slot) -> None:
+        state_machine = self.chain.get_state_machine()
+        finalized_epoch_start_slot = compute_start_slot_of_epoch(
+            epoch=state_machine.state.finalized_checkpoint.epoch,
+            slots_per_epoch=state_machine.config.SLOTS_PER_EPOCH,
+        )
+        if start_slot < finalized_epoch_start_slot:
+            raise ValidationError(
+                f"`start_slot`({start_slot}) lower than our"
+                f" latest finalized slot({finalized_epoch_start_slot})"
+            )
+
     def _get_requested_beacon_blocks(
         self,
         beacon_blocks_request: BeaconBlocksRequest,
@@ -596,6 +608,8 @@ class Node(BaseService):
             )
         except BlockNotFound:
             # Peer's head block is not on our canonical chain
+            # Validate `start_slot` is greater than our latest finalized slot
+            self._validate_start_slot(beacon_blocks_request.start_slot)
             return self._get_blocks_from_fork_chain_by_root(
                 beacon_blocks_request.start_slot,
                 peer_head_block,
@@ -604,6 +618,8 @@ class Node(BaseService):
         else:
             if canonical_block_at_slot != peer_head_block:
                 # Peer's head block is not on our canonical chain
+                # Validate `start_slot` is greater than our latest finalized slot
+                self._validate_start_slot(beacon_blocks_request.start_slot)
                 return self._get_blocks_from_fork_chain_by_root(
                     beacon_blocks_request.start_slot,
                     peer_head_block,
@@ -634,27 +650,6 @@ class Node(BaseService):
             return
         self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
 
-        # Validate `beacon_blocks_request.start_slot`
-        state_machine = self.chain.get_state_machine()
-        finalized_epoch_start_slot = compute_start_slot_of_epoch(
-            epoch=state_machine.state.finalized_checkpoint.epoch,
-            slots_per_epoch=state_machine.config.SLOTS_PER_EPOCH,
-        )
-        if beacon_blocks_request.start_slot < max(0, finalized_epoch_start_slot):
-            reason = (
-                f"Invalid request: `start_slot`({beacon_blocks_request.start_slot})"
-                f" lower than our latest finalized slot({finalized_epoch_start_slot})"
-            )
-            try:
-                await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
-            except WriteMessageFailure as error:
-                self.logger.info(
-                    "Processing beacon blocks request failed: failed to write message %s",
-                    reason,
-                )
-            # await stream.reset()
-            return
-
         try:
             peer_head_block = self.chain.get_block_by_root(beacon_blocks_request.head_block_root)
         except (BlockNotFound, ValidationError):
@@ -677,10 +672,22 @@ class Node(BaseService):
                 # await stream.reset()
                 return
             else:
-                requested_beacon_blocks = self._get_requested_beacon_blocks(
-                    beacon_blocks_request,
-                    peer_head_block,
-                )
+                try:
+                    requested_beacon_blocks = self._get_requested_beacon_blocks(
+                        beacon_blocks_request,
+                        peer_head_block,
+                    )
+                except ValidationError as val_error:
+                    reason = "Invalid request: " + str(val_error)
+                    try:
+                        await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
+                    except WriteMessageFailure as error:
+                        self.logger.info(
+                            "Processing beacon blocks request failed: failed to write message %s",
+                            reason,
+                        )
+                    # await stream.reset()
+                    return
 
         # TODO: Should it be a successful response if peer is requesting
         # blocks on a fork we don't have data for?
