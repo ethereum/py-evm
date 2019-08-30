@@ -184,10 +184,11 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
             )
 
     def add_request_handler(self,
-                            message_type: int,
+                            message_class: Type[BaseMessage],
                             ) -> ChannelHandlerSubscription[IncomingMessage]:
+        message_type = message_class.message_type
         if message_type in self.request_handler_send_channels:
-            raise ValueError(f"Request handler for type {message_type} is already added")
+            raise ValueError(f"Request handler for {message_class.__name__} is already added")
 
         request_channels: Tuple[
             SendChannel[IncomingMessage],
@@ -195,17 +196,19 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
         ] = trio.open_memory_channel(0)
         self.request_handler_send_channels[message_type] = request_channels[0]
 
-        self.logger.debug("Adding request handler for message type %d", message_type)
+        self.logger.debug("Adding request handler for %s", message_class.__name__)
 
         def remove() -> None:
             try:
                 self.request_handler_send_channels.pop(message_type)
             except KeyError:
                 raise ValueError(
-                    f"Request handler for type {message_type} has already been removed"
+                    f"Request handler for {message_class.__name__} has already been removed"
                 )
             else:
-                self.logger.debug("Removing request handler for message type %d", message_type)
+                self.logger.debug(
+                    "Removing request handler for %s", message_class.__name__,
+                )
 
         return ChannelHandlerSubscription(
             send_channel=request_channels[0],

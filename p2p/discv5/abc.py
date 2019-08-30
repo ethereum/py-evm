@@ -183,7 +183,7 @@ class MessageDispatcherAPI(ABC):
 
     @abstractmethod
     def add_request_handler(self,
-                            message_type: int,
+                            message_class: Type[BaseMessage],
                             ) -> ChannelHandlerSubscriptionAPI[IncomingMessage]:
         """Add a request handler for messages of a given type.
 

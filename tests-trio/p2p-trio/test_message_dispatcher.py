@@ -110,9 +110,7 @@ async def test_request_handling(message_dispatcher,
                                 remote_endpoint):
     ping_send_channel, ping_receive_channel = trio.open_memory_channel(0)
 
-    async with message_dispatcher.add_request_handler(
-        PingMessage.message_type,
-    ) as request_subscription:
+    async with message_dispatcher.add_request_handler(PingMessage) as request_subscription:
 
         incoming_message = IncomingMessage(
             message=PingMessageFactory(),
