@@ -62,7 +62,7 @@ class PluginManagerService(BaseService):
             await self.cancellation()
 
     async def _handle_shutdown_request(self) -> None:
-        req = await self._endpoint.wait_for(ShutdownRequest)
+        req = await self.wait(self._endpoint.wait_for(ShutdownRequest))
         self._kill_trinity_fn(req.reason)
         self.cancel_nowait()
 
