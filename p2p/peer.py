@@ -38,6 +38,7 @@ from p2p.abc import (
 from p2p.constants import BLACKLIST_SECONDS_BAD_PROTOCOL
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
+    PeerConnectionLost,
     UnknownProtocol,
 )
 from p2p.connection import Connection
@@ -370,7 +371,10 @@ class BasePeer(BaseService):
             )
 
         self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
-        self.base_protocol.send_disconnect(reason)
+        try:
+            self.base_protocol.send_disconnect(reason)
+        except PeerConnectionLost:
+            self.logger.debug("%s was already disconnected", self.remote)
         self.cancel_nowait()
 
     async def disconnect(self, reason: DisconnectReason) -> None:

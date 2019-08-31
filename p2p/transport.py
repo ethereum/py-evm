@@ -300,9 +300,8 @@ class Transport(TransportAPI):
         cmd_id = get_devp2p_cmd_id(body)
         self.logger.debug2("Sending msg with cmd id %d to %s", cmd_id, self)
         if self.is_closing:
-            self.logger.error(
+            raise PeerConnectionLost(
                 "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
-            return
 
         self.write(self._encrypt(header, body))
 
