@@ -180,12 +180,10 @@ def _generate_test_suite_descriptors_from(
 
     test_types = eth2_fixture_request["test_types"]
 
-    # special case only one handler, "core"
+    # if a subset of handlers is not provided,
+    # run all handlers for a given test type.
     if not isinstance(test_types, Dict):
-        test_types = {
-            test_type: lambda handler: handler.name == "core"
-            for test_type in test_types
-        }
+        test_types = {test_type: lambda _handler: True for test_type in test_types}
 
     selected_handlers: Tuple[Tuple[TestType[Any], TestHandler[Any, Any]], ...] = tuple()
     for test_type, handler_filter in test_types.items():
