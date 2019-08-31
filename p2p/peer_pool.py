@@ -375,6 +375,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             except COMMON_PEER_CONNECTION_EXCEPTIONS as e:
                 self.logger.debug("Could not complete handshake with %r: %s", remote, repr(e))
                 raise
+            except asyncio.CancelledError:
+                # no need to log this exception, this is expected
+                raise
             except Exception:
                 self.logger.exception("Unexpected error during auth/p2p handshake with %r", remote)
                 raise
