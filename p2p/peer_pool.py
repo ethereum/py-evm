@@ -455,7 +455,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             self.logger.warning(
                 "%s finished but was not found in connected_nodes (%s)",
                 peer,
-                tuple(sorted(self.connected_nodes.values())),
+                tuple(self.connected_nodes.values()),
             )
 
         for subscriber in self._subscribers:
