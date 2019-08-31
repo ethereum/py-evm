@@ -183,7 +183,8 @@ def _generate_test_suite_descriptors_from(
     # special case only one handler, "core"
     if not isinstance(test_types, Dict):
         test_types = {
-            _type: lambda handler: handler.name == "core" for _type in test_types
+            test_type: lambda handler: handler.name == "core"
+            for test_type in test_types
         }
 
     selected_handlers: Tuple[Tuple[TestType[Any], TestHandler[Any, Any]], ...] = tuple()
