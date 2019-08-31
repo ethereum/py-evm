@@ -1,18 +1,6 @@
 import itertools
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    Iterable,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-)
+from typing import Any, Callable, Dict, Generator, Optional, Sequence, Set, Tuple, Type
 
-from eth_utils import to_tuple
 from eth_utils.toolz import merge_with, thread_last
 from typing_extensions import Protocol
 
@@ -154,10 +142,9 @@ def _check_only_one_config_type(config_type: ConfigType) -> None:
         )
 
 
-@to_tuple
 def _generate_test_suite_descriptors_from(
     eth2_fixture_request: Dict[str, Any]
-) -> Iterable[Any]:
+) -> Tuple[Any, ...]:
     # NOTE: fork types are not currently configurable
     fork_types = (Phase0,)
 
@@ -191,7 +178,7 @@ def _generate_test_suite_descriptors_from(
             if handler_filter(handler):
                 selected_handlers += ((test_type, handler),)
 
-    yield itertools.product(selected_handlers, config_types, fork_types)
+    return tuple(itertools.product(selected_handlers, config_types, fork_types))
 
 
 def _generate_pytest_case_from(
