@@ -1,7 +1,5 @@
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
-from ssz.tools import from_formatted_dict
-
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_crosslinks,
     process_final_updates,
@@ -11,6 +9,7 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
+from eth2.beacon.tools.fixtures.test_part import TestPart
 from eth2.beacon.types.states import BeaconState
 from eth2.configs import Eth2Config
 
@@ -22,13 +21,13 @@ class EpochProcessingHandler(TestHandler[BeaconState, BeaconState]):
 
     @classmethod
     def parse_inputs(
-        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+        _cls, test_case_parts: Dict[str, TestPart], metadata: Dict[str, Any]
     ) -> BeaconState:
-        return from_formatted_dict(test_case_parts["pre"], BeaconState)
+        return test_case_parts["pre"].load(BeaconState)
 
     @staticmethod
-    def parse_outputs(test_case_parts: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_parts["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, TestPart]) -> BeaconState:
+        return test_case_parts["post"].load(BeaconState)
 
     @classmethod
     def run_with(cls, inputs: BeaconState, config: Optional[Eth2Config]) -> BeaconState:

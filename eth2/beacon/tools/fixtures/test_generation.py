@@ -6,14 +6,13 @@ from typing_extensions import Protocol
 
 from eth2.beacon.tools.fixtures.config_types import ConfigType, General
 from eth2.beacon.tools.fixtures.fork_types import ForkType, Phase0
-from eth2.beacon.tools.fixtures.format_type import FormatType, YAMLType
 from eth2.beacon.tools.fixtures.parser import parse_test_suites
 from eth2.beacon.tools.fixtures.test_case import TestCase
 from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
 from eth2.beacon.tools.fixtures.test_types import HandlerType, TestType
 
 TestSuiteDescriptor = Tuple[
-    Tuple[TestType[Any], TestHandler[Any, Any]], ConfigType, ForkType, FormatType
+    Tuple[TestType[Any], TestHandler[Any, Any]], ConfigType, ForkType
 ]
 
 
@@ -78,8 +77,6 @@ def _generate_test_suite_descriptors_from(
 ) -> Tuple[TestSuiteDescriptor, ...]:
     # NOTE: fork types are not currently configurable
     fork_types = (Phase0,)
-    # NOTE: format types are not currently configurable
-    format_types = (YAMLType,)
 
     if "config_types" in eth2_fixture_request:
         config_types = eth2_fixture_request["config_types"]
@@ -113,7 +110,7 @@ def _generate_test_suite_descriptors_from(
                 selected_handler = (test_type, handler)
                 selected_handlers += selected_handler
     result: Iterator[Any] = itertools.product(
-        (selected_handlers,), config_types, fork_types, format_types
+        (selected_handlers,), config_types, fork_types
     )
     return tuple(result)
 
@@ -124,12 +121,11 @@ def _generate_pytest_case_from(
     suite_name: str,
     config_type: ConfigType,
     fork_type: ForkType,
-    format_type: FormatType,
     test_case: TestCase,
 ) -> Tuple[TestCase, str]:
     """
     id format:
-      f"{TEST_TYPE_NAME}_{HANDLER_TYPE_NAME}_{TEST_SUITE_NAME}_{TEST_CASE_NAME}.{FORMAT_TYPE_NAME}:{CONFIG_TYPE_NAME}_{FORK_TYPE_NAME}"  # noqa: E501
+      f"{TEST_TYPE_NAME}_{HANDLER_TYPE_NAME}_{TEST_SUITE_NAME}_{TEST_CASE_NAME}:{CONFIG_TYPE_NAME}_{FORK_TYPE_NAME}"  # noqa: E501
     """
     # special case only one handler "core"
     test_name = test_type.name
@@ -143,22 +139,15 @@ def _generate_pytest_case_from(
         (filter, lambda component: component != ""),
         lambda components: "_".join(components),
     )
-    test_id = f"{test_id_prefix}.{format_type.name}:{config_type.name}_{fork_type.name}"
+    test_id = f"{test_id_prefix}:{config_type.name}_{fork_type.name}"
     return test_case, test_id
 
 
 def _generate_pytest_cases_from_test_suite_descriptors(
     test_suite_descriptors: Tuple[TestSuiteDescriptor, ...]
 ) -> Generator[Tuple[TestCase, str], None, None]:
-    for (
-        (test_type, handler_type),
-        config_type,
-        fork_type,
-        format_type,
-    ) in test_suite_descriptors:
-        test_suites = parse_test_suites(
-            test_type, handler_type, config_type, fork_type, format_type
-        )
+    for ((test_type, handler_type), config_type, fork_type) in test_suite_descriptors:
+        test_suites = parse_test_suites(test_type, handler_type, config_type, fork_type)
         for suite in test_suites:
             for test_case in suite.test_cases:
                 yield _generate_pytest_case_from(
@@ -167,7 +156,6 @@ def _generate_pytest_cases_from_test_suite_descriptors(
                     suite.name,
                     config_type,
                     fork_type,
-                    format_type,
                     test_case,
                 )
 

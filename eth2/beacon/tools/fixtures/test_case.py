@@ -3,6 +3,7 @@ from typing import Any, Dict, Optional
 
 from eth2._utils.bls import bls
 from eth2._utils.bls.backends import MilagroBackend
+from eth2.beacon.tools.fixtures.test_part import TestPart
 from eth2.configs import Eth2Config
 
 from .test_handler import Input, Output, TestHandler
@@ -34,14 +35,14 @@ BLS_SETTING_KEY = "bls_setting"
 class TestCase:
     name: str
     handler: TestHandler[Any, Any]
-    test_case_parts: Dict[str, Dict[str, Any]]
+    test_case_parts: Dict[str, TestPart]
     config: Optional[Eth2Config]
 
     def __init__(
         self,
         name: str,
         handler: TestHandler[Input, Output],
-        test_case_parts: Dict[str, Dict[str, Any]],
+        test_case_parts: Dict[str, TestPart],
         config: Optional[Eth2Config],
     ) -> None:
         self.name = name
@@ -49,8 +50,15 @@ class TestCase:
         self.test_case_parts = test_case_parts
         self.config = config
 
-        self.metadata = self.test_case_parts.get(META_KEY, {})
+        self.metadata = self._load_metadata()
         self._process_meta(self.metadata)
+
+    def _load_metadata(self) -> Dict[str, Any]:
+        if META_KEY not in self.test_case_parts:
+            return {}
+
+        metadata_test_part = self.test_case_parts[META_KEY]
+        return metadata_test_part.load()
 
     def _process_meta(self, metadata: Dict[str, Any]) -> None:
         self.bls_setting = BLSSetting(metadata.get(BLS_SETTING_KEY, 0))

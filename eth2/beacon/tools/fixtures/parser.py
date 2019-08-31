@@ -1,15 +1,17 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Dict, Iterable, Optional, Sequence, Tuple, Type
 
 from eth_utils import to_tuple
+import eth_utils.toolz as toolz
 
 from eth2.beacon.tools.fixtures.config_types import ConfigType
 from eth2.beacon.tools.fixtures.fork_types import ForkType
-from eth2.beacon.tools.fixtures.format_type import FormatType
-from eth2.beacon.tools.fixtures.loading import load_config_at_path, load_yaml_at
+from eth2.beacon.tools.fixtures.format_type import FormatType, SSZType, YAMLType
+from eth2.beacon.tools.fixtures.loading import load_config_at_path
 from eth2.beacon.tools.fixtures.test_case import TestCase
 from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
+from eth2.beacon.tools.fixtures.test_part import TestPart
 from eth2.beacon.tools.fixtures.test_suite import TestSuite
 from eth2.beacon.tools.fixtures.test_types import HandlerType, TestType
 from eth2.beacon.tools.misc.ssz_vector import override_lengths
@@ -25,7 +27,6 @@ TESTS_PATH = Path("tests")
 class TestCaseDescriptor:
     name: str
     parts: Tuple[Path, ...]
-    format_type: FormatType
 
 
 @dataclass
@@ -50,13 +51,39 @@ def _build_test_handler_path(
     )
 
 
-def _load_parts(
-    parts: Iterable[Path], format_type: FormatType
-) -> Dict[str, Dict[str, Any]]:
-    return {
-        part.name.replace(f".{format_type.name}", ""): load_yaml_at(part)
-        for part in parts
-    }
+def _format_type_for(file_type: str) -> Type[FormatType]:
+    if file_type == ".yaml":
+        return YAMLType
+    elif file_type == ".ssz":
+        return SSZType
+    else:
+        raise AssertionError(
+            f"File type `{file_type}` found in fixture data is not currently supported."
+        )
+
+
+def _group_paths_by_name(path: Path) -> str:
+    return path.name.replace(path.suffix, "")
+
+
+def _map_to_format_type(
+    items: Tuple[str, Sequence[Path]]
+) -> Tuple[Type[FormatType], Path]:
+    suffix, paths = items
+    # sanity check
+    assert len(paths) == 1
+
+    return (_format_type_for(suffix), paths[0])
+
+
+def _mk_test_part(paths: Sequence[Path]) -> TestPart:
+    paths_by_suffix = toolz.groupby(lambda path: path.suffix, paths)
+    return TestPart(toolz.itemmap(_map_to_format_type, paths_by_suffix))
+
+
+def _load_parts(parts: Iterable[Path]) -> Dict[str, TestPart]:
+    parts_by_name = toolz.groupby(_group_paths_by_name, parts)
+    return toolz.valmap(_mk_test_part, parts_by_name)
 
 
 @to_tuple
@@ -66,29 +93,20 @@ def _parse_test_cases(
     test_case_descriptors: Iterable[TestCaseDescriptor],
 ) -> Iterable[TestCase]:
     for descriptor in test_case_descriptors:
-        test_case_parts = _load_parts(descriptor.parts, descriptor.format_type)
+        test_case_parts = _load_parts(descriptor.parts)
         yield TestCase(descriptor.name, test_handler, test_case_parts, config)
 
 
-def _load_test_case(
-    test_case_path: Path, format_type: FormatType
-) -> TestCaseDescriptor:
-    parts = tuple(
-        part_path
-        for part_path in test_case_path.iterdir()
-        if part_path.suffix[1:] == format_type.name
-    )
-    return TestCaseDescriptor(test_case_path.name, parts, format_type)
+def _load_test_case(test_case_path: Path) -> TestCaseDescriptor:
+    parts = tuple(part_path for part_path in test_case_path.iterdir())
+    return TestCaseDescriptor(test_case_path.name, parts)
 
 
 @to_tuple
-def _discover_test_suite_from(
-    test_handler_path: Path, format_type: FormatType
-) -> Iterable[TestSuiteDescriptor]:
+def _discover_test_suite_from(test_handler_path: Path) -> Iterable[TestSuiteDescriptor]:
     for test_suite in test_handler_path.iterdir():
         test_case_descriptors = tuple(
-            _load_test_case(test_case_path, format_type)
-            for test_case_path in test_suite.iterdir()
+            _load_test_case(test_case_path) for test_case_path in test_suite.iterdir()
         )
         yield TestSuiteDescriptor(test_suite.name, test_case_descriptors)
 
@@ -100,13 +118,12 @@ def _load_and_parse_test_suites(
     test_handler: TestHandler[Input, Output],
     config_type: ConfigType,
     fork_type: ForkType,
-    format_type: FormatType,
 ) -> Iterable[TestSuite]:
     test_handler_path = _build_test_handler_path(
         tests_path, test_type, test_handler, config_type, fork_type
     )
 
-    test_suite_descriptors = _discover_test_suite_from(test_handler_path, format_type)
+    test_suite_descriptors = _discover_test_suite_from(test_handler_path)
 
     if config_type.has_config():
         config_path = tests_path / Path(config_type.name) / Path(config_type.path)
@@ -154,7 +171,6 @@ def parse_test_suites(
     test_handler: TestHandler[Input, Output],
     config_type: ConfigType,
     fork_type: ForkType,
-    format_type: FormatType,
 ) -> Tuple[TestSuite, ...]:
     """
     Find all of the test suites (including their respective test cases) given a fixed
@@ -166,5 +182,5 @@ def parse_test_suites(
     project_root_dir = _find_project_root_dir(TESTS_ROOT_PATH)
     tests_path = project_root_dir / TESTS_ROOT_PATH / TESTS_PATH
     return _load_and_parse_test_suites(
-        tests_path, test_type, test_handler, config_type, fork_type, format_type
+        tests_path, test_type, test_handler, config_type, fork_type
     )

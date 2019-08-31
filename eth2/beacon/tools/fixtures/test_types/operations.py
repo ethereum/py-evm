@@ -2,7 +2,6 @@ from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from eth_utils import ValidationError
 import ssz
-from ssz.tools import from_formatted_dict
 
 from eth2._utils.bls import SignatureError
 from eth2.beacon.state_machines.forks.serenity.block_processing import (
@@ -18,6 +17,7 @@ from eth2.beacon.state_machines.forks.serenity.operation_processing import (
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
+from eth2.beacon.tools.fixtures.test_part import TestPart
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
@@ -47,22 +47,22 @@ class OperationHandler(
 
     @classmethod
     def parse_inputs(
-        cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+        cls, test_case_parts: Dict[str, TestPart], metadata: Dict[str, Any]
     ) -> Tuple[BeaconState, Any]:
         operation_name = (
             cls.operation_name if hasattr(cls, "operation_name") else cls.name
         )
         return (
-            from_formatted_dict(test_case_parts["pre"], BeaconState),
-            from_formatted_dict(test_case_parts[operation_name], cls.operation_type),
+            test_case_parts["pre"].load(BeaconState),
+            test_case_parts[operation_name].load(cls.operation_type),
         )
 
     @staticmethod
-    def parse_outputs(test_case_parts: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_parts["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, TestPart]) -> BeaconState:
+        return test_case_parts["post"].load(BeaconState)
 
     @staticmethod
-    def valid(test_case_parts: Dict[str, Any]) -> bool:
+    def valid(test_case_parts: Dict[str, TestPart]) -> bool:
         return bool(test_case_parts.get("post", None))
 
     @classmethod

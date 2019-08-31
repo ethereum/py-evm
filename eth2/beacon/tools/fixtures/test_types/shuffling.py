@@ -16,12 +16,12 @@ class CoreHandler(TestHandler[Tuple[int, bytes], Tuple[int, ...]]):
     def parse_inputs(
         _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
     ) -> Tuple[int, bytes]:
-        test_case_data = test_case_parts["mapping"]
+        test_case_data = test_case_parts["mapping"].load()
         return (test_case_data["count"], decode_hex(test_case_data["seed"]))
 
     @staticmethod
     def parse_outputs(test_case_parts: Dict[str, Any]) -> Tuple[int, ...]:
-        test_case_data = test_case_parts["mapping"]
+        test_case_data = test_case_parts["mapping"].load()
         return tuple(int(data) for data in test_case_data["mapping"])
 
     @classmethod
