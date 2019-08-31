@@ -17,10 +17,15 @@ class FormatType(abc.ABC):
         ...
 
     @classmethod
-    @abstractmethod
     def load_ssz(
         cls, path: Path, ssz_class: Type[ssz.typing.TSerializable]
     ) -> ssz.typing.TSerializable:
+        data = cls.load_bytes(path)
+        return ssz_class.deserialize(data)
+
+    @classmethod
+    @abstractmethod
+    def load_bytes(cls, path: Path) -> bytes:
         ...
 
 
@@ -34,12 +39,9 @@ class SSZType(FormatType):
         )
 
     @classmethod
-    def load_ssz(
-        cls, path: Path, ssz_class: Type[ssz.typing.TSerializable]
-    ) -> ssz.typing.TSerializable:
+    def load_bytes(cls, path: Path) -> bytes:
         with open(path, mode="rb") as f:
-            data = f.read()
-        return ssz_class.deserialize(data)
+            return f.read()
 
 
 class YAMLType(FormatType):
@@ -50,9 +52,7 @@ class YAMLType(FormatType):
         return load_yaml_at(path)
 
     @classmethod
-    def load_ssz(
-        cls, path: Path, ssz_class: Type[ssz.typing.TSerializable]
-    ) -> ssz.typing.TSerializable:
+    def load_bytes(cls, path: Path) -> bytes:
         raise NotImplementedError(
             f"the {cls} format type cannot load the request type `ssz`"
         )
