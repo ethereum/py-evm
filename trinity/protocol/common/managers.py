@@ -274,6 +274,8 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                     self._connection,
                     err,
                 )
+                # If this response was just for the wrong request, we'll catch the right one later.
+                # Otherwise, this request will eventually time out.
                 continue
             else:
                 tracker.record_response(
