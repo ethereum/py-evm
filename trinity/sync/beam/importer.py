@@ -451,7 +451,7 @@ def partial_speculative_execute(
         except ValidationError as exc:
             preview_time = t.elapsed
             vm.logger.debug(
-                "Speculative transactions %d failed for %s after %.1fs: %s",
+                "Speculative transactions %s failed for %s after %.1fs: %s",
                 transactions,
                 header,
                 preview_time,
