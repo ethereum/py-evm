@@ -120,9 +120,9 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
     async def _run(self) -> None:
         self.run_daemon_task(self._display_stats())
         await self.wait(self._quietly_fetch_full_skeleton())
-        self.logger.debug("Skeleton %s stopped responding, waiting for sync to complete", self.peer)
+        self.logger.debug2("Skeleton %s stopped responding, pausing for headers to emit", self.peer)
         await self.wait(self._fetched_headers.join())
-        self.logger.debug("Skeleton %s emitted all headers", self.peer)
+        self.logger.debug2("Skeleton %s emitted all headers", self.peer)
 
     async def _display_stats(self) -> None:
         queue = self._fetched_headers
@@ -478,7 +478,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             return tuple()
 
         if not headers:
-            self.logger.debug("Got no new headers from %s, exiting skeleton sync", peer)
+            self.logger.debug2("Got no new headers from %s, exiting skeleton sync", peer)
             return tuple()
         else:
             return headers
@@ -903,7 +903,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             if self._skeleton.is_operational:
                 self._skeleton.cancel_nowait()
         finally:
-            self.logger.debug("Skeleton sync with %s ended", peer)
+            self.logger.debug2("Skeleton sync with %s ended", peer)
             self._last_target_header_hash = peer.head_hash
             self._skeleton = None
 
