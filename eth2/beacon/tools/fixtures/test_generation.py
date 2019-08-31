@@ -208,10 +208,7 @@ def _generate_pytest_case_from(
     """
     # special case only one handler "core"
     test_name = test_type.name
-    if len(test_type.handlers) == 1 or handler_type.name == "core":
-        handler_name = ""
-    else:
-        handler_name = handler_type.name
+    handler_name = handler_type.name
 
     test_id_prefix = thread_last(
         (test_name, handler_name, suite_name, test_case.name),
