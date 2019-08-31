@@ -13,10 +13,5 @@ def pytest_generate_tests(metafunc):
 @pytest_from_eth2_fixture(
     {"config_types": (Minimal,), "test_types": (ShufflingTestType,)}
 )
-def test_minimal(test_case):
+def test_shuffling(test_case):
     test_case.execute()
-
-
-# @pytest_from_eth2_fixture({"config_types": (Full,), "test_types": (ShufflingTestType,)})
-# def test_full(test_case):
-#     test_case.execute()

@@ -1,10 +1,27 @@
 import itertools
-from typing import Any, Callable, Dict, Generator, Iterator, Set, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Iterable,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Type,
+)
 
-from eth_utils.toolz import thread_last
+from eth_utils import to_tuple
+from eth_utils.toolz import merge_with, thread_last
 from typing_extensions import Protocol
 
-from eth2.beacon.tools.fixtures.config_types import ConfigType, General
+from eth2.beacon.tools.fixtures.config_types import (
+    ConfigType,
+    General,
+    Mainnet,
+    Minimal,
+)
 from eth2.beacon.tools.fixtures.fork_types import ForkType, Phase0
 from eth2.beacon.tools.fixtures.parser import parse_test_suites
 from eth2.beacon.tools.fixtures.test_case import TestCase
@@ -20,10 +37,20 @@ class DecoratorTarget(Protocol):
     __eth2_fixture_config: Dict[str, Any]
 
 
+class ConfigProtocol(Protocol):
+    config: str
+
+
+class OptionProtocol(Protocol):
+    option: ConfigProtocol
+
+
 # NOTE: ``pytest`` does not export the ``Metafunc`` class so we
 # make a new type here to stand in for it.
 class Metafunc(Protocol):
     function: DecoratorTarget
+
+    config: OptionProtocol
 
     def parametrize(
         self, param_name: str, argvals: Tuple[TestCase, ...], ids: Tuple[str, ...]
@@ -35,7 +62,7 @@ def pytest_from_eth2_fixture(
     config: Dict[str, Any]
 ) -> Callable[[DecoratorTarget], DecoratorTarget]:
     """
-    This function attaches the ``config`` to the ``func`` via the
+    This function attaches the testing ``config`` to the ``func`` via the
     ``decorator``. The idea here is to just communicate this data to
     later stages of the test generation.
     """
@@ -47,9 +74,64 @@ def pytest_from_eth2_fixture(
     return decorator
 
 
+def _config_from_str(config_str: str) -> Type[ConfigType]:
+    if config_str == Mainnet.name:
+        return Mainnet
+    elif config_str == Minimal.name:
+        return Minimal
+    elif config_str == General.name:
+        return General
+    else:
+        raise AssertionError("invalid name request for eth2 config")
+
+
+def _eth2_config_from(metafunc: Metafunc) -> Optional[Tuple[Type[ConfigType]]]:
+    """
+    Parse the configuration requested via command line parameter ``config``.
+
+    NOTE: currently only takes one option but could be extended to respect a
+    comma-separated list of several configuration options.
+    """
+    config_str = metafunc.config.option.config
+    if config_str:
+        return (_config_from_str(config_str),)
+    return None
+
+
+def _keep_first_some(values: Sequence[Any]) -> Any:
+    """
+    Used to find valid configuration option.
+    Expect two objects in ``values``, return the first non-None value,
+    going in reverse to respect precedence.
+    """
+    if len(values) == 1:
+        return values[0]
+
+    for value in reversed(values):
+        if value:
+            return value
+    raise AssertionError(
+        "``_keep_some`` should find at least one valid option; check configuration."
+    )
+
+
 def _read_request_from_metafunc(metafunc: Metafunc) -> Dict[str, Any]:
+    """
+    The ``metafunc.function`` has an ad-hoc property given in the top-level test harness
+    decorator that communicates the caller's request to this library.
+
+    This function also checks the ``metafunc`` for an eth2 config option and applies it.
+    Supplying the configuration via the command line parameter overwrites any configuration
+    given in the written request.
+    """
     fn = metafunc.function
-    return fn.__eth2_fixture_config
+    request = fn.__eth2_fixture_config
+    if "config_types" in request:
+        return merge_with(
+            _keep_first_some, request, {"config_types": _eth2_config_from(metafunc)}
+        )
+    else:
+        return request
 
 
 requested_config_types: Set[ConfigType] = set()
@@ -72,9 +154,10 @@ def _check_only_one_config_type(config_type: ConfigType) -> None:
         )
 
 
+@to_tuple
 def _generate_test_suite_descriptors_from(
     eth2_fixture_request: Dict[str, Any]
-) -> Tuple[TestSuiteDescriptor, ...]:
+) -> Iterable[Any]:
     # NOTE: fork types are not currently configurable
     fork_types = (Phase0,)
 
@@ -106,13 +189,10 @@ def _generate_test_suite_descriptors_from(
     selected_handlers: Tuple[Tuple[TestType[Any], TestHandler[Any, Any]], ...] = tuple()
     for test_type, handler_filter in test_types.items():
         for handler in test_type.handlers:
-            if handler_filter(handler) or handler.name == "core":
-                selected_handler = (test_type, handler)
-                selected_handlers += selected_handler
-    result: Iterator[Any] = itertools.product(
-        (selected_handlers,), config_types, fork_types
-    )
-    return tuple(result)
+            if handler_filter(handler):
+                selected_handlers += ((test_type, handler),)
+
+    yield itertools.product(selected_handlers, config_types, fork_types)
 
 
 def _generate_pytest_case_from(
