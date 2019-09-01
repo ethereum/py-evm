@@ -36,3 +36,5 @@ MAX_REQUEST_ID_ATTEMPTS = 100  # number of attempts we take to guess a available
 # ENR keys for endpoint information
 IP_V4_ADDRESS_ENR_KEY = b"ip"
 UDP_PORT_ENR_KEY = b"udp"
+
+REQUEST_RESPONSE_TIMEOUT = 0.5  # timeout for waiting for response after request was sent
