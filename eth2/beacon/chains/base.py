@@ -388,25 +388,27 @@ class BeaconChain(BaseBeaconChain):
                 )
             )
 
-        # Default to use state machine and state at `parent_block.slot`.
-        # Change to the ones at head state slot if `block.slot` is on canonical chain
-        # and newer than head state slot.
-        state_machine = self.get_state_machine(at_slot=parent_block.slot)
-        state = self.get_state_by_slot(parent_block.slot)
         try:
             canonical_root_at_slot = self.get_canonical_block_root(parent_block.slot)
         except BlockNotFound:
             # No corresponding block at this slot which means parent block is not
             # on canonical chain.
-            pass
+            is_new_canonical_block = False
         else:
             is_on_canonical_chain = parent_block.signing_root == canonical_root_at_slot
             is_newer_than_head_state_slot = (
                 self.chaindb.get_head_state_slot() < block.slot
             )
-            if is_on_canonical_chain and is_newer_than_head_state_slot:
-                state_machine = self.get_state_machine()
-                state = self.get_head_state()
+            is_new_canonical_block = (
+                is_on_canonical_chain and is_newer_than_head_state_slot
+            )
+
+        if is_new_canonical_block:
+            state_machine = self.get_state_machine()
+            state = self.get_head_state()
+        else:
+            state_machine = self.get_state_machine(at_slot=parent_block.slot)
+            state = self.get_state_by_slot(parent_block.slot)
 
         state, imported_block = state_machine.import_block(
             block, state, check_proposer_signature=perform_validation
