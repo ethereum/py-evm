@@ -1,5 +1,10 @@
+from typing import (
+    Sequence,
+)
+
 import ssz
 from ssz.sedes import (
+    List,
     bytes4,
     bytes32,
     uint64,
@@ -19,6 +24,7 @@ from eth2.beacon.typing import (
     default_slot,
     default_version,
 )
+from eth2.beacon.types.blocks import BeaconBlock
 
 
 class HelloRequest(ssz.Serializable):
@@ -79,18 +85,28 @@ class BeaconBlocksRequest(ssz.Serializable):
         )
 
 
-# # TODO: BeaconBlocksResponse
-# (
-#   blocks: []BeaconBlock
-# )
+class BeaconBlocksResponse(ssz.Serializable):
+    fields = [
+        ('blocks', List(BeaconBlock, 1)),
+    ]
+
+    def __init__(self, blocks: Sequence[BeaconBlock]) -> None:
+        super().__init__(blocks)
 
 
-# # TODO: RecentBeaconBlocksRequest
-# (
-#   block_roots: []HashTreeRoot
-# )
+class RecentBeaconBlocksRequest(ssz.Serializable):
+    fields = [
+        ('block_roots', List(bytes32, 1)),
+    ]
 
-# # RecentBeaconBlocksResponse
-# (
-#   blocks: []BeaconBlock
-# )
+    def __init__(self, block_roots: Sequence[Hash32]) -> None:
+        super().__init__(block_roots)
+
+
+class RecentBeaconBlocksResponse(ssz.Serializable):
+    fields = [
+        ('blocks', List(BeaconBlock, 1)),
+    ]
+
+    def __init__(self, blocks: Sequence[BeaconBlock]) -> None:
+        super().__init__(blocks)
