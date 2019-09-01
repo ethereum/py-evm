@@ -259,10 +259,7 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
             remove_fn=remove,
         )
 
-    async def prepare_outgoing_message(self,
-                                       receiver_node_id: NodeID,
-                                       message: BaseMessage,
-                                       ) -> OutgoingMessage:
+    async def get_endpoint_from_enr_db(self, receiver_node_id: NodeID) -> Endpoint:
         try:
             enr = await self.enr_db.get(receiver_node_id)
         except KeyError:
@@ -282,17 +279,16 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
                 f"ENR for peer {encode_hex(receiver_node_id)} does not contain a UDP port"
             )
 
-        outgoing_message = OutgoingMessage(
-            message=message,
-            receiver_endpoint=Endpoint(
-                ip_address,
-                udp_port,
-            ),
-            receiver_node_id=receiver_node_id,
-        )
-        return outgoing_message
+        return Endpoint(ip_address, udp_port)
 
-    async def request(self, receiver_node_id: NodeID, message: BaseMessage) -> IncomingMessage:
+    async def request(self,
+                      receiver_node_id: NodeID,
+                      message: BaseMessage,
+                      endpoint: Optional[Endpoint] = None,
+                      ) -> IncomingMessage:
+        if endpoint is None:
+            endpoint = await self.get_endpoint_from_enr_db(receiver_node_id)
+
         response_channels: Tuple[
             SendChannel[IncomingMessage],
             ReceiveChannel[IncomingMessage],
@@ -303,7 +299,11 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
             receiver_node_id,
             message.request_id,
         ) as response_subscription:
-            outgoing_message = await self.prepare_outgoing_message(receiver_node_id, message)
+            outgoing_message = OutgoingMessage(
+                message=message,
+                receiver_node_id=receiver_node_id,
+                receiver_endpoint=endpoint,
+            )
             self.logger.debug(
                 "Sending %s to %s with request id %d",
                 outgoing_message,
