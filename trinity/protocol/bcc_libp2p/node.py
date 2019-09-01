@@ -606,17 +606,15 @@ class Node(BaseService):
             canonical_block_at_slot = self.chain.get_canonical_block_by_slot(
                 peer_head_block.slot
             )
+            block_match = canonical_block_at_slot == peer_head_block
         except BlockNotFound:
             # Peer's head block is not on our canonical chain
-            # Validate `start_slot` is greater than our latest finalized slot
-            self._validate_start_slot(beacon_blocks_request.start_slot)
-            return self._get_blocks_from_fork_chain_by_root(
-                beacon_blocks_request.start_slot,
-                peer_head_block,
-                slot_of_requested_blocks,
-            )
-        else:
-            if canonical_block_at_slot != peer_head_block:
+            block_match = False
+        finally:
+            if block_match:
+                # Peer's head block is on our canonical chain
+                return self._get_blocks_from_canonical_chain_by_slot(slot_of_requested_blocks)
+            else:
                 # Peer's head block is not on our canonical chain
                 # Validate `start_slot` is greater than our latest finalized slot
                 self._validate_start_slot(beacon_blocks_request.start_slot)
@@ -625,9 +623,6 @@ class Node(BaseService):
                     peer_head_block,
                     slot_of_requested_blocks,
                 )
-            else:
-                # Peer's head block is on our canonical chain
-                return self._get_blocks_from_canonical_chain_by_slot(slot_of_requested_blocks)
 
     async def _handle_beacon_blocks(self, stream: INetStream) -> None:
         # TODO: Handle `stream.close` and `stream.reset`
