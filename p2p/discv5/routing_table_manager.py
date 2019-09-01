@@ -1,5 +1,4 @@
 import logging
-import time
 
 from eth_utils import (
     encode_hex,
