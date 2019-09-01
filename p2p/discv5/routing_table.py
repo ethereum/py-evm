@@ -2,7 +2,7 @@ from collections import (
     deque,
 )
 import logging
-import random
+import secrets
 from typing import (
     Any,
     Deque,
@@ -63,7 +63,7 @@ class FlatRoutingTable(Collection[NodeID]):
         return iter(self.entries)
 
     def get_random_entry(self) -> NodeID:
-        return random.choice(self.entries)
+        return secrets.choice(self.entries)
 
     def get_oldest_entry(self) -> NodeID:
         return self.entries[-1]
