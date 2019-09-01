@@ -53,9 +53,7 @@ def test_per_slot_transition(
     block = create_mock_block(
         state=state,
         config=config,
-        state_machine=fixture_sm_class(
-            chaindb, empty_attestation_pool, genesis_block.slot
-        ),
+        state_machine=fixture_sm_class(chaindb, empty_attestation_pool),
         block_class=SerenityBeaconBlock,
         parent_block=genesis_block,
         keymap=keymap,
@@ -66,7 +64,7 @@ def test_per_slot_transition(
     chaindb.persist_block(block, SerenityBeaconBlock, fork_choice_scoring)
 
     # Get state machine instance
-    sm = fixture_sm_class(chaindb, empty_attestation_pool, block.slot)
+    sm = fixture_sm_class(chaindb, empty_attestation_pool)
 
     # Get state transition instance
     st = sm.state_transition_class(sm.config)

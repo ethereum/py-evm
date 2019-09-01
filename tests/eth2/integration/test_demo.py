@@ -73,7 +73,7 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
         block = create_mock_block(
             state=state,
             config=config,
-            state_machine=fixture_sm_class(chaindb, attestation_pool, blocks[-1].slot),
+            state_machine=fixture_sm_class(chaindb, attestation_pool),
             block_class=SerenityBeaconBlock,
             parent_block=block,
             keymap=keymap,
@@ -82,7 +82,7 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
         )
 
         # Get state machine instance
-        sm = fixture_sm_class(chaindb, attestation_pool, blocks[-1].slot)
+        sm = fixture_sm_class(chaindb, attestation_pool)
         state, _ = sm.import_block(block, state)
 
         chaindb.persist_state(state)
@@ -95,7 +95,7 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
         attestations = create_mock_signed_attestations_at_slot(
             state=state,
             config=config,
-            state_machine=fixture_sm_class(chaindb, attestation_pool, block.slot),
+            state_machine=fixture_sm_class(chaindb, attestation_pool),
             attestation_slot=attestation_slot,
             beacon_block_root=block.signing_root,
             keymap=keymap,

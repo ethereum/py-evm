@@ -8,7 +8,7 @@ from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import FromBlockParams, Slot
+from eth2.beacon.typing import FromBlockParams
 from eth2.configs import Eth2Config  # noqa: F401
 
 from .state_transitions import BaseStateTransition
@@ -19,20 +19,13 @@ class BaseBeaconStateMachine(Configurable, ABC):
     chaindb = None  # type: BaseBeaconChainDB
     config = None  # type: Eth2Config
 
-    slot = None  # type: Slot
-    _state = None  # type: BeaconState
-
     block_class = None  # type: Type[BaseBeaconBlock]
     state_class = None  # type: Type[BeaconState]
     state_transition_class = None  # type: Type[BaseStateTransition]
 
     @abstractmethod
     def __init__(
-        self,
-        chaindb: BaseBeaconChainDB,
-        attestation_pool: AttestationPool,
-        slot: Slot,
-        state: BeaconState = None,
+        self, chaindb: BaseBeaconChainDB, attestation_pool: AttestationPool
     ) -> None:
         ...
 
@@ -82,18 +75,10 @@ class BaseBeaconStateMachine(Configurable, ABC):
 
 class BeaconStateMachine(BaseBeaconStateMachine):
     def __init__(
-        self,
-        chaindb: BaseBeaconChainDB,
-        attestation_pool: AttestationPool,
-        slot: Slot,
-        state: BeaconState = None,
+        self, chaindb: BaseBeaconChainDB, attestation_pool: AttestationPool
     ) -> None:
         self.chaindb = chaindb
         self.attestation_pool = attestation_pool
-        if state is not None:
-            self._state = state
-        else:
-            self.slot = slot
 
     @classmethod
     def get_block_class(cls) -> Type[BaseBeaconBlock]:
