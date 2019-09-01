@@ -315,8 +315,8 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
             self.logger.debug(
                 "Received %s from %s with request id %d as response to %s",
                 response,
-                outgoing_message,
                 encode_hex(receiver_node_id),
                 message.request_id,
+                outgoing_message,
             )
             return response
