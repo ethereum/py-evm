@@ -26,13 +26,29 @@ Use the ``--sync-mode=light`` flag to instruct Trinity to run as a light node.
 Ropsten vs Mainnet
 ------------------
 
-Trinity currently only supports running against either the Ethereum Mainnet or
-Ropsten testnet.  Use ``--ropsten`` to run against Ropsten.
+Trinity supports running against either the Ethereum Mainnet or
+Ropsten testnet out of the box.  Use ``--ropsten`` to run against Ropsten.
 
 
 .. code:: sh
 
   trinity --ropsten
+
+
+.. _cookbook_recipe_running_a_custom_network:
+
+
+Running a custom network
+------------------------
+
+Trinity can run custom networks via configuration file per
+`EIP-1085 <https://github.com/ethereum/EIPs/issues/1085>`_.
+
+.. code:: sh
+
+  trinity --genesis <PATH-TO-EIP-1085-CONFIG> --data-dir <PATH-TO-DATA-DIR> --network-id <NETWORK-ID>
+
+For a more detailed writeup, checkout the guide about :doc:`Creating a custom testnet</guides/creating_a_custom_testnet>`
 
 
 .. _cookbook_recipe_connecting_to_preferred_nodes:

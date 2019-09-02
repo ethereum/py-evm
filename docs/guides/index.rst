@@ -9,4 +9,5 @@ This section aims to provide hands-on guides to demonstrate how to use Trinity. 
 
    quickstart
    architecture
+   creating_a_custom_testnet
    writing_plugins
