@@ -77,7 +77,7 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
 
         key_pair: KeyPair
         if self.boot_info.args.beacon_nodekey:
-            privkey = Secp256k1PrivateKey(bytes.fromhex(self.boot_info.args.beacon_nodekey))
+            privkey = Secp256k1PrivateKey.new(bytes.fromhex(self.boot_info.args.beacon_nodekey))
             key_pair = KeyPair(private_key=privkey, public_key=privkey.get_public_key())
         else:
             key_pair = create_new_key_pair()
