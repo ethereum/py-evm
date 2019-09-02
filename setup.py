@@ -125,7 +125,7 @@ def to_package_name(dependency):
     """
     Turn a dependency (e.g. "blspy>=0.1.8,<1") into the package name (e.g. "blspy")
     """
-    return re.sub("[!=<>](.|)+", "", dependency)
+    return re.sub(r"[!=<>](.|)+", "", dependency)
 
 
 def filter_dependencies(package_list, *package_name):
