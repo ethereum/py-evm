@@ -1,10 +1,14 @@
+import logging
 from typing import (
     Callable,
 )
 
 import ssz
 
-from eth_utils import ValidationError
+from eth_utils import (
+    ValidationError,
+    encode_hex,
+)
 
 from eth.exceptions import BlockNotFound
 
@@ -19,12 +23,24 @@ from eth2.beacon.state_machines.forks.serenity.block_validation import validate_
 from libp2p.peer.id import ID
 from libp2p.pubsub.pb import rpc_pb2
 
+from trinity._utils.shellart import bold_red
+from trinity.protocol.bcc_libp2p.configs import SSZ_MAX_LIST_SIZE
+
+logger = logging.getLogger('trinity.plugins.eth2.beacon.TopicValidator')
+
 
 def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
     def beacon_block_validator(msg_forwarder: ID, msg: rpc_pb2.Message) -> bool:
         try:
             block = ssz.decode(msg.data, BaseBeaconBlock)
-        except (TypeError, ssz.DeserializationError):
+        except (TypeError, ssz.DeserializationError) as error:
+            logger.debug(
+                bold_red(
+                    "Failed to validate block=%s, error=%s",
+                    encode_hex(block.signing_root),
+                    str(error),
+                )
+            )
             return False
 
         state_machine = chain.get_state_machine()
@@ -50,7 +66,14 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
         )
         try:
             process_block_header(state, block, config, True)
-        except ValidationError or SignatureError:
+        except (ValidationError, SignatureError) as error:
+            logger.debug(
+                bold_red(
+                    "Failed to validate block=%s, error=%s",
+                    encode_hex(block.signing_root),
+                    str(error),
+                )
+            )
             return False
         else:
             return True
@@ -60,9 +83,19 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
 def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
     def beacon_attestation_validator(msg_forwarder: ID, msg: rpc_pb2.Message) -> bool:
         try:
-            attestations = ssz.decode(msg.data, sedes=ssz.sedes.CountableList(Attestation))
-        except (TypeError, ssz.DeserializationError):
+            attestations = ssz.decode(
+                msg.data,
+                sedes=ssz.sedes.List(Attestation, SSZ_MAX_LIST_SIZE),
+            )
+        except (TypeError, ssz.DeserializationError) as error:
             # Not correctly encoded
+            logger.debug(
+                bold_red(
+                    "Failed to validate attestations=%s, error=%s",
+                    attestations,
+                    str(error),
+                )
+            )
             return False
 
         state_machine = chain.get_state_machine()
@@ -79,6 +112,17 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
             try:
                 chain.get_block_by_root(block_root)
             except BlockNotFound:
+                error_msg = (
+                    "attested block=%s is not validated yet",
+                    encode_hex(block_root),
+                )
+                logger.debug(
+                    bold_red(
+                        "Failed to validate attestations=%s, error=%s",
+                        attestations,
+                        error_msg,
+                    )
+                )
                 return False
 
         for attestation in attestations:
@@ -94,7 +138,14 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
                     attestation,
                     config,
                 )
-            except ValidationError:
+            except ValidationError as error:
+                logger.debug(
+                    bold_red(
+                        "Failed to validate attestation=%s, error=%s",
+                        attestation,
+                        str(error),
+                    )
+                )
                 return False
         return True
     return beacon_attestation_validator
