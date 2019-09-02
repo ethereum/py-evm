@@ -58,7 +58,6 @@ BASE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     JsonRpcServerPlugin,
     NetworkDBPlugin,
     PeerDiscoveryPlugin,
-    RequestServerPlugin,
     UpnpPlugin,
 )
 
@@ -75,6 +74,7 @@ ETH1_NODE_PLUGINS: Tuple[Type[BasePlugin], ...] = (
     BeamChainPreviewPlugin2,
     BeamChainPreviewPlugin3,
     EthstatsPlugin,
+    RequestServerPlugin,
     SyncerPlugin,
     TxPlugin,
 )

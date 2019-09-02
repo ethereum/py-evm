@@ -4,7 +4,6 @@ from argparse import (
 )
 import asyncio
 from typing import (
-    Tuple,
     cast,
 )
 
@@ -15,9 +14,6 @@ from libp2p.crypto.keys import KeyPair
 from libp2p.crypto.secp256k1 import create_new_key_pair, Secp256k1PrivateKey
 
 from eth2.beacon.operations.attestation_pool import AttestationPool
-from eth2.beacon.types.attestations import (
-    Attestation,
-)
 from eth2.beacon.typing import (
     ValidatorIndex,
 )

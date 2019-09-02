@@ -13,7 +13,6 @@ from p2p.service import (
 )
 
 from trinity.config import (
-    BeaconAppConfig,
     Eth1AppConfig,
     Eth1DbMode,
 )
@@ -23,11 +22,9 @@ from trinity.constants import (
 from trinity.db.manager import DBClient
 from trinity.db.eth1.chain import AsyncChainDB
 from trinity.db.eth1.header import AsyncHeaderDB
-from trinity.db.beacon.chain import AsyncBeaconChainDB
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
 )
-from trinity.protocol.bcc.servers import BCCRequestServer
 from trinity.protocol.eth.servers import ETHRequestServer
 from trinity.protocol.les.servers import LightRequestServer
 from trinity._utils.shutdown import exit_with_services
@@ -61,13 +58,8 @@ class RequestServerPlugin(AsyncioIsolatedPlugin):
                 trinity_config.get_app_config(Eth1AppConfig),
                 base_db,
             )
-        elif trinity_config.has_app_config(BeaconAppConfig):
-            server = self.make_beacon_request_server(
-                trinity_config.get_app_config(BeaconAppConfig),
-                base_db,
-            )
         else:
-            raise Exception("Trinity config must have either eth1 or beacon chain config")
+            raise Exception("Trinity config must have eth1 config")
 
         asyncio.ensure_future(exit_with_services(server, self._event_bus_service))
         asyncio.ensure_future(server.run())
@@ -94,13 +86,3 @@ class RequestServerPlugin(AsyncioIsolatedPlugin):
             raise Exception(f"Unsupported Database Mode: {app_config.database_mode}")
 
         return server
-
-    def make_beacon_request_server(self,
-                                   app_config: BeaconAppConfig,
-                                   base_db: BaseAtomicDB) -> BaseService:
-
-        return BCCRequestServer(
-            self.event_bus,
-            TO_NETWORKING_BROADCAST_CONFIG,
-            AsyncBeaconChainDB(base_db, app_config.get_chain_config().genesis_config),
-        )
