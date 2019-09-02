@@ -4,8 +4,8 @@ from rlp.sedes import (
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.vm.forks.constantinople.blocks import (
-    ConstantinopleBlock,
+from eth.vm.forks.petersburg.blocks import (
+    PetersburgBlock,
 )
 
 from .transactions import (
@@ -13,7 +13,7 @@ from .transactions import (
 )
 
 
-class IstanbulBlock(ConstantinopleBlock):
+class IstanbulBlock(PetersburgBlock):
     transaction_class = IstanbulTransaction
     fields = [
         ('header', BlockHeader),

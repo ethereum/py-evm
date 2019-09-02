@@ -6,11 +6,15 @@ from eth import precompiles
 from eth._utils.address import (
     force_bytes_to_address,
 )
-from eth.vm.forks.constantinople.computation import (
-    CONSTANTINOPLE_PRECOMPILES
+from eth.vm.forks.petersburg.computation import (
+    PETERSBURG_PRECOMPILES
 )
-from eth.vm.forks.constantinople.computation import (
-    ConstantinopleComputation
+from eth.vm.forks.petersburg.computation import (
+    PetersburgComputation,
+)
+from eth.vm.gas_meter import (
+    allow_negative_refund_strategy,
+    GasMeter,
 )
 
 from .constants import (
@@ -22,7 +26,7 @@ from .constants import (
 from .opcodes import ISTANBUL_OPCODES
 
 ISTANBUL_PRECOMPILES = merge(
-    CONSTANTINOPLE_PRECOMPILES,
+    PETERSBURG_PRECOMPILES,
     {
         force_bytes_to_address(b'\x06'): precompiles.ecadd(gas_cost=GAS_ECADD),
         force_bytes_to_address(b'\x07'): precompiles.ecmul(gas_cost=GAS_ECMUL),
@@ -35,11 +39,17 @@ ISTANBUL_PRECOMPILES = merge(
 )
 
 
-class IstanbulComputation(ConstantinopleComputation):
+class IstanbulComputation(PetersburgComputation):
     """
     A class for all execution computations in the ``Istanbul`` fork.
-    Inherits from :class:`~eth.vm.forks.constantinople.computation.ConstantinopleComputation`
+    Inherits from :class:`~eth.vm.forks.constantinople.petersburg.PetersburgComputation`
     """
     # Override
     opcodes = ISTANBUL_OPCODES
     _precompiles = ISTANBUL_PRECOMPILES
+
+    def get_gas_meter(self) -> GasMeter:
+        return GasMeter(
+            self.msg.gas,
+            allow_negative_refund_strategy
+        )

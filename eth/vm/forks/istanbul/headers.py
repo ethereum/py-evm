@@ -1,4 +1,4 @@
-from eth.vm.forks.constantinople.headers import (
+from eth.vm.forks.petersburg.headers import (
     configure_header,
     create_header_from_parent,
     compute_difficulty,

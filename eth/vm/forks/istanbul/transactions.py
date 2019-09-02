@@ -3,9 +3,9 @@ from functools import partial
 from eth_keys.datatypes import PrivateKey
 from eth_typing import Address
 
-from eth.vm.forks.constantinople.transactions import (
-    ConstantinopleTransaction,
-    ConstantinopleUnsignedTransaction,
+from eth.vm.forks.petersburg.transactions import (
+    PetersburgTransaction,
+    PetersburgUnsignedTransaction,
 )
 
 from eth._utils.transactions import (
@@ -28,7 +28,7 @@ ISTANBUL_TX_GAS_SCHEDULE = HOMESTEAD_TX_GAS_SCHEDULE._replace(
 istanbul_get_intrinsic_gas = partial(calculate_intrinsic_gas, ISTANBUL_TX_GAS_SCHEDULE)
 
 
-class IstanbulTransaction(ConstantinopleTransaction):
+class IstanbulTransaction(PetersburgTransaction):
     @classmethod
     def create_unsigned_transaction(cls,
                                     *,
@@ -44,7 +44,7 @@ class IstanbulTransaction(ConstantinopleTransaction):
         return istanbul_get_intrinsic_gas(self)
 
 
-class IstanbulUnsignedTransaction(ConstantinopleUnsignedTransaction):
+class IstanbulUnsignedTransaction(PetersburgUnsignedTransaction):
     def as_signed_transaction(self,
                               private_key: PrivateKey,
                               chain_id: int=None) -> IstanbulTransaction:
