@@ -484,10 +484,13 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                     subscribers, longest_queue.__class__.__name__, longest_queue.queue_size)
 
             self.logger.debug("== Peer details == ")
-            for peer in self.connected_nodes.values():
+            # make a copy, because we might edit the original during iteration
+            peers = tuple(self.connected_nodes.values())
+            for peer in peers:
                 if not peer.is_running:
                     self.logger.warning(
-                        "%s is no longer alive but has not been removed from pool", peer)
+                        "%s is no longer alive but had not been removed from pool", peer)
+                    self._peer_finished(peer)
                     continue
                 self.logger.debug(
                     "%s: uptime=%s, received_msgs=%d",
