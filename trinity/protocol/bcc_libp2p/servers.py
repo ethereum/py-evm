@@ -61,7 +61,7 @@ if TYPE_CHECKING:
 PROCESS_ORPHAN_BLOCKS_PERIOD = 10.0
 
 
-class AttestationPool(OperationPool):
+class AttestationPool(OperationPool[Attestation]):
     """
     Store the attestations not yet included on chain.
     """
@@ -334,9 +334,8 @@ class BCCReceiveServer(BaseService):
 
     @to_tuple
     def get_ready_attestations(self) -> Iterable[Attestation]:
-        state_machine = self.chain.get_state_machine()
-        config = state_machine.config
-        state = state_machine.state
+        config = self.chain.get_state_machine().config
+        state = self.chain.get_head_state()
         for attestation in self.attestation_pool.get_all():
             data = attestation.data
             attestation_slot = get_attestation_data_slot(state, data, config)

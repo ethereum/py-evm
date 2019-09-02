@@ -588,10 +588,11 @@ class Node(BaseService):
                     yield block
 
     def _validate_start_slot(self, start_slot: Slot) -> None:
-        state_machine = self.chain.get_state_machine()
+        config = self.chain.get_state_machine().config
+        state = self.chain.get_head_state()
         finalized_epoch_start_slot = compute_start_slot_of_epoch(
-            epoch=state_machine.state.finalized_checkpoint.epoch,
-            slots_per_epoch=state_machine.config.SLOTS_PER_EPOCH,
+            epoch=state.finalized_checkpoint.epoch,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
         )
         if start_slot < finalized_epoch_start_slot:
             raise ValidationError(

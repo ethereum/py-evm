@@ -383,19 +383,23 @@ async def test_bcc_receive_server_handle_orphan_block_loop(
 
 
 @pytest.mark.asyncio
-async def test_bcc_receive_server_get_ready_attestations(receive_server, mocker):
+async def test_bcc_receive_server_get_ready_attestations(receive_server, monkeypatch):
     class MockState:
         slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
 
     state = MockState()
 
+    def mock_get_head_state():
+        return state
+
     def mock_get_attestation_data_slot(state, data, config):
         return data.slot
 
-    mocker.patch("eth2.beacon.state_machines.base.BeaconStateMachine.state", state)
-    mocker.patch(
-        "trinity.protocol.bcc_libp2p.servers.get_attestation_data_slot",
-        mock_get_attestation_data_slot,
+    monkeypatch.setattr(receive_server.chain, "get_head_state", mock_get_head_state)
+    from trinity.protocol.bcc_libp2p import servers
+
+    monkeypatch.setattr(
+        servers, "get_attestation_data_slot", mock_get_attestation_data_slot
     )
     attesting_slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
     a1 = Attestation(data=AttestationData())

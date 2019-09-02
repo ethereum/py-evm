@@ -34,18 +34,17 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
             block = ssz.decode(msg.data, BaseBeaconBlock)
         except (TypeError, ssz.DeserializationError) as error:
             logger.debug(
-                bold_red(
-                    "Failed to validate block=%s, error=%s",
-                    encode_hex(block.signing_root),
-                    str(error),
-                )
+                bold_red("Failed to validate block=%s, error=%s"),
+                encode_hex(block.signing_root),
+                str(error),
             )
             return False
 
         state_machine = chain.get_state_machine()
         config = state_machine.config
         slots_per_epoch = config.SLOTS_PER_EPOCH
-        head_slot = chain.chaindb.get_head_state_slot()
+        state = chain.get_head_state()
+        head_slot = state.slot
         current_epoch = compute_epoch_of_slot(head_slot, slots_per_epoch)
         block_epoch = compute_epoch_of_slot(block.slot, slots_per_epoch)
         if block_epoch > current_epoch:
@@ -54,8 +53,8 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
             return False
         elif block_epoch < current_epoch:
             state_machine = chain.get_state_machine(block.slot)
+            state = chain.get_state_by_slot(block.slot)
 
-        state = state_machine.state
         state_transition = state_machine.state_transition
         # Fast forward to state in future slot in order to pass
         # block.slot validity check
@@ -67,11 +66,9 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
             process_block_header(state, block, config, True)
         except (ValidationError, SignatureError) as error:
             logger.debug(
-                bold_red(
-                    "Failed to validate block=%s, error=%s",
-                    encode_hex(block.signing_root),
-                    str(error),
-                )
+                bold_red("Failed to validate block=%s, error=%s"),
+                encode_hex(block.signing_root),
+                str(error),
             )
             return False
         else:
@@ -86,11 +83,9 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
         except (TypeError, ssz.DeserializationError) as error:
             # Not correctly encoded
             logger.debug(
-                bold_red(
-                    "Failed to validate attestation=%s, error=%s",
-                    attestation,
-                    str(error),
-                )
+                bold_red("Failed to validate attestation=%s, error=%s"),
+                attestation,
+                str(error),
             )
             return False
 
@@ -102,16 +97,12 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
         try:
             chain.get_block_by_root(attestation.data.beacon_block_root)
         except BlockNotFound:
-            error_msg = (
-                "attested block=%s is not validated yet",
-                encode_hex(attestation.data.beacon_block_root),
-            )
             logger.debug(
                 bold_red(
-                    "Failed to validate attestations=%s, error=%s",
-                    attestation,
-                    error_msg,
-                )
+                    "Failed to validate attestation=%s, attested block=%s is not validated yet"
+                ),
+                attestation,
+                encode_hex(attestation.data.beacon_block_root),
             )
             return False
 
@@ -129,11 +120,11 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
             )
         except ValidationError as error:
             logger.debug(
-                bold_red(
-                    "Failed to validate attestation=%s, error=%s",
-                    attestation,
-                    str(error),
-                )
+                bold_red("Failed to validate attestation=%s, error=%s"),
+                attestation,
+                str(error),
             )
             return False
+
+        return True
     return beacon_attestation_validator
