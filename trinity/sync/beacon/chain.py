@@ -1,72 +1,57 @@
 import asyncio
 import itertools
 import operator
-from typing import (
-    cast,
-    Tuple,
-    Iterable,
-    AsyncGenerator,
-)
+from typing import cast, Tuple, Iterable, AsyncGenerator
 
-from eth_utils import (
-    ValidationError,
-)
-from eth_utils.toolz import (
-    first,
-)
+from eth_utils import ValidationError
+from eth_utils.toolz import first
 
-from cancel_token import (
-    CancelToken,
-)
+from cancel_token import CancelToken
 
-from p2p.service import (
-    BaseService,
-)
+from p2p.service import BaseService
 
-from eth2.beacon.types.blocks import (
-    BaseBeaconBlock,
-    BeaconBlock,
-)
+from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock
 from eth2.beacon.db.exceptions import FinalizedHeadNotFound
-from eth2.beacon.typing import (
-    Slot,
-)
+from eth2.beacon.typing import Slot
+from eth_typing import Hash32
 
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
-from trinity.protocol.bcc.peer import (
-    BCCPeer,
-    BCCPeerPool,
-)
+from trinity.protocol.bcc.peer import BCCPeer, BCCPeerPool
 from trinity.sync.beacon.constants import (
     MAX_BLOCKS_PER_REQUEST,
     PEER_SELECTION_RETRY_INTERVAL,
     PEER_SELECTION_MAX_RETRIES,
 )
-from trinity.sync.common.chain import (
-    SyncBlockImporter,
-)
-from eth2.configs import (
-    Eth2GenesisConfig,
-)
+from trinity.sync.common.chain import SyncBlockImporter
+from eth2.configs import Eth2GenesisConfig
+
+from trinity.protocol.bcc_libp2p.node import PeerPool
 
 
 class BeaconChainSyncer(BaseService):
     """Sync from our finalized head until their preliminary head."""
 
-    def __init__(self,
-                 chain_db: BaseAsyncBeaconChainDB,
-                 peer_pool: BCCPeerPool,
-                 block_importer: SyncBlockImporter,
-                 genesis_config: Eth2GenesisConfig,
-                 token: CancelToken = None) -> None:
+    chain_db: BaseAsyncBeaconChainDB
+    peer_pool: PeerPool
+    block_importer: SyncBlockImporter
+    genesis_config: Eth2GenesisConfig
+    sync_peer: BCCPeer
+
+    def __init__(
+        self,
+        chain_db: BaseAsyncBeaconChainDB,
+        peer_pool: PeerPool,
+        block_importer: SyncBlockImporter,
+        genesis_config: Eth2GenesisConfig,
+        token: CancelToken = None,
+    ) -> None:
         super().__init__(token)
 
         self.chain_db = chain_db
         self.peer_pool = peer_pool
         self.block_importer = block_importer
         self.genesis_config = genesis_config
-
-        self.sync_peer: BCCPeer = None
+        self.sync_peer = None
 
     @property
     def is_sync_peer_selected(self) -> bool:
@@ -108,10 +93,7 @@ class BeaconChainSyncer(BaseService):
         if len(self.peer_pool) == 0:
             raise ValidationError("Not connected to anyone")
 
-        # choose the peer with the highest head slot
-        peers = cast(Iterable[BCCPeer], self.peer_pool.connected_nodes.values())
-        sorted_peers = sorted(peers, key=operator.attrgetter("head_slot"), reverse=True)
-        best_peer = first(sorted_peers)
+        best_peer = self.peer_pool.get_best_head_slot_peer()
 
         try:
             finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
@@ -125,22 +107,18 @@ class BeaconChainSyncer(BaseService):
         return best_peer
 
     async def sync(self) -> None:
-        try:
-            finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
-            finalized_slot = finalized_head.slot
-        # TODO(ralexstokes) look at better way to handle once we have fork choice in place
-        except FinalizedHeadNotFound:
-            finalized_slot = self.genesis_config.GENESIS_SLOT
+
+        head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
 
         self.logger.info(
-            "Syncing with %s (their head slot: %d, our finalized slot: %d)",
+            "Syncing with %s (their head slot: %d, our head slot: %d)",
             self.sync_peer,
             self.sync_peer.head_slot,
-            finalized_slot,
+            head.slot,
         )
+        self.logger.info("My head is %s", head.hash_tree_root)
 
-        start_slot = finalized_slot + 1
-        batches = self.request_batches(start_slot)
+        batches = self.request_batches(head.slot, head.hash_tree_root)
 
         last_block = None
         async for batch in batches:
@@ -158,7 +136,9 @@ class BeaconChainSyncer(BaseService):
             for block in batch:
                 # Copied from `RegularChainBodySyncer._import_blocks`
                 try:
-                    _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(block)  # noqa: E501
+                    _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(
+                        block
+                    )  # noqa: E501
 
                     if new_canonical_blocks == (block,):
                         # simple import of a single new block.
@@ -177,23 +157,22 @@ class BeaconChainSyncer(BaseService):
                     else:
                         raise Exception("Invariant: unreachable code path")
                 except ValidationError as error:
-                        self.logger.info(f"Received invalid block from {self.sync_peer}: {error}")
-                        break
+                    self.logger.info(
+                        f"Received invalid block from {self.sync_peer}: {error}"
+                    )
+                    break
 
-    async def request_batches(self,
-                              start_slot: Slot,
-                              ) -> AsyncGenerator[Tuple[BaseBeaconBlock, ...], None]:
+    async def request_batches(
+        self, start_slot: Slot, head_block_root: Hash32
+    ) -> AsyncGenerator[Tuple[BaseBeaconBlock, ...], None]:
         slot = start_slot
         while True:
             self.logger.debug(
-                "Requesting blocks from %s starting at #%d",
-                self.sync_peer,
-                slot,
+                "Requesting blocks from %s starting at #%d", self.sync_peer, slot
             )
 
-            batch = await self.sync_peer.requests.get_beacon_blocks(
-                slot,
-                MAX_BLOCKS_PER_REQUEST,
+            batch = await self.sync_peer.get_beacon_blocks(
+                slot, head_block_root, MAX_BLOCKS_PER_REQUEST
             )
 
             if len(batch) == 0:
@@ -207,17 +186,11 @@ class BeaconChainSyncer(BaseService):
         parent_root = batch[0].parent_root
         parent_slot = batch[0].slot - 1
 
-        if parent_slot < 0:
-            raise Exception(
-                "Invariant: Syncing starts with the child of a finalized block, so never with the "
-                "genesis block"
+        if parent_slot >=0:
+            canonical_parent = await self.chain_db.coro_get_canonical_block_by_slot(
+                parent_slot, BeaconBlock
             )
-
-        canonical_parent = await self.chain_db.coro_get_canonical_block_by_slot(
-            parent_slot,
-            BeaconBlock,
-        )
-        if canonical_parent.signing_root != parent_root:
-            message = f"Peer has different block finalized at slot #{parent_slot}"
-            self.logger.info(message)
-            raise ValidationError(message)
+            if canonical_parent.signing_root != parent_root:
+                message = f"Peer has different block finalized at slot #{parent_slot}"
+                self.logger.info(message)
+                raise ValidationError(message)

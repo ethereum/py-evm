@@ -13,6 +13,9 @@ from eth2.beacon.state_machines.forks.xiao_long_bao.configs import XIAO_LONG_BAO
 from eth2.beacon.tools.builder.initializer import create_mock_genesis
 from eth2.beacon.typing import Timestamp
 from eth2.configs import Eth2GenesisConfig
+from trinity.tools.factories import AtomicDBFactory
+
+from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 
 NUM_VALIDATORS = 8
 
@@ -45,7 +48,7 @@ class BeaconChainFactory(factory.Factory):
     def _create(
         cls, model_class: Type[TestnetChain], *args: Any, **kwargs: Any
     ) -> BaseBeaconChain:
-        return model_class.from_genesis(
+        chain = model_class.from_genesis(
             base_db=AtomicDB(),
             genesis_state=genesis_state,
             genesis_block=genesis_block,
@@ -53,3 +56,13 @@ class BeaconChainFactory(factory.Factory):
                 model_class.get_genesis_state_machine_class().config
             ),
         )
+        best_slot = kwargs.pop("best_slot", None)
+        if best_slot is not None:
+            from trinity.tools.bcc_factories import BeaconBlockFactory
+
+            blocks = BeaconBlockFactory.create_branch(best_slot, root=genesis_block)
+            chain.chaindb.persist_block_chain(
+                blocks, SerenityBeaconBlock, (higher_slot_scoring,) * len(blocks)
+            )
+
+        return chain
