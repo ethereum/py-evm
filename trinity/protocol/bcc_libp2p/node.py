@@ -259,7 +259,7 @@ class Node(BaseService):
         await self.dial_peer(ip=ip, port=port, peer_id=peer_id)
 
     async def connect_preferred_nodes(self) -> None:
-        if self.preferred_nodes is None:
+        if self.preferred_nodes is None or len(self.preferred_nodes) == 0:
             return
         await asyncio.wait([
             self.dial_peer_maddr(node_maddr)
