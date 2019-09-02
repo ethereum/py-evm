@@ -24,7 +24,6 @@ from libp2p.peer.id import ID
 from libp2p.pubsub.pb import rpc_pb2
 
 from trinity._utils.shellart import bold_red
-from trinity.protocol.bcc_libp2p.configs import SSZ_MAX_LIST_SIZE
 
 logger = logging.getLogger('trinity.plugins.eth2.beacon.TopicValidator')
 
@@ -83,16 +82,13 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
 def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
     def beacon_attestation_validator(msg_forwarder: ID, msg: rpc_pb2.Message) -> bool:
         try:
-            attestations = ssz.decode(
-                msg.data,
-                sedes=ssz.sedes.List(Attestation, SSZ_MAX_LIST_SIZE),
-            )
+            attestation = ssz.decode(msg.data, sedes=Attestation)
         except (TypeError, ssz.DeserializationError) as error:
             # Not correctly encoded
             logger.debug(
                 bold_red(
-                    "Failed to validate attestations=%s, error=%s",
-                    attestations,
+                    "Failed to validate attestation=%s, error=%s",
+                    attestation,
                     str(error),
                 )
             )
@@ -101,51 +97,43 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
         state_machine = chain.get_state_machine()
         config = state_machine.config
         state = state_machine.state
-        attesting_block_roots = set(
-            [
-                attestation.data.beacon_block_root
-                for attestation in attestations
-            ]
-        )
-        # Check that beacon blocks attested to by the attestations are validated
-        for block_root in attesting_block_roots:
-            try:
-                chain.get_block_by_root(block_root)
-            except BlockNotFound:
-                error_msg = (
-                    "attested block=%s is not validated yet",
-                    encode_hex(block_root),
-                )
-                logger.debug(
-                    bold_red(
-                        "Failed to validate attestations=%s, error=%s",
-                        attestations,
-                        error_msg,
-                    )
-                )
-                return False
 
-        for attestation in attestations:
-            # Fast forward to state in future slot in order to pass
-            # attestation.data.slot validity check
-            future_state = state_machine.state_transition.apply_state_transition(
-                state,
-                future_slot=attestation.data.slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
+        # Check that beacon blocks attested to by the attestation are validated
+        try:
+            chain.get_block_by_root(attestation.data.beacon_block_root)
+        except BlockNotFound:
+            error_msg = (
+                "attested block=%s is not validated yet",
+                encode_hex(attestation.data.beacon_block_root),
             )
-            try:
-                validate_attestation(
-                    future_state,
+            logger.debug(
+                bold_red(
+                    "Failed to validate attestations=%s, error=%s",
                     attestation,
-                    config,
+                    error_msg,
                 )
-            except ValidationError as error:
-                logger.debug(
-                    bold_red(
-                        "Failed to validate attestation=%s, error=%s",
-                        attestation,
-                        str(error),
-                    )
+            )
+            return False
+
+        # Fast forward to state in future slot in order to pass
+        # attestation.data.slot validity check
+        future_state = state_machine.state_transition.apply_state_transition(
+            state,
+            future_slot=attestation.data.slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
+        )
+        try:
+            validate_attestation(
+                future_state,
+                attestation,
+                config,
+            )
+        except ValidationError as error:
+            logger.debug(
+                bold_red(
+                    "Failed to validate attestation=%s, error=%s",
+                    attestation,
+                    str(error),
                 )
-                return False
-        return True
+            )
+            return False
     return beacon_attestation_validator

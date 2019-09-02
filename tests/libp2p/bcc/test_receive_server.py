@@ -23,7 +23,6 @@ from trinity.db.beacon.chain import AsyncBeaconChainDB
 from trinity.protocol.bcc_libp2p.configs import (
     PUBSUB_TOPIC_BEACON_ATTESTATION,
     PUBSUB_TOPIC_BEACON_BLOCK,
-    SSZ_MAX_LIST_SIZE,
 )
 from trinity.protocol.bcc_libp2p.servers import AttestationPool, OrphanBlockPool
 from trinity.tools.bcc_factories import ReceiveServerFactory
@@ -280,13 +279,11 @@ async def test_bcc_receive_server_handle_beacon_blocks(receive_server):
 @pytest.mark.asyncio
 async def test_bcc_receive_server_handle_beacon_attestations(receive_server):
     attestation = Attestation()
-    encoded_attestations = ssz.encode(
-        [attestation], sedes=ssz.List(Attestation, SSZ_MAX_LIST_SIZE)
-    )
+    encoded_attestation = ssz.encode(attestation)
     msg = rpc_pb2.Message(
         from_id=b"my_id",
         seqno=b"\x00" * 8,
-        data=encoded_attestations,
+        data=encoded_attestation,
         topicIDs=[PUBSUB_TOPIC_BEACON_ATTESTATION],
     )
 

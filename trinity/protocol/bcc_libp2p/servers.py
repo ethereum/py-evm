@@ -52,7 +52,6 @@ from trinity.protocol.bcc_libp2p.node import Node
 from .configs import (
     PUBSUB_TOPIC_BEACON_BLOCK,
     PUBSUB_TOPIC_BEACON_ATTESTATION,
-    SSZ_MAX_LIST_SIZE,
 )
 
 if TYPE_CHECKING:
@@ -235,22 +234,15 @@ class BCCReceiveServer(BaseService):
                         self._process_received_block(block)
 
     async def _handle_beacon_attestations(self, msg: rpc_pb2.Message) -> None:
-        attestations = ssz.decode(msg.data, sedes=ssz.List(Attestation, SSZ_MAX_LIST_SIZE))
+        attestation = ssz.decode(msg.data, sedes=Attestation)
 
-        self.logger.debug("Received attestations=%s", attestations)
+        self.logger.debug("Received attestation=%s", attestation)
 
-        # Check if attestations has been seen already.
-        # Filter out those seen already.
-        new_attestations = tuple(
-            filter(
-                self._is_attestation_new,
-                attestations,
-            )
-        )
-        if len(new_attestations) == 0:
+        # Check if attestation has been seen already.
+        if not self._is_attestation_new(attestation):
             return
-        # Add new attestations to attestation pool.
-        self.attestation_pool.batch_add(new_attestations)
+        # Add new attestation to attestation pool.
+        self.attestation_pool.add(attestation)
 
     async def _handle_beacon_block(self, msg: rpc_pb2.Message) -> None:
         block = ssz.decode(msg.data, BeaconBlock)
