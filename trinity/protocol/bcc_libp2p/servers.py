@@ -106,7 +106,7 @@ class AttestationPool(OperationPool):
 
 class OrphanBlockPool:
     """
-    Stores the orphan blocks(the blocks who arrive before their parents).
+    Store the orphan blocks(the blocks who arrive before their parents).
     """
     # TODO: can probably use lru-cache or even database
     _pool: Set[BaseBeaconBlock]
@@ -229,7 +229,6 @@ class BCCReceiveServer(BaseService):
                         continue
                     else:
                         self._process_received_block(block)
-            await self.sleep(PROCESS_ORPHAN_BLOCKS_PERIOD)
 
     async def _handle_beacon_attestations(self, msg: rpc_pb2.Message) -> None:
         attestations = ssz.decode(msg.data, sedes=ssz.List(Attestation, SSZ_MAX_LIST_SIZE))
@@ -270,7 +269,10 @@ class BCCReceiveServer(BaseService):
             return
         try:
             self.chain.import_block(block)
-            self.logger.debug("Successfully imported block=%s", block)
+            self.logger.info(
+                "Successfully imported block=%s",
+                encode_hex(block.signing_root),
+            )
         # If the block is invalid, we should drop it.
         except ValidationError as error:
             # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
@@ -302,12 +304,15 @@ class BCCReceiveServer(BaseService):
                 self.logger.debug(
                     "Blocks=%s match their parent block, parent_root=%s",
                     children,
-                    current_parent_root,
+                    encode_hex(current_parent_root),
                 )
             for block in children:
                 try:
                     self.chain.import_block(block)
-                    self.logger.debug("Successfully imported block=%s", block)
+                    self.logger.info(
+                        "Successfully imported block=%s",
+                        encode_hex(block.signing_root),
+                    )
                     imported_roots.append(block.signing_root)
                 except ValidationError as error:
                     # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
