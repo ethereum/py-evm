@@ -1,9 +1,9 @@
-from eth.vm.forks.constantinople.state import (
-    ConstantinopleState
+from eth.vm.forks.petersburg.state import (
+    PetersburgState
 )
 
 from .computation import IstanbulComputation
 
 
-class IstanbulState(ConstantinopleState):
+class IstanbulState(PetersburgState):
     computation_class = IstanbulComputation

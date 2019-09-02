@@ -10,8 +10,8 @@ from eth.vm import (
 from eth.vm.forks.byzantium.opcodes import (
     ensure_no_static
 )
-from eth.vm.forks.constantinople.opcodes import (
-    CONSTANTINOPLE_OPCODES,
+from eth.vm.forks.petersburg.opcodes import (
+    PETERSBURG_OPCODES,
 )
 from eth.vm.forks.istanbul.constants import (
     GAS_BALANCE_EIP1884,
@@ -65,6 +65,6 @@ UPDATED_OPCODES = {
 }
 
 ISTANBUL_OPCODES = merge(
-    copy.deepcopy(CONSTANTINOPLE_OPCODES),
+    copy.deepcopy(PETERSBURG_OPCODES),
     UPDATED_OPCODES,
 )
