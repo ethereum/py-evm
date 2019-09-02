@@ -35,6 +35,7 @@ from eth2.beacon.attestation_helpers import (
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
+from eth2.beacon.operations.pool import OperationPool
 from eth2.beacon.types.attestations import (
     Attestation,
 )
@@ -44,10 +45,6 @@ from eth2.beacon.types.blocks import (
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
-)
-
-from trinity.exceptions import (
-    AttestationNotFound,
 )
 
 from trinity.protocol.bcc_libp2p.node import Node
@@ -65,15 +62,14 @@ if TYPE_CHECKING:
 PROCESS_ORPHAN_BLOCKS_PERIOD = 10.0
 
 
-class AttestationPool:
+class AttestationPool(OperationPool):
     """
-    Stores the attestations not yet included on chain.
+    Store the attestations not yet included on chain.
     """
     # TODO: can probably use lru-cache or even database
-    _pool: Set[Attestation]
 
-    def __init__(self) -> None:
-        self._pool = set()
+    def __len__(self) -> int:
+        return len(self._pool_storage.keys())
 
     def __contains__(self, attestation_or_root: Union[Attestation, Hash32]) -> bool:
         attestation_root: Hash32
@@ -89,32 +85,23 @@ class AttestationPool:
         try:
             self.get(attestation_root)
             return True
-        except AttestationNotFound:
+        except KeyError:
             return False
 
-    def get(self, attestation_root: Hash32) -> Attestation:
-        for attestation in self._pool:
-            if attestation.hash_tree_root == attestation_root:
-                return attestation
-        raise AttestationNotFound(
-            f"No attestation with root {encode_hex(attestation_root)} is found.")
-
     def get_all(self) -> Tuple[Attestation, ...]:
-        return tuple(self._pool)
-
-    def add(self, attestation: Attestation) -> None:
-        if attestation not in self._pool:
-            self._pool.add(attestation)
+        return tuple(self._pool_storage.values())
 
     def batch_add(self, attestations: Iterable[Attestation]) -> None:
-        self._pool = self._pool.union(set(attestations))
+        for attestation in attestations:
+            self.add(attestation)
 
     def remove(self, attestation: Attestation) -> None:
-        if attestation in self._pool:
-            self._pool.remove(attestation)
+        if attestation.hash_tree_root in self._pool_storage:
+            del self._pool_storage[attestation.hash_tree_root]
 
     def batch_remove(self, attestations: Iterable[Attestation]) -> None:
-        self._pool.difference_update(attestations)
+        for attestation in attestations:
+            self.remove(attestation)
 
 
 class OrphanBlockPool:
@@ -272,10 +259,7 @@ class BCCReceiveServer(BaseService):
         """
         if attestation.hash_tree_root in self.attestation_pool:
             return False
-        try:
-            return not self.chain.attestation_exists(attestation.hash_tree_root)
-        except AttestationNotFound:
-            return True
+        return not self.chain.attestation_exists(attestation.hash_tree_root)
 
     def _process_received_block(self, block: BaseBeaconBlock) -> None:
         # If the block is an orphan, put it to the orphan pool

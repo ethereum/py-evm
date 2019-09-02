@@ -20,7 +20,6 @@ from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock
 from eth2.beacon.typing import FromBlockParams
 from eth2.configs import Eth2GenesisConfig
 from trinity.db.beacon.chain import AsyncBeaconChainDB
-from trinity.exceptions import AttestationNotFound
 from trinity.protocol.bcc_libp2p.configs import (
     PUBSUB_TOPIC_BEACON_ATTESTATION,
     PUBSUB_TOPIC_BEACON_BLOCK,
@@ -121,11 +120,11 @@ def test_attestation_pool():
 
     # test: add
     pool.add(a1)
-    assert a1 in pool._pool
-    assert len(pool._pool) == 1
+    assert a1.hash_tree_root in pool._pool_storage
+    assert len(pool) == 1
     # test: add: no side effect for adding twice
     pool.add(a1)
-    assert len(pool._pool) == 1
+    assert len(pool) == 1
     # test: `__contains__`
     assert a1.hash_tree_root in pool
     assert a1 in pool
@@ -133,9 +132,9 @@ def test_attestation_pool():
     assert a2 not in pool
     # test: batch_add: two attestations
     pool.batch_add([a1, a2])
-    assert len(pool._pool) == 2
+    assert len(pool) == 2
     # test: get
-    with pytest.raises(AttestationNotFound):
+    with pytest.raises(KeyError):
         pool.get(a3.hash_tree_root)
     assert pool.get(a1.hash_tree_root) == a1
     assert pool.get(a2.hash_tree_root) == a2
@@ -143,9 +142,9 @@ def test_attestation_pool():
     assert set([a1, a2]) == set(pool.get_all())
     # test: remove
     pool.remove(a3)
-    assert len(pool._pool) == 2
+    assert len(pool) == 2
     pool.batch_remove([a2, a1])
-    assert len(pool._pool) == 0
+    assert len(pool) == 0
 
 
 def test_orphan_block_pool():
