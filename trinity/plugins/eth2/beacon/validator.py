@@ -365,8 +365,11 @@ class Validator(BaseService):
             )
             for validator_index in attesting_validators_indices:
                 self.latest_attested_epoch[validator_index] = epoch
-            attestations = attestations + (attestation,)
 
-        self.logger.debug("Brodcasting attestations %s", attestations)
-        await self.p2p_node.broadcast_attestations(attestations)
+            self.logger.debug("Broadcasting attestation %s", attestation)
+            await self.p2p_node.broadcast_attestation(attestation)
+
+            attestations = attestations + (attestation,)
+        # TODO: Aggregate attestations
+
         return attestations

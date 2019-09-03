@@ -57,6 +57,7 @@ from trinity.protocol.bcc.peer import (
 )
 
 from trinity.protocol.bcc_libp2p.node import Node
+from trinity.protocol.bcc_libp2p.servers import BCCReceiveServer
 
 from .factories import (
     AtomicDBFactory,
@@ -250,3 +251,19 @@ class BCCPeerPoolFactory(factory.Factory):
         async with run_service(peer_pool):
             peer_pool._add_peer(peer, ())
             yield peer_pool
+
+
+class ReceiveServerFactory(factory.Factory):
+    class Meta:
+        model = BCCReceiveServer
+
+    chain = None
+    p2p_node = factory.SubFactory(NodeFactory)
+    topic_msg_queues = None
+    cancel_token = None
+
+    @classmethod
+    def create_batch(cls, number: int) -> Tuple[Node, ...]:
+        return tuple(
+            cls() for _ in range(number)
+        )

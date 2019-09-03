@@ -116,6 +116,10 @@ from .messages import (
     RecentBeaconBlocksRequest,
     RecentBeaconBlocksResponse,
 )
+from .topic_validators import (
+    get_beacon_attestation_validator,
+    get_beacon_block_validator,
+)
 from .utils import (
     make_rpc_v1_ssz_protocol_id,
     make_tcp_ip_maddr,
@@ -218,7 +222,19 @@ class Node(BaseService):
         # pubsub
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_BLOCK)
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_ATTESTATION)
-        # TODO: Register topic validators
+        self._setup_topic_validators()
+
+    def _setup_topic_validators(self) -> None:
+        self.pubsub.set_topic_validator(
+            PUBSUB_TOPIC_BEACON_BLOCK,
+            get_beacon_block_validator(self.chain),
+            False,
+        )
+        self.pubsub.set_topic_validator(
+            PUBSUB_TOPIC_BEACON_ATTESTATION,
+            get_beacon_attestation_validator(self.chain),
+            False,
+        )
 
     async def dial_peer(self, ip: str, port: int, peer_id: ID) -> None:
         """
@@ -253,8 +269,8 @@ class Node(BaseService):
     async def broadcast_beacon_block(self, block: BaseBeaconBlock) -> None:
         await self._broadcast_data(PUBSUB_TOPIC_BEACON_BLOCK, ssz.encode(block))
 
-    async def broadcast_attestations(self, attestations: Sequence[Attestation]) -> None:
-        await self._broadcast_data(PUBSUB_TOPIC_BEACON_ATTESTATION, ssz.encode(attestations))
+    async def broadcast_attestation(self, attestation: Attestation) -> None:
+        await self._broadcast_data(PUBSUB_TOPIC_BEACON_ATTESTATION, ssz.encode(attestation))
 
     async def _broadcast_data(self, topic: str, data: bytes) -> None:
         await self.pubsub.publish(topic, data)
@@ -572,10 +588,11 @@ class Node(BaseService):
                     yield block
 
     def _validate_start_slot(self, start_slot: Slot) -> None:
-        state_machine = self.chain.get_state_machine()
+        config = self.chain.get_state_machine().config
+        state = self.chain.get_head_state()
         finalized_epoch_start_slot = compute_start_slot_of_epoch(
-            epoch=state_machine.state.finalized_checkpoint.epoch,
-            slots_per_epoch=state_machine.config.SLOTS_PER_EPOCH,
+            epoch=state.finalized_checkpoint.epoch,
+            slots_per_epoch=config.SLOTS_PER_EPOCH,
         )
         if start_slot < finalized_epoch_start_slot:
             raise ValidationError(

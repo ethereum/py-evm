@@ -2,10 +2,18 @@ import asyncio
 
 import pytest
 
-from trinity.protocol.bcc_libp2p import utils
+from trinity.protocol.bcc_libp2p import servers, utils
 from trinity.tools.bcc_factories import NodeFactory
 
 MOCK_TIME = 0.01
+MOCK_PROCESS_ORPHAN_BLOCKS_PERIOD = 0.1
+
+
+@pytest.fixture
+def mock_process_orphan_blocks_period(monkeypatch):
+    monkeypatch.setattr(
+        servers, "PROCESS_ORPHAN_BLOCKS_PERIOD", MOCK_PROCESS_ORPHAN_BLOCKS_PERIOD
+    )
 
 
 @pytest.fixture

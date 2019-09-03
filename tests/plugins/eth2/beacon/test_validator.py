@@ -60,7 +60,7 @@ class FakeNode:
     async def broadcast_beacon_block(self, block):
         self.list_beacon_block.append(block)
 
-    async def broadcast_attestations(self, attestations):
+    async def broadcast_attestation(self, attestation):
         pass
 
 
