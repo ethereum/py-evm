@@ -488,6 +488,7 @@ def _create_mock_signed_attestation(
     num_voted_attesters: int,
     keymap: Dict[BLSPubkey, int],
     slots_per_epoch: int,
+    is_for_simulation: bool = True,
 ) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
@@ -496,17 +497,25 @@ def _create_mock_signed_attestation(
         attestation_data, committee, num_voted_attesters
     )
 
+    if is_for_simulation:
+        privkeys = tuple(
+            keymap[state.validators[committee[committee_index]].pubkey]
+            for committee_index in attesting_indices
+        )
+    else:
+        privkeys = tuple(keymap.values())
+
     # Use privkeys to sign the attestation
     signatures = [
         sign_transaction(
             message_hash=message_hash,
-            privkey=keymap[state.validators[committee[committee_index]].pubkey],
+            privkey=privkey,
             state=state,
             slot=attestation_slot,
             signature_domain=SignatureDomain.DOMAIN_ATTESTATION,
             slots_per_epoch=slots_per_epoch,
         )
-        for committee_index in attesting_indices
+        for privkey in privkeys
     ]
 
     # aggregate signatures and construct participant bitfield
@@ -602,6 +611,7 @@ def create_signed_attestation_at_slot(
         len(committee),
         keymapper(lambda index: state.validators[index].pubkey, validator_privkeys),
         config.SLOTS_PER_EPOCH,
+        is_for_simulation=False,
     )
 
 
