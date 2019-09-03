@@ -36,9 +36,6 @@ from trie.exceptions import MissingTrieNode
 
 from trinity._utils.datastructures import TaskQueue
 from trinity._utils.timer import Timer
-from trinity.protocol.common.trackers import (
-    BasePerformance,
-)
 from trinity.protocol.common.types import (
     NodeDataBundles,
 )
@@ -59,17 +56,6 @@ from trinity.sync.beam.constants import (
 )
 
 from trinity.sync.common.peers import WaitingPeers
-
-
-def _is_hash(maybe_hash: bytes) -> bool:
-    return isinstance(maybe_hash, bytes) and len(maybe_hash) == 32
-
-
-def _get_rtt(tracker: BasePerformance) -> float:
-    """
-    Extract the round trip time from the peer's tracker.
-    """
-    return tracker.round_trip_ema.value
 
 
 class BeamDownloader(BaseService, PeerSubscriber):
@@ -105,7 +91,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
         super().__init__(token)
         self._db = db
         self._trie_db = HexaryTrie(db)
-        self._node_data_peers = WaitingPeers[ETHPeer](NodeData, sort_key=_get_rtt)
+        self._node_data_peers = WaitingPeers[ETHPeer](NodeData)
         self._event_bus = event_bus
 
         # Track the needed node data that is urgent and important:
