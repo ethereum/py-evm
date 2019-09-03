@@ -207,7 +207,7 @@ class Node(BaseService):
         self.handshaked_peers = set()
 
     async def _run(self) -> None:
-        self.run_daemon_task(self.start())
+        self.run_task(self.start())
         self.logger.info("libp2p node %s is up", self.listen_maddr)
         await self.cancellation()
 
