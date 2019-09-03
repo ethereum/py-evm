@@ -41,7 +41,6 @@ from eth.rlp.headers import BlockHeader
 
 from p2p.abc import CommandAPI
 from p2p.constants import SEAL_CHECK_RANDOM_SAMPLE_RATE
-from p2p.disconnect import DisconnectReason
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
@@ -120,9 +119,9 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
     async def _run(self) -> None:
         self.run_daemon_task(self._display_stats())
         await self.wait(self._quietly_fetch_full_skeleton())
-        self.logger.debug("Skeleton %s stopped responding, waiting for sync to complete", self.peer)
+        self.logger.debug2("Skeleton %s stopped responding, pausing for headers to emit", self.peer)
         await self.wait(self._fetched_headers.join())
-        self.logger.debug("Skeleton %s emitted all headers", self.peer)
+        self.logger.debug2("Skeleton %s emitted all headers", self.peer)
 
     async def _display_stats(self) -> None:
         queue = self._fetched_headers
@@ -139,10 +138,8 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 self.peer,
                 exc,
             )
-            await self.peer.disconnect(DisconnectReason.subprotocol_error)
         except TimeoutError:
             self.logger.warning("Timeout waiting for header batch from %s, halting sync", self.peer)
-            await self.peer.disconnect(DisconnectReason.timeout)
 
     async def _fetch_full_skeleton(self) -> None:
         """
@@ -180,7 +177,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 await self.wait(asyncio.gather(*validate_pair_coros, loop=self.get_event_loop()))
             except ValidationError as e:
                 self.logger.warning(
-                    "Received an invalid header pair from %s, disconnecting: %s",
+                    "Received an invalid header pair from %s: %s",
                     peer,
                     e,
                 )
@@ -467,18 +464,16 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             return tuple()
         except TimeoutError:
             self.logger.warning("Timeout waiting for header batch from %s, aborting sync", peer)
-            await peer.disconnect(DisconnectReason.timeout)
             return tuple()
         except ValidationError as err:
             self.logger.warning(
-                "Invalid header response sent by peer %s disconnecting: %s",
+                "Invalid header response sent by peer %s: %s",
                 peer, err,
             )
-            await peer.disconnect(DisconnectReason.subprotocol_error)
             return tuple()
 
         if not headers:
-            self.logger.debug("Got no new headers from %s, exiting skeleton sync", peer)
+            self.logger.debug2("Got no new headers from %s, exiting skeleton sync", peer)
             return tuple()
         else:
             return headers
@@ -724,12 +719,11 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             except ValidationError as e:
                 self.logger.warning(
                     "Received invalid header segment from %s against known parent %s, "
-                    "disconnecting: %s",
+                    ": %s",
                     peer,
                     parent_header,
                     e,
                 )
-                await peer.disconnect(DisconnectReason.subprotocol_error)
                 return tuple()
             else:
                 # stitch headers together in order, ignoring duplicates
@@ -903,7 +897,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
             if self._skeleton.is_operational:
                 self._skeleton.cancel_nowait()
         finally:
-            self.logger.debug("Skeleton sync with %s ended", peer)
+            self.logger.debug2("Skeleton sync with %s ended", peer)
             self._last_target_header_hash = peer.head_hash
             self._skeleton = None
 
