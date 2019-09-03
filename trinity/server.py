@@ -49,6 +49,14 @@ BOUND_IP = '0.0.0.0'
 TPeerPool = TypeVar('TPeerPool', bound=BasePeerPool)
 T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
 
+COMMON_RECEIVE_HANDSHAKE_EXCEPTIONS = (
+    TimeoutError,
+    PeerConnectionLost,
+    HandshakeFailure,
+    NoMatchingPeerCapabilities,
+    asyncio.IncompleteReadError,
+)
+
 
 class BaseServer(BaseService, Generic[TPeerPool]):
     """Server listening for incoming connections"""
@@ -141,13 +149,6 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
     async def receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        expected_exceptions = (
-            TimeoutError,
-            PeerConnectionLost,
-            HandshakeFailure,
-            NoMatchingPeerCapabilities,
-            asyncio.IncompleteReadError,
-        )
 
         def _cleanup_reader_and_writer() -> None:
             if not reader.at_eof():
@@ -156,7 +157,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
 
         try:
             await self._receive_handshake(reader, writer)
-        except expected_exceptions as e:
+        except COMMON_RECEIVE_HANDSHAKE_EXCEPTIONS as e:
             self.logger.debug("Could not complete handshake: %s", e)
             _cleanup_reader_and_writer()
         except OperationCancelled:
