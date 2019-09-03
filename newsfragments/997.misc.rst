@@ -1,0 +1,1 @@
+Convert the request/response APIs to use the ``ConnectionAPI`` instead of ``BasePeer``

@@ -5,33 +5,32 @@ from typing import (
     AsyncGenerator,
     Callable,
     Generic,
-    FrozenSet,
     Tuple,
     Type,
-    cast,
 )
-
-from cancel_token import CancelToken
 
 from eth_utils import (
     ValidationError,
 )
 
-from p2p.abc import CommandAPI, RequestAPI, TRequestPayload
-from p2p.constants import BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS
-from p2p.exceptions import PeerConnectionLost
-from p2p.disconnect import DisconnectReason
-from p2p.peer import BasePeer, PeerSubscriber
+from p2p.abc import (
+    CommandAPI,
+    ConnectionAPI,
+    ProtocolAPI,
+    RequestAPI,
+    TRequestPayload,
+)
+from p2p.exceptions import (
+    PeerConnectionLost,
+    UnknownProtocol,
+)
 from p2p.service import BaseService
-from p2p.token_bucket import TokenBucket, NotEnoughTokens
 
 from trinity.exceptions import AlreadyWaiting
 
 from .constants import (
     ROUND_TRIP_TIMEOUT,
     NUM_QUEUED_REQUESTS,
-    TIMEOUT_BUCKET_CAPACITY,
-    TIMEOUT_BUCKET_RATE,
 )
 from .normalizers import BaseNormalizer
 from .trackers import BasePerformanceTracker
@@ -42,39 +41,37 @@ from .types import (
 
 
 class ResponseCandidateStream(
-        PeerSubscriber,
         BaseService,
         Generic[TRequestPayload, TResponsePayload]):
-
-    #
-    # PeerSubscriber
-    #
-    @property
-    def subscription_msg_types(self) -> FrozenSet[Type[CommandAPI]]:
-        return frozenset({self.response_msg_type})
-
-    msg_queue_maxsize = 100
-
     response_timeout: float = ROUND_TRIP_TIMEOUT
 
     pending_request: Tuple[float, 'asyncio.Future[TResponsePayload]'] = None
 
-    _peer: BasePeer
+    request_protocol_type: Type[ProtocolAPI]
+    response_cmd_type: Type[CommandAPI]
+    _connection: ConnectionAPI
 
     def __init__(
             self,
-            peer: BasePeer,
-            response_msg_type: Type[CommandAPI],
-            token: CancelToken) -> None:
-        super().__init__(token)
-        self._peer = peer
+            connection: ConnectionAPI,
+            request_protocol_type: Type[ProtocolAPI],
+            response_msg_type: Type[CommandAPI]) -> None:
+        super().__init__(connection.cancel_token)
+        self._connection = connection
+        self.request_protocol_type = request_protocol_type
+        try:
+            self.request_protocol = self._connection.get_multiplexer().get_protocol_by_type(
+                request_protocol_type,
+            )
+        except UnknownProtocol as err:
+            raise UnknownProtocol(
+                f"Response candidate stream configured to use "
+                f"{request_protocol_type} which is not available in the "
+                f"Multiplexer"
+            ) from err
+
         self.response_msg_type = response_msg_type
         self._lock = asyncio.Lock()
-
-        # token bucket for limiting timeouts.
-        # - Refills at 1-token every 5 minutes
-        # - Max capacity of 3 tokens
-        self.timeout_bucket = TokenBucket(TIMEOUT_BUCKET_RATE, TIMEOUT_BUCKET_CAPACITY)
 
     async def payload_candidates(
             self,
@@ -97,7 +94,7 @@ class ResponseCandidateStream(
         except TimeoutError:
             raise AlreadyWaiting(
                 f"Timed out waiting for {self.response_msg_name} request lock "
-                f"or peer: {self._peer}"
+                f"or connection: {self._connection}"
             )
 
         start_at = time.perf_counter()
@@ -111,25 +108,7 @@ class ResponseCandidateStream(
                     yield await self._get_payload(timeout_remaining)
                 except TimeoutError as err:
                     tracker.record_timeout(total_timeout)
-
-                    # If the peer has timeoud out too many times, desconnect
-                    # and blacklist them
-                    try:
-                        self.timeout_bucket.take_nowait()
-                    except NotEnoughTokens:
-                        self.logger.warning(
-                            "Blacklisting and disconnecting from %s due to too many timeouts",
-                            self._peer,
-                        )
-                        self._peer.connection_tracker.record_blacklist(
-                            self._peer.remote,
-                            BLACKLIST_SECONDS_TOO_MANY_TIMEOUTS,
-                            f"Too many timeouts: {err}",
-                        )
-                        self._peer.disconnect_nowait(DisconnectReason.timeout)
-                        await self.cancellation()
-                    finally:
-                        raise
+                    raise
         finally:
             self._lock.release()
 
@@ -148,21 +127,15 @@ class ResponseCandidateStream(
     async def _run(self) -> None:
         self.logger.debug("Launching %r", self)
 
-        with self.subscribe_peer(self._peer):
-            while self.is_operational:
-                peer, cmd, msg = await self.wait(self.msg_queue.get())
-                if peer != self._peer:
-                    self.logger.error("Unexpected peer: %s  expected: %s", peer, self._peer)
-                    continue
-                elif isinstance(cmd, self.response_msg_type):
-                    await self._handle_msg(cast(TResponsePayload, msg))
-                else:
-                    self.logger.warning("Unexpected payload type: %s", cmd.__class__.__name__)
+        # mypy doesn't recognizet the `TResponsePayload` as being an allowed
+        # variant of the expected `Payload` type.
+        with self._connection.add_command_handler(self.response_msg_type, self._handle_msg):  # type: ignore  # noqa: E501
+            await self.cancellation()
 
-    async def _handle_msg(self, msg: TResponsePayload) -> None:
+    async def _handle_msg(self, connection: ConnectionAPI, msg: TResponsePayload) -> None:
         if self.pending_request is None:
             self.logger.debug(
-                "Got unexpected %s payload from %s", self.response_msg_name, self._peer
+                "Got unexpected %s payload from %s", self.response_msg_name, self._connection
             )
             return
 
@@ -195,7 +168,8 @@ class ResponseCandidateStream(
             # check seems appropriate.
             raise Exception("Invariant: cannot issue a request without an acquired lock")
 
-        self._peer.sub_proto.send_request(request)
+        # TODO: better API for getting at the protocols from the connection....
+        self.request_protocol.send_request(request)
 
         future: 'asyncio.Future[TResponsePayload]' = asyncio.Future()
         self.pending_request = (time.perf_counter(), future)
@@ -223,22 +197,8 @@ class ResponseCandidateStream(
             if future.cancel():
                 self.logger.debug("Forcefully cancelled a pending response in %s", self)
 
-    def deregister_peer(self, peer: BasePeer) -> None:
-        if self.pending_request is not None:
-            self.logger.debug("Peer stream %r shutting down, cancelling the pending request", self)
-            _, future = self.pending_request
-            try:
-                future.set_exception(PeerConnectionLost(
-                    f"Pending request can't complete: {self} peer went offline"
-                ))
-            except asyncio.InvalidStateError:
-                self.logger.debug(
-                    "%s cancelled pending future in deregister, but it was already done",
-                    self,
-                )
-
     def __repr__(self) -> str:
-        return f'<ResponseCandidateStream({self._peer!s}, {self.response_msg_type!r})>'
+        return f'<ResponseCandidateStream({self._connection!s}, {self.response_msg_type!r})>'
 
 
 class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
@@ -246,33 +206,26 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
 
     def __init__(
             self,
-            peer: BasePeer,
-            listening_for: Type[CommandAPI],
-            cancel_token: CancelToken) -> None:
-        self._peer = peer
-        self._cancel_token = cancel_token
+            connection: ConnectionAPI,
+            requesting_on: Type[ProtocolAPI],
+            listening_for: Type[CommandAPI]) -> None:
+        self._connection = connection
+        self._request_protocol_type = requesting_on
         self._response_command_type = listening_for
 
-        # This TokenBucket allows for the occasional invalid response at a
-        # maximum rate of 1-per-10-minutes and allowing up to two in quick
-        # succession.  We *allow* invalid responses because the ETH protocol
-        # doesn't have strong correlation between request/response and certain
-        # networking conditions can result in us interpreting a legitimate
-        # message as an invalid response if messages arrive out of order or
-        # late.
-        self._invalid_response_bucket = TokenBucket(1 / 600, 2)
-
     async def launch_service(self) -> None:
-        if self._cancel_token.triggered:
-            raise PeerConnectionLost("Peer %s is gone. Ignoring new requests to it" % self._peer)
+        if self._connection.cancel_token.triggered:
+            raise PeerConnectionLost(
+                f"Peer {self._connection} is gone. Ignoring new requests to it"
+            )
 
         self._response_stream = ResponseCandidateStream(
-            self._peer,
+            self._connection,
+            self._request_protocol_type,
             self._response_command_type,
-            self._cancel_token,
         )
-        self._peer.run_daemon(self._response_stream)
-        await self._peer.wait(self._response_stream.events.started.wait())
+        self._connection.run_daemon(self._response_stream)
+        await self._connection.wait(self._response_stream.events.started.wait())
 
     @property
     def is_operational(self) -> bool:
@@ -290,11 +243,11 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
         if not self.is_operational:
             if self.service is None or not self.service.is_cancelled:
                 raise ValidationError(
-                    f"Must call `launch_service` before sending request to {self._peer}"
+                    f"Must call `launch_service` before sending request to {self._connection}"
                 )
             else:
                 raise PeerConnectionLost(
-                    f"Response stream closed before sending request to {self._peer}"
+                    f"Response stream closed before sending request to {self._connection}"
                 )
 
         stream = self._response_stream
@@ -315,24 +268,12 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                 validate_result(result)
             except ValidationError as err:
                 self.service.logger.debug(
-                    "Response validation failed for pending %s request from peer %s: %s",
+                    "Response validation failed for pending %s request from connection %s: %s",
                     stream.response_msg_name,
-                    self._peer,
+                    self._connection,
                     err,
                 )
-                try:
-                    self._invalid_response_bucket.take_nowait()
-                except NotEnoughTokens:
-                    self.service.logger.warning(
-                        "Blacklisting and disconnecting from %s due to too many invalid responses",
-                        self._peer,
-                    )
-                    self._peer.disconnect_nowait(DisconnectReason.bad_protocol)
-                    await self.service.cancellation()
-                    # re-raise the outer ValidationError exception
-                    raise err
-                else:
-                    continue
+                continue
             else:
                 tracker.record_response(
                     stream.last_response_time,
@@ -342,7 +283,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                 stream.complete_request()
                 return result
 
-        raise PeerConnectionLost(f"Response stream of {self._peer} was apparently closed")
+        raise PeerConnectionLost(f"Response stream of {self._connection} was apparently closed")
 
     @property
     def service(self) -> BaseService:

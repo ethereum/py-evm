@@ -83,6 +83,10 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
     def response_cmd_type(cls) -> Type[CommandAPI]:
         return cls.request_class.response_type
 
+    @classproperty
+    def request_cmd_type(cls) -> Type[CommandAPI]:
+        return cls.request_class.cmd_type
+
     @abstractmethod
     async def __call__(self, *args: Any, **kwargs: Any) -> None:
         """
