@@ -319,28 +319,29 @@ class Manager(ManagerAPI):
 
         async with self._run_lock:
             async with trio.open_nursery() as system_nursery:
-                async with trio.open_nursery() as task_nursery:
-                    self._task_nursery = task_nursery
+                try:
+                    async with trio.open_nursery() as task_nursery:
+                        self._task_nursery = task_nursery
 
-                    system_nursery.start_soon(
-                        self._handle_cancelled,
-                        task_nursery,
-                    )
-                    system_nursery.start_soon(
-                        self._handle_stopped,
-                        system_nursery,
-                    )
+                        system_nursery.start_soon(
+                            self._handle_cancelled,
+                            task_nursery,
+                        )
+                        system_nursery.start_soon(
+                            self._handle_stopped,
+                            system_nursery,
+                        )
 
-                    task_nursery.start_soon(self._handle_run)
+                        task_nursery.start_soon(self._handle_run)
 
-                    self._started.set()
+                        self._started.set()
 
-                    # ***BLOCKING HERE***
-                    # The code flow will block here until the background tasks have
-                    # completed or cancellation occurs.
-
-                # Mark as having stopped
-                self._stopped.set()
+                        # ***BLOCKING HERE***
+                        # The code flow will block here until the background tasks have
+                        # completed or cancellation occurs.
+                finally:
+                    # Mark as having stopped
+                    self._stopped.set()
         self.logger.debug('%s stopped', self)
 
         # If an error occured, re-raise it here
@@ -360,7 +361,7 @@ class Manager(ManagerAPI):
 
     @property
     def is_running(self) -> bool:
-        return self._started.is_set() and not self._stopped.is_set()
+        return self.is_started and not self.is_stopped
 
     @property
     def is_cancelled(self) -> bool:
@@ -421,13 +422,13 @@ class Manager(ManagerAPI):
                 name,
                 daemon,
             )
-        finally:
             if daemon:
                 self.logger.debug(
                     "daemon task '%s' exited unexpectedly.  Cancelling service: %s",
                     name,
                     self,
                 )
+                self.cancel()
                 raise DaemonTaskExit(f"Daemon task {name} exited")
 
     def run_task(self,

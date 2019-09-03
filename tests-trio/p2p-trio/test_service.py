@@ -44,10 +44,15 @@ async def do_service_lifecycle_check(manager,
                 await manager.wait_cancelled()
 
             assert manager.is_started is True
-            # non-deterministic for whether the service would register as
-            # *running* or *stopped* at this stage because it may have stopped
-            # or it may be stopping.
+            # We cannot determine whether the service should be running at this
+            # stage because a service is considered running until it has
+            # stopped.  Since it may be cancelled but still not stopped we
+            # can't know.
             assert manager.is_cancelled is True
+            # We cannot determine whether a service should be stopped at this
+            # stage as it could have exited cleanly and is now stopped or it
+            # might be doing some cleanup after which it will register as being
+            # stopped.
 
         with trio.fail_after(0.1):
             await manager.wait_stopped()
@@ -92,8 +97,7 @@ async def test_trio_service_lifecycle_run_and_external_cancellation():
 
     @as_service
     async def ServiceTest(manager):
-        while True:
-            await trio.sleep(0.1)
+        await trio.sleep_forever()
 
     service = ServiceTest()
     manager = Manager(service)
@@ -120,6 +124,57 @@ async def test_trio_service_lifecycle_run_and_exception():
 
     async def do_service_run():
         with pytest.raises(RuntimeError, match="Service throwing error"):
+            await manager.run()
+
+    await do_service_lifecycle_check(
+        manager=manager,
+        manager_run_fn=do_service_run,
+        trigger_exit_condition_fn=trigger_error.set,
+        should_be_cancelled=True,
+    )
+
+
+@pytest.mark.trio
+async def test_trio_service_lifecycle_run_and_task_exception():
+    trigger_error = trio.Event()
+
+    @as_service
+    async def ServiceTest(manager):
+        async def task_fn():
+            await trigger_error.wait()
+            raise RuntimeError("Service throwing error")
+        manager.run_task(task_fn)
+
+    service = ServiceTest()
+    manager = Manager(service)
+
+    async def do_service_run():
+        with pytest.raises(RuntimeError, match="Service throwing error"):
+            await manager.run()
+
+    await do_service_lifecycle_check(
+        manager=manager,
+        manager_run_fn=do_service_run,
+        trigger_exit_condition_fn=trigger_error.set,
+        should_be_cancelled=True,
+    )
+
+
+@pytest.mark.trio
+async def test_trio_service_lifecycle_run_and_daemon_task_exit():
+    trigger_error = trio.Event()
+
+    @as_service
+    async def ServiceTest(manager):
+        async def daemon_task_fn():
+            await trigger_error.wait()
+        manager.run_daemon_task(daemon_task_fn)
+
+    service = ServiceTest()
+    manager = Manager(service)
+
+    async def do_service_run():
+        with pytest.raises(DaemonTaskExit, match="Daemon task"):
             await manager.run()
 
     await do_service_lifecycle_check(
