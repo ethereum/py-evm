@@ -51,8 +51,8 @@ from trinity.protocol.eth import (
 )
 from trinity.sync.beam.constants import (
     DELAY_BEFORE_NON_URGENT_REQUEST,
+    NON_IDEAL_RESPONSE_PENALTY,
     REQUEST_BUFFER_MULTIPLIER,
-    EMPTY_PEER_RESPONSE_PENALTY,
 )
 
 from trinity.sync.common.peers import WaitingPeers
@@ -459,7 +459,14 @@ class BeamDownloader(BaseService, PeerSubscriber):
             return tuple()
         except Exception as exc:
             self.logger.info("Unexpected err while downloading nodes from %s: %s", peer, exc)
-            self.logger.debug("Problem downloading nodes from peer, dropping...", exc_info=True)
+            delay = NON_IDEAL_RESPONSE_PENALTY
+            self.logger.debug(
+                "Problem downloading nodes from %s, pausing for %.1fs",
+                peer,
+                delay,
+                exc_info=True,
+            )
+            self.call_later(delay, self._node_data_peers.put_nowait, peer)
             return tuple()
         else:
             if len(completed_nodes) > 0:
@@ -467,7 +474,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 self._node_data_peers.put_nowait(peer)
             else:
                 # peer didn't return enough results, wait a while before trying again
-                delay = EMPTY_PEER_RESPONSE_PENALTY
+                delay = NON_IDEAL_RESPONSE_PENALTY
                 self.logger.debug(
                     "Pausing %s for %.1fs, for replying with no node data "
                     "to request for: %r",
