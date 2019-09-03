@@ -1,3 +1,5 @@
+from eth2.beacon.tools.factories import BeaconChainFactory
+import asyncio
 from typing import (
     cast,
     Any,
@@ -60,6 +62,7 @@ from .factories import (
     AtomicDBFactory,
 )
 
+
 try:
     import factory
 except ImportError:
@@ -87,13 +90,33 @@ class NodeFactory(factory.Factory):
     cancel_token = None
     bootstrap_nodes = None
     preferred_nodes = None
-    chain = None
+    chain = factory.SubFactory(BeaconChainFactory)
 
     @classmethod
     def create_batch(cls, number: int) -> Tuple[Node, ...]:
         return tuple(
             cls() for _ in range(number)
         )
+
+
+@asynccontextmanager
+async def ConnectionPairFactory(
+    cancel_token: CancelToken = None,
+    say_hello: bool = True,
+) -> AsyncIterator[Tuple[Node, Node]]:
+    if cancel_token is None:
+        cancel_token = CancelTokenFactory()
+    alice = NodeFactory(cancel_token=cancel_token)
+    bob = NodeFactory(cancel_token=cancel_token)
+
+    async with run_service(alice), run_service(bob):
+        await asyncio.sleep(0.01)
+        await alice.dial_peer_maddr(bob.listen_maddr_with_peer_id)
+        await asyncio.sleep(0.01)
+        if say_hello:
+            await alice.say_hello(bob.peer_id)
+            await asyncio.sleep(0.01)
+        yield alice, bob
 
 
 class BeaconBlockBodyFactory(factory.Factory):

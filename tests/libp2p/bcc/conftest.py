@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 
-from eth2.beacon.tools.factories import BeaconChainFactory
 from trinity.protocol.bcc_libp2p import utils
 from trinity.tools.bcc_factories import NodeFactory
 
@@ -23,13 +22,6 @@ def num_nodes():
 @pytest.fixture
 async def nodes(num_nodes):
     async for _nodes in make_nodes(num_nodes, None):
-        yield _nodes
-
-
-@pytest.fixture
-async def nodes_with_chain(num_nodes):
-    chains = tuple([BeaconChainFactory() for _ in range(num_nodes)])
-    async for _nodes in make_nodes(num_nodes, chains):
         yield _nodes
 
 

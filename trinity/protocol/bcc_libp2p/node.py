@@ -308,7 +308,7 @@ class Node(BaseService):
 
     async def _validate_hello_req(self, hello_other_side: HelloRequest) -> None:
         state_machine = self.chain.get_state_machine()
-        state = state_machine.state
+        state = self.chain.get_head_state()
         config = state_machine.config
         if hello_other_side.fork_version != state.fork.current_version:
             raise ValidationError(
@@ -353,7 +353,7 @@ class Node(BaseService):
         """
 
     def _make_hello_packet(self) -> HelloRequest:
-        state = self.chain.get_state_machine().state
+        state = self.chain.get_head_state()
         finalized_checkpoint = state.finalized_checkpoint
         return HelloRequest(
             fork_version=state.fork.current_version,
@@ -366,7 +366,7 @@ class Node(BaseService):
     def _compare_chain_tip_and_finalized_epoch(self,
                                                peer_finalized_epoch: Epoch,
                                                peer_head_slot: Slot) -> None:
-        checkpoint = self.chain.get_state_machine().state.finalized_checkpoint
+        checkpoint = self.chain.get_head_state().finalized_checkpoint
         head_block = self.chain.get_canonical_head()
         peer_has_higher_finalized_epoch = peer_finalized_epoch > checkpoint.epoch
         peer_has_equal_finalized_epoch = peer_finalized_epoch == checkpoint.epoch

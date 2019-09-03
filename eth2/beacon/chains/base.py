@@ -125,6 +125,10 @@ class BaseBeaconChain(Configurable, ABC):
         ...
 
     @abstractmethod
+    def get_head_state(self) -> BeaconState:
+        ...
+
+    @abstractmethod
     def import_block(
         self, block: BaseBeaconBlock, perform_validation: bool = True
     ) -> Tuple[
