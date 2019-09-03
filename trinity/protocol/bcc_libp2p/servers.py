@@ -201,15 +201,13 @@ class BCCReceiveServer(BaseService):
             await self.sleep(PROCESS_ORPHAN_BLOCKS_PERIOD)
             if len(self.orphan_block_pool) == 0:
                 continue
+            # TODO: Prune Bruce Wayne type of orphan block
+            # (whose parent block seemingly never going to show up)
             orphan_blocks = self.orphan_block_pool.to_list()
-            parent_roots = set([block.parent_root for block in orphan_blocks])
-            block_roots = [block.signing_root for block in orphan_blocks]
-            dependent_block_roots = set()
+            parent_roots = set(block.parent_root for block in orphan_blocks)
+            block_roots = set(block.signing_root for block in orphan_blocks)
             # Remove dependent orphan blocks
-            for parent_root in parent_roots:
-                if parent_root in block_roots:
-                    dependent_block_roots.add(parent_root)
-            parent_roots.difference_update(dependent_block_roots)
+            parent_roots.difference_update(block_roots)
             # Keep requesting parent blocks from all peers
             peers_to_request = list(self.p2p_node.handshaked_peers)
             for peer_id in peers_to_request:
