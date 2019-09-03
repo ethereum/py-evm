@@ -88,7 +88,7 @@ class BaseBeaconChain(Configurable, ABC):
     # State API
     #
     @abstractmethod
-    def get_state_by_slot(self, slot: Slot) -> Hash32:
+    def get_state_by_slot(self, slot: Slot) -> BeaconState:
         ...
 
     #
