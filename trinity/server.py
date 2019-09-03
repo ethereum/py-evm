@@ -23,6 +23,7 @@ from p2p.constants import DEFAULT_MAX_PEERS, DEVP2P_V5
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     HandshakeFailure,
+    NoMatchingPeerCapabilities,
     PeerConnectionLost,
 )
 from p2p.handshake import DevP2PHandshakeParams
@@ -144,6 +145,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             TimeoutError,
             PeerConnectionLost,
             HandshakeFailure,
+            NoMatchingPeerCapabilities,
             asyncio.IncompleteReadError,
         )
 
