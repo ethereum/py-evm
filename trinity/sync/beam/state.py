@@ -287,6 +287,16 @@ class BeamDownloader(BaseService, PeerSubscriber):
             # Get an available peer, preferring the one that gives us the most node data throughput
             peer = await self._node_data_peers.get_fastest()
 
+            if urgent_batch_id is not None and peer.requests.get_node_data.is_requesting:
+                # Our best peer for node data has an in-flight GetNodeData request
+                # Probably, backfill is asking this peer for data
+                # This is right in the critical path, so we'd prefer this never happen
+                self.logger.debug(
+                    "Want to download urgent data, but %s is locked on other request",
+                    peer,
+                )
+                # Don't do anything different, allow the request lock to handle the situation
+
             if any(len(h) != 32 for h in node_hashes):
                 # This was inserted to identify and resolve a buggy situation
                 short_node_urgent_hashes = tuple(h for h in node_hashes if len(h) != 32)
