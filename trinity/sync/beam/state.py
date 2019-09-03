@@ -72,7 +72,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
     _total_requests = 0
     _timer = Timer(auto_start=False)
     _report_interval = 10  # Number of seconds between progress reports.
-    _reply_timeout = 1  # seconds
+    _reply_timeout = 10  # seconds
 
     # We are only interested in peers entering or leaving the pool
     subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
