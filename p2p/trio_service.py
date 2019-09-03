@@ -400,6 +400,8 @@ class Manager(ManagerAPI):
                 err,
                 exc_info=True,
             )
+            self._run_error = sys.exc_info()
+            self.cancel()
         else:
             self.logger.debug(
                 "task '%s[daemon=%s]' finished.",
@@ -408,7 +410,12 @@ class Manager(ManagerAPI):
             )
         finally:
             if daemon:
-                self.cancel()
+                self.logger.debug(
+                    "daemon task '%s' exited unexpectedly.  Cancelling service: %s",
+                    name,
+                    self,
+                )
+                raise LifecycleError(f"Daemon task {name} exited")
 
     def run_task(self,
                  async_fn: Callable[..., Awaitable[Any]],

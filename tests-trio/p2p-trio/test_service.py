@@ -3,8 +3,9 @@ import pytest
 import trio
 
 from p2p.trio_service import (
-    Service,
+    LifecycleError,
     Manager,
+    Service,
     as_service,
     background_service,
 )
@@ -200,6 +201,46 @@ async def test_trio_service_manager_run_task_waits_for_task_completion():
     async with background_service(RunTaskService()):
         with trio.fail_after(0.1):
             await task_event.wait()
+
+
+@pytest.mark.trio
+async def test_trio_service_manager_run_task_reraises_exceptions():
+    task_event = trio.Event()
+
+    @as_service
+    async def RunTaskService(manager):
+        async def task_fn():
+            await task_event.wait()
+            raise Exception("task exception in run_task")
+        manager.run_task(task_fn)
+        with trio.fail_after(1):
+            await trio.sleep_forever()
+
+    with pytest.raises(Exception, match="task exception in run_task"):
+        async with background_service(RunTaskService()):
+            task_event.set()
+            with trio.fail_after(1):
+                await trio.sleep_forever()
+
+
+@pytest.mark.trio
+async def test_trio_service_manager_run_daemon_task_cancels_if_exits():
+    task_event = trio.Event()
+
+    @as_service
+    async def RunTaskService(manager):
+        async def daemon_task_fn():
+            await task_event.wait()
+
+        manager.run_daemon_task(daemon_task_fn, name='daemon_task_fn')
+        with trio.fail_after(1):
+            await trio.sleep_forever()
+
+    with pytest.raises(LifecycleError, match="Daemon task daemon_task_fn exited"):
+        async with background_service(RunTaskService()):
+            task_event.set()
+            with trio.fail_after(1):
+                await trio.sleep_forever()
 
 
 @pytest.mark.trio
