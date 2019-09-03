@@ -3,7 +3,7 @@ import pytest
 import trio
 
 from p2p.trio_service import (
-    LifecycleError,
+    DaemonTaskExit,
     Manager,
     Service,
     as_service,
@@ -204,6 +204,38 @@ async def test_trio_service_manager_run_task_waits_for_task_completion():
 
 
 @pytest.mark.trio
+async def test_trio_service_manager_run_task_can_still_cancel_after_run_finishes():
+    task_event = trio.Event()
+    service_finished = trio.Event()
+
+    @as_service
+    async def RunTaskService(manager):
+        async def task_fn():
+            # this will never complete
+            await task_event.wait()
+
+        manager.run_task(task_fn)
+        # the task is set to run in the background but then  the service exits.
+        # We want to be sure that the task is allowed to continue till
+        # completion unless explicitely cancelled.
+        service_finished.set()
+
+    async with background_service(RunTaskService()) as manager:
+        with trio.fail_after(0.01):
+            await service_finished.wait()
+
+        # show that the service hangs waiting for the task to complete.
+        with trio.move_on_after(0.01) as cancel_scope:
+            await manager.wait_stopped()
+        assert cancel_scope.cancelled_caught is True
+
+        # trigger cancellation and see that the service actually stops
+        manager.cancel()
+        with trio.fail_after(0.01):
+            await manager.wait_stopped()
+
+
+@pytest.mark.trio
 async def test_trio_service_manager_run_task_reraises_exceptions():
     task_event = trio.Event()
 
@@ -236,43 +268,11 @@ async def test_trio_service_manager_run_daemon_task_cancels_if_exits():
         with trio.fail_after(1):
             await trio.sleep_forever()
 
-    with pytest.raises(LifecycleError, match="Daemon task daemon_task_fn exited"):
+    with pytest.raises(DaemonTaskExit, match="Daemon task daemon_task_fn exited"):
         async with background_service(RunTaskService()):
             task_event.set()
             with trio.fail_after(1):
                 await trio.sleep_forever()
-
-
-@pytest.mark.trio
-async def test_trio_service_manager_run_task_can_still_cancel_after_run_finishes():
-    task_event = trio.Event()
-    service_finished = trio.Event()
-
-    @as_service
-    async def RunTaskService(manager):
-        async def task_fn():
-            # this will never complete
-            await task_event.wait()
-
-        manager.run_task(task_fn)
-        # the task is set to run in the background but then  the service exits.
-        # We want to be sure that the task is allowed to continue till
-        # completion unless explicitely cancelled.
-        service_finished.set()
-
-    async with background_service(RunTaskService()) as manager:
-        with trio.fail_after(0.01):
-            await service_finished.wait()
-
-        # show that the service hangs waiting for the task to complete.
-        with trio.move_on_after(0.01) as cancel_scope:
-            await manager.wait_stopped()
-        assert cancel_scope.cancelled_caught is True
-
-        # trigger cancellation and see that the service actually stops
-        manager.cancel()
-        with trio.fail_after(0.01):
-            await manager.wait_stopped()
 
 
 @pytest.mark.trio
