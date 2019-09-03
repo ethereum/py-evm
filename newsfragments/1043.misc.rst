@@ -1,0 +1,1 @@
+Be less aggressive about dropping peers for minor misbehavior during (skeleton) header sync.
