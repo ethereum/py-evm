@@ -35,6 +35,17 @@ class NoCommitteeAssignment(PyEVMError):
     pass
 
 
+class ImprobableToReach(PyEVMError):
+    """
+    The probability to reach this line is too small.
+
+    The function has some probabilistic behavior.
+    It is still possible but very unlikely to reach here.
+    """
+
+    pass
+
+
 class InvalidEpochError(ValidationError):
     """
     Raised when a function receives a query for an epoch that is not semantically valid.

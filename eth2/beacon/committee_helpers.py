@@ -7,6 +7,7 @@ import ssz
 from eth2._utils.hash import hash_eth2
 from eth2._utils.tuple import update_tuple_item
 from eth2.beacon.constants import MAX_INDEX_COUNT, MAX_RANDOM_BYTE
+from eth2.beacon.exceptions import ImprobableToReach
 from eth2.beacon.helpers import get_active_validator_indices, get_seed
 from eth2.beacon.types.compact_committees import CompactCommittee
 from eth2.beacon.types.states import BeaconState
@@ -81,6 +82,9 @@ def get_start_shard(state: BeaconState, epoch: Epoch, config: CommitteeConfig) -
     return shard
 
 
+MAX_ROUNDS = 100
+
+
 def _find_proposer_in_committee(
     validators: Sequence[Validator],
     committee: Sequence[ValidatorIndex],
@@ -88,16 +92,36 @@ def _find_proposer_in_committee(
     seed: Hash32,
     max_effective_balance: Gwei,
 ) -> ValidatorIndex:
+    """
+    Loop through the validators in the committee one by one.
+    A validator with higher balance would be chosen as the proposer more likely.
+    It is expected to end in just 1 or 2 rounds.
+    More than `MAX_ROUNDS` rounds is rare and could consider as a bug.
+
+    Detail:
+    The committee passed in here should consist 'active' validators.
+    An active validator has a balance of at least 17 Ether and at most 32 Ether.
+    This function choose a number between 0 and 1, which is represented by
+    `random_byte / MAX_RANDOM_BYTE`. The probability of a validator chosen as
+    a proposer is `effective_balance/max_effective_balance`.
+    The worst/easiest possible scenario for the loop to reach more rounds is when every
+    validator has 17 Ether and has the 17/32 probability of being chosen.
+    This requires 1 out of (17/32)^100 chance to reach 100 rounds.
+    """
     base = int(epoch)
-    i = 0
     committee_len = len(committee)
-    while True:
+    i = 0
+    while i < MAX_ROUNDS:
         candidate_index = committee[(base + i) % committee_len]
         random_byte = hash_eth2(seed + (i // 32).to_bytes(8, "little"))[i % 32]
         effective_balance = validators[candidate_index].effective_balance
         if effective_balance * MAX_RANDOM_BYTE >= max_effective_balance * random_byte:
             return candidate_index
         i += 1
+    else:
+        raise ImprobableToReach(
+            f"Search for a proposer failed after {MAX_ROUNDS} rounds."
+        )
 
 
 def _calculate_first_committee_at_slot(
