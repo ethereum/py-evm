@@ -13,7 +13,6 @@ from lahja import EndpointAPI
 
 from eth_hash.auto import keccak
 from eth_utils import (
-    encode_hex,
     to_checksum_address,
     ValidationError,
 )
@@ -477,10 +476,10 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 delay = NON_IDEAL_RESPONSE_PENALTY
                 self.logger.debug(
                     "Pausing %s for %.1fs, for replying with no node data "
-                    "to request for: %r",
+                    "to request for %d nodes",
                     peer,
                     delay,
-                    [encode_hex(h) for h in node_hashes],
+                    len(node_hashes),
                 )
                 self.call_later(delay, self._node_data_peers.put_nowait, peer)
             return completed_nodes
