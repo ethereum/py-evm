@@ -110,8 +110,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
             lambda node_hash: 0,
         )
 
-        self._peers_without_full_trie: Set[ETHPeer] = set()
-
         # It's possible that you are connected to a peer that doesn't have a full state DB
         # In that case, we may get stuck requesting predictive nodes from them over and over
         #   because they don't have anything but the nodes required to prove recent block
@@ -289,15 +287,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
             # Get an available peer, preferring the one that gives us the most node data throughput
             peer = await self._node_data_peers.get_fastest()
 
-            if urgent_batch_id is None:
-                # We will make a request of all-predictive nodes
-                if peer in self._peers_without_full_trie:
-                    self.logger.warning("Skipping all-predictive loading on %s", peer)
-                    self._node_data_peers.put_nowait(peer)
-                    self._maybe_useful_nodes.complete(predictive_batch_id, ())
-                    self._allow_predictive_only = False
-                    continue
-
             if any(len(h) != 32 for h in node_hashes):
                 # This was inserted to identify and resolve a buggy situation
                 short_node_urgent_hashes = tuple(h for h in node_hashes if len(h) != 32)
@@ -366,10 +355,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
             predictive_batch_id: int) -> None:
 
         nodes = await self._request_nodes(peer, node_hashes)
-
-        if len(nodes) == 0 and urgent_batch_id is None:
-            self.logger.debug("Shutting off all-predictive loading on %s", peer)
-            self._peers_without_full_trie.add(peer)
 
         urgent_nodes = {
             node_hash: node for node_hash, node in nodes
