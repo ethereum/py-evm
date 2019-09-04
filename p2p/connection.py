@@ -16,7 +16,9 @@ from p2p.abc import (
     CommandHandlerFn,
     ConnectionAPI,
 )
+from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
+    MalformedMessage,
     PeerConnectionLost,
     UnknownProtocol,
     UnknownProtocolCommand,
@@ -80,6 +82,10 @@ class Connection(ConnectionAPI, BaseService):
 
                 await self.cancellation()
         except (PeerConnectionLost, asyncio.CancelledError):
+            pass
+        except (MalformedMessage,) as err:
+            self.logger.debug("Disconnecting peer %s for sending MalformedMessage: %s", err)
+            self.get_base_protocol().send_disconnect(DisconnectReason.bad_protocol)
             pass
 
     async def _cleanup(self) -> None:
