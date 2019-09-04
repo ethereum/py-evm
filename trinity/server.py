@@ -25,8 +25,7 @@ from p2p.exceptions import (
     HandshakeFailure,
     PeerConnectionLost,
 )
-from p2p.handshake import DevP2PHandshakeParams
-from p2p.peer import receive_handshake
+from p2p.handshake import receive_dial_in, DevP2PHandshakeParams
 from p2p.service import BaseService
 
 from trinity._utils.version import construct_trinity_client_identifier
@@ -167,7 +166,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         factory = self.peer_pool.get_peer_factory()
         handshakers = await factory.get_handshakers()
-        connection = await receive_handshake(
+        connection = await receive_dial_in(
             reader=reader,
             writer=writer,
             private_key=self.privkey,

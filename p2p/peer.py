@@ -41,9 +41,8 @@ from p2p.exceptions import (
     PeerConnectionLost,
     UnknownProtocol,
 )
-from p2p.connection import Connection
 from p2p.handshake import (
-    negotiate_protocol_handshakes,
+    dial_out,
     DevP2PHandshakeParams,
     Handshaker,
 )
@@ -58,7 +57,6 @@ from p2p.protocol import (
     Command,
     Payload,
 )
-from p2p.transport import Transport
 from p2p.tracking.connection import (
     BaseConnectionTracker,
     NoopConnectionTracker,
@@ -66,89 +64,6 @@ from p2p.tracking.connection import (
 
 if TYPE_CHECKING:
     from p2p.peer_pool import BasePeerPool  # noqa: F401
-
-
-async def handshake(remote: NodeAPI,
-                    private_key: datatypes.PrivateKey,
-                    p2p_handshake_params: DevP2PHandshakeParams,
-                    protocol_handshakers: Tuple[Handshaker, ...],
-                    token: CancelToken) -> ConnectionAPI:
-    """
-    Perform the auth and P2P handshakes with the given remote.
-
-    Return a `Connection` object housing all of the negotiated sub protocols.
-
-    Raises UnreachablePeer if we cannot connect to the peer or
-    HandshakeFailure if the remote disconnects before completing the
-    handshake or if none of the sub-protocols supported by us is also
-    supported by the remote.
-    """
-    transport = await Transport.connect(
-        remote,
-        private_key,
-        token,
-    )
-
-    try:
-        multiplexer, devp2p_receipt, protocol_receipts = await negotiate_protocol_handshakes(
-            transport=transport,
-            p2p_handshake_params=p2p_handshake_params,
-            protocol_handshakers=protocol_handshakers,
-            token=token,
-        )
-    except Exception:
-        # Note: This is one of two places where we manually handle closing the
-        # reader/writer connection pair in the event of an error during the
-        # peer connection and handshake process.
-        # See `p2p.auth.handshake` for the other.
-        transport.close()
-        await asyncio.sleep(0)
-        raise
-
-    connection = Connection(
-        multiplexer=multiplexer,
-        devp2p_receipt=devp2p_receipt,
-        protocol_receipts=protocol_receipts,
-        is_dial_out=True,
-    )
-    return connection
-
-
-async def receive_handshake(reader: asyncio.StreamReader,
-                            writer: asyncio.StreamWriter,
-                            private_key: datatypes.PrivateKey,
-                            p2p_handshake_params: DevP2PHandshakeParams,
-                            protocol_handshakers: Tuple[Handshaker, ...],
-                            token: CancelToken) -> Connection:
-    transport = await Transport.receive_connection(
-        reader=reader,
-        writer=writer,
-        private_key=private_key,
-        token=token,
-    )
-    try:
-        multiplexer, devp2p_receipt, protocol_receipts = await negotiate_protocol_handshakes(
-            transport=transport,
-            p2p_handshake_params=p2p_handshake_params,
-            protocol_handshakers=protocol_handshakers,
-            token=token,
-        )
-    except Exception:
-        # Note: This is one of two places where we manually handle closing the
-        # reader/writer connection pair in the event of an error during the
-        # peer connection and handshake process.
-        # See `p2p.auth.handshake` for the other.
-        transport.close()
-        await asyncio.sleep(0)
-        raise
-
-    connection = Connection(
-        multiplexer=multiplexer,
-        devp2p_receipt=devp2p_receipt,
-        protocol_receipts=protocol_receipts,
-        is_dial_out=False,
-    )
-    return connection
 
 
 class BasePeerBootManager(BaseService):
@@ -582,7 +497,7 @@ class BasePeerFactory(ABC):
             self.context.p2p_version,
         )
         handshakers = await self.get_handshakers()
-        connection = await handshake(
+        connection = await dial_out(
             remote=remote,
             private_key=self.privkey,
             p2p_handshake_params=p2p_handshake_params,

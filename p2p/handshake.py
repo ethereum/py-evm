@@ -19,18 +19,21 @@ from cancel_token import CancelToken
 from eth_utils import to_tuple
 from eth_utils.toolz import groupby, valmap
 
+from eth_keys import keys
+
 from eth.tools.logging import ExtendedDebugLogger
 
 from p2p._utils import duplicates
 from p2p.abc import (
+    ConnectionAPI,
     HandshakeReceiptAPI,
     MultiplexerAPI,
+    NodeAPI,
     ProtocolAPI,
     TransportAPI,
 )
-from p2p.constants import (
-    DEVP2P_V5,
-)
+from p2p.connection import Connection
+from p2p.constants import DEVP2P_V5
 from p2p.exceptions import (
     HandshakeFailure,
     NoMatchingPeerCapabilities,
@@ -47,6 +50,7 @@ from p2p.p2p_proto import (
     P2PProtocolV4,
 )
 from p2p.protocol import get_cmd_offsets
+from p2p.transport import Transport
 from p2p.typing import (
     Capabilities,
     Capability,
@@ -283,3 +287,86 @@ async def negotiate_protocol_handshakes(transport: TransportAPI,
     # `Multiplexer` object acts as a container for the individual protocol
     # instances.
     return multiplexer, devp2p_receipt, protocol_receipts
+
+
+async def dial_out(remote: NodeAPI,
+                   private_key: keys.PrivateKey,
+                   p2p_handshake_params: DevP2PHandshakeParams,
+                   protocol_handshakers: Sequence[Handshaker],
+                   token: CancelToken) -> ConnectionAPI:
+    """
+    Perform the auth and P2P handshakes with the given remote.
+
+    Return a `Connection` object housing all of the negotiated sub protocols.
+
+    Raises UnreachablePeer if we cannot connect to the peer or
+    HandshakeFailure if the remote disconnects before completing the
+    handshake or if none of the sub-protocols supported by us is also
+    supported by the remote.
+    """
+    transport = await Transport.connect(
+        remote,
+        private_key,
+        token,
+    )
+
+    try:
+        multiplexer, devp2p_receipt, protocol_receipts = await negotiate_protocol_handshakes(
+            transport=transport,
+            p2p_handshake_params=p2p_handshake_params,
+            protocol_handshakers=protocol_handshakers,
+            token=token,
+        )
+    except Exception:
+        # Note: This is one of two places where we manually handle closing the
+        # reader/writer connection pair in the event of an error during the
+        # peer connection and handshake process.
+        # See `p2p.auth.handshake` for the other.
+        transport.close()
+        await asyncio.sleep(0)
+        raise
+
+    connection = Connection(
+        multiplexer=multiplexer,
+        devp2p_receipt=devp2p_receipt,
+        protocol_receipts=protocol_receipts,
+        is_dial_out=True,
+    )
+    return connection
+
+
+async def receive_dial_in(reader: asyncio.StreamReader,
+                          writer: asyncio.StreamWriter,
+                          private_key: keys.PrivateKey,
+                          p2p_handshake_params: DevP2PHandshakeParams,
+                          protocol_handshakers: Sequence[Handshaker],
+                          token: CancelToken) -> Connection:
+    transport = await Transport.receive_connection(
+        reader=reader,
+        writer=writer,
+        private_key=private_key,
+        token=token,
+    )
+    try:
+        multiplexer, devp2p_receipt, protocol_receipts = await negotiate_protocol_handshakes(
+            transport=transport,
+            p2p_handshake_params=p2p_handshake_params,
+            protocol_handshakers=protocol_handshakers,
+            token=token,
+        )
+    except Exception:
+        # Note: This is one of two places where we manually handle closing the
+        # reader/writer connection pair in the event of an error during the
+        # peer connection and handshake process.
+        # See `p2p.auth.handshake` for the other.
+        transport.close()
+        await asyncio.sleep(0)
+        raise
+
+    connection = Connection(
+        multiplexer=multiplexer,
+        devp2p_receipt=devp2p_receipt,
+        protocol_receipts=protocol_receipts,
+        is_dial_out=False,
+    )
+    return connection
