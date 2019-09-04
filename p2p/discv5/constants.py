@@ -33,8 +33,5 @@ DATAGRAM_BUFFER_SIZE = 2048
 MAX_REQUEST_ID = 2**32 - 1  # highest request id used for outgoing requests
 MAX_REQUEST_ID_ATTEMPTS = 100  # number of attempts we take to guess a available request id
 
-# ENR keys for endpoint information
-IP_V4_ADDRESS_ENR_KEY = b"ip"
-UDP_PORT_ENR_KEY = b"udp"
-
 REQUEST_RESPONSE_TIMEOUT = 0.5  # timeout for waiting for response after request was sent
+ROUTING_TABLE_PING_INTERVAL = 5  # interval of outgoing pings sent to maintain the routing table

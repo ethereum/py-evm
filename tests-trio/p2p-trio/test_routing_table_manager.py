@@ -7,6 +7,12 @@ from trio.testing import (
     wait_all_tasks_blocked,
 )
 
+from p2p.discv5.channel_services import (
+    IncomingMessage,
+)
+from p2p.discv5.constants import (
+    ROUTING_TABLE_PING_INTERVAL,
+)
 from p2p.discv5.enr_db import (
     MemoryEnrDb,
 )
@@ -16,6 +22,7 @@ from p2p.discv5.identity_schemes import (
 from p2p.discv5.messages import (
     FindNodeMessage,
     NodesMessage,
+    PingMessage,
     PongMessage,
 )
 from p2p.discv5.message_dispatcher import (
@@ -27,6 +34,7 @@ from p2p.discv5.routing_table import (
 from p2p.discv5.routing_table_manager import (
     FindNodeHandler,
     PingHandler,
+    PingSender,
 )
 
 from p2p.tools.factories.discovery import (
@@ -141,6 +149,24 @@ async def find_node_handler(local_enr,
         yield ping_handler
 
 
+@pytest_trio.trio_fixture
+async def ping_sender(local_enr,
+                      routing_table,
+                      message_dispatcher,
+                      enr_db,
+                      incoming_message_channels,
+                      endpoint_vote_channels):
+    ping_sender = PingSender(
+        local_node_id=local_enr.node_id,
+        routing_table=routing_table,
+        message_dispatcher=message_dispatcher,
+        enr_db=enr_db,
+        endpoint_vote_send_channel=endpoint_vote_channels[0],
+    )
+    async with background_service(ping_sender):
+        yield ping_sender
+
+
 @pytest.mark.trio
 async def test_ping_handler_sends_pong(ping_handler,
                                        incoming_message_channels,
@@ -227,3 +253,55 @@ async def test_find_node_handler_sends_nodes(find_node_handler,
     assert outgoing_message.message.request_id == find_node.request_id
     assert outgoing_message.message.total == 1
     assert outgoing_message.message.enrs == (local_enr,)
+
+
+@pytest.mark.trio
+async def test_send_ping(ping_sender,
+                         routing_table,
+                         incoming_message_channels,
+                         outgoing_message_channels,
+                         local_enr,
+                         remote_enr,
+                         remote_endpoint):
+    with trio.fail_after(ROUTING_TABLE_PING_INTERVAL):
+        outgoing_message = await outgoing_message_channels[1].receive()
+
+    assert isinstance(outgoing_message.message, PingMessage)
+    assert outgoing_message.receiver_endpoint == remote_endpoint
+    assert outgoing_message.receiver_node_id == remote_enr.node_id
+
+
+@pytest.mark.trio
+async def test_send_endpoint_vote(ping_sender,
+                                  routing_table,
+                                  incoming_message_channels,
+                                  outgoing_message_channels,
+                                  endpoint_vote_channels,
+                                  local_enr,
+                                  remote_enr,
+                                  remote_endpoint):
+    # wait for ping
+    with trio.fail_after(ROUTING_TABLE_PING_INTERVAL):
+        outgoing_message = await outgoing_message_channels[1].receive()
+    ping = outgoing_message.message
+
+    # respond with pong
+    fake_local_endpoint = EndpointFactory()
+    pong = PongMessage(
+        request_id=ping.request_id,
+        enr_seq=0,
+        packet_ip=fake_local_endpoint.ip_address,
+        packet_port=fake_local_endpoint.port,
+    )
+    incoming_message = IncomingMessage(
+        message=pong,
+        sender_endpoint=outgoing_message.receiver_endpoint,
+        sender_node_id=outgoing_message.receiver_node_id,
+    )
+    await incoming_message_channels[0].send(incoming_message)
+    await wait_all_tasks_blocked()
+
+    # receive endpoint vote
+    endpoint_vote = endpoint_vote_channels[1].receive_nowait()
+    assert endpoint_vote.endpoint == fake_local_endpoint
+    assert endpoint_vote.node_id == incoming_message.sender_node_id

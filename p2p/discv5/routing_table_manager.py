@@ -1,4 +1,5 @@
 import logging
+import time
 
 from eth_utils import (
     encode_hex,
@@ -7,6 +8,10 @@ from eth_utils import (
 import trio
 from trio.abc import (
     SendChannel,
+)
+
+from mypy_extensions import (
+    TypedDict,
 )
 
 from p2p.trio_service import (
@@ -18,11 +23,13 @@ from p2p.discv5.abc import (
     MessageDispatcherAPI,
 )
 from p2p.discv5.channel_services import (
+    Endpoint,
     IncomingMessage,
     OutgoingMessage,
 )
 from p2p.discv5.constants import (
     REQUEST_RESPONSE_TIMEOUT,
+    ROUTING_TABLE_PING_INTERVAL,
 )
 from p2p.discv5.endpoint_tracker import (
     EndpointVote,
@@ -289,6 +296,79 @@ class FindNodeHandler(BaseRoutingTableManagerComponent):
         await self.outgoing_message_send_channel.send(outgoing_message)
 
 
+class PingSender(BaseRoutingTableManagerComponent):
+    """Regularly sends pings to peers to check if they are still alive or not."""
+
+    logger = logging.getLogger("p2p.discv5.routing_table_manager.RoutingTableMaintainer")
+
+    def __init__(self,
+                 local_node_id: NodeID,
+                 routing_table: FlatRoutingTable,
+                 message_dispatcher: MessageDispatcherAPI,
+                 enr_db: EnrDbApi,
+                 endpoint_vote_send_channel: SendChannel[EndpointVote]
+                 ) -> None:
+        super().__init__(local_node_id, routing_table, message_dispatcher, enr_db)
+        self.endpoint_vote_send_channel = endpoint_vote_send_channel
+
+    async def run(self) -> None:
+        while True:
+            deadline = trio.current_time() + ROUTING_TABLE_PING_INTERVAL
+
+            if len(self.routing_table) > 0:
+                node_id = self.routing_table.get_oldest_entry()
+                self.logger.debug("Pinging %s", encode_hex(node_id))
+                await self.ping(node_id)
+            else:
+                self.logger.warning("Routing table is empty, no one to ping")
+
+            await trio.sleep_until(deadline)
+
+    async def ping(self, node_id: NodeID) -> None:
+        local_enr = await self.get_local_enr()
+        ping = PingMessage(
+            request_id=self.message_dispatcher.get_free_request_id(node_id),
+            enr_seq=local_enr.sequence_number,
+        )
+
+        try:
+            with trio.fail_after(REQUEST_RESPONSE_TIMEOUT):
+                incoming_message = await self.message_dispatcher.request(node_id, ping)
+        except ValueError as value_error:
+            self.logger.warning(
+                f"Failed to send ping to %s: %s",
+                encode_hex(node_id),
+                value_error,
+            )
+        except trio.TooSlowError:
+            self.logger.warning(f"Ping to %s timed out", encode_hex(node_id))
+        else:
+            if not isinstance(incoming_message.message, PongMessage):
+                self.logger.warning(
+                    "Peer %s responded to Ping with %s instead of Pong",
+                    encode_hex(node_id),
+                    incoming_message.message.__class__.__name__,
+                )
+            else:
+                self.logger.debug("Received Pong from %s", encode_hex(node_id))
+
+                self.update_routing_table(node_id)
+
+                pong = incoming_message.message
+                local_endpoint = Endpoint(
+                    ip_address=pong.packet_ip,
+                    port=pong.packet_port,
+                )
+                endpoint_vote = EndpointVote(
+                    endpoint=local_endpoint,
+                    node_id=node_id,
+                    timestamp=time.monotonic(),
+                )
+                await self.endpoint_vote_send_channel.send(endpoint_vote)
+
+                await self.maybe_request_remote_enr(incoming_message)
+
+
 class RoutingTableManager(Service):
     """Manages the routing table. The actual work is delegated to a few sub components."""
 
@@ -300,12 +380,18 @@ class RoutingTableManager(Service):
                  outgoing_message_send_channel: SendChannel[OutgoingMessage],
                  endpoint_vote_send_channel: SendChannel[EndpointVote],
                  ) -> None:
-        shared_component_kwargs = {
+        SharedComponentKwargType = TypedDict("SharedComponentKwargType", {
             "local_node_id": NodeID,
             "routing_table": FlatRoutingTable,
             "message_dispatcher": MessageDispatcherAPI,
             "enr_db": EnrDbApi,
-        }
+        })
+        shared_component_kwargs = SharedComponentKwargType({
+            "local_node_id": local_node_id,
+            "routing_table": routing_table,
+            "message_dispatcher": message_dispatcher,
+            "enr_db": enr_db,
+        })
 
         self.ping_handler = PingHandler(
             outgoing_message_send_channel=outgoing_message_send_channel,
@@ -315,11 +401,16 @@ class RoutingTableManager(Service):
             outgoing_message_send_channel=outgoing_message_send_channel,
             **shared_component_kwargs,
         )
+        self.ping_sender = PingSender(
+            endpoint_vote_send_channel=endpoint_vote_send_channel,
+            **shared_component_kwargs,
+        )
 
     async def run(self) -> None:
         components = (
             self.ping_handler,
             self.find_node_handler,
+            self.ping_sender,
         )
         for component in components:
             self.manager.run_daemon_task(component.run)
