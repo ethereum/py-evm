@@ -41,6 +41,7 @@ from p2p.discv5.identity_schemes import (
     V4IdentityScheme,
 )
 from p2p.discv5.messages import (
+    FindNodeMessage,
     PingMessage,
 )
 from p2p.discv5.handshake import (
@@ -171,6 +172,14 @@ class PingMessageFactory(factory.Factory):
 
     request_id = factory.Faker("pyint", min_value=0, max_value=100)
     enr_seq = factory.Faker("pyint", min_value=0, max_value=100)
+
+
+class FindNodeMessageFactory(factory.Factory):
+    class Meta:
+        model = FindNodeMessage
+
+    request_id = factory.Faker("pyint", min_value=0, max_value=100)
+    distance = factory.Faker("pyint", min_value=0, max_value=32)
 
 
 class IncomingMessageFactory(factory.Factory):

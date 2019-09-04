@@ -15,6 +15,7 @@ from p2p.discv5.identity_schemes import (
 )
 from p2p.discv5.messages import (
     FindNodeMessage,
+    NodesMessage,
     PongMessage,
 )
 from p2p.discv5.message_dispatcher import (
@@ -24,12 +25,14 @@ from p2p.discv5.routing_table import (
     FlatRoutingTable,
 )
 from p2p.discv5.routing_table_manager import (
+    FindNodeHandler,
     PingHandler,
 )
 
 from p2p.tools.factories.discovery import (
     EndpointFactory,
     ENRFactory,
+    FindNodeMessageFactory,
     NodeIDFactory,
     IncomingMessageFactory,
     PingMessageFactory,
@@ -47,6 +50,11 @@ def incoming_message_channels():
 
 @pytest.fixture
 def outgoing_message_channels():
+    return trio.open_memory_channel(0)
+
+
+@pytest.fixture
+def endpoint_vote_channels():
     return trio.open_memory_channel(0)
 
 
@@ -111,6 +119,25 @@ async def ping_handler(local_enr,
         outgoing_message_send_channel=outgoing_message_channels[0],
     )
     async with background_service(ping_handler):
+        yield ping_handler
+
+
+@pytest_trio.trio_fixture
+async def find_node_handler(local_enr,
+                            routing_table,
+                            message_dispatcher,
+                            enr_db,
+                            incoming_message_channels,
+                            outgoing_message_channels,
+                            endpoint_vote_channels):
+    find_node_handler = FindNodeHandler(
+        local_node_id=local_enr.node_id,
+        routing_table=routing_table,
+        message_dispatcher=message_dispatcher,
+        enr_db=enr_db,
+        outgoing_message_send_channel=outgoing_message_channels[0],
+    )
+    async with background_service(find_node_handler):
         yield ping_handler
 
 
@@ -183,3 +210,20 @@ async def test_ping_handler_requests_updated_enr(ping_handler,
     assert outgoing_find_node.message.distance == 0
     assert outgoing_find_node.receiver_endpoint == incoming_message.sender_endpoint
     assert outgoing_find_node.receiver_node_id == incoming_message.sender_node_id
+
+
+@pytest.mark.trio
+async def test_find_node_handler_sends_nodes(find_node_handler,
+                                             incoming_message_channels,
+                                             outgoing_message_channels,
+                                             local_enr):
+    find_node = FindNodeMessageFactory(distance=0)
+    incoming_message = IncomingMessageFactory(message=find_node)
+    await incoming_message_channels[0].send(incoming_message)
+    await wait_all_tasks_blocked()
+
+    outgoing_message = outgoing_message_channels[1].receive_nowait()
+    assert isinstance(outgoing_message.message, NodesMessage)
+    assert outgoing_message.message.request_id == find_node.request_id
+    assert outgoing_message.message.total == 1
+    assert outgoing_message.message.enrs == (local_enr,)

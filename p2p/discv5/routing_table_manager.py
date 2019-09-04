@@ -236,6 +236,59 @@ class PingHandler(BaseRoutingTableManagerComponent):
         await self.outgoing_message_send_channel.send(outgoing_message)
 
 
+class FindNodeHandler(BaseRoutingTableManagerComponent):
+    """Responds to FindNode with Nodes messages."""
+
+    logger = logging.getLogger("p2p.discv5.routing_table_manager.PingHandler")
+
+    def __init__(self,
+                 local_node_id: NodeID,
+                 routing_table: FlatRoutingTable,
+                 message_dispatcher: MessageDispatcherAPI,
+                 enr_db: EnrDbApi,
+                 outgoing_message_send_channel: SendChannel[OutgoingMessage]
+                 ) -> None:
+        super().__init__(local_node_id, routing_table, message_dispatcher, enr_db)
+        self.outgoing_message_send_channel = outgoing_message_send_channel
+
+    async def run(self) -> None:
+        handler_subscription = self.message_dispatcher.add_request_handler(FindNodeMessage)
+        async with handler_subscription:
+            async for incoming_message in handler_subscription:
+                self.update_routing_table(incoming_message.sender_node_id)
+
+                if not isinstance(incoming_message.message, FindNodeMessage):
+                    raise TypeError(
+                        f"Received {incoming_message.__class__.__name__} from message dispatcher "
+                        f"even though we subscribed to FindNode messages"
+                    )
+
+                if incoming_message.message.distance == 0:
+                    await self.respond_with_local_enr(incoming_message)
+                else:
+                    self.logger.warning(
+                        "Received FindNode request for non-zero distance from %s which is not "
+                        "implemented yet",
+                        encode_hex(incoming_message.sender_node_id),
+                    )
+
+    async def respond_with_local_enr(self, incoming_message: IncomingMessage) -> None:
+        """Send a Nodes message containing the local ENR in response to an incoming message."""
+        local_enr = await self.get_local_enr()
+        nodes_message = NodesMessage(
+            request_id=incoming_message.message.request_id,
+            total=1,
+            enrs=(local_enr,),
+        )
+        outgoing_message = incoming_message.to_response(nodes_message)
+
+        self.logger.debug(
+            "Responding to %s with Nodes message containing local ENR",
+            incoming_message.sender_endpoint,
+        )
+        await self.outgoing_message_send_channel.send(outgoing_message)
+
+
 class RoutingTableManager(Service):
     """Manages the routing table. The actual work is delegated to a few sub components."""
 
@@ -258,10 +311,15 @@ class RoutingTableManager(Service):
             outgoing_message_send_channel=outgoing_message_send_channel,
             **shared_component_kwargs,
         )
+        self.find_node_handler = FindNodeHandler(
+            outgoing_message_send_channel=outgoing_message_send_channel,
+            **shared_component_kwargs,
+        )
 
     async def run(self) -> None:
         components = (
             self.ping_handler,
+            self.find_node_handler,
         )
         for component in components:
             self.manager.run_daemon_task(component.run)
