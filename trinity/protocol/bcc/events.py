@@ -4,7 +4,7 @@ from typing import Tuple
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from lahja import BaseEvent
 
-from p2p.abc import NodeAPI
+from p2p.abc import SessionAPI
 
 from trinity.protocol.common.events import PeerPoolMessageEvent
 
@@ -23,6 +23,6 @@ class SendBeaconBlocksEvent(BaseEvent):
     Event to proxy a ``BccPeer.sub_proto.send_blocks`` call from a proxy peer to the actual peer
     that sits in the peer pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
     blocks: Tuple[BaseBeaconBlock, ...]
     request_id: int

@@ -6,7 +6,8 @@ from eth._utils.address import (
     force_bytes_to_address
 )
 
-from p2p.tools.factories import NodeFactory
+from p2p.service import run_service
+from p2p.tools.factories import SessionFactory
 
 from trinity.plugins.builtin.tx_pool.pool import (
     TxPool,
@@ -35,7 +36,7 @@ from tests.core.integration_test_helpers import (
 )
 
 
-TEST_NODES = (NodeFactory(), NodeFactory())
+TEST_NODES = tuple(SessionFactory.create_batch(2))
 
 
 @pytest.fixture
@@ -48,7 +49,7 @@ def observe_outgoing_transactions(event_bus):
 
     event_bus.subscribe(
         SendTransactionsEvent,
-        lambda event: outgoing_tx.append((event.remote, event.transactions))
+        lambda event: outgoing_tx.append((event.session, event.transactions))
     )
 
     return outgoing_tx
@@ -66,59 +67,59 @@ async def test_tx_propagation(event_bus,
     async with run_proxy_peer_pool(event_bus) as peer_pool:
         outgoing_tx = observe_outgoing_transactions(event_bus)
         tx_pool = TxPool(event_bus, peer_pool, tx_validator)
-        asyncio.ensure_future(tx_pool.run())
+        async with run_service(tx_pool):
 
-        run_mock_request_response(
-            GetConnectedPeersRequest, GetConnectedPeersResponse(initial_two_peers), event_bus)
+            run_mock_request_response(
+                GetConnectedPeersRequest, GetConnectedPeersResponse(initial_two_peers), event_bus)
 
-        await asyncio.sleep(0.01)
+            await asyncio.sleep(0.01)
 
-        txs_broadcasted_by_peer1 = [create_random_tx(chain_with_block_validation)]
+            txs_broadcasted_by_peer1 = [create_random_tx(chain_with_block_validation)]
 
-        # Peer1 sends some txs
-        await event_bus.broadcast(
-            TransactionsEvent(remote=node_one, msg=txs_broadcasted_by_peer1, cmd=Transactions)
-        )
+            # Peer1 sends some txs
+            await event_bus.broadcast(
+                TransactionsEvent(session=node_one, msg=txs_broadcasted_by_peer1, cmd=Transactions)  # noqa: E501
+            )
 
-        await asyncio.sleep(0.01)
-        assert outgoing_tx == [
-            (node_two, txs_broadcasted_by_peer1),
-        ]
-        # Clear the recording, we asserted all we want and would like to have a fresh start
-        outgoing_tx.clear()
+            await asyncio.sleep(0.01)
+            assert outgoing_tx == [
+                (node_two, txs_broadcasted_by_peer1),
+            ]
+            # Clear the recording, we asserted all we want and would like to have a fresh start
+            outgoing_tx.clear()
 
-        # Peer1 sends same txs again
-        await event_bus.broadcast(
-            TransactionsEvent(remote=node_one, msg=txs_broadcasted_by_peer1, cmd=Transactions)
-        )
-        await asyncio.sleep(0.01)
-        # Check that Peer2 doesn't receive them again
-        assert len(outgoing_tx) == 0
+            # Peer1 sends same txs again
+            await event_bus.broadcast(
+                TransactionsEvent(session=node_one, msg=txs_broadcasted_by_peer1, cmd=Transactions)  # noqa: E501
+            )
+            await asyncio.sleep(0.01)
+            # Check that Peer2 doesn't receive them again
+            assert len(outgoing_tx) == 0
 
-        # Peer2 sends exact same txs back
-        await event_bus.broadcast(
-            TransactionsEvent(remote=node_two, msg=txs_broadcasted_by_peer1, cmd=Transactions)
-        )
-        await asyncio.sleep(0.01)
+            # Peer2 sends exact same txs back
+            await event_bus.broadcast(
+                TransactionsEvent(session=node_two, msg=txs_broadcasted_by_peer1, cmd=Transactions)  # noqa: E501
+            )
+            await asyncio.sleep(0.01)
 
-        # Check that Peer1 won't get them as that is where they originally came from
-        assert len(outgoing_tx) == 0
+            # Check that Peer1 won't get them as that is where they originally came from
+            assert len(outgoing_tx) == 0
 
-        txs_broadcasted_by_peer2 = [
-            create_random_tx(chain_with_block_validation),
-            txs_broadcasted_by_peer1[0]
-        ]
+            txs_broadcasted_by_peer2 = [
+                create_random_tx(chain_with_block_validation),
+                txs_broadcasted_by_peer1[0]
+            ]
 
-        # Peer2 sends old + new tx
-        await event_bus.broadcast(
-            TransactionsEvent(remote=node_two, msg=txs_broadcasted_by_peer2, cmd=Transactions)
-        )
-        await asyncio.sleep(0.01)
+            # Peer2 sends old + new tx
+            await event_bus.broadcast(
+                TransactionsEvent(session=node_two, msg=txs_broadcasted_by_peer2, cmd=Transactions)  # noqa: E501
+            )
+            await asyncio.sleep(0.01)
 
-        # Check that Peer1 receives only the one tx that it didn't know about
-        assert outgoing_tx == [
-            (node_one, [txs_broadcasted_by_peer2[0]]),
-        ]
+            # Check that Peer1 receives only the one tx that it didn't know about
+            assert outgoing_tx == [
+                (node_one, [txs_broadcasted_by_peer2[0]]),
+            ]
 
 
 @pytest.mark.asyncio
@@ -147,7 +148,7 @@ async def test_does_not_propagate_invalid_tx(event_bus,
 
         # Peer1 sends some txs
         await event_bus.broadcast(
-            TransactionsEvent(remote=node_one, msg=txs_broadcasted_by_peer1, cmd=Transactions)
+            TransactionsEvent(session=node_one, msg=txs_broadcasted_by_peer1, cmd=Transactions)
         )
         await asyncio.sleep(0.01)
 

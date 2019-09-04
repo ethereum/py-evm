@@ -1,8 +1,6 @@
 import asyncio
 import pytest
 
-from p2p.tools.factories import NodeFactory
-
 from trinity.protocol.common.events import (
     GetConnectedPeersRequest,
     GetConnectedPeersResponse,
@@ -10,12 +8,14 @@ from trinity.protocol.common.events import (
     PeerLeftEvent,
 )
 
+from p2p.tools.factories import SessionFactory
+
 from tests.core.integration_test_helpers import (
     run_proxy_peer_pool,
     run_mock_request_response,
 )
 
-TEST_NODES = tuple(NodeFactory() for i in range(4))
+TEST_NODES = tuple(SessionFactory.create_batch(4))
 
 
 @pytest.mark.asyncio
@@ -89,4 +89,4 @@ async def test_removes_peers(event_bus):
 
         peers = await proxy_peer_pool.get_peers()
         assert len(peers) == 1
-        assert peers[0].remote is TEST_NODES[1]
+        assert peers[0].session == TEST_NODES[1]

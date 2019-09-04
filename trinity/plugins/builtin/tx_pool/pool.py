@@ -17,7 +17,7 @@ from cancel_token import CancelToken
 
 from eth.abc import SignedTransactionAPI
 
-from p2p.abc import NodeAPI
+from p2p.abc import SessionAPI
 from p2p.service import BaseService
 
 from trinity.protocol.eth.peer import (
@@ -69,9 +69,9 @@ class TxPool(BaseService):
 
         async for event in self.wait_iter(self._event_bus.stream(TransactionsEvent)):
             txs = cast(List[SignedTransactionAPI], event.msg)
-            await self._handle_tx(event.remote, txs)
+            await self._handle_tx(event.session, txs)
 
-    async def _handle_tx(self, sender: NodeAPI, txs: Sequence[SignedTransactionAPI]) -> None:
+    async def _handle_tx(self, sender: SessionAPI, txs: Sequence[SignedTransactionAPI]) -> None:
 
         self.logger.debug('Received %d transactions from %s', len(txs), sender)
 
@@ -79,7 +79,7 @@ class TxPool(BaseService):
 
         for receiving_peer in await self._peer_pool.get_peers():
 
-            if receiving_peer.remote is sender:
+            if receiving_peer.session == sender:
                 continue
 
             filtered_tx = self._filter_tx_for_peer(receiving_peer, txs)
@@ -92,7 +92,7 @@ class TxPool(BaseService):
                 receiving_peer,
             )
             receiving_peer.sub_proto.send_transactions(filtered_tx)
-            self._add_txs_to_bloom(receiving_peer.remote, filtered_tx)
+            self._add_txs_to_bloom(receiving_peer.session, filtered_tx)
 
     def _filter_tx_for_peer(
             self,
@@ -101,17 +101,19 @@ class TxPool(BaseService):
 
         return [
             val for val in txs
-            if self._construct_bloom_entry(peer.remote, val) not in self._bloom
+            if self._construct_bloom_entry(peer.session, val) not in self._bloom
             # TODO: we need to keep track of invalid txs and eventually blacklist nodes
             if self.tx_validation_fn(val)
         ]
 
-    def _construct_bloom_entry(self, remote: NodeAPI, tx: SignedTransactionAPI) -> bytes:
-        return f"{repr(remote)}-{tx.hash}-{self._bloom_salt}".encode()
+    def _construct_bloom_entry(self, session: SessionAPI, tx: SignedTransactionAPI) -> bytes:
+        return f"{repr(session)}-{tx.hash}-{self._bloom_salt}".encode()
 
-    def _add_txs_to_bloom(self, remote: NodeAPI, txs: Iterable[SignedTransactionAPI]) -> None:
+    def _add_txs_to_bloom(self,
+                          session: SessionAPI,
+                          txs: Iterable[SignedTransactionAPI]) -> None:
         for val in txs:
-            self._bloom.add(self._construct_bloom_entry(remote, val))
+            self._bloom.add(self._construct_bloom_entry(session, val))
 
     async def do_cleanup(self) -> None:
         self.logger.info("Stopping Tx Pool...")

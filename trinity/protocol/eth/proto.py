@@ -27,7 +27,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import NodeAPI
+from p2p.abc import SessionAPI
 from p2p.protocol import Protocol
 
 from trinity.rlp.block_body import BlockBody
@@ -187,10 +187,10 @@ class ProxyETHProtocol:
     """
 
     def __init__(self,
-                 remote: NodeAPI,
+                 session: SessionAPI,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
-        self.remote = remote
+        self.session = session
         self._event_bus = event_bus
         self._broadcast_config = broadcast_config
 
@@ -205,7 +205,7 @@ class ProxyETHProtocol:
 
     def send_node_data(self, nodes: Sequence[bytes]) -> None:
         self._event_bus.broadcast_nowait(
-            SendNodeDataEvent(self.remote, nodes),
+            SendNodeDataEvent(self.session, nodes),
             self._broadcast_config,
         )
 
@@ -222,7 +222,7 @@ class ProxyETHProtocol:
 
     def send_block_headers(self, headers: Sequence[BlockHeaderAPI]) -> None:
         self._event_bus.broadcast_nowait(
-            SendBlockHeadersEvent(self.remote, headers),
+            SendBlockHeadersEvent(self.session, headers),
             self._broadcast_config,
         )
 
@@ -234,7 +234,7 @@ class ProxyETHProtocol:
 
     def send_block_bodies(self, blocks: Sequence[BlockBody]) -> None:
         self._event_bus.broadcast_nowait(
-            SendBlockBodiesEvent(self.remote, blocks),
+            SendBlockBodiesEvent(self.session, blocks),
             self._broadcast_config,
         )
 
@@ -246,7 +246,7 @@ class ProxyETHProtocol:
 
     def send_receipts(self, receipts: Sequence[Sequence[ReceiptAPI]]) -> None:
         self._event_bus.broadcast_nowait(
-            SendReceiptsEvent(self.remote, receipts),
+            SendReceiptsEvent(self.session, receipts),
             self._broadcast_config,
         )
 
@@ -255,6 +255,6 @@ class ProxyETHProtocol:
     #
     def send_transactions(self, transactions: Sequence[SignedTransactionAPI]) -> None:
         self._event_bus.broadcast_nowait(
-            SendTransactionsEvent(self.remote, transactions),
+            SendTransactionsEvent(self.session, transactions),
             self._broadcast_config,
         )

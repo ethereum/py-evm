@@ -13,7 +13,8 @@ from lahja import (
     BroadcastConfig,
     EndpointAPI,
 )
-from p2p.abc import NodeAPI
+
+from p2p.abc import SessionAPI
 
 from trinity.protocol.common.handlers import (
     BaseChainExchangeHandler,
@@ -63,17 +64,17 @@ class ProxyETHExchangeHandler:
     logger = get_extended_debug_logger('trinity.protocol.eth.handlers.ProxyETHExchangeHandler')
 
     def __init__(self,
-                 remote: NodeAPI,
+                 session: SessionAPI,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
-        self.remote = remote
+        self.session = session
         self._event_bus = event_bus
         self._broadcast_config = broadcast_config
 
     def raise_if_needed(self, value: SupportsError) -> None:
         if value.error is not None:
             self.logger.warning(
-                "Raised %s while fetching from peer %s", value.error, self.remote.uri
+                "Raised %s while fetching from peer %s", value.error, self.session,
             )
             raise value.error
 
@@ -86,7 +87,7 @@ class ProxyETHExchangeHandler:
 
         response = await self._event_bus.request(
             GetBlockHeadersRequest(
-                self.remote,
+                self.session,
                 block_number_or_hash,
                 max_headers,
                 skip,
@@ -101,7 +102,7 @@ class ProxyETHExchangeHandler:
         self.logger.debug2(
             "ProxyETHExchangeHandler returning %s block headers from %s",
             len(response.headers),
-            self.remote
+            self.session
         )
 
         return tuple(response.headers)
@@ -112,7 +113,7 @@ class ProxyETHExchangeHandler:
 
         response = await self._event_bus.request(
             GetBlockBodiesRequest(
-                self.remote,
+                self.session,
                 headers,
                 timeout,
             ),
@@ -124,7 +125,7 @@ class ProxyETHExchangeHandler:
         self.logger.debug2(
             "ProxyETHExchangeHandler returning %s block bodies from %s",
             len(response.bundles),
-            self.remote
+            self.session
         )
 
         return response.bundles
@@ -135,7 +136,7 @@ class ProxyETHExchangeHandler:
 
         response = await self._event_bus.request(
             GetNodeDataRequest(
-                self.remote,
+                self.session,
                 node_hashes,
                 timeout,
             ),
@@ -147,7 +148,7 @@ class ProxyETHExchangeHandler:
         self.logger.debug2(
             "ProxyETHExchangeHandler returning %s node bundles from %s",
             len(response.bundles),
-            self.remote
+            self.session
         )
 
         return response.bundles
@@ -158,7 +159,7 @@ class ProxyETHExchangeHandler:
 
         response = await self._event_bus.request(
             GetReceiptsRequest(
-                self.remote,
+                self.session,
                 headers,
                 timeout,
             ),
@@ -170,7 +171,7 @@ class ProxyETHExchangeHandler:
         self.logger.debug2(
             "ProxyETHExchangeHandler returning %s receipt bundles from %s",
             len(response.bundles),
-            self.remote
+            self.session
         )
 
         return response.bundles

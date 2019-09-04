@@ -34,7 +34,7 @@ from eth2.beacon.typing import SigningRoot
 
 import ssz
 
-from p2p.abc import CommandAPI, NodeAPI
+from p2p.abc import CommandAPI, SessionAPI
 from p2p.peer import BasePeer
 from p2p.typing import Payload
 
@@ -114,19 +114,21 @@ class BCCRequestServer(BaseIsolatedRequestServer):
         self.db = db
 
     async def _handle_msg(self,
-                          remote: NodeAPI,
+                          session: SessionAPI,
                           cmd: CommandAPI,
                           msg: Payload) -> None:
 
         self.logger.debug("cmd %s" % cmd)
         if isinstance(cmd, GetBeaconBlocks):
-            await self._handle_get_beacon_blocks(remote, cast(GetBeaconBlocksMessage, msg))
+            await self._handle_get_beacon_blocks(session, cast(GetBeaconBlocksMessage, msg))
         else:
             raise Exception(f"Invariant: Only subscribed to {self.subscription_msg_types}")
 
-    async def _handle_get_beacon_blocks(self, remote: NodeAPI, msg: GetBeaconBlocksMessage) -> None:
+    async def _handle_get_beacon_blocks(self,
+                                        session: SessionAPI,
+                                        msg: GetBeaconBlocksMessage) -> None:
 
-        peer = BCCProxyPeer.from_node(remote, self.event_bus, self.broadcast_config)
+        peer = BCCProxyPeer.from_session(session, self.event_bus, self.broadcast_config)
 
         request_id = msg["request_id"]
         max_blocks = msg["max_blocks"]

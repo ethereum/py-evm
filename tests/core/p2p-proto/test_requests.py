@@ -61,7 +61,7 @@ async def test_proxy_peer_requests(request,
         server_event_bus
     ):
 
-        proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.remote)
+        proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.session)
 
         headers = await proxy_peer.requests.get_block_headers(0, 1, 0, False)
 
@@ -107,7 +107,7 @@ async def test_proxy_peer_requests_with_timeouts(request,
         server_event_bus
     ):
 
-        proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.remote)
+        proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.session)
 
         with pytest.raises(asyncio.TimeoutError):
             await proxy_peer.requests.get_block_headers(0, 1, 0, False, timeout=0.01)
@@ -150,10 +150,10 @@ async def test_requests_when_peer_in_client_vanishs(request,
         server_event_bus
     ):
 
-        proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.remote)
+        proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.session)
 
         # We remove the peer from the client and assume to see PeerConnectionLost exceptions raised
-        client_peer_pool.connected_nodes.pop(client_peer.remote)
+        client_peer_pool.connected_nodes.pop(client_peer.session)
 
         with pytest.raises(PeerConnectionLost):
             await proxy_peer.requests.get_block_headers(0, 1, 0, False)

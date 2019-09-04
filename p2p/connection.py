@@ -1,20 +1,28 @@
 import asyncio
 import collections
 import functools
-from typing import DefaultDict, Sequence, Set, Type
+from typing import (
+    DefaultDict,
+    Sequence,
+    Set,
+    Type,
+)
+
+from cached_property import cached_property
 
 from eth_keys import keys
 
 from p2p.abc import (
     CommandAPI,
+    CommandHandlerFn,
+    ConnectionAPI,
     HandlerSubscriptionAPI,
     HandshakeReceiptAPI,
     MultiplexerAPI,
     NodeAPI,
     ProtocolAPI,
     ProtocolHandlerFn,
-    CommandHandlerFn,
-    ConnectionAPI,
+    SessionAPI,
 )
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
@@ -72,6 +80,14 @@ class Connection(ConnectionAPI, BaseService):
     @property
     def remote(self) -> NodeAPI:
         return self._multiplexer.remote
+
+    @cached_property
+    def session(self) -> SessionAPI:
+        return self._multiplexer.session
+
+    @property
+    def is_closing(self) -> bool:
+        return self._multiplexer.is_closing
 
     async def _run(self) -> None:
         try:

@@ -23,7 +23,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, NodeAPI
+from p2p.abc import CommandAPI, SessionAPI
 from p2p.cancellable import CancellableMixin
 from p2p.peer import (
     BasePeer,
@@ -114,25 +114,25 @@ class BaseIsolatedRequestServer(BaseService):
     async def handle_stream(self, event_type: Type[PeerPoolMessageEvent]) -> None:
         while self.is_operational:
             async for event in self.wait_iter(self.event_bus.stream(event_type)):
-                self.run_task(self._quiet_handle_msg(event.remote, event.cmd, event.msg))
+                self.run_task(self._quiet_handle_msg(event.session, event.cmd, event.msg))
 
     async def _quiet_handle_msg(
             self,
-            remote: NodeAPI,
+            session: SessionAPI,
             cmd: CommandAPI,
             msg: Payload) -> None:
         try:
-            await self._handle_msg(remote, cmd, msg)
+            await self._handle_msg(session, cmd, msg)
         except OperationCancelled:
             # Silently swallow OperationCancelled exceptions because otherwise they'll be caught
             # by the except below and treated as unexpected.
             pass
         except Exception:
-            self.logger.exception("Unexpected error when processing msg from %s", remote)
+            self.logger.exception("Unexpected error when processing msg from %s", session)
 
     @abstractmethod
     async def _handle_msg(self,
-                          remote: NodeAPI,
+                          session: SessionAPI,
                           cmd: CommandAPI,
                           msg: Payload) -> None:
         ...

@@ -34,7 +34,7 @@ from lahja import (
     EndpointAPI,
 )
 
-from p2p.abc import AsyncioServiceAPI, NodeAPI
+from p2p.abc import AsyncioServiceAPI, NodeAPI, SessionAPI
 from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
@@ -124,7 +124,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self.max_peers = max_peers
         self.context = context
 
-        self.connected_nodes: Dict[NodeAPI, BasePeer] = {}
+        self.connected_nodes: Dict[SessionAPI, BasePeer] = {}
 
         self._subscribers: List[PeerSubscriber] = []
         self._event_bus = event_bus
@@ -288,7 +288,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         to the peer, we also add the given messages to our subscriber's queues.
         """
         self.logger.info('Adding %s to pool', peer)
-        self.connected_nodes[peer.remote] = peer
+        self.connected_nodes[peer.session] = peer
         peer.add_finished_callback(self._peer_finished)
         for subscriber in self._subscribers:
             subscriber.register_peer(peer)
@@ -329,7 +329,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
         async with self._handshake_locks.lock(remote):
 
-            if remote in self.connected_nodes:
+            if any(peer.remote == remote for peer in self.connected_nodes.values()):
                 self.logger.debug2("Skipping %s; already connected to it", remote)
                 raise IneligiblePeer(f"Already connected to {remote}")
 
@@ -453,9 +453,9 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         This is passed as a callback to be called when a peer finishes.
         """
         peer = cast(BasePeer, peer)
-        if peer.remote in self.connected_nodes:
+        if peer.session in self.connected_nodes:
             self.logger.info("%s finished[%s], removing from pool", peer, peer.disconnect_reason)
-            self.connected_nodes.pop(peer.remote)
+            self.connected_nodes.pop(peer.session)
         else:
             self.logger.warning(
                 "%s finished but was not found in connected_nodes (%s)",

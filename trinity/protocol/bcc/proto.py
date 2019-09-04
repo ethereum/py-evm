@@ -18,7 +18,7 @@ from lahja import (
 )
 import ssz
 
-from p2p.abc import NodeAPI
+from p2p.abc import SessionAPI
 from p2p.protocol import Protocol
 
 from eth2.beacon.types.blocks import BaseBeaconBlock
@@ -127,10 +127,10 @@ class ProxyBCCProtocol:
     """
 
     def __init__(self,
-                 remote: NodeAPI,
+                 session: SessionAPI,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
-        self.remote = remote
+        self.session = session
         self._event_bus = event_bus
         self._broadcast_config = broadcast_config
 
@@ -142,7 +142,7 @@ class ProxyBCCProtocol:
 
     def send_blocks(self, blocks: Tuple[BaseBeaconBlock, ...], request_id: int) -> None:
         self._event_bus.broadcast_nowait(
-            SendBeaconBlocksEvent(self.remote, blocks, request_id),
+            SendBeaconBlocksEvent(self.session, blocks, request_id),
             self._broadcast_config,
         )
 

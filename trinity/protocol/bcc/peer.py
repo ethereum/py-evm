@@ -10,7 +10,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.abc import CommandAPI, HandshakeReceiptAPI, SessionAPI
 from p2p.handshake import DevP2PReceipt
 from p2p.peer import (
     BasePeer,
@@ -54,20 +54,20 @@ class BCCProxyPeer(BaseProxyPeer):
     """
 
     def __init__(self,
-                 remote: NodeAPI,
+                 session: SessionAPI,
                  event_bus: EndpointAPI,
                  sub_proto: ProxyBCCProtocol):
 
-        super().__init__(remote, event_bus)
+        super().__init__(session, event_bus)
 
         self.sub_proto = sub_proto
 
     @classmethod
-    def from_node(cls,
-                  remote: NodeAPI,
-                  event_bus: EndpointAPI,
-                  broadcast_config: BroadcastConfig) -> 'BCCProxyPeer':
-        return cls(remote, event_bus, ProxyBCCProtocol(remote, event_bus, broadcast_config))
+    def from_session(cls,
+                     session: SessionAPI,
+                     event_bus: EndpointAPI,
+                     broadcast_config: BroadcastConfig) -> 'BCCProxyPeer':
+        return cls(session, event_bus, ProxyBCCProtocol(session, event_bus, broadcast_config))
 
 
 class BCCPeer(BasePeer):
@@ -133,8 +133,8 @@ class BCCPeerPoolEventServer(PeerPoolEventServer[BCCPeer]):
 
         self.run_daemon_event(
             SendBeaconBlocksEvent,
-            lambda event: self.try_with_node(
-                event.remote,
+            lambda event: self.try_with_session(
+                event.session,
                 lambda peer: peer.sub_proto.send_blocks(event.blocks, event.request_id)
             )
         )
@@ -142,11 +142,11 @@ class BCCPeerPoolEventServer(PeerPoolEventServer[BCCPeer]):
         await super()._run()
 
     async def handle_native_peer_message(self,
-                                         remote: NodeAPI,
+                                         session: SessionAPI,
                                          cmd: CommandAPI,
                                          msg: Payload) -> None:
 
         if isinstance(cmd, GetBeaconBlocks):
-            await self.event_bus.broadcast(GetBeaconBlocksEvent(remote, cmd, msg))
+            await self.event_bus.broadcast(GetBeaconBlocksEvent(session, cmd, msg))
         else:
             raise Exception(f"Command {cmd} is not broadcasted")

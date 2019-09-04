@@ -19,7 +19,7 @@ from eth_typing import (
 
 from eth_utils.toolz import groupby
 
-from p2p.abc import NodeAPI
+from p2p.abc import NodeAPI, SessionAPI
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import NoConnectedPeers
 from p2p.peer import (
@@ -92,16 +92,16 @@ class BaseProxyPeer(BaseService):
     """
 
     def __init__(self,
-                 remote: NodeAPI,
+                 session: SessionAPI,
                  event_bus: EndpointAPI,
                  token: CancelToken = None):
 
         self.event_bus = event_bus
-        self.remote = remote
+        self.session = session
         super().__init__(token)
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} {self.remote}"
+        return f"{self.__class__.__name__} {self.session}"
 
     async def _run(self) -> None:
         self.logger.debug("Starting Proxy Peer %s", self)
@@ -110,7 +110,7 @@ class BaseProxyPeer(BaseService):
     async def disconnect(self, reason: DisconnectReason) -> None:
         self.logger.debug("Forwarding `disconnect()` call from proxy to actual peer", self)
         await self.event_bus.broadcast(
-            DisconnectPeerEvent(self.remote, reason),
+            DisconnectPeerEvent(self.session, reason),
             TO_NETWORKING_BROADCAST_CONFIG,
         )
         await self.cancel()
