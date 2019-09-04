@@ -28,6 +28,7 @@ from p2p.discv5.constants import (
 from p2p.discv5.channel_services import (
     Endpoint,
     IncomingPacket,
+    IncomingMessage,
 )
 from p2p.discv5.endpoint_tracker import (
     EndpointVote,
@@ -170,6 +171,15 @@ class PingMessageFactory(factory.Factory):
 
     request_id = factory.Faker("pyint", min_value=0, max_value=100)
     enr_seq = factory.Faker("pyint", min_value=0, max_value=100)
+
+
+class IncomingMessageFactory(factory.Factory):
+    class Meta:
+        model = IncomingMessage
+
+    message = factory.SubFactory(PingMessageFactory)
+    sender_endpoint = factory.SubFactory(EndpointFactory)
+    sender_node_id = factory.SubFactory(NodeIDFactory)
 
 
 class HandshakeInitiatorFactory(factory.Factory):
