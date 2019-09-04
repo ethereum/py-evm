@@ -486,6 +486,7 @@ class FastChainSyncer(BaseService):
         self._header_syncer.cancel_nowait()
 
 
+@enum.unique
 class BlockPersistPrereqs(enum.Enum):
     StoreBlockBodies = enum.auto()
     StoreReceipts = enum.auto()
@@ -966,6 +967,7 @@ class RegularChainSyncer(BaseService):
         await self.events.cancelled.wait()
 
 
+@enum.unique
 class BlockImportPrereqs(enum.Enum):
     StoreBlockBodies = enum.auto()
 

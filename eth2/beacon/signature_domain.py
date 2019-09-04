@@ -1,6 +1,7 @@
-from enum import IntEnum
+from enum import IntEnum, unique
 
 
+@unique
 class SignatureDomain(IntEnum):
     DOMAIN_BEACON_PROPOSER = 0
     DOMAIN_RANDAO = 1

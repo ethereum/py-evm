@@ -3,6 +3,7 @@ import enum
 from typing import Any
 
 
+@enum.unique
 class TrackingBackend(enum.Enum):
     sqlite3 = 'sqlite3'
     memory = 'memory'

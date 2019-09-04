@@ -48,6 +48,7 @@ class BufferedSocket:
         return bytes(payload)
 
 
+@enum.unique
 class Operation(enum.Enum):
     GET = b'\x00'
     SET = b'\x01'
@@ -141,6 +142,7 @@ SUCCESS_BYTE = b'\x01'
 FAIL_BYTE = b'\x00'
 
 
+@enum.unique
 class Result(enum.Enum):
     SUCCESS = SUCCESS_BYTE
     FAIL = FAIL_BYTE
