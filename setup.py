@@ -118,7 +118,6 @@ deps = {
         "flake8==3.7.8",
         "flake8-bugbear==19.8.0",
         "mypy==0.720",
-        "sqlalchemy-stubs==0.2",
     ],
 }
 
@@ -134,7 +133,12 @@ deps['dev'] = (
     deps['trinity'] +
     deps['test'] +
     deps['doc'] +
-    deps['lint'] +
+    deps['lint']
+)
+
+
+deps['eth2-dev'] = (
+    deps['dev'] +
     deps['eth2'] +
     deps['eth2-lint']
 )
