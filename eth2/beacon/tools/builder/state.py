@@ -25,7 +25,7 @@ def _check_no_missing_balances(
 def _check_sufficient_balance(balances: Sequence[Gwei], threshold: Gwei) -> None:
     for balance in balances:
         if balance < threshold:
-            assert False
+            raise AssertionError()
 
 
 def _check_activated_validators(

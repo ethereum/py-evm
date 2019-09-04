@@ -1,7 +1,6 @@
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type
 
 from eth_utils import ValidationError
-from ssz.tools import from_formatted_dict
 
 from eth2.beacon.state_machines.forks.serenity.slot_processing import process_slots
 from eth2.beacon.state_machines.forks.serenity.state_transitions import (
@@ -9,6 +8,7 @@ from eth2.beacon.state_machines.forks.serenity.state_transitions import (
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
+from eth2.beacon.tools.fixtures.test_part import TestPart
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.typing import Slot
@@ -24,27 +24,30 @@ class BlocksHandler(
 
     @classmethod
     def parse_inputs(
-        _cls, test_case_data: Dict[str, Any]
+        _cls, test_case_parts: Dict[str, TestPart], metadata: Dict[str, Any]
     ) -> Tuple[BeaconState, Tuple[BeaconBlock, ...]]:
+        blocks_count = metadata["blocks_count"]
         return (
-            from_formatted_dict(test_case_data["pre"], BeaconState),
+            test_case_parts["pre"].load(BeaconState),
             tuple(
-                from_formatted_dict(block_data, BeaconBlock)
-                for block_data in test_case_data["blocks"]
+                test_case_parts[f"blocks_{i}"].load(BeaconBlock)
+                for i in range(blocks_count)
             ),
         )
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, TestPart]) -> BeaconState:
+        return test_case_parts["post"].load(BeaconState)
 
     @staticmethod
-    def valid(test_case_data: Dict[str, Any]) -> bool:
-        return bool(test_case_data["post"])
+    def valid(test_case_parts: Dict[str, TestPart]) -> bool:
+        return bool(test_case_parts.get("post", None))
 
     @classmethod
     def run_with(
-        _cls, inputs: Tuple[BeaconState, Tuple[BeaconBlock, ...]], config: Eth2Config
+        _cls,
+        inputs: Tuple[BeaconState, Tuple[BeaconBlock, ...]],
+        config: Optional[Eth2Config],
     ) -> BeaconState:
         state, blocks = inputs
         state_transition = SerenityStateTransition(config)
@@ -65,19 +68,21 @@ class SlotsHandler(TestHandler[Tuple[BeaconState, int], BeaconState]):
     name = "slots"
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> Tuple[BeaconState, int]:
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, TestPart], metadata: Dict[str, Any]
+    ) -> Tuple[BeaconState, int]:
         return (
-            from_formatted_dict(test_case_data["pre"], BeaconState),
-            test_case_data["slots"],
+            test_case_parts["pre"].load(BeaconState),
+            test_case_parts["slots"].load(),
         )
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, TestPart]) -> BeaconState:
+        return test_case_parts["post"].load(BeaconState)
 
     @classmethod
     def run_with(
-        _cls, inputs: Tuple[BeaconState, int], config: Eth2Config
+        _cls, inputs: Tuple[BeaconState, int], config: Optional[Eth2Config]
     ) -> BeaconState:
         state, offset = inputs
         target_slot = Slot(state.slot + offset)

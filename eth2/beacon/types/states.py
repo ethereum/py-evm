@@ -116,11 +116,16 @@ class BeaconState(ssz.Serializable):
         current_justified_checkpoint: Checkpoint = default_checkpoint,
         finalized_checkpoint: Checkpoint = default_checkpoint,
         config: Eth2Config = None,
+        validator_and_balance_length_check: bool = True,
     ) -> None:
-        if len(validators) != len(balances):
-            raise ValueError(
-                "The length of validators and balances lists should be the same."
-            )
+        # We usually want to check that the lengths of each list are the same
+        # In some cases, e.g. SSZ fuzzing, they are not and we still want to instantiate an object.
+        if validator_and_balance_length_check:
+            if len(validators) != len(balances):
+                raise ValueError(
+                    f"The length of validators ({len(validators)}) and balances ({len(balances)}) "
+                    "lists should be the same."
+                )
 
         if config:
             # try to provide sane defaults

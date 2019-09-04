@@ -1,9 +1,7 @@
-from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Type, Union
 
 from eth_utils import ValidationError
 import ssz
-from ssz.tools import from_formatted_dict
 
 from eth2._utils.bls import SignatureError
 from eth2.beacon.state_machines.forks.serenity.block_processing import (
@@ -18,8 +16,8 @@ from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_voluntary_exits,
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
-from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
+from eth2.beacon.tools.fixtures.test_handler import TestHandler
+from eth2.beacon.tools.fixtures.test_part import TestPart
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
@@ -48,22 +46,24 @@ class OperationHandler(
     expected_exceptions: Tuple[Type[Exception], ...] = ()
 
     @classmethod
-    def parse_inputs(cls, test_case_data: Dict[str, Any]) -> Tuple[BeaconState, Any]:
+    def parse_inputs(
+        cls, test_case_parts: Dict[str, TestPart], metadata: Dict[str, Any]
+    ) -> Tuple[BeaconState, Any]:
         operation_name = (
             cls.operation_name if hasattr(cls, "operation_name") else cls.name
         )
         return (
-            from_formatted_dict(test_case_data["pre"], BeaconState),
-            from_formatted_dict(test_case_data[operation_name], cls.operation_type),
+            test_case_parts["pre"].load(BeaconState),
+            test_case_parts[operation_name].load(cls.operation_type),
         )
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, TestPart]) -> BeaconState:
+        return test_case_parts["post"].load(BeaconState)
 
     @staticmethod
-    def valid(test_case_data: Dict[str, Any]) -> bool:
-        return bool(test_case_data["post"])
+    def valid(test_case_parts: Dict[str, TestPart]) -> bool:
+        return bool(test_case_parts.get("post", None))
 
     @classmethod
     def _update_config_if_needed(cls, config: Eth2Config) -> Eth2Config:
@@ -78,7 +78,9 @@ class OperationHandler(
 
     @classmethod
     def run_with(
-        cls, inputs: Tuple[BeaconState, OperationOrBlockHeader], config: Eth2Config
+        cls,
+        inputs: Tuple[BeaconState, OperationOrBlockHeader],
+        config: Optional[Eth2Config],
     ) -> BeaconState:
         config = cls._update_config_if_needed(config)
         state, operation = inputs
@@ -130,7 +132,7 @@ class BlockHeaderHandler(OperationHandler):
 
     @classmethod
     def run_with(
-        _cls, inputs: Tuple[BeaconState, BeaconBlock], config: Eth2Config
+        _cls, inputs: Tuple[BeaconState, BeaconBlock], config: Optional[Eth2Config]
     ) -> BeaconState:
         state, block = inputs
         check_proposer_signature = True
@@ -187,15 +189,3 @@ class OperationsTestType(TestType[OperationsHandlerType]):
         TransferHandler,
         VoluntaryExitHandler,
     )
-
-    @classmethod
-    def build_path(
-        cls,
-        tests_root_path: Path,
-        test_handler: TestHandler[Input, Output],
-        config_type: ConfigType,
-    ) -> Path:
-        file_name = f"{test_handler.name}_{config_type.name}.yaml"
-        return (
-            tests_root_path / Path(cls.name) / Path(test_handler.name) / Path(file_name)
-        )

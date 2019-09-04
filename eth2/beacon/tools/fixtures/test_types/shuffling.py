@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type
 
 from eth_utils import decode_hex
 
@@ -13,15 +13,19 @@ class CoreHandler(TestHandler[Tuple[int, bytes], Tuple[int, ...]]):
     name = "core"
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> Tuple[int, bytes]:
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, Any], metadata: Dict[str, Any]
+    ) -> Tuple[int, bytes]:
+        test_case_data = test_case_parts["mapping"].load()
         return (test_case_data["count"], decode_hex(test_case_data["seed"]))
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> Tuple[int, ...]:
-        return tuple(int(data) for data in test_case_data["shuffled"])
+    def parse_outputs(test_case_parts: Dict[str, Any]) -> Tuple[int, ...]:
+        test_case_data = test_case_parts["mapping"].load()
+        return tuple(int(data) for data in test_case_data["mapping"])
 
     @classmethod
-    def run_with(_cls, inputs: Any, config: Eth2Config) -> Tuple[int, ...]:
+    def run_with(_cls, inputs: Any, config: Optional[Eth2Config]) -> Tuple[int, ...]:
         count, seed = inputs
         return tuple(
             compute_shuffled_index(index, count, seed, config.SHUFFLE_ROUND_COUNT)

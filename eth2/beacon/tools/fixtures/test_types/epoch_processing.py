@@ -1,7 +1,4 @@
-from pathlib import Path
-from typing import Any, Callable, Dict, Tuple, Type
-
-from ssz.tools import from_formatted_dict
+from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_crosslinks,
@@ -11,8 +8,8 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     process_slashings,
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
-from eth2.beacon.tools.fixtures.config_types import ConfigType
-from eth2.beacon.tools.fixtures.test_handler import Input, Output, TestHandler
+from eth2.beacon.tools.fixtures.test_handler import TestHandler
+from eth2.beacon.tools.fixtures.test_part import TestPart
 from eth2.beacon.types.states import BeaconState
 from eth2.configs import Eth2Config
 
@@ -23,15 +20,17 @@ class EpochProcessingHandler(TestHandler[BeaconState, BeaconState]):
     processor: Callable[[BeaconState, Eth2Config], BeaconState]
 
     @classmethod
-    def parse_inputs(_cls, test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["pre"], BeaconState)
+    def parse_inputs(
+        _cls, test_case_parts: Dict[str, TestPart], metadata: Dict[str, Any]
+    ) -> BeaconState:
+        return test_case_parts["pre"].load(BeaconState)
 
     @staticmethod
-    def parse_outputs(test_case_data: Dict[str, Any]) -> BeaconState:
-        return from_formatted_dict(test_case_data["post"], BeaconState)
+    def parse_outputs(test_case_parts: Dict[str, TestPart]) -> BeaconState:
+        return test_case_parts["post"].load(BeaconState)
 
     @classmethod
-    def run_with(cls, inputs: BeaconState, config: Eth2Config) -> BeaconState:
+    def run_with(cls, inputs: BeaconState, config: Optional[Eth2Config]) -> BeaconState:
         state = inputs
         return cls.processor(state, config)
 
@@ -84,15 +83,3 @@ class EpochProcessingTestType(TestType[EpochProcessingHandlerType]):
         SlashingsHandler,
         FinalUpdatesHandler,
     )
-
-    @classmethod
-    def build_path(
-        cls,
-        tests_root_path: Path,
-        test_handler: TestHandler[Input, Output],
-        config_type: ConfigType,
-    ) -> Path:
-        file_name = f"{test_handler.name}_{config_type.name}.yaml"
-        return (
-            tests_root_path / Path(cls.name) / Path(test_handler.name) / Path(file_name)
-        )
