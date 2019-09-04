@@ -99,7 +99,7 @@ def _keep_first_some(values: Sequence[Any]) -> Any:
         if value:
             return value
     raise AssertionError(
-        "``_keep_some`` should find at least one valid option; check configuration."
+        "``_keep_first_some`` should find at least one valid option; check configuration."
     )
 
 
@@ -191,18 +191,18 @@ def _generate_pytest_case_from(
 ) -> Tuple[TestCase, str]:
     """
     id format:
-      f"{TEST_TYPE_NAME}_{HANDLER_TYPE_NAME}_{TEST_SUITE_NAME}_{TEST_CASE_NAME}:{CONFIG_TYPE_NAME}_{FORK_TYPE_NAME}"  # noqa: E501
+      f"{TEST_TYPE_NAME}_{CONFIG_TYPE_NAME}_{FORK_TYPE_NAME}_{HANDLER_TYPE_NAME}_{TEST_SUITE_NAME}_{TEST_CASE_NAME}"  # noqa: E501
     """
-    # special case only one handler "core"
     test_name = test_type.name
     handler_name = handler_type.name
+    config_name = config_type.name
+    fork_name = fork_type.name
 
-    test_id_prefix = thread_last(
-        (test_name, handler_name, suite_name, test_case.name),
+    test_id = thread_last(
+        (test_name, config_name, fork_name, handler_name, suite_name, test_case.name),
         (filter, lambda component: component != ""),
         lambda components: "_".join(components),
     )
-    test_id = f"{test_id_prefix}:{config_type.name}_{fork_type.name}"
     return test_case, test_id
 
 
