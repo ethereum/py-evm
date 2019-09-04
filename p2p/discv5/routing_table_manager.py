@@ -1,4 +1,5 @@
 import logging
+import time
 
 from eth_utils import (
     encode_hex,
@@ -312,13 +313,14 @@ class PingSender(BaseRoutingTableManagerComponent):
 
             if len(self.routing_table) > 0:
                 node_id = self.routing_table.get_oldest_entry()
+                self.logger.debug("Pinging %s", encode_hex(node_id))
                 await self.ping(node_id)
+            else:
+                self.logger.warning("Routing table is empty, no one to ping")
 
             await trio.sleep_until(deadline)
 
     async def ping(self, node_id: NodeID) -> None:
-        self.logger.debug("Pinging %s", encode_hex(node_id))
-
         local_enr = await self.get_local_enr()
         ping = PingMessage(
             request_id=self.message_dispatcher.get_free_request_id(node_id),
@@ -375,10 +377,10 @@ class RoutingTableManager(Service):
                  endpoint_vote_send_channel: SendChannel[EndpointVote],
                  ) -> None:
         shared_component_kwargs = {
-            "local_node_id": NodeID,
-            "routing_table": FlatRoutingTable,
-            "message_dispatcher": MessageDispatcherAPI,
-            "enr_db": EnrDbApi,
+            "local_node_id": local_node_id,
+            "routing_table": routing_table,
+            "message_dispatcher": message_dispatcher,
+            "enr_db": enr_db,
         }
 
         self.ping_handler = PingHandler(
