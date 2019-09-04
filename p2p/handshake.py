@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import asyncio
 import functools
 import logging
@@ -26,10 +25,10 @@ from eth.tools.logging import ExtendedDebugLogger
 from p2p._utils import duplicates
 from p2p.abc import (
     ConnectionAPI,
+    HandshakerAPI,
     HandshakeReceiptAPI,
     MultiplexerAPI,
     NodeAPI,
-    ProtocolAPI,
     TransportAPI,
 )
 from p2p.connection import Connection
@@ -57,24 +56,13 @@ from p2p.typing import (
 )
 
 
-class Handshaker(ABC):
+class Handshaker(HandshakerAPI):
     """
     Base class that handles the handshake for a given protocol.  The primary
     justification for this class's existence is to house parameters that are
     needed for the protocol handshake.
     """
     logger = cast(ExtendedDebugLogger, logging.getLogger('p2p.connection.ProtocolHandler'))
-
-    protocol_class: Type[ProtocolAPI]
-
-    @abstractmethod
-    async def do_handshake(self,
-                           multiplexer: MultiplexerAPI,
-                           protocol: ProtocolAPI) -> HandshakeReceiptAPI:
-        """
-        Perform the actual handshake for the protocol.
-        """
-        ...
 
 
 class DevP2PHandshakeParams(NamedTuple):
@@ -181,7 +169,7 @@ async def _do_p2p_handshake(transport: TransportAPI,
 
 async def negotiate_protocol_handshakes(transport: TransportAPI,
                                         p2p_handshake_params: DevP2PHandshakeParams,
-                                        protocol_handshakers: Sequence[Handshaker],
+                                        protocol_handshakers: Sequence[HandshakerAPI],
                                         token: CancelToken,
                                         ) -> Tuple[MultiplexerAPI, DevP2PReceipt, Tuple[HandshakeReceiptAPI, ...]]:  # noqa: E501
     """
@@ -292,7 +280,7 @@ async def negotiate_protocol_handshakes(transport: TransportAPI,
 async def dial_out(remote: NodeAPI,
                    private_key: keys.PrivateKey,
                    p2p_handshake_params: DevP2PHandshakeParams,
-                   protocol_handshakers: Sequence[Handshaker],
+                   protocol_handshakers: Sequence[HandshakerAPI],
                    token: CancelToken) -> ConnectionAPI:
     """
     Perform the auth and P2P handshakes with the given remote.
@@ -339,7 +327,7 @@ async def receive_dial_in(reader: asyncio.StreamReader,
                           writer: asyncio.StreamWriter,
                           private_key: keys.PrivateKey,
                           p2p_handshake_params: DevP2PHandshakeParams,
-                          protocol_handshakers: Sequence[Handshaker],
+                          protocol_handshakers: Sequence[HandshakerAPI],
                           token: CancelToken) -> Connection:
     transport = await Transport.receive_connection(
         reader=reader,

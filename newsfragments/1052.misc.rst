@@ -1,0 +1,1 @@
+Add ``p2p.abc.HandshakerAPI`` for formal handshaker interface.

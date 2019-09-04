@@ -3,7 +3,7 @@ from typing import (
     Tuple,
 )
 
-from p2p.abc import MultiplexerAPI
+from p2p.abc import HandshakerAPI, MultiplexerAPI
 from p2p.handshake import Handshaker
 from p2p.receipt import HandshakeReceipt
 
@@ -49,7 +49,7 @@ class ParagonPeerFactory(BasePeerFactory):
     peer_class = ParagonPeer
     context: ParagonContext
 
-    async def get_handshakers(self) -> Tuple[Handshaker, ...]:
+    async def get_handshakers(self) -> Tuple[HandshakerAPI, ...]:
         return (ParagonHandshaker(),)
 
 
