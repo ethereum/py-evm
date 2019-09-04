@@ -110,9 +110,7 @@ async def test_request_handling(message_dispatcher,
                                 remote_endpoint):
     ping_send_channel, ping_receive_channel = trio.open_memory_channel(0)
 
-    async with message_dispatcher.add_request_handler(
-        PingMessage.message_type,
-    ) as request_subscription:
+    async with message_dispatcher.add_request_handler(PingMessage) as request_subscription:
 
         incoming_message = IncomingMessage(
             message=PingMessageFactory(),
@@ -161,16 +159,16 @@ async def test_request(message_dispatcher,
     response = PingMessageFactory(request_id=request_id)
 
     async def handle_request_on_remote():
-        outgoing_message = await outgoing_message_channels[1].receive()
-        assert outgoing_message.message == request
-        assert outgoing_message.receiver_endpoint == remote_endpoint
-        assert outgoing_message.receiver_node_id == remote_enr.node_id
+        async for outgoing_message in outgoing_message_channels[1]:
+            assert outgoing_message.message == request
+            assert outgoing_message.receiver_endpoint == remote_endpoint
+            assert outgoing_message.receiver_node_id == remote_enr.node_id
 
-        await incoming_message_channels[0].send(IncomingMessage(
-            message=response,
-            sender_endpoint=remote_endpoint,
-            sender_node_id=remote_enr.node_id,
-        ))
+            await incoming_message_channels[0].send(IncomingMessage(
+                message=response,
+                sender_endpoint=remote_endpoint,
+                sender_node_id=remote_enr.node_id,
+            ))
 
     nursery.start_soon(handle_request_on_remote)
 
@@ -179,3 +177,10 @@ async def test_request(message_dispatcher,
     assert received_response.message == response
     assert received_response.sender_endpoint == remote_endpoint
     assert received_response.sender_node_id == remote_enr.node_id
+
+    received_response_with_explicit_endpoint = await message_dispatcher.request(
+        remote_enr.node_id,
+        request,
+        endpoint=remote_endpoint,
+    )
+    assert received_response_with_explicit_endpoint == received_response

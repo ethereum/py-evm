@@ -184,10 +184,11 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
             )
 
     def add_request_handler(self,
-                            message_type: int,
+                            message_class: Type[BaseMessage],
                             ) -> ChannelHandlerSubscription[IncomingMessage]:
+        message_type = message_class.message_type
         if message_type in self.request_handler_send_channels:
-            raise ValueError(f"Request handler for type {message_type} is already added")
+            raise ValueError(f"Request handler for {message_class.__name__} is already added")
 
         request_channels: Tuple[
             SendChannel[IncomingMessage],
@@ -195,17 +196,19 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
         ] = trio.open_memory_channel(0)
         self.request_handler_send_channels[message_type] = request_channels[0]
 
-        self.logger.debug("Adding request handler for message type %d", message_type)
+        self.logger.debug("Adding request handler for %s", message_class.__name__)
 
         def remove() -> None:
             try:
                 self.request_handler_send_channels.pop(message_type)
             except KeyError:
                 raise ValueError(
-                    f"Request handler for type {message_type} has already been removed"
+                    f"Request handler for {message_class.__name__} has already been removed"
                 )
             else:
-                self.logger.debug("Removing request handler for message type %d", message_type)
+                self.logger.debug(
+                    "Removing request handler for %s", message_class.__name__,
+                )
 
         return ChannelHandlerSubscription(
             send_channel=request_channels[0],
@@ -256,10 +259,7 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
             remove_fn=remove,
         )
 
-    async def prepare_outgoing_message(self,
-                                       receiver_node_id: NodeID,
-                                       message: BaseMessage,
-                                       ) -> OutgoingMessage:
+    async def get_endpoint_from_enr_db(self, receiver_node_id: NodeID) -> Endpoint:
         try:
             enr = await self.enr_db.get(receiver_node_id)
         except KeyError:
@@ -279,17 +279,16 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
                 f"ENR for peer {encode_hex(receiver_node_id)} does not contain a UDP port"
             )
 
-        outgoing_message = OutgoingMessage(
-            message=message,
-            receiver_endpoint=Endpoint(
-                ip_address,
-                udp_port,
-            ),
-            receiver_node_id=receiver_node_id,
-        )
-        return outgoing_message
+        return Endpoint(ip_address, udp_port)
 
-    async def request(self, receiver_node_id: NodeID, message: BaseMessage) -> IncomingMessage:
+    async def request(self,
+                      receiver_node_id: NodeID,
+                      message: BaseMessage,
+                      endpoint: Optional[Endpoint] = None,
+                      ) -> IncomingMessage:
+        if endpoint is None:
+            endpoint = await self.get_endpoint_from_enr_db(receiver_node_id)
+
         response_channels: Tuple[
             SendChannel[IncomingMessage],
             ReceiveChannel[IncomingMessage],
@@ -300,7 +299,11 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
             receiver_node_id,
             message.request_id,
         ) as response_subscription:
-            outgoing_message = await self.prepare_outgoing_message(receiver_node_id, message)
+            outgoing_message = OutgoingMessage(
+                message=message,
+                receiver_node_id=receiver_node_id,
+                receiver_endpoint=endpoint,
+            )
             self.logger.debug(
                 "Sending %s to %s with request id %d",
                 outgoing_message,
@@ -312,8 +315,8 @@ class MessageDispatcher(Service, MessageDispatcherAPI):
             self.logger.debug(
                 "Received %s from %s with request id %d as response to %s",
                 response,
-                outgoing_message,
                 encode_hex(receiver_node_id),
                 message.request_id,
+                outgoing_message,
             )
             return response

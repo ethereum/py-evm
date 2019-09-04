@@ -84,6 +84,13 @@ class IncomingMessage(NamedTuple):
     def __str__(self) -> str:
         return f"{self.__class__.__name__}[{self.message.__class__.__name__}]"
 
+    def to_response(self, response_message: BaseMessage) -> "OutgoingMessage":
+        return OutgoingMessage(
+            message=response_message,
+            receiver_endpoint=self.sender_endpoint,
+            receiver_node_id=self.sender_node_id,
+        )
+
 
 class OutgoingMessage(NamedTuple):
     message: BaseMessage

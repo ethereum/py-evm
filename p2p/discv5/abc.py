@@ -6,6 +6,7 @@ from typing import (
     AsyncContextManager,
     AsyncIterable,
     Generic,
+    Optional,
     Type,
     TypeVar,
 )
@@ -14,6 +15,7 @@ from p2p.discv5.enr import (
     ENR,
 )
 from p2p.discv5.channel_services import (
+    Endpoint,
     IncomingMessage,
 )
 from p2p.discv5.identity_schemes import (
@@ -170,7 +172,11 @@ class MessageDispatcherAPI(ABC):
         ...
 
     @abstractmethod
-    async def request(self, receiver_node_id: NodeID, message: BaseMessage) -> IncomingMessage:
+    async def request(self,
+                      receiver_node_id: NodeID,
+                      message: BaseMessage,
+                      endpoint: Optional[Endpoint] = None,
+                      ) -> IncomingMessage:
         """Send a request to the given peer and return the response.
 
         This is the primary interface for requesting data from a peer. Internally, it will look up
@@ -178,12 +184,15 @@ class MessageDispatcherAPI(ABC):
         handler, send the request, wait for the response, and finally remove the handler again.
 
         This method cannot be used if the response consists of multiple messages.
+
+        If no endpoint is given, it will be queried from the ENR DB, raising a ValueError if it is
+        not present.
         """
         ...
 
     @abstractmethod
     def add_request_handler(self,
-                            message_type: int,
+                            message_class: Type[BaseMessage],
                             ) -> ChannelHandlerSubscriptionAPI[IncomingMessage]:
         """Add a request handler for messages of a given type.
 
