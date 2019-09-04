@@ -21,10 +21,9 @@ from p2p.exceptions import (
     UnknownProtocol,
     UnknownProtocolCommand,
 )
-from p2p.handshake import DevP2PReceipt
 from p2p.handler_subscription import HandlerSubscription
 from p2p.service import BaseService
-from p2p.p2p_proto import BaseP2PProtocol
+from p2p.p2p_proto import BaseP2PProtocol, DevP2PReceipt
 from p2p.typing import Capabilities
 
 

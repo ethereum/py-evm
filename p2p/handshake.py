@@ -40,6 +40,7 @@ from p2p.multiplexer import (
     Multiplexer,
 )
 from p2p.p2p_proto import (
+    DevP2PReceipt,
     Hello,
     BaseP2PProtocol,
     P2PProtocol,
@@ -50,17 +51,6 @@ from p2p.typing import (
     Capabilities,
     Capability,
 )
-
-
-class HandshakeReceipt(HandshakeReceiptAPI):
-    """
-    Data storage object for ephemeral data exchanged during protocol
-    handshakes.
-    """
-    protocol: ProtocolAPI
-
-    def __init__(self, protocol: ProtocolAPI) -> None:
-        self.protocol = protocol
 
 
 class Handshaker(ABC):
@@ -76,30 +66,11 @@ class Handshaker(ABC):
     @abstractmethod
     async def do_handshake(self,
                            multiplexer: MultiplexerAPI,
-                           protocol: ProtocolAPI) -> HandshakeReceipt:
+                           protocol: ProtocolAPI) -> HandshakeReceiptAPI:
         """
         Perform the actual handshake for the protocol.
         """
         ...
-
-
-class DevP2PReceipt(HandshakeReceipt):
-    """
-    Record of the handshake data from the core `p2p` protocol handshake.
-    """
-    def __init__(self,
-                 protocol: BaseP2PProtocol,
-                 version: int,
-                 client_version_string: str,
-                 capabilities: Capabilities,
-                 listen_port: int,
-                 remote_public_key: bytes) -> None:
-        super().__init__(protocol)
-        self.version = version
-        self.client_version_string = client_version_string
-        self.capabilities = capabilities
-        self.listen_port = listen_port
-        self.remote_public_key = remote_public_key
 
 
 class DevP2PHandshakeParams(NamedTuple):
@@ -208,7 +179,7 @@ async def negotiate_protocol_handshakes(transport: TransportAPI,
                                         p2p_handshake_params: DevP2PHandshakeParams,
                                         protocol_handshakers: Sequence[Handshaker],
                                         token: CancelToken,
-                                        ) -> Tuple[MultiplexerAPI, DevP2PReceipt, Tuple[HandshakeReceipt, ...]]:  # noqa: E501
+                                        ) -> Tuple[MultiplexerAPI, DevP2PReceipt, Tuple[HandshakeReceiptAPI, ...]]:  # noqa: E501
     """
     Negotiate the handshakes for both the base `p2p` protocol and the
     appropriate sub protocols.  The basic logic follows the following steps.

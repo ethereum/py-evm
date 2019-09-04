@@ -1,0 +1,1 @@
+Move ``HandshakeReceipt`` to ``p2p.receipt`` to fix circular dependency.

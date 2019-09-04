@@ -45,12 +45,12 @@ from p2p.connection import Connection
 from p2p.handshake import (
     negotiate_protocol_handshakes,
     DevP2PHandshakeParams,
-    DevP2PReceipt,
     Handshaker,
 )
 from p2p.service import BaseService
 from p2p.p2p_proto import (
     BaseP2PProtocol,
+    DevP2PReceipt,
     Disconnect,
     Ping,
 )

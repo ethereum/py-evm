@@ -12,10 +12,8 @@ from p2p.abc import MultiplexerAPI, ProtocolAPI
 from p2p.exceptions import (
     HandshakeFailure,
 )
-from p2p.handshake import (
-    HandshakeReceipt,
-    Handshaker,
-)
+from p2p.handshake import Handshaker
+from p2p.receipt import HandshakeReceipt
 
 from trinity.exceptions import WrongGenesisFailure, WrongNetworkFailure
 

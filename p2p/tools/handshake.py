@@ -1,7 +1,8 @@
 from typing import Type
 
 from p2p.abc import MultiplexerAPI, ProtocolAPI
-from p2p.handshake import Handshaker, HandshakeReceipt
+from p2p.handshake import Handshaker
+from p2p.receipt import HandshakeReceipt
 
 
 class NoopHandshaker(Handshaker):
