@@ -10,6 +10,10 @@ from trio.abc import (
     SendChannel,
 )
 
+from mypy_extensions import (
+    TypedDict,
+)
+
 from p2p.trio_service import (
     Service,
 )
@@ -376,12 +380,18 @@ class RoutingTableManager(Service):
                  outgoing_message_send_channel: SendChannel[OutgoingMessage],
                  endpoint_vote_send_channel: SendChannel[EndpointVote],
                  ) -> None:
-        shared_component_kwargs = {
+        SharedComponentKwargType = TypedDict("SharedComponentKwargType", {
+            "local_node_id": NodeID,
+            "routing_table": FlatRoutingTable,
+            "message_dispatcher": MessageDispatcherAPI,
+            "enr_db": EnrDbApi,
+        })
+        shared_component_kwargs = SharedComponentKwargType({
             "local_node_id": local_node_id,
             "routing_table": routing_table,
             "message_dispatcher": message_dispatcher,
             "enr_db": enr_db,
-        }
+        })
 
         self.ping_handler = PingHandler(
             outgoing_message_send_channel=outgoing_message_send_channel,
