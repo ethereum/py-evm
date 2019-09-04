@@ -25,8 +25,8 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, ConnectionAPI, HandshakeReceiptAPI, NodeAPI
-from p2p.handshake import DevP2PReceipt, Handshaker
+from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.handshake import DevP2PReceipt
 from p2p.peer_pool import BasePeerPool
 from p2p.typing import Payload
 
@@ -147,7 +147,7 @@ class LESProxyPeer(BaseProxyPeer):
 class LESPeerFactory(BaseChainPeerFactory):
     peer_class = LESPeer
 
-    async def get_handshakers(self) -> Tuple[Handshaker, ...]:
+    async def get_handshakers(self) -> Tuple[HandshakerAPI, ...]:
         headerdb = self.context.headerdb
         wait = self.cancel_token.cancellable_wait
 

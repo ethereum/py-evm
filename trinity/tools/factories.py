@@ -21,7 +21,7 @@ from eth.constants import GENESIS_DIFFICULTY, GENESIS_BLOCK_NUMBER
 from eth.chains.mainnet import MAINNET_VM_CONFIGURATION
 
 from p2p import kademlia
-from p2p.handshake import Handshaker
+from p2p.abc import HandshakerAPI
 from p2p.tools.factories import PeerPairFactory
 
 from trinity.constants import MAINNET_NETWORK_ID
@@ -209,7 +209,7 @@ class LESV1Peer(LESPeer):
 class LESV1PeerFactory(LESPeerFactory):
     peer_class = LESV1Peer
 
-    async def get_handshakers(self) -> Tuple[Handshaker, ...]:
+    async def get_handshakers(self) -> Tuple[HandshakerAPI, ...]:
         return (
             LESV1Handshaker(LESHandshakeParamsFactory(version=1)),
         )

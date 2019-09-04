@@ -7,12 +7,11 @@ from cancel_token import CancelToken
 
 from eth_keys import keys
 
-from p2p.abc import ConnectionAPI, NodeAPI
+from p2p.abc import ConnectionAPI, HandshakerAPI, NodeAPI
 from p2p.connection import Connection
 from p2p.constants import DEVP2P_V5
 from p2p.handshake import (
     DevP2PReceipt,
-    Handshaker,
     negotiate_protocol_handshakes,
 )
 from p2p.service import run_service
@@ -25,8 +24,8 @@ from .transport import MemoryTransportPairFactory
 
 @asynccontextmanager
 async def ConnectionPairFactory(*,
-                                alice_handshakers: Tuple[Handshaker, ...] = (),
-                                bob_handshakers: Tuple[Handshaker, ...] = (),
+                                alice_handshakers: Tuple[HandshakerAPI, ...] = (),
+                                bob_handshakers: Tuple[HandshakerAPI, ...] = (),
                                 alice_remote: NodeAPI = None,
                                 alice_private_key: keys.PrivateKey = None,
                                 alice_client_version: str = 'alice',

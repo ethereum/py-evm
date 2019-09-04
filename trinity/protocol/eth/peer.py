@@ -16,7 +16,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, ConnectionAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, HandshakeReceiptAPI, NodeAPI
 from p2p.handshake import DevP2PReceipt
 from p2p.protocol import (
     Payload,
@@ -154,7 +154,7 @@ class ETHProxyPeer(BaseProxyPeer):
 class ETHPeerFactory(BaseChainPeerFactory):
     peer_class = ETHPeer
 
-    async def get_handshakers(self) -> Tuple[ETHHandshaker, ...]:
+    async def get_handshakers(self) -> Tuple[HandshakerAPI, ...]:
         headerdb = self.context.headerdb
         wait = self.cancel_token.cancellable_wait
 

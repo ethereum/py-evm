@@ -31,6 +31,7 @@ from cancel_token import CancelToken
 from p2p.abc import (
     CommandAPI,
     ConnectionAPI,
+    HandshakerAPI,
     HandshakeReceiptAPI,
     NodeAPI,
     ProtocolAPI,
@@ -44,12 +45,11 @@ from p2p.exceptions import (
 from p2p.handshake import (
     dial_out,
     DevP2PHandshakeParams,
-    Handshaker,
+    DevP2PReceipt,
 )
 from p2p.service import BaseService
 from p2p.p2p_proto import (
     BaseP2PProtocol,
-    DevP2PReceipt,
     Disconnect,
     Ping,
 )
@@ -486,7 +486,7 @@ class BasePeerFactory(ABC):
         self.event_bus = event_bus
 
     @abstractmethod
-    async def get_handshakers(self) -> Tuple[Handshaker, ...]:
+    async def get_handshakers(self) -> Tuple[HandshakerAPI, ...]:
         ...
 
     async def handshake(self, remote: NodeAPI) -> BasePeer:

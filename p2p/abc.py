@@ -26,7 +26,7 @@ from cancel_token import CancelToken
 
 from eth_utils import ExtendedDebugLogger
 
-from eth_keys import datatypes
+from eth_keys import keys
 
 from p2p.typing import Capability, Capabilities, Payload, Structure
 from p2p.transport_state import TransportState
@@ -95,12 +95,12 @@ TNode = TypeVar('TNode', bound='NodeAPI')
 
 
 class NodeAPI(ABC):
-    pubkey: datatypes.PublicKey
+    pubkey: keys.PublicKey
     address: AddressAPI
     id: int
 
     @abstractmethod
-    def __init__(self, pubkey: datatypes.PublicKey, address: AddressAPI) -> None:
+    def __init__(self, pubkey: keys.PublicKey, address: AddressAPI) -> None:
         ...
 
     @classmethod
@@ -206,7 +206,7 @@ class TransportAPI(ABC):
 
     @property
     @abstractmethod
-    def public_key(self) -> datatypes.PublicKey:
+    def public_key(self) -> keys.PublicKey:
         ...
 
     @abstractmethod
@@ -392,6 +392,21 @@ class AsyncioServiceAPI(ABC):
 
 class HandshakeReceiptAPI(ABC):
     protocol: ProtocolAPI
+
+
+class HandshakerAPI(ABC):
+    logger: ExtendedDebugLogger
+
+    protocol_class: Type[ProtocolAPI]
+
+    @abstractmethod
+    async def do_handshake(self,
+                           multiplexer: MultiplexerAPI,
+                           protocol: ProtocolAPI) -> HandshakeReceiptAPI:
+        """
+        Perform the actual handshake for the protocol.
+        """
+        ...
 
 
 class HandlerSubscriptionAPI(ContextManager['HandlerSubscriptionAPI']):
