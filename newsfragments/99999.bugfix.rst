@@ -1,0 +1,1 @@
+Fix warning caused by inappropriate call to ``cancel_nowait``.

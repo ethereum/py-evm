@@ -375,7 +375,6 @@ class BasePeer(BaseService):
             self.base_protocol.send_disconnect(reason)
         except PeerConnectionLost:
             self.logger.debug("%s was already disconnected", self.remote)
-        self.cancel_nowait()
 
     async def disconnect(self, reason: DisconnectReason) -> None:
         """Send a disconnect msg to the remote node and stop this Peer.
