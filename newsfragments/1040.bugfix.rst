@@ -1,0 +1,1 @@
+Fix for ``TrioService.run_task`` to ensure that when a background task throws an unhandled exception that it causes full service cancellation and that the exception is propagated.

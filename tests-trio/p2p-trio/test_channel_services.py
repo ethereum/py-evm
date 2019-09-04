@@ -82,6 +82,7 @@ async def test_datagram_sender(socket_pair):
         assert sender == sender_endpoint
 
 
+@pytest.mark.trio
 async def test_packet_decoder():
     datagram_send_channel, datagram_receive_channel = trio.open_memory_channel(1)
     packet_send_channel, packet_receive_channel = trio.open_memory_channel(1)
@@ -102,6 +103,7 @@ async def test_packet_decoder():
         assert incoming_packet.sender_endpoint.port == sender_endpoint.port
 
 
+@pytest.mark.trio
 async def test_packet_decoder_error():
     datagram_send_channel, datagram_receive_channel = trio.open_memory_channel(1)
     packet_send_channel, packet_receive_channel = trio.open_memory_channel(1)
@@ -130,6 +132,7 @@ async def test_packet_decoder_error():
         assert incoming_packet.sender_endpoint.port == sender_endpoint.port
 
 
+@pytest.mark.trio
 async def test_packet_encoder():
     packet_send_channel, packet_receive_channel = trio.open_memory_channel(1)
     datagram_send_channel, datagram_receive_channel = trio.open_memory_channel(1)
