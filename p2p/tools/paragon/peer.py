@@ -4,10 +4,8 @@ from typing import (
 )
 
 from p2p.abc import MultiplexerAPI
-from p2p.handshake import (
-    Handshaker,
-    HandshakeReceipt,
-)
+from p2p.handshake import Handshaker
+from p2p.receipt import HandshakeReceipt
 
 from p2p.abc import ProtocolAPI
 from p2p.constants import DEVP2P_V5
