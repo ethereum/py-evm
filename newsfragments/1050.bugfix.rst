@@ -1,0 +1,2 @@
+Fix issue where Trinity does not recognize and disconnect from ETC peers
+when it is being used as an ETH client

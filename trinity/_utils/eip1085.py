@@ -35,6 +35,9 @@ from eth_utils.toolz import (
     sliding_window,
 )
 
+from eth.chains.mainnet import (
+    MainnetDAOValidatorVM
+)
 from eth.typing import (
     AccountDetails,
     GenesisDict,
@@ -129,8 +132,7 @@ def _extract_vm_config(vm_config: Dict[str, str]) -> Iterable[VMFork]:
         if 'DAOForkBlock' in vm_config:
             dao_fork_block_number = to_int(hexstr=vm_config['DAOForkBlock'])
 
-            HomesteadVM = BaseHomesteadVM.configure(
-                support_dao_fork=True,
+            HomesteadVM = MainnetDAOValidatorVM.configure(
                 _dao_fork_block_number=dao_fork_block_number,
             )
             yield homestead_fork_block, HomesteadVM
