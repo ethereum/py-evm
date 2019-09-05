@@ -109,6 +109,7 @@ setup(
     zip_safe=False,
     keywords='ethereum blockchain evm',
     packages=find_packages(exclude=["tests", "tests.*"]),
+    package_data={'eth': ['py.typed']},
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
