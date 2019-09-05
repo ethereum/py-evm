@@ -1,7 +1,8 @@
 import asyncio
-import logging
 
 import pytest
+
+from eth_utils import get_extended_debug_logger
 
 from p2p.peer import PeerSubscriber
 from p2p.protocol import Command
@@ -10,7 +11,7 @@ from p2p.tools.paragon import GetSum
 from p2p.tools.factories import ParagonPeerPairFactory
 
 
-logger = logging.getLogger('testing.p2p.PeerSubscriber')
+logger = get_extended_debug_logger('testing.p2p.PeerSubscriber')
 
 
 class GetSumSubscriber(PeerSubscriber):

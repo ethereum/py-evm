@@ -2,7 +2,6 @@ from abc import abstractmethod
 import asyncio
 import concurrent
 import functools
-import logging
 import time
 from typing import (
     Any,
@@ -12,7 +11,6 @@ from typing import (
     List,
     Optional,
     TypeVar,
-    cast,
 )
 from weakref import WeakSet
 
@@ -20,10 +18,10 @@ from async_generator import asynccontextmanager
 
 from cancel_token import CancelToken, OperationCancelled
 from eth_utils import (
+    ExtendedDebugLogger,
     ValidationError,
+    get_extended_debug_logger,
 )
-
-from eth.tools.logging import ExtendedDebugLogger
 
 from p2p.abc import ServiceEventsAPI, AsyncioServiceAPI
 from p2p.cancellable import CancellableMixin
@@ -75,9 +73,8 @@ class BaseService(CancellableMixin, AsyncioServiceAPI):
     @property
     def logger(self) -> ExtendedDebugLogger:
         if self._logger is None:
-            self._logger = cast(
-                ExtendedDebugLogger,
-                logging.getLogger(self.__module__ + '.' + self.__class__.__name__)
+            self._logger = get_extended_debug_logger(
+                self.__module__ + '.' + self.__class__.__name__
             )
         return self._logger
 

@@ -9,6 +9,7 @@ from typing import (  # noqa: F401
     Dict,
     Generator,
     Iterator,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
@@ -171,7 +172,7 @@ class LightDispatchChain(AsyncChainAPI, Chain):
         return self._headerdb.get_canonical_block_hash(block_number)
 
     def build_block_with_transactions(self,
-                                      transactions: Tuple[SignedTransactionAPI, ...],
+                                      transactions: Sequence[SignedTransactionAPI],
                                       parent_header: BlockHeaderAPI=None) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:        # noqa: E501
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 

@@ -3,7 +3,7 @@ from typing import (
     Tuple,
 )
 
-from eth.rlp.headers import BlockHeader
+from eth.abc import BlockHeaderAPI
 
 from trinity.protocol.common.trackers import BasePerformanceTracker
 from trinity._utils.headers import sequence_builder
@@ -15,7 +15,7 @@ from .requests import (
 
 BaseGetBlockHeadersTracker = BasePerformanceTracker[
     GetBlockHeadersRequest,
-    Tuple[BlockHeader, ...],
+    Tuple[BlockHeaderAPI, ...],
 ]
 
 
@@ -32,8 +32,8 @@ class GetBlockHeadersTracker(BaseGetBlockHeadersTracker):
         else:
             return None
 
-    def _get_result_size(self, result: Tuple[BlockHeader, ...]) -> int:
+    def _get_result_size(self, result: Tuple[BlockHeaderAPI, ...]) -> int:
         return len(result)
 
-    def _get_result_item_count(self, result: Tuple[BlockHeader, ...]) -> int:
+    def _get_result_item_count(self, result: Tuple[BlockHeaderAPI, ...]) -> int:
         return len(result)

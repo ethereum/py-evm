@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from operator import attrgetter
@@ -8,6 +9,7 @@ from typing import (
     Tuple,
     Type,
     TypeVar,
+    cast,
 )
 
 from cancel_token import CancelToken
@@ -20,6 +22,7 @@ from eth.abc import (
     StateAPI,
     VirtualMachineAPI,
 )
+from eth.typing import VMConfiguration
 from eth.vm.interrupt import (
     MissingAccountTrieNode,
     MissingBytecode,
@@ -30,7 +33,9 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    ExtendedDebugLogger,
     ValidationError,
+    get_extended_debug_logger,
 )
 from eth_utils.toolz import (
     groupby,
@@ -42,7 +47,6 @@ from lahja.common import BroadcastConfig
 from p2p.service import BaseService
 
 from trinity._utils.timer import Timer
-from trinity.chains.base import AsyncChainAPI
 from trinity.chains.full import FullChain
 from trinity.sync.beam.constants import (
     MAX_SPECULATIVE_EXECUTIONS_PER_PROCESS,
@@ -61,57 +65,6 @@ from trinity.sync.common.events import (
 )
 
 ImportBlockType = Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]
-
-
-class BeamChain(FullChain):
-    """
-    The primary job of this patched BeamChain is to keep track of the
-    first VM instance that it creates.
-
-    Stats are attached to the VM that did the importing, and this is
-    a way to get access to that particular vm instance that
-    imported the block.
-
-    My finest NFT to whoever replaces this with something better...
-    """
-    _first_vm = None
-
-    def get_vm(self, header: BlockHeaderAPI) -> VirtualMachineAPI:
-        vm = super().get_vm(header)
-        if self._first_vm is None:
-            self._first_vm = vm
-        return vm
-
-    def get_first_vm(self) -> VirtualMachineAPI:
-        return self._first_vm
-
-    def clear_first_vm(self) -> None:
-        self._first_vm = None
-
-
-def make_pausing_beam_chain(
-        vm_config: Tuple[Tuple[int, VirtualMachineAPI], ...],
-        chain_id: int,
-        db: AtomicDatabaseAPI,
-        event_bus: EndpointAPI,
-        loop: asyncio.AbstractEventLoop,
-        urgent: bool = True) -> BeamChain:
-    """
-    Patch the py-evm chain with a VMState that pauses when state data
-    is missing, and emits an event which requests the missing data.
-    """
-    pausing_vm_config = tuple(
-        (starting_block, pausing_vm_decorator(vm, event_bus, loop, urgent=urgent))
-        for starting_block, vm in vm_config
-    )
-    PausingBeamChain = BeamChain.configure(
-        vm_configuration=pausing_vm_config,
-        chain_id=chain_id,
-    )
-    return PausingBeamChain(db)
-
-
-TVMFuncReturn = TypeVar('TVMFuncReturn')
 
 
 class BeamStats:
@@ -139,6 +92,68 @@ class BeamStats:
             f"num_storages={self.num_storages}, num_storage_nodes={self.num_storage_nodes}, "
             f"data_pause_time={self.data_pause_time:.3f}s)"
         )
+
+
+class PausingVMAPI(VirtualMachineAPI):
+    logger: ExtendedDebugLogger
+
+    @abstractmethod
+    def get_beam_stats(self) -> BeamStats:
+        ...
+
+
+class BeamChain(FullChain):
+    """
+    The primary job of this patched BeamChain is to keep track of the
+    first VM instance that it creates.
+
+    Stats are attached to the VM that did the importing, and this is
+    a way to get access to that particular vm instance that
+    imported the block.
+
+    My finest NFT to whoever replaces this with something better...
+    """
+    _first_vm: PausingVMAPI = None
+
+    def get_vm(self, at_header: BlockHeaderAPI = None) -> PausingVMAPI:
+        vm = cast(PausingVMAPI, super().get_vm(at_header))
+        if self._first_vm is None:
+            self._first_vm = vm
+        return vm
+
+    def get_first_vm(self) -> PausingVMAPI:
+        if self._first_vm is None:
+            return self.get_vm()
+        else:
+            return self._first_vm
+
+    def clear_first_vm(self) -> None:
+        self._first_vm = None
+
+
+def make_pausing_beam_chain(
+        vm_config: VMConfiguration,
+        chain_id: int,
+        db: AtomicDatabaseAPI,
+        event_bus: EndpointAPI,
+        loop: asyncio.AbstractEventLoop,
+        urgent: bool = True) -> BeamChain:
+    """
+    Patch the py-evm chain with a VMState that pauses when state data
+    is missing, and emits an event which requests the missing data.
+    """
+    pausing_vm_config = tuple(
+        (starting_block, pausing_vm_decorator(vm, event_bus, loop, urgent=urgent))
+        for starting_block, vm in vm_config
+    )
+    PausingBeamChain = BeamChain.configure(
+        vm_configuration=pausing_vm_config,
+        chain_id=chain_id,
+    )
+    return PausingBeamChain(db)
+
+
+TVMFuncReturn = TypeVar('TVMFuncReturn')
 
 
 def pausing_vm_decorator(
@@ -300,6 +315,8 @@ def pausing_vm_decorator(
             return self._pause_on_missing_data(super().make_state_root)
 
     class PausingVM(original_vm_class):  # type: ignore
+        logger = get_extended_debug_logger(f'eth.vm.base.VM.{original_vm_class.__name__}')
+
         @classmethod
         def get_state_class(cls) -> Type[StateAPI]:
             return PausingVMState
@@ -327,11 +344,13 @@ def _broadcast_import_complete(
     )
 
 
-def partial_import_block(beam_chain: AsyncChainAPI, block: BlockAPI) -> Callable[[], None]:
+def partial_import_block(beam_chain: BeamChain,
+                         block: BlockAPI,
+                         ) -> Callable[[], Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]]:  # noqa: E501
     """
     Get an argument-free function that will import the given block.
     """
-    def _import_block() -> None:
+    def _import_block() -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
         t = Timer()
         beam_chain.clear_first_vm()
         reorg_info = beam_chain.import_block(block, perform_validation=True)
@@ -356,7 +375,7 @@ class BlockImportServer(BaseService):
     def __init__(
             self,
             event_bus: EndpointAPI,
-            beam_chain: AsyncChainAPI,
+            beam_chain: BeamChain,
             token: CancelToken=None) -> None:
         super().__init__(token=token)
         self._event_bus = event_bus
@@ -369,7 +388,7 @@ class BlockImportServer(BaseService):
     async def serve(
             self,
             event_bus: EndpointAPI,
-            beam_chain: AsyncChainAPI) -> None:
+            beam_chain: BeamChain) -> None:
         """
         Listen to DoStatelessBlockImport events, and import block when received.
         Reply with StatelessBlockImportDone when import is complete.
@@ -402,7 +421,7 @@ class BlockImportServer(BaseService):
 
 
 def partial_trigger_missing_state_downloads(
-        beam_chain: AsyncChainAPI,
+        beam_chain: BeamChain,
         header: BlockHeaderAPI,
         transactions: Tuple[SignedTransactionAPI, ...]) -> Callable[[], None]:
     """
@@ -433,7 +452,7 @@ def partial_trigger_missing_state_downloads(
 
 
 def partial_speculative_execute(
-        beam_chain: AsyncChainAPI,
+        beam_chain: BeamChain,
         header: BlockHeaderAPI,
         transactions: Tuple[SignedTransactionAPI, ...]) -> Callable[[], None]:
     """
@@ -478,7 +497,7 @@ class BlockPreviewServer(BaseService):
     def __init__(
             self,
             event_bus: EndpointAPI,
-            beam_chain: AsyncChainAPI,
+            beam_chain: BeamChain,
             shard_num: int,
             token: CancelToken=None) -> None:
         super().__init__(token=token)
@@ -499,7 +518,7 @@ class BlockPreviewServer(BaseService):
     async def serve(
             self,
             event_bus: EndpointAPI,
-            beam_chain: AsyncChainAPI) -> None:
+            beam_chain: BeamChain) -> None:
         """
         Listen to DoStatelessBlockPreview events, and execute the transactions to prefill
         all the needed state data.

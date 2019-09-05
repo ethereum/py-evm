@@ -10,6 +10,8 @@ from lahja import EndpointAPI
 
 from cancel_token import CancelToken
 
+from eth_typing import BlockNumber
+
 from eth_utils import to_bytes
 
 from eth_keys import keys
@@ -115,7 +117,8 @@ class ETHHandshakeParamsFactory(factory.Factory):
     def from_headerdb(cls, headerdb: HeaderDB, **kwargs: Any) -> ETHHandshakeParams:
         head = headerdb.get_canonical_head()
         head_score = headerdb.get_score(head.hash)
-        genesis = headerdb.get_canonical_block_header_by_number(GENESIS_BLOCK_NUMBER)
+        # TODO: https://github.com/ethereum/py-evm/issues/1847
+        genesis = headerdb.get_canonical_block_header_by_number(BlockNumber(GENESIS_BLOCK_NUMBER))
         return cls(
             head_hash=head.hash,
             genesis_hash=genesis.hash,

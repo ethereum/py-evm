@@ -6,9 +6,10 @@ from typing import (
     Any,
 )
 
-from eth_utils import ValidationError
-
-from eth.tools.logging import DEBUG2_LEVEL_NUM
+from eth_utils import (
+    DEBUG2_LEVEL_NUM,
+    ValidationError,
+)
 
 from p2p.kademlia import Node
 from p2p.validation import validate_enode_uri

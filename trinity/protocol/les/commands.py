@@ -21,7 +21,6 @@ from eth.rlp.receipts import Receipt
 from p2p.protocol import Command
 from p2p.typing import Payload
 
-from trinity.protocol.common.commands import BaseBlockHeaders
 from trinity.rlp.block_body import BlockBody
 from trinity.rlp.sedes import HashOrNumber
 
@@ -119,17 +118,13 @@ class GetBlockHeaders(Command):
     )
 
 
-class BlockHeaders(BaseBlockHeaders):
+class BlockHeaders(Command):
     _cmd_id = 3
     structure = (
         ('request_id', sedes.big_endian_int),
         ('buffer_value', sedes.big_endian_int),
         ('headers', sedes.CountableList(BlockHeader)),
     )
-
-    def extract_headers(self, msg: Payload) -> Tuple[BlockHeader, ...]:
-        msg = cast(Dict[str, Any], msg)
-        return tuple(msg['headers'])
 
 
 class GetBlockBodies(Command):

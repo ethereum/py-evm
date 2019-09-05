@@ -3,8 +3,8 @@ import time
 
 from cancel_token import CancelToken
 
+from eth.abc import AtomicDatabaseAPI
 from eth.constants import BLANK_ROOT_HASH
-from eth.db.backends.base import BaseAtomicDB
 from eth.rlp.headers import BlockHeader
 
 from p2p.service import BaseService
@@ -20,7 +20,7 @@ from .state import StateDownloader
 
 async def ensure_state_then_sync_full(logger: logging.Logger,
                                       head: BlockHeader,
-                                      base_db: BaseAtomicDB,
+                                      base_db: AtomicDatabaseAPI,
                                       chaindb: BaseAsyncChainDB,
                                       chain: AsyncChainAPI,
                                       peer_pool: ETHPeerPool,
@@ -49,7 +49,7 @@ class FullChainSyncer(BaseService):
     def __init__(self,
                  chain: AsyncChainAPI,
                  chaindb: BaseAsyncChainDB,
-                 base_db: BaseAtomicDB,
+                 base_db: AtomicDatabaseAPI,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)
@@ -80,7 +80,7 @@ class FastThenFullChainSyncer(BaseService):
     def __init__(self,
                  chain: AsyncChainAPI,
                  chaindb: BaseAsyncChainDB,
-                 base_db: BaseAtomicDB,
+                 base_db: AtomicDatabaseAPI,
                  peer_pool: ETHPeerPool,
                  token: CancelToken = None) -> None:
         super().__init__(token)

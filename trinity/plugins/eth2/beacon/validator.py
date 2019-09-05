@@ -1,7 +1,6 @@
 from itertools import (
     groupby,
 )
-import logging
 from operator import (
     itemgetter,
 )
@@ -87,8 +86,6 @@ class Validator(BaseService):
     latest_proposed_epoch: Dict[ValidatorIndex, Epoch]
     latest_attested_epoch: Dict[ValidatorIndex, Epoch]
     this_epoch_assignment: Dict[ValidatorIndex, Tuple[Epoch, CommitteeAssignment]]
-
-    logger = logging.getLogger('trinity.plugins.eth2.beacon.Validator')
 
     def __init__(
             self,

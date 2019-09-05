@@ -9,6 +9,7 @@ from typing import (
 from eth_utils import encode_hex
 from eth_utils.toolz import merge
 
+from eth.abc import DatabaseAPI
 from eth.chains.base import MiningChain
 from eth.db.chain import ChainDB
 from eth.db.backends.level import LevelDB
@@ -138,6 +139,8 @@ def get_eth1_shell_context(database_dir: Path, trinity_config: TrinityConfig) ->
     app_config = trinity_config.get_app_config(Eth1AppConfig)
     ipc_path = trinity_config.database_ipc_path
 
+    db: DatabaseAPI
+
     trinity_already_running = ipc_path.exists()
     if trinity_already_running:
         db = DBClient.connect(ipc_path)
@@ -174,6 +177,8 @@ def get_beacon_shell_context(database_dir: Path, trinity_config: TrinityConfig) 
 
     ipc_path = trinity_config.database_ipc_path
 
+    db: DatabaseAPI
+
     trinity_already_running = ipc_path.exists()
     if trinity_already_running:
         db = DBClient.connect(ipc_path)
@@ -181,7 +186,6 @@ def get_beacon_shell_context(database_dir: Path, trinity_config: TrinityConfig) 
         db = LevelDB(database_dir)
 
     chain_config = app_config.get_chain_config()
-    chain = chain_config.beacon_chain_class
     attestation_pool = AttestationPool()
     chain = chain_config.beacon_chain_class(
         db,

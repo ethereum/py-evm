@@ -116,7 +116,7 @@ if TYPE_CHECKING:
     from trinity.nodes.base import Node  # noqa: F401
     from trinity.chains.full import FullChain  # noqa: F401
     from trinity.chains.light import LightDispatchChain  # noqa: F401
-    from eth2.beacon.chains.base import BeaconChain  # noqa: F401
+    from eth2.beacon.chains.base import BaseBeaconChain  # noqa: F401
     from eth2.beacon.state_machines.base import BaseBeaconStateMachine  # noqa: F401
 
 DATABASE_DIR_NAME = 'chain'
@@ -654,7 +654,7 @@ class BeaconChainConfig:
     network_id: int
     genesis_data: BeaconGenesisData
     _chain_name: str
-    _beacon_chain_class: Type['BeaconChain'] = None
+    _beacon_chain_class: Type['BaseBeaconChain'] = None
     _genesis_config: Eth2GenesisConfig = None
 
     def __init__(self,
@@ -683,7 +683,7 @@ class BeaconChainConfig:
             return self._chain_name
 
     @property
-    def beacon_chain_class(self) -> Type['BeaconChain']:
+    def beacon_chain_class(self) -> Type['BaseBeaconChain']:
         if self._beacon_chain_class is None:
             # TODO: we should be able to customize configs for tests/ instead of using the configs
             #   from `TestnetChain`
@@ -714,7 +714,7 @@ class BeaconChainConfig:
         )
 
     def initialize_chain(self,
-                         base_db: AtomicDatabaseAPI) -> 'BeaconChain':
+                         base_db: AtomicDatabaseAPI) -> 'BaseBeaconChain':
         chain_class = self.beacon_chain_class
         state = self.genesis_data.state
         block = get_genesis_block(

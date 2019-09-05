@@ -22,7 +22,7 @@ from typing import (
 )
 
 from cancel_token import CancelToken, OperationCancelled
-from eth_typing import Hash32
+from eth_typing import BlockNumber, Hash32
 from eth_utils import (
     humanize_hash,
     humanize_seconds,
@@ -430,7 +430,9 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
             local_header = None
 
         try:
-            local_parent = await self.db.coro_get_canonical_block_header_by_number(block_num - 1)
+            local_parent = await self.db.coro_get_canonical_block_header_by_number(
+                BlockNumber(block_num - 1)
+            )
         except HeaderNotFound as exc:
             self.logger.debug("Could not find canonical header parent at #%d: %s", block_num, exc)
             local_parent = None

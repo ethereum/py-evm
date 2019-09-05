@@ -53,7 +53,10 @@ class BaseAsyncHeaderDB(HeaderDB):
         ...
 
     @abstractmethod
-    async def coro_persist_header(self, header: BlockHeaderAPI) -> Tuple[BlockHeaderAPI, ...]:
+    async def coro_persist_header(
+        self,
+        header: BlockHeaderAPI,
+    ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         ...
 
     @abstractmethod
@@ -65,7 +68,7 @@ class BaseAsyncHeaderDB(HeaderDB):
         self,
         headers: Iterable[BlockHeaderAPI],
         genesis_parent_hash: Hash32=None
-    ) -> Tuple[BlockHeaderAPI, ...]:
+    ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         ...
 
 

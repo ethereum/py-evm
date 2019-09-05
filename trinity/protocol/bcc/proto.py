@@ -8,7 +8,10 @@ from typing import (
 from eth_typing import (
     Hash32,
 )
-from eth_utils import ValidationError
+from eth_utils import (
+    ValidationError,
+    get_extended_debug_logger,
+)
 from lahja import (
     BroadcastConfig,
     EndpointAPI,
@@ -40,8 +43,6 @@ from trinity.protocol.bcc.events import (
     SendBeaconBlocksEvent,
 )
 
-from trinity._utils.logging import HasExtendedDebugLogger
-
 if TYPE_CHECKING:
     from .peer import BCCPeer  # noqa: F401
 
@@ -53,8 +54,7 @@ class BCCHandshakeParams(NamedTuple):
     head_slot: Slot
 
 
-# HasExtendedDebugLogger must come before Protocol so there's self.logger.debug2()
-class BCCProtocol(HasExtendedDebugLogger, Protocol):
+class BCCProtocol(Protocol):
     name = "bcc"
     version = 0
     _commands = (
@@ -66,6 +66,8 @@ class BCCProtocol(HasExtendedDebugLogger, Protocol):
     cmd_length = 5
 
     peer: "BCCPeer"
+
+    logger = get_extended_debug_logger('trinity.protocol.bcc.proto.BCCProtocol')
 
     def send_handshake(self, handshake_params: BCCHandshakeParams) -> None:
         if self.version != handshake_params.protocol_version:

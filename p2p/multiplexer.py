@@ -1,6 +1,5 @@
 import asyncio
 import collections
-import logging
 from typing import (
     AsyncIterator,
     cast,
@@ -16,9 +15,8 @@ from async_generator import asynccontextmanager
 
 from cancel_token import CancelToken
 
+from eth_utils import get_extended_debug_logger
 from eth_utils.toolz import cons
-
-from eth.tools.logging import ExtendedDebugLogger
 
 from p2p._utils import (
     get_devp2p_cmd_id,
@@ -90,7 +88,7 @@ async def stream_transport_messages(transport: TransportAPI,
 
 
 class Multiplexer(CancellableMixin, MultiplexerAPI):
-    logger = cast(ExtendedDebugLogger, logging.getLogger('p2p.multiplexer.Multiplexer'))
+    logger = get_extended_debug_logger('p2p.multiplexer.Multiplexer')
 
     _multiplex_token: CancelToken
 

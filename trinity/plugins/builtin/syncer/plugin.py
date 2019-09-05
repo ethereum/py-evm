@@ -23,10 +23,7 @@ from typing import (
 from lahja import EndpointAPI
 
 from cancel_token import CancelToken
-from eth.abc import (
-    AtomicDatabaseAPI,
-    ChainAPI,
-)
+from eth.abc import AtomicDatabaseAPI
 from eth_utils import (
     to_tuple,
     ValidationError,
@@ -42,6 +39,7 @@ from trinity.constants import (
     SYNC_LIGHT,
     SYNC_BEAM,
 )
+from trinity.chains.base import AsyncChainAPI
 from trinity.db.eth1.chain import AsyncChainDB
 from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.extensibility.asyncio import (
@@ -104,7 +102,7 @@ class BaseSyncStrategy(ABC):
     async def sync(self,
                    args: Namespace,
                    logger: Logger,
-                   chain: ChainAPI,
+                   chain: AsyncChainAPI,
                    base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -125,7 +123,7 @@ class NoopSyncStrategy(BaseSyncStrategy):
     async def sync(self,
                    args: Namespace,
                    logger: Logger,
-                   chain: ChainAPI,
+                   chain: AsyncChainAPI,
                    base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -143,7 +141,7 @@ class FullSyncStrategy(BaseSyncStrategy):
     async def sync(self,
                    args: Namespace,
                    logger: Logger,
-                   chain: ChainAPI,
+                   chain: AsyncChainAPI,
                    base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -169,7 +167,7 @@ class FastThenFullSyncStrategy(BaseSyncStrategy):
     async def sync(self,
                    args: Namespace,
                    logger: Logger,
-                   chain: ChainAPI,
+                   chain: AsyncChainAPI,
                    base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -215,7 +213,7 @@ class BeamSyncStrategy(BaseSyncStrategy):
     async def sync(self,
                    args: Namespace,
                    logger: Logger,
-                   chain: ChainAPI,
+                   chain: AsyncChainAPI,
                    base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -244,7 +242,7 @@ class LightSyncStrategy(BaseSyncStrategy):
     async def sync(self,
                    args: Namespace,
                    logger: Logger,
-                   chain: ChainAPI,
+                   chain: AsyncChainAPI,
                    base_db: AtomicDatabaseAPI,
                    peer_pool: BasePeerPool,
                    event_bus: EndpointAPI,
@@ -263,7 +261,7 @@ class LightSyncStrategy(BaseSyncStrategy):
 class SyncerPlugin(AsyncioIsolatedPlugin):
     peer_pool: BaseChainPeerPool = None
     cancel_token: CancelToken = None
-    chain: ChainAPI = None
+    chain: AsyncChainAPI = None
     db_manager: BaseManager = None
 
     active_strategy: BaseSyncStrategy = None

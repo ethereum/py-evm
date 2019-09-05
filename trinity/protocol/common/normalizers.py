@@ -2,6 +2,7 @@ from abc import abstractmethod, ABC
 from typing import (
     Generic,
     TypeVar,
+    cast,
 )
 
 from p2p.protocol import Payload
@@ -32,7 +33,7 @@ class BaseNormalizer(ABC, Generic[TResponsePayload, TResult]):
 TPassthrough = TypeVar('TPassthrough', bound=Payload)
 
 
-class NoopNormalizer(BaseNormalizer[TPassthrough, TPassthrough]):
+class NoopNormalizer(BaseNormalizer[TResponsePayload, TResult]):
     @staticmethod
-    def normalize_result(message: TPassthrough) -> TPassthrough:
-        return message
+    def normalize_result(message: TResponsePayload) -> TResult:
+        return cast(TResult, message)

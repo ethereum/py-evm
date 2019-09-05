@@ -34,6 +34,7 @@ from trinity.chains.base import AsyncChainAPI
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.bcc.context import BeaconContext
@@ -249,7 +250,7 @@ class BCCServer(BaseServer[BCCPeerPool]):
                  privkey: datatypes.PrivateKey,
                  port: int,
                  chain: AsyncChainAPI,
-                 chaindb: BaseAsyncChainDB,
+                 chaindb: BaseAsyncBeaconChainDB,
                  headerdb: BaseAsyncHeaderDB,
                  base_db: AtomicDatabaseAPI,
                  network_id: int,
@@ -259,7 +260,9 @@ class BCCServer(BaseServer[BCCPeerPool]):
                  event_bus: EndpointAPI = None,
                  token: CancelToken = None,
                  ) -> None:
-        super().__init__(
+        # mypy does not like `BaseAsyncBeaconChainDB` in this super call since
+        # the server defines it as a ChainDB.
+        super().__init__(  # type: ignore
             privkey,
             port,
             chain,
@@ -293,7 +296,8 @@ class BCCServer(BaseServer[BCCPeerPool]):
         await self.cancel_token.wait()
 
     def _make_peer_pool(self) -> BCCPeerPool:
-        context = BeaconContext(
+        # mypy things that `self.chaindb` is the wrong type here.
+        context = BeaconContext(  # type: ignore
             chain_db=self.chaindb,
             network_id=self.network_id,
             client_version_string=self.p2p_handshake_params.client_version_string,

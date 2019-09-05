@@ -8,9 +8,8 @@ from typing import (
 from lahja import EndpointAPI
 
 from cancel_token import CancelToken
-from eth.abc import DatabaseAPI
+from eth.abc import AtomicDatabaseAPI, DatabaseAPI
 from eth.constants import GENESIS_PARENT_HASH, MAX_UNCLE_DEPTH
-from eth.db.backends.base import BaseAtomicDB
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -18,11 +17,12 @@ from eth.rlp.blocks import BaseBlock
 from eth.rlp.headers import BlockHeader
 from eth.rlp.transactions import BaseTransaction
 from eth_typing import (
-    Hash32,
     BlockNumber,
+    Hash32,
 )
 from eth_utils import (
     ValidationError,
+    get_extended_debug_logger,
 )
 import rlp
 
@@ -68,7 +68,6 @@ from trinity.sync.full.constants import (
 from trinity.sync.beam.state import (
     BeamDownloader,
 )
-from trinity._utils.logging import HasExtendedDebugLogger
 from trinity._utils.timer import Timer
 
 STATS_DISPLAY_PERIOD = 10
@@ -95,12 +94,12 @@ class BeamSyncer(BaseService):
     def __init__(
             self,
             chain: AsyncChainAPI,
-            db: BaseAtomicDB,
+            db: AtomicDatabaseAPI,
             chain_db: BaseAsyncChainDB,
             peer_pool: ETHPeerPool,
             event_bus: EndpointAPI,
             checkpoint: Checkpoint = None,
-            force_beam_block_number: int = None,
+            force_beam_block_number: BlockNumber = None,
             token: CancelToken = None) -> None:
         super().__init__(token=token)
 
@@ -325,7 +324,7 @@ class RigorousFastChainBodySyncer(FastChainBodySyncer):
         self._starting_tip = header
 
 
-class HeaderCheckpointSyncer(HeaderSyncerAPI, HasExtendedDebugLogger):
+class HeaderCheckpointSyncer(HeaderSyncerAPI):
     """
     Wraps a "real" header syncer, and drops headers on the floor, until triggered
     at a "checkpoint".
@@ -335,6 +334,8 @@ class HeaderCheckpointSyncer(HeaderSyncerAPI, HasExtendedDebugLogger):
 
     Can be used by a body syncer to pause syncing until a header checkpoint is reached.
     """
+    logger = get_extended_debug_logger('trinity.sync.beam.chain.HeaderCheckpointSyncer')
+
     def __init__(self, passthrough: HeaderSyncerAPI) -> None:
         self._real_syncer = passthrough
         self._at_checkpoint = asyncio.Event()

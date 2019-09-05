@@ -10,6 +10,8 @@ from cancel_token import CancelToken, OperationCancelled
 
 from lahja import EndpointAPI
 
+from eth_utils import get_extended_debug_logger
+
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -34,7 +36,6 @@ from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.events import PeerPoolMessageEvent
 from trinity.protocol.common.peer import BasePeerPool
 from trinity.protocol.common.requests import BaseHeaderRequest
-from trinity._utils.logging import HasExtendedDebugLogger
 
 
 class BaseRequestServer(BaseService, PeerSubscriber):
@@ -137,7 +138,9 @@ class BaseIsolatedRequestServer(BaseService):
         ...
 
 
-class BasePeerRequestHandler(CancellableMixin, HasExtendedDebugLogger):
+class BasePeerRequestHandler(CancellableMixin):
+    logger = get_extended_debug_logger('trinity.protocol.common.servers.PeerRequestHandler')
+
     def __init__(self, db: BaseAsyncHeaderDB, token: CancelToken) -> None:
         self.db = db
         self.cancel_token = token

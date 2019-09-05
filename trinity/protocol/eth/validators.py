@@ -1,14 +1,14 @@
 from typing import (
-    Tuple,
+    Sequence,
 )
 
-from eth.rlp.headers import BlockHeader
 from eth_typing import (
     Hash32,
 )
 from eth_utils import (
     ValidationError,
 )
+from eth.abc import BlockHeaderAPI
 
 from trinity.protocol.common.validators import (
     BaseValidator,
@@ -28,7 +28,7 @@ class GetBlockHeadersValidator(BaseBlockHeadersValidator):
 
 
 class GetNodeDataValidator(BaseValidator[NodeDataBundles]):
-    def __init__(self, node_hashes: Tuple[Hash32, ...]) -> None:
+    def __init__(self, node_hashes: Sequence[Hash32]) -> None:
         self.node_hashes = node_hashes
 
     def validate_result(self, response: NodeDataBundles) -> None:
@@ -49,7 +49,7 @@ class GetNodeDataValidator(BaseValidator[NodeDataBundles]):
 
 
 class ReceiptsValidator(BaseValidator[ReceiptsBundles]):
-    def __init__(self, headers: Tuple[BlockHeader, ...]) -> None:
+    def __init__(self, headers: Sequence[BlockHeaderAPI]) -> None:
         self.headers = headers
 
     def validate_result(self, result: ReceiptsBundles) -> None:
@@ -71,7 +71,7 @@ class ReceiptsValidator(BaseValidator[ReceiptsBundles]):
 
 
 class GetBlockBodiesValidator(BaseValidator[BlockBodyBundles]):
-    def __init__(self, headers: Tuple[BlockHeader, ...]) -> None:
+    def __init__(self, headers: Sequence[BlockHeaderAPI]) -> None:
         self.headers = headers
 
     def validate_result(self, response: BlockBodyBundles) -> None:

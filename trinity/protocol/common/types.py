@@ -4,14 +4,13 @@ from typing import (
     TypeVar,
 )
 
-from eth.rlp.receipts import Receipt
+from eth.abc import BlockAPI, ReceiptAPI
 from eth_typing import (
     Hash32,
 )
 from p2p.peer import BasePeer
 from p2p.protocol import Payload
 
-from trinity.rlp.block_body import BlockBody
 
 TPeer = TypeVar('TPeer', bound=BasePeer)
 
@@ -28,19 +27,19 @@ TResult = TypeVar('TResult')
 NodeDataBundles = Tuple[Tuple[Hash32, bytes], ...]
 
 # (receipts_in_block_a, receipts_in_block_b, ...)
-ReceiptsByBlock = Tuple[Tuple[Receipt, ...], ...]
+ReceiptsByBlock = Tuple[Tuple[ReceiptAPI, ...], ...]
 
 # (
 #   (receipts_in_block_a, (receipts_root_hash, receipts_trie_nodes),
 #   (receipts_in_block_b, (receipts_root_hash, receipts_trie_nodes),
 #   ...
 # (
-ReceiptsBundles = Tuple[Tuple[Tuple[Receipt, ...], Tuple[Hash32, Dict[Hash32, bytes]]], ...]
+ReceiptsBundles = Tuple[Tuple[Tuple[ReceiptAPI, ...], Tuple[Hash32, Dict[Hash32, bytes]]], ...]
 
 # (BlockBody, (txn_root, txn_trie_data), uncles_hash)
 
 BlockBodyBundle = Tuple[
-    BlockBody,
+    BlockAPI,
     Tuple[Hash32, Dict[Hash32, bytes]],
     Hash32,
 ]

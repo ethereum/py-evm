@@ -3,12 +3,13 @@ import collections
 from typing import (
     Any,
     Generic,
+    Sequence,
     Tuple,
     TypeVar,
     cast,
 )
 
-from eth.rlp.headers import BlockHeader
+from eth.abc import BlockHeaderAPI
 from eth_typing import (
     Hash32,
     BlockIdentifier,
@@ -39,7 +40,7 @@ class BaseValidator(ABC, Generic[TResponse]):
         ...
 
 
-class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
+class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeaderAPI, ...]]):
     block_number_or_hash: BlockIdentifier
     max_headers: int
     skip: int
@@ -60,7 +61,7 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
     def protocol_max_request_size(self) -> int:
         raise NotImplementedError
 
-    def validate_result(self, response: Tuple[BlockHeader, ...]) -> None:
+    def validate_result(self, response: Tuple[BlockHeaderAPI, ...]) -> None:
         if not response:
             # An empty response is always valid
             return
@@ -128,7 +129,7 @@ class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeader, ...]]):
             f'reverse={self.reverse}'
         )
 
-    def _validate_sequence(self, block_numbers: Tuple[BlockNumber, ...]) -> None:
+    def _validate_sequence(self, block_numbers: Sequence[BlockNumber]) -> None:
         if not block_numbers:
             return
         elif self._is_numbered:

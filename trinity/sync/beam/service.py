@@ -1,6 +1,8 @@
 from lahja import EndpointAPI
 from cancel_token import CancelToken
 
+from eth_typing import BlockNumber
+
 from eth.abc import AtomicDatabaseAPI
 
 from p2p.service import BaseService
@@ -23,7 +25,7 @@ class BeamSyncService(BaseService):
             peer_pool: ETHPeerPool,
             event_bus: EndpointAPI,
             checkpoint: Checkpoint = None,
-            force_beam_block_number: int = None,
+            force_beam_block_number: BlockNumber = None,
             token: CancelToken = None) -> None:
         super().__init__(token)
         self.chain = chain

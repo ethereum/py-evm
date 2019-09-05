@@ -113,7 +113,7 @@ class PeerHeaderSyncer(BaseService):
         # time _sync() was called. All of the extra headers that are already present in our DB
         # will be discarded by skip_complete_headers() so we don't unnecessarily process them
         # again.
-        start_at = max(GENESIS_BLOCK_NUMBER + 1, head.block_number - MAX_REORG_DEPTH)
+        start_at = BlockNumber(max(GENESIS_BLOCK_NUMBER + 1, head.block_number - MAX_REORG_DEPTH))
         while self.is_operational:
             if not peer.is_operational:
                 self.logger.info("%s disconnected, aborting sync", peer)
@@ -128,10 +128,10 @@ class PeerHeaderSyncer(BaseService):
                     )
                     if len(new_headers) == 0 and len(completed_headers) > 0:
                         head = await self.wait(self.db.coro_get_canonical_head())
-                        start_at = max(
+                        start_at = BlockNumber(max(
                             all_headers[-1].block_number + 1,
                             head.block_number - MAX_REORG_DEPTH
-                        )
+                        ))
                         self.logger.debug(
                             "All %d headers redundant, head at %s, fetching from #%d",
                             len(completed_headers),
@@ -237,7 +237,7 @@ class PeerHeaderSyncer(BaseService):
             self.sync_progress = self.sync_progress.update_current_block(
                 last_received_header.block_number,
             )
-            start_at = last_received_header.block_number + 1
+            start_at = BlockNumber(last_received_header.block_number + 1)
 
     async def _request_headers(
             self, peer: BaseChainPeer, start_at: BlockNumber) -> Tuple[BlockHeaderAPI, ...]:

@@ -2,15 +2,16 @@ from dataclasses import (
     dataclass,
 )
 from typing import (
-    List,
-    Tuple,
+    Sequence,
     Type,
 )
 
-from eth.rlp.blocks import BaseBlock
-from eth.rlp.headers import BlockHeader
-from eth.rlp.receipts import Receipt
-from eth.rlp.transactions import BaseTransactionFields
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    ReceiptAPI,
+    SignedTransactionAPI,
+)
 
 from lahja import (
     BaseEvent,
@@ -101,7 +102,7 @@ class SendBlockHeadersEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     remote: NodeAPI
-    headers: Tuple[BlockHeader, ...]
+    headers: Sequence[BlockHeaderAPI]
 
 
 @dataclass
@@ -111,7 +112,7 @@ class SendBlockBodiesEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     remote: NodeAPI
-    blocks: List[BaseBlock]
+    blocks: Sequence[BlockAPI]
 
 
 @dataclass
@@ -121,7 +122,7 @@ class SendNodeDataEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     remote: NodeAPI
-    nodes: Tuple[bytes, ...]
+    nodes: Sequence[bytes]
 
 
 @dataclass
@@ -131,7 +132,7 @@ class SendReceiptsEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     remote: NodeAPI
-    receipts: List[List[Receipt]]
+    receipts: Sequence[Sequence[ReceiptAPI]]
 
 
 @dataclass
@@ -141,7 +142,7 @@ class SendTransactionsEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     remote: NodeAPI
-    transactions: List[BaseTransactionFields]
+    transactions: Sequence[SignedTransactionAPI]
 
 # EXCHANGE HANDLER REQUEST / RESPONSE PAIRS
 
@@ -149,7 +150,7 @@ class SendTransactionsEvent(BaseEvent):
 @dataclass
 class GetBlockHeadersResponse(BaseEvent):
 
-    headers: Tuple[BlockHeader, ...]
+    headers: Sequence[BlockHeaderAPI]
     error: Exception = None
 
 
@@ -179,7 +180,7 @@ class GetBlockBodiesResponse(BaseEvent):
 class GetBlockBodiesRequest(BaseRequestResponseEvent[GetBlockBodiesResponse]):
 
     remote: NodeAPI
-    headers: Tuple[BlockHeader, ...]
+    headers: Sequence[BlockHeaderAPI]
     timeout: float
 
     @staticmethod
@@ -198,7 +199,7 @@ class GetNodeDataResponse(BaseEvent):
 class GetNodeDataRequest(BaseRequestResponseEvent[GetNodeDataResponse]):
 
     remote: NodeAPI
-    node_hashes: Tuple[Hash32, ...]
+    node_hashes: Sequence[Hash32]
     timeout: float
 
     @staticmethod
@@ -217,7 +218,7 @@ class GetReceiptsResponse(BaseEvent):
 class GetReceiptsRequest(BaseRequestResponseEvent[GetReceiptsResponse]):
 
     remote: NodeAPI
-    headers: Tuple[BlockHeader, ...]
+    headers: Sequence[BlockHeaderAPI]
     timeout: float
 
     @staticmethod

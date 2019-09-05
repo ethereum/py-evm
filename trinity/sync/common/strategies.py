@@ -71,7 +71,7 @@ class FromGenesisLaunchStrategy(SyncLaunchStrategyAPI):
         # headers before our current head's number, in case there were chain reorgs since the last
         # time _sync() was called. All of the extra headers that are already present in our DB
         # will be discarded so we don't unnecessarily process them again.
-        return max(GENESIS_BLOCK_NUMBER, head.block_number - MAX_SKELETON_REORG_DEPTH)
+        return BlockNumber(max(GENESIS_BLOCK_NUMBER, head.block_number - MAX_SKELETON_REORG_DEPTH))
 
 
 class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):

@@ -9,6 +9,7 @@ from typing import (
 )
 
 from eth_utils import (
+    ExtendedDebugLogger,
     encode_hex,
 )
 
@@ -17,7 +18,6 @@ from eth_typing import (
 )
 
 from eth.abc import DatabaseAPI
-from eth.tools.logging import ExtendedDebugLogger
 
 from trie.constants import (
     NODE_TYPE_BLANK,
