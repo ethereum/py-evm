@@ -1,1 +1,0 @@
-Add EIP-1884 to Istanbul: Reprice trie-size dependent opcodes

@@ -3,6 +3,45 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.6 (2019-09-05)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Add EIP-1344 to Istanbul: Chain ID Opcode (`#1817 <https://github.com/ethereum/py-evm/issues/1817>`__)
+- Add EIP-152 to Istanbul: Blake2b F Compression precompile at address 9 (`#1818 <https://github.com/ethereum/py-evm/issues/1818>`__)
+- Add EIP-2200 to Istanbul: Net gas metering (`#1825 <https://github.com/ethereum/py-evm/issues/1825>`__)
+- Add EIP-1884 to Istanbul: Reprice trie-size dependent opcodes (`#1826 <https://github.com/ethereum/py-evm/issues/1826>`__)
+- Add EIP-2028: Transaction data gas cost reduction (`#1832 <https://github.com/ethereum/py-evm/issues/1832>`__)
+- Expose type hint information via PEP561 (`#1845 <https://github.com/ethereum/py-evm/issues/1845>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Add missing ``@abstractmethod`` decorator to ``ConfigurableAPI.configure``. (`#1822 <https://github.com/ethereum/py-evm/issues/1822>`__)
+
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ~20% speedup on "simple value transfer" benchmarks, ~10% overall benchmark lift. Optimized retrieval
+  of transactions and receipts from the trie database. (`#1841 <https://github.com/ethereum/py-evm/issues/1841>`__)
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Add a "Performance improvements" section to the release notes (`#1841 <https://github.com/ethereum/py-evm/issues/1841>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Upgrade to ``eth-utils>=1.7.0`` which removes the ``eth.tools.logging`` module implementations of ``ExtendedDebugLogger`` in favor of the ones exposed by the ``eth-utils`` library.  This also removes the automatic setup of the ``DEBUG2`` logging level which was previously a side effect of importing the ``eth`` module.  See ``eth_utils.setup_DEBUG2_logging`` for more information. (`#1846 <https://github.com/ethereum/py-evm/issues/1846>`__)
+
+
 py-evm 0.3.0-alpha.5 (2019-08-22)
 ---------------------------------
 

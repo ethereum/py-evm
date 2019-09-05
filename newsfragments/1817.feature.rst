@@ -1,1 +1,0 @@
-Add EIP-1344 to Istanbul: Chain ID Opcode
