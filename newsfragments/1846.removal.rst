@@ -1,0 +1,1 @@
+Upgrade to ``eth-utils>=1.7.0`` which removes the ``eth.tools.logging`` module implementations of ``ExtendedDebugLogger`` in favor of the ones exposed by the ``eth-utils`` library.  This also removes the automatic setup of the ``DEBUG2`` logging level which was previously a side effect of importing the ``eth`` module.  See ``eth_utils.setup_DEBUG2_logging`` for more information.

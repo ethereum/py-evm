@@ -2,12 +2,10 @@ from abc import (
     abstractmethod,
 )
 import itertools
-import logging
 from types import TracebackType
 from typing import (
     Any,
     Callable,
-    cast,
     Dict,
     List,
     Optional,
@@ -22,6 +20,7 @@ from eth_typing import (
 )
 from eth_utils import (
     encode_hex,
+    get_extended_debug_logger,
 )
 
 from eth.abc import (
@@ -45,9 +44,6 @@ from eth.exceptions import (
 )
 from eth.typing import (
     BytesOrView,
-)
-from eth.tools.logging import (
-    ExtendedDebugLogger,
 )
 from eth._utils.datatypes import (
     Configurable,
@@ -134,7 +130,7 @@ class BaseComputation(Configurable, ComputationAPI):
     opcodes: Dict[int, OpcodeAPI] = None
     _precompiles: Dict[Address, Callable[[ComputationAPI], ComputationAPI]] = None
 
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.vm.computation.Computation'))
+    logger = get_extended_debug_logger('eth.vm.computation.Computation')
 
     def __init__(self,
                  state: StateAPI,

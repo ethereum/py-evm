@@ -29,6 +29,8 @@ from eth_typing import (
     Hash32,
 )
 
+from eth_utils import ExtendedDebugLogger
+
 from eth_keys.datatypes import PrivateKey
 
 from eth.constants import (
@@ -41,8 +43,6 @@ from eth.typing import (
     AccountState,
     HeaderParams,
 )
-
-from eth.tools.logging import ExtendedDebugLogger
 
 
 T = TypeVar('T')
