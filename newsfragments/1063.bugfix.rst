@@ -1,0 +1,1 @@
+Ensure discovery V4 handles invalid command ids gracefully

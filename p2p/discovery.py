@@ -107,6 +107,10 @@ class WrongMAC(DefectiveMessage):
     pass
 
 
+class UnknownCommand(DefectiveMessage):
+    pass
+
+
 class DiscoveryCommand:
     def __init__(self, name: str, id: int, elem_count: int) -> None:
         self.name = name
@@ -1258,7 +1262,10 @@ def _unpack_v4(message: bytes) -> Tuple[datatypes.PublicKey, int, Tuple[Any, ...
     signed_data = message[HEAD_SIZE:]
     remote_pubkey = signature.recover_public_key_from_msg(signed_data)
     cmd_id = message[HEAD_SIZE]
-    cmd = CMD_ID_MAP[cmd_id]
+    try:
+        cmd = CMD_ID_MAP[cmd_id]
+    except KeyError as e:
+        raise UnknownCommand(f"Invalid Command ID {cmd_id}") from e
     payload = tuple(rlp.decode(message[HEAD_SIZE + 1:], strict=False))
     # Ignore excessive list elements as required by EIP-8.
     payload = payload[:cmd.elem_count]
