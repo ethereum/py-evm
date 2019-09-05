@@ -41,21 +41,20 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
             )
             return False
 
-        state_machine = chain.get_state_machine()
-        config = state_machine.config
-        slots_per_epoch = config.SLOTS_PER_EPOCH
-        state = chain.get_head_state()
-        head_slot = state.slot
-        current_epoch = compute_epoch_of_slot(head_slot, slots_per_epoch)
+        slots_per_epoch = chain.get_state_machine().config.SLOTS_PER_EPOCH
+        current_epoch = chain.get_head_state().current_epoch(slots_per_epoch)
         block_epoch = compute_epoch_of_slot(block.slot, slots_per_epoch)
         if block_epoch > current_epoch:
             # Can not process block in future epoch because
             # proposer is not predictable.
+            logger.debug(
+                bold_red("Failed to validate block=%s, can not process block in future epoch"),
+                encode_hex(block.signing_root),
+            )
             return False
-        elif block_epoch < current_epoch:
-            state_machine = chain.get_state_machine(block.slot)
-            state = chain.get_state_by_slot(block.slot)
 
+        state_machine = chain.get_state_machine(block.slot - 1)
+        state = chain.get_state_by_slot(block.slot - 1)
         state_transition = state_machine.state_transition
         # Fast forward to state in future slot in order to pass
         # block.slot validity check
@@ -64,7 +63,7 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
             future_slot=block.slot,
         )
         try:
-            process_block_header(state, block, config, True)
+            process_block_header(state, block, state_machine.config, True)
         except (ValidationError, SignatureError) as error:
             logger.debug(
                 bold_red("Failed to validate block=%s, error=%s"),
