@@ -1,3 +1,4 @@
+import asyncio
 from typing import (
     Any,
     cast,
@@ -17,11 +18,15 @@ from lahja import (
 )
 
 from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.exceptions import PeerConnectionLost
 from p2p.handshake import DevP2PReceipt
 from p2p.protocol import (
     Payload,
 )
 
+from trinity._utils.decorators import (
+    async_suppress_exceptions,
+)
 from trinity.protocol.common.peer import (
     BaseChainPeer,
     BaseChainPeerFactory,
@@ -176,6 +181,9 @@ class ETHPeerFactory(BaseChainPeerFactory):
         )
 
 
+async_fire_and_forget = async_suppress_exceptions(PeerConnectionLost, asyncio.TimeoutError)
+
+
 class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
     """
     ETH protocol specific ``PeerPoolEventServer``. See ``PeerPoolEventServer`` for more info.
@@ -193,34 +201,10 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
 
     async def _run(self) -> None:
 
-        self.run_daemon_event(
-            SendBlockHeadersEvent,
-            lambda event: self.try_with_node(
-                event.remote,
-                lambda peer: peer.sub_proto.send_block_headers(event.headers)
-            )
-        )
-        self.run_daemon_event(
-            SendBlockBodiesEvent,
-            lambda event: self.try_with_node(
-                event.remote,
-                lambda peer: peer.sub_proto.send_block_bodies(event.blocks)
-            )
-        )
-        self.run_daemon_event(
-            SendNodeDataEvent,
-            lambda event: self.try_with_node(
-                event.remote,
-                lambda peer: peer.sub_proto.send_node_data(event.nodes)
-            )
-        )
-        self.run_daemon_event(
-            SendReceiptsEvent,
-            lambda event: self.try_with_node(
-                event.remote,
-                lambda peer: peer.sub_proto.send_receipts(event.receipts)
-            )
-        )
+        self.run_daemon_event(SendBlockHeadersEvent, self.handle_block_headers_event)
+        self.run_daemon_event(SendBlockBodiesEvent, self.handle_block_bodies_event)
+        self.run_daemon_event(SendNodeDataEvent, self.handle_node_data_event)
+        self.run_daemon_event(SendReceiptsEvent, self.handle_receipts_event)
 
         self.run_daemon_request(GetBlockHeadersRequest, self.handle_get_block_headers_request)
         self.run_daemon_request(GetReceiptsRequest, self.handle_get_receipts_request)
@@ -228,6 +212,34 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
         self.run_daemon_request(GetNodeDataRequest, self.handle_get_node_data_request)
 
         await super()._run()
+
+    @async_fire_and_forget
+    async def handle_block_headers_event(self, event: SendBlockHeadersEvent) -> None:
+        await self.try_with_node(
+            event.remote,
+            lambda peer: peer.sub_proto.send_block_headers(event.headers)
+        )
+
+    @async_fire_and_forget
+    async def handle_block_bodies_event(self, event: SendBlockBodiesEvent) -> None:
+        await self.try_with_node(
+            event.remote,
+            lambda peer: peer.sub_proto.send_block_bodies(event.blocks)
+        )
+
+    @async_fire_and_forget
+    async def handle_node_data_event(self, event: SendNodeDataEvent) -> None:
+        await self.try_with_node(
+            event.remote,
+            lambda peer: peer.sub_proto.send_node_data(event.nodes)
+        )
+
+    @async_fire_and_forget
+    async def handle_receipts_event(self, event: SendReceiptsEvent) -> None:
+        await self.try_with_node(
+            event.remote,
+            lambda peer: peer.sub_proto.send_receipts(event.receipts)
+        )
 
     async def handle_get_block_headers_request(
             self,

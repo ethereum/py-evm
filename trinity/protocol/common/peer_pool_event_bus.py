@@ -161,7 +161,13 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
                             event_handler_fn: Callable[[TEvent], Any]) -> None:
 
         async for event in self.wait_iter(self.event_bus.stream(event_type)):
-            await event_handler_fn(event)
+            try:
+                await event_handler_fn(event)
+            except Exception as exc:
+                self.logger.exception(
+                    "Suppressed uncaught exception to continue handling events: %s",
+                    exc,
+                )
 
     async def handle_request_stream(
             self,
