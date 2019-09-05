@@ -1,15 +1,16 @@
 import functools
-import logging
 
 from typing import (
     Any,
     Callable,
-    cast,
     Type,
     TypeVar,
 )
 
-from eth.tools.logging import ExtendedDebugLogger
+from eth_utils import (
+    ExtendedDebugLogger,
+    get_extended_debug_logger,
+)
 
 from eth._utils.datatypes import Configurable
 from eth.abc import (
@@ -33,8 +34,7 @@ class Opcode(Configurable, OpcodeAPI):
 
     @property
     def logger(self) -> ExtendedDebugLogger:
-        logger_obj = logging.getLogger('eth.vm.logic.{0}'.format(self.mnemonic))
-        return cast(ExtendedDebugLogger, logger_obj)
+        return get_extended_debug_logger('eth.vm.logic.{0}'.format(self.mnemonic))
 
     @classmethod
     def as_opcode(cls: Type[T],

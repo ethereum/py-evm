@@ -1,8 +1,3 @@
-import logging
-from typing import (
-    cast,
-)
-
 from eth_hash.auto import keccak
 from eth_typing import (
     Address,
@@ -10,6 +5,7 @@ from eth_typing import (
 )
 from eth_utils import (
     ValidationError,
+    get_extended_debug_logger,
     int_to_big_endian,
 )
 import rlp
@@ -41,9 +37,6 @@ from eth.db.journal import (
 from eth.vm.interrupt import (
     MissingStorageTrieNode,
 )
-from eth.tools.logging import (
-    ExtendedDebugLogger
-)
 from eth.typing import (
     JournalDBCheckpoint,
 )
@@ -56,7 +49,7 @@ class StorageLookup(BaseDB):
 
     StorageLookup also tracks the state roots changed since the last persist.
     """
-    logger = cast(ExtendedDebugLogger, logging.getLogger("eth.db.storage.StorageLookup"))
+    logger = get_extended_debug_logger("eth.db.storage.StorageLookup")
 
     def __init__(self, db: DatabaseAPI, storage_root: Hash32, address: Address) -> None:
         self._db = db
@@ -160,7 +153,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
     Storage cache and write batch for a single account. Changes are not
     merklized until :meth:`make_storage_root` is called.
     """
-    logger = cast(ExtendedDebugLogger, logging.getLogger("eth.db.storage.AccountStorageDB"))
+    logger = get_extended_debug_logger("eth.db.storage.AccountStorageDB")
 
     def __init__(self, db: AtomicDatabaseAPI, storage_root: Hash32, address: Address) -> None:
         """

@@ -1,7 +1,5 @@
 import contextlib
-import logging
 from typing import (
-    cast,
     Iterator,
     Tuple,
     Type,
@@ -11,6 +9,10 @@ from uuid import UUID
 from eth_typing import (
     Address,
     Hash32,
+)
+from eth_utils import (
+    ExtendedDebugLogger,
+    get_extended_debug_logger,
 )
 from eth_utils.toolz import nth
 
@@ -27,9 +29,6 @@ from eth.abc import (
 )
 from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
-)
-from eth.tools.logging import (
-    ExtendedDebugLogger,
 )
 from eth._utils.datatypes import (
     Configurable,
@@ -76,8 +75,7 @@ class BaseState(Configurable, StateAPI):
     #
     @property
     def logger(self) -> ExtendedDebugLogger:
-        normal_logger = logging.getLogger('eth.vm.state.{0}'.format(self.__class__.__name__))
-        return cast(ExtendedDebugLogger, normal_logger)
+        return get_extended_debug_logger('eth.vm.state.{0}'.format(self.__class__.__name__))
 
     #
     # Block Object Properties (in opcodes)

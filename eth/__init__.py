@@ -1,16 +1,6 @@
 import pkg_resources
 import sys
 
-from eth.tools.logging import (
-    setup_extended_logging
-)
-
-#
-#  Setup TRACE level logging.
-#
-# This needs to be done before the other imports
-setup_extended_logging()
-
 from eth.chains import (  # noqa: F401
     Chain,
     MainnetChain,

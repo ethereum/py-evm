@@ -1,10 +1,9 @@
-import logging
 from typing import (
     Callable,
-    cast,
 )
 from eth_utils import (
     ValidationError,
+    get_extended_debug_logger,
 )
 
 from eth.abc import GasMeterAPI
@@ -13,9 +12,6 @@ from eth.exceptions import (
 )
 from eth.validation import (
     validate_uint256,
-)
-from eth.tools.logging import (
-    ExtendedDebugLogger,
 )
 
 
@@ -40,7 +36,7 @@ class GasMeter(GasMeterAPI):
     gas_refunded: int = None
     gas_remaining: int = None
 
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.gas.GasMeter'))
+    logger = get_extended_debug_logger('eth.gas.GasMeter')
 
     def __init__(self,
                  start_gas: int,

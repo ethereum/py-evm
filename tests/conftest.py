@@ -7,7 +7,9 @@ from eth_utils import (
     to_canonical_address,
     to_tuple,
     to_wei,
+    setup_DEBUG2_logging,
 )
+
 from eth_keys import keys
 import rlp
 
@@ -29,6 +31,11 @@ from eth.vm.forks import (
     IstanbulVM,
 )
 
+#
+#  Setup DEBUG2 level logging.
+#
+# This needs to be done before the other imports
+setup_DEBUG2_logging()
 
 # Uncomment this to have logs from tests written to a file.  This is useful for
 # debugging when you need to dump the VM output from test runs.
