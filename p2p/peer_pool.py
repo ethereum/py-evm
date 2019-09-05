@@ -204,10 +204,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             await self.wait(rate_limiter.take())
 
             try:
-                await self.wait(asyncio.gather(*(
+                await asyncio.gather(*(
                     self._add_peers_from_backend(backend)
                     for backend in self.peer_backends
-                )))
+                ))
             except OperationCancelled:
                 break
 
@@ -408,10 +408,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 available_peer_slots,
             )
             # Try to connect to the peers concurrently.
-            await self.wait(asyncio.gather(
+            await asyncio.gather(
                 *(self.connect_to_node(node) for node in batch),
                 loop=self.get_event_loop(),
-            ))
+            )
 
     async def connect_to_node(self, node: NodeAPI) -> None:
         """
