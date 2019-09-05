@@ -162,8 +162,11 @@ def _generate_test_suite_descriptors_from(
         config_type = config_types[0]
         _add_config_type_to_tracking_set(config_type)
         _check_only_one_config_type(config_type)
+        configs_to_exclude = eth2_fixture_request.get("exclude_for", ())
+        should_include_handler = config_type not in configs_to_exclude
     else:
         config_types = (General,)
+        should_include_handler = True
 
     test_types = eth2_fixture_request["test_types"]
 
@@ -175,7 +178,7 @@ def _generate_test_suite_descriptors_from(
     selected_handlers: Tuple[Tuple[TestType[Any], TestHandler[Any, Any]], ...] = tuple()
     for test_type, handler_filter in test_types.items():
         for handler in test_type.handlers:
-            if handler_filter(handler):
+            if handler_filter(handler) and should_include_handler:
                 selected_handlers += ((test_type, handler),)
 
     return tuple(itertools.product(selected_handlers, config_types, fork_types))

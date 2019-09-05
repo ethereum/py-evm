@@ -1,4 +1,4 @@
-from eth2.beacon.tools.fixtures.config_types import Minimal
+from eth2.beacon.tools.fixtures.config_types import Mainnet, Minimal
 from eth2.beacon.tools.fixtures.test_generation import (
     generate_pytests_from_eth2_fixture,
     pytest_from_eth2_fixture,
@@ -14,6 +14,7 @@ def pytest_generate_tests(metafunc):
     {
         "config_types": (Minimal,),
         "test_types": {GenesisTestType: lambda handler: handler.name == "validity"},
+        "exclude_for": (Mainnet,),
     }
 )
 def test_validity(test_case):
@@ -26,6 +27,7 @@ def test_validity(test_case):
         "test_types": {
             GenesisTestType: lambda handler: handler.name == "initialization"
         },
+        "exclude_for": (Mainnet,),
     }
 )
 def test_initialization(test_case):
