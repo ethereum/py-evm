@@ -489,6 +489,7 @@ def _create_mock_signed_attestation(
     keymap: Dict[BLSPubkey, int],
     slots_per_epoch: int,
     is_for_simulation: bool = True,
+    _attesting_indices: Sequence[ValidatorIndex] = None,
 ) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
@@ -504,6 +505,7 @@ def _create_mock_signed_attestation(
         )
     else:
         privkeys = tuple(keymap.values())
+        attesting_indices = _attesting_indices
 
     # Use privkeys to sign the attestation
     signatures = [
@@ -575,6 +577,7 @@ def create_signed_attestation_at_slot(
     validator_privkeys: Dict[ValidatorIndex, int],
     committee: Tuple[ValidatorIndex, ...],
     shard: Shard,
+    attesting_indices: Sequence[ValidatorIndex],
 ) -> Attestation:
     """
     Create the attestations of the given ``attestation_slot`` slot with ``validator_privkeys``.
@@ -612,6 +615,7 @@ def create_signed_attestation_at_slot(
         keymapper(lambda index: state.validators[index].pubkey, validator_privkeys),
         config.SLOTS_PER_EPOCH,
         is_for_simulation=False,
+        _attesting_indices=attesting_indices,
     )
 
 
