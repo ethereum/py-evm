@@ -13,7 +13,6 @@ from lahja import EndpointAPI
 
 from eth_hash.auto import keccak
 from eth_utils import (
-    encode_hex,
     to_checksum_address,
     ValidationError,
 )
@@ -36,9 +35,6 @@ from trie.exceptions import MissingTrieNode
 
 from trinity._utils.datastructures import TaskQueue
 from trinity._utils.timer import Timer
-from trinity.protocol.common.trackers import (
-    BasePerformance,
-)
 from trinity.protocol.common.types import (
     NodeDataBundles,
 )
@@ -54,22 +50,11 @@ from trinity.protocol.eth import (
 )
 from trinity.sync.beam.constants import (
     DELAY_BEFORE_NON_URGENT_REQUEST,
+    NON_IDEAL_RESPONSE_PENALTY,
     REQUEST_BUFFER_MULTIPLIER,
-    EMPTY_PEER_RESPONSE_PENALTY,
 )
 
 from trinity.sync.common.peers import WaitingPeers
-
-
-def _is_hash(maybe_hash: bytes) -> bool:
-    return isinstance(maybe_hash, bytes) and len(maybe_hash) == 32
-
-
-def _get_rtt(tracker: BasePerformance) -> float:
-    """
-    Extract the round trip time from the peer's tracker.
-    """
-    return tracker.round_trip_ema.value
 
 
 class BeamDownloader(BaseService, PeerSubscriber):
@@ -86,7 +71,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
     _total_requests = 0
     _timer = Timer(auto_start=False)
     _report_interval = 10  # Number of seconds between progress reports.
-    _reply_timeout = 1  # seconds
+    _reply_timeout = 10  # seconds
 
     # We are only interested in peers entering or leaving the pool
     subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
@@ -105,7 +90,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
         super().__init__(token)
         self._db = db
         self._trie_db = HexaryTrie(db)
-        self._node_data_peers = WaitingPeers[ETHPeer](NodeData, sort_key=_get_rtt)
+        self._node_data_peers = WaitingPeers[ETHPeer](NodeData)
         self._event_bus = event_bus
 
         # Track the needed node data that is urgent and important:
@@ -123,8 +108,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
             # Everything is the same priority, for now
             lambda node_hash: 0,
         )
-
-        self._peers_without_full_trie: Set[ETHPeer] = set()
 
         # It's possible that you are connected to a peer that doesn't have a full state DB
         # In that case, we may get stuck requesting predictive nodes from them over and over
@@ -303,14 +286,15 @@ class BeamDownloader(BaseService, PeerSubscriber):
             # Get an available peer, preferring the one that gives us the most node data throughput
             peer = await self._node_data_peers.get_fastest()
 
-            if urgent_batch_id is None:
-                # We will make a request of all-predictive nodes
-                if peer in self._peers_without_full_trie:
-                    self.logger.warning("Skipping all-predictive loading on %s", peer)
-                    self._node_data_peers.put_nowait(peer)
-                    self._maybe_useful_nodes.complete(predictive_batch_id, ())
-                    self._allow_predictive_only = False
-                    continue
+            if urgent_batch_id is not None and peer.requests.get_node_data.is_requesting:
+                # Our best peer for node data has an in-flight GetNodeData request
+                # Probably, backfill is asking this peer for data
+                # This is right in the critical path, so we'd prefer this never happen
+                self.logger.debug(
+                    "Want to download urgent data, but %s is locked on other request",
+                    peer,
+                )
+                # Don't do anything different, allow the request lock to handle the situation
 
             if any(len(h) != 32 for h in node_hashes):
                 # This was inserted to identify and resolve a buggy situation
@@ -380,10 +364,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
             predictive_batch_id: int) -> None:
 
         nodes = await self._request_nodes(peer, node_hashes)
-
-        if len(nodes) == 0 and urgent_batch_id is None:
-            self.logger.debug("Shutting off all-predictive loading on %s", peer)
-            self._peers_without_full_trie.add(peer)
 
         urgent_nodes = {
             node_hash: node for node_hash, node in nodes
@@ -478,7 +458,14 @@ class BeamDownloader(BaseService, PeerSubscriber):
             return tuple()
         except Exception as exc:
             self.logger.info("Unexpected err while downloading nodes from %s: %s", peer, exc)
-            self.logger.debug("Problem downloading nodes from peer, dropping...", exc_info=True)
+            delay = NON_IDEAL_RESPONSE_PENALTY
+            self.logger.debug(
+                "Problem downloading nodes from %s, pausing for %.1fs",
+                peer,
+                delay,
+                exc_info=True,
+            )
+            self.call_later(delay, self._node_data_peers.put_nowait, peer)
             return tuple()
         else:
             if len(completed_nodes) > 0:
@@ -486,13 +473,13 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 self._node_data_peers.put_nowait(peer)
             else:
                 # peer didn't return enough results, wait a while before trying again
-                delay = EMPTY_PEER_RESPONSE_PENALTY
+                delay = NON_IDEAL_RESPONSE_PENALTY
                 self.logger.debug(
                     "Pausing %s for %.1fs, for replying with no node data "
-                    "to request for: %r",
+                    "to request for %d nodes",
                     peer,
                     delay,
-                    [encode_hex(h) for h in node_hashes],
+                    len(node_hashes),
                 )
                 self.call_later(delay, self._node_data_peers.put_nowait, peer)
             return completed_nodes

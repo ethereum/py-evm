@@ -8,10 +8,6 @@ DELAY_BEFORE_NON_URGENT_REQUEST = 0.001
 # nodes we can request at once from a single peer.
 REQUEST_BUFFER_MULTIPLIER = 16
 
-# How long should we wait after a peer gives us an empty response for node data,
-# before we ask for some new data from them? Measured in seconds.
-EMPTY_PEER_RESPONSE_PENALTY = 5
-
 # How many different processes are running previews? They will split the
 # block imports equally. A higher number means a slower startup, but more
 # previews are possible at a time (given that you have enough CPU cores).
@@ -23,3 +19,8 @@ NUM_PREVIEW_SHARDS = 4
 #   constrain the I/O, which can become the global bottleneck.
 MAX_CONCURRENT_SPECULATIVE_EXECUTIONS = 40
 MAX_SPECULATIVE_EXECUTIONS_PER_PROCESS = MAX_CONCURRENT_SPECULATIVE_EXECUTIONS // NUM_PREVIEW_SHARDS
+
+# If a peer does something not ideal, give it a little time to breath,
+# and maybe to try out another peeer. Then reinsert it relatively soon.
+# Measured in seconds.
+NON_IDEAL_RESPONSE_PENALTY = 0.5

@@ -27,4 +27,6 @@ BLOCK_QUEUE_SIZE_TARGET = 1000
 #   causing a massive slowdown.
 # Every block gets previewed, and a block only enters the queue if another block import
 #   is active. So a queue size of 3 means that up to 4 previews are happening at once.
-BLOCK_IMPORT_QUEUE_SIZE = 15
+BLOCK_IMPORT_QUEUE_SIZE = 31
+# This metric seems hard to pin down, we may have to expose it as a command line flag,
+#   until we have a better mechanism for backpressure related to slowness in I/O.
