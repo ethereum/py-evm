@@ -1,0 +1,1 @@
+Add missing ``@abstractmethod`` decorator to ``ConfigurableAPI.configure``.
