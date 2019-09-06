@@ -9,12 +9,10 @@ import sys
 import time
 from typing import ClassVar, Dict, List, MutableSet, NamedTuple, Optional, Tuple
 
-from eth_keys.datatypes import PrivateKey
-from eth_utils import remove_0x_prefix
+from eth_utils import remove_0x_prefix, encode_hex
+from libp2p.crypto.secp256k1 import Secp256k1PrivateKey
 from libp2p.peer.id import ID
 from multiaddr import Multiaddr
-
-from trinity.protocol.bcc_libp2p.utils import peer_id_from_pubkey
 
 
 async def run(cmd):
@@ -66,7 +64,7 @@ class Node:
         preferred_nodes: Optional[Tuple["Node", ...]] = None,
     ) -> None:
         self.name = name
-        self.node_privkey = PrivateKey(bytes.fromhex(node_privkey))
+        self.node_privkey = Secp256k1PrivateKey.new(bytes.fromhex(node_privkey))
         self.port = port
         if preferred_nodes is None:
             preferred_nodes = []
@@ -95,7 +93,7 @@ class Node:
 
     @property
     def peer_id(self) -> ID:
-        return peer_id_from_pubkey(self.node_privkey.public_key)
+        return ID.from_pubkey(self.node_privkey.get_public_key())
 
     @property
     def maddr(self) -> Multiaddr:
@@ -107,7 +105,7 @@ class Node:
             "trinity-beacon",
             f"--port={self.port}",
             f"--trinity-root-dir={self.root_dir}",
-            f"--beacon-nodekey={remove_0x_prefix(self.node_privkey.to_hex())}",
+            f"--beacon-nodekey={remove_0x_prefix(encode_hex(self.node_privkey.to_bytes()))}",
             "--disable-discovery",
             "--network-tracking-backend=do-not-track",
             "--disable-upnp",
