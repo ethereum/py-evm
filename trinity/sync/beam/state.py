@@ -1,6 +1,8 @@
 import asyncio
+from collections import Counter
 from concurrent.futures import CancelledError
 import itertools
+import typing
 from typing import (
     FrozenSet,
     Iterable,
@@ -73,6 +75,9 @@ class BeamDownloader(BaseService, PeerSubscriber):
     _report_interval = 10  # Number of seconds between progress reports.
     _reply_timeout = 10  # seconds
 
+    _num_urgent_requests_by_peer: typing.Counter[ETHPeer]
+    _num_predictive_requests_by_peer: typing.Counter[ETHPeer]
+
     # We are only interested in peers entering or leaving the pool
     subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
 
@@ -115,6 +120,9 @@ class BeamDownloader(BaseService, PeerSubscriber):
         #   executions. If we get stuck in that scenario, turn off allow_predictive_only.
         #   For now, we just turn it off for all peers, for simplicity.
         self._allow_predictive_only = True
+
+        self._num_urgent_requests_by_peer = Counter()
+        self._num_predictive_requests_by_peer = Counter()
 
     async def ensure_nodes_present(
             self,
@@ -305,6 +313,9 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
             if urgent_batch_id is None:
                 self._predictive_only_requests += 1
+                self._num_predictive_requests_by_peer[peer] += 1
+            else:
+                self._num_urgent_requests_by_peer[peer] += 1
             self._total_requests += 1
 
             # Request all the nodes from the given peer, and immediately move on to
@@ -525,4 +536,15 @@ class BeamDownloader(BaseService, PeerSubscriber):
             msg += "  p_pend=%d" % self._maybe_useful_nodes.num_pending()
             msg += "  p_prog=%d" % self._maybe_useful_nodes.num_in_progress()
             self.logger.info("Beam-Sync: %s", msg)
+
+            # log peer counts
+            show_top_n_peers = 3
+            self.logger.debug(
+                "Beam-Peer-Usage-Top-%d: urgent=%s, predictive=%s",
+                show_top_n_peers,
+                self._num_urgent_requests_by_peer.most_common(show_top_n_peers),
+                self._num_predictive_requests_by_peer.most_common(show_top_n_peers),
+            )
+            self._num_urgent_requests_by_peer.clear()
+            self._num_predictive_requests_by_peer.clear()
             await self.sleep(self._report_interval)
