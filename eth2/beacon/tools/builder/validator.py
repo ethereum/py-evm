@@ -359,9 +359,8 @@ def create_mock_slashable_attestation(
         crosslink=previous_crosslink,
     )
 
-    message_hash, attesting_indices = _get_mock_message_and_attesting_indices(
-        attestation_data, committee, num_voted_attesters=1
-    )
+    message_hash = _get_mock_message(attestation_data)
+    attesting_indices = _get_mock_attesting_indices(committee, num_voted_attesters=1)
 
     signature = sign_transaction(
         message_hash=message_hash,
@@ -457,18 +456,23 @@ def _get_target_root(
         )
 
 
-def _get_mock_message_and_attesting_indices(
-    attestation_data: AttestationData,
-    committee: Sequence[ValidatorIndex],
-    num_voted_attesters: int,
-) -> Tuple[Hash32, Tuple[CommitteeIndex, ...]]:
+def _get_mock_message(attestation_data: AttestationData) -> Hash32:
     """
-    Get ``message_hash`` and voting indices of the given ``committee``.
+    Get ``message_hash`` of ``attestation_data``.
     """
     message_hash = AttestationDataAndCustodyBit(
         data=attestation_data, custody_bit=False
     ).hash_tree_root
 
+    return message_hash
+
+
+def _get_mock_attesting_indices(
+    committee: Sequence[ValidatorIndex], num_voted_attesters: int
+) -> Tuple[CommitteeIndex, ...]:
+    """
+    Get voting indices of the given ``committee``.
+    """
     committee_size = len(committee)
     assert num_voted_attesters <= committee_size
 
@@ -477,7 +481,7 @@ def _get_mock_message_and_attesting_indices(
         for i in random.sample(range(committee_size), num_voted_attesters)
     )
 
-    return message_hash, tuple(sorted(attesting_indices))
+    return tuple(sorted(attesting_indices))
 
 
 def _create_mock_signed_attestation(
@@ -489,23 +493,23 @@ def _create_mock_signed_attestation(
     keymap: Dict[BLSPubkey, int],
     slots_per_epoch: int,
     is_for_simulation: bool = True,
-    _attesting_indices: Sequence[ValidatorIndex] = None,
+    attesting_indices: Sequence[ValidatorIndex] = None,
 ) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
     """
-    message_hash, attesting_indices = _get_mock_message_and_attesting_indices(
-        attestation_data, committee, num_voted_attesters
-    )
+    message_hash = _get_mock_message(attestation_data)
 
     if is_for_simulation:
+        simulation_attesting_indices = _get_mock_attesting_indices(
+            committee, num_voted_attesters
+        )
         privkeys = tuple(
             keymap[state.validators[committee[committee_index]].pubkey]
-            for committee_index in attesting_indices
+            for committee_index in simulation_attesting_indices
         )
     else:
         privkeys = tuple(keymap.values())
-        attesting_indices = _attesting_indices  # type: ignore
 
     # Use privkeys to sign the attestation
     signatures = [
@@ -525,7 +529,9 @@ def _create_mock_signed_attestation(
         bitfield=get_empty_bitfield(len(committee)),
         sigs=(),
         voting_sigs=signatures,
-        attesting_indices=attesting_indices,
+        attesting_indices=attesting_indices
+        if not is_for_simulation
+        else simulation_attesting_indices,
     )
 
     # create attestation from attestation_data, particpipant_bitfield, and signature
@@ -615,7 +621,7 @@ def create_signed_attestation_at_slot(
         keymapper(lambda index: state.validators[index].pubkey, validator_privkeys),
         config.SLOTS_PER_EPOCH,
         is_for_simulation=False,
-        _attesting_indices=attesting_indices,
+        attesting_indices=attesting_indices,
     )
 
 
