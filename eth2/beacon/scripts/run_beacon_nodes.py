@@ -9,7 +9,7 @@ import sys
 import time
 from typing import ClassVar, Dict, List, MutableSet, NamedTuple, Optional, Tuple
 
-from eth_utils import remove_0x_prefix, encode_hex
+from eth_utils import encode_hex, remove_0x_prefix
 from libp2p.crypto.secp256k1 import Secp256k1PrivateKey
 from libp2p.peer.id import ID
 from multiaddr import Multiaddr

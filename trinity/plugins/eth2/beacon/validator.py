@@ -57,6 +57,7 @@ from eth2.beacon.types.states import (
     BeaconState,
 )
 from eth2.beacon.typing import (
+    CommitteeIndex,
     Epoch,
     Shard,
     Slot,
@@ -354,7 +355,7 @@ class Validator(BaseService):
                 assignment.committee,
                 shard,
                 tuple(
-                    ValidatorIndex(assignment.committee.index(index))
+                    CommitteeIndex(assignment.committee.index(index))
                     for index in attesting_validators_indices
                 ),
             )
