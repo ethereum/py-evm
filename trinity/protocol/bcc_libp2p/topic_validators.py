@@ -15,7 +15,6 @@ from eth.exceptions import BlockNotFound
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.attestation_helpers import get_attestation_data_slot
 from eth2.beacon.exceptions import SignatureError
-from eth2.beacon.helpers import compute_epoch_of_slot
 from eth2.beacon.chains.base import BaseBeaconChain
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.state_machines.forks.serenity.block_processing import process_block_header
@@ -39,18 +38,6 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
                 bold_red("Failed to validate block=%s, error=%s"),
                 encode_hex(block.signing_root),
                 str(error),
-            )
-            return False
-
-        slots_per_epoch = chain.get_state_machine().config.SLOTS_PER_EPOCH
-        current_epoch = chain.get_head_state().current_epoch(slots_per_epoch)
-        block_epoch = compute_epoch_of_slot(block.slot, slots_per_epoch)
-        if block_epoch > current_epoch:
-            # Can not process block in future epoch because
-            # proposer is not predictable.
-            logger.debug(
-                bold_red("Failed to validate block=%s, can not process block in future epoch"),
-                encode_hex(block.signing_root),
             )
             return False
 
