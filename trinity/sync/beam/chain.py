@@ -132,14 +132,21 @@ class BeamSyncer(BaseService):
             self._launch_strategy,
             self.cancel_token,
         )
-        self._state_downloader = BeamDownloader(db, peer_pool, event_bus, self.cancel_token)
+
+        self._backfiller = BeamStateBackfill(db, peer_pool, token=self.cancel_token)
+
+        self._state_downloader = BeamDownloader(
+            db,
+            peer_pool,
+            self._backfiller,
+            event_bus,
+            self.cancel_token,
+        )
         self._data_hunter = MissingDataEventHandler(
             self._state_downloader,
             event_bus,
             token=self.cancel_token,
         )
-
-        self._backfiller = BeamStateBackfill(db, peer_pool, token=self.cancel_token)
 
         self._block_importer = BeamBlockImporter(
             chain,

@@ -2,7 +2,7 @@
 #   so it's reasonable to ask for all-predictive nodes from a peer.
 # Urgent node requests usually come in pretty fast, so
 #   even at a small value (like 1ms), this timeout is rarely triggered.
-DELAY_BEFORE_NON_URGENT_REQUEST = 0.001
+DELAY_BEFORE_NON_URGENT_REQUEST = 0.05
 
 # How much large should our buffer be? This is a multiplier on how many
 # nodes we can request at once from a single peer.

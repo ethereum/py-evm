@@ -50,9 +50,11 @@ from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth import (
     constants as eth_constants,
 )
+from trinity.sync.beam.backfill import (
+    QueenTrackerAPI,
+)
 from trinity.sync.beam.constants import (
     DELAY_BEFORE_NON_URGENT_REQUEST,
-    NON_IDEAL_RESPONSE_PENALTY,
     REQUEST_BUFFER_MULTIPLIER,
 )
 
@@ -90,6 +92,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             self,
             db: AtomicDatabaseAPI,
             peer_pool: ETHPeerPool,
+            queen_tracker: QueenTrackerAPI,
             event_bus: EndpointAPI,
             token: CancelToken = None) -> None:
         super().__init__(token)
@@ -123,6 +126,8 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
         self._num_urgent_requests_by_peer = Counter()
         self._num_predictive_requests_by_peer = Counter()
+
+        self._queen_tracker = queen_tracker
 
     async def ensure_nodes_present(
             self,
@@ -291,8 +296,8 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 await self.sleep(0.02)
                 continue
 
-            # Get an available peer, preferring the one that gives us the most node data throughput
-            peer = await self._node_data_peers.get_fastest()
+            # Get best peer, by GetNodeData speed
+            peer = await self._queen_tracker.get_queen_peer()
 
             if urgent_batch_id is not None and peer.requests.get_node_data.is_requesting:
                 # Our best peer for node data has an in-flight GetNodeData request
@@ -320,14 +325,14 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
             # Request all the nodes from the given peer, and immediately move on to
             #   try to request other nodes from another peer.
-            self.run_task(self._get_nodes_from_peer(
+            await self._get_nodes_from_peer(
                 peer,
                 node_hashes,
                 urgent_batch_id,
                 urgent_hashes,
                 predictive_hashes,
                 predictive_batch_id,
-            ))
+            )
 
     async def _get_waiting_urgent_hashes(self) -> Tuple[int, Tuple[Hash32, ...]]:
         # if any predictive nodes are waiting, then time out after a short pause to grab them
@@ -442,7 +447,6 @@ class BeamDownloader(BaseService, PeerSubscriber):
     def register_peer(self, peer: BasePeer) -> None:
         super().register_peer(peer)
         # when a new peer is added to the pool, add it to the idle peer list
-        self._node_data_peers.put_nowait(peer)  # type: ignore
 
     async def _request_nodes(
             self,
@@ -452,10 +456,12 @@ class BeamDownloader(BaseService, PeerSubscriber):
             completed_nodes = await self._make_node_request(peer, node_hashes)
         except PeerConnectionLost:
             self.logger.debug("%s went away, cancelling the nodes request and moving on...", peer)
+            self._queen_tracker.penalize_queen(peer)
             return tuple()
         except BaseP2PError as exc:
             self.logger.warning("Unexpected p2p err while downloading nodes from %s: %s", peer, exc)
             self.logger.debug("Problem downloading nodes from peer, dropping...", exc_info=True)
+            self._queen_tracker.penalize_queen(peer)
             return tuple()
         except OperationCancelled:
             self.logger.debug(
@@ -463,36 +469,28 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 peer,
                 exc_info=True,
             )
+            self._queen_tracker.penalize_queen(peer)
             return tuple()
         except CancelledError:
             self.logger.debug("Pending nodes call to %r future cancelled", peer)
+            self._queen_tracker.penalize_queen(peer)
             raise
         except Exception as exc:
             self.logger.info("Unexpected err while downloading nodes from %s: %s", peer, exc)
-            delay = NON_IDEAL_RESPONSE_PENALTY
             self.logger.debug(
-                "Problem downloading nodes from %s, pausing for %.1fs",
+                "Problem downloading nodes from %s",
                 peer,
-                delay,
                 exc_info=True,
             )
-            self.call_later(delay, self._node_data_peers.put_nowait, peer)
+            self._queen_tracker.penalize_queen(peer)
             return tuple()
         else:
             if len(completed_nodes) > 0:
                 # peer completed successfully, so have it get back in line for processing
-                self._node_data_peers.put_nowait(peer)
+                pass
             else:
                 # peer didn't return enough results, wait a while before trying again
-                delay = NON_IDEAL_RESPONSE_PENALTY
-                self.logger.debug(
-                    "Pausing %s for %.1fs, for replying with no node data "
-                    "to request for %d nodes",
-                    peer,
-                    delay,
-                    len(node_hashes),
-                )
-                self.call_later(delay, self._node_data_peers.put_nowait, peer)
+                self._queen_tracker.penalize_queen(peer)
             return completed_nodes
 
     async def _make_node_request(

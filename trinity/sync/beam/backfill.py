@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import asyncio
 from collections import Counter
 import typing
@@ -29,6 +30,7 @@ from trinity.protocol.common.abc import (
 )
 from trinity.sync.beam.constants import (
     GAP_BETWEEN_TESTS,
+    NON_IDEAL_RESPONSE_PENALTY,
 )
 from trinity.sync.common.peers import WaitingPeers
 
@@ -43,7 +45,20 @@ def _peer_sort_key(peer: ETHPeer) -> float:
     return _get_items_per_second(peer.requests.get_node_data.tracker)
 
 
-class BeamStateBackfill(BaseService, PeerSubscriber):
+class QueenTrackerAPI(ABC):
+    """
+    Keep track of the single best peer
+    """
+    @abstractmethod
+    async def get_queen_peer(self) -> ETHPeer:
+        ...
+
+    @abstractmethod
+    def penalize_queen(self, peer: ETHPeer) -> None:
+        ...
+
+
+class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
     """
     Use a very simple strategy to fill in state in the background.
 
@@ -89,6 +104,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber):
         # The best peer gets skipped for backfill, because we prefer to use it for
         #   urgent beam sync nodes
         self._queen_peer: ETHPeer = None
+
         self._waiting_peers = WaitingPeers[ETHPeer](NodeData, sort_key=_get_items_per_second)
 
         self._is_missing: Set[Hash32] = set()
@@ -98,9 +114,34 @@ class BeamStateBackfill(BaseService, PeerSubscriber):
     def _update_queen(self, peer: ETHPeer) -> None:
         if self._queen_peer is None:
             self._queen_peer = peer
+        elif peer == self._queen_peer:
+            # nothing to do, peer is already the queen
+            pass
         elif _peer_sort_key(peer) < _peer_sort_key(self._queen_peer):
             self._waiting_peers.put_nowait(self._queen_peer)
             self._queen_peer = peer
+        else:
+            # nothing to do, peer is slower than the queen
+            pass
+
+    async def get_queen_peer(self) -> ETHPeer:
+        while self._queen_peer is None:
+            peer = await self._waiting_peers.get_fastest()
+            self._update_queen(peer)
+
+        return self._queen_peer
+
+    def penalize_queen(self, peer: ETHPeer) -> None:
+        if peer == self._queen_peer:
+            self._queen_peer = None
+
+            delay = NON_IDEAL_RESPONSE_PENALTY
+            self.logger.debug(
+                "Penalizing %s for %.2fs, for minor infraction",
+                peer,
+                delay,
+            )
+            self.call_later(delay, self._waiting_peers.put_nowait, peer)
 
     async def _run(self) -> None:
         self.run_daemon_task(self._periodically_report_progress())
@@ -115,6 +156,13 @@ class BeamStateBackfill(BaseService, PeerSubscriber):
             await self._walk()
 
             peer = await self._waiting_peers.get_fastest()
+            if not peer.is_operational:
+                # drop any peers that aren't alive anymore
+                self.logger.warning("Dropping %s from backfill as no longer operational", peer)
+                if peer == self._queen_peer:
+                    self._queen_peer = None
+                continue
+
             old_queen = self._queen_peer
             self._update_queen(peer)
             if peer == self._queen_peer:
