@@ -39,6 +39,7 @@ from p2p.constants import (
     DEFAULT_MAX_PEERS,
     DEFAULT_PEER_BOOT_TIMEOUT,
     DISCOVERY_EVENTBUS_ENDPOINT,
+    HANDSHAKE_TIMEOUT,
     MAX_CONCURRENT_CONNECTION_ATTEMPTS,
     MAX_SEQUENTIAL_PEER_CONNECT,
     PEER_CONNECT_INTERVAL,
@@ -348,7 +349,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 self.logger.debug2("Connecting to %s...", remote)
                 return await self.wait(
                     self.get_peer_factory().handshake(remote),
-                    timeout=5,
+                    timeout=HANDSHAKE_TIMEOUT,
                 )
             except OperationCancelled:
                 # Pass it on to instruct our main loop to stop.
