@@ -118,6 +118,9 @@ class BaseService(CancellableMixin, AsyncioServiceAPI):
                 await self._run()
         except OperationCancelled as e:
             self.logger.debug("%s finished: %s", self, e)
+        except asyncio.CancelledError:
+            # If a cancellation occurs we just want to re-raise it.  No need to log anything.
+            raise
         except Exception:
             self.logger.exception("Unexpected error in %r, exiting", self)
         else:
