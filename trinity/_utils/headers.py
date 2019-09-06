@@ -7,8 +7,8 @@ from typing import (
     TypeVar,
 )
 
+from eth.abc import BlockHeaderAPI
 from eth.constants import UINT_256_MAX
-from eth.rlp.headers import BlockHeader
 
 from trinity.exceptions import OversizeObject
 
@@ -45,8 +45,8 @@ def sequence_builder(start_number: T,
 
 
 async def skip_complete_headers(
-        headers_iter: Iterable[BlockHeader],
-        completion_check: Callable[[BlockHeader], Awaitable[bool]]) -> Tuple[BlockHeader, ...]:
+        headers_iter: Iterable[BlockHeaderAPI],
+        completion_check: Callable[[BlockHeaderAPI], Awaitable[bool]]) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:  # noqa: E501
     """
     Collect all completed headers into a tuple, and the remaining headers into a second tuple,
     using `completion_check(header)` to decide on completion.

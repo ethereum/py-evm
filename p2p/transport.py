@@ -1,9 +1,7 @@
 import asyncio
 import hmac
-import logging
 import secrets
 import struct
-from typing import cast
 
 import sha3
 
@@ -16,9 +14,10 @@ from cancel_token import CancelToken
 
 from eth_keys import datatypes
 
-from eth_utils import big_endian_to_int
-
-from eth.tools.logging import ExtendedDebugLogger
+from eth_utils import (
+    big_endian_to_int,
+    get_extended_debug_logger,
+)
 
 from p2p import auth
 from p2p._utils import (
@@ -51,7 +50,7 @@ from p2p.transport_state import TransportState
 
 
 class Transport(TransportAPI):
-    logger = cast(ExtendedDebugLogger, logging.getLogger('p2p.transport.Transport'))
+    logger = get_extended_debug_logger('p2p.transport.Transport')
 
     # This status flag allows those managing a `Transport` to determine the
     # proper cancellation strategy if the transport is mid-read.  Hard

@@ -1,19 +1,14 @@
-import logging
 from typing import (
-    cast,
+    Sequence,
     Tuple,
 )
 
-from eth.rlp.headers import (
-    BlockHeader,
-)
-from eth.tools.logging import (
-    ExtendedDebugLogger,
-)
+from eth.abc import BlockHeaderAPI
 from eth_typing import (
     BlockIdentifier,
     Hash32,
 )
+from eth_utils import get_extended_debug_logger
 from lahja import (
     BroadcastConfig,
     EndpointAPI,
@@ -65,6 +60,7 @@ class ProxyETHExchangeHandler:
     An ``ETHExchangeHandler`` that can be used outside of the process that runs the peer pool. Any
     action performed on this class is delegated to the process that runs the peer pool.
     """
+    logger = get_extended_debug_logger('trinity.protocol.eth.handlers.ProxyETHExchangeHandler')
 
     def __init__(self,
                  remote: NodeAPI,
@@ -73,10 +69,6 @@ class ProxyETHExchangeHandler:
         self.remote = remote
         self._event_bus = event_bus
         self._broadcast_config = broadcast_config
-        self.logger = cast(
-            ExtendedDebugLogger,
-            logging.getLogger('trinity.protocol.eth.handlers.ProxyETHExchangeHandler')
-        )
 
     def raise_if_needed(self, value: SupportsError) -> None:
         if value.error is not None:
@@ -90,7 +82,7 @@ class ProxyETHExchangeHandler:
                                 max_headers: int = None,
                                 skip: int = 0,
                                 reverse: bool = True,
-                                timeout: float = None) -> Tuple[BlockHeader, ...]:
+                                timeout: float = None) -> Tuple[BlockHeaderAPI, ...]:
 
         response = await self._event_bus.request(
             GetBlockHeadersRequest(
@@ -112,10 +104,10 @@ class ProxyETHExchangeHandler:
             self.remote
         )
 
-        return response.headers
+        return tuple(response.headers)
 
     async def get_block_bodies(self,
-                               headers: Tuple[BlockHeader, ...],
+                               headers: Sequence[BlockHeaderAPI],
                                timeout: float = None) -> BlockBodyBundles:
 
         response = await self._event_bus.request(
@@ -138,7 +130,7 @@ class ProxyETHExchangeHandler:
         return response.bundles
 
     async def get_node_data(self,
-                            node_hashes: Tuple[Hash32, ...],
+                            node_hashes: Sequence[Hash32],
                             timeout: float = None) -> NodeDataBundles:
 
         response = await self._event_bus.request(
@@ -161,7 +153,7 @@ class ProxyETHExchangeHandler:
         return response.bundles
 
     async def get_receipts(self,
-                           headers: Tuple[BlockHeader, ...],
+                           headers: Sequence[BlockHeaderAPI],
                            timeout: float = None) -> ReceiptsBundles:
 
         response = await self._event_bus.request(

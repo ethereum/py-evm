@@ -2,8 +2,8 @@ from abc import abstractmethod
 from typing import (
     Dict,
     Iterable,
-    List,
     Sequence,
+    Tuple,
     Type,
 )
 
@@ -35,7 +35,10 @@ class BaseAsyncChainDB(BaseAsyncHeaderDB, ChainDB):
         ...
 
     @abstractmethod
-    async def coro_persist_block(self, block: BlockAPI) -> None:
+    async def coro_persist_block(
+        self,
+        block: BlockAPI,
+    ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         ...
 
     @abstractmethod
@@ -54,12 +57,15 @@ class BaseAsyncChainDB(BaseAsyncHeaderDB, ChainDB):
         ...
 
     @abstractmethod
-    async def coro_get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeaderAPI]:
+    async def coro_get_block_uncles(self, uncles_hash: Hash32) -> Tuple[BlockHeaderAPI, ...]:
         ...
 
     @abstractmethod
     async def coro_get_receipts(
-            self, header: BlockHeaderAPI, receipt_class: Type[ReceiptAPI]) -> List[ReceiptAPI]:
+        self,
+        header: BlockHeaderAPI,
+        receipt_class: Type[ReceiptAPI],
+    ) -> Tuple[ReceiptAPI, ...]:
         ...
 
 

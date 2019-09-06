@@ -1,3 +1,6 @@
+from typing import Type
+
+from eth.abc import ChainDatabaseAPI
 from eth.chains import Chain
 
 from trinity._utils.async_dispatch import async_method
@@ -7,7 +10,7 @@ from .base import AsyncChainAPI
 
 
 class AsyncChainMixin(AsyncChainAPI):
-    chaindb_class = AsyncChainDB
+    chaindb_class: Type[ChainDatabaseAPI] = AsyncChainDB
 
     coro_get_ancestors = async_method(Chain.get_ancestors)
     coro_get_block_by_hash = async_method(Chain.get_block_by_hash)

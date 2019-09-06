@@ -8,8 +8,10 @@ try:
 except pkg_resources.DistributionNotFound:
     __version__ = f"eth-{pkg_resources.get_distribution('py-evm').version}"
 
-# This is to ensure we call setup_extended_logging() before anything else.
-import eth as _eth_module  # noqa: F401
+
+# Setup the `DEBUG2` logging level
+from eth_utils import setup_DEBUG2_logging  # noqa: E402
+setup_DEBUG2_logging()
 
 
 def is_uvloop_supported() -> bool:

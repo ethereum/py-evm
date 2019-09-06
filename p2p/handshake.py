@@ -1,6 +1,5 @@
 import asyncio
 import functools
-import logging
 import operator
 from typing import (
     cast,
@@ -15,12 +14,13 @@ from typing import (
 
 from cancel_token import CancelToken
 
-from eth_utils import to_tuple
+from eth_utils import (
+    get_extended_debug_logger,
+    to_tuple,
+)
 from eth_utils.toolz import groupby, valmap
 
 from eth_keys import keys
-
-from eth.tools.logging import ExtendedDebugLogger
 
 from p2p._utils import duplicates
 from p2p.abc import (
@@ -62,7 +62,7 @@ class Handshaker(HandshakerAPI):
     justification for this class's existence is to house parameters that are
     needed for the protocol handshake.
     """
-    logger = cast(ExtendedDebugLogger, logging.getLogger('p2p.connection.ProtocolHandler'))
+    logger = get_extended_debug_logger('p2p.connection.ProtocolHandler')
 
 
 class DevP2PHandshakeParams(NamedTuple):

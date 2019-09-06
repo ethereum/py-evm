@@ -36,6 +36,15 @@ class BaseBeaconChain(Configurable, ABC):
     )  # type: Tuple[Tuple[Slot, Type[BaseBeaconStateMachine]], ...]
     chain_id = None  # type: int
 
+    @abstractmethod
+    def __init__(
+        self,
+        base_db: AtomicDatabaseAPI,
+        attestation_pool: AttestationPool,
+        genesis_config: Eth2GenesisConfig,
+    ) -> None:
+        ...
+
     #
     # Helpers
     #

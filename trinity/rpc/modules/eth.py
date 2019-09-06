@@ -27,7 +27,10 @@ from eth_utils import (
     to_wei,
 )
 
-from eth.abc import AccountDatabaseAPI
+from eth.abc import (
+    SignedTransactionAPI,
+    StateAPI,
+)
 from eth.constants import (
     ZERO_ADDRESS,
 )
@@ -71,7 +74,7 @@ from ._util import get_header
 async def state_at_block(
         chain: AsyncChainAPI,
         at_block: Union[str, int],
-        read_only: bool=True) -> AccountDatabaseAPI:
+        read_only: bool=True) -> StateAPI:
     at_header = await get_header(chain, at_block)
     vm = chain.get_vm(at_header)
     return vm.state
@@ -91,7 +94,7 @@ async def get_block_at_number(chain: AsyncChainAPI, at_block: Union[str, int]) -
 def dict_to_spoof_transaction(
         chain: AsyncChainAPI,
         header: BlockHeader,
-        transaction_dict: Dict[str, Any]) -> SpoofTransaction:
+        transaction_dict: Dict[str, Any]) -> SignedTransactionAPI:
     """
     Convert dicts used in calls & gas estimates into a spoof transaction
     """
@@ -115,7 +118,7 @@ def dict_to_spoof_transaction(
         value=txn_dict['value'],
         data=txn_dict['data'],
     )
-    return SpoofTransaction(unsigned, from_=sender)
+    return cast(SignedTransactionAPI, SpoofTransaction(unsigned, from_=sender))
 
 
 class Eth(Eth1ChainRPCModule):

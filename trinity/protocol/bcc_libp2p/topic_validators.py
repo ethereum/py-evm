@@ -91,7 +91,8 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
 
         state_machine = chain.get_state_machine()
         config = state_machine.config
-        state = state_machine.state
+        # This appears to be an invalid property of the state machine.  Is this code dead?
+        state = state_machine.state  # type: ignore
 
         # Check that beacon blocks attested to by the attestation are validated
         try:

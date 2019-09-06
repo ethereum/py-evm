@@ -1,7 +1,7 @@
 from typing import (
     Any,
     Dict,
-    Tuple,
+    Sequence,
 )
 
 from eth_typing import (
@@ -63,25 +63,25 @@ class GetBlockHeadersRequest(RequestAPI[Dict[str, Any]]):
         }
 
 
-class GetReceiptsRequest(RequestAPI[Tuple[Hash32, ...]]):
+class GetReceiptsRequest(RequestAPI[Sequence[Hash32]]):
     cmd_type = GetReceipts
     response_type = Receipts
 
-    def __init__(self, block_hashes: Tuple[Hash32, ...]) -> None:
+    def __init__(self, block_hashes: Sequence[Hash32]) -> None:
         self.command_payload = block_hashes
 
 
-class GetNodeDataRequest(RequestAPI[Tuple[Hash32, ...]]):
+class GetNodeDataRequest(RequestAPI[Sequence[Hash32]]):
     cmd_type = GetNodeData
     response_type = NodeData
 
-    def __init__(self, node_hashes: Tuple[Hash32, ...]) -> None:
+    def __init__(self, node_hashes: Sequence[Hash32]) -> None:
         self.command_payload = node_hashes
 
 
-class GetBlockBodiesRequest(RequestAPI[Tuple[Hash32, ...]]):
+class GetBlockBodiesRequest(RequestAPI[Sequence[Hash32]]):
     cmd_type = GetBlockBodies
     response_type = BlockBodies
 
-    def __init__(self, block_hashes: Tuple[Hash32, ...]) -> None:
+    def __init__(self, block_hashes: Sequence[Hash32]) -> None:
         self.command_payload = block_hashes

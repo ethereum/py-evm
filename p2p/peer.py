@@ -3,7 +3,6 @@ import asyncio
 import collections
 import contextlib
 import functools
-import logging
 from typing import (
     Any,
     cast,
@@ -22,7 +21,11 @@ from lahja import EndpointAPI
 
 from cached_property import cached_property
 
-from eth_utils import to_tuple, ValidationError
+from eth_utils import (
+    get_extended_debug_logger,
+    to_tuple,
+    ValidationError,
+)
 
 from eth_keys import datatypes
 
@@ -459,7 +462,7 @@ class PeerSubscriber(ABC):
 
 
 class MsgBuffer(PeerSubscriber):
-    logger = logging.getLogger('p2p.peer.MsgBuffer')
+    logger = get_extended_debug_logger('p2p.peer.MsgBuffer')
     msg_queue_maxsize = 500
     subscription_msg_types = frozenset({Command})
 

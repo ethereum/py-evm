@@ -1,5 +1,5 @@
 import time
-from typing import Any, Type, TypeVar
+from typing import Any, Type
 
 from eth.db.atomic import AtomicDB
 import factory
@@ -37,15 +37,14 @@ genesis_state, genesis_block = create_mock_genesis(
 )
 
 
-TChain = TypeVar("TChain", bound=BaseBeaconChain)
-
-
 class BeaconChainFactory(factory.Factory):
     class Meta:
         model = TestnetChain
 
     @classmethod
-    def _create(cls, model_class: Type[TChain], *args: Any, **kwargs: Any) -> TChain:
+    def _create(
+        cls, model_class: Type[TestnetChain], *args: Any, **kwargs: Any
+    ) -> BaseBeaconChain:
         return model_class.from_genesis(
             base_db=AtomicDB(),
             genesis_state=genesis_state,

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any, Dict, Sequence, Tuple, Union
 
 from mypy_extensions import TypedDict
 
@@ -11,8 +11,7 @@ class TypedDictPayload(TypedDict):
 
 Payload = Union[
     Dict[str, Any],
-    List[rlp.Serializable],
-    Tuple[rlp.Serializable, ...],
+    Sequence[rlp.Serializable],
     TypedDictPayload,
 ]
 

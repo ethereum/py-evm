@@ -19,6 +19,7 @@ import eth_utils.toolz
 import rlp
 
 from eth_utils import (
+    ExtendedDebugLogger,
     encode_hex,
 )
 
@@ -35,7 +36,6 @@ from eth.constants import (
 )
 from eth.db.backends.level import LevelDB
 from eth.rlp.accounts import Account
-from eth.tools.logging import ExtendedDebugLogger
 
 from p2p.abc import CommandAPI
 from p2p.service import BaseService

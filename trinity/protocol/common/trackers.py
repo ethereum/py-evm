@@ -6,11 +6,11 @@ from typing import (
     TypeVar,
 )
 
+from eth_utils import get_extended_debug_logger
 
 from p2p.abc import RequestAPI
 
 from trinity._utils.ema import EMA
-from trinity._utils.logging import HasExtendedDebugLogger
 from trinity._utils.percentile import Percentile
 from trinity._utils.stddev import StandardDeviation
 from .constants import ROUND_TRIP_TIMEOUT
@@ -77,7 +77,9 @@ class BasePerformance(ABC):
         )
 
 
-class BasePerformanceTracker(BasePerformance, HasExtendedDebugLogger, Generic[TRequest, TResult]):
+class BasePerformanceTracker(BasePerformance, Generic[TRequest, TResult]):
+    logger = get_extended_debug_logger('trinity.protocol.common.trackers.PerformanceTracker')
+
     def __init__(self) -> None:
         super().__init__()
 

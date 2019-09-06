@@ -15,13 +15,14 @@ from .state_transitions import BaseStateTransition
 
 
 class BaseBeaconStateMachine(Configurable, ABC):
-    fork = None  # type: str
-    chaindb = None  # type: BaseBeaconChainDB
-    config = None  # type: Eth2Config
+    # https://gitlab.com/pycqa/flake8/issues/394
+    fork: str = None  # noqa: E701
+    chaindb: BaseBeaconChainDB = None
+    config: Eth2Config = None
 
-    block_class = None  # type: Type[BaseBeaconBlock]
-    state_class = None  # type: Type[BeaconState]
-    state_transition_class = None  # type: Type[BaseStateTransition]
+    block_class: Type[BaseBeaconBlock] = None
+    state_class: Type[BeaconState] = None
+    state_transition_class: Type[BaseStateTransition] = None
 
     @abstractmethod
     def __init__(

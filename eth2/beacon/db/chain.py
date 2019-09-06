@@ -289,7 +289,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             canonical_head_root = db[SchemaV1.make_canonical_head_root_lookup_key()]
         except KeyError:
             raise CanonicalHeadNotFound("No canonical head set for this chain")
-        return canonical_head_root
+        return Hash32(canonical_head_root)
 
     def get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         """
@@ -310,7 +310,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             finalized_head_root = db[SchemaV1.make_finalized_head_root_lookup_key()]
         except KeyError:
             raise FinalizedHeadNotFound("No finalized head set for this chain")
-        return finalized_head_root
+        return Hash32(finalized_head_root)
 
     def get_justified_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         """
@@ -331,7 +331,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             justified_head_root = db[SchemaV1.make_justified_head_root_lookup_key()]
         except KeyError:
             raise JustifiedHeadNotFound("No justified head set for this chain")
-        return justified_head_root
+        return Hash32(justified_head_root)
 
     def get_block_by_root(
         self, block_root: Hash32, block_class: Type[BaseBeaconBlock]

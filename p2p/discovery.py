@@ -8,7 +8,6 @@ More information at https://github.com/ethereum/devp2p/blob/master/rlpx.md#node-
 import asyncio
 import collections
 import contextlib
-import logging
 import random
 import socket
 import time
@@ -32,6 +31,10 @@ from typing import (
 )
 
 import eth_utils.toolz
+from eth_utils import (
+    ExtendedDebugLogger,
+    get_extended_debug_logger,
+)
 
 from lahja import (
     EndpointAPI,
@@ -57,8 +60,6 @@ from eth_keys import keys
 from eth_keys import datatypes
 
 from eth_hash.auto import keccak
-
-from eth.tools.logging import ExtendedDebugLogger
 
 from cancel_token import CancelToken, OperationCancelled
 
@@ -150,8 +151,7 @@ CMD_ID_MAP_V5 = dict(
 
 class DiscoveryProtocol(asyncio.DatagramProtocol):
     """A Kademlia-like protocol to discover RLPx nodes."""
-    logger: ExtendedDebugLogger = cast(ExtendedDebugLogger,
-                                       logging.getLogger("p2p.discovery.DiscoveryProtocol"))
+    logger = get_extended_debug_logger("p2p.discovery.DiscoveryProtocol")
     transport: asyncio.DatagramTransport = None
     use_v5 = False
     _max_neighbours_per_packet_cache = None

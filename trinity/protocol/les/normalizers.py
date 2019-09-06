@@ -5,16 +5,16 @@ from typing import (
     TypeVar,
 )
 
-from eth.rlp.headers import BlockHeader
+from eth.abc import BlockHeaderAPI
 
 from trinity.protocol.common.normalizers import BaseNormalizer
 
 TResult = TypeVar('TResult')
-LESNormalizer = BaseNormalizer[Dict[str, Any], TResult]
+BaseBlockHeadersNormalizer = BaseNormalizer[Dict[str, Any], Tuple[BlockHeaderAPI, ...]]
 
 
-class BlockHeadersNormalizer(LESNormalizer[Tuple[BlockHeader, ...]]):
+class BlockHeadersNormalizer(BaseBlockHeadersNormalizer):
     @staticmethod
-    def normalize_result(message: Dict[str, Any]) -> Tuple[BlockHeader, ...]:
+    def normalize_result(message: Dict[str, Any]) -> Tuple[BlockHeaderAPI, ...]:
         result = message['headers']
         return result

@@ -47,9 +47,8 @@ from p2p.service import BaseService
 
 from trinity.chains.base import AsyncChainAPI
 from trinity.db.eth1.header import BaseAsyncHeaderDB
-from trinity.protocol.common.commands import (
-    BaseBlockHeaders,
-)
+from trinity.protocol.eth.commands import BlockHeaders as ETHBlockHeaders
+from trinity.protocol.les.commands import BlockHeaders as LESBlockHEaders
 from trinity.protocol.common.monitors import BaseChainTipMonitor
 from trinity.protocol.common.peer import BaseChainPeer, BaseChainPeerPool
 from trinity.protocol.eth.constants import (
@@ -211,7 +210,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                     raise ValidationError(f"Found empty header segment in {segments}")
 
             # prepare for the next request
-            start_num = previous_tail_header.block_number + self._skip_length - 1
+            start_num = BlockNumber(previous_tail_header.block_number + self._skip_length - 1)
 
         await self._get_final_headers(peer, previous_tail_header)
 
@@ -219,7 +218,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         while self.is_operational:
             final_headers = await self._fetch_headers_from(
                 peer,
-                previous_tail_header.block_number + 1,
+                BlockNumber(previous_tail_header.block_number + 1),
                 skip=0,
             )
             if len(final_headers) == 0:
@@ -304,7 +303,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         # This next gap will have at least one header that's new to us, because it overlaps
         # with the skeleton header that is next in the previous skeleton request, and
         # we chose the starting skeleton header so it goes past our canonical head
-        start_num = newest_matching_header.block_number + 1
+        start_num = BlockNumber(newest_matching_header.block_number + 1)
         launch_headers = await self._fetch_headers_from(peer, start_num, skip=0)
 
         if len(launch_headers) == 0:
@@ -384,7 +383,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         gap_parent = pairs[gap_index][-1]
         gap_child = pairs[gap_index + 1][0]
         # request the gap's headers from the skeleton peer
-        start_num = gap_parent.block_number + 1
+        start_num = BlockNumber(gap_parent.block_number + 1)
         max_headers = gap_child.block_number - gap_parent.block_number - 1
         gap_headers = await self._fetch_headers_from(peer, start_num, max_headers, skip=0)
 
@@ -573,7 +572,9 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
         )
 
         # queue up idle peers, ordered by speed that they return block bodies
-        self._waiting_peers: WaitingPeers[TChainPeer] = WaitingPeers(BaseBlockHeaders)
+        self._waiting_peers: WaitingPeers[TChainPeer] = WaitingPeers(
+            (ETHBlockHeaders, LESBlockHEaders),
+        )
         self._peer_pool = peer_pool
 
     def register_peer(self, peer: BasePeer) -> None:
@@ -687,7 +688,11 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             raise ValidationError(
                 f"Can't request {length} headers, because peer maximum is {peer.max_headers_fetch}"
             )
-        headers = await self._request_headers(peer, parent_header.block_number + 1, length)
+        headers = await self._request_headers(
+            peer,
+            BlockNumber(parent_header.block_number + 1),
+            length,
+        )
         if not headers:
             return tuple()
         elif headers[0].parent_hash != parent_header.hash:

@@ -1,18 +1,20 @@
-from asyncio import (
-    PriorityQueue,
-)
+from asyncio import PriorityQueue
+import collections
 from typing import (
     Callable,
     Generic,
+    Sequence,
+    Tuple,
     Type,
     TypeVar,
+    Union,
 )
 
 from eth_utils import (
     ValidationError,
 )
 
-from p2p.protocol import Command
+from p2p.abc import CommandAPI
 
 from trinity.protocol.common.peer import BaseChainPeer
 from trinity.protocol.common.trackers import (
@@ -39,16 +41,24 @@ class WaitingPeers(Generic[TChainPeer]):
     prefer the peer with the best throughput for the given command.
     """
     _waiting_peers: 'PriorityQueue[SortableTask[TChainPeer]]'
+    _response_command_type: Tuple[Type[CommandAPI], ...]
 
     def __init__(
             self,
-            response_command_type: Type[Command],
+            response_command_type: Union[Type[CommandAPI], Sequence[Type[CommandAPI]]],
             sort_key: Callable[[BasePerformance], float]=_items_per_second) -> None:
         """
         :param sort_key: how should we sort the peers to get the fastest? low score means top-ranked
         """
         self._waiting_peers = PriorityQueue()
-        self._response_command_type = response_command_type
+
+        if isinstance(response_command_type, type):
+            self._response_command_type = (response_command_type,)
+        elif isinstance(response_command_type, collections.Sequence):
+            self._response_command_type = tuple(response_command_type)
+        else:
+            raise TypeError(f"Unsupported value: {response_command_type}")
+
         self._peer_wrapper = SortableTask.orderable_by_func(self._get_peer_rank)
         self._sort_key = sort_key
 

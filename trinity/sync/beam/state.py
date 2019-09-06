@@ -21,7 +21,7 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.db.backends.base import BaseAtomicDB
+from eth.abc import AtomicDatabaseAPI
 
 from cancel_token import CancelToken, OperationCancelled
 
@@ -83,7 +83,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
     def __init__(
             self,
-            db: BaseAtomicDB,
+            db: AtomicDatabaseAPI,
             peer_pool: ETHPeerPool,
             event_bus: EndpointAPI,
             token: CancelToken = None) -> None:

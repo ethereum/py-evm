@@ -14,9 +14,10 @@ from hypothesis.types import RandomWithSeed
 
 from trie import HexaryTrie
 
+from eth_utils import ExtendedDebugLogger
+
 from eth.db.atomic import AtomicDB
 from eth.db.account import AccountDB
-from eth.tools.logging import ExtendedDebugLogger
 
 from trinity.sync.full.hexary_trie import HexaryTrieSync
 from trinity.sync.full.state import StateSync, TrieNodeRequestTracker

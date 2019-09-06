@@ -221,7 +221,7 @@ class BCCReceiveServer(BaseService):
                     try:
                         parent_roots.remove(block.signing_root)
                     except ValueError:
-                        self.logger.deubg(
+                        self.logger.debug(
                             "peer=%s sent incorrect block=%s",
                             peer_id,
                             encode_hex(block.signing_root),

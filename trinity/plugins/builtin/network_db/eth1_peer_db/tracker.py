@@ -1,6 +1,5 @@
 from abc import abstractmethod
 import datetime
-import logging
 from pathlib import Path
 from typing import (
     Any,
@@ -33,9 +32,11 @@ from lahja import (
 
 from eth_typing import Hash32
 
-from eth_utils import humanize_seconds, to_tuple
-
-from eth.tools.logging import ExtendedDebugLogger
+from eth_utils import (
+    humanize_seconds,
+    get_extended_debug_logger,
+    to_tuple,
+)
 
 from p2p.abc import CommandAPI, NodeAPI
 from p2p.kademlia import Node
@@ -88,10 +89,7 @@ class Remote(Base):
 
 
 class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
-    logger = cast(
-        ExtendedDebugLogger,
-        logging.getLogger('trinity.protocol.common.connection.PeerTracker'),
-    )
+    logger = get_extended_debug_logger('trinity.protocol.common.connection.PeerTracker')
 
     msg_queue_maxsize = 100
     subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()

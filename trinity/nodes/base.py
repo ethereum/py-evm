@@ -7,16 +7,14 @@ from typing import (
 
 from lahja import EndpointAPI
 
-from eth.abc import (
-    AtomicDatabaseAPI,
-    ChainAPI,
-)
+from eth.abc import AtomicDatabaseAPI
 
 from p2p.peer_pool import BasePeerPool
 from p2p.service import (
     BaseService,
 )
 
+from trinity.chains.base import AsyncChainAPI
 from trinity.chains.full import FullChain
 from trinity.db.manager import DBClient
 from trinity.db.eth1.header import (
@@ -85,7 +83,7 @@ class Node(BaseService, Generic[TPeer]):
         return self._chain_config
 
     @abstractmethod
-    def get_chain(self) -> ChainAPI:
+    def get_chain(self) -> AsyncChainAPI:
         ...
 
     def get_full_chain(self) -> FullChain:
