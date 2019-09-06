@@ -113,7 +113,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                     skip=0,
                     reverse=False,
                 )
-            except (TimeoutError, PeerConnectionLost, ValidationError):
+            except (asyncio.TimeoutError, PeerConnectionLost, ValidationError):
                 # Nothing to do here. The ExchangeManager will disconnect if appropriate
                 # and eventually lead us to a better peer.
                 continue
@@ -131,7 +131,9 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
             await asyncio.sleep(0.05)
 
-        raise TimeoutError(f"Failed to get checkpoint header within {max_attempts} attempts")
+        raise asyncio.TimeoutError(
+            f"Failed to get checkpoint header within {max_attempts} attempts"
+        )
 
     def get_genesis_parent_hash(self) -> Hash32:
         return self._checkpoint.block_hash

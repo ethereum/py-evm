@@ -1,3 +1,4 @@
+import asyncio
 import platform
 
 import websockets
@@ -151,7 +152,7 @@ class EthstatsService(BaseService):
                 ),
                 timeout=1
             )).peer_count
-        except TimeoutError:
+        except asyncio.TimeoutError:
             self.logger.warning("Timeout: PeerPool did not answer PeerCountRequest")
             peer_count = 0
 

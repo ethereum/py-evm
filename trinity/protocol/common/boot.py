@@ -1,3 +1,4 @@
+import asyncio
 from typing import TYPE_CHECKING
 
 from eth_utils import ValidationError
@@ -54,7 +55,7 @@ class DAOCheckBootManager(BasePeerBootManager):
                     timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
                 )
 
-            except (TimeoutError, PeerConnectionLost) as err:
+            except (asyncio.TimeoutError, PeerConnectionLost) as err:
                 raise DAOForkCheckFailure(
                     f"Timed out waiting for DAO fork header from {self.peer}: {err}"
                 ) from err
@@ -92,7 +93,7 @@ class DAOCheckBootManager(BasePeerBootManager):
                 timeout=CHAIN_SPLIT_CHECK_TIMEOUT,
             )
 
-        except (TimeoutError, PeerConnectionLost) as err:
+        except (asyncio.TimeoutError, PeerConnectionLost) as err:
             raise DAOForkCheckFailure(
                 f"Timed out waiting for tip header from {self.peer}: {err}"
             ) from err

@@ -1,0 +1,1 @@
+Fix issue where attempts to establish new peer connections would halt shortly after startup due to missing timeout when attempting to dial a peer.

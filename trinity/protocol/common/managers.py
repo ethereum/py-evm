@@ -91,7 +91,7 @@ class ResponseCandidateStream(
         # single peer for a single command pair in flight.
         try:
             await self.wait(self._lock.acquire(), timeout=total_timeout * NUM_QUEUED_REQUESTS)
-        except TimeoutError:
+        except asyncio.TimeoutError:
             raise AlreadyWaiting(
                 f"Timed out waiting for {self.response_msg_name} request lock "
                 f"or connection: {self._connection}"
@@ -106,7 +106,7 @@ class ResponseCandidateStream(
 
                 try:
                     yield await self._get_payload(timeout_remaining)
-                except TimeoutError as err:
+                except asyncio.TimeoutError as err:
                     tracker.record_timeout(total_timeout)
                     raise
         finally:

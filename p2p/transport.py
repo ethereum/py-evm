@@ -200,7 +200,7 @@ class Transport(TransportAPI):
         auth_ack_ciphertext = responder.encrypt_auth_ack_message(auth_ack_msg)
 
         if writer.transport.is_closing() or reader.at_eof():
-            raise HandshakeFailure("Connection is closing")
+            raise HandshakeFailure(f"Connection to {initiator_remote} is closing")
 
         # Use the `writer` to send the reply to the remote
         writer.write(auth_ack_ciphertext)
@@ -239,7 +239,7 @@ class Transport(TransportAPI):
                 timeout=CONN_IDLE_TIMEOUT,
             )
         except (asyncio.IncompleteReadError, ConnectionResetError, BrokenPipeError) as err:
-            raise PeerConnectionLost from err
+            raise PeerConnectionLost(f"Lost connection to {self.remote}") from err
 
     def write(self, data: bytes) -> None:
         self._writer.write(data)

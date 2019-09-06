@@ -154,7 +154,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         :return: header returned by peer
 
         :raise NoEligiblePeers: if no peers are available to fulfill the request
-        :raise TimeoutError: if an individual request or the overall process times out
+        :raise asyncio.TimeoutError: if an individual request or the overall process times out
         """
         return await self._retry_on_bad_response(
             partial(self._get_block_header_by_hash, block_hash)
@@ -221,7 +221,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         :return: bytecode of the contract, ``b''`` if no code is set
 
         :raise NoEligiblePeers: if no peers are available to fulfill the request
-        :raise TimeoutError: if an individual request or the overall process times out
+        :raise asyncio.TimeoutError: if an individual request or the overall process times out
         """
         # get account for later verification, and
         # to confirm that our highest total difficulty peer has the info
@@ -369,7 +369,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         :param make_request_to_peer: an abstract call to a peer that may raise a BadLESResponse
 
         :raise NoEligiblePeers: if no peers are available to fulfill the request
-        :raise TimeoutError: if an individual request or the overall process times out
+        :raise asyncio.TimeoutError: if an individual request or the overall process times out
         """
         for _ in range(MAX_REQUEST_ATTEMPTS):
             try:
@@ -384,4 +384,6 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
                 await peer.disconnect(DisconnectReason.subprotocol_error)
                 # reattempt after removing this peer from our pool
 
-        raise TimeoutError(f"Could not complete peer request in {MAX_REQUEST_ATTEMPTS} attempts")
+        raise asyncio.TimeoutError(
+            f"Could not complete peer request in {MAX_REQUEST_ATTEMPTS} attempts"
+        )

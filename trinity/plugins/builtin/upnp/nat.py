@@ -160,7 +160,7 @@ class UPnPService(BaseService):
                 loop.run_in_executor(ThreadPoolExecutor(max_workers=1), upnpclient.discover),
                 timeout=UPNP_DISCOVER_TIMEOUT_SECONDS,
             )
-        except TimeoutError:
+        except asyncio.TimeoutError:
             self.logger.info("Timeout waiting for UPNP-enabled devices")
             return
         else:

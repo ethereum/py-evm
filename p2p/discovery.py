@@ -245,7 +245,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
                 got_ping = await self.cancel_token.cancellable_wait(
                     event.wait(), timeout=constants.KADEMLIA_REQUEST_TIMEOUT)
                 self.logger.debug2('got expected ping from %s', remote)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 self.logger.debug2('timed out waiting for ping from %s', remote)
 
         return got_ping
@@ -272,7 +272,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
                 got_pong = await self.cancel_token.cancellable_wait(
                     event.wait(), timeout=constants.KADEMLIA_REQUEST_TIMEOUT)
                 self.logger.debug2('got expected pong with token %s', encode_hex(token))
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 self.logger.debug2(
                     'timed out waiting for pong from %s (token == %s)',
                     remote,
@@ -302,7 +302,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
                 await self.cancel_token.cancellable_wait(
                     event.wait(), timeout=constants.KADEMLIA_REQUEST_TIMEOUT)
                 self.logger.debug2('got expected neighbours response from %s', remote)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 self.logger.debug2(
                     'timed out waiting for %d neighbours from %s',
                     constants.KADEMLIA_BUCKET_SIZE,
@@ -815,7 +815,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
             try:
                 await self.cancel_token.cancellable_wait(
                     event.wait(), timeout=constants.KADEMLIA_REQUEST_TIMEOUT)
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 # A timeout here just means we didn't get at least MAX_ENTRIES_PER_TOPIC nodes,
                 # but we'll still process the ones we get.
                 self.logger.debug2(

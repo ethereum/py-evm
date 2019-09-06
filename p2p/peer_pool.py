@@ -88,7 +88,7 @@ TO_DISCOVERY_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=DISCOVERY_EVENTB
 COMMON_PEER_CONNECTION_EXCEPTIONS = cast(Tuple[Type[BaseP2PError], ...], (
     NoMatchingPeerCapabilities,
     PeerConnectionLost,
-    TimeoutError,
+    asyncio.TimeoutError,
     UnreachablePeer,
 ))
 
@@ -177,7 +177,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 ),
                 timeout=REQUEST_PEER_CANDIDATE_TIMEOUT,
             )
-        except TimeoutError:
+        except asyncio.TimeoutError:
             self.logger.warning("PeerCandidateRequest timed out to backend %s", backend)
             return
         else:
@@ -267,7 +267,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 peer.boot_manager.events.finished.wait(),
                 timeout=self._peer_boot_timeout
             )
-        except TimeoutError as err:
+        except asyncio.TimeoutError as err:
             self.logger.debug('Timout waiting for peer to boot: %s', err)
             await peer.disconnect(DisconnectReason.timeout)
             return
@@ -337,7 +337,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                     self.connection_tracker.should_connect_to(remote),
                     timeout=1,
                 )
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 self.logger.warning("ConnectionTracker.should_connect_to request timed out.")
                 raise
 
@@ -346,9 +346,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
             try:
                 self.logger.debug2("Connecting to %s...", remote)
-                peer = await self.wait(self.get_peer_factory().handshake(remote))
-
-                return peer
+                return await self.wait(
+                    self.get_peer_factory().handshake(remote),
+                    timeout=5,
+                )
             except OperationCancelled:
                 # Pass it on to instruct our main loop to stop.
                 raise
