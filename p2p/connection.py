@@ -83,7 +83,11 @@ class Connection(ConnectionAPI, BaseService):
         except (PeerConnectionLost, asyncio.CancelledError):
             pass
         except (MalformedMessage,) as err:
-            self.logger.debug("Disconnecting peer %s for sending MalformedMessage: %s", err)
+            self.logger.debug(
+                "Disconnecting peer %s for sending MalformedMessage: %s",
+                self.remote,
+                err,
+            )
             self.get_base_protocol().send_disconnect(DisconnectReason.bad_protocol)
             pass
 
