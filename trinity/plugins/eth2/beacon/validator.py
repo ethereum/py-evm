@@ -353,7 +353,10 @@ class Validator(BaseService):
                 attesting_validator_privkeys,
                 assignment.committee,
                 shard,
-                (assignment.committee.index(index) for index in attesting_validators_indices),
+                tuple(
+                    ValidatorIndex(assignment.committee.index(index))
+                    for index in attesting_validators_indices
+                ),
             )
             self.logger.debug(
                 bold_green("Validators=%s attest to block=%s  attestation=%s"),

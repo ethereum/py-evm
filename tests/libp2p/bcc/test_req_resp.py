@@ -199,7 +199,11 @@ async def test_request_beacon_blocks_invalid_request(monkeypatch):
 
             return MockStateMachine()
 
+        def get_head_state():
+            return old_state.copy(finalized_checkpoint=new_checkpoint)
+
         monkeypatch.setattr(bob.chain, "get_state_machine", get_state_machine)
+        monkeypatch.setattr(bob.chain, "get_head_state", get_head_state)
 
         with pytest.raises(RequestFailure):
             await alice.request_beacon_blocks(

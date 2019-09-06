@@ -18,7 +18,7 @@ from libp2p.network.stream.net_stream_interface import (
 from libp2p.peer.id import (
     ID,
 )
-from libp2p.stream_muxer.mplex.utils import (
+from libp2p.utils import (
     decode_uvarint_from_stream,
     encode_uvarint,
 )
@@ -172,7 +172,7 @@ async def _read_varint_prefixed_bytes(
     timeout: float = None,
 ) -> bytes:
     try:
-        len_payload = await decode_uvarint_from_stream(stream, timeout)
+        len_payload = await asyncio.wait_for(decode_uvarint_from_stream(stream), timeout)
     # TODO: Catch more errors?
     except asyncio.TimeoutError as error:
         raise ReadMessageFailure("failed to read the length of the payload") from error

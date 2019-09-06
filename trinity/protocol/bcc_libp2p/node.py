@@ -61,9 +61,6 @@ from libp2p.network.stream.net_stream_interface import (
 from libp2p.peer.id import (
     ID,
 )
-from libp2p.peer.peerdata import (
-    PeerData,
-)
 from libp2p.peer.peerinfo import (
     PeerInfo,
 )
@@ -240,12 +237,10 @@ class Node(BaseService):
         """
         Dial the peer ``peer_id`` through the IPv4 protocol
         """
-        peer_data = PeerData()
-        peer_data.addrs = [make_tcp_ip_maddr(ip, port)]
         await self.host.connect(
             PeerInfo(
                 peer_id=peer_id,
-                peer_data=peer_data,
+                addrs=[make_tcp_ip_maddr(ip, port)],
             )
         )
 
@@ -285,7 +280,7 @@ class Node(BaseService):
 
     @property
     def listen_maddr_with_peer_id(self) -> Multiaddr:
-        return self.listen_maddr.encapsulate(Multiaddr(f"/p2p/{self.peer_id}"))
+        return self.listen_maddr.encapsulate(Multiaddr(f"/p2p/{self.peer_id.to_base58()}"))
 
     @property
     def peer_store(self) -> PeerStore:

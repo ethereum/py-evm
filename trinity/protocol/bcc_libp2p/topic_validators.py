@@ -20,6 +20,7 @@ from eth2.beacon.chains.base import BaseBeaconChain
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.state_machines.forks.serenity.block_processing import process_block_header
 from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
+from eth2.beacon.typing import Slot
 
 from libp2p.peer.id import ID
 from libp2p.pubsub.pb import rpc_pb2
@@ -115,7 +116,7 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
         )
         future_state = state_machine.state_transition.apply_state_transition(
             state,
-            future_slot=attestation_data_slot + config.MIN_ATTESTATION_INCLUSION_DELAY,
+            future_slot=Slot(attestation_data_slot + config.MIN_ATTESTATION_INCLUSION_DELAY),
         )
         try:
             validate_attestation(

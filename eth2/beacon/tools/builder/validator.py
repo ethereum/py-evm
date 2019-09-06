@@ -505,7 +505,7 @@ def _create_mock_signed_attestation(
         )
     else:
         privkeys = tuple(keymap.values())
-        attesting_indices = _attesting_indices
+        attesting_indices = _attesting_indices  # type: ignore
 
     # Use privkeys to sign the attestation
     signatures = [
