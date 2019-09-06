@@ -86,6 +86,11 @@ release: clean
 create-docker-image: clean
 	docker build -t ethereum/trinity:latest -t ethereum/trinity:$(version) .
 
+create-dappnode-image: clean
+	sed -i -e 's/ARG GITREF=\w*/ARG GITREF=$(trinity_version)/g' ./dappnode/build/Dockerfile
+	cd ./dappnode && dappnodesdk increase $(dappnode_bump)
+	cd ./dappnode && dappnodesdk build
+
 sdist: clean
 	python setup.py sdist bdist_wheel
 	ls -l dist

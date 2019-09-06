@@ -1,0 +1,1 @@
+Document how to install, run and develop with the Trinity DappNode package.

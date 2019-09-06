@@ -1,0 +1,35 @@
+{
+  "name": "trinity.public.dappnode.eth",
+  "version": "0.1.2",
+  "description": "Ethereum Python Client (experimental)",
+  "avatar": "/ipfs/QmRyJJwuCEYHPf7xkRcoPJqiHQgAN3ay2voSCTrAY1nMet",
+  "type": "service",
+  "image": {
+    "path": "trinity.public.dappnode.eth_0.1.2.tar.xz",
+    "hash": "/ipfs/Qmdp6GFvWzaaFMbAn7bhy9RVbVjkvL4DcnDt6Bvmv3GnoW",
+    "size": 285899704,
+    "ports": [
+      "57313:30303",
+      "57313:30303/udp",
+      "57314:30304"
+    ],
+    "volumes": [
+      "trinity:/trinity",
+      "trinity_src:/usr/src/app"
+    ],
+    "environment": [
+      "EXTRA_OPTS=--trinity-root-dir /trinity"
+    ],
+    "restart": "always"
+  },
+  "dependencies": {},
+  "author": "Ethereum Foundation",
+  "categories": [
+    "Ethereum Node",
+    "Developer Tools"
+  ],
+  "links": {
+    "homepage": "http://trinity.ethereum.org"
+  },
+  "license": "MIT"
+}

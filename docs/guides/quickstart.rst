@@ -113,6 +113,14 @@ After the image has been successfully created, we can run it by invoking:
 
   docker run -it ethereum/trinity:my-own-version
 
+
+Installing on DappNode
+----------------------
+
+Trinity is available as a DappNode package. Just search for `trinity.public.dappnode.eth`, install
+the package and it will immediately start syncing. Head over to the
+:doc:`Running Trinity on DappNode </guides/running_trinity_on_dappnode>` for more tips and tricks.
+
 Running Trinity
 ~~~~~~~~~~~~~~~
 

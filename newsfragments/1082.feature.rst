@@ -1,0 +1,2 @@
+Add a ``make create-dappnode-image`` command to expose Trinity as a DappNode package. The
+package can be found as ``trinity.public.dappnode.eth``.
