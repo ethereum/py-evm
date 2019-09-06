@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import asyncio
 from typing import (
     AsyncIterator,
     Tuple,
@@ -153,7 +154,7 @@ class PeerHeaderSyncer(BaseService):
             except OperationCancelled:
                 self.logger.info("Sync with %s completed", peer)
                 break
-            except TimeoutError:
+            except asyncio.TimeoutError:
                 self.logger.warning("Timeout waiting for header batch from %s, aborting sync", peer)
                 await peer.disconnect(DisconnectReason.timeout)
                 break

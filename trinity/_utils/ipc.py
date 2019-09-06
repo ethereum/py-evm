@@ -19,8 +19,10 @@ def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=30) -> None:
             return
         else:
             time.sleep(0.05)
-    # haven't `return`ed by now - raise unconditionally
-    raise TimeoutError("IPC socket file has not appeared in %d seconds!" % timeout)
+    else:
+        # this is intentionally the built-in version of `TimeoutError` as opposed
+        # to the `asyncio` version.
+        raise TimeoutError("IPC socket file has not appeared in %d seconds!" % timeout)
 
 
 def remove_dangling_ipc_files(logger: Logger,

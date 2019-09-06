@@ -329,7 +329,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 self._node_tasks.get(eth_constants.MAX_STATE_FETCH),
                 timeout=timeout,
             )
-        except TimeoutError:
+        except asyncio.TimeoutError:
             return None, ()
 
     def _maybe_add_predictive_nodes(
@@ -493,7 +493,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
         self.logger.debug2("Requesting %d nodes from %s", num_nodes, peer)
         try:
             return await peer.requests.get_node_data(node_hashes, timeout=self._reply_timeout)
-        except TimeoutError as err:
+        except asyncio.TimeoutError as err:
             # This kind of exception shouldn't necessarily *drop* the peer,
             # so capture error, log and swallow
             self.logger.debug("Timed out requesting %d nodes from %s", num_nodes, peer)

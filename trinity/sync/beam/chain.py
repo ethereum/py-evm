@@ -169,7 +169,7 @@ class BeamSyncer(BaseService):
 
         try:
             await self.wait(self._launch_strategy.fulfill_prerequisites())
-        except TimeoutError:
+        except asyncio.TimeoutError:
             self.logger.error(
                 "Timed out while trying to fulfill prerequisites of"
                 f"sync launch strategy: {self._launch_strategy}"

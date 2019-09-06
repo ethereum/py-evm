@@ -1,3 +1,4 @@
+import asyncio
 import collections
 import itertools
 from pathlib import Path
@@ -178,7 +179,7 @@ class StateDownloader(BaseService, PeerSubscriber):
         self.logger.debug("Requesting %d trie nodes from %s", len(batch), peer)
         try:
             node_data = await peer.requests.get_node_data(batch)
-        except TimeoutError as err:
+        except asyncio.TimeoutError as err:
             self.logger.debug(
                 "Timed out waiting for %s trie nodes from %s: %s",
                 len(batch),

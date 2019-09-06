@@ -31,7 +31,8 @@ class CancellableMixin:
 
         Returns the result of the first one to complete.
 
-        Raises TimeoutError if we timeout or OperationCancelled if the token chain is triggered.
+        Raises asyncio.TimeoutError if we timeout or OperationCancelled if the
+        token chain is triggered.
 
         All pending futures are cancelled before returning.
         """

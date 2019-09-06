@@ -55,16 +55,19 @@ async def test_cancel_exits_async_generator():
 
     async def async_iterator():
         yield 1
-        await asyncio.sleep(0.05)
+        await asyncio.sleep(10)
         assert False, "iterator should have been cancelled by now"
 
-    try:
-        async for val in service.wait_iter(async_iterator()):
-            assert val == 1
-    except OperationCancelled:
-        pass
-    else:
-        assert False, "iterator should have been cancelled during iteration"
+    async def do_iter_and_assert():
+        try:
+            async for val in service.wait_iter(async_iterator()):
+                assert val == 1
+        except OperationCancelled:
+            pass
+        else:
+            assert False, "iterator should have been cancelled during iteration"
+
+    await asyncio.wait_for(do_iter_and_assert(), timeout=1)
 
     await service.cancel()
 

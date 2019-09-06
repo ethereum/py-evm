@@ -137,7 +137,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 self.peer,
                 exc,
             )
-        except TimeoutError:
+        except asyncio.TimeoutError:
             self.logger.warning("Timeout waiting for header batch from %s, halting sync", self.peer)
 
     async def _fetch_full_skeleton(self) -> None:
@@ -461,7 +461,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         except OperationCancelled:
             self.logger.info("Skeleteon sync with %s cancelled", peer)
             return tuple()
-        except TimeoutError:
+        except asyncio.TimeoutError:
             self.logger.warning("Timeout waiting for header batch from %s, aborting sync", peer)
             return tuple()
         except ValidationError as err:
@@ -740,7 +740,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
         self.logger.debug("Requesting %d headers from %s", length, peer)
         try:
             return await peer.requests.get_block_headers(start_at, length, skip=0, reverse=False)
-        except TimeoutError as err:
+        except asyncio.TimeoutError as err:
             self.logger.debug("Timed out requesting %d headers from %s", length, peer)
             return tuple()
         except CancelledError:

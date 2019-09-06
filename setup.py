@@ -10,7 +10,7 @@ PYEVM_DEPENDENCY = "py-evm==0.3.0a6"
 deps = {
     'p2p': [
         "async-generator==1.10",
-        "asyncio-cancel-token==0.1.0a2",
+        "asyncio-cancel-token>=0.2,<0.3",
         "async_lru>=0.1.0,<1.0.0",
         "cached-property>=1.5.1,<2",
         # cryptography does not use semver and allows breaking changes within `0.3` version bumps.
@@ -69,7 +69,6 @@ deps = {
     # See: https://github.com/ethereum/trinity/pull/790
     'test-asyncio': [
         "pytest-asyncio>=0.10.0,<0.11",
-        "pytest-asyncio-network-simulator==0.1.0a2;python_version>='3.6'",
     ],
     'test-trio': [
         'pytest-trio==0.5.2',

@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 
 from p2p.exceptions import PeerConnectionLost
@@ -107,16 +109,16 @@ async def test_proxy_peer_requests_with_timeouts(request,
 
         proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.remote)
 
-        with pytest.raises(TimeoutError):
+        with pytest.raises(asyncio.TimeoutError):
             await proxy_peer.requests.get_block_headers(0, 1, 0, False, timeout=0.01)
 
-        with pytest.raises(TimeoutError):
+        with pytest.raises(asyncio.TimeoutError):
             await proxy_peer.requests.get_receipts((), timeout=0.01)
 
-        with pytest.raises(TimeoutError):
+        with pytest.raises(asyncio.TimeoutError):
             await proxy_peer.requests.get_block_bodies((), timeout=0.01)
 
-        with pytest.raises(TimeoutError):
+        with pytest.raises(asyncio.TimeoutError):
             await proxy_peer.requests.get_node_data((), timeout=0.01)
 
 
