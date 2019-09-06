@@ -85,7 +85,7 @@ class Node:
 
     @property
     def logging_name(self) -> str:
-        return f"{self.name}@{str(self.peer_id)[2:8]}"
+        return f"{self.name}@{str(self.peer_id)}"
 
     @property
     def root_dir(self) -> Path:
@@ -97,7 +97,9 @@ class Node:
 
     @property
     def maddr(self) -> Multiaddr:
-        return Multiaddr(f"/ip4/127.0.0.1/tcp/{self.port}/p2p/{self.peer_id}")
+        return Multiaddr(
+            f"/ip4/127.0.0.1/tcp/{self.port}/p2p/{self.peer_id.to_base58()}"
+        )
 
     @property
     def cmd(self) -> str:
