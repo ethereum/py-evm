@@ -55,6 +55,8 @@ from libp2p.host.basic_host import (
 from libp2p.network.network_interface import (
     INetwork,
 )
+from libp2p.security.secio.transport import ID as SecIOID
+from libp2p.security.secio.transport import Transport as SecIOTransport
 from libp2p.network.stream.net_stream_interface import (
     INetStream,
 )
@@ -74,7 +76,6 @@ from libp2p.pubsub.gossipsub import (
     GossipSub,
 )
 from libp2p.security.base_transport import BaseSecureTransport
-from libp2p.security.insecure.transport import PLAINTEXT_PROTOCOL_ID, InsecureTransport
 from libp2p.stream_muxer.abc import IMuxedConn
 from libp2p.stream_muxer.mplex.exceptions import MplexStreamEOF, MplexStreamReset
 from libp2p.stream_muxer.mplex.mplex import MPLEX_PROTOCOL_ID, Mplex
@@ -221,8 +222,8 @@ class Node(BaseService):
     listen_port: int
     host: BasicHost
     pubsub: Pubsub
-    bootstrap_nodes: Optional[Tuple[Multiaddr, ...]]
-    preferred_nodes: Optional[Tuple[Multiaddr, ...]]
+    bootstrap_nodes: Tuple[Multiaddr, ...]
+    preferred_nodes: Tuple[Multiaddr, ...]
     chain: BaseBeaconChain
 
     handshaked_peers: PeerPool = None
@@ -237,8 +238,8 @@ class Node(BaseService):
             muxer_protocol_ops: Dict[TProtocol, IMuxedConn] = None,
             gossipsub_params: Optional[GossipsubParams] = None,
             cancel_token: CancelToken = None,
-            bootstrap_nodes: Tuple[Multiaddr, ...] = None,
-            preferred_nodes: Tuple[Multiaddr, ...] = None) -> None:
+            bootstrap_nodes: Tuple[Multiaddr, ...] = (),
+            preferred_nodes: Tuple[Multiaddr, ...] = ()) -> None:
         super().__init__(cancel_token)
         self.listen_ip = listen_ip
         self.listen_port = listen_port
@@ -248,7 +249,7 @@ class Node(BaseService):
         # TODO: Add key and peer_id to the peerstore
         if security_protocol_ops is None:
             security_protocol_ops = {
-                PLAINTEXT_PROTOCOL_ID: InsecureTransport(key_pair)
+                SecIOID: SecIOTransport(key_pair)
             }
         if muxer_protocol_ops is None:
             muxer_protocol_ops = {MPLEX_PROTOCOL_ID: Mplex}
@@ -342,12 +343,11 @@ class Node(BaseService):
         await self.dial_peer(ip=ip, port=port, peer_id=peer_id)
 
     async def connect_preferred_nodes(self) -> None:
-        if self.preferred_nodes is None or len(self.preferred_nodes) == 0:
-            return
-        await asyncio.wait([
-            self.dial_peer_maddr(node_maddr)
-            for node_maddr in self.preferred_nodes
-        ])
+        if self.preferred_nodes:
+            await asyncio.wait([
+                self.dial_peer_maddr(node_maddr)
+                for node_maddr in self.preferred_nodes
+            ])
 
     async def disconnect_peer(self, peer_id: ID) -> None:
         if peer_id in self.handshaked_peers:
