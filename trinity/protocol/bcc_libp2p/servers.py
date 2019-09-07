@@ -176,6 +176,8 @@ class BCCReceiveServer(BaseService):
         self.orphan_block_pool = OrphanBlockPool()
 
     async def _run(self) -> None:
+        while not self.p2p_node.is_started:
+            await self.sleep(0.5)
         self.logger.info("BCCReceiveServer up")
         self.run_daemon_task(self._handle_beacon_attestation_loop())
         self.run_daemon_task(self._handle_beacon_block_loop())
@@ -183,17 +185,11 @@ class BCCReceiveServer(BaseService):
         await self.cancellation()
 
     async def _handle_beacon_attestation_loop(self) -> None:
-        while PUBSUB_TOPIC_BEACON_ATTESTATION not in self.topic_msg_queues:
-            await self.sleep(1.0)
-
         while True:
             msg = await self.topic_msg_queues[PUBSUB_TOPIC_BEACON_ATTESTATION].get()
             await self._handle_beacon_attestations(msg)
 
     async def _handle_beacon_block_loop(self) -> None:
-        while PUBSUB_TOPIC_BEACON_BLOCK not in self.topic_msg_queues:
-            await self.sleep(1.0)
-
         while True:
             msg = await self.topic_msg_queues[PUBSUB_TOPIC_BEACON_BLOCK].get()
             await self._handle_beacon_block(msg)

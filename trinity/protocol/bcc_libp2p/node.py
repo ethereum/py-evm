@@ -135,6 +135,8 @@ REQ_RESP_RECENT_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_RECENT_
 
 class Node(BaseService):
 
+    _is_started: bool = False
+
     key_pair: KeyPair
     listen_ip: str
     listen_port: int
@@ -203,8 +205,13 @@ class Node(BaseService):
 
         self.handshaked_peers = set()
 
-    async def _run(self) -> None:
         self.run_task(self.start())
+
+    @property
+    def is_started(self) -> bool:
+        return self._is_started
+
+    async def _run(self) -> None:
         self.logger.info("libp2p node %s is up", self.listen_maddr)
         await self.cancellation()
 
@@ -220,6 +227,8 @@ class Node(BaseService):
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_BLOCK)
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_ATTESTATION)
         self._setup_topic_validators()
+
+        self._is_started = True
 
     def _setup_topic_validators(self) -> None:
         self.pubsub.set_topic_validator(
