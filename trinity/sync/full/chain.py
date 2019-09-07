@@ -1159,6 +1159,9 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
         _, new_canonical_blocks, old_canonical_blocks = await self.wait(
             self._block_importer.import_block(block)
         )
+        # how much is the imported block's header behind the current time?
+        lag = time.time() - block.header.timestamp
+        humanized_lag = humanize_seconds(lag)
 
         if new_canonical_blocks == (block,):
             # simple import of a single new block.
@@ -1174,21 +1177,27 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
                 block.number,
                 len(block.transactions),
                 timer.elapsed,
-                humanize_seconds(time.time() - block.header.timestamp),
+                humanized_lag,
             )
         elif not new_canonical_blocks:
             # imported block from a fork.
-            self.logger.info("Imported non-canonical block %d (%d txs) in %.2f seconds",
-                             block.number, len(block.transactions), timer.elapsed)
+            self.logger.info(
+                "Imported non-canonical block %d (%d txs) in %.2f seconds, with %s lag",
+                block.number,
+                len(block.transactions),
+                timer.elapsed,
+                humanized_lag,
+            )
         elif old_canonical_blocks:
             self.logger.info(
-                "Chain Reorganization: Imported block %d (%d txs) in %.2f "
-                "seconds, %d blocks discarded and %d new canonical blocks added",
+                "Chain Reorganization: Imported block %d (%d txs) in %.2f seconds, "
+                "%d blocks discarded and %d new canonical blocks added, with %s lag",
                 block.number,
                 len(block.transactions),
                 timer.elapsed,
                 len(old_canonical_blocks),
                 len(new_canonical_blocks),
+                humanized_lag,
             )
         else:
             raise Exception("Invariant: unreachable code path")

@@ -509,7 +509,6 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
         self._import_time: float = 0
 
         self._event_bus = event_bus
-        # TODO: implement speculative execution, but at the txn level instead of block level
 
     async def import_block(
             self,

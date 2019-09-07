@@ -78,11 +78,18 @@ class BeamStats:
     data_pause_time = 0.0
 
     def __str__(self) -> str:
+        node_count = self.num_account_nodes + self.num_bytecodes + self.num_storage_nodes
+
+        if node_count:
+            avg_rtt = self.data_pause_time / node_count
+        else:
+            avg_rtt = 0
+
         return (
             f"BeamStat: accts={self.num_accounts}, "
             f"a_nodes={self.num_account_nodes}, codes={self.num_bytecodes}, "
             f"strg={self.num_storages}, s_nodes={self.num_storage_nodes}, "
-            f"wait={self.data_pause_time:.2f}s"
+            f"nodes={node_count}, rtt={avg_rtt:.3f}s, wait={self.data_pause_time:.2f}s"
         )
 
     def __repr__(self) -> str:
