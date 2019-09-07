@@ -57,6 +57,7 @@ from eth2.beacon.types.states import (
     BeaconState,
 )
 from eth2.beacon.typing import (
+    CommitteeIndex,
     Epoch,
     Shard,
     Slot,
@@ -276,7 +277,7 @@ class Validator(BaseService):
         self.logger.debug(
             bold_green("Skip block at slot=%s  post_state=%s"),
             slot,
-            post_state,
+            repr(post_state),
         )
         # FIXME: We might not need to persist state for skip slots since `create_block_on_state`
         # will run the state transition which also includes the state transition for skipped slots.
@@ -353,6 +354,10 @@ class Validator(BaseService):
                 attesting_validator_privkeys,
                 assignment.committee,
                 shard,
+                tuple(
+                    CommitteeIndex(assignment.committee.index(index))
+                    for index in attesting_validators_indices
+                ),
             )
             self.logger.debug(
                 bold_green("Validators=%s attest to block=%s  attestation=%s"),

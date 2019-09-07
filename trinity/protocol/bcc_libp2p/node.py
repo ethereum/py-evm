@@ -61,9 +61,6 @@ from libp2p.network.stream.net_stream_interface import (
 from libp2p.peer.id import (
     ID,
 )
-from libp2p.peer.peerdata import (
-    PeerData,
-)
 from libp2p.peer.peerinfo import (
     PeerInfo,
 )
@@ -138,6 +135,8 @@ REQ_RESP_RECENT_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_RECENT_
 
 class Node(BaseService):
 
+    _is_started: bool = False
+
     key_pair: KeyPair
     listen_ip: str
     listen_port: int
@@ -206,8 +205,13 @@ class Node(BaseService):
 
         self.handshaked_peers = set()
 
+        self.run_task(self.start())
+
+    @property
+    def is_started(self) -> bool:
+        return self._is_started
+
     async def _run(self) -> None:
-        self.run_daemon_task(self.start())
         self.logger.info("libp2p node %s is up", self.listen_maddr)
         await self.cancellation()
 
@@ -223,6 +227,8 @@ class Node(BaseService):
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_BLOCK)
         await self.pubsub.subscribe(PUBSUB_TOPIC_BEACON_ATTESTATION)
         self._setup_topic_validators()
+
+        self._is_started = True
 
     def _setup_topic_validators(self) -> None:
         self.pubsub.set_topic_validator(
@@ -240,12 +246,10 @@ class Node(BaseService):
         """
         Dial the peer ``peer_id`` through the IPv4 protocol
         """
-        peer_data = PeerData()
-        peer_data.addrs = [make_tcp_ip_maddr(ip, port)]
         await self.host.connect(
             PeerInfo(
                 peer_id=peer_id,
-                peer_data=peer_data,
+                addrs=[make_tcp_ip_maddr(ip, port)],
             )
         )
 
@@ -259,7 +263,7 @@ class Node(BaseService):
         await self.dial_peer(ip=ip, port=port, peer_id=peer_id)
 
     async def connect_preferred_nodes(self) -> None:
-        if self.preferred_nodes is None:
+        if self.preferred_nodes is None or len(self.preferred_nodes) == 0:
             return
         await asyncio.wait([
             self.dial_peer_maddr(node_maddr)
@@ -285,7 +289,7 @@ class Node(BaseService):
 
     @property
     def listen_maddr_with_peer_id(self) -> Multiaddr:
-        return self.listen_maddr.encapsulate(Multiaddr(f"/p2p/{self.peer_id}"))
+        return self.listen_maddr.encapsulate(Multiaddr(f"/p2p/{self.peer_id.to_base58()}"))
 
     @property
     def peer_store(self) -> PeerStore:

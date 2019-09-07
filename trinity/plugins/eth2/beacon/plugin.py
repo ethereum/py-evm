@@ -4,7 +4,6 @@ from argparse import (
 )
 import asyncio
 from typing import (
-    Tuple,
     cast,
 )
 
@@ -15,9 +14,6 @@ from libp2p.crypto.keys import KeyPair
 from libp2p.crypto.secp256k1 import create_new_key_pair, Secp256k1PrivateKey
 
 from eth2.beacon.operations.attestation_pool import AttestationPool
-from eth2.beacon.types.attestations import (
-    Attestation,
-)
 from eth2.beacon.typing import (
     ValidatorIndex,
 )
@@ -29,6 +25,7 @@ from trinity.config import BeaconAppConfig
 from trinity.db.manager import DBClient
 from trinity.extensibility import AsyncioIsolatedPlugin
 from trinity.protocol.bcc_libp2p.node import Node
+from trinity.protocol.bcc_libp2p.servers import BCCReceiveServer
 
 from .slot_ticker import (
     SlotTicker,
@@ -77,7 +74,7 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
 
         key_pair: KeyPair
         if self.boot_info.args.beacon_nodekey:
-            privkey = Secp256k1PrivateKey(bytes.fromhex(self.boot_info.args.beacon_nodekey))
+            privkey = Secp256k1PrivateKey.new(bytes.fromhex(self.boot_info.args.beacon_nodekey))
             key_pair = KeyPair(private_key=privkey, public_key=privkey.get_public_key())
         else:
             key_pair = create_new_key_pair()
@@ -91,6 +88,13 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             chain=chain,
         )
 
+        receive_server = BCCReceiveServer(
+            chain=chain,
+            p2p_node=libp2p_node,
+            topic_msg_queues=libp2p_node.pubsub.my_topics,
+            cancel_token=libp2p_node.cancel_token,
+        )
+
         state = chain.get_state_by_slot(chain_config.genesis_config.GENESIS_SLOT)
         registry_pubkeys = [v_record.pubkey for v_record in state.validators]
 
@@ -100,16 +104,13 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
             validator_index = cast(ValidatorIndex, registry_pubkeys.index(pubkey))
             validator_privkeys[validator_index] = validator_keymap[pubkey]
 
-        def fake_get_ready_attestations_fn() -> Tuple[Attestation, ...]:
-            return tuple()
-
         validator = Validator(
             chain=chain,
             p2p_node=libp2p_node,
             validator_privkeys=validator_privkeys,
             event_bus=self.event_bus,
             token=libp2p_node.cancel_token,
-            get_ready_attestations_fn=fake_get_ready_attestations_fn,  # FIXME: BCCReceiveServer.get_ready_attestations  # noqa: E501
+            get_ready_attestations_fn=receive_server.get_ready_attestations,
         )
 
         slot_ticker = SlotTicker(
@@ -123,9 +124,11 @@ class BeaconNodePlugin(AsyncioIsolatedPlugin):
         asyncio.ensure_future(exit_with_services(
             self._event_bus_service,
             libp2p_node,
+            receive_server,
             slot_ticker,
             validator,
         ))
         asyncio.ensure_future(libp2p_node.run())
+        asyncio.ensure_future(receive_server.run())
         asyncio.ensure_future(slot_ticker.run())
         asyncio.ensure_future(validator.run())

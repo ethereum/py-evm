@@ -9,12 +9,10 @@ import sys
 import time
 from typing import ClassVar, Dict, List, MutableSet, NamedTuple, Optional, Tuple
 
-from eth_keys.datatypes import PrivateKey
-from eth_utils import remove_0x_prefix
+from eth_utils import encode_hex, remove_0x_prefix
+from libp2p.crypto.secp256k1 import Secp256k1PrivateKey
 from libp2p.peer.id import ID
 from multiaddr import Multiaddr
-
-from trinity.protocol.bcc_libp2p.utils import peer_id_from_pubkey
 
 
 async def run(cmd):
@@ -66,7 +64,7 @@ class Node:
         preferred_nodes: Optional[Tuple["Node", ...]] = None,
     ) -> None:
         self.name = name
-        self.node_privkey = PrivateKey(bytes.fromhex(node_privkey))
+        self.node_privkey = Secp256k1PrivateKey.new(bytes.fromhex(node_privkey))
         self.port = port
         if preferred_nodes is None:
             preferred_nodes = []
@@ -77,7 +75,9 @@ class Node:
         self.logs_expected = {}
         self.logs_expected["stdout"] = set()
         self.logs_expected["stderr"] = set()
-        self.add_log("stderr", SERVER_RUNNING)
+        # TODO: Add other logging messages in our beacon node to indicate
+        # that the beacon node is successfully bootstrapped.
+        # self.add_log("stderr", SERVER_RUNNING)
         self.has_log_happened = defaultdict(lambda: False)
 
     def __repr__(self) -> str:
@@ -85,7 +85,7 @@ class Node:
 
     @property
     def logging_name(self) -> str:
-        return f"{self.name}@{str(self.peer_id)[2:8]}"
+        return f"{self.name}@{str(self.peer_id)}"
 
     @property
     def root_dir(self) -> Path:
@@ -93,11 +93,13 @@ class Node:
 
     @property
     def peer_id(self) -> ID:
-        return peer_id_from_pubkey(self.node_privkey.public_key)
+        return ID.from_pubkey(self.node_privkey.get_public_key())
 
     @property
     def maddr(self) -> Multiaddr:
-        return Multiaddr(f"/ip4/127.0.0.1/tcp/{self.port}/p2p/{self.peer_id}")
+        return Multiaddr(
+            f"/ip4/127.0.0.1/tcp/{self.port}/p2p/{self.peer_id.to_base58()}"
+        )
 
     @property
     def cmd(self) -> str:
@@ -105,7 +107,7 @@ class Node:
             "trinity-beacon",
             f"--port={self.port}",
             f"--trinity-root-dir={self.root_dir}",
-            f"--beacon-nodekey={remove_0x_prefix(self.node_privkey.to_hex())}",
+            f"--beacon-nodekey={remove_0x_prefix(encode_hex(self.node_privkey.to_bytes()))}",
             "--disable-discovery",
             "--network-tracking-backend=do-not-track",
             "--disable-upnp",
@@ -223,7 +225,6 @@ async def main():
         port=30305,
         preferred_nodes=[node_alice],
     )
-    node_alice.preferred_nodes = [node_bob]
 
     asyncio.ensure_future(node_alice.run())
     asyncio.ensure_future(node_bob.run())

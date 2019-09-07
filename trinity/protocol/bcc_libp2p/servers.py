@@ -176,6 +176,8 @@ class BCCReceiveServer(BaseService):
         self.orphan_block_pool = OrphanBlockPool()
 
     async def _run(self) -> None:
+        while not self.p2p_node.is_started:
+            await self.sleep(0.5)
         self.logger.info("BCCReceiveServer up")
         self.run_daemon_task(self._handle_beacon_attestation_loop())
         self.run_daemon_task(self._handle_beacon_block_loop())

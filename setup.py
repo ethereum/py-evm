@@ -47,7 +47,7 @@ deps = {
         "multiaddr>=0.0.8,<0.1.0",
         "pymultihash>=0.8.2",
         # FIXME: Change to PyPI when the commit is released.
-        "libp2p @ git+https://git@github.com/libp2p/py-libp2p@8217319",
+        "libp2p @ git+https://git@github.com/libp2p/py-libp2p@34b0258",
     ],
     'test': [
         "hypothesis>=4.24.3,<5",
@@ -127,7 +127,7 @@ def to_package_name(dependency):
     """
     Turn a dependency (e.g. "blspy>=0.1.8,<1") into the package name (e.g. "blspy")
     """
-    return re.sub(r"[!=<>](.|)+", "", dependency)
+    return re.sub(r"[!=<>@ ](.|)+", "", dependency)
 
 
 def filter_dependencies(package_list, *package_name):
@@ -139,6 +139,7 @@ def filter_dependencies(package_list, *package_name):
 if os.environ.get('READTHEDOCS', False):
     deps['eth2'] = filter_dependencies(deps['eth2'], 'blspy')
     deps['p2p'] = filter_dependencies(deps['p2p'], 'python-snappy')
+    deps['trinity'] = filter_dependencies(deps['trinity'], 'libp2p')
 
 deps['dev'] = (
     deps['dev'] +
