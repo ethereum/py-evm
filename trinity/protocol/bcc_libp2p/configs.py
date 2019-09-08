@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import (
     NamedTuple,
 )
@@ -80,6 +80,12 @@ class ResponseCode(Enum):
     SUCCESS = 0
     INVALID_REQUEST = 1
     SERVER_ERROR = 2
+
+
+class GoodbyeReasonCode(IntEnum):
+    CLIENT_SHUT_DOWN = 1
+    IRRELEVANT_NETWORK = 2
+    FAULT_OR_ERROR = 3
 
 
 REQ_RESP_VERSION = "1"
