@@ -90,6 +90,7 @@ from p2p.service import (
 
 from .configs import (
     GOSSIPSUB_PROTOCOL_ID,
+    GoodbyeReasonCode,
     GossipsubParams,
     PUBSUB_TOPIC_BEACON_BLOCK,
     PUBSUB_TOPIC_BEACON_ATTESTATION,
@@ -412,9 +413,8 @@ class Node(BaseService):
         try:
             hello_other_side = await read_req(stream, HelloRequest)
         except ReadMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
-            # TODO: send `Goodbye` req then disconnect
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
             return
         self.logger.debug("Received the hello message %s", hello_other_side)
 
@@ -426,9 +426,9 @@ class Node(BaseService):
                 hello_other_side,
                 str(error)
             )
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
-            # TODO: send `Goodbye` req then disconnect
+            await stream.reset()
+            await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
+            await self.disconnect_peer(peer_id)
             return
 
         hello_mine = self._make_hello_packet()
@@ -441,8 +441,8 @@ class Node(BaseService):
                 "Handshake failed: failed to write message %s",
                 hello_mine,
             )
-            # await stream.reset()
-            # TODO: Disconnect
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
             return
 
         if peer_id not in self.handshaked_peers:
@@ -475,9 +475,8 @@ class Node(BaseService):
         try:
             await write_req(stream, hello_mine)
         except WriteMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
-            # TODO: Disconnect
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
             error_msg = f"fail to write request={hello_mine}"
             self.logger.info("Handshake failed: %s", error_msg)
             raise HandshakeFailure(error_msg) from error
@@ -486,9 +485,8 @@ class Node(BaseService):
         try:
             resp_code, hello_other_side = await read_resp(stream, HelloRequest)
         except ReadMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
-            # TODO: Disconnect
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
             self.logger.info("Handshake failed: fail to read the response")
             raise HandshakeFailure("fail to read the response") from error
 
@@ -501,15 +499,13 @@ class Node(BaseService):
         # TODO: Handle the case when `resp_code` is not success.
         if resp_code != ResponseCode.SUCCESS:
             # TODO: Do something according to the `ResponseCode`
-            # TODO: Disconnect
             error_msg = (
                 "resp_code != ResponseCode.SUCCESS, "
                 f"resp_code={resp_code}, error_msg={hello_other_side}"
             )
             self.logger.info("Handshake failed: %s", error_msg)
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
-            # TODO: Disconnect
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
             raise HandshakeFailure(error_msg)
 
         hello_other_side = cast(HelloRequest, hello_other_side)
@@ -522,9 +518,9 @@ class Node(BaseService):
                 error_msg,
                 peer_id,
             )
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
-            # TODO: Disconnect
+            await stream.reset()
+            await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
+            await self.disconnect_peer(peer_id)
             raise HandshakeFailure(error_msg) from error
 
         if peer_id not in self.handshaked_peers:
@@ -548,17 +544,15 @@ class Node(BaseService):
         try:
             goodbye = await read_req(stream, Goodbye)
         except ReadMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             return
         self.logger.debug("Received the goodbye message %s", goodbye)
 
-        self.run_task(self.disconnect_peer(peer_id))
-        # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-        # await stream.reset()
+        await stream.reset()
+        await self.disconnect_peer(peer_id)
         return
 
-    async def say_goodbye(self, peer_id: ID, reason: int) -> None:
+    async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
         goodbye = Goodbye(reason)
         self.logger.debug(
             "Opening new stream to peer=%s with protocols=%s",
@@ -570,14 +564,12 @@ class Node(BaseService):
         try:
             await write_req(stream, goodbye)
         except WriteMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             error_msg = f"fail to write request={goodbye}"
             self.logger.info("Handshake failed: %s", error_msg)
             raise HandshakeFailure(error_msg) from error
 
-        # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-        # await stream.reset()
+        await stream.reset()
 
     @to_tuple
     def _get_blocks_from_canonical_chain_by_slot(
@@ -691,16 +683,14 @@ class Node(BaseService):
                 "Processing beacon blocks request failed: not handshaked with peer=%s yet",
                 peer_id,
             )
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             return
 
         self.logger.debug("Waiting for beacon blocks request from the other side")
         try:
             beacon_blocks_request = await read_req(stream, BeaconBlocksRequest)
         except ReadMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             return
         self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
 
@@ -723,7 +713,8 @@ class Node(BaseService):
                         "Processing beacon blocks request failed: failed to write message %s",
                         reason,
                     )
-                # await stream.reset()
+                    await stream.reset()
+                await stream.close()
                 return
             else:
                 try:
@@ -740,7 +731,8 @@ class Node(BaseService):
                             "Processing beacon blocks request failed: failed to write message %s",
                             reason,
                         )
-                    # await stream.reset()
+                        await stream.reset()
+                    await stream.close()
                     return
 
         # TODO: Should it be a successful response if peer is requesting
@@ -754,13 +746,14 @@ class Node(BaseService):
                 "Processing beacon blocks request failed: failed to write message %s",
                 beacon_blocks_response,
             )
-            # await stream.reset()
+            await stream.reset()
             return
 
         self.logger.debug(
             "Processing beacon blocks request from %s is finished",
             peer_id,
         )
+        await stream.reset()
 
     async def request_beacon_blocks(self,
                                     peer_id: ID,
@@ -791,8 +784,7 @@ class Node(BaseService):
         try:
             await write_req(stream, beacon_blocks_request)
         except WriteMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             error_msg = f"fail to write request={beacon_blocks_request}"
             self.logger.info("Request beacon blocks failed: %s", error_msg)
             raise RequestFailure(error_msg) from error
@@ -801,8 +793,7 @@ class Node(BaseService):
         try:
             resp_code, beacon_blocks_response = await read_resp(stream, BeaconBlocksResponse)
         except ReadMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             self.logger.info("Request beacon blocks failed: fail to read the response")
             raise RequestFailure("fail to read the response") from error
 
@@ -818,11 +809,10 @@ class Node(BaseService):
                 f"resp_code={resp_code}, error_msg={beacon_blocks_response}"
             )
             self.logger.info("Request beacon blocks failed: %s", error_msg)
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             raise RequestFailure(error_msg)
 
-        await stream.close()
+        await stream.reset()
 
         beacon_blocks_response = cast(BeaconBlocksResponse, beacon_blocks_response)
         return beacon_blocks_response.blocks
@@ -835,16 +825,14 @@ class Node(BaseService):
                 "Processing recent beacon blocks request failed: not handshaked with peer=%s yet",
                 peer_id,
             )
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             return
 
         self.logger.debug("Waiting for recent beacon blocks request from the other side")
         try:
             recent_beacon_blocks_request = await read_req(stream, RecentBeaconBlocksRequest)
         except ReadMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             return
         self.logger.debug(
             "Received the recent beacon blocks request message %s",
@@ -869,13 +857,14 @@ class Node(BaseService):
                 "Processing recent beacon blocks request failed: failed to write message %s",
                 recent_beacon_blocks_response,
             )
-            # await stream.reset()
+            await stream.reset()
             return
 
         self.logger.debug(
             "Processing recent beacon blocks request from %s is finished",
             peer_id,
         )
+        await stream.reset()
 
     async def request_recent_beacon_blocks(
             self,
@@ -899,8 +888,7 @@ class Node(BaseService):
         try:
             await write_req(stream, recent_beacon_blocks_request)
         except WriteMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             error_msg = f"fail to write request={recent_beacon_blocks_request}"
             self.logger.info("Request recent beacon blocks failed: %s", error_msg)
             raise RequestFailure(error_msg) from error
@@ -912,8 +900,7 @@ class Node(BaseService):
                 RecentBeaconBlocksResponse,
             )
         except ReadMessageFailure as error:
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             self.logger.info("Request recent beacon blocks failed: fail to read the response")
             raise RequestFailure("fail to read the response") from error
 
@@ -929,11 +916,10 @@ class Node(BaseService):
                 f"resp_code={resp_code}, error_msg={recent_beacon_blocks_response}"
             )
             self.logger.info("Request recent beacon blocks failed: %s", error_msg)
-            # FIXME: Use `Stream.reset()` when `NetStream` has this API.
-            # await stream.reset()
+            await stream.reset()
             raise RequestFailure(error_msg)
 
-        await stream.close()
+        await stream.reset()
 
         recent_beacon_blocks_response = cast(
             RecentBeaconBlocksResponse,
