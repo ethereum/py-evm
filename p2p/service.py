@@ -159,6 +159,8 @@ class BaseService(CancellableMixin, AsyncioServiceAPI):
                 await awaitable
             except OperationCancelled:
                 pass
+            except asyncio.CancelledError:
+                pass
             except Exception as e:
                 self.logger.warning("Task %s finished unexpectedly: %r", awaitable, e)
                 self.logger.debug("Task failure traceback", exc_info=True)
