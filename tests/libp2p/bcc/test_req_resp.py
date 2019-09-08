@@ -79,6 +79,16 @@ async def test_hello_failure_failure_response():
 
 
 @pytest.mark.asyncio
+async def test_goodbye():
+    async with ConnectionPairFactory() as (alice, bob):
+        reason = 2
+        await alice.say_goodbye(bob.peer_id, reason)
+        await asyncio.sleep(0.01)
+        assert bob.peer_id in alice.handshaked_peers
+        assert alice.peer_id not in bob.handshaked_peers
+
+
+@pytest.mark.asyncio
 async def test_request_beacon_blocks_fail():
     async with ConnectionPairFactory(say_hello=False) as (alice, bob):
         # Test: Can not request beacon block before handshake
