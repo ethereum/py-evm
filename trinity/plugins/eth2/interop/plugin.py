@@ -8,6 +8,7 @@ from pathlib import (
     Path,
 )
 import sys
+import shutil
 import time
 from typing import (
     Any,
@@ -53,6 +54,7 @@ from trinity._utils.shellart import (
 )
 from trinity.config import (
     TrinityConfig,
+    BeaconAppConfig,
 )
 from trinity.extensibility import (
     BaseMainProcessPlugin,
@@ -117,6 +119,12 @@ class InteropPlugin(BaseMainProcessPlugin):
             type=str,
         )
 
+        interop_parser.add_argument(
+            '--wipedb',
+            help="Blows away the chaindb so we can start afresh",
+            action='store_true',
+        )
+
         interop_parser.set_defaults(munge_func=cls.munge_all_args)
 
     @classmethod
@@ -128,6 +136,12 @@ class InteropPlugin(BaseMainProcessPlugin):
         logger.info(f"Using config from {config_path}")
         minimal_config = load_config_at_path(config_path)
         override_lengths(minimal_config)
+
+        if args.wipedb:
+            beacon_config = trinity_config.get_app_config(BeaconAppConfig)
+            logger.info(f'Blowing away the database: {beacon_config.database_dir}')
+            shutil.rmtree(beacon_config.database_dir)
+            beacon_config.database_dir.mkdir()
 
         genesis_path = Path('genesis.ssz')
         logger.info(f"Using genesis from {genesis_path}")
