@@ -14,6 +14,8 @@ from lahja import EndpointAPI
 from libp2p.crypto.keys import KeyPair
 from libp2p.crypto.secp256k1 import create_new_key_pair, Secp256k1PrivateKey
 
+from eth_utils import decode_hex
+
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.typing import (
     ValidatorIndex,
@@ -64,7 +66,7 @@ class BeaconNodeComponent(AsyncioIsolatedComponent):
     def _load_or_create_node_key(self) -> KeyPair:
         if self.boot_info.args.beacon_nodekey:
             privkey = Secp256k1PrivateKey.new(
-                bytes.fromhex(self.boot_info.args.beacon_nodekey)
+                decode_hex(self.boot_info.args.beacon_nodekey)
             )
             key_pair = KeyPair(private_key=privkey, public_key=privkey.get_public_key())
             return key_pair
