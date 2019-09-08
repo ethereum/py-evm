@@ -1,4 +1,5 @@
 import asyncio
+import random
 from typing import (
     Dict,
     Iterable,
@@ -212,6 +213,8 @@ class PeerPool:
     def get_best_head_slot_peer(self) -> Peer:
         return self.get_best("head_slot")
 
+DIAL_RETRY_COUNT = 10
+
 
 class Node(BaseService):
 
@@ -333,6 +336,20 @@ class Node(BaseService):
             )
         )
 
+    async def dial_peer_with_retries(self, ip: str, port: int, peer_id: ID) -> None:
+        """
+        Dial the peer ``peer_id`` through the IPv4 protocol
+        """
+        for i in range(DIAL_RETRY_COUNT):
+            try:
+                # exponential backoff...
+                await asyncio.sleep(2**i + random.random())
+                await self.dial_peer(ip, port, peer_id)
+                return
+            except ConnectionRefusedError:
+                continue
+        raise ConnectionRefusedError
+
     async def dial_peer_maddr(self, maddr: Multiaddr) -> None:
         """
         Parse `maddr`, get the ip:port and PeerID, and call `dial_peer` with the parameters.
@@ -340,7 +357,7 @@ class Node(BaseService):
         ip = maddr.value_for_protocol(protocols.P_IP4)
         port = maddr.value_for_protocol(protocols.P_TCP)
         peer_id = ID.from_base58(maddr.value_for_protocol(protocols.P_P2P))
-        await self.dial_peer(ip=ip, port=port, peer_id=peer_id)
+        await self.dial_peer_with_retries(ip=ip, port=port, peer_id=peer_id)
 
     async def connect_preferred_nodes(self) -> None:
         if self.preferred_nodes:
