@@ -42,6 +42,7 @@ class Node:
     node_privkey: str
     port: int
     preferred_nodes: Tuple["Node", ...]
+    rpcport: Optional[int]
 
     start_time: float
     proc: asyncio.subprocess.Process
@@ -61,6 +62,7 @@ class Node:
         name: str,
         node_privkey: str,
         port: int,
+        rpcport: Optional[int] = None,
         preferred_nodes: Optional[Tuple["Node", ...]] = None,
     ) -> None:
         self.name = name
@@ -69,6 +71,7 @@ class Node:
         if preferred_nodes is None:
             preferred_nodes = []
         self.preferred_nodes = preferred_nodes
+        self.rpcport = rpcport
 
         self.tasks = []
         self.start_time = time.monotonic()
@@ -108,7 +111,9 @@ class Node:
             f"--port={self.port}",
             f"--trinity-root-dir={self.root_dir}",
             f"--beacon-nodekey={remove_0x_prefix(encode_hex(self.node_privkey.to_bytes()))}",
+            f"--rpcport={self.rpcport}",
             "--disable-discovery",
+            "--enable-http",
             "--network-tracking-backend=do-not-track",
             "--disable-upnp",
             "-l debug2",
@@ -218,12 +223,14 @@ async def main():
         node_privkey="6b94ffa2d9b8ee85afb9d7153c463ea22789d3bbc5d961cc4f63a41676883c19",
         port=30304,
         preferred_nodes=[],
+        rpcport=8555,
     )
     node_bob = Node(
         name="bob",
         node_privkey="f5ad1c57b5a489fc8f21ad0e5a19c1f1a60b8ab357a2100ff7e75f3fa8a4fd2e",
         port=30305,
         preferred_nodes=[node_alice],
+        rpcport=8666,
     )
 
     asyncio.ensure_future(node_alice.run())

@@ -109,6 +109,7 @@ class RPCServer:
         """
         try:
             validate_request(request)
+            logging.debug(f'request: {request}')
 
             if request.get('jsonrpc', None) != '2.0':
                 raise NotImplementedError("Only the 2.0 jsonrpc protocol is supported")

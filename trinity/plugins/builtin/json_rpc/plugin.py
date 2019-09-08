@@ -34,6 +34,9 @@ from trinity.rpc.modules import (
 from trinity.rpc.ipc import (
     IPCServer,
 )
+from trinity.rpc.http import (
+    HTTPServer,
+)
 from trinity._utils.shutdown import (
     exit_with_services,
 )
@@ -55,6 +58,17 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
             "--disable-rpc",
             action="store_true",
             help="Disables the JSON-RPC Server",
+        )
+        arg_parser.add_argument(
+            "--enable-http",
+            action="store_true",
+            help="Enables the HTTP Server",
+        )
+        arg_parser.add_argument(
+            "--rpcport",
+            type=int,
+            help="JSON-RPC server port",
+            default=8545,
         )
 
     def chain_for_eth1_config(self, trinity_config: TrinityConfig,
@@ -95,10 +109,20 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
             raise Exception("Unsupported Node Type")
 
         rpc = RPCServer(modules, chain, self.event_bus)
-        ipc_server = IPCServer(rpc, self.boot_info.trinity_config.jsonrpc_ipc_path)
 
+        # Run IPC Server
+        ipc_server = IPCServer(rpc, self.boot_info.trinity_config.jsonrpc_ipc_path)
         asyncio.ensure_future(exit_with_services(
             ipc_server,
             self._event_bus_service,
         ))
         asyncio.ensure_future(ipc_server.run())
+
+        # Run HTTP Server
+        if self.boot_info.args.enable_http:
+            http_server = HTTPServer(rpc, port=self.boot_info.args.rpcport)
+            asyncio.ensure_future(exit_with_services(
+                http_server,
+                self._event_bus_service,
+            ))
+            asyncio.ensure_future(http_server.run())
