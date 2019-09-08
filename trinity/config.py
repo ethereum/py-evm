@@ -49,7 +49,8 @@ from multiaddr import (
 )
 
 from eth2.beacon.chains.testnet import (
-    TestnetChain,
+#    TestnetChain,
+    SkeletonLakeChain,
 )
 from eth2.beacon.genesis import (
     get_genesis_block,
@@ -689,7 +690,7 @@ class BeaconChainConfig:
         if self._beacon_chain_class is None:
             # TODO: we should be able to customize configs for tests/ instead of using the configs
             #   from `TestnetChain`
-            self._beacon_chain_class = TestnetChain.configure(
+            self._beacon_chain_class = SkeletonLakeChain.configure(
                 __name__=self.chain_name,
             )
         return self._beacon_chain_class
@@ -767,5 +768,5 @@ class BeaconAppConfig(BaseAppConfig):
         """
         return BeaconChainConfig.from_genesis_files(
             root_dir=self.trinity_config.trinity_root_dir,
-            chain_name="TestnetChain",
+            chain_name="SkeletonLakeChain",
         )

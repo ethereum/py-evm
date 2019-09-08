@@ -11,8 +11,13 @@ from eth2.configs import Eth2Config
 
 from .epoch_processing import process_epoch
 
+import logging
+
+logger = logging.getLogger("trinity.internal")
+
 
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -56,6 +61,7 @@ def _increment_slot(state: BeaconState) -> BeaconState:
 
 def process_slots(state: BeaconState, slot: Slot, config: Eth2Config) -> BeaconState:
     # logger.debug(f'process_slots: {slot}')
+    print("calling process slots for slot {slot}")
     if state.slot > slot:
         raise ValidationError(
             f"Requested a slot transition at {slot}, behind the current slot {state.slot}"
@@ -70,4 +76,7 @@ def process_slots(state: BeaconState, slot: Slot, config: Eth2Config) -> BeaconS
 
         state = _increment_slot(state)
 
+        print(f"incremented slot. Now at slot: {state.slot}")
+
+    print(f"finished processing slot {slot}")
     return state

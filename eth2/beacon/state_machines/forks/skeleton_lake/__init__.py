@@ -12,12 +12,12 @@ from eth2.beacon.state_machines.forks.serenity.states import SerenityBeaconState
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.typing import FromBlockParams
 
-from .config import MINIMAL_SERENTIY_CONFIG
+from .config import MINIMAL_SERENITY_CONFIG
 
 
 class SkeletonLakeStateMachine(BeaconStateMachine):
     fork = "skeleton_lake"
-    config = MINIMAL_SERENTIY_CONFIG
+    config = MINIMAL_SERENITY_CONFIG
 
     # classes
     block_class = SerenityBeaconBlock

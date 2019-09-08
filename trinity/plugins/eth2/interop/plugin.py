@@ -59,6 +59,10 @@ from trinity.config import (
 from trinity.extensibility import (
     BaseMainProcessPlugin,
 )
+from trinity.plugins.eth2.constants import (
+    VALIDATOR_KEY_DIR,
+)
+from eth2.beacon.tools.fixtures.loading import load_config_at_path
 import ssz
 
 from eth2.beacon.types.states import BeaconState

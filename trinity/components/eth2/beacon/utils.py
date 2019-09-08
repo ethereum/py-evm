@@ -76,5 +76,6 @@ def extract_privkeys_from_dir(dir_path: Path) -> Dict[BLSPubkey, int]:
         validator_keymap[pubkey] = privkey
         logger.debug(f'imported public key: {humanize_hash(pubkey)}')
     if len(validator_keymap) == 0:
-        raise KeyFileNotFound("No validator key file is provided")
+        pass
+        #raise KeyFileNotFound("No validator key file is provided")
     return validator_keymap

@@ -200,6 +200,9 @@ def main_entry(trinity_boot: BootFn,
         args.func(args, trinity_config)
         return
 
+    if hasattr(args, 'munge_func'):
+        args.munge_func(args, trinity_config)
+
     processes = trinity_boot(
         args,
         trinity_config,

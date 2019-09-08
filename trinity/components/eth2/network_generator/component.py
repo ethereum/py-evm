@@ -68,7 +68,7 @@ from .constants import (
     KEYS_DIR,
 )
 
-override_lengths(XIAO_LONG_BAO_CONFIG)
+# override_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class Client:

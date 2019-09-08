@@ -90,6 +90,8 @@ class BeaconNodeComponent(AsyncioIsolatedComponent):
                 return key_pair
 
     def do_start(self) -> None:
+        logger = self.get_logger()
+
         trinity_config = self.boot_info.trinity_config
         key_pair = self._load_or_create_node_key()
         beacon_app_config = trinity_config.get_app_config(BeaconAppConfig)
@@ -110,6 +112,8 @@ class BeaconNodeComponent(AsyncioIsolatedComponent):
             preferred_nodes=trinity_config.preferred_nodes,
             chain=chain,
         )
+
+        self.logger.warning(f'Node listening: {libp2p_node.listen_maddr_with_peer_id}')
 
         receive_server = BCCReceiveServer(
             chain=chain,

@@ -51,6 +51,12 @@ from trinity._utils.profiling import (
     setup_cprofiler,
 )
 
+from pathlib import Path
+from eth2.beacon.tools.fixtures.loading import load_config_at_path
+from eth2.beacon.tools.misc.ssz_vector import (
+    override_lengths,
+)
+
 
 def main_beacon() -> None:
     main_entry(
@@ -102,6 +108,13 @@ def trinity_boot(args: Namespace,
 @with_queued_logging
 def run_database_process(trinity_config: TrinityConfig, db_class: Type[LevelDB]) -> None:
     with trinity_config.process_id_file('database'):
+
+        # A nasty hack for now
+        config_path = Path('min.config')
+        minimal_config = load_config_at_path(config_path)
+        override_lengths(minimal_config)
+        # </nasty hack>
+
         app_config = trinity_config.get_app_config(BeaconAppConfig)
         chain_config = app_config.get_chain_config()
 
