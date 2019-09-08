@@ -7,7 +7,6 @@ import itertools
 from typing import (
     Any,
     Callable,
-    Optional,
     TypeVar,
 )
 
@@ -64,7 +63,7 @@ def is_retryable(func: Func) -> bool:
     return getattr(func, RETRYABLE_ATTRIBUTE_NAME, False)
 
 
-async def check_requested_block_age(chain: Optional[AsyncChainAPI],
+async def check_requested_block_age(chain: AsyncChainAPI,
                                     func: Func, params: Any) -> None:
     sig = inspect.signature(func)
     params = sig.bind(*params)
@@ -85,7 +84,7 @@ async def check_requested_block_age(chain: Optional[AsyncChainAPI],
 
 
 async def execute_with_retries(event_bus: EndpointAPI, func: Func, params: Any,
-                               chain: Optional[AsyncChainAPI]) -> None:
+                               chain: AsyncChainAPI) -> None:
     """
     If a beam sync (or anything which responds to CollectMissingAccount) is running then
     attempt to fetch missing data from it before giving up.

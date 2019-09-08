@@ -3,6 +3,7 @@ from argparse import (
     _SubParsersAction,
 )
 import asyncio
+from typing import Union
 
 from lahja import EndpointAPI
 
@@ -20,6 +21,7 @@ from trinity.chains.base import AsyncChainAPI
 from trinity.chains.light_eventbus import (
     EventBusLightPeerChain,
 )
+from trinity.db.beacon.chain import AsyncBeaconChainDB
 from trinity.db.manager import DBClient
 from trinity.extensibility import (
     AsyncioIsolatedPlugin,
@@ -88,9 +90,19 @@ class JsonRpcServerPlugin(AsyncioIsolatedPlugin):
         else:
             raise Exception(f"Unsupported Database Mode: {eth1_app_config.database_mode}")
 
-    def chain_for_config(self, trinity_config: TrinityConfig) -> AsyncChainAPI:
+    def chain_for_beacon_config(self, trinity_config: TrinityConfig,
+                                beacon_app_config: BeaconAppConfig) -> AsyncBeaconChainDB:
+        chain_config = beacon_app_config.get_chain_config()
+        db = DBClient.connect(trinity_config.database_ipc_path)
+        return AsyncBeaconChainDB(db, chain_config.genesis_config)
+
+    def chain_for_config(
+        self,
+        trinity_config: TrinityConfig
+    ) -> Union[AsyncChainAPI, AsyncBeaconChainDB]:
         if trinity_config.has_app_config(BeaconAppConfig):
-            return None
+            beacon_app_config = trinity_config.get_app_config(BeaconAppConfig)
+            return self.chain_for_beacon_config(trinity_config, beacon_app_config)
         elif trinity_config.has_app_config(Eth1AppConfig):
             eth1_app_config = trinity_config.get_app_config(Eth1AppConfig)
             return self.chain_for_eth1_config(trinity_config, eth1_app_config)
