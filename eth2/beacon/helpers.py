@@ -99,7 +99,6 @@ def get_randao_mix(
     """
     Return the randao mix at a recent ``epoch``.
     """
-    print(f'XXX e={epoch} ep={epochs_per_historical_vector} len={len(state.randao_mixes)}')
     return state.randao_mixes[epoch % epochs_per_historical_vector]
 
 
