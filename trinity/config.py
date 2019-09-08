@@ -276,6 +276,7 @@ class TrinityConfig:
                  genesis_config: Dict[str, Any]=None,
                  max_peers: int=25,
                  trinity_root_dir: str=None,
+                 trinity_tmp_root_dir: bool=False,
                  data_dir: str=None,
                  nodekey_path: str=None,
                  nodekey: PrivateKey=None,
@@ -303,6 +304,7 @@ class TrinityConfig:
 
         if trinity_root_dir is not None:
             self.trinity_root_dir = trinity_root_dir
+        self.trinity_tmp_root_dir = trinity_tmp_root_dir
 
         if not preferred_nodes and self.network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
