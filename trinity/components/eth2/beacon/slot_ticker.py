@@ -83,7 +83,7 @@ class SlotTicker(BaseService):
                 # Case 1: new slot
                 if slot > self.latest_slot:
                     self.logger.debug(
-                        bold_green("Tick  this_slot=%s elapsed=%s"),
+                        bold_green("[first] tick for slot %s (elapsed %ss)"),
                         slot,
                         elapsed_time,
                     )
@@ -99,7 +99,7 @@ class SlotTicker(BaseService):
                     has_sent_second_half_slot_tick = is_second_tick
                 # Case 2: second half of an already ticked slot and it hasn't tick yet
                 elif is_second_tick and not has_sent_second_half_slot_tick:
-                    self.logger.debug(bold_green("Tick  this_slot=%s (second-tick)"), slot)
+                    self.logger.debug(bold_green("[second] tick for slot %s"), slot)
                     await self.event_bus.broadcast(
                         SlotTickEvent(
                             slot=slot,
