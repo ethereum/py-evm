@@ -59,10 +59,6 @@ from trinity.config import (
 from trinity.extensibility import (
     BaseMainProcessPlugin,
 )
-from trinity.plugins.eth2.constants import (
-    VALIDATOR_KEY_DIR,
-)
-from eth2.beacon.tools.fixtures.loading import load_config_at_path
 import ssz
 
 from eth2.beacon.types.states import BeaconState
@@ -73,17 +69,6 @@ from trinity.plugins.eth2.network_generator.constants import (
 )
 
 from trinity.plugins.builtin.network_db.plugin import TrackingBackend
-
-
-class Client:
-    name: str
-    client_dir: Path
-    validator_keys_dir: Path
-
-    def __init__(self, name: str, root_dir: Path) -> None:
-        self.name = name
-        self.client_dir = root_dir / name
-        self.validator_keys_dir = self.client_dir / VALIDATOR_KEY_DIR
 
 
 class InteropPlugin(BaseMainProcessPlugin):
@@ -203,9 +188,11 @@ class InteropPlugin(BaseMainProcessPlugin):
         keys_file = Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml')
         keys_dir = trinity_config.trinity_root_dir / KEYS_DIR
         try:
-            keys_dir.mkdir()
-        except FileExistsError:
+            shutil.rmtree(keys_dir)
+        except FileNotFoundError:
             pass
+
+        keys_dir.mkdir()
 
         # parse the yaml...
         yaml = YAML(typ="unsafe")
