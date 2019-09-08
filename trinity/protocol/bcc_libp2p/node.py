@@ -1,4 +1,7 @@
 import asyncio
+from dataclasses import dataclass
+import logging
+import operator
 import random
 from typing import (
     Dict,
@@ -14,6 +17,7 @@ from cancel_token import (
 )
 
 from eth_utils import ValidationError, to_tuple
+from eth_utils.toolz import first
 
 from eth.exceptions import (
     BlockNotFound,
@@ -131,10 +135,7 @@ from .utils import (
     write_resp,
 )
 
-from dataclasses import dataclass
-import operator
-from eth_utils.toolz import first
-
+logger = logging.getLogger('trinity.protocol.bcc_libp2p')
 
 REQ_RESP_HELLO_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_HELLO)
 REQ_RESP_GOODBYE_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_GOODBYE)
@@ -347,6 +348,7 @@ class Node(BaseService):
                 await self.dial_peer(ip, port, peer_id)
                 return
             except ConnectionRefusedError:
+                logger.debug(f"could not connect to peer {peer_id} at {ip}:{port}; retrying attempt {i} of {DIAL_RETRY_COUNT}...")
                 continue
         raise ConnectionRefusedError
 
@@ -360,11 +362,14 @@ class Node(BaseService):
         await self.dial_peer_with_retries(ip=ip, port=port, peer_id=peer_id)
 
     async def connect_preferred_nodes(self) -> None:
-        if self.preferred_nodes:
-            await asyncio.wait([
-                self.dial_peer_maddr(node_maddr)
-                for node_maddr in self.preferred_nodes
-            ])
+        results = await asyncio.gather(
+            *(self.dial_peer_maddr(node_maddr)
+              for node_maddr in self.preferred_nodes),
+            return_exceptions=True,
+        )
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning(f"could not connect to {result} ")
 
     async def disconnect_peer(self, peer_id: ID) -> None:
         if peer_id in self.handshaked_peers:
