@@ -1,10 +1,13 @@
-import functools
 from typing import (
     Any,
     Awaitable,
     Callable,
     Type,
+    TypeVar,
 )
+
+
+TAsyncFn = TypeVar("TAsyncFn", bound=Callable[..., Awaitable[None]])
 
 
 class classproperty(property):
@@ -12,30 +15,15 @@ class classproperty(property):
         return super().__get__(objtype)
 
 
-def suppress_exceptions(*exception_types: Type[BaseException]) -> Callable[..., Any]:
-    def _suppress_decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(func)
-        def _suppressed_func(*args: Any, **kwargs: Any) -> Any:
+def async_suppress_exceptions(*exception_types: Type[BaseException]) -> TAsyncFn:
+    def _suppress_decorator(func: TAsyncFn) -> TAsyncFn:
+        async def _suppressed_func(*args: Any, **kwargs: Any) -> None:
             try:
-                return func(*args, **kwargs)
+                await func(*args, **kwargs)
             except exception_types:
                 # these exceptions are expected, and require no handling
                 pass
 
-        return _suppressed_func
+        return _suppressed_func  # type: ignore
 
-    return _suppress_decorator
-
-
-def async_suppress_exceptions(*exception_types: Type[BaseException]) -> Callable[..., Any]:
-    def _suppress_decorator(func: Callable[..., Awaitable[Any]]) -> Callable[..., Awaitable[Any]]:
-        async def _suppressed_func(*args: Any, **kwargs: Any) -> Any:
-            try:
-                return await func(*args, **kwargs)
-            except exception_types:
-                # these exceptions are expected, and require no handling
-                pass
-
-        return _suppressed_func
-
-    return _suppress_decorator
+    return _suppress_decorator  # type: ignore
