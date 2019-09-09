@@ -47,7 +47,6 @@ def create_mock_deposits_and_root(
 
     deposit_datas = tuple()  # type: Tuple[DepositData, ...]
     deposit_data_leaves = cast(Tuple[Hash32, ...], leaves)  # type: Tuple[Hash32, ...]
-
     for key, credentials in zip(pubkeys, withdrawal_credentials):
         privkey = keymap[key]
         deposit_data = create_mock_deposit_data(
@@ -71,8 +70,11 @@ def create_mock_deposits_and_root(
         )
         deposits += (deposit,)
 
-    tree_root = get_root(tree)
-    return deposits, hash_eth2(tree_root + length_mix_in)
+    if len(deposit_data_leaves) > 0:
+        tree_root = get_root(tree)
+        return deposits, hash_eth2(tree_root + length_mix_in)
+    else:
+        return tuple(), ZERO_HASH32
 
 
 def create_mock_deposit(

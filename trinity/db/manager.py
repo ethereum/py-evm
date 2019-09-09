@@ -200,7 +200,15 @@ class DBManager:
         # shutdown.  This allows the server threads to be cleanly closed on
         # demand.
         self.wait_stopped()
-        sock.shutdown(socket.SHUT_RD)
+
+        try:
+            sock.shutdown(socket.SHUT_RD)
+        except OSError as e:
+            # on mac OS this can result in the following error:
+            # OSError: [Errno 57] Socket is not connected
+            if e.errno != errno.ENOTCONN:
+                raise
+
         sock.close()
 
     @contextlib.contextmanager

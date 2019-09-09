@@ -7,8 +7,8 @@ import itertools
 from typing import (
     Any,
     Callable,
-    Optional,
     TypeVar,
+    Union,
 )
 
 from lahja import EndpointAPI
@@ -20,6 +20,7 @@ from eth.vm.interrupt import (
 )
 
 from trinity.chains.base import AsyncChainAPI
+from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.sync.common.events import (
     CollectMissingAccount,
     CollectMissingBytecode,
@@ -64,7 +65,7 @@ def is_retryable(func: Func) -> bool:
     return getattr(func, RETRYABLE_ATTRIBUTE_NAME, False)
 
 
-async def check_requested_block_age(chain: Optional[AsyncChainAPI],
+async def check_requested_block_age(chain: Union[AsyncChainAPI, BaseAsyncBeaconChainDB],
                                     func: Func, params: Any) -> None:
     sig = inspect.signature(func)
     params = sig.bind(*params)
@@ -74,18 +75,18 @@ async def check_requested_block_age(chain: Optional[AsyncChainAPI],
     except AttributeError as e:
         raise Exception("Function {func} was not decorated with @retryable") from e
 
-    at_block = params.arguments[at_block_name]
-
-    requested_header = await get_header(chain, at_block)
-    requested_block = requested_header.block_number
-    current_block = chain.get_canonical_head().block_number
-
-    if requested_block < current_block - 64:
-        raise Exception(f'block "{at_block}" is too old to be fetched over the network')
+    # Beacon chain doesn't support it
+    if not isinstance(chain, BaseAsyncBeaconChainDB):
+        at_block = params.arguments[at_block_name]
+        requested_header = await get_header(chain, at_block)
+        requested_block = requested_header.block_number
+        current_block = chain.get_canonical_head().block_number
+        if requested_block < current_block - 64:
+            raise Exception(f'block "{at_block}" is too old to be fetched over the network')
 
 
 async def execute_with_retries(event_bus: EndpointAPI, func: Func, params: Any,
-                               chain: Optional[AsyncChainAPI]) -> None:
+                               chain: Union[AsyncChainAPI, BaseAsyncBeaconChainDB]) -> None:
     """
     If a beam sync (or anything which responds to CollectMissingAccount) is running then
     attempt to fetch missing data from it before giving up.
