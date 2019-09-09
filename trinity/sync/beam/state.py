@@ -490,6 +490,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
                 pass
             else:
                 # peer didn't return enough results, wait a while before trying again
+                self.logger.debug("%s returned 0 state trie nodes, penalize...", peer)
                 self._queen_tracker.penalize_queen(peer)
             return completed_nodes
 
@@ -533,12 +534,12 @@ class BeamDownloader(BaseService, PeerSubscriber):
             msg += "  u_prog=%d" % self._node_tasks.num_in_progress()
             msg += "  p_pend=%d" % self._maybe_useful_nodes.num_pending()
             msg += "  p_prog=%d" % self._maybe_useful_nodes.num_in_progress()
-            self.logger.info("Beam-Sync: %s", msg)
+            self.logger.debug("Beam-Sync: %s", msg)
 
             # log peer counts
             show_top_n_peers = 3
             self.logger.debug(
-                "Beam-Peer-Usage-Top-%d: urgent=%s, predictive=%s",
+                "Beam-Sync-Peer-Usage-Top-%d: urgent=%s, predictive=%s",
                 show_top_n_peers,
                 self._num_urgent_requests_by_peer.most_common(show_top_n_peers),
                 self._num_predictive_requests_by_peer.most_common(show_top_n_peers),

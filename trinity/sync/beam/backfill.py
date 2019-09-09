@@ -166,12 +166,12 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
             old_queen = self._queen_peer
             self._update_queen(peer)
             if peer == self._queen_peer:
-                self.logger.warning("Switching queen peer from %s to %s", old_queen, peer)
+                self.logger.debug("Switching queen peer from %s to %s", old_queen, peer)
                 continue
 
             if peer.requests.get_node_data.is_requesting:
                 # skip the peer if there's an active request
-                self.logger.warning("Skipping active peer %s", peer)
+                self.logger.debug("Backfill is skipping active peer %s", peer)
                 self.call_later(10, self._waiting_peers.put_nowait, peer)
                 continue
 
@@ -183,7 +183,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
             if len(on_deck) == 0:
                 # Nothing left to request, break and wait for new data to come in
                 self._waiting_peers.put_nowait(peer)
-                self.logger.warning("Backfill is waiting for more hashes to arrive")
+                self.logger.debug("Backfill is waiting for more hashes to arrive")
                 await self.sleep(2)
                 continue
 
@@ -317,14 +317,14 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
             msg += "  new=%d" % self._num_added
             msg += "  missed=%d" % self._num_missed
             msg += "  queen=%s" % self._queen_peer
-            self.logger.info("Beam-Backfill: %s", msg)
+            self.logger.debug("Beam-Backfill: %s", msg)
 
             self._num_added = 0
             self._num_missed = 0
 
             # log peer counts
             show_top_n_peers = 3
-            self.logger.info(
+            self.logger.debug(
                 "Beam-Backfill-Peer-Usage-Top-%d: %s",
                 show_top_n_peers,
                 self._num_requests_by_peer.most_common(show_top_n_peers),
