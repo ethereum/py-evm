@@ -50,7 +50,7 @@ TPeerPool = TypeVar('TPeerPool', bound=BasePeerPool)
 T_VM_CONFIGURATION = Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
 
 COMMON_RECEIVE_HANDSHAKE_EXCEPTIONS = (
-    TimeoutError,
+    asyncio.TimeoutError,
     PeerConnectionLost,
     HandshakeFailure,
     NoMatchingPeerCapabilities,

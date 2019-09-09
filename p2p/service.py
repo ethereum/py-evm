@@ -314,7 +314,7 @@ class BaseService(CancellableMixin, AsyncioServiceAPI):
         try:
             await asyncio.wait_for(
                 self.events.cleaned_up.wait(), timeout=self._wait_until_finished_timeout)
-        except asyncio.futures.TimeoutError:
+        except asyncio.TimeoutError:
             self.logger.info(
                 "Timed out waiting for %s to finish its cleanup, forcibly cancelling pending "
                 "tasks and exiting anyway", self)
@@ -393,7 +393,7 @@ def service_timeout(timeout: int) -> Callable[..., Any]:
 
     :param timeout: seconds to wait before raising a timeout exception
 
-    :raise asyncio.futures.TimeoutError: if the call is not complete before timeout seconds
+    :raise asyncio.TimeoutError: if the call is not complete before timeout seconds
     """
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(func)
