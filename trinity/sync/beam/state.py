@@ -292,8 +292,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             node_hashes = self._append_unique_hashes(urgent_hashes, predictive_hashes)
 
             if not node_hashes:
-                self.logger.warning("restarting because empty node hashes")
-                await self.sleep(0.02)
+                # There are no urgent or predictive hashes waiting, retry
                 continue
 
             # Get best peer, by GetNodeData speed
@@ -336,14 +335,10 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
     async def _get_waiting_urgent_hashes(self) -> Tuple[int, Tuple[Hash32, ...]]:
         # if any predictive nodes are waiting, then time out after a short pause to grab them
-        if self._allow_predictive_only and self._maybe_useful_nodes.num_pending():
-            timeout = DELAY_BEFORE_NON_URGENT_REQUEST
-        else:
-            timeout = None
         try:
             return await self.wait(
                 self._node_tasks.get(eth_constants.MAX_STATE_FETCH),
-                timeout=timeout,
+                timeout=DELAY_BEFORE_NON_URGENT_REQUEST,
             )
         except asyncio.TimeoutError:
             return None, ()
