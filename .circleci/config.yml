@@ -387,10 +387,16 @@ workflows:
   version: 2
   test:
     jobs:
+      # These tests are long, so should be started first to optimize for total suite run time
+      - py36-integration
+      - py36-wheel-cli
+      - py37-wheel-cli
+      - py36-long_run_integration
+      - py37-rpc-state-sstore
+
       - py36-docs
 
       - py37-eth1-core
-      - py37-wheel-cli
       - py37-p2p
       - py36-p2p-trio
       - py37-eth2-core
@@ -402,7 +408,6 @@ workflows:
       - py37-eth1-plugins
 
       - py37-rpc-state-quadratic
-      - py37-rpc-state-sstore
       - py37-rpc-state-zero_knowledge
 
       - py36-rpc-state-byzantium
@@ -415,7 +420,6 @@ workflows:
       - py36-rpc-blockchain
 
       - py36-eth1-core
-      - py36-wheel-cli
       - py36-p2p
       - py36-p2p-trio
       - py36-eth2-core
@@ -425,9 +429,7 @@ workflows:
       - py36-eth2-plugins
       - py36-eth1-plugins
 
-      - py36-integration
       - py36-lightchain_integration
-      - py36-long_run_integration
 
       - py36-lint
       - py36-lint-eth2
