@@ -1,6 +1,6 @@
 import pytest
 
-from trinity._utils.percentile import Percentile
+from p2p.stats.percentile import Percentile
 
 
 @pytest.mark.parametrize(

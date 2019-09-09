@@ -53,6 +53,7 @@ from p2p.disconnect import DisconnectReason
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
+from p2p.stats.ema import EMA
 from p2p.token_bucket import TokenBucket
 
 from trinity.chains.base import AsyncChainAPI
@@ -86,7 +87,6 @@ from trinity._utils.datastructures import (
     OrderedTaskPreparation,
     TaskQueue,
 )
-from trinity._utils.ema import EMA
 from trinity._utils.headers import (
     skip_complete_headers,
 )

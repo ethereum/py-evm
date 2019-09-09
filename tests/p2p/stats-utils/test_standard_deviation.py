@@ -1,6 +1,6 @@
 import pytest
 
-from trinity._utils.stddev import StandardDeviation
+from p2p.stats.stddev import StandardDeviation
 
 
 @pytest.mark.parametrize(
