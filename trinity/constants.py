@@ -29,7 +29,6 @@ PID_DIR = 'pids'
 
 # sync modes
 SYNC_FULL = 'full'
-SYNC_FAST = 'fast'
 SYNC_LIGHT = 'light'
 SYNC_BEAM = 'beam'
 

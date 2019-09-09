@@ -101,7 +101,7 @@ As we observe Trinity booting, we should look out for two important pieces of in
 
   enode://f07d2459f82148d11a033c00353a0efb798ef585da9cade0d7196160a5c5b55e6c7efd95288df083b4f417a36f9f6189b4b2e5ade0f456ce131c701f78f64a41@0.0.0.0:30303
   ...
-  Starting fast-sync; current head: <BlockHeader #0 065fd78e>
+  Starting beam-sync; current head: <BlockHeader #0 065fd78e>
 
 
 Mining the chain
@@ -166,7 +166,7 @@ acknowleding our new blocks.
 
 .. code:: sh
 
-  Starting fast-sync; current head: <BlockHeader #4 4c71d77b>
+  Starting beam-sync; current head: <BlockHeader #4 4c71d77b>
 
 
 Getting a second node to catch up
@@ -195,9 +195,9 @@ Voila! Here we go.
 
 .. code:: sh
 
-  Starting fast-sync; current head: <BlockHeader #0 065fd78e>
+  Starting beam-sync; current head: <BlockHeader #0 065fd78e>
   ...
-  Finished fast fast-sync; previous head: <BlockHeader #0 065fd78e>, current head: <BlockHeader #4 4c71d77b>
+  Finished beam-sync; previous head: <BlockHeader #0 065fd78e>, current head: <BlockHeader #4 4c71d77b>
   Missing state for current head <BlockHeader #4 4c71d77b>, downloading it
   Starting state sync for root hash 0xd548c6d3b14d0549bf1aeaa413769f5877c72c3e88b5c82f916a6c3b2f955daa
 

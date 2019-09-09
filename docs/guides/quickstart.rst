@@ -143,7 +143,7 @@ to help us getting that bug fixed.
       INFO  05-29 01:57:07      server  enode://09d34ecb0de1806ab0e68cb2d822b967292dc021df06aab9a55aa4d2e1b2e04ae73560137407a48073286026e12dd60d265a1b1ae0505e44e60d55cea9c7b100@0.0.0.0:30303
       INFO  05-29 01:57:07      server  network: 1
       INFO  05-29 01:57:07        peer  Running PeerPool...
-      INFO  05-29 01:57:07        sync  Starting fast-sync; current head: #0
+      INFO  05-29 01:57:07        sync  Starting beam-sync; current head: #0
 
 Once Trinity successfully connected to other peers we should see it starting to sync the chain.
 

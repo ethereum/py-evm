@@ -20,7 +20,7 @@ from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.les.peer import LESPeerPool
 
 from trinity.sync.common.chain import BaseHeaderChainSyncer
-from trinity.sync.full.chain import FastChainSyncer, RegularChainSyncer
+from trinity.sync.full.chain import RegularChainSyncer
 from trinity.sync.light.chain import LightChainSyncer
 
 
@@ -42,7 +42,6 @@ def _test() -> None:
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
-    parser.add_argument('-fast', action="store_true")
     parser.add_argument('-light', action="store_true")
     parser.add_argument('-nodekey', type=str)
     parser.add_argument('-enode', type=str, required=False, help="The enode we should connect to")
@@ -103,9 +102,7 @@ def _test() -> None:
     peer_pool.run_task(connect_to_peers_loop(peer_pool, nodes))
     chain = chain_class(base_db)
     syncer: BaseHeaderChainSyncer = None
-    if args.fast:
-        syncer = FastChainSyncer(chain, chaindb, cast(ETHPeerPool, peer_pool))
-    elif args.light:
+    if args.light:
         syncer = LightChainSyncer(chain, headerdb, cast(LESPeerPool, peer_pool))
     else:
         syncer = RegularChainSyncer(chain, chaindb, cast(ETHPeerPool, peer_pool))

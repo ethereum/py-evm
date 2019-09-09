@@ -27,7 +27,6 @@ from trinity.protocol.les.peer import (
     LESPeerPoolEventServer,
 )
 
-from trinity.sync.full.state import StateDownloader
 from trinity.sync.beam.chain import (
     BeamSyncer,
 )
@@ -66,51 +65,6 @@ def small_header_batches(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_fast_syncer(request,
-                           event_bus,
-                           event_loop,
-                           chaindb_fresh,
-                           chaindb_20):
-    client_context = ChainContextFactory(headerdb__db=chaindb_fresh.db)
-    server_context = ChainContextFactory(headerdb__db=chaindb_20.db)
-    peer_pair = ETHPeerPairFactory(
-        alice_peer_context=client_context,
-        bob_peer_context=server_context,
-        event_bus=event_bus,
-    )
-    async with peer_pair as (client_peer, server_peer):
-
-        client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
-        client = FastChainSyncer(LatestTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
-        server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
-
-        async with run_peer_pool_event_server(
-            event_bus,
-            server_peer_pool,
-            handler_type=ETHPeerPoolEventServer,
-        ), run_request_server(
-            event_bus,
-            AsyncChainDB(chaindb_20.db),
-        ):
-
-            server_peer.logger.info("%s is serving 20 blocks", server_peer)
-            client_peer.logger.info("%s is syncing up 20", client_peer)
-
-            # FastChainSyncer.run() will return as soon as it's caught up with the peer.
-            await asyncio.wait_for(client.run(), timeout=5)
-
-            head = chaindb_fresh.get_canonical_head()
-            assert head == chaindb_20.get_canonical_head()
-
-            # Now download the state for the chain's head.
-            state_downloader = StateDownloader(
-                chaindb_fresh, chaindb_fresh.db, head.state_root, client_peer_pool)
-            await asyncio.wait_for(state_downloader.run(), timeout=5)
-
-            assert head.state_root in chaindb_fresh.db
-
-
-@pytest.mark.asyncio
 async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, chaindb_1000):
 
     client_context = ChainContextFactory(headerdb__db=chaindb_fresh.db)
@@ -139,13 +93,6 @@ async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, ch
 
             head = chaindb_fresh.get_canonical_head()
             assert head == chaindb_1000.get_canonical_head()
-
-            # Now download the state for the chain's head.
-            state_downloader = StateDownloader(
-                chaindb_fresh, chaindb_fresh.db, head.state_root, client_peer_pool)
-            await asyncio.wait_for(state_downloader.run(), timeout=20)
-
-            assert head.state_root in chaindb_fresh.db
 
 
 @pytest.mark.asyncio

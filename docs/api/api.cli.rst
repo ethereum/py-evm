@@ -129,7 +129,7 @@ We can also generate an always up-to-date version of them by running ``trinity -
                             The interval at which data is reported back
 
     sync mode:
-    --sync-mode {fast,full,beam,light,none}
+    --sync-mode {full,beam,light,none}
 
 
 Attach a REPL to a running Trinity instance

@@ -34,7 +34,6 @@ from trinity.config import (
 )
 from trinity.constants import (
     NETWORKING_EVENTBUS_ENDPOINT,
-    SYNC_FAST,
     SYNC_FULL,
     SYNC_LIGHT,
     SYNC_BEAM,
@@ -61,7 +60,6 @@ from trinity.protocol.les.peer import (
     LESPeerPool,
 )
 from trinity.sync.full.service import (
-    FastThenFullChainSyncer,
     FullChainSyncer,
 )
 from trinity.sync.beam.service import (
@@ -158,32 +156,6 @@ class FullSyncStrategy(BaseSyncStrategy):
         await syncer.run()
 
 
-class FastThenFullSyncStrategy(BaseSyncStrategy):
-
-    @classmethod
-    def get_sync_mode(cls) -> str:
-        return SYNC_FAST
-
-    async def sync(self,
-                   args: Namespace,
-                   logger: Logger,
-                   chain: AsyncChainAPI,
-                   base_db: AtomicDatabaseAPI,
-                   peer_pool: BasePeerPool,
-                   event_bus: EndpointAPI,
-                   cancel_token: CancelToken) -> None:
-
-        syncer = FastThenFullChainSyncer(
-            chain,
-            AsyncChainDB(base_db),
-            base_db,
-            cast(ETHPeerPool, peer_pool),
-            cancel_token,
-        )
-
-        await syncer.run()
-
-
 class BeamSyncStrategy(BaseSyncStrategy):
 
     @classmethod
@@ -266,14 +238,13 @@ class SyncerPlugin(AsyncioIsolatedPlugin):
 
     active_strategy: BaseSyncStrategy = None
     strategies: Iterable[BaseSyncStrategy] = (
-        FastThenFullSyncStrategy(),
         FullSyncStrategy(),
         BeamSyncStrategy(),
         LightSyncStrategy(),
         NoopSyncStrategy(),
     )
 
-    default_strategy = FastThenFullSyncStrategy
+    default_strategy = BeamSyncStrategy
 
     @property
     def name(self) -> str:

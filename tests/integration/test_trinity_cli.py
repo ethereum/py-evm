@@ -322,7 +322,7 @@ async def test_shutdown(command, async_process_runner):
         # Somewhat arbitrary but we wait until the syncer starts before we trigger the shutdown.
         # At this point, most of the internals should be set up, leaving us with more room for
         # failure which is what we are looking for in this test.
-        trigger = "FastChainBodySyncer"
+        trigger = "BeamSyncService"
         triggered = False
         async for line in async_process_runner.stderr:
             if trigger in line:
