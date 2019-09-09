@@ -21,7 +21,7 @@ from eth2.beacon.typing import (
     Slot,
 )
 
-from trinity.protocol.common.validators import BaseValidator
+from trinity.protocol.common.abc import ValidatorAPI
 
 from trinity.protocol.bcc.commands import (
     RequestMessage,
@@ -29,7 +29,7 @@ from trinity.protocol.bcc.commands import (
 )
 
 
-class BeaconBlocksValidator(BaseValidator[Tuple[BaseBeaconBlock, ...]]):
+class BeaconBlocksValidator(ValidatorAPI[Tuple[BaseBeaconBlock, ...]]):
 
     def __init__(self, block_slot_or_hash: Union[Slot, Hash32], max_blocks: int) -> None:
         self.block_slot_or_hash = block_slot_or_hash

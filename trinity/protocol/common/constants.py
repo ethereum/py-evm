@@ -5,10 +5,6 @@
 # the network will timeout before this timeout is ever hit.
 ROUND_TRIP_TIMEOUT = 20.0
 
-# Timeout used when performing the check to ensure peers are on the same side of chain splits as
-# us.
-CHAIN_SPLIT_CHECK_TIMEOUT = 15
-
 
 # We send requests to peers one at a time, but might initiate a few locally before
 # they are sent. This is an estimate of how many get queued locally. The reason we
@@ -21,3 +17,8 @@ NUM_QUEUED_REQUESTS = 3
 # disconnected from in the event of a asyncio.TimeoutError during a request/response.
 TIMEOUT_BUCKET_RATE = 1 / 60  # refill 1 token every minute
 TIMEOUT_BUCKET_CAPACITY = 3  # max capacity of 3 tokens
+
+
+# Timeout used when performing the check to ensure peers are on the same side of chain splits as
+# us.
+CHAIN_SPLIT_CHECK_TIMEOUT = 15

@@ -37,7 +37,7 @@ from trie.exceptions import MissingTrieNode
 
 from trinity._utils.datastructures import TaskQueue
 from trinity._utils.timer import Timer
-from trinity.protocol.common.types import (
+from trinity.protocol.common.typing import (
     NodeDataBundles,
 )
 from trinity.protocol.eth.commands import (

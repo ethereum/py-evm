@@ -18,7 +18,7 @@ from p2p.abc import NodeAPI
 from trinity.protocol.common.handlers import (
     BaseChainExchangeHandler,
 )
-from trinity.protocol.common.types import (
+from trinity.protocol.common.typing import (
     BlockBodyBundles,
     NodeDataBundles,
     ReceiptsBundles,

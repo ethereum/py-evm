@@ -42,6 +42,7 @@ from p2p.abc import CommandAPI
 from p2p.service import BaseService
 
 from p2p.exceptions import (
+    ConnectionBusy,
     NoEligiblePeers,
     NoIdlePeers,
 )
@@ -49,7 +50,6 @@ from p2p.peer import BasePeer, PeerSubscriber
 
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.exceptions import (
-    AlreadyWaiting,
     SyncRequestAlreadyProcessed,
 )
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
@@ -187,7 +187,7 @@ class StateDownloader(BaseService, PeerSubscriber):
                 err,
             )
             node_data = tuple()
-        except AlreadyWaiting as err:
+        except ConnectionBusy as err:
             self.logger.warning(
                 "Already waiting for a NodeData response from %s", peer,
             )

@@ -37,7 +37,7 @@ from trinity.protocol.common.peer_pool_event_bus import (
     BaseProxyPeerPool,
     PeerPoolEventServer,
 )
-from trinity.protocol.common.types import (
+from trinity.protocol.common.typing import (
     BlockBodyBundles,
     NodeDataBundles,
     ReceiptsBundles,

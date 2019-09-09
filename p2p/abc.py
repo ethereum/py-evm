@@ -28,7 +28,7 @@ from eth_utils import ExtendedDebugLogger
 
 from eth_keys import keys
 
-from p2p.typing import Capability, Capabilities, Payload, Structure
+from p2p.typing import Capability, Capabilities, Payload, Structure, TRequestPayload
 from p2p.transport_state import TransportState
 
 if TYPE_CHECKING:
@@ -174,10 +174,6 @@ class CommandAPI(ABC):
     @abstractmethod
     def compress_payload(self, raw_payload: bytes) -> bytes:
         ...
-
-
-# A payload to be delivered with a request
-TRequestPayload = TypeVar('TRequestPayload', bound=Payload, covariant=True)
 
 
 class RequestAPI(ABC, Generic[TRequestPayload]):
@@ -366,6 +362,11 @@ class AsyncioServiceAPI(ABC):
     @property
     @abstractmethod
     def is_running(self) -> bool:
+        ...
+
+    @property
+    @abstractmethod
+    def is_operational(self) -> bool:
         ...
 
     @abstractmethod

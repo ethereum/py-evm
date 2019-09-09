@@ -1,31 +1,20 @@
-from abc import ABC, abstractmethod
-from typing import (
-    Any,
-    Generic,
-    Optional,
-    TypeVar,
-)
+from abc import abstractmethod
+from typing import Optional
 
 from eth_utils import get_extended_debug_logger
-
-from p2p.abc import RequestAPI
 
 from p2p.stats.ema import EMA
 from p2p.stats.percentile import Percentile
 from p2p.stats.stddev import StandardDeviation
 
+from .abc import PerformanceTrackerAPI
 from .constants import ROUND_TRIP_TIMEOUT
-from .types import (
-    TResult,
-)
-
-TRequest = TypeVar('TRequest', bound=RequestAPI[Any])
+from .typing import TRequest, TResult
 
 
-class BasePerformance(ABC):
-    """
-    The statistics of how a command is performing.
-    """
+class BasePerformanceTracker(PerformanceTrackerAPI[TRequest, TResult]):
+    logger = get_extended_debug_logger('trinity.protocol.common.trackers.PerformanceTracker')
+
     def __init__(self) -> None:
         self.total_msgs = 0
         self.total_items = 0
@@ -76,13 +65,6 @@ class BasePerformance(ABC):
             f"ips={self.items_per_second_ema.value:.5f}  "
             f"timeouts={self.total_timeouts}  quality={int(self.response_quality_ema.value)}"
         )
-
-
-class BasePerformanceTracker(BasePerformance, Generic[TRequest, TResult]):
-    logger = get_extended_debug_logger('trinity.protocol.common.trackers.PerformanceTracker')
-
-    def __init__(self) -> None:
-        super().__init__()
 
     @abstractmethod
     def _get_request_size(self, request: TRequest) -> Optional[int]:

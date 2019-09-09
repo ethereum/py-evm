@@ -1,51 +1,18 @@
-from abc import ABC, abstractmethod
 from functools import partial
 from typing import (
-    Any,
     Callable,
-    Generic,
     Type,
 )
 
-from p2p.abc import CommandAPI, RequestAPI, TRequestPayload
+from p2p.abc import CommandAPI, RequestAPI
+from p2p.typing import TRequestPayload, TResponsePayload
 
-from trinity._utils.decorators import classproperty
-from .trackers import (
-    BasePerformanceTracker,
-)
-from .managers import (
-    ExchangeManager,
-)
-from .normalizers import BaseNormalizer
-from .types import (
-    TResponsePayload,
-    TResult,
-)
-from .validators import BaseValidator
+from .abc import ExchangeAPI, NormalizerAPI, ValidatorAPI
+from .managers import ExchangeManager
+from .typing import TResult
 
 
-class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
-    """
-    The exchange object handles a few things, in rough order:
-
-     - convert from friendly input arguments to the protocol arguments
-     - generate the appropriate BaseRequest object
-     - identify the BaseNormalizer that can convert the response payload to the desired result
-     - prepare the BaseValidator that can validate the final result against the requested data
-     - (if necessary) prepare a response payload validator, which validates data that is *not*
-        present in the final result
-     - issue the request to the ExchangeManager, with the request, normalizer, and validators
-     - await the normalized & validated response, and return it
-
-    TRequestPayload is the data as passed directly to the p2p command
-    TResponsePayload is the data as received directly from the p2p command response
-    TResult is the response data after normalization
-    """
-
-    request_class: Type[RequestAPI[TRequestPayload]]
-    tracker_class: Type[BasePerformanceTracker[Any, TResult]]
-    tracker: BasePerformanceTracker[RequestAPI[TRequestPayload], TResult]
-
+class BaseExchange(ExchangeAPI[TRequestPayload, TResponsePayload, TResult]):
     def __init__(self, mgr: ExchangeManager[TRequestPayload, TResponsePayload, TResult]) -> None:
         self._manager = mgr
         self.tracker = self.tracker_class()
@@ -53,8 +20,8 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
     async def get_result(
             self,
             request: RequestAPI[TRequestPayload],
-            normalizer: BaseNormalizer[TResponsePayload, TResult],
-            result_validator: BaseValidator[TResult],
+            normalizer: NormalizerAPI[TResponsePayload, TResult],
+            result_validator: ValidatorAPI[TResult],
             payload_validator: Callable[[TRequestPayload, TResponsePayload], None],
             timeout: float = None) -> TResult:
         """
@@ -79,20 +46,13 @@ class BaseExchange(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
             timeout,
         )
 
-    @classproperty
-    def response_cmd_type(cls) -> Type[CommandAPI]:
+    @classmethod
+    def get_response_cmd_type(cls) -> Type[CommandAPI]:
         return cls.request_class.response_type
 
-    @classproperty
-    def request_cmd_type(cls) -> Type[CommandAPI]:
+    @classmethod
+    def get_request_cmd_type(cls) -> Type[CommandAPI]:
         return cls.request_class.cmd_type
-
-    @abstractmethod
-    async def __call__(self, *args: Any, **kwargs: Any) -> None:
-        """
-        Issue the request to the peer for the desired data
-        """
-        ...
 
     @property
     def is_requesting(self) -> bool:

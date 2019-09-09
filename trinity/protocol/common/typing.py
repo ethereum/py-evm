@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Dict,
     Tuple,
     TypeVar,
@@ -8,17 +9,17 @@ from eth.abc import BlockAPI, ReceiptAPI
 from eth_typing import (
     Hash32,
 )
+
+from p2p.abc import RequestAPI
 from p2p.peer import BasePeer
-from p2p.protocol import Payload
+
+
+TRequest = TypeVar('TRequest', bound=RequestAPI[Any])
+TResponse = TypeVar('TResponse')
+TResult = TypeVar('TResult')
 
 
 TPeer = TypeVar('TPeer', bound=BasePeer)
-
-# A payload delivered by a responding command
-TResponsePayload = TypeVar('TResponsePayload', bound=Payload)
-
-# The returned value at the end of an exchange
-TResult = TypeVar('TResult')
 
 # (
 #   (node_hash, node),

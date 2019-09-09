@@ -1,7 +1,7 @@
 from typing import (
     Callable,
-    Generic,
     Type,
+    TypeVar,
 )
 
 from eth_utils import (
@@ -13,22 +13,24 @@ from p2p.abc import (
     ConnectionAPI,
     ProtocolAPI,
     RequestAPI,
-    TRequestPayload,
 )
 from p2p.exceptions import PeerConnectionLost
-from p2p.service import BaseService
+from p2p.typing import TRequestPayload, TResponsePayload
 
-from .candidate_stream import ResponseCandidateStream
-from .normalizers import BaseNormalizer
-from .trackers import BasePerformanceTracker
-from .types import (
-    TResponsePayload,
-    TResult,
+from .abc import (
+    ExchangeManagerAPI,
+    NormalizerAPI,
+    PerformanceTrackerAPI,
+    ResponseCandidateStreamAPI,
 )
+from .candidate_stream import ResponseCandidateStream
 
 
-class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
-    _response_stream: ResponseCandidateStream[TRequestPayload, TResponsePayload] = None
+TResult = TypeVar('TResult')
+
+
+class ExchangeManager(ExchangeManagerAPI[TRequestPayload, TResponsePayload, TResult]):
+    _response_stream: ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload] = None
 
     def __init__(
             self,
@@ -60,10 +62,10 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
     async def get_result(
             self,
             request: RequestAPI[TRequestPayload],
-            normalizer: BaseNormalizer[TResponsePayload, TResult],
+            normalizer: NormalizerAPI[TResponsePayload, TResult],
             validate_result: Callable[[TResult], None],
             payload_validator: Callable[[TResponsePayload], None],
-            tracker: BasePerformanceTracker[RequestAPI[TRequestPayload], TResult],
+            tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], TResult],
             timeout: float = None) -> TResult:
 
         if not self.is_operational:
@@ -83,7 +85,8 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
                 payload_validator(payload)
 
                 if normalizer.is_normalization_slow:
-                    result = await stream._run_in_executor(
+                    # We don't expose the `_run_in_executor` API as part of the formal service ABC
+                    result = await stream._run_in_executor(  # type: ignore
                         None,
                         normalizer.normalize_result,
                         payload
@@ -95,7 +98,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
             except ValidationError as err:
                 self.service.logger.debug(
                     "Response validation failed for pending %s request from connection %s: %s",
-                    stream.response_msg_name,
+                    stream.response_cmd_name,
                     self._connection,
                     err,
                 )
@@ -114,7 +117,7 @@ class ExchangeManager(Generic[TRequestPayload, TResponsePayload, TResult]):
         raise PeerConnectionLost(f"Response stream of {self._connection} was apparently closed")
 
     @property
-    def service(self) -> BaseService:
+    def service(self) -> ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload]:
         """
         This service that needs to be running for calls to execute properly
         """

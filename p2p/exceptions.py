@@ -24,6 +24,14 @@ class PeerConnectionLost(BaseP2PError):
     pass
 
 
+class ConnectionBusy(BaseP2PError):
+    """
+    Raised when an attempt is made to wait for a certain message type from a
+    peer when there is already an active wait for that message type.
+    """
+    pass
+
+
 class IneligiblePeer(BaseP2PError):
     """
     Raised when a peer is not a valid connection candidate.
