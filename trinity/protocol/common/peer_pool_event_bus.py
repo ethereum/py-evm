@@ -159,6 +159,10 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
     async def handle_stream(self,
                             event_type: Type[TEvent],
                             event_handler_fn: Callable[[TEvent], Any]) -> None:
+        """
+        Event handlers must not raise exceptions, they should all be handled internally,
+        because there is no obvious place to forward the exception.
+        """
 
         async for event in self.wait_iter(self.event_bus.stream(event_type)):
             try:
@@ -173,6 +177,9 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
             self,
             event_type: Type[TRequest],
             event_handler_fn: Callable[[TRequest], Any]) -> None:
+        """
+        Handlers may raise exceptions, which will be wrapped and sent in response.
+        """
 
         async for event in self.wait_iter(self.event_bus.stream(event_type)):
             try:
