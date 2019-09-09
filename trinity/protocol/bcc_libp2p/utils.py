@@ -18,7 +18,6 @@ from libp2p.network.stream.net_stream_interface import (
 from libp2p.peer.id import (
     ID,
 )
-from libp2p.stream_muxer.mplex.exceptions import MplexStreamEOF, MplexStreamReset
 from libp2p.utils import (
     decode_uvarint_from_stream,
     encode_uvarint,
@@ -89,11 +88,8 @@ async def write_req(
         msg_bytes = _serialize_ssz_msg(msg)
     except ssz.SerializationError as error:
         raise WriteMessageFailure(f"failed to serialize msg={msg}") from error
-
-    try:
-        await stream.write(msg_bytes)
-    except (MplexStreamEOF, MplexStreamReset) as error:
-        raise WriteMessageFailure("unable to write to stream") from error
+    # TODO: Handle exceptions from stream?
+    await stream.write(msg_bytes)
 
 
 async def read_resp(
@@ -111,9 +107,6 @@ async def read_resp(
     # TODO: Catch more errors?
     except asyncio.TimeoutError as error:
         raise ReadMessageFailure("failed to read `result_bytes`") from error
-    except (MplexStreamEOF, MplexStreamReset) as error:
-        raise ReadMessageFailure("unable to read from stream") from error
-
     if len(result_bytes) != 1:
         raise ReadMessageFailure(
             f"result bytes should be of length 1: result_bytes={result_bytes}"
@@ -170,10 +163,8 @@ async def write_resp(
             )
     # TODO: Optimization: probably the first byte should be written
     #   at the beginning of this function, to meet the limitation of `TTFB_TIMEOUT`.
-    try:
-        await stream.write(resp_code_byte + msg_bytes)
-    except (MplexStreamEOF, MplexStreamReset) as error:
-        raise WriteMessageFailure("unable to write to stream") from error
+    # TODO: Handle exceptions from stream?
+    await stream.write(resp_code_byte + msg_bytes)
 
 
 async def _read_varint_prefixed_bytes(
@@ -185,9 +176,6 @@ async def _read_varint_prefixed_bytes(
     # TODO: Catch more errors?
     except asyncio.TimeoutError as error:
         raise ReadMessageFailure("failed to read the length of the payload") from error
-    except (MplexStreamEOF, MplexStreamReset) as error:
-        raise ReadMessageFailure("unable to read from stream") from error
-
     if len_payload > REQ_RESP_MAX_SIZE:
         raise ReadMessageFailure(
             f"size_of_payload={len_payload} is larger than maximum={REQ_RESP_MAX_SIZE}"
@@ -197,9 +185,6 @@ async def _read_varint_prefixed_bytes(
     # TODO: Catch more errors?
     except asyncio.TimeoutError as error:
         raise ReadMessageFailure("failed to read the payload") from error
-    except (MplexStreamEOF, MplexStreamReset) as error:
-        raise ReadMessageFailure("unable to read from stream") from error
-
     if len(payload) != len_payload:
         raise ReadMessageFailure(f"expected {len_payload} bytes, but only read {len(payload)}")
     return payload

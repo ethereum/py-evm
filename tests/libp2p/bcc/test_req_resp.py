@@ -83,7 +83,7 @@ async def test_goodbye():
     async with ConnectionPairFactory() as (alice, bob):
         await alice.say_goodbye(bob.peer_id, GoodbyeReasonCode.FAULT_OR_ERROR)
         await asyncio.sleep(0.01)
-        assert bob.peer_id in alice.handshaked_peers
+        assert bob.peer_id not in alice.handshaked_peers
         assert alice.peer_id not in bob.handshaked_peers
 
 
