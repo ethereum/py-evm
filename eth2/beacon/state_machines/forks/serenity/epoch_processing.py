@@ -266,6 +266,8 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
 
+    state = state.copy(previous_crosslinks=state.current_crosslinks)
+
     new_current_crosslinks = state.current_crosslinks
 
     for epoch in (previous_epoch, current_epoch):
@@ -296,14 +298,14 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
                 state, attesting_indices, crosslink_committee
             )
             if threshold_met:
-                new_current_crosslinks = update_tuple_item(
-                    new_current_crosslinks, shard, winning_crosslink
+                state = state.copy(
+                    current_crosslinks=update_tuple_item(
+                        new_current_crosslinks, shard, winning_crosslink
+                    )
                 )
+                new_current_crosslinks = state.current_crosslinks
 
-    return state.copy(
-        previous_crosslinks=state.current_crosslinks,
-        current_crosslinks=new_current_crosslinks,
-    )
+    return state
 
 
 def get_attestation_deltas(
