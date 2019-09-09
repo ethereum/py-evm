@@ -575,12 +575,11 @@ class Node(BaseService):
                 await stream.reset()
             elif isinstance(error, MplexStreamEOF):
                 await stream.close()
-        finally:
-            if has_error:
-                return
+
         self.logger.debug("Received the goodbye message %s", goodbye)
 
-        await stream.close()
+        if not has_error:
+            await stream.close()
         await self.disconnect_peer(peer_id)
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
