@@ -71,9 +71,9 @@ class HTTPServer(BaseService):
         self.rpc = rpc
         self.host = host
         self.port = port
+        self.server = web.Server(handler(self.rpc.execute))
 
     async def _run(self) -> None:
-        self.server = web.Server(handler(self.rpc.execute))
         runner = web.ServerRunner(self.server)
         await runner.setup()
         site = web.TCPSite(runner, self.host, self.port)

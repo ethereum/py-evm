@@ -110,7 +110,6 @@ class RPCServer:
         """
         try:
             validate_request(request)
-            logging.debug(f'request: {request}')
 
             if request.get('jsonrpc', None) != '2.0':
                 raise NotImplementedError("Only the 2.0 jsonrpc protocol is supported")
@@ -118,11 +117,9 @@ class RPCServer:
             method = self._lookup_method(request['method'])
             params = request.get('params', [])
 
-            # TODO: Beacon chain doesn't support retry now
-            if not isinstance(self.chain, BaseAsyncBeaconChainDB):
-                result = await execute_with_retries(
-                    self.event_bus, method, params, self.chain,
-                )
+            result = await execute_with_retries(
+                self.event_bus, method, params, self.chain,
+            )
 
             if request['method'] == 'evm_resetToGenesisFixture':
                 result = True

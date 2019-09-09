@@ -70,6 +70,7 @@ deps = {
     # See: https://github.com/ethereum/trinity/pull/790
     'test-asyncio': [
         "pytest-asyncio>=0.10.0,<0.11",
+        "pytest-aiohttp==0.3.0",
     ],
     'test-trio': [
         'pytest-trio==0.5.2',
