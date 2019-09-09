@@ -1,6 +1,5 @@
 from typing import Dict, Iterable, Optional, Sequence, Tuple, Type, Union
 
-from eth_typing import Hash32
 from eth_utils import to_tuple
 from eth_utils.toolz import curry, first, mapcat, merge, merge_with, second, valmap
 
@@ -14,7 +13,7 @@ from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import Gwei, Slot, ValidatorIndex
+from eth2.beacon.typing import Gwei, SigningRoot, Slot, ValidatorIndex
 from eth2.configs import CommitteeConfig, Eth2Config
 
 # TODO(ralexstokes) integrate `AttestationPool` once it has been merged
@@ -115,7 +114,7 @@ class Store:
         """
         return self._attestation_index.get(index, None)
 
-    def _get_block_by_root(self, root: Hash32) -> BaseBeaconBlock:
+    def _get_block_by_root(self, root: SigningRoot) -> BaseBeaconBlock:
         return self._db.get_block_by_root(root, self._block_class)
 
     def get_latest_attestation_target(

@@ -10,14 +10,6 @@ from ssz.sedes import (
     uint64,
 )
 
-from eth_typing import (
-    Hash32,
-)
-
-from eth.constants import (
-    ZERO_HASH32,
-)
-
 from eth2.beacon.typing import (
     Version,
     default_epoch,
@@ -25,6 +17,11 @@ from eth2.beacon.typing import (
     default_version,
 )
 from eth2.beacon.types.blocks import BeaconBlock
+from eth2.beacon.typing import SigningRoot, HashTreeRoot, Slot, Epoch
+from eth2.beacon.constants import (
+    ZERO_HASH_TREE_ROOT,
+    ZERO_SIGNING_ROOT,
+)
 
 
 class HelloRequest(ssz.Serializable):
@@ -39,10 +36,10 @@ class HelloRequest(ssz.Serializable):
     def __init__(
         self,
         fork_version: Version = default_version,
-        finalized_root: Hash32 = ZERO_HASH32,
-        finalized_epoch: int = default_epoch,
-        head_root: Hash32 = ZERO_HASH32,
-        head_slot: int = default_slot,
+        finalized_root: SigningRoot = ZERO_SIGNING_ROOT,
+        finalized_epoch: Epoch = default_epoch,
+        head_root: HashTreeRoot = ZERO_HASH_TREE_ROOT,
+        head_slot: Slot = default_slot,
     ) -> None:
         super().__init__(
             fork_version,
@@ -72,8 +69,8 @@ class BeaconBlocksRequest(ssz.Serializable):
 
     def __init__(
         self,
-        head_block_root: bytes,
-        start_slot: int,
+        head_block_root: HashTreeRoot,
+        start_slot: Slot,
         count: int,
         step: int,
     ) -> None:
@@ -99,7 +96,7 @@ class RecentBeaconBlocksRequest(ssz.Serializable):
         ('block_roots', List(bytes32, 1)),
     ]
 
-    def __init__(self, block_roots: Sequence[Hash32]) -> None:
+    def __init__(self, block_roots: Sequence[HashTreeRoot]) -> None:
         super().__init__(block_roots)
 
 

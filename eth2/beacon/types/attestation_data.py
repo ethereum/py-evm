@@ -1,11 +1,11 @@
-from eth.constants import ZERO_HASH32
-from eth_typing import Hash32
 from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import bytes32
 
+from eth2.beacon.constants import ZERO_SIGNING_ROOT
 from eth2.beacon.types.checkpoints import Checkpoint, default_checkpoint
 from eth2.beacon.types.crosslinks import Crosslink, default_crosslink
+from eth2.beacon.typing import SigningRoot
 
 
 class AttestationData(ssz.Serializable):
@@ -22,7 +22,7 @@ class AttestationData(ssz.Serializable):
 
     def __init__(
         self,
-        beacon_block_root: Hash32 = ZERO_HASH32,
+        beacon_block_root: SigningRoot = ZERO_SIGNING_ROOT,
         source: Checkpoint = default_checkpoint,
         target: Checkpoint = default_checkpoint,
         crosslink: Crosslink = default_crosslink,

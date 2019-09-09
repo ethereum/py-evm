@@ -4,8 +4,8 @@ from eth_utils import encode_hex
 import ssz
 from ssz.sedes import bytes32, bytes96, uint64
 
-from eth2.beacon.constants import EMPTY_SIGNATURE
-from eth2.beacon.typing import Slot
+from eth2.beacon.constants import EMPTY_SIGNATURE, ZERO_SIGNING_ROOT
+from eth2.beacon.typing import SigningRoot, Slot
 
 from .defaults import default_slot
 
@@ -24,7 +24,7 @@ class BeaconBlockHeader(ssz.SignedSerializable):
         self,
         *,
         slot: Slot = default_slot,
-        parent_root: Hash32 = ZERO_HASH32,
+        parent_root: SigningRoot = ZERO_SIGNING_ROOT,
         state_root: Hash32 = ZERO_HASH32,
         body_root: Hash32 = ZERO_HASH32,
         signature: BLSSignature = EMPTY_SIGNATURE,

@@ -13,13 +13,8 @@ from cancel_token import (
     CancelToken,
 )
 
-from eth_typing import (
-    Hash32,
-)
-
 from eth_utils import ValidationError, to_tuple
 
-from eth.constants import ZERO_HASH32
 from eth.exceptions import (
     BlockNotFound,
 )
@@ -39,6 +34,10 @@ from eth2.beacon.types.blocks import (
 from eth2.beacon.typing import (
     Epoch,
     Slot,
+    HashTreeRoot,
+)
+from eth2.beacon.constants import (
+    ZERO_SIGNING_ROOT,
 )
 
 from libp2p import (
@@ -345,7 +344,7 @@ class Node(BaseService):
         # Edge case where nothing is finalized yet
         if (
             hello_other_side.finalized_epoch == 0 and
-            hello_other_side.finalized_root == ZERO_HASH32
+            hello_other_side.finalized_root == ZERO_SIGNING_ROOT
         ):
             return
 
@@ -726,7 +725,7 @@ class Node(BaseService):
 
     async def request_beacon_blocks(self,
                                     peer_id: ID,
-                                    head_block_root: Hash32,
+                                    head_block_root: HashTreeRoot,
                                     start_slot: Slot,
                                     count: int,
                                     step: int) -> Tuple[BaseBeaconBlock, ...]:
@@ -842,7 +841,7 @@ class Node(BaseService):
     async def request_recent_beacon_blocks(
             self,
             peer_id: ID,
-            block_roots: Sequence[Hash32]) -> Tuple[BaseBeaconBlock, ...]:
+            block_roots: Sequence[HashTreeRoot]) -> Tuple[BaseBeaconBlock, ...]:
         # TODO: Handle `stream.close` and `stream.reset`
         if peer_id not in self.handshaked_peers:
             error_msg = f"not handshaked with peer={peer_id} yet"

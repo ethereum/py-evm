@@ -1,9 +1,8 @@
 from typing import Dict, Generic, Iterator, Tuple, TypeVar
 
-from eth_typing import Hash32
 from typing_extensions import Protocol
 
-HashTreeRoot = Hash32
+from eth2.beacon.typing import HashTreeRoot
 
 
 class Operation(Protocol):

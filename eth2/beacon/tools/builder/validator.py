@@ -16,6 +16,7 @@ from eth2.beacon.committee_helpers import (
     get_shard_delta,
     get_start_shard,
 )
+from eth2.beacon.constants import ZERO_SIGNING_ROOT
 from eth2.beacon.helpers import (
     compute_domain,
     compute_epoch_of_slot,
@@ -47,6 +48,7 @@ from eth2.beacon.typing import (
     Epoch,
     Gwei,
     Shard,
+    SigningRoot,
     Slot,
     ValidatorIndex,
     default_bitfield,
@@ -59,7 +61,7 @@ from eth2.configs import CommitteeConfig, Eth2Config
 # TODO(ralexstokes) merge w/ below
 def _mk_pending_attestation(
     bitfield: Bitfield = default_bitfield,
-    target_root: Hash32 = ZERO_HASH32,
+    target_root: SigningRoot = ZERO_SIGNING_ROOT,
     target_epoch: Epoch = default_epoch,
     shard: Shard = default_shard,
     start_epoch: Epoch = default_epoch,
@@ -86,7 +88,7 @@ def mk_pending_attestation_from_committee(
     committee_size: int,
     shard: Shard,
     target_epoch: Epoch = default_epoch,
-    target_root: Hash32 = ZERO_HASH32,
+    target_root: SigningRoot = ZERO_SIGNING_ROOT,
     data_root: Hash32 = ZERO_HASH32,
 ) -> PendingAttestation:
     bitfield = get_empty_bitfield(committee_size)
@@ -240,7 +242,7 @@ def sign_transaction(
     return bls.sign(message_hash=message_hash, privkey=privkey, domain=domain)
 
 
-SAMPLE_HASH_1 = Hash32(b"\x11" * 32)
+SAMPLE_HASH_1 = SigningRoot(Hash32(b"\x11" * 32))
 SAMPLE_HASH_2 = Hash32(b"\x22" * 32)
 
 
@@ -249,7 +251,7 @@ def create_block_header_with_signature(
     body_root: Hash32,
     privkey: int,
     slots_per_epoch: int,
-    parent_root: Hash32 = SAMPLE_HASH_1,
+    parent_root: SigningRoot = SAMPLE_HASH_1,
     state_root: Hash32 = SAMPLE_HASH_2,
 ) -> BeaconBlockHeader:
     block_header = BeaconBlockHeader(
@@ -443,8 +445,8 @@ def create_mock_attester_slashing_is_surround_vote(
 # Attestation
 #
 def _get_target_root(
-    state: BeaconState, config: Eth2Config, beacon_block_root: Hash32
-) -> Hash32:
+    state: BeaconState, config: Eth2Config, beacon_block_root: SigningRoot
+) -> SigningRoot:
 
     epoch = compute_epoch_of_slot(state.slot, config.SLOTS_PER_EPOCH)
     epoch_start_slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
@@ -579,7 +581,7 @@ def create_signed_attestation_at_slot(
     config: Eth2Config,
     state_machine: BaseBeaconStateMachine,
     attestation_slot: Slot,
-    beacon_block_root: Hash32,
+    beacon_block_root: SigningRoot,
     validator_privkeys: Dict[ValidatorIndex, int],
     committee: Tuple[ValidatorIndex, ...],
     shard: Shard,
@@ -631,7 +633,7 @@ def create_mock_signed_attestations_at_slot(
     config: Eth2Config,
     state_machine: BaseBeaconStateMachine,
     attestation_slot: Slot,
-    beacon_block_root: Hash32,
+    beacon_block_root: SigningRoot,
     keymap: Dict[BLSPubkey, int],
     voted_attesters_ratio: float = 1.0,
 ) -> Iterable[Attestation]:

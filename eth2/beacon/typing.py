@@ -1,5 +1,7 @@
 from typing import NamedTuple, NewType, Tuple
 
+from eth_typing import Hash32
+
 Slot = NewType("Slot", int)  # uint64
 Epoch = NewType("Epoch", int)  # uint64
 Shard = NewType("Shard", int)  # uint64
@@ -20,6 +22,12 @@ Second = NewType("Second", int)
 Version = NewType("Version", bytes)
 
 DomainType = NewType("DomainType", bytes)  # bytes of length 4
+
+# Use HashTreeRoot and SigningRoot for Merkle tree root of SignedSerializable
+# Merkle tree root with signature field included
+HashTreeRoot = NewType("HashTreeRoot", Hash32)
+# Merkle tree root with signature field excluded
+SigningRoot = NewType("SigningRoot", Hash32)
 
 
 class FromBlockParams(NamedTuple):

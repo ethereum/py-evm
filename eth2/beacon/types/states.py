@@ -7,13 +7,14 @@ import ssz
 from ssz.sedes import Bitvector, List, Vector, bytes32, uint64
 
 from eth2._utils.tuple import update_tuple_item, update_tuple_item_with_fn
-from eth2.beacon.constants import JUSTIFICATION_BITS_LENGTH
+from eth2.beacon.constants import JUSTIFICATION_BITS_LENGTH, ZERO_SIGNING_ROOT
 from eth2.beacon.helpers import compute_epoch_of_slot
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
     Gwei,
     Shard,
+    SigningRoot,
     Slot,
     Timestamp,
     ValidatorIndex,
@@ -94,7 +95,7 @@ class BeaconState(ssz.Serializable):
         slot: Slot = default_slot,
         fork: Fork = default_fork,
         latest_block_header: BeaconBlockHeader = default_beacon_block_header,
-        block_roots: Sequence[Hash32] = default_tuple,
+        block_roots: Sequence[SigningRoot] = default_tuple,
         state_roots: Sequence[Hash32] = default_tuple,
         historical_roots: Sequence[Hash32] = default_tuple,
         eth1_data: Eth1Data = default_eth1_data,
@@ -131,7 +132,7 @@ class BeaconState(ssz.Serializable):
             # try to provide sane defaults
             if block_roots == default_tuple:
                 block_roots = default_tuple_of_size(
-                    config.SLOTS_PER_HISTORICAL_ROOT, ZERO_HASH32
+                    config.SLOTS_PER_HISTORICAL_ROOT, ZERO_SIGNING_ROOT
                 )
             if state_roots == default_tuple:
                 state_roots = default_tuple_of_size(

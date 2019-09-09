@@ -30,6 +30,7 @@ from lahja import (
     BroadcastConfig,
     EndpointAPI,
 )
+from eth2.beacon.typing import SigningRoot
 
 import ssz
 
@@ -143,7 +144,7 @@ class BCCRequestServer(BaseIsolatedRequestServer):
                 # TODO: pass accurate `block_class: Type[BaseBeaconBlock]` under
                 # per BeaconStateMachine fork
                 start_block = await self.db.coro_get_block_by_root(
-                    Hash32(block_slot_or_root),
+                    SigningRoot(block_slot_or_root),
                     BeaconBlock,
                 )
             else:
@@ -492,7 +493,7 @@ class BCCReceiveServer(BaseReceiveServer):
 
         imported_roots.append(parent_root)
         while len(imported_roots) != 0:
-            current_parent_root = imported_roots.pop()
+            current_parent_root = SigningRoot(imported_roots.pop())
             # Only process the children if the `current_parent_root` is already in db.
             if not self._is_block_root_in_db(block_root=current_parent_root):
                 continue
@@ -545,17 +546,17 @@ class BCCReceiveServer(BaseReceiveServer):
             self.logger.debug(bold_red("Send block=%s to peer=%s"), block, peer)
             peer.sub_proto.send_new_block(block=block)
 
-    def _is_block_root_in_orphan_block_pool(self, block_root: Hash32) -> bool:
+    def _is_block_root_in_orphan_block_pool(self, block_root: SigningRoot) -> bool:
         return block_root in self.orphan_block_pool
 
-    def _is_block_root_in_db(self, block_root: Hash32) -> bool:
+    def _is_block_root_in_db(self, block_root: SigningRoot) -> bool:
         try:
             self.chain.get_block_by_root(block_root=block_root)
             return True
         except BlockNotFound:
             return False
 
-    def _is_block_root_seen(self, block_root: Hash32) -> bool:
+    def _is_block_root_seen(self, block_root: SigningRoot) -> bool:
         if self._is_block_root_in_orphan_block_pool(block_root=block_root):
             return True
         return self._is_block_root_in_db(block_root=block_root)

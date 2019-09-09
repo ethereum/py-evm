@@ -8,8 +8,12 @@ from eth_utils import encode_hex
 import ssz
 from ssz.sedes import List, bytes32, bytes96, uint64
 
-from eth2.beacon.constants import EMPTY_SIGNATURE, GENESIS_PARENT_ROOT
-from eth2.beacon.typing import FromBlockParams, Slot
+from eth2.beacon.constants import (
+    EMPTY_SIGNATURE,
+    GENESIS_PARENT_ROOT,
+    ZERO_SIGNING_ROOT,
+)
+from eth2.beacon.typing import FromBlockParams, SigningRoot, Slot
 
 from .attestations import Attestation
 from .attester_slashings import AttesterSlashing
@@ -85,7 +89,7 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
         self,
         *,
         slot: Slot = default_slot,
-        parent_root: Hash32 = ZERO_HASH32,
+        parent_root: SigningRoot = ZERO_SIGNING_ROOT,
         state_root: Hash32 = ZERO_HASH32,
         body: BeaconBlockBody = default_beacon_block_body,
         signature: BLSSignature = EMPTY_SIGNATURE,
@@ -124,7 +128,9 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
 
     @classmethod
     @abstractmethod
-    def from_root(cls, root: Hash32, chaindb: "BaseBeaconChainDB") -> "BaseBeaconBlock":
+    def from_root(
+        cls, root: SigningRoot, chaindb: "BaseBeaconChainDB"
+    ) -> "BaseBeaconBlock":
         """
         Return the block denoted by the given block root.
         """
@@ -135,7 +141,9 @@ class BeaconBlock(BaseBeaconBlock):
     block_body_class = BeaconBlockBody
 
     @classmethod
-    def from_root(cls, root: Hash32, chaindb: "BaseBeaconChainDB") -> "BeaconBlock":
+    def from_root(
+        cls, root: SigningRoot, chaindb: "BaseBeaconChainDB"
+    ) -> "BeaconBlock":
         """
         Return the block denoted by the given block ``root``.
         """

@@ -17,6 +17,7 @@ from eth2.beacon.types.blocks import (
 )
 
 from trinity._utils.async_dispatch import async_method
+from eth2.beacon.typing import SigningRoot, HashTreeRoot
 
 
 class BaseAsyncBeaconChainDB(BeaconChainDB):
@@ -38,11 +39,11 @@ class BaseAsyncBeaconChainDB(BeaconChainDB):
     #
 
     @abstractmethod
-    async def coro_get_canonical_block_root(self, slot: int) -> Hash32:
+    async def coro_get_canonical_block_root(self, slot: int) -> SigningRoot:
         ...
 
     @abstractmethod
-    async def coro_get_genesis_block_root(self) -> Hash32:
+    async def coro_get_genesis_block_root(self) -> SigningRoot:
         ...
 
     @abstractmethod
@@ -57,7 +58,7 @@ class BaseAsyncBeaconChainDB(BeaconChainDB):
         ...
 
     @abstractmethod
-    async def coro_get_canonical_head_root(self)-> Hash32:
+    async def coro_get_canonical_head_root(self)-> SigningRoot:
         ...
 
     @abstractmethod
@@ -66,16 +67,16 @@ class BaseAsyncBeaconChainDB(BeaconChainDB):
 
     @abstractmethod
     async def coro_get_block_by_root(self,
-                                     block_root: Hash32,
+                                     block_root: SigningRoot,
                                      block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
         ...
 
     @abstractmethod
-    async def coro_get_score(self, block_root: Hash32) -> int:
+    async def coro_get_score(self, block_root: SigningRoot) -> int:
         ...
 
     @abstractmethod
-    async def coro_block_exists(self, block_root: Hash32) -> bool:
+    async def coro_block_exists(self, block_root: SigningRoot) -> bool:
         ...
 
     @abstractmethod
@@ -103,11 +104,13 @@ class BaseAsyncBeaconChainDB(BeaconChainDB):
     # Attestation API
     #
     @abstractmethod
-    async def coro_get_attestation_key_by_root(self, attestation_root: Hash32)-> Tuple[Hash32, int]:
+    async def coro_get_attestation_key_by_root(
+        self, attestation_root: HashTreeRoot
+    )-> Tuple[SigningRoot, int]:
         ...
 
     @abstractmethod
-    async def coro_attestation_exists(self, attestation_root: Hash32) -> bool:
+    async def coro_attestation_exists(self, attestation_root: HashTreeRoot) -> bool:
         ...
 
     #

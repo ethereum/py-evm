@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from eth_typing import Hash32
+from eth2.beacon.constants import HashTreeRoot, SigningRoot
 
 
 class BaseSchema(ABC):
@@ -27,7 +27,7 @@ class BaseSchema(ABC):
 
     @staticmethod
     @abstractmethod
-    def make_block_root_to_slot_lookup_key(block_root: Hash32) -> bytes:
+    def make_block_root_to_slot_lookup_key(block_root: SigningRoot) -> bytes:
         ...
 
     @staticmethod
@@ -37,7 +37,7 @@ class BaseSchema(ABC):
 
     @staticmethod
     @abstractmethod
-    def make_block_root_to_score_lookup_key(block_root: Hash32) -> bytes:
+    def make_block_root_to_score_lookup_key(block_root: SigningRoot) -> bytes:
         ...
 
     @staticmethod
@@ -55,7 +55,9 @@ class BaseSchema(ABC):
     #
     @staticmethod
     @abstractmethod
-    def make_attestation_root_to_block_lookup_key(attestaton_root: Hash32) -> bytes:
+    def make_attestation_root_to_block_lookup_key(
+        attestaton_root: HashTreeRoot
+    ) -> bytes:
         ...
 
 
@@ -92,16 +94,18 @@ class SchemaV1(BaseSchema):
         return slot_to_root_key
 
     @staticmethod
-    def make_block_root_to_score_lookup_key(block_root: Hash32) -> bytes:
+    def make_block_root_to_score_lookup_key(block_root: SigningRoot) -> bytes:
         return b"v1:beacon:block-root-to-score:%s" % block_root
 
     @staticmethod
-    def make_block_root_to_slot_lookup_key(block_root: Hash32) -> bytes:
+    def make_block_root_to_slot_lookup_key(block_root: SigningRoot) -> bytes:
         return b"v1:beacon:block-root-to-slot:%s" % block_root
 
     #
     # Attestaion
     #
     @staticmethod
-    def make_attestation_root_to_block_lookup_key(attestaton_root: Hash32) -> bytes:
+    def make_attestation_root_to_block_lookup_key(
+        attestaton_root: HashTreeRoot
+    ) -> bytes:
         return b"v1:beacon:attestation-root-to-block:%s" % attestaton_root

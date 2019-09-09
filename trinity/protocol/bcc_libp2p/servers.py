@@ -14,9 +14,6 @@ from cancel_token import (
 from eth.exceptions import (
     BlockNotFound,
 )
-from eth_typing import (
-    Hash32,
-)
 from eth_utils import (
     ValidationError,
     encode_hex,
@@ -42,6 +39,10 @@ from eth2.beacon.types.attestations import (
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
     BeaconBlock,
+)
+from eth2.beacon.typing import (
+    SigningRoot,
+    HashTreeRoot,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
@@ -70,15 +71,15 @@ class AttestationPool(OperationPool[Attestation]):
     def __len__(self) -> int:
         return len(self._pool_storage.keys())
 
-    def __contains__(self, attestation_or_root: Union[Attestation, Hash32]) -> bool:
-        attestation_root: Hash32
+    def __contains__(self, attestation_or_root: Union[Attestation, HashTreeRoot]) -> bool:
+        attestation_root: HashTreeRoot
         if isinstance(attestation_or_root, Attestation):
             attestation_root = attestation_or_root.hash_tree_root
         elif isinstance(attestation_or_root, bytes):
             attestation_root = attestation_or_root
         else:
             raise TypeError(
-                f"`attestation_or_root` should be `Attestation` or `Hash32`,"
+                f"`attestation_or_root` should be `Attestation` or `HashTreeRoot`,"
                 f" got {type(attestation_or_root)}"
             )
         try:
@@ -116,14 +117,14 @@ class OrphanBlockPool:
     def __len__(self) -> int:
         return len(self._pool)
 
-    def __contains__(self, block_or_block_root: Union[BaseBeaconBlock, Hash32]) -> bool:
-        block_root: Hash32
+    def __contains__(self, block_or_block_root: Union[BaseBeaconBlock, SigningRoot]) -> bool:
+        block_root: SigningRoot
         if isinstance(block_or_block_root, BaseBeaconBlock):
             block_root = block_or_block_root.signing_root
         elif isinstance(block_or_block_root, bytes):
             block_root = block_or_block_root
         else:
-            raise TypeError("`block_or_block_root` should be `BaseBeaconBlock` or `Hash32`")
+            raise TypeError("`block_or_block_root` should be `BaseBeaconBlock` or `SigningRoot`")
         try:
             self.get(block_root)
             return True
@@ -133,7 +134,7 @@ class OrphanBlockPool:
     def to_list(self) -> List[BaseBeaconBlock]:
         return list(self._pool)
 
-    def get(self, block_root: Hash32) -> BaseBeaconBlock:
+    def get(self, block_root: SigningRoot) -> BaseBeaconBlock:
         for block in self._pool:
             if block.signing_root == block_root:
                 return block
@@ -144,7 +145,7 @@ class OrphanBlockPool:
             return
         self._pool.add(block)
 
-    def pop_children(self, block_root: Hash32) -> Tuple[BaseBeaconBlock, ...]:
+    def pop_children(self, block_root: SigningRoot) -> Tuple[BaseBeaconBlock, ...]:
         children = tuple(
             orphan_block
             for orphan_block in self._pool
@@ -281,12 +282,12 @@ class BCCReceiveServer(BaseService):
             # Remove attestations in block that are also in the attestation pool.
             self.attestation_pool.batch_remove(block.body.attestations)
 
-    def _try_import_orphan_blocks(self, parent_root: Hash32) -> None:
+    def _try_import_orphan_blocks(self, parent_root: SigningRoot) -> None:
         """
         Perform ``chain.import`` on the blocks in ``self.orphan_block_pool`` in breadth-first
         order, starting from the children of ``parent_root``.
         """
-        imported_roots: List[Hash32] = []
+        imported_roots: List[SigningRoot] = []
 
         imported_roots.append(parent_root)
         while len(imported_roots) != 0:
@@ -314,17 +315,17 @@ class BCCReceiveServer(BaseService):
                     # TODO: Possibly drop all of its descendants in `self.orphan_block_pool`?
                     self.logger.debug("Fail to import block=%s  reason=%s", block, error)
 
-    def _is_block_root_in_orphan_block_pool(self, block_root: Hash32) -> bool:
+    def _is_block_root_in_orphan_block_pool(self, block_root: SigningRoot) -> bool:
         return block_root in self.orphan_block_pool
 
-    def _is_block_root_in_db(self, block_root: Hash32) -> bool:
+    def _is_block_root_in_db(self, block_root: SigningRoot) -> bool:
         try:
             self.chain.get_block_by_root(block_root=block_root)
             return True
         except BlockNotFound:
             return False
 
-    def _is_block_root_seen(self, block_root: Hash32) -> bool:
+    def _is_block_root_seen(self, block_root: SigningRoot) -> bool:
         if self._is_block_root_in_orphan_block_pool(block_root=block_root):
             return True
         return self._is_block_root_in_db(block_root=block_root)

@@ -12,6 +12,7 @@ from eth2.beacon.typing import (
     DomainType,
     Epoch,
     Gwei,
+    SigningRoot,
     Slot,
     ValidatorIndex,
     Version,
@@ -45,11 +46,11 @@ def get_active_validator_indices(
 
 
 def _get_historical_root(
-    historical_roots: Sequence[Hash32],
+    historical_roots: Sequence[SigningRoot],
     state_slot: Slot,
     slot: Slot,
     slots_per_historical_root: int,
-) -> Hash32:
+) -> SigningRoot:
     """
     Return the historical root at a recent ``slot``.
     """
@@ -70,7 +71,7 @@ def _get_historical_root(
 
 def get_block_root_at_slot(
     state: "BeaconState", slot: Slot, slots_per_historical_root: int
-) -> Hash32:
+) -> SigningRoot:
     """
     Return the block root at a recent ``slot``.
     """
@@ -84,7 +85,7 @@ def get_block_root(
     epoch: Epoch,
     slots_per_epoch: int,
     slots_per_historical_root: int,
-) -> Hash32:
+) -> SigningRoot:
     return get_block_root_at_slot(
         state,
         compute_start_slot_of_epoch(epoch, slots_per_epoch),
