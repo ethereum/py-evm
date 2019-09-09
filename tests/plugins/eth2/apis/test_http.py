@@ -28,10 +28,10 @@ def ipc_path():
         yield pathlib.Path(dir) / "db_manager.ipc"
 
 
-@pytest.mark.asyncio
 async def test_http_server(aiohttp_raw_server, aiohttp_client, event_bus, base_db, ipc_path):
     manager = DBManager(base_db)
     with manager.run(ipc_path):
+        # Set chaindb
         override_lengths(SERENITY_CONFIG)
         db = DBClient.connect(ipc_path)
         genesis_config = Eth2GenesisConfig(SERENITY_CONFIG)
@@ -52,6 +52,7 @@ async def test_http_server(aiohttp_raw_server, aiohttp_client, event_bus, base_d
             rpc = RPCServer(initialize_beacon_modules(chaindb, event_bus), chaindb, event_bus)
             raw_server = await aiohttp_raw_server(handler(rpc.execute))
             client = await aiohttp_client(raw_server)
+
             request_id = 1
             request_data = {
                 "jsonrpc": "2.0",
@@ -59,8 +60,10 @@ async def test_http_server(aiohttp_raw_server, aiohttp_client, event_bus, base_d
                 "params": [],
                 "id": request_id,
             }
+
             response = await client.post('/', json=request_data)
             response_data = await response.json()
+
             assert response_data['id'] == request_id
             result = response_data['result']
             assert result['slot'] == 0
