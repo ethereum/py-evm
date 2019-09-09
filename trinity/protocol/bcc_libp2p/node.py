@@ -405,8 +405,6 @@ class Node(BaseService):
         # TODO: Find out when we should respond the `ResponseCode`
         #   other than `ResponseCode.SUCCESS`.
 
-        # TODO: Handle `stream.close` and `stream.reset`
-
         peer_id = stream.mplex_conn.peer_id
 
         self.logger.debug("Waiting for hello from the other side")
@@ -548,9 +546,8 @@ class Node(BaseService):
             return
         self.logger.debug("Received the goodbye message %s", goodbye)
 
-        await stream.reset()
+        await stream.close()
         await self.disconnect_peer(peer_id)
-        return
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
         goodbye = Goodbye(reason)
@@ -569,7 +566,7 @@ class Node(BaseService):
             self.logger.info("Handshake failed: %s", error_msg)
             raise HandshakeFailure(error_msg) from error
 
-        await stream.reset()
+        await stream.close()
 
     @to_tuple
     def _get_blocks_from_canonical_chain_by_slot(
@@ -753,7 +750,7 @@ class Node(BaseService):
             "Processing beacon blocks request from %s is finished",
             peer_id,
         )
-        await stream.reset()
+        await stream.close()
 
     async def request_beacon_blocks(self,
                                     peer_id: ID,
@@ -812,7 +809,7 @@ class Node(BaseService):
             await stream.reset()
             raise RequestFailure(error_msg)
 
-        await stream.reset()
+        await stream.close()
 
         beacon_blocks_response = cast(BeaconBlocksResponse, beacon_blocks_response)
         return beacon_blocks_response.blocks
@@ -864,7 +861,7 @@ class Node(BaseService):
             "Processing recent beacon blocks request from %s is finished",
             peer_id,
         )
-        await stream.reset()
+        await stream.close()
 
     async def request_recent_beacon_blocks(
             self,
@@ -919,7 +916,7 @@ class Node(BaseService):
             await stream.reset()
             raise RequestFailure(error_msg)
 
-        await stream.reset()
+        await stream.close()
 
         recent_beacon_blocks_response = cast(
             RecentBeaconBlocksResponse,
