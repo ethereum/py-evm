@@ -12,7 +12,7 @@ from p2p.service import BaseService
 
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock
 from eth2.beacon.db.exceptions import FinalizedHeadNotFound
-from eth2.beacon.typing import Slot
+from eth2.beacon.typing import Slot, HashTreeRoot
 from eth_typing import Hash32
 
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
@@ -25,7 +25,7 @@ from trinity.sync.beacon.constants import (
 from trinity.sync.common.chain import SyncBlockImporter
 from eth2.configs import Eth2GenesisConfig
 
-from trinity.protocol.bcc_libp2p.node import PeerPool
+from trinity.protocol.bcc_libp2p.node import PeerPool, Peer
 
 
 class BeaconChainSyncer(BaseService):
@@ -35,7 +35,7 @@ class BeaconChainSyncer(BaseService):
     peer_pool: PeerPool
     block_importer: SyncBlockImporter
     genesis_config: Eth2GenesisConfig
-    sync_peer: BCCPeer
+    sync_peer: Peer
 
     def __init__(
         self,
@@ -89,7 +89,7 @@ class BeaconChainSyncer(BaseService):
         new_head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
         self.logger.info(f"Sync with {self.sync_peer} finished, new head: {new_head}")
 
-    async def select_sync_peer(self) -> BCCPeer:
+    async def select_sync_peer(self) -> Peer:
         if len(self.peer_pool) == 0:
             raise ValidationError("Not connected to anyone")
 
@@ -163,7 +163,7 @@ class BeaconChainSyncer(BaseService):
                     break
 
     async def request_batches(
-        self, start_slot: Slot, head_block_root: Hash32
+        self, start_slot: Slot, head_block_root: HashTreeRoot
     ) -> AsyncGenerator[Tuple[BaseBeaconBlock, ...], None]:
         slot = start_slot
         while True:
@@ -171,7 +171,7 @@ class BeaconChainSyncer(BaseService):
                 "Requesting blocks from %s starting at #%d", self.sync_peer, slot
             )
 
-            batch = await self.sync_peer.get_beacon_blocks(
+            batch = await self.sync_peer.request_beacon_blocks(
                 slot, head_block_root, MAX_BLOCKS_PER_REQUEST
             )
 
@@ -180,7 +180,9 @@ class BeaconChainSyncer(BaseService):
 
             yield batch
 
-            slot = batch[-1].slot + 1
+            new_head = batch[-1]
+            slot = new_head.slot
+            head_block_root = new_head.hash_tree_root
 
     async def validate_first_batch(self, batch: Tuple[BaseBeaconBlock, ...]) -> None:
         parent_root = batch[0].parent_root

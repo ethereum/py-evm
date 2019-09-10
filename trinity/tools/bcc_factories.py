@@ -1,48 +1,37 @@
-from eth2.beacon.tools.factories import BeaconChainFactory
 import asyncio
-from typing import cast, Any, AsyncContextManager, AsyncIterator, Iterable, Tuple, Type
+from typing import Any, AsyncContextManager, AsyncIterator, Iterable, Tuple, Type, cast
 
 from async_generator import asynccontextmanager
-
-from lahja import EndpointAPI
-
 from cancel_token import CancelToken
-
+from eth.constants import ZERO_HASH32
+from eth_keys import keys
+from eth_utils import to_tuple
+from lahja import EndpointAPI
 from libp2p.crypto.secp256k1 import create_new_key_pair
 
-from eth_keys import keys
-
-from eth_utils import to_tuple
-
-from eth.constants import ZERO_HASH32
-
+from eth2.beacon.constants import EMPTY_SIGNATURE, ZERO_SIGNING_ROOT
+from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
+from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
+from eth2.beacon.tools.factories import BeaconChainFactory
+from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock, BeaconBlockBody
+from eth2.configs import Eth2GenesisConfig
 from p2p import kademlia
 from p2p.constants import DEFAULT_MAX_PEERS
 from p2p.service import run_service
 from p2p.tools.factories import (
-    get_open_port,
     CancelTokenFactory,
     PeerPairFactory,
     PrivateKeyFactory,
+    get_open_port,
 )
-
-from eth2.beacon.constants import EMPTY_SIGNATURE, ZERO_SIGNING_ROOT
-from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
-from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
-from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
-from eth2.configs import Eth2GenesisConfig
-
 from trinity.db.beacon.chain import AsyncBeaconChainDB
-
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import BCCPeer, BCCPeerFactory, BCCPeerPool
+from trinity.protocol.bcc_libp2p.node import Node, Peer, PeerPool
 from trinity.protocol.bcc_libp2p.servers import BCCReceiveServer
-from trinity.protocol.bcc_libp2p.node import Node, PeerPool, Peer
-
-from eth2.beacon.tools.factories import BeaconChainFactory
+from trinity.sync.beacon.chain import BeaconChainSyncer
 
 from .factories import AtomicDBFactory
-
 
 try:
     import factory
@@ -252,19 +241,20 @@ class ReceiveServerFactory(factory.Factory):
         return tuple(cls() for _ in range(number))
 
 
-from trinity.sync.beacon.chain import BeaconChainSyncer
-
-
 class SimpleWriterBlockImporter:
     """
     ``SimpleWriterBlockImporter`` just persists any imported blocks to the
     database provided at instantiation.
     """
 
-    def __init__(self, chain_db):
+    def __init__(self, chain_db: AsyncBeaconChainDB) -> None:
         self._chain_db = chain_db
 
-    def import_block(self, block):
+    def import_block(
+        self, block: BaseBeaconBlock
+    ) -> Tuple[
+        BaseBeaconBlock, Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]
+    ]:
         new_blocks, old_blocks = self._chain_db.persist_block(
             block, BeaconBlock, higher_slot_scoring
         )

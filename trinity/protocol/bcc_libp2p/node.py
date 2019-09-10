@@ -5,32 +5,14 @@ from cancel_token import CancelToken
 
 from eth_utils import ValidationError, to_tuple
 
-from eth.exceptions import (
-    BlockNotFound,
-)
+from eth.exceptions import BlockNotFound
 
-from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
-)
-from eth2.beacon.chains.base import (
-    BaseBeaconChain,
-)
-from eth2.beacon.types.attestations import (
-    Attestation,
-)
-from eth2.beacon.types.blocks import (
-    BaseBeaconBlock,
-)
-from eth2.beacon.typing import (
-    Epoch,
-    Slot,
-    HashTreeRoot,
-    Version,
-    SigningRoot,
-)
-from eth2.beacon.constants import (
-    ZERO_SIGNING_ROOT,
-)
+from eth2.beacon.helpers import compute_start_slot_of_epoch
+from eth2.beacon.chains.base import BaseBeaconChain
+from eth2.beacon.types.attestations import Attestation
+from eth2.beacon.types.blocks import BaseBeaconBlock
+from eth2.beacon.typing import Epoch, Slot, HashTreeRoot, Version, SigningRoot
+from eth2.beacon.constants import ZERO_SIGNING_ROOT
 
 from libp2p import initialize_default_swarm
 from libp2p.typing import TProtocol
@@ -120,7 +102,9 @@ class Peer:
     head_slot: Slot
 
     @classmethod
-    def from_hello_request(cls, node: "Node", peer_id: ID, request: HelloRequest):
+    def from_hello_request(
+        cls, node: "Node", peer_id: ID, request: HelloRequest
+    ) -> "Peer":
         return cls(
             node=node,
             ID=peer_id,
@@ -131,9 +115,9 @@ class Peer:
             head_slot=request.head_slot,
         )
 
-    async def get_beacon_blocks(
+    async def request_beacon_blocks(
         self, start_slot: Slot, head_block_root: HashTreeRoot, count: int, step: int = 1
-    ):
+    ) -> Tuple[BaseBeaconBlock, ...]:
         return await self.node.request_beacon_blocks(
             self.ID,
             head_block_root=head_block_root,
@@ -142,11 +126,16 @@ class Peer:
             step=step,
         )
 
+    async def request_recent_beacon_blocks(
+        self, block_roots: Sequence[HashTreeRoot]
+    ) -> Tuple[BaseBeaconBlock, ...]:
+        return await self.node.request_recent_beacon_blocks(self.ID, block_roots)
+
 
 class PeerPool:
     peers: Dict[ID, Peer]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.peers = {}
 
     def add(self, peer: Peer) -> None:
@@ -181,7 +170,7 @@ class Node(BaseService):
     preferred_nodes: Optional[Tuple[Multiaddr, ...]]
     chain: BaseBeaconChain
 
-    handshaked_peers: PeerPool
+    handshaked_peers: PeerPool = None
 
     def __init__(
         self,
@@ -277,10 +266,7 @@ class Node(BaseService):
         Dial the peer ``peer_id`` through the IPv4 protocol
         """
         await self.host.connect(
-            PeerInfo(
-                peer_id=peer_id,
-                addrs=[make_tcp_ip_maddr(ip, port)],
-            )
+            PeerInfo(peer_id=peer_id, addrs=[make_tcp_ip_maddr(ip, port)])
         )
 
     async def dial_peer_maddr(self, maddr: Multiaddr) -> None:
@@ -328,7 +314,9 @@ class Node(BaseService):
 
     @property
     def listen_maddr_with_peer_id(self) -> Multiaddr:
-        return self.listen_maddr.encapsulate(Multiaddr(f"/p2p/{self.peer_id.to_base58()}"))
+        return self.listen_maddr.encapsulate(
+            Multiaddr(f"/p2p/{self.peer_id.to_base58()}")
+        )
 
     @property
     def peer_store(self) -> PeerStore:
@@ -386,8 +374,8 @@ class Node(BaseService):
         # Get the finalized root at `hello_other_side.finalized_epoch`
         # Edge case where nothing is finalized yet
         if (
-            hello_other_side.finalized_epoch == 0 and
-            hello_other_side.finalized_root == ZERO_SIGNING_ROOT
+            hello_other_side.finalized_epoch == 0
+            and hello_other_side.finalized_root == ZERO_SIGNING_ROOT
         ):
             return
 
@@ -730,7 +718,11 @@ class Node(BaseService):
                 blocks = self._get_blocks_from_canonical_chain_by_slot(
                     slot_of_requested_blocks
                 )
-                self.logger.info("_get_blocks_from_canonical_chain_by_slot:  slot_of_requested_blocks %s  blocks: %s",slot_of_requested_blocks,  blocks)
+                self.logger.info(
+                    "_get_blocks_from_canonical_chain_by_slot:  slot_of_requested_blocks %s  blocks: %s",
+                    slot_of_requested_blocks,
+                    blocks,
+                )
                 return blocks
             else:
                 # Peer's head block is not on our canonical chain
@@ -769,7 +761,8 @@ class Node(BaseService):
 
         try:
             peer_head_block = self.chain.get_block_by_hash_tree_root(
-                beacon_blocks_request.head_block_root)
+                beacon_blocks_request.head_block_root
+            )
         except (BlockNotFound, ValidationError):
             # We don't have the chain data peer is requesting
             requested_beacon_blocks: Tuple[BaseBeaconBlock, ...] = tuple()
