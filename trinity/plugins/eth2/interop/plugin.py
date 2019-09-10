@@ -110,12 +110,6 @@ class InteropPlugin(BaseMainProcessPlugin):
             action='store_true',
         )
 
-        interop_parser.add_argument(
-            '--keys',
-            help="Which file to read the validator keys from",
-            type=str,
-        )
-
         interop_parser.set_defaults(munge_func=cls.munge_all_args)
 
     @classmethod
@@ -131,8 +125,13 @@ class InteropPlugin(BaseMainProcessPlugin):
         if args.wipedb:
             beacon_config = trinity_config.get_app_config(BeaconAppConfig)
             logger.info(f'Blowing away the database: {beacon_config.database_dir}')
-            shutil.rmtree(beacon_config.database_dir)
-            beacon_config.database_dir.mkdir()
+            try:
+                shutil.rmtree(beacon_config.database_dir)
+            except FileNotFoundError:
+                # there's nothing to wipe, that's fine!
+                pass
+            else:
+                beacon_config.database_dir.mkdir()
 
         genesis_path = Path('genesis.ssz')
         logger.info(f"Using genesis from {genesis_path}")
@@ -200,7 +199,7 @@ class InteropPlugin(BaseMainProcessPlugin):
 
         # parse the yaml...
         yaml = YAML(typ="unsafe")
-        keys = yaml.load(Path(args.keys))
+        keys = yaml.load(Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'))
 
         # the reverse of extract_privkeys_from_dir
         # a near-copy of generate_keys from the network_generator plugin
