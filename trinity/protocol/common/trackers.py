@@ -10,9 +10,10 @@ from eth_utils import get_extended_debug_logger
 
 from p2p.abc import RequestAPI
 
-from trinity._utils.ema import EMA
-from trinity._utils.percentile import Percentile
-from trinity._utils.stddev import StandardDeviation
+from p2p.stats.ema import EMA
+from p2p.stats.percentile import Percentile
+from p2p.stats.stddev import StandardDeviation
+
 from .constants import ROUND_TRIP_TIMEOUT
 from .types import (
     TResult,
