@@ -39,17 +39,10 @@ class Crosslink(ssz.Serializable):
 
     def __str__(self) -> str:
         return (
-            f"<Crosslink shard={self.shard}"
-            f" start_epoch={self.start_epoch} end_epoch={self.end_epoch}"
-            f" parent_root={humanize_hash(self.parent_root)}"
-            f" data_root={humanize_hash(self.data_root)}>"
-        )
-
-    def __repr__(self) -> str:
-        return (
-            f"<Crosslink shard={self.shard}"
-            f" start_epoch={self.start_epoch} end_epoch={self.end_epoch}"
-            f" parent_root={encode_hex(self.parent_root)} data_root={encode_hex(self.data_root)}>"
+            f"shard={self.shard},"
+            f" parent_root={humanize_hash(self.parent_root)},"
+            f" start_epoch={self.start_epoch}, end_epoch={self.end_epoch},"
+            f" data_root={humanize_hash(self.data_root)}"
         )
 
 

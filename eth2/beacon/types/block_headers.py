@@ -1,6 +1,6 @@
 from eth.constants import ZERO_HASH32
 from eth_typing import BLSSignature, Hash32
-from eth_utils import encode_hex
+from eth_utils import encode_hex, humanize_hash
 import ssz
 from ssz.sedes import bytes32, bytes96, uint64
 
@@ -37,12 +37,19 @@ class BeaconBlockHeader(ssz.SignedSerializable):
             signature=signature,
         )
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return (
-            f"<Block #{self.slot} "
-            f"signing_root={encode_hex(self.signing_root)[2:10]} "
-            f"hash_tree_root={encode_hex(self.hash_tree_root)[2:10]}>"
+            f"[signing_root]={humanize_hash(self.signing_root)},"
+            f" [hash_tree_root]={humanize_hash(self.hash_tree_root)},"
+            f" slot={self.slot},"
+            f" parent_root={humanize_hash(self.parent_root)},"
+            f" state_root={humanize_hash(self.state_root)},"
+            f" body_root={humanize_hash(self.body_root)},"
+            f" signature={humanize_hash(self.signature)}"
         )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {str(self)}>"
 
 
 default_beacon_block_header = BeaconBlockHeader()

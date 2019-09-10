@@ -2,7 +2,7 @@ from typing import Sequence
 
 from eth.constants import ZERO_HASH32
 from eth_typing import Hash32
-from eth_utils import encode_hex
+from eth_utils import encode_hex, humanize_hash
 import ssz
 from ssz.sedes import Vector, bytes32
 
@@ -36,5 +36,7 @@ class Deposit(ssz.Serializable):
     ) -> None:
         super().__init__(proof, data)
 
-    def __repr__(self) -> str:
-        return f"<Deposit hash_tree_root: {encode_hex(self.hash_tree_root)[0:8]} data: {self.data}>"
+    def __str__(self) -> str:
+        return (
+            f"[hash_tree_root]={humanize_hash(self.hash_tree_root)}, data=({self.data})"
+        )

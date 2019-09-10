@@ -19,3 +19,6 @@ class AttestationDataAndCustodyBit(ssz.Serializable):
         custody_bit: bool = False,
     ) -> None:
         super().__init__(data=data, custody_bit=custody_bit)
+
+    def __str__(self) -> str:
+        return f"data=({self.data}), custody_bit={'0b1' if self.custody_bit else '0b0'}"

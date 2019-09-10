@@ -1,4 +1,5 @@
 from eth_typing import BLSPubkey, Hash32
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import boolean, bytes32, bytes48, uint64
 
@@ -51,7 +52,7 @@ class Validator(ssz.Serializable):
         activation_eligibility_epoch: Epoch = default_epoch,
         activation_epoch: Epoch = default_epoch,
         exit_epoch: Epoch = default_epoch,
-        withdrawable_epoch: Epoch = default_epoch
+        withdrawable_epoch: Epoch = default_epoch,
     ) -> None:
         super().__init__(
             pubkey=pubkey,
@@ -101,4 +102,16 @@ class Validator(ssz.Serializable):
             activation_epoch=FAR_FUTURE_EPOCH,
             exit_epoch=FAR_FUTURE_EPOCH,
             withdrawable_epoch=FAR_FUTURE_EPOCH,
+        )
+
+    def __str__(self) -> str:
+        return (
+            f"pubkey={humanize_hash(self.pubkey)},"
+            f" withdrawal_credentials={humanize_hash(self.withdrawal_credentials)},"
+            f" effective_balance={self.effective_balance},"
+            f" slashed={self.slashed},"
+            f" activation_eligibility_epoch={self.activation_eligibility_epoch},"
+            f" activation_epoch={self.activation_epoch},"
+            f" exit_epoch={self.exit_epoch},"
+            f" withdrawable_epoch={self.withdrawable_epoch}"
         )

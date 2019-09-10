@@ -1,6 +1,6 @@
 from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey, BLSSignature, Hash32
-from eth_utils import encode_hex
+from eth_utils import encode_hex, humanize_hash
 import ssz
 from ssz.sedes import bytes32, bytes48, bytes96, uint64
 
@@ -39,8 +39,15 @@ class DepositData(ssz.SignedSerializable):
             signature=signature,
         )
 
+    def __str__(self) -> str:
+        return (
+            f"pubkey={humanize_hash(self.pubkey)},"
+            f" withdrawal_credentials={humanize_hash(self.withdrawal_credentials)},"
+            f" amount={self.amount}, signature={humanize_hash(self.signature)}"
+        )
+
     def __repr__(self) -> str:
-        return f"<DepositData root: {encode_hex(self.hash_tree_root)[0:8]}>"
+        return f"<{self.__class__.__name__}: {str(self)}>"
 
 
 default_deposit_data = DepositData()

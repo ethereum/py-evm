@@ -2,7 +2,7 @@ from typing import Any, Callable, Sequence
 
 from eth.constants import ZERO_HASH32
 from eth_typing import Hash32
-from eth_utils import encode_hex
+from eth_utils import encode_hex, humanize_hash
 import ssz
 from ssz.sedes import Bitvector, List, Vector, bytes32, uint64
 
@@ -191,8 +191,10 @@ class BeaconState(ssz.Serializable):
             finalized_checkpoint=finalized_checkpoint,
         )
 
-    def __repr__(self) -> str:
-        return f"<BeaconState #{self.slot} {encode_hex(self.hash_tree_root)[2:10]}>"
+    def __str__(self) -> str:
+        return (
+            f"[hash_tree_root]={humanize_hash(self.hash_tree_root)}, slot={self.slot}"
+        )
 
     @property
     def validator_count(self) -> int:

@@ -1,3 +1,4 @@
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import bytes4, uint64
 
@@ -25,6 +26,13 @@ class Fork(ssz.Serializable):
             previous_version=previous_version,
             current_version=current_version,
             epoch=epoch,
+        )
+
+    def __str__(self) -> str:
+        return (
+            f"previous_version={humanize_hash(self.previous_version)},"
+            f" current_version={humanize_hash(self.current_version)},"
+            f" epoch={self.epoch}"
         )
 
 

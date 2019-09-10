@@ -1,4 +1,5 @@
 from eth_typing import BLSPubkey, BLSSignature
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import bytes48, bytes96, uint64
 
@@ -46,3 +47,19 @@ class Transfer(ssz.SignedSerializable):
             pubkey=pubkey,
             signature=signature,
         )
+
+    def __str__(self) -> str:
+        return (
+            f"[signing_root]={humanize_hash(self.signing_root)},"
+            f" [hash_tree_root]={humanize_hash(self.hash_tree_root)},"
+            f" sender={self.sender},"
+            f" recipient={self.recipient},"
+            f" amount={self.amount},"
+            f" fee={self.fee},"
+            f" slot={self.slot},"
+            f" pubkey={humanize_hash(self.pubkey)},"
+            f" signature={humanize_hash(self.signature)}"
+        )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {str(self)}>"

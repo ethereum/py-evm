@@ -1,4 +1,4 @@
-from eth_utils import encode_hex
+from eth_utils import encode_hex, humanize_hash
 import ssz
 from ssz.sedes import bytes32, uint64
 
@@ -18,7 +18,7 @@ class Checkpoint(ssz.Serializable):
         super().__init__(epoch=epoch, root=root)
 
     def __str__(self) -> str:
-        return f"({self.epoch}, {encode_hex(self.root)[0:8]})"
+        return f"{self.epoch}, {humanize_hash(self.root)}"
 
 
 default_checkpoint = Checkpoint()
