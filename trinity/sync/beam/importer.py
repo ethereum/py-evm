@@ -231,7 +231,10 @@ def pausing_vm_decorator(
                         log_func = self.logger.warning
                     else:
                         log_func = self.logger.debug
-                    log_func("Beam Sync: retrying state data request after timeout")
+                    log_func(
+                        "Beam Sync: retrying state data request after timeout. Stats so far: %s",
+                        self.stats_counter,
+                    )
 
         def _request_missing_data(
                 self,
