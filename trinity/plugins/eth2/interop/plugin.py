@@ -110,6 +110,12 @@ class InteropPlugin(BaseMainProcessPlugin):
             action='store_true',
         )
 
+        interop_parser.add_argument(
+            '--keys',
+            help="Which file to read the validator keys from",
+            type=str,
+        )
+
         interop_parser.set_defaults(munge_func=cls.munge_all_args)
 
     @classmethod
@@ -185,18 +191,16 @@ class InteropPlugin(BaseMainProcessPlugin):
             yaml.dump(to_formatted_dict(state), f)
 
         # Save the validator keys to the data dir
-        keys_file = Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml')
         keys_dir = trinity_config.trinity_root_dir / KEYS_DIR
         try:
             shutil.rmtree(keys_dir)
         except FileNotFoundError:
             pass
-
         keys_dir.mkdir()
 
         # parse the yaml...
         yaml = YAML(typ="unsafe")
-        keys = yaml.load(keys_file)
+        keys = yaml.load(Path(args.keys))
 
         # the reverse of extract_privkeys_from_dir
         # a near-copy of generate_keys from the network_generator plugin

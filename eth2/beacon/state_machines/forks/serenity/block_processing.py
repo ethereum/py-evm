@@ -20,6 +20,11 @@ from .block_validation import (
 from .operation_processing import process_operations
 
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+
 def process_block_header(
     state: BeaconState,
     block: BaseBeaconBlock,
@@ -101,6 +106,7 @@ def process_block(
     config: Eth2Config,
     check_proposer_signature: bool = True,
 ) -> BeaconState:
+    # logger.debug('process_block called')
     state = process_block_header(state, block, config, check_proposer_signature)
     state = process_randao(state, block, config)
     state = process_eth1_data(state, block, config)

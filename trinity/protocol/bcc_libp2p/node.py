@@ -2,6 +2,7 @@ import asyncio
 from dataclasses import dataclass
 import logging
 import operator
+import traceback
 import random
 from typing import (
     Dict,
@@ -356,10 +357,14 @@ class Node(BaseService):
         """
         Parse `maddr`, get the ip:port and PeerID, and call `dial_peer` with the parameters.
         """
-        ip = maddr.value_for_protocol(protocols.P_IP4)
-        port = maddr.value_for_protocol(protocols.P_TCP)
-        peer_id = ID.from_base58(maddr.value_for_protocol(protocols.P_P2P))
-        await self.dial_peer_with_retries(ip=ip, port=port, peer_id=peer_id)
+        try:
+            ip = maddr.value_for_protocol(protocols.P_IP4)
+            port = maddr.value_for_protocol(protocols.P_TCP)
+            peer_id = ID.from_base58(maddr.value_for_protocol(protocols.P_P2P))
+            await self.dial_peer_with_retries(ip=ip, port=port, peer_id=peer_id)
+        except:
+            traceback.print_exc()
+            raise
 
     async def connect_preferred_nodes(self) -> None:
         results = await asyncio.gather(
@@ -369,7 +374,7 @@ class Node(BaseService):
         )
         for result in results:
             if isinstance(result, Exception):
-                logger.warning(f"could not connect to {result} ")
+                logger.warning(f"could not connect to {result}: {type(result)} {repr(result)}")
 
     async def disconnect_peer(self, peer_id: ID) -> None:
         if peer_id in self.handshaked_peers:

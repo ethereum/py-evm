@@ -257,6 +257,7 @@ class BCCReceiveServer(BaseService):
 
     def _process_received_block(self, block: BaseBeaconBlock) -> None:
         # If the block is an orphan, put it to the orphan pool
+        self.logger.debug('Received block over gossip. slot={block.slot} signing_root={block.signing_root.hex()}')
         if not self._is_block_root_in_db(block.parent_root):
             if block not in self.orphan_block_pool:
                 self.logger.debug("Found orphan_block=%s", block)
