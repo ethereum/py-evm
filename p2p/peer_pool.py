@@ -501,9 +501,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             peers = tuple(self.connected_nodes.values())
             for peer in peers:
                 if not peer.is_running:
-                    self.logger.warning(
+                    self.logger.debug(
                         "%s is no longer alive but had not been removed from pool", peer)
-                    self._peer_finished(peer)
                     continue
                 self.logger.debug(
                     "%s: uptime=%s, received_msgs=%d",
