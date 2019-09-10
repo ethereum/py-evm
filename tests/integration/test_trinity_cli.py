@@ -28,14 +28,6 @@ from trinity._utils.async_iter import (
 ROPSTEN_GENESIS_HASH = '0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d'
 MAINNET_GENESIS_HASH = '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3'
 
-# IMPORTANT: Test names are intentionally short here because they end up
-# in the path name of the isolated Trinity paths that pytest produces for
-# us.
-# e.g. /tmp/pytest-of-circleci/pytest-0/popen-gw3/test_light_boot_comman0/xdg/mainnet/jsonrpc.ipc)
-#
-# However, UNIX IPC paths can only be 100 chars which means long paths
-# *WILL* break these tests. See: https://unix.stackexchange.com/q/367008
-
 
 # Great for debugging the AsyncProcessRunner
 # @pytest.mark.asyncio
@@ -52,7 +44,7 @@ MAINNET_GENESIS_HASH = '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c
     )
 )
 @pytest.mark.asyncio
-async def test_full_boot(async_process_runner, command):
+async def test_expected_logs_for_full_mode(async_process_runner, command):
     # Since this short-circuits on sucess, we can set the timeout high.
     # We only hit the timeout if the test fails.
     await async_process_runner.run(command, timeout_sec=120)
@@ -72,7 +64,7 @@ async def test_full_boot(async_process_runner, command):
     )
 )
 @pytest.mark.asyncio
-async def test_txpool_full_boot(async_process_runner, command):
+async def test_expected_logs_for_full_mode_with_txpool(async_process_runner, command):
     # Since this short-circuits on sucess, we can set the timeout high.
     # We only hit the timeout if the test fails.
     await async_process_runner.run(command, timeout_sec=120)
@@ -93,8 +85,8 @@ async def test_txpool_full_boot(async_process_runner, command):
     )
 )
 @pytest.mark.asyncio
-async def test_txpool_deactivated(async_process_runner, command):
-    # Since this short-circuits on sucess, we can set the timeout high.
+async def test_expected_logs_with_disabled_txpool(async_process_runner, command):
+    # Since this short-circuits on success, we can set the timeout high.
     # We only hit the timeout if the test fails.
     await async_process_runner.run(command, timeout_sec=120)
     assert await contains_all(async_process_runner.stderr, {
@@ -112,7 +104,7 @@ async def test_txpool_deactivated(async_process_runner, command):
     )
 )
 @pytest.mark.asyncio
-async def test_light_boot(async_process_runner, command):
+async def test_expected_logs_for_light_mode(async_process_runner, command):
     await async_process_runner.run(command, timeout_sec=40)
     assert await contains_all(async_process_runner.stderr, {
         "Started DB server process",
@@ -139,11 +131,11 @@ async def test_light_boot(async_process_runner, command):
     )
 )
 @pytest.mark.asyncio
-async def test_web3(command,
-                    expected_network_id,
-                    expected_genesis_hash,
-                    xdg_trinity_root,
-                    async_process_runner):
+async def test_web3_commands_via_attached_console(command,
+                                                  expected_network_id,
+                                                  expected_genesis_hash,
+                                                  xdg_trinity_root,
+                                                  async_process_runner):
 
     command = tuple(
         fragment.replace('{trinity_root_path}', str(xdg_trinity_root))
@@ -195,7 +187,7 @@ async def test_web3(command,
     )
 )
 @pytest.mark.asyncio
-async def test_does_not_throw(async_process_runner, command):
+async def test_does_not_throw_errors_on_short_run(async_process_runner, command):
     # This is our last line of defence. This test basically observes the first
     # 20 seconds of the Trinity boot process and fails if Trinity logs any exceptions
     await run_command_and_detect_errors(async_process_runner, command, 20)
@@ -255,12 +247,12 @@ async def test_does_not_throw(async_process_runner, command):
     )
 )
 @pytest.mark.asyncio
-async def test_logger(async_process_runner,
-                      command,
-                      expected_stderr_logs,
-                      unexpected_stderr_logs,
-                      expected_file_logs,
-                      unexpected_file_logs):
+async def test_logger_configuration(async_process_runner,
+                                    command,
+                                    expected_stderr_logs,
+                                    unexpected_stderr_logs,
+                                    expected_file_logs,
+                                    unexpected_file_logs):
 
     def contains_substring(iterable, substring):
         return any(substring in x for x in iterable)
@@ -312,7 +304,7 @@ async def test_logger(async_process_runner,
 # Once we get Trinity to shutdown cleanly, we should remove the xfail so that the test ensures
 # ongoing clean exits.
 @pytest.mark.xfail
-async def test_shutdown(command, async_process_runner):
+async def test_shutdown_does_not_throw_errors(command, async_process_runner):
 
     async def run_then_shutdown_and_yield_output():
         # This test spins up Trinity, waits until it has started syncing, sends a SIGINT and then
