@@ -1,6 +1,6 @@
 from abc import abstractmethod
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+from concurrent import futures
 from operator import attrgetter
 from typing import (
     Any,
@@ -206,12 +206,34 @@ def pausing_vm_decorator(
         A custom version of VMState that pauses EVM execution when required data is missing.
         """
         stats_counter: BeamStats
+        node_retrieval_timeout = 20
 
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(*args, **kwargs)
             self.stats_counter = BeamStats()
 
         def _pause_on_missing_data(
+                self,
+                vm_method: Callable[[Any], TVMFuncReturn],
+                *args: Any,
+                **kwargs: Any) -> TVMFuncReturn:
+            """
+            Catch exceptions about missing state data and pause while waiting for
+            the event bus to reply with the needed data. Repeat if there is a request timeout.
+            """
+            while True:
+                try:
+                    return self._request_missing_data(vm_method, *args, **kwargs)
+                except futures.TimeoutError:
+                    self.stats_counter.data_pause_time += self.node_retrieval_timeout
+
+                    if urgent:
+                        log_func = self.logger.warning
+                    else:
+                        log_func = self.logger.debug
+                    log_func("Beam Sync: retrying state data request after timeout")
+
+        def _request_missing_data(
                 self,
                 vm_method: Callable[[Any], TVMFuncReturn],
                 *args: Any,
@@ -233,8 +255,7 @@ def pausing_vm_decorator(
                         ),
                         loop,
                     )
-                    # TODO put in a loop to truly wait forever
-                    account_event = account_future.result(timeout=300)
+                    account_event = account_future.result(timeout=self.node_retrieval_timeout)
                     self.stats_counter.num_accounts += 1
                     self.stats_counter.num_account_nodes += account_event.num_nodes_collected
                     self.stats_counter.data_pause_time += t.elapsed
@@ -246,8 +267,7 @@ def pausing_vm_decorator(
                         ),
                         loop,
                     )
-                    # TODO put in a loop to truly wait forever
-                    bytecode_future.result(timeout=300)
+                    bytecode_future.result(timeout=self.node_retrieval_timeout)
                     self.stats_counter.num_bytecodes += 1
                     self.stats_counter.data_pause_time += t.elapsed
                 except MissingStorageTrieNode as exc:
@@ -261,8 +281,7 @@ def pausing_vm_decorator(
                         ),
                         loop,
                     )
-                    # TODO put in a loop to truly wait forever
-                    storage_event = storage_future.result(timeout=300)
+                    storage_event = storage_future.result(timeout=self.node_retrieval_timeout)
                     self.stats_counter.num_storages += 1
                     self.stats_counter.num_storage_nodes += storage_event.num_nodes_collected
                     self.stats_counter.data_pause_time += t.elapsed
@@ -530,7 +549,7 @@ class BlockPreviewServer(BaseService):
         Listen to DoStatelessBlockPreview events, and execute the transactions to prefill
         all the needed state data.
         """
-        speculative_thread_executor = ThreadPoolExecutor(
+        speculative_thread_executor = futures.ThreadPoolExecutor(
             max_workers=MAX_SPECULATIVE_EXECUTIONS_PER_PROCESS,
             thread_name_prefix="trinity-spec-exec-",
         )

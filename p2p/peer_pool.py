@@ -210,6 +210,14 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 ))
             except OperationCancelled:
                 break
+            except asyncio.CancelledError:
+                # no need to log this exception, this is expected
+                raise
+            except Exception:
+                self.logger.exception("unexpected error during peer connection")
+                # Continue trying to connect to peers, even if there was a
+                # surprising failure during one of the attempts.
+                continue
 
     def __len__(self) -> int:
         return len(self.connected_nodes)
@@ -493,9 +501,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             peers = tuple(self.connected_nodes.values())
             for peer in peers:
                 if not peer.is_running:
-                    self.logger.warning(
+                    self.logger.debug(
                         "%s is no longer alive but had not been removed from pool", peer)
-                    self._peer_finished(peer)
                     continue
                 self.logger.debug(
                     "%s: uptime=%s, received_msgs=%d",

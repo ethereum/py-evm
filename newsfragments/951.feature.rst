@@ -1,0 +1,2 @@
+Beam Sync: start backfilling data, especially as a way to gather performance data about peers, and
+improve the performance of beam sync importing.
