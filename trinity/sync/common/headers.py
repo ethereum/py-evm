@@ -456,13 +456,13 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
 
             self.logger.debug2('sync received new headers: %s', headers)
         except PeerConnectionLost:
-            self.logger.debug("Lost connection to %s while retrieving headers, aborting sync", peer)
+            self.logger.debug("Lost connection to %s while retrieving headers", peer)
             return tuple()
         except OperationCancelled:
             self.logger.info("Skeleteon sync with %s cancelled", peer)
             return tuple()
         except asyncio.TimeoutError:
-            self.logger.warning("Timeout waiting for header batch from %s, aborting sync", peer)
+            self.logger.debug("Timeout waiting for headers (skip=%d) from %s", skip, peer)
             return tuple()
         except ValidationError as err:
             self.logger.warning(

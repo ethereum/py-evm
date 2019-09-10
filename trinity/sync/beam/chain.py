@@ -70,6 +70,8 @@ from trinity.sync.beam.state import (
 )
 from trinity._utils.timer import Timer
 
+from .backfill import BeamStateBackfill
+
 STATS_DISPLAY_PERIOD = 10
 
 
@@ -130,7 +132,16 @@ class BeamSyncer(BaseService):
             self._launch_strategy,
             self.cancel_token,
         )
-        self._state_downloader = BeamDownloader(db, peer_pool, event_bus, self.cancel_token)
+
+        self._backfiller = BeamStateBackfill(db, peer_pool, token=self.cancel_token)
+
+        self._state_downloader = BeamDownloader(
+            db,
+            peer_pool,
+            self._backfiller,
+            event_bus,
+            self.cancel_token,
+        )
         self._data_hunter = MissingDataEventHandler(
             self._state_downloader,
             event_bus,
@@ -141,6 +152,7 @@ class BeamSyncer(BaseService):
             chain,
             db,
             self._state_downloader,
+            self._backfiller,
             event_bus,
             self.cancel_token,
         )
@@ -204,6 +216,9 @@ class BeamSyncer(BaseService):
         # TODO wait until first header with a body comes in?...
         # Start state downloader service
         self.run_daemon(self._state_downloader)
+
+        # Start state background service
+        self.run_daemon(self._backfiller)
 
         # run sync until cancelled
         await self.cancellation()
@@ -493,6 +508,7 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
             chain: AsyncChainAPI,
             db: DatabaseAPI,
             state_getter: BeamDownloader,
+            backfiller: BeamStateBackfill,
             event_bus: EndpointAPI,
             token: CancelToken=None) -> None:
         super().__init__(token=token)
@@ -500,6 +516,7 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
         self._chain = chain
         self._db = db
         self._state_downloader = state_getter
+        self._backfiller = backfiller
 
         self._blocks_imported = 0
         self._preloaded_account_state = 0
@@ -555,6 +572,8 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
         self._event_bus.broadcast_nowait(
             DoStatelessBlockPreview(old_state_header, transactions)
         )
+
+        self._backfiller.set_root_hash(parent_state_root)
 
     async def _preview_address_load(
             self,
