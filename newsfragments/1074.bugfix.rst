@@ -1,0 +1,2 @@
+An exception while serving peer requests would crash out the peer pool event server.
+Now it doesn't crash, but logs a big red error (and catches innocuous exceptions, early on).
