@@ -10,11 +10,11 @@ from eth_utils import (
 )
 from eth.abc import BlockHeaderAPI
 
+from trinity.protocol.common.abc import ValidatorAPI
 from trinity.protocol.common.validators import (
-    BaseValidator,
     BaseBlockHeadersValidator,
 )
-from trinity.protocol.common.types import (
+from trinity.protocol.common.typing import (
     BlockBodyBundles,
     NodeDataBundles,
     ReceiptsBundles,
@@ -27,7 +27,7 @@ class GetBlockHeadersValidator(BaseBlockHeadersValidator):
     protocol_max_request_size = constants.MAX_HEADERS_FETCH
 
 
-class GetNodeDataValidator(BaseValidator[NodeDataBundles]):
+class GetNodeDataValidator(ValidatorAPI[NodeDataBundles]):
     def __init__(self, node_hashes: Sequence[Hash32]) -> None:
         self.node_hashes = node_hashes
 
@@ -48,7 +48,7 @@ class GetNodeDataValidator(BaseValidator[NodeDataBundles]):
             raise ValidationError(f"Response contains {len(unexpected_keys)} unexpected nodes")
 
 
-class ReceiptsValidator(BaseValidator[ReceiptsBundles]):
+class ReceiptsValidator(ValidatorAPI[ReceiptsBundles]):
     def __init__(self, headers: Sequence[BlockHeaderAPI]) -> None:
         self.headers = headers
 
@@ -70,7 +70,7 @@ class ReceiptsValidator(BaseValidator[ReceiptsBundles]):
             raise ValidationError(f"Got {len(unexpected_roots)} unexpected receipt roots")
 
 
-class GetBlockBodiesValidator(BaseValidator[BlockBodyBundles]):
+class GetBlockBodiesValidator(ValidatorAPI[BlockBodyBundles]):
     def __init__(self, headers: Sequence[BlockHeaderAPI]) -> None:
         self.headers = headers
 

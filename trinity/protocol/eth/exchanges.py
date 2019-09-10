@@ -20,7 +20,7 @@ from trinity.protocol.common.normalizers import (
 from trinity.protocol.common.validators import (
     noop_payload_validator,
 )
-from trinity.protocol.common.types import (
+from trinity.protocol.common.typing import (
     BlockBodyBundles,
     NodeDataBundles,
     ReceiptsByBlock,

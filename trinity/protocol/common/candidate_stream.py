@@ -2,8 +2,7 @@ import asyncio
 import time
 from typing import (
     Any,
-    AsyncGenerator,
-    Generic,
+    AsyncIterator,
     Tuple,
     Type,
 )
@@ -13,41 +12,39 @@ from p2p.abc import (
     ConnectionAPI,
     ProtocolAPI,
     RequestAPI,
-    TRequestPayload,
 )
 from p2p.exceptions import (
+    ConnectionBusy,
     PeerConnectionLost,
     UnknownProtocol,
 )
 from p2p.service import BaseService
+from p2p.typing import TRequestPayload, TResponsePayload
 
-from trinity.exceptions import AlreadyWaiting
-
+from .abc import (
+    PerformanceTrackerAPI,
+    ResponseCandidateStreamAPI,
+)
 from .constants import (
     ROUND_TRIP_TIMEOUT,
     NUM_QUEUED_REQUESTS,
 )
-from .trackers import BasePerformanceTracker
-from .types import TResponsePayload
 
 
 class ResponseCandidateStream(
-        BaseService,
-        Generic[TRequestPayload, TResponsePayload]):
+        ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload],
+        BaseService):
     response_timeout: float = ROUND_TRIP_TIMEOUT
 
     pending_request: Tuple[float, 'asyncio.Future[TResponsePayload]'] = None
-
-    request_protocol_type: Type[ProtocolAPI]
-    response_cmd_type: Type[CommandAPI]
-    _connection: ConnectionAPI
 
     def __init__(
             self,
             connection: ConnectionAPI,
             request_protocol_type: Type[ProtocolAPI],
-            response_msg_type: Type[CommandAPI]) -> None:
-        super().__init__(connection.cancel_token)
+            response_cmd_type: Type[CommandAPI]) -> None:
+        # This style of initialization keeps `mypy` happy.
+        BaseService.__init__(self, token=connection.cancel_token)
         self._connection = connection
         self.request_protocol_type = request_protocol_type
         try:
@@ -61,15 +58,18 @@ class ResponseCandidateStream(
                 f"Multiplexer"
             ) from err
 
-        self.response_msg_type = response_msg_type
+        self.response_cmd_type = response_cmd_type
         self._lock = asyncio.Lock()
+
+    def __repr__(self) -> str:
+        return f'<ResponseCandidateStream({self._connection!s}, {self.response_cmd_type!r})>'
 
     async def payload_candidates(
             self,
             request: RequestAPI[TRequestPayload],
-            tracker: BasePerformanceTracker[RequestAPI[TRequestPayload], Any],
+            tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], Any],
             *,
-            timeout: float = None) -> AsyncGenerator[TResponsePayload, None]:
+            timeout: float = None) -> AsyncIterator[TResponsePayload]:
         """
         Make a request and iterate through candidates for a valid response.
 
@@ -83,8 +83,8 @@ class ResponseCandidateStream(
         try:
             await self.wait(self._lock.acquire(), timeout=total_timeout * NUM_QUEUED_REQUESTS)
         except asyncio.TimeoutError:
-            raise AlreadyWaiting(
-                f"Timed out waiting for {self.response_msg_name} request lock "
+            raise ConnectionBusy(
+                f"Timed out waiting for {self.response_cmd_name} request lock "
                 f"or connection: {self._connection}"
             )
 
@@ -104,8 +104,8 @@ class ResponseCandidateStream(
             self._lock.release()
 
     @property
-    def response_msg_name(self) -> str:
-        return self.response_msg_type.__name__
+    def response_cmd_name(self) -> str:
+        return self.response_cmd_type.__name__
 
     def complete_request(self) -> None:
         if self.pending_request is None:
@@ -120,13 +120,13 @@ class ResponseCandidateStream(
 
         # mypy doesn't recognizet the `TResponsePayload` as being an allowed
         # variant of the expected `Payload` type.
-        with self._connection.add_command_handler(self.response_msg_type, self._handle_msg):  # type: ignore  # noqa: E501
+        with self._connection.add_command_handler(self.response_cmd_type, self._handle_msg):  # type: ignore  # noqa: E501
             await self.cancellation()
 
     async def _handle_msg(self, connection: ConnectionAPI, msg: TResponsePayload) -> None:
         if self.pending_request is None:
             self.logger.debug(
-                "Got unexpected %s payload from %s", self.response_msg_name, self._connection
+                "Got unexpected %s payload from %s", self.response_cmd_name, self._connection
             )
             return
 
@@ -188,6 +188,3 @@ class ResponseCandidateStream(
             _, future = self.pending_request
             if future.cancel():
                 self.logger.debug("Forcefully cancelled a pending response in %s", self)
-
-    def __repr__(self) -> str:
-        return f'<ResponseCandidateStream({self._connection!s}, {self.response_msg_type!r})>'

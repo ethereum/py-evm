@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from typing import (
     Any,
     Awaitable,
@@ -6,33 +5,24 @@ from typing import (
     Dict,
     Iterator,
     Tuple,
-    Type,
     TYPE_CHECKING,
 )
 
 from eth_typing import BlockIdentifier
 
-from eth_utils import ValidationError
-
 from eth.rlp.headers import BlockHeader
+
+
+from eth_utils import ValidationError
 
 from p2p.abc import ConnectionAPI
 from p2p.exceptions import UnknownProtocol
 
-from trinity.protocol.common.exchanges import (
-    BaseExchange,
-)
-from trinity.protocol.common.managers import (
-    ExchangeManager,
-)
+from .abc import ExchangeAPI, HandlerAPI
+from .managers import ExchangeManager
 
 
-class BaseExchangeHandler(ABC):
-    @property
-    @abstractmethod
-    def _exchange_config(self) -> Dict[str, Type[BaseExchange[Any, Any, Any]]]:
-        ...
-
+class BaseExchangeHandler(HandlerAPI):
     def __init__(self, connection: ConnectionAPI) -> None:
         self._connection = connection
 
@@ -48,29 +38,29 @@ class BaseExchangeHandler(ABC):
             supported_protocols = tuple(
                 protocol
                 for protocol in available_protocols
-                if protocol.supports_command(exchange_cls.request_cmd_type)
+                if protocol.supports_command(exchange_cls.get_request_cmd_type())
             )
             if len(supported_protocols) == 1:
                 protocol_type = type(supported_protocols[0])
             elif not supported_protocols:
                 raise UnknownProtocol(
                     f"Connection does not have any protocols that support the "
-                    f"request command: {exchange_cls.request_cmd_type}"
+                    f"request command: {exchange_cls.get_request_cmd_type()}"
                 )
             elif len(supported_protocols) > 1:
                 raise ValidationError(
                     f"Could not determine appropriate protocol for command: "
-                    f"{exchange_cls.request_cmd_type}.  Command was found in the "
+                    f"{exchange_cls.get_request_cmd_type()}.  Command was found in the "
                     f"protocols {supported_protocols}"
                 )
             else:
                 raise Exception("This code path should be unreachable")
 
-            if not protocol_type.supports_command(exchange_cls.response_cmd_type):
+            if not protocol_type.supports_command(exchange_cls.get_response_cmd_type()):
                 raise ValidationError(
                     f"Could not determine appropriate protocol: "
                     f"The response command type "
-                    f"{exchange_cls.response_cmd_type} is not supported by the "
+                    f"{exchange_cls.get_response_cmd_type()} is not supported by the "
                     f"protocol that matched the request command type: "
                     f"{protocol_type}"
                 )
@@ -79,18 +69,18 @@ class BaseExchangeHandler(ABC):
             manager = ExchangeManager(
                 connection=self._connection,
                 requesting_on=protocol_type,
-                listening_for=exchange_cls.response_cmd_type,
+                listening_for=exchange_cls.get_response_cmd_type(),
             )
             exchange = exchange_cls(manager)
             setattr(self, attr, exchange)
 
-    def __iter__(self) -> Iterator[BaseExchange[Any, Any, Any]]:
+    def __iter__(self) -> Iterator[ExchangeAPI[Any, Any, Any]]:
         for key in self._exchange_config.keys():
             yield getattr(self, key)
 
     def get_stats(self) -> Dict[str, str]:
         return {
-            exchange.response_cmd_type.__name__: exchange.tracker.get_stats()
+            exchange.get_response_cmd_type().__name__: exchange.tracker.get_stats()
             for exchange
             in self
         }

@@ -28,7 +28,7 @@ from eth_typing import (
 from trinity.protocol.common.events import (
     PeerPoolMessageEvent,
 )
-from trinity.protocol.common.types import (
+from trinity.protocol.common.typing import (
     BlockBodyBundles,
     NodeDataBundles,
     ReceiptsBundles,

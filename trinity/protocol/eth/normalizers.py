@@ -14,7 +14,7 @@ import rlp
 from trinity.protocol.common.normalizers import (
     BaseNormalizer,
 )
-from trinity.protocol.common.types import (
+from trinity.protocol.common.typing import (
     BlockBodyBundle,
     BlockBodyBundles,
     NodeDataBundles,

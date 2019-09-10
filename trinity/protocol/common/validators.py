@@ -1,11 +1,9 @@
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 import collections
 from typing import (
     Any,
-    Generic,
     Sequence,
     Tuple,
-    TypeVar,
     cast,
 )
 
@@ -24,23 +22,14 @@ from eth_utils import (
 from trinity._utils.headers import sequence_builder
 from trinity._utils.humanize import humanize_integer_sequence
 
-TResponse = TypeVar('TResponse')
+from .abc import ValidatorAPI
 
 
 def noop_payload_validator(request: Any, response: Any) -> None:
     pass
 
 
-class BaseValidator(ABC, Generic[TResponse]):
-    """
-    A validator which compares the initial request to its normalized result.
-    """
-    @abstractmethod
-    def validate_result(self, result: TResponse) -> None:
-        ...
-
-
-class BaseBlockHeadersValidator(BaseValidator[Tuple[BlockHeaderAPI, ...]]):
+class BaseBlockHeadersValidator(ValidatorAPI[Tuple[BlockHeaderAPI, ...]]):
     block_number_or_hash: BlockIdentifier
     max_headers: int
     skip: int
