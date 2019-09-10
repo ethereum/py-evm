@@ -1,0 +1,1 @@
+Fix warning on ethstats.net due to incorrectly reported API version number.

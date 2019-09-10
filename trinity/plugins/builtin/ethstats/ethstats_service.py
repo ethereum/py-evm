@@ -11,9 +11,6 @@ from p2p.service import (
     BaseService,
 )
 
-from trinity import (
-    __version__,
-)
 from trinity.config import (
     Eth1AppConfig,
 )
@@ -125,7 +122,7 @@ class EthstatsService(BaseService):
             'port': self.boot_info.trinity_config.port,
             'os': platform.system(),
             'os_v': platform.release(),
-            'client': __version__,
+            'client': '0.1.1',
             'canUpdateHistory': False,
         }
 
