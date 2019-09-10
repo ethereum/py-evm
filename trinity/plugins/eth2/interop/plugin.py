@@ -35,9 +35,7 @@ from ssz.tools import (
 from eth2._utils.hash import (
     hash_eth2,
 )
-from eth2.beacon.state_machines.forks.xiao_long_bao import (
-    XiaoLongBaoStateMachine,
-)
+from eth2.beacon.state_machines.forks.skeleton_lake import MINIMAL_SERENITY_CONFIG
 from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
 )
@@ -137,10 +135,7 @@ class InteropPlugin(BaseMainProcessPlugin):
         logger = cls.get_logger()
         logger.info("Configuring testnet")
 
-        config_path = Path('min.config')
-        logger.info(f"Using config from {config_path}")
-        minimal_config = load_config_at_path(config_path)
-        override_lengths(minimal_config)
+        override_lengths(MINIMAL_SERENITY_CONFIG)
 
         if args.wipedb:
             beacon_config = trinity_config.get_app_config(BeaconAppConfig)

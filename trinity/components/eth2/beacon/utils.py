@@ -23,8 +23,8 @@ from ssz.tools import (
     from_formatted_dict,
 )
 
-from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
-    XIAO_LONG_BAO_CONFIG,
+from eth2.beacon.state_machines.forks.skeleton_lake.config import (
+    MINIMAL_SERENITY_CONFIG
 )
 from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,

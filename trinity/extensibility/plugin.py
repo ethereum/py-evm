@@ -221,13 +221,6 @@ class BaseIsolatedPlugin(BasePlugin):
         self.logger.info("Plugin started: %s (pid=%d)", self.name, self._process.pid)
 
     def _prepare_spawn(self) -> None:
-
-        # A nasty hack for now
-        config_path = Path('min.config')
-        minimal_config = load_config_at_path(config_path)
-        override_lengths(minimal_config)
-        # </nasty hack>
-
         if self.boot_info.boot_kwargs.pop('profile', False):
             with profiler(f'profile_{self.normalized_name}'):
                 self._spawn_start()
