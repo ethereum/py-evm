@@ -1,0 +1,2 @@
+Beam Sync: Sometimes we would get stuck using a bad peer for node retrieval, fixed. Sometimes we
+would stop asking for predicted trie nodes when we don't have any immediate nodes to ask for, fixed.

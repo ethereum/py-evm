@@ -1,0 +1,1 @@
+Beam Sync: catch the TimeoutError that was escaping, and retry
