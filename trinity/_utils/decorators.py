@@ -10,11 +10,6 @@ from typing import (
 TAsyncFn = TypeVar("TAsyncFn", bound=Callable[..., Awaitable[None]])
 
 
-class classproperty(property):
-    def __get__(self, obj: Any, objtype: Any = None) -> Any:
-        return super().__get__(objtype)
-
-
 def async_suppress_exceptions(*exception_types: Type[BaseException]) -> TAsyncFn:
     def _suppress_decorator(func: TAsyncFn) -> TAsyncFn:
         async def _suppressed_func(*args: Any, **kwargs: Any) -> None:
