@@ -38,7 +38,7 @@ if TYPE_CHECKING:
 class NormalizerAPI(ABC, Generic[TResponsePayload, TResult]):
     # This variable indicates how slow normalization is. If normalization requires
     # any non-trivial computation, consider it slow. Then, the Manager will run it in
-    # a different process.
+    # a thread to ensure it doesn't block the main loop.
     is_normalization_slow: bool
 
     @staticmethod
@@ -56,10 +56,7 @@ class ValidatorAPI(ABC, Generic[TResponse]):
         ...
 
 
-class PerformanceTrackerAPI(ABC, Generic[TRequest, TResult]):
-    """
-    The statistics of how a command is performing.
-    """
+class PerformanceAPI(ABC):
     total_msgs: int
     total_items: int
     total_timeouts: int
@@ -77,6 +74,12 @@ class PerformanceTrackerAPI(ABC, Generic[TRequest, TResult]):
         Return a human readable string representing the stats for this tracker.
         """
         ...
+
+
+class PerformanceTrackerAPI(PerformanceAPI, Generic[TRequest, TResult]):
+    """
+    The statistics of how a command is performing.
+    """
 
     @abstractmethod
     def record_timeout(self, timeout: float) -> None:

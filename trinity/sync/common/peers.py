@@ -1,7 +1,6 @@
 from asyncio import PriorityQueue
 import collections
 from typing import (
-    Any,
     Callable,
     Generic,
     Sequence,
@@ -17,7 +16,7 @@ from eth_utils import (
 
 from p2p.abc import CommandAPI
 
-from trinity.protocol.common.abc import PerformanceTrackerAPI
+from trinity.protocol.common.abc import PerformanceAPI
 from trinity.protocol.common.peer import BaseChainPeer
 from trinity._utils.datastructures import (
     SortableTask,
@@ -26,7 +25,7 @@ from trinity._utils.datastructures import (
 TChainPeer = TypeVar('TChainPeer', bound=BaseChainPeer)
 
 
-def _items_per_second(tracker: PerformanceTrackerAPI[Any, Any]) -> float:
+def _items_per_second(tracker: PerformanceAPI) -> float:
     """
     Sort so that highest items per second have the lowest value.
     They should be sorted first, so they are popped off the queue first.
@@ -45,7 +44,7 @@ class WaitingPeers(Generic[TChainPeer]):
     def __init__(
             self,
             response_command_type: Union[Type[CommandAPI], Sequence[Type[CommandAPI]]],
-            sort_key: Callable[[PerformanceTrackerAPI[Any, Any]], float]=_items_per_second) -> None:
+            sort_key: Callable[[PerformanceAPI], float]=_items_per_second) -> None:
         """
         :param sort_key: how should we sort the peers to get the fastest? low score means top-ranked
         """
