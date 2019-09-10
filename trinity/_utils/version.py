@@ -13,7 +13,7 @@ def construct_trinity_client_identifier() -> str:
     """
     return (
         "Trinity/"
-        f"{__version__}/"
+        f"v{__version__}/"
         f"{sys.platform}/"
         f"{sys.implementation.name}"
         f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
