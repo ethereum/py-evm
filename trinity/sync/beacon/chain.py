@@ -1,10 +1,8 @@
 import asyncio
 import itertools
-import operator
-from typing import cast, Tuple, Iterable, AsyncGenerator
+from typing import Tuple, AsyncGenerator
 
 from eth_utils import ValidationError
-from eth_utils.toolz import first
 
 from cancel_token import CancelToken
 
@@ -13,10 +11,8 @@ from p2p.service import BaseService
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock
 from eth2.beacon.db.exceptions import FinalizedHeadNotFound
 from eth2.beacon.typing import Slot, HashTreeRoot
-from eth_typing import Hash32
 
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
-from trinity.protocol.bcc.peer import BCCPeer, BCCPeerPool
 from trinity.sync.beacon.constants import (
     MAX_BLOCKS_PER_REQUEST,
     PEER_SELECTION_RETRY_INTERVAL,
@@ -136,9 +132,9 @@ class BeaconChainSyncer(BaseService):
             for block in batch:
                 # Copied from `RegularChainBodySyncer._import_blocks`
                 try:
-                    _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(
-                        block
-                    )  # noqa: E501
+                    _, new_canonical_blocks, old_canonical_blocks = (
+                        self.block_importer.import_block(block)
+                    )
 
                     if new_canonical_blocks == (block,):
                         # simple import of a single new block.
@@ -188,7 +184,7 @@ class BeaconChainSyncer(BaseService):
         parent_root = batch[0].parent_root
         parent_slot = batch[0].slot - 1
 
-        if parent_slot >=0:
+        if parent_slot >= 0:
             canonical_parent = await self.chain_db.coro_get_canonical_block_by_slot(
                 parent_slot, BeaconBlock
             )

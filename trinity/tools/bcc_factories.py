@@ -27,7 +27,7 @@ from p2p.tools.factories import (
 from trinity.db.beacon.chain import AsyncBeaconChainDB
 from trinity.protocol.bcc.context import BeaconContext
 from trinity.protocol.bcc.peer import BCCPeer, BCCPeerFactory, BCCPeerPool
-from trinity.protocol.bcc_libp2p.node import Node, Peer, PeerPool
+from trinity.protocol.bcc_libp2p.node import Node, PeerPool
 from trinity.protocol.bcc_libp2p.servers import BCCReceiveServer
 from trinity.sync.beacon.chain import BeaconChainSyncer
 

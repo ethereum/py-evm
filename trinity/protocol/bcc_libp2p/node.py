@@ -1,5 +1,5 @@
 import asyncio
-from typing import Dict, Iterable, Optional, Set, Sequence, Tuple, cast
+from typing import Dict, Iterable, Optional, Sequence, Tuple, cast
 
 from cancel_token import CancelToken
 
@@ -22,7 +22,6 @@ from libp2p.host.basic_host import BasicHost
 from libp2p.network.network_interface import INetwork
 from libp2p.network.stream.net_stream_interface import INetStream
 from libp2p.peer.id import ID
-from libp2p.peer.peerdata import PeerData
 from libp2p.peer.peerinfo import PeerInfo
 from libp2p.peer.peerstore import PeerStore
 from libp2p.pubsub.pubsub import Pubsub
@@ -707,7 +706,10 @@ class Node(BaseService):
             block_match = canonical_block_at_slot == peer_head_block
         except BlockNotFound:
             self.logger.debug(
-                "Peer's head block is not on our canonical chain  peer_head_block: %s  canonical_block_at_slot: %s",
+                (
+                    "Peer's head block is not on our canonical chain  "
+                    "peer_head_block: %s  canonical_block_at_slot: %s"
+                ),
                 peer_head_block,
                 canonical_block_at_slot,
             )
@@ -719,7 +721,10 @@ class Node(BaseService):
                     slot_of_requested_blocks
                 )
                 self.logger.info(
-                    "_get_blocks_from_canonical_chain_by_slot:  slot_of_requested_blocks %s  blocks: %s",
+                    (
+                        "_get_blocks_from_canonical_chain_by_slot:  "
+                        "slot_of_requested_blocks %s  blocks: %s"
+                    ),
                     slot_of_requested_blocks,
                     blocks,
                 )
