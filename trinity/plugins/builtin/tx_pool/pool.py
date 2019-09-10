@@ -3,6 +3,7 @@ from typing import (
     Callable,
     Iterable,
     List,
+    Sequence,
 )
 import uuid
 
@@ -14,9 +15,7 @@ from bloom_filter import (
 
 from cancel_token import CancelToken
 
-from eth.rlp.transactions import (
-    BaseTransactionFields
-)
+from eth.abc import SignedTransactionAPI
 
 from p2p.abc import NodeAPI
 from p2p.service import BaseService
@@ -33,7 +32,7 @@ from trinity.protocol.eth.events import (
 class TxPool(BaseService):
     """
     The :class:`~trinity.tx_pool.pool.TxPool` class is responsible for holding and relaying
-    of transactions, represented as :class:`~eth.rlp.transactions.BaseTransaction` among the
+    of transactions, represented as :class:`~eth.abc.SignedTransactionAPI` among the
     connected peers.
 
       .. note::
@@ -45,7 +44,7 @@ class TxPool(BaseService):
     def __init__(self,
                  event_bus: EndpointAPI,
                  peer_pool: ETHProxyPeerPool,
-                 tx_validation_fn: Callable[[BaseTransactionFields], bool],
+                 tx_validation_fn: Callable[[SignedTransactionAPI], bool],
                  token: CancelToken = None) -> None:
         super().__init__(token)
         self._event_bus = event_bus
@@ -69,10 +68,10 @@ class TxPool(BaseService):
         self.logger.info("Running Tx Pool")
 
         async for event in self.wait_iter(self._event_bus.stream(TransactionsEvent)):
-            txs = cast(List[BaseTransactionFields], event.msg)
+            txs = cast(List[SignedTransactionAPI], event.msg)
             await self._handle_tx(event.remote, txs)
 
-    async def _handle_tx(self, sender: NodeAPI, txs: List[BaseTransactionFields]) -> None:
+    async def _handle_tx(self, sender: NodeAPI, txs: Sequence[SignedTransactionAPI]) -> None:
 
         self.logger.debug('Received %d transactions from %s', len(txs), sender)
 
@@ -98,7 +97,7 @@ class TxPool(BaseService):
     def _filter_tx_for_peer(
             self,
             peer: ETHProxyPeer,
-            txs: List[BaseTransactionFields]) -> List[BaseTransactionFields]:
+            txs: Sequence[SignedTransactionAPI]) -> List[SignedTransactionAPI]:
 
         return [
             val for val in txs
@@ -107,10 +106,10 @@ class TxPool(BaseService):
             if self.tx_validation_fn(val)
         ]
 
-    def _construct_bloom_entry(self, remote: NodeAPI, tx: BaseTransactionFields) -> bytes:
+    def _construct_bloom_entry(self, remote: NodeAPI, tx: SignedTransactionAPI) -> bytes:
         return f"{repr(remote)}-{tx.hash}-{self._bloom_salt}".encode()
 
-    def _add_txs_to_bloom(self, remote: NodeAPI, txs: Iterable[BaseTransactionFields]) -> None:
+    def _add_txs_to_bloom(self, remote: NodeAPI, txs: Iterable[SignedTransactionAPI]) -> None:
         for val in txs:
             self._bloom.add(self._construct_bloom_entry(remote, val))
 

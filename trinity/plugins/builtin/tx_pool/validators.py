@@ -14,9 +14,6 @@ from eth.abc import (
     ChainAPI,
     SignedTransactionAPI,
 )
-from eth.rlp.transactions import (
-    BaseTransactionFields
-)
 
 
 class DefaultTransactionValidator():
@@ -54,7 +51,7 @@ class DefaultTransactionValidator():
 
         self._initial_tx_class_index = self._ordered_tx_classes.index(self._initial_tx_class)
 
-    def __call__(self, transaction: BaseTransactionFields) -> bool:
+    def __call__(self, transaction: SignedTransactionAPI) -> bool:
 
         transaction_class = self.get_appropriate_tx_class()
         tx = transaction_class(**transaction.as_dict())
