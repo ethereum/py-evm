@@ -1,0 +1,2 @@
+An occasional warning "ValidationError: Duplicate tasks detected" was crashing the node. It's
+recoverable, so log it, but don't crash.

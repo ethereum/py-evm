@@ -592,9 +592,20 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
         :param gap_length: how long is the header gap
         :param skeleton_peer: the peer that provided the parent_header - will not use to fill gaps
         """
-        await self.wait(self._filler_header_tasks.add((
-            (parent_header, gap_length, skeleton_peer),
-        )))
+        try:
+            await self.wait(self._filler_header_tasks.add((
+                (parent_header, gap_length, skeleton_peer),
+            )))
+        except ValidationError as exc:
+            self.logger.debug(
+                "Tried to re-add a duplicate list of headers to the download queue: %s",
+                exc,
+            )
+            # Since the task is already queued up, there is no value in
+            # re-adding it, so it is safe to drop the exception after logging
+            # it. One example of a time it happens is when the skeleton sync
+            # restarts, and happens to choose the same skeleton structure. It
+            # tries to reinsert the same duplicate meat filler tasks.
 
     async def _run(self) -> None:
         self.run_daemon_task(self._display_stats())
