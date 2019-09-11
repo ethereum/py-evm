@@ -224,7 +224,7 @@ class BCCReceiveServer(BaseService):
                     except ValueError:
                         self.logger.debug(
                             "peer=%s sent incorrect block=%s",
-                            peer.ID,
+                            peer._id,
                             encode_hex(block.signing_root),
                         )
                         # This should not happen if peers are returning correct blocks

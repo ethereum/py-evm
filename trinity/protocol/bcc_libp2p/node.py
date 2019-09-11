@@ -146,7 +146,7 @@ REQ_RESP_RECENT_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(
 class Peer:
 
     node: "Node"
-    ID: ID
+    _id: ID
     fork_version: Version  # noqa: E701
     finalized_root: SigningRoot
     finalized_epoch: Epoch
@@ -159,7 +159,7 @@ class Peer:
     ) -> "Peer":
         return cls(
             node=node,
-            ID=peer_id,
+            _id=peer_id,
             fork_version=request.fork_version,
             finalized_root=request.finalized_root,
             finalized_epoch=request.finalized_epoch,
@@ -171,7 +171,7 @@ class Peer:
         self, start_slot: Slot, count: int, step: int = 1
     ) -> Tuple[BaseBeaconBlock, ...]:
         return await self.node.request_beacon_blocks(
-            self.ID,
+            self._id,
             head_block_root=self.head_root,
             start_slot=start_slot,
             count=count,
@@ -181,7 +181,7 @@ class Peer:
     async def request_recent_beacon_blocks(
         self, block_roots: Sequence[HashTreeRoot]
     ) -> Tuple[BaseBeaconBlock, ...]:
-        return await self.node.request_recent_beacon_blocks(self.ID, block_roots)
+        return await self.node.request_recent_beacon_blocks(self._id, block_roots)
 
 
 class PeerPool:
@@ -191,7 +191,7 @@ class PeerPool:
         self.peers = {}
 
     def add(self, peer: Peer) -> None:
-        self.peers[peer.ID] = peer
+        self.peers[peer._id] = peer
 
     def remove(self, peer_id: ID) -> None:
         del self.peers[peer_id]
