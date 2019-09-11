@@ -1,28 +1,52 @@
 import asyncio
 import itertools
-from typing import Tuple, AsyncGenerator
+import operator
+from typing import (
+    cast,
+    Tuple,
+    Iterable,
+    AsyncGenerator,
+)
 
-from eth_utils import ValidationError
+from eth_utils import (
+    ValidationError,
+)
+from eth_utils.toolz import (
+    first,
+)
 
-from cancel_token import CancelToken
+from cancel_token import (
+    CancelToken,
+)
 
-from p2p.service import BaseService
+from p2p.service import (
+    BaseService,
+)
 
-from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock
+from eth2.beacon.types.blocks import (
+    BaseBeaconBlock,
+    BeaconBlock,
+)
 from eth2.beacon.db.exceptions import FinalizedHeadNotFound
-from eth2.beacon.typing import Slot, HashTreeRoot
+from eth2.beacon.typing import (
+    Slot,
+)
 
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
+from trinity.protocol.bcc_libp2p.node import PeerPool, Peer
 from trinity.sync.beacon.constants import (
     MAX_BLOCKS_PER_REQUEST,
     PEER_SELECTION_RETRY_INTERVAL,
     PEER_SELECTION_MAX_RETRIES,
 )
-from trinity.sync.common.chain import SyncBlockImporter
-from eth2.configs import Eth2GenesisConfig
-
-from trinity.protocol.bcc_libp2p.node import PeerPool, Peer
+from trinity.sync.common.chain import (
+    SyncBlockImporter,
+)
+from eth2.configs import (
+    Eth2GenesisConfig,
+)
 from trinity.protocol.bcc_libp2p.exceptions import RequestFailure
+
 
 
 class BeaconChainSyncer(BaseService):
@@ -34,20 +58,19 @@ class BeaconChainSyncer(BaseService):
     genesis_config: Eth2GenesisConfig
     sync_peer: Peer
 
-    def __init__(
-        self,
-        chain_db: BaseAsyncBeaconChainDB,
-        peer_pool: PeerPool,
-        block_importer: SyncBlockImporter,
-        genesis_config: Eth2GenesisConfig,
-        token: CancelToken = None,
-    ) -> None:
+    def __init__(self,
+                 chain_db: BaseAsyncBeaconChainDB,
+                 peer_pool: PeerPool,
+                 block_importer: SyncBlockImporter,
+                 genesis_config: Eth2GenesisConfig,
+                 token: CancelToken = None) -> None:
         super().__init__(token)
 
         self.chain_db = chain_db
         self.peer_pool = peer_pool
         self.block_importer = block_importer
         self.genesis_config = genesis_config
+
         self.sync_peer = None
 
     @property
@@ -137,9 +160,7 @@ class BeaconChainSyncer(BaseService):
             for block in batch:
                 # Copied from `RegularChainBodySyncer._import_blocks`
                 try:
-                    _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(
-                        block
-                    )
+                    _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(block)  # noqa: E501
 
                     if new_canonical_blocks == (block,):
                         # simple import of a single new block.
@@ -158,14 +179,12 @@ class BeaconChainSyncer(BaseService):
                     else:
                         raise Exception("Invariant: unreachable code path")
                 except ValidationError as error:
-                    self.logger.info(
-                        f"Received invalid block from {self.sync_peer}: {error}"
-                    )
-                    break
+                        self.logger.info(f"Received invalid block from {self.sync_peer}: {error}")
+                        break
 
-    async def request_batches(
-        self, start_slot: Slot
-    ) -> AsyncGenerator[Tuple[BaseBeaconBlock, ...], None]:
+    async def request_batches(self,
+                              start_slot: Slot,
+                              ) -> AsyncGenerator[Tuple[BaseBeaconBlock, ...], None]:
         slot = start_slot
         while True:
             self.logger.debug(
@@ -195,11 +214,12 @@ class BeaconChainSyncer(BaseService):
                 "Invariant: Syncing starts with the child of a finalized block, so never with the "
                 "genesis block"
             )
+
         canonical_parent = await self.chain_db.coro_get_canonical_block_by_slot(
             parent_slot,
             BeaconBlock,
         )
         if canonical_parent.signing_root != parent_root:
-            message = f"Peer has different block at slot #{parent_slot}"
+            message = f"Peer has different block finalized at slot #{parent_slot}"
             self.logger.info(message)
             raise ValidationError(message)
