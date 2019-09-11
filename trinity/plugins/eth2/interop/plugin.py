@@ -85,7 +85,7 @@ class InteropPlugin(BaseMainProcessPlugin):
         )
 
         time_group = interop_parser.add_mutually_exclusive_group(
-            required=True,
+            required=False,
         )
         time_group.add_argument(
             '--start-time',
@@ -98,9 +98,25 @@ class InteropPlugin(BaseMainProcessPlugin):
             type=int,
         )
 
-        interop_parser.add_argument(
+        validator_group = interop_parser.add_mutually_exclusive_group(
+            required=True,
+        )
+
+        validator_group.add_argument(
             '--validators',
             help="Which validators should run",
+            type=str,
+        )
+
+        validator_group.add_argument(
+            '--validators-from-yaml-key-file',
+            help="Which validators should run, inferred by provided key pairs",
+            type=str,
+        )
+
+        interop_parser.add_argument(
+            '--genesis-state-ssz-path',
+            help="Path to a SSZ-encoded genesis state",
             type=str,
         )
 
@@ -133,7 +149,7 @@ class InteropPlugin(BaseMainProcessPlugin):
             else:
                 beacon_config.database_dir.mkdir()
 
-        genesis_path = Path('genesis.ssz')
+        genesis_path = args.genesis_state_ssz_path or Path('genesis.ssz')
         logger.info(f"Using genesis from {genesis_path}")
 
         # read the genesis!
@@ -166,21 +182,9 @@ class InteropPlugin(BaseMainProcessPlugin):
                 genesis_time=start_time
             )
         else:
-            logger.error("Could not determine when time begins")
-            sys.exit(1)
+            logger.info("Using genesis_time from genesis state to determine start time")
 
         logger.info(f"Genesis hash tree root: {state.hash_tree_root.hex()}")
-
-        validators = args.validators
-        if not validators:
-            logger.info(f"Not running any validators")
-        else:
-            validators = [int(token) for token in validators.split(',')]
-            for validator in validators:
-                if validator < 0 or validator > 15:
-                    logger.error(f"{validator} is not a valid validator")
-                    sys.exit(1)
-            logger.info(f"Validating: {validators}")
 
         logger.info(f"Configuring {trinity_config.trinity_root_dir}")
 
@@ -197,13 +201,26 @@ class InteropPlugin(BaseMainProcessPlugin):
             pass
         keys_dir.mkdir()
 
-        # parse the yaml...
-        yaml = YAML(typ="unsafe")
-        keys = yaml.load(Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'))
+        validators = args.validators
+        if not validators:
+            validators_keys_file = args.validators_from_yaml_key_file
+            yaml = YAML(typ="unsafe")
+            keys = yaml.load(Path(validators_keys_file))
+            for (i, key) in enumerate(keys):
+                file_name = f"v_{i}.privkey"
+                key_path = keys_dir / file_name
+                with open(key_path, "w") as f:
+                    f.write(str(to_int(hexstr=key['privkey'])))
+        else:
+            validators = [int(token) for token in validators.split(',')]
+            for validator in validators:
+                if validator < 0 or validator > 15:
+                    logger.error(f"{validator} is not a valid validator")
+                    sys.exit(1)
+            logger.info(f"Validating: {validators}")
+            yaml = YAML(typ="unsafe")
+            keys = yaml.load(Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'))
 
-        # the reverse of extract_privkeys_from_dir
-        # a near-copy of generate_keys from the network_generator plugin
-        if validators:
             for validator_index in validators:
                 key = keys[validator_index]
                 file_name = f"v{validator_index:07d}.privkey"
