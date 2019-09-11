@@ -105,15 +105,21 @@ class BeaconChainSyncer(BaseService):
 
     async def sync(self) -> None:
 
-        head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
+        try:
+            finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
+            finalized_slot = finalized_head.slot
+        # TODO(ralexstokes) look at better way to handle once we have fork choice in place
+        except FinalizedHeadNotFound:
+            finalized_slot = self.genesis_config.GENESIS_SLOT
 
         self.logger.info(
-            "Syncing with %s (their head slot: %d, our head slot: %d)",
+            "Syncing with %s (their head slot: %d, our finalized slot: %d)",
             self.sync_peer,
             self.sync_peer.head_slot,
-            head.slot,
+            finalized_slot,
         )
-        batches = self.request_batches(head.slot)
+        start_slot = finalized_slot + 1
+        batches = self.request_batches(start_slot)
 
         last_block = None
         async for batch in batches:
