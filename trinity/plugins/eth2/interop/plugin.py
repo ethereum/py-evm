@@ -99,7 +99,7 @@ class InteropPlugin(BaseMainProcessPlugin):
         )
 
         validator_group = interop_parser.add_mutually_exclusive_group(
-            required=True,
+            required=False,
         )
 
         validator_group.add_argument(
@@ -202,31 +202,34 @@ class InteropPlugin(BaseMainProcessPlugin):
         keys_dir.mkdir()
 
         validators = args.validators
-        if not validators:
-            validators_keys_file = args.validators_from_yaml_key_file
-            yaml = YAML(typ="unsafe")
-            keys = yaml.load(Path(validators_keys_file))
-            for (i, key) in enumerate(keys):
-                file_name = f"v_{i}.privkey"
-                key_path = keys_dir / file_name
-                with open(key_path, "w") as f:
-                    f.write(str(to_int(hexstr=key['privkey'])))
-        else:
-            validators = [int(token) for token in validators.split(',')]
-            for validator in validators:
-                if validator < 0 or validator > 15:
-                    logger.error(f"{validator} is not a valid validator")
-                    sys.exit(1)
-            logger.info(f"Validating: {validators}")
-            yaml = YAML(typ="unsafe")
-            keys = yaml.load(Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'))
+        if (args.validators or args.validators_from_yaml_key_file):
+            if not validators:
+                validators_keys_file = args.validators_from_yaml_key_file
+                yaml = YAML(typ="unsafe")
+                keys = yaml.load(Path(validators_keys_file))
+                for (i, key) in enumerate(keys):
+                    file_name = f"v_{i}.privkey"
+                    key_path = keys_dir / file_name
+                    with open(key_path, "w") as f:
+                        f.write(str(to_int(hexstr=key['privkey'])))
+            else:
+                validators = [int(token) for token in validators.split(',')]
+                for validator in validators:
+                    if validator < 0 or validator > 15:
+                        logger.error(f"{validator} is not a valid validator")
+                        sys.exit(1)
+                    logger.info(f"Validating: {validators}")
+                    yaml = YAML(typ="unsafe")
+                    keys = yaml.load(Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'))
 
-            for validator_index in validators:
-                key = keys[validator_index]
-                file_name = f"v{validator_index:07d}.privkey"
-                key_path = keys_dir / file_name
-                with open(key_path, "w") as f:
-                    f.write(str(to_int(hexstr=key['privkey'])))
+                for validator_index in validators:
+                    key = keys[validator_index]
+                    file_name = f"v{validator_index:07d}.privkey"
+                    key_path = keys_dir / file_name
+                    with open(key_path, "w") as f:
+                        f.write(str(to_int(hexstr=key['privkey'])))
+        else:
+            logger.info("not running any validators")
 
         # disable some plugins which shouldn't be running
         args.disable_discovery = True
