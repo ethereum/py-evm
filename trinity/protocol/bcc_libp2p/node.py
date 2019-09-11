@@ -695,8 +695,8 @@ class Node(BaseService):
         for slot in slot_of_requested_blocks:
             try:
                 block = self.chain.get_canonical_block_by_slot(slot)
-            except BlockNotFound as err:
-                self.logger.info("block not found: %s", err)
+            except BlockNotFound:
+                pass
             else:
                 yield block
 
@@ -785,18 +785,9 @@ class Node(BaseService):
         finally:
             if block_match:
                 # Peer's head block is on our canonical chain
-                blocks = self._get_blocks_from_canonical_chain_by_slot(
+                return self._get_blocks_from_canonical_chain_by_slot(
                     slot_of_requested_blocks
                 )
-                self.logger.info(
-                    (
-                        "_get_blocks_from_canonical_chain_by_slot:  "
-                        "slot_of_requested_blocks %s  blocks: %s"
-                    ),
-                    slot_of_requested_blocks,
-                    blocks,
-                )
-                return blocks
             else:
                 # Peer's head block is not on our canonical chain
                 # Validate `start_slot` is greater than our latest finalized slot
@@ -843,7 +834,6 @@ class Node(BaseService):
         else:
             # Check if slot of specified head block is greater than specified start slot
             if requested_head_block.slot < beacon_blocks_request.start_slot:
-                self.logger.info("if branch")
                 reason = (
                     f"Invalid request: head block slot({requested_head_block.slot})"
                     f" lower than `start_slot`({beacon_blocks_request.start_slot})"
