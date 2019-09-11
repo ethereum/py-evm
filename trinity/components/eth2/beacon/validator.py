@@ -21,6 +21,7 @@ from eth_utils import (
     encode_hex,
     humanize_hash,
     to_tuple,
+    ValidationError,
 )
 
 from eth2.beacon.chains.base import (
@@ -131,10 +132,17 @@ class Validator(BaseService):
         The callback for `SlotTicker` and it's expected to be called twice for one slot.
         """
         async for event in self.event_bus.stream(SlotTickEvent):
-            if not event.is_second_tick:
-                await self.handle_first_tick(event.slot)
-            else:
-                await self.handle_second_tick(event.slot)
+            try:
+                if not event.is_second_tick:
+                    await self.handle_first_tick(event.slot)
+                else:
+                    await self.handle_second_tick(event.slot)
+            except ValidationError as e:
+                self.logger.warn("%s", e)
+                self.logger.warn(
+                    "SHOULD NOT GET A VALIDATION ERROR"
+                    " HERE AS IT IS INTERNAL TO OUR OWN CODE"
+                )
 
     def _get_this_epoch_assignment(self,
                                    validator_index: ValidatorIndex,
