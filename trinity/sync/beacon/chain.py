@@ -113,8 +113,6 @@ class BeaconChainSyncer(BaseService):
             self.sync_peer.head_slot,
             head.slot,
         )
-        self.logger.info("My head is %s", head.hash_tree_root)
-
         batches = self.request_batches(head.slot)
 
         last_block = None
@@ -186,11 +184,16 @@ class BeaconChainSyncer(BaseService):
         parent_root = batch[0].parent_root
         parent_slot = batch[0].slot - 1
 
-        if parent_slot >= 0:
-            canonical_parent = await self.chain_db.coro_get_canonical_block_by_slot(
-                parent_slot, BeaconBlock
+        if parent_slot < 0:
+            raise Exception(
+                "Invariant: Syncing starts with the child of a finalized block, so never with the "
+                "genesis block"
             )
-            if canonical_parent.signing_root != parent_root:
-                message = f"Peer has different block finalized at slot #{parent_slot}"
-                self.logger.info(message)
-                raise ValidationError(message)
+        canonical_parent = await self.chain_db.coro_get_canonical_block_by_slot(
+            parent_slot,
+            BeaconBlock,
+        )
+        if canonical_parent.signing_root != parent_root:
+            message = f"Peer has different block at slot #{parent_slot}"
+            self.logger.info(message)
+            raise ValidationError(message)
