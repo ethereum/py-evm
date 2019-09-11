@@ -124,9 +124,11 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                     reverse=False,
                 )
             except non_response_from_peers as exc:
-                self.logger.debug("%s did not return checkpoint prerequisites: %r", peer, exc)
                 # Nothing to do here. The ExchangeManager will disconnect if appropriate
                 # and eventually lead us to a better peer.
+                self.logger.debug("%s did not return checkpoint prerequisites: %r", peer, exc)
+                # Release the event loop so that "gone" peers don't keep getting returned here
+                await asyncio.sleep(0)
                 continue
 
             if not headers:
