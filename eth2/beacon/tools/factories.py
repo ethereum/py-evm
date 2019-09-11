@@ -8,7 +8,6 @@ from eth2._utils.bls import bls
 from eth2._utils.hash import hash_eth2
 from eth2.beacon.chains.base import BaseBeaconChain
 from eth2.beacon.chains.testnet import TestnetChain
-from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import XIAO_LONG_BAO_CONFIG
 from eth2.beacon.tools.builder.initializer import create_mock_genesis
