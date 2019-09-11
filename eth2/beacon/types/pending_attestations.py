@@ -32,7 +32,7 @@ class PendingAttestation(ssz.Serializable):
 
     def __str__(self) -> str:
         return (
-            f"aggregation_bits={self.aggregation_bits},"
+            f"aggregation_bits={str(self.aggregation_bits)},"
             f" data=({self.data}),"
             f" inclusion_delay={self.inclusion_delay},"
             f" proposer_index={self.proposer_index}"

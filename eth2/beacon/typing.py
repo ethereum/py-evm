@@ -6,7 +6,14 @@ Slot = NewType("Slot", int)  # uint64
 Epoch = NewType("Epoch", int)  # uint64
 Shard = NewType("Shard", int)  # uint64
 
-Bitfield = NewType("Bitfield", Tuple[bool, ...])
+
+class Bitfield(Tuple[bool, ...]):
+    def __new__(self, *args):
+        return tuple.__new__(Bitfield, *args)
+
+    def __str__(self) -> str:
+        elems = map(lambda elem: "1" if elem else "0", self)
+        return f"0b{''.join(elems)}"
 
 
 ValidatorIndex = NewType("ValidatorIndex", int)  # uint64

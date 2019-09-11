@@ -32,9 +32,9 @@ class Attestation(ssz.Serializable):
 
     def __str__(self) -> str:
         return (
-            f"aggregation_bits={self.aggregation_bits},"
+            f"aggregation_bits={str(self.aggregation_bits)},"
             f" data=({self.data}),"
-            f" custody_bits={self.custody_bits},"
+            f" custody_bits={str(self.custody_bits)},"
             f" signature={humanize_hash(self.signature)}"
         )
 
@@ -62,8 +62,8 @@ class IndexedAttestation(ssz.Serializable):
 
     def __str__(self) -> str:
         return (
-            f"custody_bit_0_indices={self.custody_bit_0_indices},"
-            f" custody_bit_1_indices={self.custody_bit_1_indices},"
+            f"custody_bit_0_indices={str(self.custody_bit_0_indices)},"
+            f" custody_bit_1_indices={str(self.custody_bit_1_indices)},"
             f" data=({self.data}),"
             f" signature={humanize_hash(self.signature)}"
         )
