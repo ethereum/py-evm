@@ -41,6 +41,7 @@ from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.types.blocks import (
     BeaconBlock,
     BeaconBlockBody,
+    BaseBeaconBlock,
 )
 from eth2.beacon.state_machines.forks.serenity import SERENITY_CONFIG
 from eth2.configs import (
@@ -56,8 +57,9 @@ from trinity.protocol.bcc.peer import (
     BCCPeerPool,
 )
 
-from trinity.protocol.bcc_libp2p.node import Node
+from trinity.protocol.bcc_libp2p.node import Node, PeerPool
 from trinity.protocol.bcc_libp2p.servers import BCCReceiveServer
+from trinity.sync.beacon.chain import BeaconChainSyncer
 
 from .factories import (
     AtomicDBFactory,
@@ -102,14 +104,15 @@ class NodeFactory(factory.Factory):
 
 @asynccontextmanager
 async def ConnectionPairFactory(
+    alice_chaindb: AsyncBeaconChainDB = None,
+    bob_chaindb: AsyncBeaconChainDB = None,
     cancel_token: CancelToken = None,
     say_hello: bool = True,
 ) -> AsyncIterator[Tuple[Node, Node]]:
     if cancel_token is None:
         cancel_token = CancelTokenFactory()
-    alice = NodeFactory(cancel_token=cancel_token)
-    bob = NodeFactory(cancel_token=cancel_token)
-
+    alice = NodeFactory(chain__db=alice_chaindb.db, cancel_token=cancel_token)
+    bob = NodeFactory(chain__db=bob_chaindb.db, cancel_token=cancel_token)
     async with run_service(alice), run_service(bob):
         await asyncio.sleep(0.01)
         await alice.dial_peer_maddr(bob.listen_maddr_with_peer_id)
@@ -264,6 +267,37 @@ class ReceiveServerFactory(factory.Factory):
 
     @classmethod
     def create_batch(cls, number: int) -> Tuple[Node, ...]:
-        return tuple(
-            cls() for _ in range(number)
+        return tuple(cls() for _ in range(number))
+
+
+class SimpleWriterBlockImporter:
+    """
+    ``SimpleWriterBlockImporter`` just persists any imported blocks to the
+    database provided at instantiation.
+    """
+
+    def __init__(self, chain_db: AsyncBeaconChainDB) -> None:
+        self._chain_db = chain_db
+
+    def import_block(
+        self, block: BaseBeaconBlock
+    ) -> Tuple[
+        BaseBeaconBlock, Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]
+    ]:
+        new_blocks, old_blocks = self._chain_db.persist_block(
+            block, BeaconBlock, higher_slot_scoring
         )
+        return None, new_blocks, old_blocks
+
+
+class BeaconChainSyncerFactory(factory.Factory):
+    class Meta:
+        model = BeaconChainSyncer
+
+    chain_db = factory.SubFactory(AsyncBeaconChainDBFactory)
+    peer_pool = factory.LazyAttribute(lambda _: PeerPool())
+    block_importer = factory.LazyAttribute(
+        lambda obj: SimpleWriterBlockImporter(obj.chain_db)
+    )
+    genesis_config = SERENITY_GENESIS_CONFIG
+    token = None

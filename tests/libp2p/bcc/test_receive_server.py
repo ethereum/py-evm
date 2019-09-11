@@ -411,7 +411,7 @@ async def test_bcc_receive_server_get_ready_attestations(receive_server, monkeyp
     receive_server.attestation_pool.batch_add([a1, a2, a3])
 
     # Workaround: add a fake head state slot
-    # so `get_state_machine` wont's trigger `HeadStateSlotNotFound` exception
+    # so `get_state_machine` won't trigger `HeadStateSlotNotFound` exception
     receive_server.chain.chaindb._add_head_state_slot_lookup(
         XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
     )

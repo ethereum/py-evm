@@ -3,7 +3,6 @@ from typing import (
     Dict,
     Iterable,
     Optional,
-    Set,
     Sequence,
     Tuple,
     cast,
@@ -35,6 +34,8 @@ from eth2.beacon.typing import (
     Epoch,
     Slot,
     HashTreeRoot,
+    Version,
+    SigningRoot,
 )
 from eth2.beacon.constants import (
     ZERO_SIGNING_ROOT,
@@ -128,11 +129,87 @@ from .utils import (
     write_resp,
 )
 
+from dataclasses import dataclass
+import operator
+from eth_utils.toolz import first
+
 
 REQ_RESP_HELLO_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_HELLO)
 REQ_RESP_GOODBYE_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_GOODBYE)
 REQ_RESP_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_BEACON_BLOCKS)
-REQ_RESP_RECENT_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_RECENT_BEACON_BLOCKS)
+REQ_RESP_RECENT_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(
+    REQ_RESP_RECENT_BEACON_BLOCKS
+)
+
+
+@dataclass
+class Peer:
+
+    node: "Node"
+    _id: ID
+    fork_version: Version  # noqa: E701
+    finalized_root: SigningRoot
+    finalized_epoch: Epoch
+    head_root: HashTreeRoot
+    head_slot: Slot
+
+    @classmethod
+    def from_hello_request(
+        cls, node: "Node", peer_id: ID, request: HelloRequest
+    ) -> "Peer":
+        return cls(
+            node=node,
+            _id=peer_id,
+            fork_version=request.fork_version,
+            finalized_root=request.finalized_root,
+            finalized_epoch=request.finalized_epoch,
+            head_root=request.head_root,
+            head_slot=request.head_slot,
+        )
+
+    async def request_beacon_blocks(
+        self, start_slot: Slot, count: int, step: int = 1
+    ) -> Tuple[BaseBeaconBlock, ...]:
+        return await self.node.request_beacon_blocks(
+            self._id,
+            head_block_root=self.head_root,
+            start_slot=start_slot,
+            count=count,
+            step=step,
+        )
+
+    async def request_recent_beacon_blocks(
+        self, block_roots: Sequence[HashTreeRoot]
+    ) -> Tuple[BaseBeaconBlock, ...]:
+        return await self.node.request_recent_beacon_blocks(self._id, block_roots)
+
+
+class PeerPool:
+    peers: Dict[ID, Peer]
+
+    def __init__(self) -> None:
+        self.peers = {}
+
+    def add(self, peer: Peer) -> None:
+        self.peers[peer._id] = peer
+
+    def remove(self, peer_id: ID) -> None:
+        del self.peers[peer_id]
+
+    def __contains__(self, peer_id: ID) -> bool:
+        return peer_id in self.peers.keys()
+
+    def __len__(self) -> int:
+        return len(self.peers)
+
+    def get_best(self, field: str) -> Peer:
+        sorted_peers = sorted(
+            self.peers.values(), key=operator.attrgetter(field), reverse=True
+        )
+        return first(sorted_peers)
+
+    def get_best_head_slot_peer(self) -> Peer:
+        return self.get_best("head_slot")
 
 
 class Node(BaseService):
@@ -148,7 +225,7 @@ class Node(BaseService):
     preferred_nodes: Optional[Tuple[Multiaddr, ...]]
     chain: BaseBeaconChain
 
-    handshaked_peers: Set[ID]
+    handshaked_peers: PeerPool = None
 
     def __init__(
             self,
@@ -205,7 +282,7 @@ class Node(BaseService):
 
         self.chain = chain
 
-        self.handshaked_peers = set()
+        self.handshaked_peers = PeerPool()
 
         self.run_task(self.start())
 
@@ -460,7 +537,8 @@ class Node(BaseService):
                 return
 
         if peer_id not in self.handshaked_peers:
-            self.handshaked_peers.add(peer_id)
+            peer = Peer.from_hello_request(self, peer_id, hello_other_side)
+            self.handshaked_peers.add(peer)
             self.logger.debug(
                 "Handshake from %s is finished. Added to the `handshake_peers`",
                 peer_id,
@@ -550,7 +628,8 @@ class Node(BaseService):
             raise HandshakeFailure(error_msg) from error
 
         if peer_id not in self.handshaked_peers:
-            self.handshaked_peers.add(peer_id)
+            peer = Peer.from_hello_request(self, peer_id, hello_other_side)
+            self.handshaked_peers.add(peer)
             self.logger.debug(
                 "Handshake to peer=%s is finished. Added to the `handshake_peers`",
                 peer_id,
@@ -672,16 +751,16 @@ class Node(BaseService):
     def _get_requested_beacon_blocks(
         self,
         beacon_blocks_request: BeaconBlocksRequest,
-        peer_head_block: BaseBeaconBlock,
+        requested_head_block: BaseBeaconBlock,
     ) -> Tuple[BaseBeaconBlock, ...]:
         slot_of_requested_blocks = tuple(
             beacon_blocks_request.start_slot + i * beacon_blocks_request.step
             for i in range(beacon_blocks_request.count)
         )
-        slot_of_requested_blocks = tuple(filter(
-            lambda slot: slot <= peer_head_block.slot,
-            slot_of_requested_blocks,
-        ))
+        self.logger.info("slot_of_requested_blocks: %s", slot_of_requested_blocks)
+        slot_of_requested_blocks = tuple(
+            filter(lambda slot: slot <= requested_head_block.slot, slot_of_requested_blocks)
+        )
 
         if len(slot_of_requested_blocks) == 0:
             return tuple()
@@ -690,23 +769,32 @@ class Node(BaseService):
         # next check if the head block is on our canonical chain.
         try:
             canonical_block_at_slot = self.chain.get_canonical_block_by_slot(
-                peer_head_block.slot
+                requested_head_block.slot
             )
-            block_match = canonical_block_at_slot == peer_head_block
+            block_match = canonical_block_at_slot == requested_head_block
         except BlockNotFound:
-            # Peer's head block is not on our canonical chain
+            self.logger.debug(
+                (
+                    "The requested head block is not on our canonical chain  "
+                    "requested_head_block: %s  canonical_block_at_slot: %s"
+                ),
+                requested_head_block,
+                canonical_block_at_slot,
+            )
             block_match = False
         finally:
             if block_match:
                 # Peer's head block is on our canonical chain
-                return self._get_blocks_from_canonical_chain_by_slot(slot_of_requested_blocks)
+                return self._get_blocks_from_canonical_chain_by_slot(
+                    slot_of_requested_blocks
+                )
             else:
                 # Peer's head block is not on our canonical chain
                 # Validate `start_slot` is greater than our latest finalized slot
                 self._validate_start_slot(beacon_blocks_request.start_slot)
                 return self._get_blocks_from_fork_chain_by_root(
                     beacon_blocks_request.start_slot,
-                    peer_head_block,
+                    requested_head_block,
                     slot_of_requested_blocks,
                 )
 
@@ -736,16 +824,18 @@ class Node(BaseService):
         self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
 
         try:
-            peer_head_block = self.chain.get_block_by_hash_tree_root(
-                beacon_blocks_request.head_block_root)
-        except (BlockNotFound, ValidationError):
+            requested_head_block = self.chain.get_block_by_hash_tree_root(
+                beacon_blocks_request.head_block_root
+            )
+        except (BlockNotFound, ValidationError) as error:
+            self.logger.info("Sending empty blocks, reason: %s", error)
             # We don't have the chain data peer is requesting
             requested_beacon_blocks: Tuple[BaseBeaconBlock, ...] = tuple()
         else:
             # Check if slot of specified head block is greater than specified start slot
-            if peer_head_block.slot < beacon_blocks_request.start_slot:
+            if requested_head_block.slot < beacon_blocks_request.start_slot:
                 reason = (
-                    f"Invalid request: head block slot({peer_head_block.slot})"
+                    f"Invalid request: head block slot({requested_head_block.slot})"
                     f" lower than `start_slot`({beacon_blocks_request.start_slot})"
                 )
                 try:
@@ -769,8 +859,7 @@ class Node(BaseService):
             else:
                 try:
                     requested_beacon_blocks = self._get_requested_beacon_blocks(
-                        beacon_blocks_request,
-                        peer_head_block,
+                        beacon_blocks_request, requested_head_block
                     )
                 except ValidationError as val_error:
                     reason = "Invalid request: " + str(val_error)
@@ -793,11 +882,10 @@ class Node(BaseService):
                             return
                     await stream.close()
                     return
-
         # TODO: Should it be a successful response if peer is requesting
         # blocks on a fork we don't have data for?
         beacon_blocks_response = BeaconBlocksResponse(blocks=requested_beacon_blocks)
-        self.logger.debug("Sending beacon blocks response %s", )
+        self.logger.debug("Sending beacon blocks response %s", beacon_blocks_response)
         try:
             await write_resp(stream, beacon_blocks_response, ResponseCode.SUCCESS)
             has_error = False

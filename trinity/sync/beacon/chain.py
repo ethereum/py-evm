@@ -1,18 +1,12 @@
 import asyncio
 import itertools
-import operator
 from typing import (
-    cast,
     Tuple,
-    Iterable,
     AsyncGenerator,
 )
 
 from eth_utils import (
     ValidationError,
-)
-from eth_utils.toolz import (
-    first,
 )
 
 from cancel_token import (
@@ -33,10 +27,7 @@ from eth2.beacon.typing import (
 )
 
 from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
-from trinity.protocol.bcc.peer import (
-    BCCPeer,
-    BCCPeerPool,
-)
+from trinity.protocol.bcc_libp2p.node import PeerPool, Peer
 from trinity.sync.beacon.constants import (
     MAX_BLOCKS_PER_REQUEST,
     PEER_SELECTION_RETRY_INTERVAL,
@@ -48,14 +39,21 @@ from trinity.sync.common.chain import (
 from eth2.configs import (
     Eth2GenesisConfig,
 )
+from trinity.protocol.bcc_libp2p.exceptions import RequestFailure
 
 
 class BeaconChainSyncer(BaseService):
     """Sync from our finalized head until their preliminary head."""
 
+    chain_db: BaseAsyncBeaconChainDB
+    peer_pool: PeerPool
+    block_importer: SyncBlockImporter
+    genesis_config: Eth2GenesisConfig
+    sync_peer: Peer
+
     def __init__(self,
                  chain_db: BaseAsyncBeaconChainDB,
-                 peer_pool: BCCPeerPool,
+                 peer_pool: PeerPool,
                  block_importer: SyncBlockImporter,
                  genesis_config: Eth2GenesisConfig,
                  token: CancelToken = None) -> None:
@@ -66,7 +64,7 @@ class BeaconChainSyncer(BaseService):
         self.block_importer = block_importer
         self.genesis_config = genesis_config
 
-        self.sync_peer: BCCPeer = None
+        self.sync_peer = None
 
     @property
     def is_sync_peer_selected(self) -> bool:
@@ -104,14 +102,11 @@ class BeaconChainSyncer(BaseService):
         new_head = await self.chain_db.coro_get_canonical_head(BeaconBlock)
         self.logger.info(f"Sync with {self.sync_peer} finished, new head: {new_head}")
 
-    async def select_sync_peer(self) -> BCCPeer:
+    async def select_sync_peer(self) -> Peer:
         if len(self.peer_pool) == 0:
             raise ValidationError("Not connected to anyone")
 
-        # choose the peer with the highest head slot
-        peers = cast(Iterable[BCCPeer], self.peer_pool.connected_nodes.values())
-        sorted_peers = sorted(peers, key=operator.attrgetter("head_slot"), reverse=True)
-        best_peer = first(sorted_peers)
+        best_peer = self.peer_pool.get_best_head_slot_peer()
 
         try:
             finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
@@ -125,6 +120,7 @@ class BeaconChainSyncer(BaseService):
         return best_peer
 
     async def sync(self) -> None:
+
         try:
             finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
             finalized_slot = finalized_head.slot
@@ -138,7 +134,6 @@ class BeaconChainSyncer(BaseService):
             self.sync_peer.head_slot,
             finalized_slot,
         )
-
         start_slot = finalized_slot + 1
         batches = self.request_batches(start_slot)
 
@@ -186,15 +181,15 @@ class BeaconChainSyncer(BaseService):
         slot = start_slot
         while True:
             self.logger.debug(
-                "Requesting blocks from %s starting at #%d",
-                self.sync_peer,
-                slot,
+                "Requesting blocks from %s starting at #%d", self.sync_peer, slot
             )
-
-            batch = await self.sync_peer.requests.get_beacon_blocks(
-                slot,
-                MAX_BLOCKS_PER_REQUEST,
-            )
+            try:
+                batch = await self.sync_peer.request_beacon_blocks(
+                    slot, MAX_BLOCKS_PER_REQUEST
+                )
+            except RequestFailure as error:
+                self.logger.debug("Request batch failed  reason: %s", error)
+                break
 
             if len(batch) == 0:
                 break

@@ -45,11 +45,15 @@ class BeaconChainFactory(factory.Factory):
     def _create(
         cls, model_class: Type[TestnetChain], *args: Any, **kwargs: Any
     ) -> BaseBeaconChain:
-        return model_class.from_genesis(
-            base_db=AtomicDB(),
+
+        db = kwargs.pop("db", AtomicDB())
+        chain = model_class.from_genesis(
+            base_db=db,
             genesis_state=genesis_state,
             genesis_block=genesis_block,
             genesis_config=Eth2GenesisConfig(
                 model_class.get_genesis_state_machine_class().config
             ),
         )
+
+        return chain

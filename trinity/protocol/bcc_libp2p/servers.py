@@ -212,13 +212,11 @@ class BCCReceiveServer(BaseService):
             # Remove dependent orphan blocks
             parent_roots.difference_update(block_roots)
             # Keep requesting parent blocks from all peers
-            peers_to_request = list(self.p2p_node.handshaked_peers)
-            for peer_id in peers_to_request:
+            for peer in self.p2p_node.handshaked_peers.peers.values():
                 if len(parent_roots) == 0:
                     break
-                blocks = await self.p2p_node.request_recent_beacon_blocks(
-                    peer_id,
-                    tuple(parent_roots),
+                blocks = await peer.request_recent_beacon_blocks(
+                    tuple(parent_roots)
                 )
                 for block in blocks:
                     try:
@@ -226,7 +224,7 @@ class BCCReceiveServer(BaseService):
                     except ValueError:
                         self.logger.debug(
                             "peer=%s sent incorrect block=%s",
-                            peer_id,
+                            peer._id,
                             encode_hex(block.signing_root),
                         )
                         # This should not happen if peers are returning correct blocks
