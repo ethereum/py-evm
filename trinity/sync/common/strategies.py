@@ -85,6 +85,8 @@ non_response_from_peers = (
 
 class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
+    MIN_DISTANCE_TO_TIP = 10
+
     min_block_number = BlockNumber(0)
 
     logger = logging.getLogger('trinity.sync.common.strategies.FromCheckpointLaunchStrategy')
@@ -104,9 +106,9 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
     async def fulfill_prerequisites(self) -> None:
         max_attempts = 1000
+        printed_general_info = False
 
         for _attempt in range(max_attempts):
-
             try:
                 peer = self._peer_pool.highest_td_peer
             except NoConnectedPeers:
@@ -119,7 +121,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
             try:
                 headers = await peer.requests.get_block_headers(
                     self._checkpoint.block_hash,
-                    max_headers=1,
+                    max_headers=self.MIN_DISTANCE_TO_TIP,
                     skip=0,
                     reverse=False,
                 )
@@ -138,12 +140,42 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                 )
                 await peer.disconnect(DisconnectReason.useless_peer)
             else:
-                self.min_block_number = headers[0].block_number
-                await self._db.coro_persist_checkpoint_header(headers[0], self._checkpoint.score)
+                header = headers[0]
+
+                distance_shortage = self.MIN_DISTANCE_TO_TIP - len(headers)
+                if distance_shortage > 0:
+
+                    if not printed_general_info:
+                        self.log_delay_info()
+                        printed_general_info = True
+
+                    if len(headers) == 1:
+                        # We are exactly at the tip, spin another round so we can make a better ETA
+                        continue
+
+                    block_durations = tuple(
+                        current.timestamp - previous.timestamp
+                        for previous, current in zip(headers[:-1], headers[1:])
+                    )
+
+                    avg_blocktime = sum(block_durations) / len(block_durations)
+                    wait_seconds = distance_shortage * avg_blocktime
+
+                    self.logger.info(
+                        "It's expected to take roughly %s before sync can start.",
+                        wait_seconds
+                    )
+
+                    await asyncio.sleep(wait_seconds)
+                    continue
+
+                self.min_block_number = header.block_number
+                await self._db.coro_persist_checkpoint_header(header, self._checkpoint.score)
+
                 self.logger.debug(
                     "Successfully fulfilled checkpoint prereqs with %s: %s",
                     peer,
-                    headers[0],
+                    header,
                 )
                 return
 
@@ -151,6 +183,13 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
         raise asyncio.TimeoutError(
             f"Failed to get checkpoint header within {max_attempts} attempts"
+        )
+
+    def log_delay_info(self) -> None:
+        self.logger.info(
+            f"Checkpoint is less than {self.MIN_DISTANCE_TO_TIP} blocks away from the tip. "
+            "Either restart Trinity with an older checkpoint or hang on a little while we "
+            "wait for the chain to advance. "
         )
 
     def get_genesis_parent_hash(self) -> Hash32:
