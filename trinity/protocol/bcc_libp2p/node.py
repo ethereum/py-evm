@@ -115,11 +115,11 @@ class Peer:
         )
 
     async def request_beacon_blocks(
-        self, start_slot: Slot, head_block_root: HashTreeRoot, count: int, step: int = 1
+        self, start_slot: Slot, count: int, step: int = 1
     ) -> Tuple[BaseBeaconBlock, ...]:
         return await self.node.request_beacon_blocks(
             self.ID,
-            head_block_root=head_block_root,
+            head_block_root=self.head_root,
             start_slot=start_slot,
             count=count,
             step=step,
@@ -684,7 +684,7 @@ class Node(BaseService):
     def _get_requested_beacon_blocks(
         self,
         beacon_blocks_request: BeaconBlocksRequest,
-        peer_head_block: BaseBeaconBlock,
+        requested_head_block: BaseBeaconBlock,
     ) -> Tuple[BaseBeaconBlock, ...]:
         slot_of_requested_blocks = tuple(
             beacon_blocks_request.start_slot + i * beacon_blocks_request.step
@@ -692,7 +692,7 @@ class Node(BaseService):
         )
         self.logger.info("slot_of_requested_blocks: %s", slot_of_requested_blocks)
         slot_of_requested_blocks = tuple(
-            filter(lambda slot: slot > peer_head_block.slot, slot_of_requested_blocks)
+            filter(lambda slot: slot <= requested_head_block.slot, slot_of_requested_blocks)
         )
 
         if len(slot_of_requested_blocks) == 0:
@@ -702,16 +702,16 @@ class Node(BaseService):
         # next check if the head block is on our canonical chain.
         try:
             canonical_block_at_slot = self.chain.get_canonical_block_by_slot(
-                peer_head_block.slot
+                requested_head_block.slot
             )
-            block_match = canonical_block_at_slot == peer_head_block
+            block_match = canonical_block_at_slot == requested_head_block
         except BlockNotFound:
             self.logger.debug(
                 (
-                    "Peer's head block is not on our canonical chain  "
-                    "peer_head_block: %s  canonical_block_at_slot: %s"
+                    "The requested head block is not on our canonical chain  "
+                    "requested_head_block: %s  canonical_block_at_slot: %s"
                 ),
-                peer_head_block,
+                requested_head_block,
                 canonical_block_at_slot,
             )
             block_match = False
@@ -736,7 +736,7 @@ class Node(BaseService):
                 self._validate_start_slot(beacon_blocks_request.start_slot)
                 return self._get_blocks_from_fork_chain_by_root(
                     beacon_blocks_request.start_slot,
-                    peer_head_block,
+                    requested_head_block,
                     slot_of_requested_blocks,
                 )
 
@@ -768,7 +768,7 @@ class Node(BaseService):
         )
 
         try:
-            peer_head_block = self.chain.get_block_by_hash_tree_root(
+            requested_head_block = self.chain.get_block_by_hash_tree_root(
                 beacon_blocks_request.head_block_root
             )
         except (BlockNotFound, ValidationError) as error:
@@ -778,10 +778,10 @@ class Node(BaseService):
         else:
             self.logger.info("We are here")
             # Check if slot of specified head block is greater than specified start slot
-            if peer_head_block.slot < beacon_blocks_request.start_slot:
+            if requested_head_block.slot < beacon_blocks_request.start_slot:
                 self.logger.info("if branch")
                 reason = (
-                    f"Invalid request: head block slot({peer_head_block.slot})"
+                    f"Invalid request: head block slot({requested_head_block.slot})"
                     f" lower than `start_slot`({beacon_blocks_request.start_slot})"
                 )
                 try:
@@ -806,7 +806,7 @@ class Node(BaseService):
                 self.logger.info("else branch")
                 try:
                     requested_beacon_blocks = self._get_requested_beacon_blocks(
-                        beacon_blocks_request, peer_head_block
+                        beacon_blocks_request, requested_head_block
                     )
                 except ValidationError as val_error:
                     reason = "Invalid request: " + str(val_error)

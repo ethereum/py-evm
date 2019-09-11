@@ -22,6 +22,7 @@ from trinity.sync.common.chain import SyncBlockImporter
 from eth2.configs import Eth2GenesisConfig
 
 from trinity.protocol.bcc_libp2p.node import PeerPool, Peer
+from trinity.protocol.bcc_libp2p.exceptions import RequestFailure
 
 
 class BeaconChainSyncer(BaseService):
@@ -114,7 +115,7 @@ class BeaconChainSyncer(BaseService):
         )
         self.logger.info("My head is %s", head.hash_tree_root)
 
-        batches = self.request_batches(head.slot, head.hash_tree_root)
+        batches = self.request_batches(head.slot)
 
         last_block = None
         async for batch in batches:
@@ -132,8 +133,8 @@ class BeaconChainSyncer(BaseService):
             for block in batch:
                 # Copied from `RegularChainBodySyncer._import_blocks`
                 try:
-                    _, new_canonical_blocks, old_canonical_blocks = (
-                        self.block_importer.import_block(block)
+                    _, new_canonical_blocks, old_canonical_blocks = self.block_importer.import_block(
+                        block
                     )
 
                     if new_canonical_blocks == (block,):
@@ -159,26 +160,27 @@ class BeaconChainSyncer(BaseService):
                     break
 
     async def request_batches(
-        self, start_slot: Slot, head_block_root: HashTreeRoot
+        self, start_slot: Slot
     ) -> AsyncGenerator[Tuple[BaseBeaconBlock, ...], None]:
         slot = start_slot
         while True:
             self.logger.debug(
                 "Requesting blocks from %s starting at #%d", self.sync_peer, slot
             )
-
-            batch = await self.sync_peer.request_beacon_blocks(
-                slot, head_block_root, MAX_BLOCKS_PER_REQUEST
-            )
+            try:
+                batch = await self.sync_peer.request_beacon_blocks(
+                    slot, MAX_BLOCKS_PER_REQUEST
+                )
+            except RequestFailure as error:
+                self.logger.debug("Request batch failed  reason: %s", error)
+                break
 
             if len(batch) == 0:
                 break
 
             yield batch
 
-            new_head = batch[-1]
-            slot = new_head.slot
-            head_block_root = new_head.hash_tree_root
+            slot = batch[-1].slot + 1
 
     async def validate_first_batch(self, batch: Tuple[BaseBeaconBlock, ...]) -> None:
         parent_root = batch[0].parent_root
