@@ -1,4 +1,4 @@
-from enum import Enum
+import enum
 from typing import (
     NamedTuple,
 )
@@ -76,10 +76,18 @@ PUBSUB_TOPIC_ENCODE_COMPRESS_POSTFIX = "ssz_snappy"
 REQ_RESP_PROTOCOL_PREFIX = "/eth2/beacon_chain/req"
 
 
-class ResponseCode(Enum):
+@enum.unique
+class ResponseCode(enum.Enum):
     SUCCESS = 0
     INVALID_REQUEST = 1
     SERVER_ERROR = 2
+
+
+@enum.unique
+class GoodbyeReasonCode(enum.IntEnum):
+    CLIENT_SHUT_DOWN = 1
+    IRRELEVANT_NETWORK = 2
+    FAULT_OR_ERROR = 3
 
 
 REQ_RESP_VERSION = "1"

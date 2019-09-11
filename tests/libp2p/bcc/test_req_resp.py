@@ -7,7 +7,7 @@ import pytest
 
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
-from trinity.protocol.bcc_libp2p.configs import ResponseCode
+from trinity.protocol.bcc_libp2p.configs import GoodbyeReasonCode, ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import HandshakeFailure, RequestFailure
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
 from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
@@ -75,6 +75,15 @@ async def test_hello_failure_failure_response():
         with pytest.raises(HandshakeFailure):
             await alice.say_hello(bob.peer_id)
         await asyncio.sleep(0.01)
+        assert alice.peer_id not in bob.handshaked_peers
+
+
+@pytest.mark.asyncio
+async def test_goodbye():
+    async with ConnectionPairFactory() as (alice, bob):
+        await alice.say_goodbye(bob.peer_id, GoodbyeReasonCode.FAULT_OR_ERROR)
+        await asyncio.sleep(0.01)
+        assert bob.peer_id not in alice.handshaked_peers
         assert alice.peer_id not in bob.handshaked_peers
 
 
