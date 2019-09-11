@@ -1,18 +1,12 @@
 import asyncio
 import itertools
-import operator
 from typing import (
-    cast,
     Tuple,
-    Iterable,
     AsyncGenerator,
 )
 
 from eth_utils import (
     ValidationError,
-)
-from eth_utils.toolz import (
-    first,
 )
 
 from cancel_token import (
@@ -46,7 +40,6 @@ from eth2.configs import (
     Eth2GenesisConfig,
 )
 from trinity.protocol.bcc_libp2p.exceptions import RequestFailure
-
 
 
 class BeaconChainSyncer(BaseService):

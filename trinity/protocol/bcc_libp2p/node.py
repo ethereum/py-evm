@@ -3,7 +3,6 @@ from typing import (
     Dict,
     Iterable,
     Optional,
-    Set,
     Sequence,
     Tuple,
     cast,
@@ -145,9 +144,10 @@ REQ_RESP_RECENT_BEACON_BLOCKS_SSZ = make_rpc_v1_ssz_protocol_id(
 
 @dataclass
 class Peer:
+
     node: "Node"
     ID: ID
-    fork_version: Version
+    fork_version: Version  # noqa: E701
     finalized_root: SigningRoot
     finalized_epoch: Epoch
     head_root: HashTreeRoot
