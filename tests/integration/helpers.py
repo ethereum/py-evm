@@ -14,8 +14,10 @@ async def scan_for_errors(async_iterable):
     """
 
     error_trigger = (
+        "Exception ignored",
         "exception was never retrieved",
-        "ResourceWarning: unclosed resource",
+        "finished unexpectedly",
+        "ResourceWarning",
         "Task was destroyed but it is pending",
         "Traceback (most recent call last)",
     )
