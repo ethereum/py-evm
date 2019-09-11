@@ -70,6 +70,7 @@ from p2p.service import (
 )
 from trinity._utils.shellart import (
     bold_green,
+    bold_white,
 )
 from trinity.components.eth2.beacon.slot_ticker import (
     SlotTickEvent,
@@ -168,16 +169,30 @@ class Validator(BaseService):
         state = self.chain.get_head_state()
         self.logger.debug(
             bold_green(
-                "status: {slot %s, epoch %s, state_root %s, current_justified_checkpoint %s"
-                " previous_justified_checkpoint %s finalized_checkpoint %s"
-                " previous_epoch_attestations %s current_epoch_attestations %s}"
+                "status at slot %s in epoch %s: state_root %s, finalized_checkpoint %s"
             ),
             state.slot,
             state.current_epoch(self.slots_per_epoch),
             humanize_hash(head.state_root),
-            state.current_justified_checkpoint,
-            state.previous_justified_checkpoint,
             state.finalized_checkpoint,
+        )
+        self.logger.debug(
+            (
+                "status at slot %s in epoch %s:"
+                " previous_justified_checkpoint %s, current_justified_checkpoint %s"
+            ),
+            state.slot,
+            state.current_epoch(self.slots_per_epoch),
+            state.previous_justified_checkpoint,
+            state.current_justified_checkpoint,
+        )
+        self.logger.debug(
+            (
+                "status at slot %s in epoch %s:"
+                " previous_epoch_attestations %s, current_epoch_attestations %s"
+            ),
+            state.slot,
+            state.current_epoch(self.slots_per_epoch),
             state.previous_epoch_attestations,
             state.current_epoch_attestations,
         )

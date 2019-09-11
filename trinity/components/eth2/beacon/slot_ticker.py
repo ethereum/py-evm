@@ -22,7 +22,7 @@ from p2p.service import (
     BaseService,
 )
 from trinity._utils.shellart import (
-    bold_green,
+    bold_white,
 )
 
 DEFAULT_CHECK_FREQUENCY = 6
@@ -83,7 +83,7 @@ class SlotTicker(BaseService):
                 # Case 1: new slot
                 if slot > self.latest_slot:
                     self.logger.debug(
-                        bold_green("[first] tick for slot %s (elapsed %ss)"),
+                        bold_white("[first] tick for slot %s (elapsed %ss)"),
                         slot,
                         elapsed_time,
                     )
@@ -99,7 +99,7 @@ class SlotTicker(BaseService):
                     has_sent_second_half_slot_tick = is_second_tick
                 # Case 2: second half of an already ticked slot and it hasn't tick yet
                 elif is_second_tick and not has_sent_second_half_slot_tick:
-                    self.logger.debug(bold_green("[second] tick for slot %s"), slot)
+                    self.logger.debug(bold_white("[second] tick for slot %s"), slot)
                     await self.event_bus.broadcast(
                         SlotTickEvent(
                             slot=slot,

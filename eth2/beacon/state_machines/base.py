@@ -14,7 +14,8 @@ from eth2.configs import Eth2Config  # noqa: F401
 from .state_transitions import BaseStateTransition
 
 import logging
-logger = logging.getLogger(__name__)
+
+logger = logging.getLogger("trinity.beacon.state_machines")
 logger.setLevel(logging.DEBUG)
 
 
@@ -133,12 +134,10 @@ class BeaconStateMachine(BaseBeaconStateMachine):
         state: BeaconState,
         check_proposer_signature: bool = True,
     ) -> Tuple[BeaconState, BaseBeaconBlock]:
-        logger.debug(f'importing block slot={block.slot} parent_root={block.parent_root.hex()} signing_root={block.signing_root.hex()}')
         state = self.state_transition.apply_state_transition(
             state, block=block, check_proposer_signature=check_proposer_signature
         )
 
         block = block.copy(state_root=state.hash_tree_root)
-        logger.debug(f'block import success slot={block.slot} state_root={block.state_root.hex()} signing_root={block.signing_root.hex()}')
 
         return state, block

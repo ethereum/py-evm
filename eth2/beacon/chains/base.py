@@ -6,7 +6,7 @@ from eth._utils.datatypes import Configurable
 from eth.abc import AtomicDatabaseAPI
 from eth.exceptions import BlockNotFound
 from eth.validation import validate_word
-from eth_utils import ValidationError, encode_hex
+from eth_utils import ValidationError, encode_hex, humanize_hash
 
 from eth2._utils.funcs import constantly
 from eth2._utils.ssz import validate_imported_block_unchanged
@@ -398,6 +398,11 @@ class BeaconChain(BaseBeaconChain):
         - a tuple of blocks which are now part of the canonical chain.
         - a tuple of blocks which were canonical and now are no longer canonical.
         """
+        self.logger.debug(
+            "attempting import of block with slot %s and signing_root %s",
+            block.slot,
+            humanize_hash(block.signing_root),
+        )
 
         try:
             parent_block = self.get_block_by_root(block.parent_root)
@@ -448,9 +453,9 @@ class BeaconChain(BaseBeaconChain):
         )
 
         self.logger.debug(
-            "IMPORTED_BLOCK: slot %s | signed root %s",
+            "successfully imported block at slot %s with signing root %s",
             imported_block.slot,
-            encode_hex(imported_block.signing_root),
+            humanize_hash(imported_block.signing_root),
         )
 
         return imported_block, new_canonical_blocks, old_canonical_blocks
