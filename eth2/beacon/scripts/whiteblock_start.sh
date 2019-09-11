@@ -50,7 +50,8 @@ do
             IDENTITY=$VALUE
             ;;
         --peers)
-            PEERS+=",$VALUE"
+            [ ! -z "$PEERS" ] && PEERS+=","
+	    PEERS+="$VALUE"
             ;;
         --validator-keys)
             VALIDATOR_KEYS=$VALUE
@@ -77,6 +78,8 @@ done
 export PYTHONWARNINGS=ignore::DeprecationWarning
 
 mkdir -p /tmp/aa
+
+cp $GEN_STATE /tmp/aa/genesis_state.ssz
 
 trinity-beacon \
     -l DEBUG \
