@@ -42,6 +42,13 @@ class BaseSchema(ABC):
 
     @staticmethod
     @abstractmethod
+    def make_block_hash_tree_root_to_signing_root_lookup_key(
+        block_root: HashTreeRoot
+    ) -> bytes:
+        ...
+
+    @staticmethod
+    @abstractmethod
     def make_finalized_head_root_lookup_key() -> bytes:
         ...
 
@@ -100,6 +107,12 @@ class SchemaV1(BaseSchema):
     @staticmethod
     def make_block_root_to_slot_lookup_key(block_root: SigningRoot) -> bytes:
         return b"v1:beacon:block-root-to-slot:%s" % block_root
+
+    @staticmethod
+    def make_block_hash_tree_root_to_signing_root_lookup_key(
+        block_root: HashTreeRoot
+    ) -> bytes:
+        return b"v1:beacon:hash_tree_root_to_signing_root:%s" % block_root
 
     #
     # Attestaion

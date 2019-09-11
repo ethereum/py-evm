@@ -377,13 +377,14 @@ class Node(BaseService):
 
     def _make_hello_packet(self) -> HelloRequest:
         state = self.chain.get_head_state()
+        head = self.chain.get_canonical_head()
         finalized_checkpoint = state.finalized_checkpoint
         return HelloRequest(
             fork_version=state.fork.current_version,
             finalized_root=finalized_checkpoint.root,
             finalized_epoch=finalized_checkpoint.epoch,
-            head_root=state.hash_tree_root,
-            head_slot=state.slot,
+            head_root=head.hash_tree_root,
+            head_slot=head.slot,
         )
 
     def _compare_chain_tip_and_finalized_epoch(self,
@@ -735,7 +736,8 @@ class Node(BaseService):
         self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
 
         try:
-            peer_head_block = self.chain.get_block_by_root(beacon_blocks_request.head_block_root)
+            peer_head_block = self.chain.get_block_by_hash_tree_root(
+                beacon_blocks_request.head_block_root)
         except (BlockNotFound, ValidationError):
             # We don't have the chain data peer is requesting
             requested_beacon_blocks: Tuple[BaseBeaconBlock, ...] = tuple()
@@ -925,7 +927,7 @@ class Node(BaseService):
         recent_beacon_blocks = []
         for block_root in recent_beacon_blocks_request.block_roots:
             try:
-                block = self.chain.get_block_by_root(block_root)
+                block = self.chain.get_block_by_hash_tree_root(block_root)
             except (BlockNotFound, ValidationError):
                 pass
             else:

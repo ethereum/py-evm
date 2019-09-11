@@ -74,6 +74,25 @@ def test_chaindb_persist_block_and_slot_to_root(chaindb, block, fork_choice_scor
     assert chaindb.exists(slot_to_root_key)
 
 
+def test_chaindb_persist_block_and_hash_tree_root_to_signing_root(
+    chaindb, block, fork_choice_scoring
+):
+    with pytest.raises(BlockNotFound):
+        chaindb.get_block_signing_root_by_hash_tree_root(block.hash_tree_root)
+    key = SchemaV1.make_block_hash_tree_root_to_signing_root_lookup_key(
+        block.hash_tree_root
+    )
+    assert not chaindb.exists(key)
+
+    chaindb.persist_block(block, block.__class__, fork_choice_scoring)
+
+    assert (
+        chaindb.get_block_signing_root_by_hash_tree_root(block.hash_tree_root)
+        == block.signing_root
+    )
+    assert chaindb.exists(key)
+
+
 @given(seed=st.binary(min_size=32, max_size=32))
 def test_chaindb_persist_block_and_unknown_parent(
     chaindb, block, fork_choice_scoring, seed

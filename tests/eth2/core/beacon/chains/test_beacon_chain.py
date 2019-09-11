@@ -52,6 +52,9 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
     result_block = valid_chain.get_block_by_root(block.signing_root)
     assert result_block == block
 
+    result_block_2 = valid_chain.get_block_by_hash_tree_root(block.hash_tree_root)
+    assert result_block_2 == block
+
 
 @pytest.mark.parametrize(
     ("validator_count," "slots_per_epoch," "target_committee_size," "shard_count,"),
