@@ -181,10 +181,10 @@ class BeamSyncer(BaseService):
 
         try:
             await self.wait(self._launch_strategy.fulfill_prerequisites())
-        except asyncio.TimeoutError:
-            self.logger.error(
-                "Timed out while trying to fulfill prerequisites of"
-                f"sync launch strategy: {self._launch_strategy}"
+        except asyncio.TimeoutError as exc:
+            self.logger.exception(
+                "Timed out while trying to fulfill prerequisites of "
+                f"sync launch strategy: {exc} from {self._launch_strategy}"
             )
             await self.cancel()
 
@@ -428,6 +428,15 @@ class HeaderOnlyPersist(BaseService):
                 len(headers),
                 timer.elapsed,
                 head,
+            )
+            self.logger.debug(
+                "Header import details: %s..%s, old canon: %s..%s, new canon: %s..%s",
+                headers[0],
+                headers[-1],
+                old_canon_headers[0] if len(old_canon_headers) else None,
+                old_canon_headers[-1] if len(old_canon_headers) else None,
+                new_canon_headers[0] if len(new_canon_headers) else None,
+                new_canon_headers[-1] if len(new_canon_headers) else None,
             )
 
     async def _exit_if_checkpoint(self, headers: Tuple[BlockHeader, ...]) -> bool:
