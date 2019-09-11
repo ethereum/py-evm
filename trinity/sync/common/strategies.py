@@ -5,6 +5,7 @@ from abc import (
 import asyncio
 import logging
 
+from cancel_token import OperationCancelled
 from eth_typing import (
     BlockNumber,
     Hash32,
@@ -74,6 +75,14 @@ class FromGenesisLaunchStrategy(SyncLaunchStrategyAPI):
         return BlockNumber(max(GENESIS_BLOCK_NUMBER, head.block_number - MAX_SKELETON_REORG_DEPTH))
 
 
+non_response_from_peers = (
+    asyncio.TimeoutError,
+    OperationCancelled,
+    PeerConnectionLost,
+    ValidationError,
+)
+
+
 class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
     min_block_number = BlockNumber(0)
@@ -114,7 +123,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                     skip=0,
                     reverse=False,
                 )
-            except (asyncio.TimeoutError, PeerConnectionLost, ValidationError) as exc:
+            except non_response_from_peers as exc:
                 self.logger.debug("%s did not return checkpoint prerequisites: %r", peer, exc)
                 # Nothing to do here. The ExchangeManager will disconnect if appropriate
                 # and eventually lead us to a better peer.
