@@ -46,21 +46,15 @@ class BeaconChainFactory(factory.Factory):
     def _create(
         cls, model_class: Type[TestnetChain], *args: Any, **kwargs: Any
     ) -> BaseBeaconChain:
+
+        db = kwargs.pop("db", AtomicDB())
         chain = model_class.from_genesis(
-            base_db=AtomicDB(),
+            base_db=db,
             genesis_state=genesis_state,
             genesis_block=genesis_block,
             genesis_config=Eth2GenesisConfig(
                 model_class.get_genesis_state_machine_class().config
             ),
         )
-        best_slot = kwargs.pop("best_slot", None)
-        if best_slot is not None:
-            from trinity.tools.bcc_factories import BeaconBlockFactory
-
-            blocks = BeaconBlockFactory.create_branch(best_slot, root=genesis_block)
-            chain.chaindb.persist_block_chain(
-                blocks, SerenityBeaconBlock, (higher_slot_scoring,) * len(blocks)
-            )
 
         return chain

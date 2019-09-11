@@ -332,7 +332,9 @@ class Node(BaseService):
     def _register_rpc_handlers(self) -> None:
         self.host.set_stream_handler(REQ_RESP_HELLO_SSZ, self._handle_hello)
         self.host.set_stream_handler(REQ_RESP_GOODBYE_SSZ, self._handle_goodbye)
-        self.host.set_stream_handler(REQ_RESP_BEACON_BLOCKS_SSZ, self._handle_beacon_blocks)
+        self.host.set_stream_handler(
+            REQ_RESP_BEACON_BLOCKS_SSZ, self._handle_beacon_blocks
+        )
         self.host.set_stream_handler(
             REQ_RESP_BEACON_BLOCKS_SSZ, self._handle_beacon_blocks
         )
@@ -470,8 +472,7 @@ class Node(BaseService):
         finally:
             if has_error:
                 self.logger.info(
-                    "Handshake failed: failed to write message %s",
-                    hello_mine,
+                    "Handshake failed: failed to write message %s", hello_mine
                 )
                 await self.disconnect_peer(peer_id)
                 return
@@ -762,13 +763,16 @@ class Node(BaseService):
         finally:
             if has_error:
                 return
-        self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
+        self.logger.debug(
+            "Received the beacon blocks request message %s", beacon_blocks_request
+        )
 
         try:
             peer_head_block = self.chain.get_block_by_hash_tree_root(
                 beacon_blocks_request.head_block_root
             )
-        except (BlockNotFound, ValidationError):
+        except (BlockNotFound, ValidationError) as error:
+            self.logger.info("Sending empty blocks, reason: %s", error)
             # We don't have the chain data peer is requesting
             requested_beacon_blocks: Tuple[BaseBeaconBlock, ...] = tuple()
         else:
@@ -809,7 +813,11 @@ class Node(BaseService):
                     try:
                         await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
                         has_error = False
-                    except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+                    except (
+                        WriteMessageFailure,
+                        MplexStreamEOF,
+                        MplexStreamReset,
+                    ) as error:
                         has_error = True
                         if isinstance(error, WriteMessageFailure):
                             await stream.reset()
@@ -851,12 +859,14 @@ class Node(BaseService):
         )
         await stream.close()
 
-    async def request_beacon_blocks(self,
-                                    peer_id: ID,
-                                    head_block_root: HashTreeRoot,
-                                    start_slot: Slot,
-                                    count: int,
-                                    step: int) -> Tuple[BaseBeaconBlock, ...]:
+    async def request_beacon_blocks(
+        self,
+        peer_id: ID,
+        head_block_root: HashTreeRoot,
+        start_slot: Slot,
+        count: int,
+        step: int,
+    ) -> Tuple[BaseBeaconBlock, ...]:
         if peer_id not in self.handshaked_peers:
             error_msg = f"not handshaked with peer={peer_id} yet"
             self.logger.info("Request beacon block failed: %s", error_msg)
@@ -893,7 +903,9 @@ class Node(BaseService):
 
         self.logger.debug("Waiting for beacon blocks response")
         try:
-            resp_code, beacon_blocks_response = await read_resp(stream, BeaconBlocksResponse)
+            resp_code, beacon_blocks_response = await read_resp(
+                stream, BeaconBlocksResponse
+            )
             has_error = False
         except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
             has_error = True
@@ -903,7 +915,9 @@ class Node(BaseService):
                 await stream.close()
         finally:
             if has_error:
-                self.logger.info("Request beacon blocks failed: fail to read the response")
+                self.logger.info(
+                    "Request beacon blocks failed: fail to read the response"
+                )
                 raise RequestFailure("fail to read the response")
 
         self.logger.debug(
@@ -940,7 +954,9 @@ class Node(BaseService):
             "Waiting for recent beacon blocks request from the other side"
         )
         try:
-            recent_beacon_blocks_request = await read_req(stream, RecentBeaconBlocksRequest)
+            recent_beacon_blocks_request = await read_req(
+                stream, RecentBeaconBlocksRequest
+            )
             has_error = False
         except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
             has_error = True
@@ -972,7 +988,9 @@ class Node(BaseService):
             "Sending recent beacon blocks response %s", recent_beacon_blocks_response
         )
         try:
-            await write_resp(stream, recent_beacon_blocks_response, ResponseCode.SUCCESS)
+            await write_resp(
+                stream, recent_beacon_blocks_response, ResponseCode.SUCCESS
+            )
             has_error = False
         except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
             has_error = True
@@ -994,9 +1012,8 @@ class Node(BaseService):
         await stream.close()
 
     async def request_recent_beacon_blocks(
-            self,
-            peer_id: ID,
-            block_roots: Sequence[HashTreeRoot]) -> Tuple[BaseBeaconBlock, ...]:
+        self, peer_id: ID, block_roots: Sequence[HashTreeRoot]
+    ) -> Tuple[BaseBeaconBlock, ...]:
         if peer_id not in self.handshaked_peers:
             error_msg = f"not handshaked with peer={peer_id} yet"
             self.logger.info("Request recent beacon block failed: %s", error_msg)
@@ -1046,7 +1063,9 @@ class Node(BaseService):
                 await stream.close()
         finally:
             if has_error:
-                self.logger.info("Request recent beacon blocks failed: fail to read the response")
+                self.logger.info(
+                    "Request recent beacon blocks failed: fail to read the response"
+                )
                 raise RequestFailure("fail to read the response")
 
         self.logger.debug(

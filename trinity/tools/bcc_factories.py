@@ -71,15 +71,15 @@ class NodeFactory(factory.Factory):
 
 @asynccontextmanager
 async def ConnectionPairFactory(
-    alice_best_slot: int = None,
-    bob_best_slot: int = None,
+    alice_chaindb: AsyncBeaconChainDB = None,
+    bob_chaindb: AsyncBeaconChainDB = None,
     cancel_token: CancelToken = None,
     say_hello: bool = True,
 ) -> AsyncIterator[Tuple[Node, Node]]:
     if cancel_token is None:
         cancel_token = CancelTokenFactory()
-    alice = NodeFactory(chain__best_slot=alice_best_slot, cancel_token=cancel_token)
-    bob = NodeFactory(chain__best_slot=bob_best_slot, cancel_token=cancel_token)
+    alice = NodeFactory(chain__db=alice_chaindb.db, cancel_token=cancel_token)
+    bob = NodeFactory(chain__db=bob_chaindb.db, cancel_token=cancel_token)
     async with run_service(alice), run_service(bob):
         await asyncio.sleep(0.01)
         await alice.dial_peer_maddr(bob.listen_maddr_with_peer_id)
