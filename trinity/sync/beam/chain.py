@@ -403,14 +403,6 @@ class HeaderOnlyPersist(BaseService):
         # run sync until cancelled
         await self.cancellation()
 
-    async def _persist_header_chain(self, headers: Tuple[BlockHeader, ...]) -> None:
-        await self.wait(
-            self._db.coro_persist_header_chain(
-                headers,
-                self._launch_strategy.get_genesis_parent_hash(),
-            )
-        )
-
     async def _persist_headers(self) -> None:
         async for headers in self._header_syncer.new_sync_headers(HEADER_QUEUE_SIZE_TARGET):
             timer = Timer()
@@ -419,7 +411,9 @@ class HeaderOnlyPersist(BaseService):
             if exited:
                 break
 
-            await self._persist_header_chain(headers)
+            new_canon_headers, old_canon_headers = await self.wait(
+                self._db.coro_persist_header_chain(headers)
+            )
 
             head = await self.wait(self._db.coro_get_canonical_head())
 
@@ -486,7 +480,18 @@ class HeaderOnlyPersist(BaseService):
                 # We have not reached the header syncer's target, continue normally
                 return False
 
-        await self._persist_header_chain(persist_headers)
+        new_canon_headers, old_canon_headers = await self.wait(
+            self._db.coro_persist_header_chain(persist_headers)
+        )
+        self.logger.debug(
+            "Final header import before checkpoint: %s..%s, old canon: %s..%s, new canon: %s..%s",
+            persist_headers[0],
+            persist_headers[-1],
+            old_canon_headers[0] if len(old_canon_headers) else None,
+            old_canon_headers[-1] if len(old_canon_headers) else None,
+            new_canon_headers[0] if len(new_canon_headers) else None,
+            new_canon_headers[-1] if len(new_canon_headers) else None,
+        )
 
         self._final_headers = final_headers
         self.cancel_nowait()
