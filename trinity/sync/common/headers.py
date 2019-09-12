@@ -248,7 +248,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         # check the first returned value
         first = skeleton_launch_headers[0]
 
-        first_is_present = await self.wait(self._db.coro_header_exists(first.hash))
+        first_is_present = await self.wait(self._is_header_imported(first))
 
         if not first_is_present:
             await self._log_ancester_failure(peer, first)
@@ -257,7 +257,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
             return skeleton_launch_headers[0]
         else:
             for parent, child in sliding_window(2, skeleton_launch_headers):
-                is_present = await self.wait(self._db.coro_header_exists(child.hash))
+                is_present = await self.wait(self._is_header_imported(child))
                 if not is_present:
                     return parent
             else:
@@ -265,11 +265,10 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
                 # Return the newest one
                 return skeleton_launch_headers[-1]
 
-    async def _should_skip_header(self, header: BlockHeader) -> bool:
+    async def _is_header_imported(self, header: BlockHeader) -> bool:
         """
-        Should we skip trying to import this header?
+        Typically used to decide if we should skip trying to import this header.
         Return True if the syncing of header appears to be complete.
-        This is fairly relaxed about the definition, preferring speed over slow precision.
         """
         if not await self._db.coro_header_exists(header.hash):
             return False
@@ -313,7 +312,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
 
         # identify headers that are not already stored locally
         completed_headers, new_headers = await self.wait(
-            skip_complete_headers(launch_headers, self._should_skip_header)
+            skip_complete_headers(launch_headers, self._is_header_imported)
         )
 
         if completed_headers:
