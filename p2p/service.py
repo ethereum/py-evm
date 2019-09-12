@@ -303,7 +303,7 @@ class BaseService(CancellableMixin, AsyncioServiceAPI):
         elif not self.is_running:
             raise ValidationError("Cannot cancel a service that has not been started")
 
-        self.logger.debug("Cancelling %s", self)
+        self.logger.debug("Cancelling service: %s", self)
         self.events.cancelled.set()
         self.cancel_token.trigger()
 

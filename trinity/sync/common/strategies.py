@@ -5,6 +5,7 @@ from abc import (
 import asyncio
 import logging
 
+from cancel_token import OperationCancelled
 from eth_typing import (
     BlockNumber,
     Hash32,
@@ -74,6 +75,14 @@ class FromGenesisLaunchStrategy(SyncLaunchStrategyAPI):
         return BlockNumber(max(GENESIS_BLOCK_NUMBER, head.block_number - MAX_SKELETON_REORG_DEPTH))
 
 
+non_response_from_peers = (
+    asyncio.TimeoutError,
+    OperationCancelled,
+    PeerConnectionLost,
+    ValidationError,
+)
+
+
 class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
     min_block_number = BlockNumber(0)
@@ -103,6 +112,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
             except NoConnectedPeers:
                 # Feels appropriate to wait a little longer while we aren't connected
                 # to any peers yet.
+                self.logger.debug("No peers are available to fulfill checkpoint prerequisites")
                 await asyncio.sleep(2)
                 continue
 
@@ -113,9 +123,12 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                     skip=0,
                     reverse=False,
                 )
-            except (asyncio.TimeoutError, PeerConnectionLost, ValidationError):
+            except non_response_from_peers as exc:
                 # Nothing to do here. The ExchangeManager will disconnect if appropriate
                 # and eventually lead us to a better peer.
+                self.logger.debug("%s did not return checkpoint prerequisites: %r", peer, exc)
+                # Release the event loop so that "gone" peers don't keep getting returned here
+                await asyncio.sleep(0)
                 continue
 
             if not headers:
@@ -127,6 +140,11 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
             else:
                 self.min_block_number = headers[0].block_number
                 await self._db.coro_persist_checkpoint_header(headers[0], self._checkpoint.score)
+                self.logger.debug(
+                    "Successfully fulfilled checkpoint prereqs with %s: %s",
+                    peer,
+                    headers[0],
+                )
                 return
 
             await asyncio.sleep(0.05)

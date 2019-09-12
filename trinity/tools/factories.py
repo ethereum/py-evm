@@ -1,3 +1,4 @@
+import time
 from typing import (
     cast,
     Any,
@@ -48,6 +49,11 @@ except ImportError:
 
 MAINNET_GENESIS_HASH = to_bytes(hexstr='0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3')  # noqa: E501
 
+# Pick the genesis timestamp once at import time so that genesis hashes always matches up.
+# Before this change, we saw occasional test failures like:
+# trinity.exceptions.WrongGenesisFailure: <Node(0x6168@10.0.0.32)> genesis (0x0bd4168d48852843b8ae28714c4e8ab04a92896a84b59d8a968f646fcd6bc0ae) does not match ours (0x1a3dbf3c72a43b1c480590e81da36e35ed268d67395e1ac34c4455ca8af33017), disconnecting  # noqa: E501
+FACTORY_GENESIS_TIMESTAMP = int(time.time())
+
 
 class MemoryDBFactory(factory.Factory):
     class Meta:
@@ -86,7 +92,7 @@ class AsyncHeaderDBFactory(factory.Factory):
         build(
             Chain,
             latest_mainnet_at(0),
-            genesis(db=headerdb.db),
+            genesis(db=headerdb.db, params={"timestamp": FACTORY_GENESIS_TIMESTAMP}),
         )
         return headerdb
 
