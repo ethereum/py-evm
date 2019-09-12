@@ -201,6 +201,12 @@ class InteropPlugin(BaseMainProcessPlugin):
             pass
         keys_dir.mkdir()
 
+        def parse_key(maybe_hexstr):
+            try:
+                return to_int(hexstr=maybe_hexstr)
+            except TypeError:
+                return maybe_hexstr
+
         validators = args.validators
         if (args.validators or args.validators_from_yaml_key_file):
             if not validators:
@@ -211,7 +217,7 @@ class InteropPlugin(BaseMainProcessPlugin):
                     file_name = f"v_{i}.privkey"
                     key_path = keys_dir / file_name
                     with open(key_path, "w") as f:
-                        f.write(str(to_int(hexstr=key['privkey'])))
+                        f.write(str(parse_key(key['privkey'])))
             else:
                 validators = [int(token) for token in validators.split(',')]
                 for validator in validators:
@@ -227,7 +233,7 @@ class InteropPlugin(BaseMainProcessPlugin):
                     file_name = f"v{validator_index:07d}.privkey"
                     key_path = keys_dir / file_name
                     with open(key_path, "w") as f:
-                        f.write(str(to_int(hexstr=key['privkey'])))
+                        f.write(str(parse_key(key['privkey'])))
         else:
             logger.info("not running any validators")
 
