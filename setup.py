@@ -170,7 +170,7 @@ with open('./README.md') as readme:
 setup(
     name='trinity',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='0.1.0-alpha.27',
+    version='0.1.0-alpha.28',
     description='The Trinity client for the Ethereum network',
     long_description=long_description,
     long_description_content_type='text/markdown',
