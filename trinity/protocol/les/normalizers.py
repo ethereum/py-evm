@@ -7,7 +7,7 @@ from typing import (
 
 from eth.abc import BlockHeaderAPI
 
-from trinity.protocol.common.normalizers import BaseNormalizer
+from p2p.exchange import BaseNormalizer
 
 TResult = TypeVar('TResult')
 BaseBlockHeadersNormalizer = BaseNormalizer[Dict[str, Any], Tuple[BlockHeaderAPI, ...]]

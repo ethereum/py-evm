@@ -9,11 +9,9 @@ from eth2.beacon.types.blocks import (
     BeaconBlock,
 )
 
-from trinity.protocol.common.normalizers import BaseNormalizer
+from p2p.exchange import BaseNormalizer
 
-from trinity.protocol.bcc.commands import (
-    BeaconBlocksMessage,
-)
+from trinity.protocol.bcc.commands import BeaconBlocksMessage
 
 
 class BeaconBlocksNormalizer(BaseNormalizer[BeaconBlocksMessage, Tuple[BaseBeaconBlock, ...]]):

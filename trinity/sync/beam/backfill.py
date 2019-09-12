@@ -18,6 +18,7 @@ import rlp
 
 from p2p.abc import CommandAPI
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
+from p2p.exchange import PerformanceAPI
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
 
@@ -25,9 +26,6 @@ from trinity.protocol.eth.commands import (
     NodeData,
 )
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
-from trinity.protocol.common.abc import (
-    PerformanceAPI,
-)
 from trinity.sync.beam.constants import (
     GAP_BETWEEN_TESTS,
     NON_IDEAL_RESPONSE_PENALTY,

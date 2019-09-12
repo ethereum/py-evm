@@ -15,8 +15,8 @@ from eth_utils import (
 )
 
 from p2p.abc import CommandAPI
+from p2p.exchange import PerformanceAPI
 
-from trinity.protocol.common.abc import PerformanceAPI
 from trinity.protocol.common.peer import BaseChainPeer
 from trinity._utils.datastructures import (
     SortableTask,

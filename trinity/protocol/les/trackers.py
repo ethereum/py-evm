@@ -5,7 +5,8 @@ from typing import (
 
 from eth.abc import BlockHeaderAPI
 
-from trinity.protocol.common.trackers import BasePerformanceTracker
+from p2p.exchange import BasePerformanceTracker
+
 from trinity._utils.headers import sequence_builder
 
 from .requests import (

@@ -15,11 +15,9 @@ from eth2.beacon.typing import (
     Slot,
 )
 
-from trinity._utils.les import (
-    gen_request_id,
-)
+from p2p.exchange import BaseExchange
 
-from trinity.protocol.common.exchanges import BaseExchange
+from trinity._utils.les import gen_request_id
 from trinity.protocol.bcc.normalizers import BeaconBlocksNormalizer
 from trinity.protocol.bcc.requests import GetBeaconBlocksRequest
 from trinity.protocol.bcc.trackers import GetBeaconBlocksTracker
