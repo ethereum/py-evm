@@ -1,3 +1,5 @@
+from eth.constants import MAX_UNCLE_DEPTH
+
 # Peers are typically expected to have predicted nodes available,
 #   so it's reasonable to ask for all-predictive nodes from a peer.
 # Urgent node requests usually come in pretty fast, so
@@ -38,3 +40,7 @@ GAP_BETWEEN_TESTS = 0.25
 # One reason to make it relatively short, is that we want to find out quickly
 # when a new peer has excellent service stats. It might take several requests
 # to establish it (partially because we measure using an exponential average).
+
+# We need MAX_UNCLE_DEPTH + 1 headers to check during uncle validation
+# We need to request one more header, to set the starting tip
+FULL_BLOCKS_NEEDED_TO_START_BEAM = MAX_UNCLE_DEPTH + 2
