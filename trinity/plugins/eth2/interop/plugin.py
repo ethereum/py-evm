@@ -224,9 +224,9 @@ class InteropPlugin(BaseMainProcessPlugin):
                     if validator < 0 or validator > 15:
                         logger.error(f"{validator} is not a valid validator")
                         sys.exit(1)
-                    logger.info(f"Validating: {validators}")
-                    yaml = YAML(typ="unsafe")
-                    keys = yaml.load(Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'))
+                logger.info(f"Validating: {validators}")
+                yaml = YAML(typ="unsafe")
+                keys = yaml.load(Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'))
 
                 for validator_index in validators:
                     key = keys[validator_index]
