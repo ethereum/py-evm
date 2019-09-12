@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import uuid
 
 from eth.db.atomic import AtomicDB
@@ -93,6 +94,37 @@ async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, ch
 
             head = chaindb_fresh.get_canonical_head()
             assert head == chaindb_1000.get_canonical_head()
+
+
+@pytest.mark.asyncio
+async def test_beam_syncer_with_checkpoint_too_close_to_tip(
+        caplog,
+        request,
+        event_loop,
+        event_bus,
+        chaindb_fresh,
+        chaindb_churner):
+
+    checkpoint = Checkpoint(
+        block_hash=decode_hex('0x814aca8a5855f216fee0f627945f70b3c019ae2c8b3aeb528ea7049ed83cfc82'),
+        score=645,
+    )
+
+    caplog.set_level(logging.INFO)
+    try:
+        await test_beam_syncer(
+            request,
+            event_loop,
+            event_bus,
+            chaindb_fresh,
+            chaindb_churner,
+            beam_to_block=66,
+            checkpoint=checkpoint,
+        )
+    except asyncio.TimeoutError as e:
+        # Beam syncer timing out and printing an info to the user is the expected behavior.
+        # Our checkpoint is right before the tip and the chain doesn't advance forward.
+        assert "Checkpoint is too near" in caplog.text
 
 
 @pytest.mark.asyncio

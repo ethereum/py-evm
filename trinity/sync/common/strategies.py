@@ -11,6 +11,7 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    humanize_seconds,
     ValidationError,
 )
 
@@ -29,6 +30,9 @@ from trinity.chains.base import AsyncChainAPI
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer import (
     BaseChainPeerPool,
+)
+from trinity.sync.beam.constants import (
+    FULL_BLOCKS_NEEDED_TO_START_BEAM,
 )
 from trinity.sync.common.checkpoint import (
     Checkpoint,
@@ -75,15 +79,17 @@ class FromGenesisLaunchStrategy(SyncLaunchStrategyAPI):
         return BlockNumber(max(GENESIS_BLOCK_NUMBER, head.block_number - MAX_SKELETON_REORG_DEPTH))
 
 
-non_response_from_peers = (
+NON_RESPONSE_FROM_PEERS = (
     asyncio.TimeoutError,
     OperationCancelled,
-    PeerConnectionLost,
     ValidationError,
 )
 
 
 class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
+
+    # Wait at most 30 seconds before retrying, in case our estimate is wrong
+    MAXIMUM_RETRY_SLEEP = 30
 
     min_block_number = BlockNumber(0)
 
@@ -106,7 +112,6 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
         max_attempts = 1000
 
         for _attempt in range(max_attempts):
-
             try:
                 peer = self._peer_pool.highest_td_peer
             except NoConnectedPeers:
@@ -119,16 +124,22 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
             try:
                 headers = await peer.requests.get_block_headers(
                     self._checkpoint.block_hash,
-                    max_headers=1,
+                    max_headers=FULL_BLOCKS_NEEDED_TO_START_BEAM,
                     skip=0,
                     reverse=False,
                 )
-            except non_response_from_peers as exc:
+            except NON_RESPONSE_FROM_PEERS as exc:
                 # Nothing to do here. The ExchangeManager will disconnect if appropriate
                 # and eventually lead us to a better peer.
                 self.logger.debug("%s did not return checkpoint prerequisites: %r", peer, exc)
                 # Release the event loop so that "gone" peers don't keep getting returned here
                 await asyncio.sleep(0)
+                continue
+            except PeerConnectionLost as exc:
+                self.logger.debug("%s gone during checkpoint prerequisite request: %s", peer, exc)
+                # Wait until peer is fully disconnected before continuing, so we don't reattempt
+                # with the same peer repeatedly.
+                await peer.disconnect(DisconnectReason.disconnect_requested)
                 continue
 
             if not headers:
@@ -138,12 +149,49 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                 )
                 await peer.disconnect(DisconnectReason.useless_peer)
             else:
-                self.min_block_number = headers[0].block_number
-                await self._db.coro_persist_checkpoint_header(headers[0], self._checkpoint.score)
+                header = headers[0]
+
+                distance_shortage = FULL_BLOCKS_NEEDED_TO_START_BEAM - len(headers)
+                if distance_shortage > 0:
+
+                    if len(headers) == 1:
+                        # We are exactly at the tip, spin another round so we can make a better ETA
+                        self.logger.info(
+                            "Checkpoint is too near the chain tip for Beam Sync to launch. "
+                            "Beam Sync needs %d more headers to launch. Instead of waiting, "
+                            "you can quit and restart with an older checkpoint.",
+                            distance_shortage,
+                        )
+                        await asyncio.sleep(10)
+                        continue
+
+                    block_durations = tuple(
+                        current.timestamp - previous.timestamp
+                        for previous, current in zip(headers[:-1], headers[1:])
+                    )
+
+                    avg_blocktime = sum(block_durations) / len(block_durations)
+                    wait_seconds = distance_shortage * avg_blocktime
+
+                    self.logger.info(
+                        "Checkpoint is too near the chain tip for Beam Sync to launch. "
+                        "Beam Sync needs %d more headers to launch. Instead of waiting, "
+                        "you can quit and restart with an older checkpoint."
+                        "The wait time is roughly %s.",
+                        distance_shortage,
+                        humanize_seconds(wait_seconds),
+                    )
+
+                    await asyncio.sleep(min(wait_seconds, self.MAXIMUM_RETRY_SLEEP))
+                    continue
+
+                self.min_block_number = header.block_number
+                await self._db.coro_persist_checkpoint_header(header, self._checkpoint.score)
+
                 self.logger.debug(
                     "Successfully fulfilled checkpoint prereqs with %s: %s",
                     peer,
-                    headers[0],
+                    header,
                 )
                 return
 

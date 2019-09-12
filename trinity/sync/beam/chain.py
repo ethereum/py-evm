@@ -9,7 +9,7 @@ from lahja import EndpointAPI
 
 from cancel_token import CancelToken
 from eth.abc import AtomicDatabaseAPI, DatabaseAPI
-from eth.constants import GENESIS_PARENT_HASH, MAX_UNCLE_DEPTH
+from eth.constants import GENESIS_PARENT_HASH
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -33,6 +33,9 @@ from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.eth.sync import ETHHeaderChainSyncer
+from trinity.sync.beam.constants import (
+    FULL_BLOCKS_NEEDED_TO_START_BEAM,
+)
 from trinity.sync.common.checkpoint import (
     Checkpoint,
 )
@@ -228,9 +231,7 @@ class BeamSyncer(BaseService):
         When importing a block, we need to validate uncles against the previous
         six blocks, so download those bodies and persist them to the database.
         """
-        # We need MAX_UNCLE_DEPTH + 1 headers to check during uncle validation
-        # We need to request one more header, to set the starting tip
-        parents_needed = MAX_UNCLE_DEPTH + 2
+        parents_needed = FULL_BLOCKS_NEEDED_TO_START_BEAM
 
         self.logger.info(
             "Downloading %d block bodies for uncle validation, before %s",
