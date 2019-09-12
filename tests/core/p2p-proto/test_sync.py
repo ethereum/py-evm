@@ -124,7 +124,7 @@ async def test_beam_syncer_with_checkpoint_too_close_to_tip(
     except asyncio.TimeoutError as e:
         # Beam syncer timing out and printing an info to the user is the expected behavior.
         # Our checkpoint is right before the tip and the chain doesn't advance forward.
-        assert "Checkpoint is less than" in caplog.text
+        assert "Checkpoint is too near" in caplog.text
 
 
 @pytest.mark.asyncio

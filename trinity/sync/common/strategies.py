@@ -11,6 +11,7 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    humanize_seconds,
     ValidationError,
 )
 
@@ -109,7 +110,6 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
     async def fulfill_prerequisites(self) -> None:
         max_attempts = 1000
-        printed_general_info = False
 
         for _attempt in range(max_attempts):
             try:
@@ -148,12 +148,15 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                 distance_shortage = self.MIN_DISTANCE_TO_TIP - len(headers)
                 if distance_shortage > 0:
 
-                    if not printed_general_info:
-                        self.log_delay_info()
-                        printed_general_info = True
-
                     if len(headers) == 1:
                         # We are exactly at the tip, spin another round so we can make a better ETA
+                        self.logger.info(
+                            "Checkpoint is too near the chain tip for Beam Sync to launch. "
+                            "Beam Sync needs %d more headers to launch. Instead of waiting, "
+                            "you can quit and restart with an older checkpoint.",
+                            distance_shortage,
+                        )
+                        await asyncio.sleep(10)
                         continue
 
                     block_durations = tuple(
@@ -165,8 +168,12 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                     wait_seconds = distance_shortage * avg_blocktime
 
                     self.logger.info(
-                        "It's expected to take roughly %s before sync can start.",
-                        wait_seconds
+                        "Checkpoint is too near the chain tip for Beam Sync to launch. "
+                        "Beam Sync needs %d more headers to launch. Instead of waiting, "
+                        "you can quit and restart with an older checkpoint."
+                        "The wait time is roughly %s.",
+                        distance_shortage,
+                        humanize_seconds(wait_seconds),
                     )
 
                     await asyncio.sleep(min(wait_seconds, self.MAXIMUM_RETRY_SLEEP))
@@ -186,13 +193,6 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
         raise asyncio.TimeoutError(
             f"Failed to get checkpoint header within {max_attempts} attempts"
-        )
-
-    def log_delay_info(self) -> None:
-        self.logger.info(
-            f"Checkpoint is less than {self.MIN_DISTANCE_TO_TIP} blocks away from the tip. "
-            "Either restart Trinity with an older checkpoint or hang on a little while we "
-            "wait for the chain to advance. "
         )
 
     def get_genesis_parent_hash(self) -> Hash32:
