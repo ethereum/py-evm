@@ -41,10 +41,12 @@ class BeamSyncService(BaseService):
 
         if self.checkpoint is not None:
             self.logger.info(
-                "Starting beam-sync; current head: %s, using checkpoint: %s", head, self.checkpoint
+                "Initializing beam-sync; current head: %s, using checkpoint: %s",
+                head,
+                self.checkpoint,
             )
         else:
-            self.logger.info("Starting beam-sync; current head: %s", head)
+            self.logger.info("Initializing beam-sync; current head: %s", head)
 
         beam_syncer = BeamSyncer(
             self.chain,
