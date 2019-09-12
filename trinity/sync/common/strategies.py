@@ -31,6 +31,9 @@ from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.peer import (
     BaseChainPeerPool,
 )
+from trinity.sync.beam.constants import (
+    FULL_BLOCKS_NEEDED_TO_START_BEAM,
+)
 from trinity.sync.common.checkpoint import (
     Checkpoint,
 )
@@ -86,8 +89,6 @@ non_response_from_peers = (
 
 class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
-    MIN_DISTANCE_TO_TIP = 10
-
     # Wait at most 30 seconds before retrying, in case our estimate is wrong
     MAXIMUM_RETRY_SLEEP = 30
 
@@ -124,7 +125,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
             try:
                 headers = await peer.requests.get_block_headers(
                     self._checkpoint.block_hash,
-                    max_headers=self.MIN_DISTANCE_TO_TIP,
+                    max_headers=FULL_BLOCKS_NEEDED_TO_START_BEAM,
                     skip=0,
                     reverse=False,
                 )
@@ -145,7 +146,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
             else:
                 header = headers[0]
 
-                distance_shortage = self.MIN_DISTANCE_TO_TIP - len(headers)
+                distance_shortage = FULL_BLOCKS_NEEDED_TO_START_BEAM - len(headers)
                 if distance_shortage > 0:
 
                     if len(headers) == 1:
