@@ -87,6 +87,9 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
 
     MIN_DISTANCE_TO_TIP = 10
 
+    # Wait at most 30 seconds before retrying, in case our estimate is wrong
+    MAXIMUM_RETRY_SLEEP = 30
+
     min_block_number = BlockNumber(0)
 
     logger = logging.getLogger('trinity.sync.common.strategies.FromCheckpointLaunchStrategy')
@@ -166,7 +169,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                         wait_seconds
                     )
 
-                    await asyncio.sleep(wait_seconds)
+                    await asyncio.sleep(min(wait_seconds, self.MAXIMUM_RETRY_SLEEP))
                     continue
 
                 self.min_block_number = header.block_number
