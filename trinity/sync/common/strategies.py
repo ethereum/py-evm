@@ -79,10 +79,9 @@ class FromGenesisLaunchStrategy(SyncLaunchStrategyAPI):
         return BlockNumber(max(GENESIS_BLOCK_NUMBER, head.block_number - MAX_SKELETON_REORG_DEPTH))
 
 
-non_response_from_peers = (
+NON_RESPONSE_FROM_PEERS = (
     asyncio.TimeoutError,
     OperationCancelled,
-    PeerConnectionLost,
     ValidationError,
 )
 
@@ -129,12 +128,18 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                     skip=0,
                     reverse=False,
                 )
-            except non_response_from_peers as exc:
+            except NON_RESPONSE_FROM_PEERS as exc:
                 # Nothing to do here. The ExchangeManager will disconnect if appropriate
                 # and eventually lead us to a better peer.
                 self.logger.debug("%s did not return checkpoint prerequisites: %r", peer, exc)
                 # Release the event loop so that "gone" peers don't keep getting returned here
                 await asyncio.sleep(0)
+                continue
+            except PeerConnectionLost as exc:
+                self.logger.debug("%s gone during checkpoint prerequisite request: %s", peer, exc)
+                # Wait until peer is fully disconnected before continuing, so we don't reattempt
+                # with the same peer repeatedly.
+                await peer.disconnect(DisconnectReason.disconnect_requested)
                 continue
 
             if not headers:
