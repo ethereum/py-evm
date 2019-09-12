@@ -19,7 +19,8 @@ from lahja import (
     BaseEvent,
     BaseRequestResponseEvent,
 )
-from p2p.abc import NodeAPI
+
+from p2p.abc import SessionAPI
 
 from trinity.protocol.common.events import (
     PeerPoolMessageEvent,
@@ -128,7 +129,7 @@ class SendBlockHeadersEvent(BaseEvent):
     Event to proxy a ``LESPeer.sub_proto.send_block_heades`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
     headers: Tuple[BlockHeader, ...]
     buffer_value: int
     request_id: int

@@ -1,0 +1,1 @@
+Introduce ``p2p.session.Session`` which is now used in place of the ``remote`` to identify peers in the peer pool.

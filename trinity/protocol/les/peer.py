@@ -25,7 +25,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, HandshakeReceiptAPI, NodeAPI
+from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, HandshakeReceiptAPI, SessionAPI
 from p2p.handshake import DevP2PReceipt
 from p2p.peer_pool import BasePeerPool
 from p2p.typing import Payload
@@ -128,20 +128,20 @@ class LESProxyPeer(BaseProxyPeer):
     """
 
     def __init__(self,
-                 remote: NodeAPI,
+                 session: SessionAPI,
                  event_bus: EndpointAPI,
                  sub_proto: ProxyLESProtocol):
 
-        super().__init__(remote, event_bus)
+        super().__init__(session, event_bus)
 
         self.sub_proto = sub_proto
 
     @classmethod
-    def from_node(cls,
-                  remote: NodeAPI,
-                  event_bus: EndpointAPI,
-                  broadcast_config: BroadcastConfig) -> 'LESProxyPeer':
-        return cls(remote, event_bus, ProxyLESProtocol(remote, event_bus, broadcast_config))
+    def from_session(cls,
+                     session: SessionAPI,
+                     event_bus: EndpointAPI,
+                     broadcast_config: BroadcastConfig) -> 'LESProxyPeer':
+        return cls(session, event_bus, ProxyLESProtocol(session, event_bus, broadcast_config))
 
 
 class LESPeerFactory(BaseChainPeerFactory):
@@ -202,8 +202,8 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
 
         self.run_daemon_event(
             SendBlockHeadersEvent,
-            lambda ev: self.try_with_node(
-                ev.remote,
+            lambda ev: self.try_with_session(
+                ev.session,
                 lambda peer: peer.sub_proto.send_block_headers(ev.headers, ev.buffer_value, ev.request_id)  # noqa: E501
             )
         )
@@ -253,11 +253,11 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
         return await self.chain.coro_get_contract_code(event.block_hash, event.address)
 
     async def handle_native_peer_message(self,
-                                         remote: NodeAPI,
+                                         session: SessionAPI,
                                          cmd: CommandAPI,
                                          msg: Payload) -> None:
         if isinstance(cmd, GetBlockHeaders):
-            await self.event_bus.broadcast(GetBlockHeadersEvent(remote, cmd, msg))
+            await self.event_bus.broadcast(GetBlockHeadersEvent(session, cmd, msg))
         else:
             raise Exception(f"Command {cmd} is not broadcasted")
 
@@ -268,12 +268,12 @@ class LESPeerPool(BaseChainPeerPool):
 
 class LESProxyPeerPool(BaseProxyPeerPool[LESProxyPeer]):
 
-    def convert_node_to_proxy_peer(self,
-                                   remote: NodeAPI,
-                                   event_bus: EndpointAPI,
-                                   broadcast_config: BroadcastConfig) -> LESProxyPeer:
-        return LESProxyPeer.from_node(
-            remote,
+    def convert_session_to_proxy_peer(self,
+                                      session: SessionAPI,
+                                      event_bus: EndpointAPI,
+                                      broadcast_config: BroadcastConfig) -> LESProxyPeer:
+        return LESProxyPeer.from_session(
+            session,
             self.event_bus,
             self.broadcast_config
         )

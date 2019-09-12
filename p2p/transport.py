@@ -46,6 +46,7 @@ from p2p.exceptions import (
     UnreachablePeer,
 )
 from p2p.kademlia import Address, Node
+from p2p.session import Session
 from p2p.transport_state import TransportState
 
 
@@ -68,6 +69,7 @@ class Transport(TransportAPI):
                  egress_mac: sha3.keccak_256,
                  ingress_mac: sha3.keccak_256) -> None:
         self.remote = remote
+        self.session = Session(self.remote)
 
         self._private_key = private_key
 

@@ -27,7 +27,7 @@ from trie.exceptions import (
     MissingTrieNode,
 )
 
-from p2p.abc import CommandAPI, NodeAPI
+from p2p.abc import CommandAPI, SessionAPI
 from p2p.typing import Payload
 
 from trinity.db.eth1.chain import BaseAsyncChainDB
@@ -186,12 +186,12 @@ class ETHRequestServer(BaseIsolatedRequestServer):
         self._handler = ETHPeerRequestHandler(db, self.cancel_token)
 
     async def _handle_msg(self,
-                          remote: NodeAPI,
+                          session: SessionAPI,
                           cmd: CommandAPI,
                           msg: Payload) -> None:
 
-        self.logger.debug2("Peer %s requested %s", remote, cmd)
-        peer = ETHProxyPeer.from_node(remote, self.event_bus, self.broadcast_config)
+        self.logger.debug2("Peer %s requested %s", session, cmd)
+        peer = ETHProxyPeer.from_session(session, self.event_bus, self.broadcast_config)
 
         if isinstance(cmd, commands.GetBlockHeaders):
             await self._handler.handle_get_block_headers(peer, cast(Dict[str, Any], msg))

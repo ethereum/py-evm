@@ -18,12 +18,12 @@ from lahja import (
     BaseRequestResponseEvent,
 )
 
-from p2p.abc import NodeAPI
-
 from eth_typing import (
     BlockIdentifier,
     Hash32,
 )
+
+from p2p.abc import SessionAPI
 
 from trinity.protocol.common.events import (
     PeerPoolMessageEvent,
@@ -101,7 +101,7 @@ class SendBlockHeadersEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_block_headers`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
     headers: Sequence[BlockHeaderAPI]
 
 
@@ -111,7 +111,7 @@ class SendBlockBodiesEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_block_bodies`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
     blocks: Sequence[BlockAPI]
 
 
@@ -121,7 +121,7 @@ class SendNodeDataEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_node_data`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
     nodes: Sequence[bytes]
 
 
@@ -131,7 +131,7 @@ class SendReceiptsEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_receipts`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
     receipts: Sequence[Sequence[ReceiptAPI]]
 
 
@@ -141,7 +141,7 @@ class SendTransactionsEvent(BaseEvent):
     Event to proxy a ``ETHPeer.sub_proto.send_transactions`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
     transactions: Sequence[SignedTransactionAPI]
 
 # EXCHANGE HANDLER REQUEST / RESPONSE PAIRS
@@ -157,7 +157,7 @@ class GetBlockHeadersResponse(BaseEvent):
 @dataclass
 class GetBlockHeadersRequest(BaseRequestResponseEvent[GetBlockHeadersResponse]):
 
-    remote: NodeAPI
+    session: SessionAPI
     block_number_or_hash: BlockIdentifier
     max_headers: int
     skip: int
@@ -179,7 +179,7 @@ class GetBlockBodiesResponse(BaseEvent):
 @dataclass
 class GetBlockBodiesRequest(BaseRequestResponseEvent[GetBlockBodiesResponse]):
 
-    remote: NodeAPI
+    session: SessionAPI
     headers: Sequence[BlockHeaderAPI]
     timeout: float
 
@@ -198,7 +198,7 @@ class GetNodeDataResponse(BaseEvent):
 @dataclass
 class GetNodeDataRequest(BaseRequestResponseEvent[GetNodeDataResponse]):
 
-    remote: NodeAPI
+    session: SessionAPI
     node_hashes: Sequence[Hash32]
     timeout: float
 
@@ -217,7 +217,7 @@ class GetReceiptsResponse(BaseEvent):
 @dataclass
 class GetReceiptsRequest(BaseRequestResponseEvent[GetReceiptsResponse]):
 
-    remote: NodeAPI
+    session: SessionAPI
     headers: Sequence[BlockHeaderAPI]
     timeout: float
 

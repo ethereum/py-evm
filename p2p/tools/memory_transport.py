@@ -12,6 +12,7 @@ from cancel_token import CancelToken
 from p2p._utils import get_devp2p_cmd_id
 from p2p.abc import NodeAPI, TransportAPI
 from p2p.exceptions import PeerConnectionLost
+from p2p.session import Session
 from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.transport_state import TransportState
 
@@ -33,6 +34,7 @@ class MemoryTransport(TransportAPI):
                  reader: asyncio.StreamReader,
                  writer: asyncio.StreamWriter) -> None:
         self.remote = remote
+        self.session = Session(remote)
         self._private_key = private_key
         self._reader = reader
         self._writer = writer

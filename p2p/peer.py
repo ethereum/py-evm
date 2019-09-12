@@ -38,6 +38,7 @@ from p2p.abc import (
     HandshakeReceiptAPI,
     NodeAPI,
     ProtocolAPI,
+    SessionAPI,
 )
 from p2p.constants import BLACKLIST_SECONDS_BAD_PROTOCOL
 from p2p.disconnect import DisconnectReason
@@ -189,10 +190,10 @@ class BasePeer(BaseService):
         return NoopConnectionTracker()
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__} {self.remote}"
+        return f"{self.__class__.__name__} {self.session}"
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__} {self.remote!r}"
+        return f"{self.__class__.__name__} {self.session!r}"
 
     #
     # Proxy Transport attributes
@@ -200,6 +201,10 @@ class BasePeer(BaseService):
     @cached_property
     def remote(self) -> NodeAPI:
         return self.connection.remote
+
+    @cached_property
+    def session(self) -> SessionAPI:
+        return self.connection.session
 
     @property
     def is_closing(self) -> bool:

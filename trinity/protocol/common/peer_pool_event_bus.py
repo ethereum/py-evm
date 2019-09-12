@@ -13,6 +13,7 @@ from typing import (
     Type,
     TypeVar,
 )
+
 from cancel_token import CancelToken
 
 from lahja import (
@@ -22,7 +23,7 @@ from lahja import (
     EndpointAPI,
 )
 
-from p2p.abc import CommandAPI, NodeAPI
+from p2p.abc import CommandAPI, SessionAPI
 from p2p.exceptions import PeerConnectionLost
 from p2p.peer import (
     BasePeer,
@@ -78,8 +79,8 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
 
         self.run_daemon_event(
             DisconnectPeerEvent,
-            lambda event: self.try_with_node(
-                event.remote,
+            lambda event: self.try_with_session(
+                event.session,
                 lambda peer: peer.disconnect_nowait(event.reason)
             )
         )
@@ -110,7 +111,7 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
 
     @abstractmethod
     async def handle_native_peer_message(self,
-                                         remote: NodeAPI,
+                                         session: SessionAPI,
                                          cmd: CommandAPI,
                                          msg: Payload) -> None:
         """
@@ -120,15 +121,18 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
         """
         ...
 
-    def get_peer(self, remote: NodeAPI) -> TPeer:
+    def get_peer(self, session: SessionAPI) -> TPeer:
         """
         Look up and return a peer from the ``PeerPool`` that matches the given node.
         Raise ``PeerConnectionLost`` if the peer is no longer in the pool or is winding down.
         """
         try:
-            peer = self.peer_pool.connected_nodes[remote]
+            peer = self.peer_pool.connected_nodes[session]
         except KeyError:
-            self.logger.debug("Peer with remote %s does not exist in the pool anymore", remote)
+            self.logger.debug(
+                "Peer with session %s does not exist in the pool anymore",
+                session,
+            )
             raise PeerConnectionLost()
         else:
             if not peer.is_operational:
@@ -200,40 +204,40 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
                     event.broadcast_config()
                 )
 
-    async def try_with_node(self, remote: NodeAPI, fn: Callable[[TPeer], Any]) -> None:
+    async def try_with_session(self, session: SessionAPI, fn: Callable[[TPeer], Any]) -> None:
         try:
-            peer = self.get_peer(remote)
+            peer = self.get_peer(session)
         except PeerConnectionLost:
             pass
         else:
             fn(peer)
 
     async def with_node_and_timeout(self,
-                                    remote: NodeAPI,
+                                    session: SessionAPI,
                                     timeout: float,
                                     fn: Callable[[TPeer], Any]) -> Any:
-        peer = self.get_peer(remote)
+        peer = self.get_peer(session)
         return await self.wait(fn(peer), timeout=timeout)
 
     async def handle_native_peer_messages(self) -> None:
         with self.subscribe(self.peer_pool):
             while self.is_operational:
                 peer, cmd, msg = await self.wait(self.msg_queue.get())
-                await self.handle_native_peer_message(peer.remote, cmd, msg)
+                await self.handle_native_peer_message(peer.session, cmd, msg)
 
     def register_peer(self, peer: BasePeer) -> None:
         self.logger.debug2("Broadcasting PeerJoinedEvent for %s", peer)
-        self.event_bus.broadcast_nowait(PeerJoinedEvent(peer.remote))
+        self.event_bus.broadcast_nowait(PeerJoinedEvent(peer.session))
 
     def deregister_peer(self, peer: BasePeer) -> None:
         self.logger.debug2("Broadcasting PeerLeftEvent for %s", peer)
-        self.event_bus.broadcast_nowait(PeerLeftEvent(peer.remote))
+        self.event_bus.broadcast_nowait(PeerLeftEvent(peer.session))
 
 
 class DefaultPeerPoolEventServer(PeerPoolEventServer[BasePeer]):
 
     async def handle_native_peer_message(self,
-                                         remote: NodeAPI,
+                                         session: SessionAPI,
                                          cmd: CommandAPI,
                                          msg: Payload) -> None:
         pass
@@ -256,7 +260,7 @@ class BaseProxyPeerPool(BaseService, Generic[TProxyPeer]):
         super().__init__(token)
         self.event_bus = event_bus
         self.broadcast_config = broadcast_config
-        self.connected_peers: Dict[NodeAPI, TProxyPeer] = dict()
+        self.connected_peers: Dict[SessionAPI, TProxyPeer] = dict()
 
     async def stream_existing_and_joining_peers(self) -> AsyncIterator[TProxyPeer]:
         for proxy_peer in await self.get_peers():
@@ -268,7 +272,7 @@ class BaseProxyPeerPool(BaseService, Generic[TProxyPeer]):
     # TODO: PeerJoinedEvent/PeerLeftEvent should probably include a session id
     async def stream_peers_joining(self) -> AsyncIterator[TProxyPeer]:
         async for ev in self.wait_iter(self.event_bus.stream(PeerJoinedEvent)):
-            yield await self.ensure_proxy_peer(ev.remote)
+            yield await self.ensure_proxy_peer(ev.session)
 
     async def handle_joining_peers(self) -> None:
         async for peer in self.wait_iter(self.stream_peers_joining()):
@@ -277,21 +281,25 @@ class BaseProxyPeerPool(BaseService, Generic[TProxyPeer]):
 
     async def handle_leaving_peers(self) -> None:
         async for ev in self.wait_iter(self.event_bus.stream(PeerLeftEvent)):
-            if ev.remote not in self.connected_peers:
-                self.logger.warning("Wanted to remove peer but it is missing %s", ev.remote)
+            if ev.session not in self.connected_peers:
+                self.logger.warning("Wanted to remove peer but it is missing %s", ev.session)
             else:
-                proxy_peer = self.connected_peers.pop(ev.remote)
+                proxy_peer = self.connected_peers.pop(ev.session)
                 # TODO: Double check based on some session id if we are indeed
                 # removing the right peer
                 await proxy_peer.cancel()
-                self.logger.warning("Removed proxy peer from proxy pool %s", ev.remote)
+                self.logger.warning("Removed proxy peer from proxy pool %s", ev.session)
 
     async def fetch_initial_peers(self) -> Tuple[TProxyPeer, ...]:
         response = await self.wait(
             self.event_bus.request(GetConnectedPeersRequest(), self.broadcast_config)
         )
 
-        return tuple([await self.ensure_proxy_peer(remote) for remote in response.remotes])
+        return tuple([
+            await self.ensure_proxy_peer(session)
+            for session
+            in response.sessions
+        ])
 
     async def get_peers(self) -> Tuple[TProxyPeer, ...]:
         """
@@ -307,25 +315,25 @@ class BaseProxyPeerPool(BaseService, Generic[TProxyPeer]):
         return tuple(self.connected_peers.values())
 
     @abstractmethod
-    def convert_node_to_proxy_peer(self,
-                                   remote: NodeAPI,
-                                   event_bus: EndpointAPI,
-                                   broadcast_config: BroadcastConfig) -> TProxyPeer:
+    def convert_session_to_proxy_peer(self,
+                                      session: SessionAPI,
+                                      event_bus: EndpointAPI,
+                                      broadcast_config: BroadcastConfig) -> TProxyPeer:
         ...
 
-    async def ensure_proxy_peer(self, remote: NodeAPI) -> TProxyPeer:
+    async def ensure_proxy_peer(self, session: SessionAPI) -> TProxyPeer:
 
-        if remote not in self.connected_peers:
-            proxy_peer = self.convert_node_to_proxy_peer(
-                remote,
+        if session not in self.connected_peers:
+            proxy_peer = self.convert_session_to_proxy_peer(
+                session,
                 self.event_bus,
                 self.broadcast_config
             )
-            self.connected_peers[remote] = proxy_peer
+            self.connected_peers[session] = proxy_peer
             self.run_child_service(proxy_peer)
             await proxy_peer.events.started.wait()
 
-        return self.connected_peers[remote]
+        return self.connected_peers[session]
 
     async def _run(self) -> None:
         self.run_daemon_task(self.handle_joining_peers())

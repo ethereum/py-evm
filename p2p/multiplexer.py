@@ -11,6 +11,8 @@ from typing import (
     Union,
 )
 
+from cached_property import cached_property
+
 from async_generator import asynccontextmanager
 
 from cancel_token import CancelToken
@@ -26,6 +28,7 @@ from p2p.abc import (
     MultiplexerAPI,
     NodeAPI,
     ProtocolAPI,
+    SessionAPI,
     TransportAPI,
     TProtocol,
 )
@@ -166,9 +169,13 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     #
     # Proxy Transport methods
     #
-    @property
+    @cached_property
     def remote(self) -> NodeAPI:
         return self._transport.remote
+
+    @cached_property
+    def session(self) -> SessionAPI:
+        return self._transport.session
 
     @property
     def is_closing(self) -> bool:

@@ -10,6 +10,7 @@ from typing import (
     ContextManager,
     Dict,
     Generic,
+    Hashable,
     List,
     Optional,
     Tuple,
@@ -18,6 +19,7 @@ from typing import (
     TypeVar,
     Union,
 )
+import uuid
 
 
 from rlp import sedes
@@ -135,6 +137,11 @@ class NodeAPI(ABC):
         ...
 
 
+class SessionAPI(ABC, Hashable):
+    id: uuid.UUID
+    remote: NodeAPI
+
+
 class CommandAPI(ABC):
     structure: Structure
 
@@ -192,6 +199,7 @@ class RequestAPI(ABC, Generic[TRequestPayload]):
 
 
 class TransportAPI(ABC):
+    session: SessionAPI
     remote: NodeAPI
     read_state: TransportState
 
@@ -279,8 +287,13 @@ class MultiplexerAPI(ABC):
         ...
 
     #
-    # Proxy Transport methods
+    # Proxy Transport properties and methods
     #
+    @property
+    @abstractmethod
+    def session(self) -> SessionAPI:
+        ...
+
     @property
     @abstractmethod
     def remote(self) -> NodeAPI:
@@ -431,6 +444,11 @@ class ConnectionAPI(AsyncioServiceAPI):
     @property
     @abstractmethod
     def is_dial_in(self) -> bool:
+        ...
+
+    @property
+    @abstractmethod
+    def session(self) -> SessionAPI:
         ...
 
     @property

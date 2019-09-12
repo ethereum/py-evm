@@ -26,7 +26,7 @@ from eth_utils import (
 
 from eth.rlp.headers import BlockHeader
 
-from p2p.abc import NodeAPI
+from p2p.abc import SessionAPI
 from p2p.protocol import Protocol
 from p2p.typing import Payload
 
@@ -282,10 +282,10 @@ class ProxyLESProtocol:
     action performed on this class is delegated to the process that runs the peer pool.
     """
     def __init__(self,
-                 remote: NodeAPI,
+                 session: SessionAPI,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig):
-        self.remote = remote
+        self.session = session
         self._event_bus = event_bus
         self._broadcast_config = broadcast_config
 
@@ -312,7 +312,7 @@ class ProxyLESProtocol:
         req_id = request_id if not None else gen_request_id()
 
         self._event_bus.broadcast_nowait(
-            SendBlockHeadersEvent(self.remote, headers, buffer_value, req_id),
+            SendBlockHeadersEvent(self.session, headers, buffer_value, req_id),
             self._broadcast_config,
         )
         return req_id

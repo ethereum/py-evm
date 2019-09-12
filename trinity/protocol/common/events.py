@@ -11,7 +11,7 @@ from lahja import (
     BaseRequestResponseEvent,
 )
 
-from p2p.abc import CommandAPI, NodeAPI
+from p2p.abc import CommandAPI, NodeAPI, SessionAPI
 from p2p.disconnect import DisconnectReason
 from p2p.typing import Payload
 
@@ -48,7 +48,7 @@ class DisconnectPeerEvent(BaseEvent):
     """
     Event broadcasted when we want to disconnect from a peer
     """
-    remote: NodeAPI
+    session: SessionAPI
     reason: DisconnectReason
 
 
@@ -57,7 +57,7 @@ class PeerJoinedEvent(BaseEvent):
     """
     Event broadcasted when a new peer joined the pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
 
 
 @dataclass
@@ -65,13 +65,13 @@ class PeerLeftEvent(BaseEvent):
     """
     Event broadcasted when a peer left the pool.
     """
-    remote: NodeAPI
+    session: SessionAPI
 
 
 @dataclass
 class GetConnectedPeersResponse(BaseEvent):
 
-    remotes: Tuple[NodeAPI, ...]
+    sessions: Tuple[SessionAPI, ...]
 
 
 class GetConnectedPeersRequest(BaseRequestResponseEvent[GetConnectedPeersResponse]):
@@ -88,6 +88,6 @@ class PeerPoolMessageEvent(BaseEvent):
     to individual subclasses for every different ``cmd`` to allow efficient consumption through
     the event bus.
     """
-    remote: NodeAPI
+    session: SessionAPI
     cmd: CommandAPI
     msg: Payload
