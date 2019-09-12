@@ -215,6 +215,7 @@ class PeerPool:
     def get_best_head_slot_peer(self) -> Peer:
         return self.get_best("head_slot")
 
+
 DIAL_RETRY_COUNT = 10
 
 
