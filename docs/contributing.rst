@@ -139,10 +139,22 @@ Before releasing a new version, build and test the package that will be released
     # Preview the upcoming release notes
     towncrier --draft
 
+Compile the release notes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After confirming that the release package looks okay, compile the release notes:
+
+.. code:: sh
+
+    make notes bump=$$VERSION_PART_TO_BUMP$$
+
+You may need to fix up any broken release note fragments before committing. Keep
+running make build-docs until it passes, then commit and carry on.
+
 Push the release to github & pypi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-After confirming that the release package looks okay, release a new version:
+After committing the compiled release notes, release a new version:
 
 .. code:: sh
 
