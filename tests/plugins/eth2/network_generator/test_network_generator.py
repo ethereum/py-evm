@@ -1,4 +1,5 @@
 import pytest
+from trinity.tools.async_process_runner import AsyncProcessRunner
 from trinity._utils.async_iter import (
     contains_all,
 )
@@ -12,14 +13,14 @@ from trinity._utils.async_iter import (
     )
 )
 @pytest.mark.asyncio
-async def test_directory_generation(async_process_runner, command, tmpdir):
+async def test_directory_generation(command, tmpdir):
     testnet_path = tmpdir / "testnet"
     testnet_path.mkdir()
     command = command + (f"--network-dir={testnet_path}", )
-    await async_process_runner.run(command, timeout_sec=30)
-    assert await contains_all(async_process_runner.stderr, {
-        "Network generation completed",
-    })
+    async with AsyncProcessRunner.run(command, timeout_sec=30) as runner:
+        assert await contains_all(runner.stderr, {
+            "Network generation completed",
+        })
 
 
 @pytest.mark.parametrize(
@@ -29,8 +30,8 @@ async def test_directory_generation(async_process_runner, command, tmpdir):
     )
 )
 @pytest.mark.asyncio
-async def test_missing_genesis_time_arg(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=30)
-    assert await contains_all(async_process_runner.stderr, {
-        "one of the arguments --genesis-delay --genesis-time is required",
-    })
+async def test_missing_genesis_time_arg(command):
+    async with AsyncProcessRunner.run(command, timeout_sec=30) as runner:
+        assert await contains_all(runner.stderr, {
+            "one of the arguments --genesis-delay --genesis-time is required",
+        })

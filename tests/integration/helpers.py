@@ -1,10 +1,13 @@
-async def run_command_and_detect_errors(async_process_runner, command, time):
+from trinity.tools.async_process_runner import AsyncProcessRunner
+
+
+async def run_command_and_detect_errors(command, time):
     """
     Run the given ``command`` on the given ``async_process_runner`` for ``time`` seconds and
     throw an Exception in case any unresolved Exceptions are detected in the output of the command.
     """
-    await async_process_runner.run(command, timeout_sec=time)
-    await scan_for_errors(async_process_runner.stderr)
+    async with AsyncProcessRunner.run(command, timeout_sec=time) as runner:
+        await scan_for_errors(runner.stderr)
 
 
 async def scan_for_errors(async_iterable):

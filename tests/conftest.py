@@ -55,9 +55,6 @@ from trinity.rpc.modules import (
 from trinity.rpc.ipc import (
     IPCServer,
 )
-from trinity.tools.async_process_runner import (
-    AsyncProcessRunner,
-)
 from trinity._utils.xdg import (
     get_xdg_trinity_root,
 )
@@ -95,21 +92,6 @@ def event_loop():
         yield loop
     finally:
         loop.close()
-
-
-# This fixture provides a tear down to run after each test that uses it.
-# This ensures the AsyncProcessRunner will never leave a process behind
-@pytest.fixture(scope="function")
-def async_process_runner():
-    runner = AsyncProcessRunner(
-        # This allows running pytest with -s and observing the output
-        debug_fn=lambda line: print(line)
-    )
-    yield runner
-    try:
-        runner.kill()
-    except ProcessLookupError:
-        pass
 
 
 @asynccontextmanager

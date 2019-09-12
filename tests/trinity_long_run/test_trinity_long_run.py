@@ -13,6 +13,6 @@ from tests.integration.helpers import (
     )
 )
 @pytest.mark.asyncio
-async def test_does_not_throw_errors_on_long_run(async_process_runner, command):
+async def test_does_not_throw_errors_on_long_run(command):
     # Ensure that no errors are thrown when trinity is run for 90 seconds
-    await run_command_and_detect_errors(async_process_runner, command, 90)
+    await run_command_and_detect_errors(command, 90)

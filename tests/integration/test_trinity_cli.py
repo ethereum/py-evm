@@ -20,6 +20,7 @@ from trinity.config import (
 from trinity.constants import (
     ASSETS_DIR,
 )
+from trinity.tools.async_process_runner import AsyncProcessRunner
 from trinity._utils.async_iter import (
     contains_all
 )
@@ -31,9 +32,9 @@ MAINNET_GENESIS_HASH = '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c
 
 # Great for debugging the AsyncProcessRunner
 # @pytest.mark.asyncio
-# async def test_ping(async_process_runner):
-#     await async_process_runner.run(['ping', 'www.google.de'])
-#     assert await contains_all(async_process_runner.stdout, {'bytes from'})
+# async def test_ping():
+#     async with AsyncProcessRunner.run(['ping', 'www.google.de'], 10) as runner:
+#         assert await contains_all(runner.stdout, {'bytes from'})
 
 
 @pytest.mark.parametrize(
@@ -44,16 +45,16 @@ MAINNET_GENESIS_HASH = '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c
     )
 )
 @pytest.mark.asyncio
-async def test_expected_logs_for_full_mode(async_process_runner, command):
-    # Since this short-circuits on sucess, we can set the timeout high.
+async def test_expected_logs_for_full_mode(command):
+    # Since this short-circuits on success, we can set the timeout high.
     # We only hit the timeout if the test fails.
-    await async_process_runner.run(command, timeout_sec=120)
-    assert await contains_all(async_process_runner.stderr, {
-        "Started DB server process",
-        "Plugin started: Sync / PeerPool",
-        "Running server",
-        "IPC started at",
-    })
+    async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
+        assert await contains_all(runner.stderr, {
+            "Started DB server process",
+            "Plugin started: Sync / PeerPool",
+            "Running server",
+            "IPC started at",
+        })
 
 
 @pytest.mark.parametrize(
@@ -64,17 +65,17 @@ async def test_expected_logs_for_full_mode(async_process_runner, command):
     )
 )
 @pytest.mark.asyncio
-async def test_expected_logs_for_full_mode_with_txpool(async_process_runner, command):
+async def test_expected_logs_for_full_mode_with_txpool(command):
     # Since this short-circuits on sucess, we can set the timeout high.
     # We only hit the timeout if the test fails.
-    await async_process_runner.run(command, timeout_sec=120)
-    assert await contains_all(async_process_runner.stderr, {
-        "Started DB server process",
-        "Plugin started: Sync / PeerPool",
-        "Running Tx Pool",
-        "Running server",
-        "IPC started at",
-    })
+    async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
+        assert await contains_all(runner.stderr, {
+            "Started DB server process",
+            "Plugin started: Sync / PeerPool",
+            "Running Tx Pool",
+            "Running server",
+            "IPC started at",
+        })
 
 
 @pytest.mark.parametrize(
@@ -85,15 +86,15 @@ async def test_expected_logs_for_full_mode_with_txpool(async_process_runner, com
     )
 )
 @pytest.mark.asyncio
-async def test_expected_logs_with_disabled_txpool(async_process_runner, command):
+async def test_expected_logs_with_disabled_txpool(command):
     # Since this short-circuits on success, we can set the timeout high.
     # We only hit the timeout if the test fails.
-    await async_process_runner.run(command, timeout_sec=120)
-    assert await contains_all(async_process_runner.stderr, {
-        "Started DB server process",
-        "Plugin started: Sync / PeerPool",
-        "Transaction pool not available in light mode",
-    })
+    async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
+        assert await contains_all(runner.stderr, {
+            "Started DB server process",
+            "Plugin started: Sync / PeerPool",
+            "Transaction pool not available in light mode",
+        })
 
 
 @pytest.mark.parametrize(
@@ -104,13 +105,13 @@ async def test_expected_logs_with_disabled_txpool(async_process_runner, command)
     )
 )
 @pytest.mark.asyncio
-async def test_expected_logs_for_light_mode(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=40)
-    assert await contains_all(async_process_runner.stderr, {
-        "Started DB server process",
-        "Plugin started: Sync / PeerPool",
-        "IPC started at",
-    })
+async def test_expected_logs_for_light_mode(command):
+    async with AsyncProcessRunner.run(command, timeout_sec=40) as runner:
+        assert await contains_all(runner.stderr, {
+            "Started DB server process",
+            "Plugin started: Sync / PeerPool",
+            "IPC started at",
+        })
 
 
 @pytest.mark.parametrize(
@@ -134,8 +135,7 @@ async def test_expected_logs_for_light_mode(async_process_runner, command):
 async def test_web3_commands_via_attached_console(command,
                                                   expected_network_id,
                                                   expected_genesis_hash,
-                                                  xdg_trinity_root,
-                                                  async_process_runner):
+                                                  xdg_trinity_root):
 
     command = tuple(
         fragment.replace('{trinity_root_path}', str(xdg_trinity_root))
@@ -144,33 +144,34 @@ async def test_web3_commands_via_attached_console(command,
     )
     attach_cmd = list(command[1:] + ('attach',))
 
-    await async_process_runner.run(command, timeout_sec=40)
-    assert await contains_all(async_process_runner.stderr, {
-        "Started DB server process",
-        "Plugin started: Sync / PeerPool",
-        "IPC started at",
-        "Plugin started: JSON-RPC API",
-        # Ensure we do not start making requests before Trinity is ready.
-        # Waiting for the json-rpc-api event bus to connect to other endpoints
-        # seems to be late enough in the process for this to be the case.
-        "EventBus Endpoint bjson-rpc-api connecting to other Endpoints",
-    })
+    async with AsyncProcessRunner.run(command, timeout_sec=40) as runner:
+        assert await contains_all(runner.stderr, {
+            "Started DB server process",
+            "Plugin started: Sync / PeerPool",
+            "IPC started at",
+            "Plugin started: JSON-RPC API",
+            # Ensure we do not start making requests before Trinity is ready.
+            # Waiting for the json-rpc-api event bus to connect to other endpoints
+            # seems to be late enough in the process for this to be the case.
+            "EventBus Endpoint bjson-rpc-api connecting to other Endpoints",
+        })
 
-    attached_trinity = pexpect.spawn('trinity', attach_cmd, logfile=sys.stdout, encoding="utf-8")
-    try:
-        attached_trinity.expect("An instance of Web3 connected to the running chain")
-        attached_trinity.sendline("w3.net.version")
-        attached_trinity.expect(f"'{expected_network_id}'")
-        attached_trinity.sendline("w3")
-        attached_trinity.expect("web3.main.Web3")
-        attached_trinity.sendline("w3.eth.getBlock('latest').blockNumber")
-        attached_trinity.expect(str(GENESIS_BLOCK_NUMBER))
-        attached_trinity.sendline("w3.eth.getBlock('latest').hash")
-        attached_trinity.expect(expected_genesis_hash)
-    except pexpect.TIMEOUT:
-        raise Exception("Trinity attach timeout")
-    finally:
-        attached_trinity.close()
+        attached_trinity = pexpect.spawn(
+            'trinity', attach_cmd, logfile=sys.stdout, encoding="utf-8")
+        try:
+            attached_trinity.expect("An instance of Web3 connected to the running chain")
+            attached_trinity.sendline("w3.net.version")
+            attached_trinity.expect(f"'{expected_network_id}'")
+            attached_trinity.sendline("w3")
+            attached_trinity.expect("web3.main.Web3")
+            attached_trinity.sendline("w3.eth.getBlock('latest').number")
+            attached_trinity.expect(str(GENESIS_BLOCK_NUMBER))
+            attached_trinity.sendline("w3.eth.getBlock('latest').hash")
+            attached_trinity.expect(expected_genesis_hash)
+        except pexpect.TIMEOUT:
+            raise Exception("Trinity attach timeout")
+        finally:
+            attached_trinity.close()
 
 
 @pytest.mark.parametrize(
@@ -187,10 +188,10 @@ async def test_web3_commands_via_attached_console(command,
     )
 )
 @pytest.mark.asyncio
-async def test_does_not_throw_errors_on_short_run(async_process_runner, command):
+async def test_does_not_throw_errors_on_short_run(command):
     # This is our last line of defence. This test basically observes the first
     # 20 seconds of the Trinity boot process and fails if Trinity logs any exceptions
-    await run_command_and_detect_errors(async_process_runner, command, 20)
+    await run_command_and_detect_errors(command, 20)
 
 
 @pytest.mark.parametrize(
@@ -247,8 +248,7 @@ async def test_does_not_throw_errors_on_short_run(async_process_runner, command)
     )
 )
 @pytest.mark.asyncio
-async def test_logger_configuration(async_process_runner,
-                                    command,
+async def test_logger_configuration(command,
                                     expected_stderr_logs,
                                     unexpected_stderr_logs,
                                     expected_file_logs,
@@ -258,40 +258,41 @@ async def test_logger_configuration(async_process_runner,
         return any(substring in x for x in iterable)
 
     # Saw occasional (<25%, >5%) failures in CI at 30s because of slow machines or bad luck
-    await async_process_runner.run(command, timeout_sec=45)
+    async with AsyncProcessRunner.run(command, timeout_sec=45) as runner:
 
-    stderr_logs = []
+        stderr_logs = []
 
-    # Collect logs up to the point when the sync begins so that we have enough logs for assertions
-    marker_seen_at = 0
-    async for line in async_process_runner.stderr:
-        if marker_seen_at != 0 and time.time() - marker_seen_at > 3:
-            break
-        if "DiscoveryProtocol" in line:
-            marker_seen_at = time.time()
-            stderr_logs.append(line)
-        else:
-            stderr_logs.append(line)
+        # Collect logs up to the point when the sync begins so that we have enough logs
+        # for assertions
+        marker_seen_at = 0
+        async for line in runner.stderr:
+            if marker_seen_at != 0 and time.time() - marker_seen_at > 3:
+                break
+            if "DiscoveryProtocol" in line:
+                marker_seen_at = time.time()
+                stderr_logs.append(line)
+            else:
+                stderr_logs.append(line)
 
-    for log in expected_stderr_logs:
-        if not contains_substring(stderr_logs, log):
-            assert False, f"Log should contain `{log}` but does not"
+        for log in expected_stderr_logs:
+            if not contains_substring(stderr_logs, log):
+                assert False, f"Log should contain `{log}` but does not"
 
-    for log in unexpected_stderr_logs:
-        if contains_substring(stderr_logs, log):
-            assert False, f"Log should not contain `{log}` but does"
+        for log in unexpected_stderr_logs:
+            if contains_substring(stderr_logs, log):
+                assert False, f"Log should not contain `{log}` but does"
 
-    log_file_path = TrinityConfig(app_identifier="eth1", network_id=1).logfile_path
-    with open(log_file_path) as log_file:
-        file_content = log_file.read()
+        log_file_path = TrinityConfig(app_identifier="eth1", network_id=1).logfile_path
+        with open(log_file_path) as log_file:
+            file_content = log_file.read()
 
-        for log in expected_file_logs:
-            if log not in file_content:
-                assert False, f"Logfile should contain `{log}` but does not"
+            for log in expected_file_logs:
+                if log not in file_content:
+                    assert False, f"Logfile should contain `{log}` but does not"
 
-        for log in unexpected_file_logs:
-            if log in file_content:
-                assert False, f"Logfile should not contain `{log}` but does"
+            for log in unexpected_file_logs:
+                if log in file_content:
+                    assert False, f"Logfile should not contain `{log}` but does"
 
 
 @pytest.mark.parametrize(
@@ -304,25 +305,26 @@ async def test_logger_configuration(async_process_runner,
 # Once we get Trinity to shutdown cleanly, we should remove the xfail so that the test ensures
 # ongoing clean exits.
 @pytest.mark.xfail
-async def test_shutdown_does_not_throw_errors(command, async_process_runner):
+async def test_shutdown_does_not_throw_errors(command):
 
     async def run_then_shutdown_and_yield_output():
         # This test spins up Trinity, waits until it has started syncing, sends a SIGINT and then
         # tries to scan the entire shutdown process for errors. It needs a little bit more time.
-        await async_process_runner.run(command, timeout_sec=50)
+        async with AsyncProcessRunner.run(command, timeout_sec=50) as runner:
 
-        # Somewhat arbitrary but we wait until the syncer starts before we trigger the shutdown.
-        # At this point, most of the internals should be set up, leaving us with more room for
-        # failure which is what we are looking for in this test.
-        trigger = "BeamSyncService"
-        triggered = False
-        async for line in async_process_runner.stderr:
-            if trigger in line:
-                triggered = True
-                async_process_runner.kill(signal.SIGINT)
+            # Somewhat arbitrary but we wait until the syncer starts before we trigger the shutdown.
+            # At this point, most of the internals should be set up, leaving us with more room for
+            # failure which is what we are looking for in this test.
+            trigger = "BeamSyncService"
+            triggered = False
+            async for line in runner.stderr:
+                if trigger in line:
+                    triggered = True
+                    runner.kill(signal.SIGINT)
 
-            # We are only interested in the output that is created after we initiate the shutdown
-            if triggered:
-                yield line
+                # We are only interested in the output that is created
+                # after we initiate the shutdown
+                if triggered:
+                    yield line
 
     await scan_for_errors(run_then_shutdown_and_yield_output())

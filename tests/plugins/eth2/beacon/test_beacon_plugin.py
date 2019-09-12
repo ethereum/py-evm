@@ -1,4 +1,5 @@
 import pytest
+from trinity.tools.async_process_runner import AsyncProcessRunner
 from trinity._utils.async_iter import (
     contains_all
 )
@@ -13,8 +14,8 @@ from trinity._utils.async_iter import (
     )
 )
 @pytest.mark.asyncio
-async def test_plugin_boot(async_process_runner, command):
-    await async_process_runner.run(command, timeout_sec=30)
-    assert await contains_all(async_process_runner.stderr, {
-        "Running server",
-    })
+async def test_plugin_boot(command):
+    async with AsyncProcessRunner.run(command, timeout_sec=30) as runner:
+        assert await contains_all(runner.stderr, {
+            "Running server",
+        })

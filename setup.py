@@ -51,6 +51,7 @@ deps = {
         "libp2p @ git+https://git@github.com/libp2p/py-libp2p@f38899e",
     ],
     'test': [
+        "async-timeout>=3.0.1,<4",
         "hypothesis>=4.24.3,<5",
         "pexpect>=4.6, <5",
         "factory-boy==2.11.1",

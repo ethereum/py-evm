@@ -4,38 +4,41 @@ import os
 import signal
 from typing import (
     AsyncIterable,
+    AsyncIterator,
     Awaitable,
     Callable,
     Tuple,
 )
 
+from async_generator import asynccontextmanager
+from async_timeout import timeout
+
 
 class AsyncProcessRunner():
     logger = logging.getLogger("trinity.tools.async_process_runner.AsyncProcessRunner")
-
-    def __init__(self, debug_fn: Callable[[bytes], None] = None) -> None:
-        self.debug_fn = debug_fn
+    proc: asyncio.subprocess.Process
 
     @classmethod
-    async def create_and_run(cls,
-                             cmds: Tuple[str, ...],
-                             timeout_sec: int=10) -> 'AsyncProcessRunner':
-        runner = cls()
-        await runner.run(cmds, timeout_sec)
-        return runner
-
-    async def run(self, cmds: Tuple[str, ...], timeout_sec: int=10) -> None:
-        proc = await asyncio.create_subprocess_exec(
-            *cmds,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            stdin=asyncio.subprocess.PIPE,
-            # We need this because Trinity spawns multiple processes and we need to take down
-            # the entire group of processes.
-            preexec_fn=os.setsid,
-        )
-        self.proc = proc
-        asyncio.ensure_future(self.kill_after_timeout(timeout_sec))
+    @asynccontextmanager
+    async def run(cls,
+                  cmds: Tuple[str, ...],
+                  timeout_sec: int=10) -> AsyncIterator['AsyncProcessRunner']:
+        try:
+            async with timeout(timeout_sec):
+                runner = cls()
+                runner.proc = await asyncio.create_subprocess_exec(
+                    *cmds,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    stdin=asyncio.subprocess.PIPE,
+                    # We need this because Trinity spawns multiple processes and we need to
+                    # take down the entire group of processes.
+                    preexec_fn=os.setsid,
+                )
+                yield runner
+                runner.kill()
+        except asyncio.TimeoutError:
+            runner.kill()
 
     @property
     async def stdout(self) -> AsyncIterable[str]:
@@ -53,17 +56,11 @@ class AsyncProcessRunner():
 
         while True:
             line = await awaitable_bytes_fn()
-            if self.debug_fn:
-                self.debug_fn(line)
+            self.logger.debug(line)
             if line == b'':
                 return
             else:
                 yield line.decode('utf-8')
-
-    async def kill_after_timeout(self, timeout_sec: int) -> None:
-        await asyncio.sleep(timeout_sec)
-        self.kill()
-        raise asyncio.TimeoutError(f'Killed process after {timeout_sec} seconds')
 
     def kill(self, sig: int = signal.SIGKILL) -> None:
         try:
