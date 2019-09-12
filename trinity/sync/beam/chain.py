@@ -483,18 +483,24 @@ class HeaderOnlyPersist(BaseService):
         new_canon_headers, old_canon_headers = await self.wait(
             self._db.coro_persist_header_chain(persist_headers)
         )
-        self.logger.debug(
-            "Final header import before checkpoint: %s..%s, old canon: %s..%s, new canon: %s..%s",
-            persist_headers[0],
-            persist_headers[-1],
-            old_canon_headers[0] if len(old_canon_headers) else None,
-            old_canon_headers[-1] if len(old_canon_headers) else None,
-            new_canon_headers[0] if len(new_canon_headers) else None,
-            new_canon_headers[-1] if len(new_canon_headers) else None,
-        )
+
+        if persist_headers:
+            self.logger.debug(
+                "Final header import before checkpoint: %s..%s, "
+                "old canon: %s..%s, new canon: %s..%s",
+                persist_headers[0],
+                persist_headers[-1],
+                old_canon_headers[0] if len(old_canon_headers) else None,
+                old_canon_headers[-1] if len(old_canon_headers) else None,
+                new_canon_headers[0] if len(new_canon_headers) else None,
+                new_canon_headers[-1] if len(new_canon_headers) else None,
+            )
+        else:
+            self.logger.debug("Final header import before checkpoint: None")
 
         self._final_headers = final_headers
         self.cancel_nowait()
+
         return True
 
     def get_final_headers(self) -> Tuple[BlockHeader, ...]:
