@@ -1,1 +1,0 @@
-Expose ``NewBlockEvent`` on the event bus.

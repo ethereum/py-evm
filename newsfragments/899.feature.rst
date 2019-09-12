@@ -1,1 +1,0 @@
-Speculative Execution in Beam Sync: split block transactions to run them in parallel, for speedup.

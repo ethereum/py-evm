@@ -1,1 +1,0 @@
-Add ``ABC`` base class ``p2p.abc.HandshakeReceiptAPI``

@@ -5,6 +5,166 @@ Trinity is moving fast. Read up on all the latest improvements.
 
 .. towncrier release notes start
 
+Trinity 0.1.0-alpha.28 (2019-09-12)
+-----------------------------------
+
+Features
+~~~~~~~~
+
+- Remove Trinity specific subclass of the ``lahja`` endpoint in favor of using the core ``EndpointAPI`` everywhere.  The previous functionality from the ``TrinityEventBusEndpoint`` is now handled by a special service designed to manage the endpoint lifecycle. (`#672 <https://github.com/ethereum/trinity/issues/672>`__)
+- Allow trinity db-shell to inspect the beacon node (`#809 <https://github.com/ethereum/trinity/issues/809>`__)
+- Expose ``NewBlockEvent`` on the event bus. (`#822 <https://github.com/ethereum/trinity/issues/822>`__)
+- Add ``p2p.p2p_proto.P2PProtocol.send_ping`` and ``p2p.p2p_proto.P2PProtocol.send_hello`` methods. (`#826 <https://github.com/ethereum/trinity/issues/826>`__)
+- Add ``p2p.peer.receive_handshake`` to encapsulate the logic for handling incoming connections. (`#828 <https://github.com/ethereum/trinity/issues/828>`__)
+- The ``p2p.p2p_proto.P2PProtocol`` class now requires that handshake parameters be passed into the ``send_handshake`` method.  These parameters are now part of the ``p2p.peer.BasePeerContext`` class. (`#829 <https://github.com/ethereum/trinity/issues/829>`__)
+- Add a new ``p2p.tools.factories.TransportPairFactory`` for generating directly connected ``p2p.transport.Transport`` objects. (`#830 <https://github.com/ethereum/trinity/issues/830>`__)
+- Add ``p2p.multiplexer.Multiplexer`` for combining the commands from different devp2p sub-protocols into a single network write stream, and split the incoming network stream into individually retrievable sub-protocol commands. (`#835 <https://github.com/ethereum/trinity/issues/835>`__)
+- Adds ``p2p.protocol.get_cmd_offsets`` helper function for computing the command id offsets for devp2p protocols (`#836 <https://github.com/ethereum/trinity/issues/836>`__)
+- Use the ``p2p.multiplexer.Multiplexer`` within the ``BasePeer`` to handle the incoming message stream. (`#847 <https://github.com/ethereum/trinity/issues/847>`__)
+- Add factories for creating devp2p protocols and commands for testing. (`#850 <https://github.com/ethereum/trinity/issues/850>`__)
+- Beam Sync: parallel execution of blocks. When connected to a peer on a local network, can now
+  keep up with mainnet (assuming a beefy machine). Also added beam stats in the logs. (`#855 <https://github.com/ethereum/trinity/issues/855>`__)
+- Replace ``multiprocessing`` based database access with a custom implementation that increases database access performance by 1.5-2x (`#859 <https://github.com/ethereum/trinity/issues/859>`__)
+- Implement ``p2p.handshake`` API.  This provides a generic interface for
+  performing proper DevP2p handshakes using multiple sub-protocols without
+  needing involvement of the ``BasePeer``. (`#869 <https://github.com/ethereum/trinity/issues/869>`__)
+- Use the new ``p2p.handshake`` APIs in the ``p2p.peer.BasePeer`` handshake logic. (`#887 <https://github.com/ethereum/trinity/issues/887>`__)
+- If Trinity is beam syncing and a call to `eth_getBalance` requests data which is not in
+  the local database, Trinity asks for the data over the network. (`#894 <https://github.com/ethereum/trinity/issues/894>`__)
+- Speculative Execution in Beam Sync: split block transactions to run them in parallel, for speedup. (`#899 <https://github.com/ethereum/trinity/issues/899>`__)
+- Allow beam sync to start from a trusted checkpoint.
+  Specify a checkpoint via CLI parameter such as:
+
+  ``--beam-from-checkpoint="eth://block/byhash/<hash>?score=<score>"``
+
+  When given, beam sync will use this as a checkpoint
+  to avoid having to download the entire chain of headers
+  first. (`#921 <https://github.com/ethereum/trinity/issues/921>`__)
+- Expose the `force-beam-block-number` config as a command line parameter.
+  The config is useful for testing to force beam sync to activate on a given block number. (`#923 <https://github.com/ethereum/trinity/issues/923>`__)
+- Add ``p2p_version`` to ``p2p.peer.BasePeerContext`` properties and use for handshake. (`#931 <https://github.com/ethereum/trinity/issues/931>`__)
+- If `eth_getCode` is called during beam sync but the requested data is not available
+  locally trinity will attempt to fetch the requested data from remote peers. (`#944 <https://github.com/ethereum/trinity/issues/944>`__)
+- Beam Sync: start backfilling data, especially as a way to gather performance data about peers, and
+  improve the performance of beam sync importing. (`#951 <https://github.com/ethereum/trinity/issues/951>`__)
+- Add ``p2p.service.run_service`` which implements a context manager API for running a ``p2p.service.BaseService``. (`#955 <https://github.com/ethereum/trinity/issues/955>`__)
+- Add ``p2p.connection.Connection`` service which actively manages the ``p2p.multiplexer.Multiplexer`` exposing an API for registering handler callbacks for individuall protocol commands or entire protocols, as well as access to general metadata about the p2p connection. (`#956 <https://github.com/ethereum/trinity/issues/956>`__)
+- If `eth_getStorageAt` is called during beam sync but the requested data is not available
+  locally trinity will attempt to fetch the requested data from remote peers. (`#957 <https://github.com/ethereum/trinity/issues/957>`__)
+- ``p2p.peer.BasePeer`` now uses ``ConnectionAPI`` for underlying protocol interactions. (`#962 <https://github.com/ethereum/trinity/issues/962>`__)
+- Allow Trinity to automatically resolve a checkpoint through the etherscan API
+  using this syntax: ``--beam-from-checkpoint="eth://block/byetherscan/latest"`` (`#963 <https://github.com/ethereum/trinity/issues/963>`__)
+- Fetch missing data from remote peers, if requested over json-rpc during beam sync.
+  Requests for data at an old block will fail; remote peers probably don't have it. (`#975 <https://github.com/ethereum/trinity/issues/975>`__)
+- Expose the ``MiningChain`` on the `db-shell` REPL to allow creating blocks on a REPL (`#977 <https://github.com/ethereum/trinity/issues/977>`__)
+- Add ``ConnectionAPI.get_p2p_receipt`` for fetching the ``HandshakeReceipt`` for the base ``p2p`` protocol. (`#986 <https://github.com/ethereum/trinity/issues/986>`__)
+- ``p2p.protocol.Protocol.supports_command`` is now a ``classmethod`` (`#987 <https://github.com/ethereum/trinity/issues/987>`__)
+- The ``HandlerSubscriptionAPI`` now supports a context manager interface, removing/cancelling the subscription when the context exits (`#989 <https://github.com/ethereum/trinity/issues/989>`__)
+- Handler functions for ``Connection.add_protocol_handler`` and ``Connection.add_command_handler`` now expect the ``Connection`` instance as the first argument. (`#990 <https://github.com/ethereum/trinity/issues/990>`__)
+- Introduce ``p2p.session.Session`` which is now used in place of the ``remote`` to identify peers in the peer pool. (`#1054 <https://github.com/ethereum/trinity/issues/1054>`__)
+- Add ``HTTPServer`` for JSON-RPC over HTTP APIs. (`#1078 <https://github.com/ethereum/trinity/issues/1078>`__)
+- Make `beam` the default sync strategy and remove `fast` sync. (`#1084 <https://github.com/ethereum/trinity/issues/1084>`__)
+- Detect if a checkpoint is too close to the tip and delay sync until we have reached a minimum
+  distance to the tip. (`#1107 <https://github.com/ethereum/trinity/issues/1107>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Proper cancellation of subtasks upon cancellation of ``p2p.service.BaseService`` (`#809 <https://github.com/ethereum/trinity/issues/809>`__)
+- The recently introduced fix that ensures we do not run multiple concurrent
+  handshakes to the same peer accidentially introduced a (rarely exposed) memory
+  leak. This fix introduces a ``ResourceLock`` and refactores the code to use it
+  to also fix the previously introduced memory leak. (`#811 <https://github.com/ethereum/trinity/issues/811>`__)
+- Fix issue where test state was leaking between tests in ``tests/p2p/test_discovery.py`` (`#839 <https://github.com/ethereum/trinity/issues/839>`__)
+- Beam Sync: Serve node data requests in parallel, instead of series (`#857 <https://github.com/ethereum/trinity/issues/857>`__)
+- Fix for ``DEBUG2`` logs always being shown irrespective of log level. (`#860 <https://github.com/ethereum/trinity/issues/860>`__)
+- Beam Sync stats: Count the extra single node that is sometimes required when downloading the nodes
+  needed to look up an account or storage. (Usually because of a trie reorg) (`#877 <https://github.com/ethereum/trinity/issues/877>`__)
+- Fixes issue with Trinity not shutting down when issues a ``CTRL+C``. (`#878 <https://github.com/ethereum/trinity/issues/878>`__)
+- Fix ``__str__`` implementation of ``BaseProxyPeer`` to properly represent the ``p2p.kademlia.Node`` URI. (`#881 <https://github.com/ethereum/trinity/issues/881>`__)
+- Add missing field `from` to the response of `RPC` calls `eth_getTransactionByBlockHashAndIndex` and `eth_getTransactionByBlockNumberAndIndex`. (`#889 <https://github.com/ethereum/trinity/issues/889>`__)
+- Ensure ``--profile`` parameter takes profiles of every process (`#891 <https://github.com/ethereum/trinity/issues/891>`__)
+- Handle escaping ``PeerConnectionLost`` exception from ``Multiplexer`` in ``BasePeer`` (`#895 <https://github.com/ethereum/trinity/issues/895>`__)
+- Fix JSON-RPC call `eth_getBalance(address, block_number)` to return balance at the requested block_number.
+  Earlier it would always return balance at `block(0)`. (`#900 <https://github.com/ethereum/trinity/issues/900>`__)
+- Fix a MissingTrieNode exception when the first imported block has an uncle (`#909 <https://github.com/ethereum/trinity/issues/909>`__)
+- Handles ``MalformedMessage`` and ``TimeoutError`` exceptions that can occur while multiplexing the devp2p connection (`#916 <https://github.com/ethereum/trinity/issues/916>`__)
+- Fix type hints so that ``max_headers`` is recognized as keyword argument
+  to ``get_block_headers``. (`#921 <https://github.com/ethereum/trinity/issues/921>`__)
+- ``BootManager`` now uses the ``BasePeer.loop`` as well as their cancel token. (`#926 <https://github.com/ethereum/trinity/issues/926>`__)
+- Fix a deadlock bug: if you request data from a peer at just the wrong moment, the request would hang
+  forever. Now, it correctly raises an :cls:`OperationCancelled`. (`#932 <https://github.com/ethereum/trinity/issues/932>`__)
+- ``ETHHandshakeReceipt`` and ``LESHandshakeReceipt`` now properly accept their protocol instances in their constructors. (`#934 <https://github.com/ethereum/trinity/issues/934>`__)
+- Pin ``lahja==0.14.0`` until connection timeout issue is resolved. (`#936 <https://github.com/ethereum/trinity/issues/936>`__)
+- Beam Sync: catch the TimeoutError that was escaping, and retry (`#939 <https://github.com/ethereum/trinity/issues/939>`__)
+- Ensure the ``BasePeer`` negotiates the proper base protocol. (`#942 <https://github.com/ethereum/trinity/issues/942>`__)
+- Capture :cls:`PeerConnectionLost` in more places, especially sync. (`#943 <https://github.com/ethereum/trinity/issues/943>`__)
+- Beam Sync: Sometimes we would get stuck using a bad peer for node retrieval, fixed. Sometimes we
+  would stop asking for predicted trie nodes when we don't have any immediate nodes to ask for, fixed. (`#958 <https://github.com/ethereum/trinity/issues/958>`__)
+- Fix ``p2p.tools.factories.MultiplexerPairFactory`` negotiation of ``p2p`` protocol version. (`#964 <https://github.com/ethereum/trinity/issues/964>`__)
+- Add missing exception handling inside of ``Connection.run`` for ``PeerConnectionLost`` exception that bubbles from multiplexer.  ``Connection`` is now responsible for calling ``Multiplexer.close`` on shutdown.  Detect a closed connection during handshake. (`#992 <https://github.com/ethereum/trinity/issues/992>`__)
+- Fix ``P2PProtocol.send_disconnect`` to accept enum values from ``p2p.disconnect.DisconnectReason`` (`#994 <https://github.com/ethereum/trinity/issues/994>`__)
+- Instead of the ``ProcessPoolExecutor`` use a ``ThreadPoolExecutor`` to normalize
+  expensive messages. This fixes a bug where Trinity would leave idle processes
+  from the ``ProcessPoolExecutor`` behind every time it shuts down after a sync.
+
+  Performance wise, both methods should be roughly compareable and since many
+  task have already been moved to their own managed processes over time, using
+  a ``ThreadPoolExecutor`` strikes as a simple solution to fix that bug. (`#1004 <https://github.com/ethereum/trinity/issues/1004>`__)
+- Fix a bug where trying to start beam sync from a checkpoint would throw an error
+  due to an uninitialized var if a request to a peer would raise an error while
+  we are trying to resolve a header from it. (`#1005 <https://github.com/ethereum/trinity/issues/1005>`__)
+- Fix for ``TrioService.run_task`` to ensure that when a background task throws an unhandled exception that it causes full service cancellation and that the exception is propagated. (`#1040 <https://github.com/ethereum/trinity/issues/1040>`__)
+- Fix issue where Trinity does not recognize and disconnect from ETC peers
+  when it is being used as an ETH client (`#1050 <https://github.com/ethereum/trinity/issues/1050>`__)
+- Handle ``MalformedMessage`` rising out of the ``Transport`` in the ``Connection``. (`#1051 <https://github.com/ethereum/trinity/issues/1051>`__)
+- Ensure discovery V4 handles invalid command ids gracefully (`#1063 <https://github.com/ethereum/trinity/issues/1063>`__)
+- Fix issue where attempts to establish new peer connections would halt shortly after startup due to missing timeout when attempting to dial a peer. (`#1069 <https://github.com/ethereum/trinity/issues/1069>`__)
+- An exception while serving peer requests would crash out the peer pool event server.
+  Now it doesn't crash, but logs a big red error (and catches innocuous exceptions, early on). (`#1074 <https://github.com/ethereum/trinity/issues/1074>`__)
+- An occasional warning "ValidationError: Duplicate tasks detected" was crashing the node. It's
+  recoverable, so log it, but don't crash. (`#1083 <https://github.com/ethereum/trinity/issues/1083>`__)
+- Fix warning on ethstats.net due to incorrectly reported API version number. (`#1094 <https://github.com/ethereum/trinity/issues/1094>`__)
+- Fix warning caused by inappropriate call to ``cancel_nowait``. (`#99999 <https://github.com/ethereum/trinity/issues/99999>`__)
+
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Immediately insert Beam Sync nodes that are "predicted" (soon to be used during parallel execution)
+  This saves a round trip on live execution, when parallel execution already downloaded a node.
+  Also, more aggressively make predictive requests if no urgent requests are waiting in the queue. (`#877 <https://github.com/ethereum/trinity/issues/877>`__)
+- Previously, we gave up on predicted nodes that were not returned by a peer. Now we retry them,
+  which helps make sure we aren't missing any nodes at block import time. (`#932 <https://github.com/ethereum/trinity/issues/932>`__)
+- During Beam Sync previews, be sure to collect the nodes required to generate the new state root,
+  rather than wait until it's time to import the block. (`#933 <https://github.com/ethereum/trinity/issues/933>`__)
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Add a "Performance improvements" section to the release notes (`#884 <https://github.com/ethereum/trinity/issues/884>`__)
+- Cleanup Quickstart and start a Cookbook with small recipes (`#890 <https://github.com/ethereum/trinity/issues/890>`__)
+- Cover ``--profile`` parameter in Cookbook (`#891 <https://github.com/ethereum/trinity/issues/891>`__)
+- Add a guide on how to create a custom developer testnet using a genesis configuration file (`#1037 <https://github.com/ethereum/trinity/issues/1037>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Remove ``p2p._utils.clamp`` in favor of the one from ``eth-utils>=1.5.2`` (`#832 <https://github.com/ethereum/trinity/issues/832>`__)
+- Remove unused ``token`` argument from ``p2p.tools.memory_transport.MemoryTransport`` constructor (`#838 <https://github.com/ethereum/trinity/issues/838>`__)
+- Remove legacy tests from core application code. (`#882 <https://github.com/ethereum/trinity/issues/882>`__)
+- Remove the ``FakeAsync...`` classes from tests in favor of using the real versions for things like chain and database objects (`#949 <https://github.com/ethereum/trinity/issues/949>`__)
+
+
+Miscellaneous internal changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- `#818 <https://github.com/ethereum/trinity/issues/818>`__, `#879 <https://github.com/ethereum/trinity/issues/879>`__, `#880 <https://github.com/ethereum/trinity/issues/880>`__, `#915 <https://github.com/ethereum/trinity/issues/915>`__, `#917 <https://github.com/ethereum/trinity/issues/917>`__, `#927 <https://github.com/ethereum/trinity/issues/927>`__, `#928 <https://github.com/ethereum/trinity/issues/928>`__, `#929 <https://github.com/ethereum/trinity/issues/929>`__, `#930 <https://github.com/ethereum/trinity/issues/930>`__, `#932 <https://github.com/ethereum/trinity/issues/932>`__, `#935 <https://github.com/ethereum/trinity/issues/935>`__, `#938 <https://github.com/ethereum/trinity/issues/938>`__, `#950 <https://github.com/ethereum/trinity/issues/950>`__, `#965 <https://github.com/ethereum/trinity/issues/965>`__, `#983 <https://github.com/ethereum/trinity/issues/983>`__, `#985 <https://github.com/ethereum/trinity/issues/985>`__, `#988 <https://github.com/ethereum/trinity/issues/988>`__, `#991 <https://github.com/ethereum/trinity/issues/991>`__, `#993 <https://github.com/ethereum/trinity/issues/993>`__, `#995 <https://github.com/ethereum/trinity/issues/995>`__, `#997 <https://github.com/ethereum/trinity/issues/997>`__, `#1021 <https://github.com/ethereum/trinity/issues/1021>`__, `#1043 <https://github.com/ethereum/trinity/issues/1043>`__, `#1045 <https://github.com/ethereum/trinity/issues/1045>`__, `#1052 <https://github.com/ethereum/trinity/issues/1052>`__, `#1055 <https://github.com/ethereum/trinity/issues/1055>`__, `#1066 <https://github.com/ethereum/trinity/issues/1066>`__, `#1075 <https://github.com/ethereum/trinity/issues/1075>`__
+
+
 Trinity 0.1.0-alpha.27 (2019-07-17)
 -----------------------------------
 

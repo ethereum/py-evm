@@ -1,1 +1,0 @@
-Beam Sync: Serve node data requests in parallel, instead of series

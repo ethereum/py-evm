@@ -1,1 +1,0 @@
-Handle ``MalformedMessage`` rising out of the ``Transport`` in the ``Connection``.

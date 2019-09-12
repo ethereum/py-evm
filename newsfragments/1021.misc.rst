@@ -1,1 +1,0 @@
-Fix ``DeprecationWarning`` being issued from a regex.

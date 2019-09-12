@@ -1,2 +1,0 @@
-Detect if a checkpoint is too close to the tip and delay sync until we have reached a minimum
-distance to the tip.

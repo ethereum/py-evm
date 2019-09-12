@@ -1,1 +1,0 @@
-Update ``py-evm`` dependency to ``==0.3.0a6``.

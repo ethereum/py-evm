@@ -1,1 +1,0 @@
-Ensure ``--profile`` parameter takes profiles of every process

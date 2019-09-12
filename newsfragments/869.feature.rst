@@ -1,3 +1,0 @@
-Implement ``p2p.handshake`` API.  This provides a generic interface for
-performing proper DevP2p handshakes using multiple sub-protocols without
-needing involvement of the ``BasePeer``.

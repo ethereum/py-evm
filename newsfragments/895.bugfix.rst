@@ -1,1 +1,0 @@
-Handle escaping ``PeerConnectionLost`` exception from ``Multiplexer`` in ``BasePeer`

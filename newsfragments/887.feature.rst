@@ -1,1 +1,0 @@
-Use the new ``p2p.handshake`` APIs in the ``p2p.peer.BasePeer`` handshake logic.

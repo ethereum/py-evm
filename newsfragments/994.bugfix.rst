@@ -1,1 +1,0 @@
-Fix ``P2PProtocol.send_disconnect`` to accept enum values from ``p2p.disconnect.DisconnectReason``

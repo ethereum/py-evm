@@ -1,1 +1,0 @@
-The ``HandlerSubscriptionAPI`` now supports a context manager interface, removing/cancelling the subscription when the context exits

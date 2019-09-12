@@ -1,1 +1,0 @@
-Allow trinity db-shell to inspect the beacon node

@@ -1,1 +1,0 @@
-Expand test coverage to ensure Ropsten and custom nets do actually work.

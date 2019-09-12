@@ -1,1 +1,0 @@
-Add ``p2p.peer.receive_handshake`` to encapsulate the logic for handling incoming connections.

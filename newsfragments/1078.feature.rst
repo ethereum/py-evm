@@ -1,1 +1,0 @@
-Add ``HTTPServer`` for JSON-RPC over HTTP APIs.

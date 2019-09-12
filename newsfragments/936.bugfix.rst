@@ -1,1 +1,0 @@
-Pin ``lahja==0.14.0`` until connection timeout issue is resolved.

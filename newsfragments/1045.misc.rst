@@ -1,4 +1,0 @@
-Switch Beam Sync from preferring low RTT to preferring high items per second (a patch to avoid peers
-that return very quickly, but without most of the data you asked for).
-Be more forgiving of slightly misbehaving peers during beam sync (for example, when they return no
-nodes from GetNodeData request).
