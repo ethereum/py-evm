@@ -73,6 +73,8 @@ release: clean
 	# require that you be on a branch that's linked to upstream/master
 	git status -s -b | head -1 | grep "\.\.upstream/master"
 	./newsfragments/validate_files.py is-empty
+	# verify that docs build correctly
+	make build-docs
 	CURRENT_SIGN_SETTING=$(git config commit.gpgSign)
 	git config commit.gpgSign true
 	bumpversion $(bump)

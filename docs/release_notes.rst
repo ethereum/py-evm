@@ -94,12 +94,12 @@ Bugfixes
   to ``get_block_headers``. (`#921 <https://github.com/ethereum/trinity/issues/921>`__)
 - ``BootManager`` now uses the ``BasePeer.loop`` as well as their cancel token. (`#926 <https://github.com/ethereum/trinity/issues/926>`__)
 - Fix a deadlock bug: if you request data from a peer at just the wrong moment, the request would hang
-  forever. Now, it correctly raises an :cls:`OperationCancelled`. (`#932 <https://github.com/ethereum/trinity/issues/932>`__)
+  forever. Now, it correctly raises an ``OperationCancelled``. (`#932 <https://github.com/ethereum/trinity/issues/932>`__)
 - ``ETHHandshakeReceipt`` and ``LESHandshakeReceipt`` now properly accept their protocol instances in their constructors. (`#934 <https://github.com/ethereum/trinity/issues/934>`__)
 - Pin ``lahja==0.14.0`` until connection timeout issue is resolved. (`#936 <https://github.com/ethereum/trinity/issues/936>`__)
 - Beam Sync: catch the TimeoutError that was escaping, and retry (`#939 <https://github.com/ethereum/trinity/issues/939>`__)
 - Ensure the ``BasePeer`` negotiates the proper base protocol. (`#942 <https://github.com/ethereum/trinity/issues/942>`__)
-- Capture :cls:`PeerConnectionLost` in more places, especially sync. (`#943 <https://github.com/ethereum/trinity/issues/943>`__)
+- Capture :class:`PeerConnectionLost` in more places, especially sync. (`#943 <https://github.com/ethereum/trinity/issues/943>`__)
 - Beam Sync: Sometimes we would get stuck using a bad peer for node retrieval, fixed. Sometimes we
   would stop asking for predicted trie nodes when we don't have any immediate nodes to ask for, fixed. (`#958 <https://github.com/ethereum/trinity/issues/958>`__)
 - Fix ``p2p.tools.factories.MultiplexerPairFactory`` negotiation of ``p2p`` protocol version. (`#964 <https://github.com/ethereum/trinity/issues/964>`__)
