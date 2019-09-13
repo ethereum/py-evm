@@ -242,7 +242,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
     def is_valid_connection_candidate(self, candidate: NodeAPI) -> bool:
         # connect to no more then 2 nodes with the same IP
         nodes_by_ip = groupby(
-            operator.attrgetter('address.ip'),
+            operator.attrgetter('remote.address.ip'),
             self.connected_nodes.keys(),
         )
         matching_ip_nodes = nodes_by_ip.get(candidate.address.ip, [])
