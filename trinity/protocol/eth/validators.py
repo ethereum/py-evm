@@ -10,7 +10,8 @@ from eth_utils import (
 )
 from eth.abc import BlockHeaderAPI
 
-from trinity.protocol.common.abc import ValidatorAPI
+from p2p.exchange import ValidatorAPI
+
 from trinity.protocol.common.validators import (
     BaseBlockHeadersValidator,
 )

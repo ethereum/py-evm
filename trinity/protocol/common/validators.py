@@ -1,7 +1,6 @@
 from abc import abstractmethod
 import collections
 from typing import (
-    Any,
     Sequence,
     Tuple,
     cast,
@@ -19,14 +18,10 @@ from eth_utils import (
     humanize_hash,
 )
 
+from p2p.exchange import ValidatorAPI
+
 from trinity._utils.headers import sequence_builder
 from trinity._utils.humanize import humanize_integer_sequence
-
-from .abc import ValidatorAPI
-
-
-def noop_payload_validator(request: Any, response: Any) -> None:
-    pass
 
 
 class BaseBlockHeadersValidator(ValidatorAPI[Tuple[BlockHeaderAPI, ...]]):

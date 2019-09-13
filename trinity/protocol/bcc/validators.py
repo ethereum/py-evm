@@ -21,7 +21,7 @@ from eth2.beacon.typing import (
     Slot,
 )
 
-from trinity.protocol.common.abc import ValidatorAPI
+from p2p.exchange import ValidatorAPI
 
 from trinity.protocol.bcc.commands import (
     RequestMessage,

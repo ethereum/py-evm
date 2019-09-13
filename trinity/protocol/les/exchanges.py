@@ -8,7 +8,7 @@ from typing import (
 from eth_typing import BlockIdentifier
 from eth.abc import BlockHeaderAPI
 
-from trinity.protocol.common.exchanges import (
+from p2p.exchange import (
     BaseExchange,
 )
 from trinity._utils.les import (

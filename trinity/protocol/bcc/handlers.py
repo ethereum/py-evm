@@ -1,4 +1,4 @@
-from trinity.protocol.common.handlers import BaseExchangeHandler
+from p2p.exchange import BaseExchangeHandler
 
 from trinity.protocol.bcc.exchanges import BeaconBlocksExchange
 

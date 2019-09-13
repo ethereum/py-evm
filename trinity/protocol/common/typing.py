@@ -1,5 +1,4 @@
 from typing import (
-    Any,
     Dict,
     Tuple,
     TypeVar,
@@ -10,13 +9,7 @@ from eth_typing import (
     Hash32,
 )
 
-from p2p.abc import RequestAPI
 from p2p.peer import BasePeer
-
-
-TRequest = TypeVar('TRequest', bound=RequestAPI[Any])
-TResponse = TypeVar('TResponse')
-TResult = TypeVar('TResult')
 
 
 TPeer = TypeVar('TPeer', bound=BasePeer)

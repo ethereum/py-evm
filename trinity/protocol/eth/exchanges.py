@@ -11,13 +11,9 @@ from eth_typing import (
 )
 from eth.abc import BlockHeaderAPI
 
-from trinity.protocol.common.exchanges import (
+from p2p.exchange import (
     BaseExchange,
-)
-from trinity.protocol.common.normalizers import (
     NoopNormalizer,
-)
-from trinity.protocol.common.validators import (
     noop_payload_validator,
 )
 from trinity.protocol.common.typing import (

@@ -11,9 +11,8 @@ from eth.db.trie import make_trie_root_and_nodes
 from eth_hash.auto import keccak
 import rlp
 
-from trinity.protocol.common.normalizers import (
-    BaseNormalizer,
-)
+from p2p.exchange import BaseNormalizer
+
 from trinity.protocol.common.typing import (
     BlockBodyBundle,
     BlockBodyBundles,

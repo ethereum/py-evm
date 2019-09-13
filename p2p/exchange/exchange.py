@@ -8,7 +8,7 @@ from p2p.abc import CommandAPI, RequestAPI
 from p2p.typing import TRequestPayload, TResponsePayload
 
 from .abc import ExchangeAPI, NormalizerAPI, ValidatorAPI
-from .managers import ExchangeManager
+from .manager import ExchangeManager
 from .typing import TResult
 
 
