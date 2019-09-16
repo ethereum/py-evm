@@ -3,6 +3,7 @@ import collections
 import functools
 from typing import (
     DefaultDict,
+    Dict,
     Sequence,
     Set,
     Tuple,
@@ -14,6 +15,7 @@ from cached_property import cached_property
 from eth_keys import keys
 
 from p2p.abc import (
+    BehaviorAPI,
     CommandAPI,
     CommandHandlerFn,
     ConnectionAPI,
@@ -25,13 +27,16 @@ from p2p.abc import (
     ProtocolHandlerFn,
     SessionAPI,
     THandshakeReceipt,
+    TBehavior,
     TProtocol,
 )
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
+    DuplicateAPI,
     MalformedMessage,
     PeerConnectionLost,
     ReceiptNotFound,
+    UnknownAPI,
     UnknownProtocol,
     UnknownProtocolCommand,
 )
@@ -50,6 +55,7 @@ class Connection(ConnectionAPI, BaseService):
         Type[CommandAPI],
         Set[CommandHandlerFn]
     ]
+    _apis: Dict[str, BehaviorAPI]
 
     def __init__(self,
                  multiplexer: MultiplexerAPI,
@@ -70,6 +76,8 @@ class Connection(ConnectionAPI, BaseService):
         # This ensures that the connection does not start consuming messages
         # before all necessary handlers have been added
         self._handlers_ready = asyncio.Event()
+
+        self._apis = {}
 
     def start_protocol_streams(self) -> None:
         self._handlers_ready.set()
@@ -186,6 +194,36 @@ class Connection(ConnectionAPI, BaseService):
             raise UnknownProtocolCommand(
                 f"Command {command_type} was not found in the connected "
                 f"protocols: {self._multiplexer.get_protocols()}"
+            )
+
+    #
+    # API extension
+    #
+    def add_api(self, name: str, behavior: BehaviorAPI) -> SubscriptionAPI:
+        if name in self._apis:
+            raise DuplicateAPI(
+                f"There is already an API registered under the name '{name}': "
+                f"{self._apis[name]}"
+            )
+        self._apis[name] = behavior
+        cancel_fn = functools.partial(self.remove_api, name)
+        return Subscription(cancel_fn)
+
+    def remove_api(self, name: str) -> None:
+        self._apis.pop(name)
+
+    def has_api(self, name: str) -> bool:
+        return name in self._apis
+
+    def get_api(self, name: str, behavior_type: Type[TBehavior]) -> TBehavior:
+        if not self.has_api(name):
+            raise UnknownAPI(f"No API registered for the name '{name}'")
+        behavior = self._apis[name]
+        if isinstance(behavior, behavior_type):
+            return behavior
+        else:
+            raise TypeError(
+                f"Wrong behavior type.  expected: {behavior_type}  got: {type(behavior)}"
             )
 
     #

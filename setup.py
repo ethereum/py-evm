@@ -9,6 +9,7 @@ PYEVM_DEPENDENCY = "py-evm==0.3.0a6"
 
 deps = {
     'p2p': [
+        "async-exit-stack==1.0.1",
         "async-generator==1.10",
         "asyncio-cancel-token>=0.2,<0.3",
         "async_lru>=0.1.0,<1.0.0",
