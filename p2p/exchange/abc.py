@@ -20,14 +20,13 @@ from p2p.abc import (
     RequestAPI,
     ProtocolAPI,
 )
+from p2p.stats.ema import EMA
+from p2p.stats.percentile import Percentile
+from p2p.stats.stddev import StandardDeviation
 from p2p.typing import (
     TRequestPayload,
     TResponsePayload,
 )
-
-from p2p.stats.ema import EMA
-from p2p.stats.percentile import Percentile
-from p2p.stats.stddev import StandardDeviation
 
 from .typing import TResult, TRequest, TResponse
 
