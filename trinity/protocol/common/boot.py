@@ -49,7 +49,7 @@ class DAOCheckBootManager(BasePeerBootManager):
             start_block = cast(BlockNumber, dao_fork_num - 1)
 
             try:
-                headers = await self.peer.requests.get_block_headers(
+                headers = await self.peer.chain_api.get_block_headers(
                     start_block,
                     max_headers=2,
                     reverse=False,
@@ -88,7 +88,7 @@ class DAOCheckBootManager(BasePeerBootManager):
 
     async def _get_tip_header(self) -> BlockHeader:
         try:
-            headers = await self.peer.requests.get_block_headers(
+            headers = await self.peer.chain_api.get_block_headers(
                 self.peer.head_info.head_hash,
                 max_headers=1,
                 timeout=CHAIN_SPLIT_CHECK_TIMEOUT,

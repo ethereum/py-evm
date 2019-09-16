@@ -1,3 +1,4 @@
+import asyncio
 from typing import cast, AsyncContextManager, AsyncIterator, Tuple, Type
 
 from async_generator import asynccontextmanager
@@ -74,6 +75,8 @@ async def PeerPairFactory(*,
         bob = bob_factory.create_peer(connection=bob_connection)
 
         async with run_service(alice), run_service(bob):
+            await asyncio.wait_for(alice.ready.wait(), timeout=1)
+            await asyncio.wait_for(bob.ready.wait(), timeout=1)
             yield alice, bob
 
 

@@ -63,23 +63,23 @@ async def test_proxy_peer_requests(request,
 
         proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.session)
 
-        headers = await proxy_peer.requests.get_block_headers(0, 1, 0, False)
+        headers = await proxy_peer.eth_api.get_block_headers(0, 1, 0, False)
 
         assert len(headers) == 1
         block_header = headers[0]
         assert block_header.block_number == 0
 
-        receipts = await proxy_peer.requests.get_receipts(headers)
+        receipts = await proxy_peer.eth_api.get_receipts(headers)
         assert len(receipts) == 1
         receipt = receipts[0]
         assert receipt[1][0] == block_header.receipt_root
 
-        block_bundles = await proxy_peer.requests.get_block_bodies(headers)
+        block_bundles = await proxy_peer.eth_api.get_block_bodies(headers)
         assert len(block_bundles) == 1
         first_bundle = block_bundles[0]
         assert first_bundle[1][0] == block_header.transaction_root
 
-        node_data = await proxy_peer.requests.get_node_data((block_header.state_root,))
+        node_data = await proxy_peer.eth_api.get_node_data((block_header.state_root,))
         assert node_data[0][0] == block_header.state_root
 
 
@@ -110,16 +110,16 @@ async def test_proxy_peer_requests_with_timeouts(request,
         proxy_peer = await client_proxy_peer_pool.ensure_proxy_peer(client_peer.session)
 
         with pytest.raises(asyncio.TimeoutError):
-            await proxy_peer.requests.get_block_headers(0, 1, 0, False, timeout=0.01)
+            await proxy_peer.eth_api.get_block_headers(0, 1, 0, False, timeout=0.01)
 
         with pytest.raises(asyncio.TimeoutError):
-            await proxy_peer.requests.get_receipts((), timeout=0.01)
+            await proxy_peer.eth_api.get_receipts((), timeout=0.01)
 
         with pytest.raises(asyncio.TimeoutError):
-            await proxy_peer.requests.get_block_bodies((), timeout=0.01)
+            await proxy_peer.eth_api.get_block_bodies((), timeout=0.01)
 
         with pytest.raises(asyncio.TimeoutError):
-            await proxy_peer.requests.get_node_data((), timeout=0.01)
+            await proxy_peer.eth_api.get_node_data((), timeout=0.01)
 
 
 @pytest.mark.asyncio
@@ -156,13 +156,13 @@ async def test_requests_when_peer_in_client_vanishs(request,
         client_peer_pool.connected_nodes.pop(client_peer.session)
 
         with pytest.raises(PeerConnectionLost):
-            await proxy_peer.requests.get_block_headers(0, 1, 0, False)
+            await proxy_peer.eth_api.get_block_headers(0, 1, 0, False)
 
         with pytest.raises(PeerConnectionLost):
-            await proxy_peer.requests.get_receipts(())
+            await proxy_peer.eth_api.get_receipts(())
 
         with pytest.raises(PeerConnectionLost):
-            await proxy_peer.requests.get_block_bodies(())
+            await proxy_peer.eth_api.get_block_bodies(())
 
         with pytest.raises(PeerConnectionLost):
-            await proxy_peer.requests.get_node_data(())
+            await proxy_peer.eth_api.get_node_data(())

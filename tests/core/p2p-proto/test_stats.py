@@ -44,9 +44,9 @@ def mk_header_chain(length):
 @pytest.mark.asyncio
 async def test_eth_get_headers_empty_stats():
     async with ETHPeerPairFactory() as (peer, remote):
-        stats = peer.requests.get_stats()
-        assert all(status == 'None' for status in stats.values())
-        assert 'BlockHeaders' in stats.keys()
+        stats = peer.eth_api.get_extra_stats()
+        assert all('None' in line for line in stats)
+        assert any('BlockHeader' in line for line in stats)
 
 
 @pytest.mark.asyncio
@@ -57,18 +57,20 @@ async def test_eth_get_headers_stats():
 
         for idx in range(1, 5):
             get_headers_task = asyncio.ensure_future(
-                peer.requests.get_block_headers(0, 1, 0, False)
+                peer.eth_api.get_block_headers(0, 1, 0, False)
             )
             asyncio.ensure_future(send_headers())
 
             await get_headers_task
 
-            stats = peer.requests.get_stats()
+            stats = peer.eth_api.get_extra_stats()
 
-            assert stats['BlockHeaders'].startswith('msgs={0}  items={0}  rtt='.format(idx))
-            assert 'timeouts=0' in stats['BlockHeaders']
-            assert 'quality=' in stats['BlockHeaders']
-            assert 'ips=' in stats['BlockHeaders']
+            for line in stats:
+                if 'BlockHeaders' in line:
+                    assert 'msgs={0}  items={0}  rtt='.format(idx) in line
+                    assert 'timeouts=0' in line
+                    assert 'quality=' in line
+                    assert 'ips=' in line
 
 
 @pytest.mark.asyncio
@@ -79,7 +81,7 @@ async def test_les_get_headers_stats():
         for idx in range(1, 5):
             with request_id_monitor.subscribe_peer(remote):
                 get_headers_task = asyncio.ensure_future(
-                    peer.requests.get_block_headers(0, 1, 0, False)
+                    peer.les_api.get_block_headers(0, 1, 0, False)
                 )
                 request_id = await request_id_monitor.next_request_id()
 
@@ -87,9 +89,9 @@ async def test_les_get_headers_stats():
 
             await get_headers_task
 
-            stats = peer.requests.get_stats()
+            stats = peer.les_api.get_extra_stats()[0]
 
-            assert stats['BlockHeaders'].startswith('msgs={0}  items={0}  rtt='.format(idx))
-            assert 'timeouts=0' in stats['BlockHeaders']
-            assert 'quality=' in stats['BlockHeaders']
-            assert 'ips=' in stats['BlockHeaders']
+            assert 'msgs={0}  items={0}  rtt='.format(idx) in stats
+            assert 'timeouts=0' in stats
+            assert 'quality=' in stats
+            assert 'ips=' in stats

@@ -1,6 +1,5 @@
 from typing import (
     Callable,
-    Type,
     TypeVar,
 )
 
@@ -9,9 +8,7 @@ from eth_utils import (
 )
 
 from p2p.abc import (
-    CommandAPI,
     ConnectionAPI,
-    ProtocolAPI,
     RequestAPI,
 )
 from p2p.exceptions import PeerConnectionLost
@@ -23,7 +20,6 @@ from .abc import (
     PerformanceTrackerAPI,
     ResponseCandidateStreamAPI,
 )
-from .candidate_stream import ResponseCandidateStream
 
 
 TResult = TypeVar('TResult')
@@ -32,32 +28,12 @@ TResult = TypeVar('TResult')
 class ExchangeManager(ExchangeManagerAPI[TRequestPayload, TResponsePayload, TResult]):
     _response_stream: ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload] = None
 
-    def __init__(
-            self,
-            connection: ConnectionAPI,
-            requesting_on: ProtocolAPI,
-            listening_for: Type[CommandAPI]) -> None:
+    def __init__(self,
+                 connection: ConnectionAPI,
+                 response_stream: ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload],
+                 ) -> None:
         self._connection = connection
-        self._request_protocol = requesting_on
-        self._response_command_type = listening_for
-
-    async def launch_service(self) -> None:
-        if self._connection.cancel_token.triggered:
-            raise PeerConnectionLost(
-                f"Peer {self._connection} is gone. Ignoring new requests to it"
-            )
-
-        self._response_stream = ResponseCandidateStream(
-            self._connection,
-            self._request_protocol,
-            self._response_command_type,
-        )
-        self._connection.run_daemon(self._response_stream)
-        await self._connection.wait(self._response_stream.events.started.wait())
-
-    @property
-    def is_operational(self) -> bool:
-        return self.service is not None and self.service.is_operational
+        self._response_stream = response_stream
 
     async def get_result(
             self,
@@ -67,16 +43,6 @@ class ExchangeManager(ExchangeManagerAPI[TRequestPayload, TResponsePayload, TRes
             payload_validator: Callable[[TResponsePayload], None],
             tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], TResult],
             timeout: float = None) -> TResult:
-
-        if not self.is_operational:
-            if self.service is None or not self.service.is_cancelled:
-                raise ValidationError(
-                    f"Must call `launch_service` before sending request to {self._connection}"
-                )
-            else:
-                raise PeerConnectionLost(
-                    f"Response stream closed before sending request to {self._connection}"
-                )
 
         stream = self._response_stream
 

@@ -90,7 +90,7 @@ async def test_eth_peer_get_block_bodies_round_trip_with_empty_response(eth_peer
         remote.sub_proto.send_block_bodies([])
         await asyncio.sleep(0)
 
-    get_bodies_task = asyncio.ensure_future(peer.requests.get_block_bodies(headers))
+    get_bodies_task = asyncio.ensure_future(peer.eth_api.get_block_bodies(headers))
     asyncio.ensure_future(send_block_bodies())
 
     response = await get_bodies_task
@@ -112,7 +112,7 @@ async def test_eth_peer_get_block_bodies_round_trip_with_full_response(eth_peer_
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
     bodies_bundle = tuple(zip(bodies, transactions_bundles, uncles_hashes))
 
-    get_bodies_task = asyncio.ensure_future(peer.requests.get_block_bodies(headers))
+    get_bodies_task = asyncio.ensure_future(peer.eth_api.get_block_bodies(headers))
     asyncio.ensure_future(send_block_bodies())
 
     response = await get_bodies_task
@@ -135,7 +135,7 @@ async def test_eth_peer_get_block_bodies_round_trip_with_partial_response(eth_pe
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
     bodies_bundle = tuple(zip(bodies, transactions_bundles, uncles_hashes))
 
-    get_bodies_task = asyncio.ensure_future(peer.requests.get_block_bodies(headers))
+    get_bodies_task = asyncio.ensure_future(peer.eth_api.get_block_bodies(headers))
     asyncio.ensure_future(send_block_bodies())
 
     response = await get_bodies_task
@@ -162,7 +162,7 @@ async def test_eth_peer_get_block_bodies_round_trip_with_noise(eth_peer_and_remo
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
     bodies_bundle = tuple(zip(bodies, transactions_bundles, uncles_hashes))
 
-    get_bodies_task = asyncio.ensure_future(peer.requests.get_block_bodies(headers))
+    get_bodies_task = asyncio.ensure_future(peer.eth_api.get_block_bodies(headers))
     asyncio.ensure_future(send_block_bodies())
 
     response = await get_bodies_task
@@ -190,7 +190,7 @@ async def test_eth_peer_get_block_bodies_round_trip_no_match_invalid_response(et
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
     bodies_bundle = tuple(zip(bodies, transactions_bundles, uncles_hashes))
 
-    get_bodies_task = asyncio.ensure_future(peer.requests.get_block_bodies(headers))
+    get_bodies_task = asyncio.ensure_future(peer.eth_api.get_block_bodies(headers))
     asyncio.ensure_future(send_block_bodies())
 
     response = await get_bodies_task
