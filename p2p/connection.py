@@ -73,11 +73,11 @@ class Connection(ConnectionAPI, BaseService):
     #
     # Primary properties of the connection
     #
-    @property
+    @cached_property
     def is_dial_in(self) -> bool:
         return not self.is_dial_out
 
-    @property
+    @cached_property
     def remote(self) -> NodeAPI:
         return self._multiplexer.remote
 
@@ -202,27 +202,27 @@ class Connection(ConnectionAPI, BaseService):
     #
     # Connection Metadata
     #
-    @property
+    @cached_property
     def remote_capabilities(self) -> Capabilities:
         return self._devp2p_receipt.capabilities
 
-    @property
+    @cached_property
     def remote_p2p_version(self) -> int:
         return self._devp2p_receipt.version
 
-    @property
+    @cached_property
     def negotiated_p2p_version(self) -> int:
         return self.get_base_protocol().version
 
-    @property
+    @cached_property
     def remote_public_key(self) -> keys.PublicKey:
         return keys.PublicKey(self._devp2p_receipt.remote_public_key)
 
-    @property
+    @cached_property
     def client_version_string(self) -> str:
         return self._devp2p_receipt.client_version_string
 
-    @property
+    @cached_property
     def safe_client_version_string(self) -> str:
         # limit number of chars to be displayed, and try to keep printable ones only
         # MAGIC 256: arbitrary, "should be enough for everybody"
