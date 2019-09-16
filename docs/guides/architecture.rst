@@ -120,13 +120,13 @@ the database processes when it comes to actual importing of blocks or reading an
 things from the database.
 
 The networking process also hosts an instance of the
-:class:`~trinity.extensibility.plugin_manager.PluginManager` to run plugins that need to deeply
+:class:`~trinity.extensibility.component_manager.ComponentManager` to run components that need to deeply
 integrate with the networking process (Further reading:
-:doc:`Writing Plugins</guides/writing_plugins>`).
+:doc:`Writing Components</guides/writing_components>`).
 
-Plugin Processes
-----------------
+Component Processes
+-------------------
 
-Apart from running these three core processes, there may be additional processes for plugins that
-run in isolated processes. Isolated plugins are explained in depth in the
-:doc:`Writing Plugins</guides/writing_plugins>` guide.
+Apart from running these three core processes, there may be additional processes for components that
+run in isolated processes. Isolated components are explained in depth in the
+:doc:`Writing Components</guides/writing_components>` guide.

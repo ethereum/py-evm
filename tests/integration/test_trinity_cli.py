@@ -51,7 +51,7 @@ async def test_expected_logs_for_full_mode(command):
     async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
         assert await contains_all(runner.stderr, {
             "Started DB server process",
-            "Plugin started: Sync / PeerPool",
+            "Component started: Sync / PeerPool",
             "Running server",
             "IPC started at",
         })
@@ -71,7 +71,7 @@ async def test_expected_logs_for_full_mode_with_txpool(command):
     async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
         assert await contains_all(runner.stderr, {
             "Started DB server process",
-            "Plugin started: Sync / PeerPool",
+            "Component started: Sync / PeerPool",
             "Running Tx Pool",
             "Running server",
             "IPC started at",
@@ -92,7 +92,7 @@ async def test_expected_logs_with_disabled_txpool(command):
     async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
         assert await contains_all(runner.stderr, {
             "Started DB server process",
-            "Plugin started: Sync / PeerPool",
+            "Component started: Sync / PeerPool",
             "Transaction pool not available in light mode",
         })
 
@@ -109,7 +109,7 @@ async def test_expected_logs_for_light_mode(command):
     async with AsyncProcessRunner.run(command, timeout_sec=40) as runner:
         assert await contains_all(runner.stderr, {
             "Started DB server process",
-            "Plugin started: Sync / PeerPool",
+            "Component started: Sync / PeerPool",
             "IPC started at",
         })
 
@@ -147,9 +147,9 @@ async def test_web3_commands_via_attached_console(command,
     async with AsyncProcessRunner.run(command, timeout_sec=40) as runner:
         assert await contains_all(runner.stderr, {
             "Started DB server process",
-            "Plugin started: Sync / PeerPool",
+            "Component started: Sync / PeerPool",
             "IPC started at",
-            "Plugin started: JSON-RPC API",
+            "Component started: JSON-RPC API",
             # Ensure we do not start making requests before Trinity is ready.
             # Waiting for the json-rpc-api event bus to connect to other endpoints
             # seems to be late enough in the process for this to be the case.

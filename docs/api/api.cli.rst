@@ -15,7 +15,7 @@ We can also generate an always up-to-date version of them by running ``trinity -
                 [--data-dir DATA_DIR] [--nodekey NODEKEY] [--profile]
                 [--disable-rpc]
                 [--network-tracking-backend {sqlite3,memory,do-not-track}]
-                [--disable-networkdb-plugin] [--disable-blacklistdb]
+                [--disable-networkdb-component] [--disable-blacklistdb]
                 [--disable-eth1-peer-db]
                 [--enable-experimental-eth1-peer-tracking]
                 [--disable-discovery] [--disable-request-server]
@@ -97,18 +97,18 @@ We can also generate an always up-to-date version of them by running ``trinity -
                             persistent tracking across runs from an on-disk
                             sqlite3 database, memory: tracking only in memory, do-
                             not-track: no tracking)
-    --disable-networkdb-plugin
-                            Disables the builtin 'Networkt Database' plugin.
+    --disable-networkdb-component
+                            Disables the builtin 'Networkt Database' component.
                             **WARNING**: disabling this API without a proper
                             replacement will cause your trinity node to crash.
     --disable-blacklistdb
                             Disables the blacklist database server component of
-                            the Network Database plugin.**WARNING**: disabling
+                            the Network Database component.**WARNING**: disabling
                             this API without a proper replacement will cause your
                             trinity node to crash.
     --disable-eth1-peer-db
                             Disables the ETH1.0 peer database server component of
-                            the Network Database plugin.**WARNING**: disabling
+                            the Network Database component.**WARNING**: disabling
                             this API without a proper replacement will cause your
                             trinity node to crash.
     --enable-experimental-eth1-peer-tracking

@@ -35,9 +35,9 @@ from trinity.constants import (
     MAINNET_NETWORK_ID,
     ROPSTEN_NETWORK_ID,
 )
-from trinity.event_bus import PluginManagerService
+from trinity.event_bus import ComponentManagerService
 from trinity.extensibility import (
-    BasePlugin,
+    BaseComponent,
     TrinityBootInfo,
 )
 from trinity._utils.ipc import (
@@ -97,10 +97,10 @@ BootFn = Callable[[
 
 def main_entry(trinity_boot: BootFn,
                app_identifier: str,
-               plugins: Tuple[Type[BasePlugin], ...],
+               components: Tuple[Type[BaseComponent], ...],
                sub_configs: Sequence[Type[BaseAppConfig]]) -> None:
-    for plugin_type in plugins:
-        plugin_type.configure_parser(parser, subparser)
+    for component_type in components:
+        component_type.configure_parser(parser, subparser)
 
     argcomplete.autocomplete(parser)
 
@@ -194,7 +194,7 @@ def main_entry(trinity_boot: BootFn,
         'profile': args.profile,
     }
 
-    # Plugins can provide a subcommand with a `func` which does then control
+    # Components can provide a subcommand with a `func` which does then control
     # the entire process from here.
     if hasattr(args, 'func'):
         args.func(args, trinity_config)
@@ -213,17 +213,21 @@ def main_entry(trinity_boot: BootFn,
             trinity_config,
             stderr_logger,
             processes,
-            plugin_manager_service,
+            component_manager_service,
             reason=reason
         )
 
     boot_info = TrinityBootInfo(args, trinity_config, extra_kwargs)
-    plugin_manager_service = PluginManagerService(boot_info, plugins, kill_trinity_with_reason)
+    component_manager_service = ComponentManagerService(
+        boot_info,
+        components,
+        kill_trinity_with_reason
+    )
 
     try:
         loop = asyncio.get_event_loop()
-        asyncio.ensure_future(exit_with_services(plugin_manager_service))
-        asyncio.ensure_future(plugin_manager_service.run())
+        asyncio.ensure_future(exit_with_services(component_manager_service))
+        asyncio.ensure_future(component_manager_service.run())
         loop.add_signal_handler(signal.SIGTERM, lambda: kill_trinity_with_reason("SIGTERM"))
         loop.run_forever()
         loop.close()
@@ -242,7 +246,7 @@ def display_launch_logs(trinity_config: TrinityConfig) -> None:
 def kill_trinity_gracefully(trinity_config: TrinityConfig,
                             logger: logging.Logger,
                             processes: Iterable[multiprocessing.Process],
-                            plugin_manager_service: PluginManagerService,
+                            component_manager_service: ComponentManagerService,
                             reason: str=None) -> None:
     # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
     # foreground *process group*, so both our networking and database processes will terminate
@@ -257,7 +261,7 @@ def kill_trinity_gracefully(trinity_config: TrinityConfig,
 
     hint = f"({reason})" if reason else f""
     logger.info('Shutting down Trinity %s', hint)
-    plugin_manager_service.cancel_nowait()
+    component_manager_service.cancel_nowait()
     for process in processes:
         # Our sub-processes will have received a SIGINT already (see comment above), so here we
         # wait 2s for them to finish cleanly, and if they fail we kill them for real.

@@ -41,8 +41,8 @@ from p2p.tracking.connection import (
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.protocol.common.handlers import BaseChainExchangeHandler
 
-from trinity.plugins.builtin.network_db.connection.tracker import ConnectionTrackerClient
-from trinity.plugins.builtin.network_db.eth1_peer_db.tracker import (
+from trinity.components.builtin.network_db.connection.tracker import ConnectionTrackerClient
+from trinity.components.builtin.network_db.eth1_peer_db.tracker import (
     BaseEth1PeerTracker,
     EventBusEth1PeerTracker,
     NoopEth1PeerTracker,

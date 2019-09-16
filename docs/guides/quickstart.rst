@@ -160,7 +160,7 @@ What's next?
 ~~~~~~~~~~~~
 
 Now that we've got things running, there's a lot ahead to learn. Check out the existing guides on
-Trinity's general :doc:`Architecture </guides/architecture>`, :doc:`Writing Plugins </guides/writing_plugins>`
+Trinity's general :doc:`Architecture </guides/architecture>`, :doc:`Writing Components </guides/writing_components>`
 or scan the :doc:`Cookbook </cookbook>` for short recipes to learn how to:
 
 - :ref:`Run Trinity as a light client<cookbook_recipe_running_as_a_light_client>`

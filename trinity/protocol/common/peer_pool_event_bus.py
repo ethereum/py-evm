@@ -54,7 +54,7 @@ TRequest = TypeVar('TRequest', bound=BaseRequestResponseEvent[Any])
 class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
     """
     Base class to create a bridge between the ``PeerPool`` and the event bus so that peer
-    messages become available to external processes (e.g. isolated plugins). In the opposite
+    messages become available to external processes (e.g. isolated components). In the opposite
     direction, other processes can also retrieve information or execute actions on the peer pool by
     sending specific events through the event bus that the ``PeerPoolEventServer`` answers.
 

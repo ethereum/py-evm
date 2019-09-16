@@ -1,0 +1,4 @@
+``Components`` are now called ``Components``. We've found ``Components`` to be a
+better term for the provided functionality, especially since it is less loaded
+with the assumption of being something that *optionally extends* functionality
+when in reality Trinity's core functionality is built out of ``Components``.

@@ -4,10 +4,10 @@ import pytest
 
 from p2p.tools.factories import NodeFactory
 
-from trinity.plugins.builtin.network_db.connection.tracker import (
+from trinity.components.builtin.network_db.connection.tracker import (
     SQLiteConnectionTracker,
 )
-from trinity.plugins.builtin.network_db.eth1_peer_db.tracker import (
+from trinity.components.builtin.network_db.eth1_peer_db.tracker import (
     MemoryEth1PeerTracker,
 )
 

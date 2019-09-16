@@ -8,9 +8,9 @@ from p2p.tools.factories import NodeFactory
 from trinity.constants import (
     NETWORKING_EVENTBUS_ENDPOINT,
 )
-from trinity.plugins.builtin.network_db.connection.events import ShouldConnectToPeerRequest
-from trinity.plugins.builtin.network_db.connection.server import ConnectionTrackerServer
-from trinity.plugins.builtin.network_db.connection.tracker import (
+from trinity.components.builtin.network_db.connection.events import ShouldConnectToPeerRequest
+from trinity.components.builtin.network_db.connection.server import ConnectionTrackerServer
+from trinity.components.builtin.network_db.connection.tracker import (
     ConnectionTrackerClient,
     MemoryConnectionTracker,
 )

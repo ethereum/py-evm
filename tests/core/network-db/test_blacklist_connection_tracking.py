@@ -10,7 +10,7 @@ from p2p.tools.factories import (
     NodeFactory,
 )
 
-from trinity.plugins.builtin.network_db.connection.tracker import (
+from trinity.components.builtin.network_db.connection.tracker import (
     SQLiteConnectionTracker,
     MemoryConnectionTracker,
 )

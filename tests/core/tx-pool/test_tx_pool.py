@@ -9,10 +9,10 @@ from eth._utils.address import (
 from p2p.service import run_service
 from p2p.tools.factories import SessionFactory
 
-from trinity.plugins.builtin.tx_pool.pool import (
+from trinity.components.builtin.tx_pool.pool import (
     TxPool,
 )
-from trinity.plugins.builtin.tx_pool.validators import (
+from trinity.components.builtin.tx_pool.validators import (
     DefaultTransactionValidator
 )
 from trinity.protocol.common.events import (

@@ -5,7 +5,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from trinity.plugins.builtin.syncer.cli import (
+from trinity.components.builtin.syncer.cli import (
     parse_checkpoint_uri
 )
 

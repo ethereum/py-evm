@@ -1,7 +1,7 @@
 import pytest
 
 from eth_utils import encode_hex
-from trinity.plugins.builtin.syncer.cli import (
+from trinity.components.builtin.syncer.cli import (
     parse_checkpoint_uri,
     is_block_hash,
 )

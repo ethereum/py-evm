@@ -133,7 +133,7 @@ parser = argparse.ArgumentParser(description='Trinity')
 #
 # subparser for sub commands
 #
-# Plugins may add subcommands with a `func` attribute
+# Components may add subcommands with a `func` attribute
 # to gain control over the main Trinity process
 subparser = parser.add_subparsers(dest='subcommand')
 

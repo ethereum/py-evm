@@ -1,18 +1,18 @@
 from trinity.extensibility.asyncio import (  # noqa: F401
-    AsyncioIsolatedPlugin,
+    AsyncioIsolatedComponent,
 )
 from trinity.extensibility.events import (  # noqa: F401
     BaseEvent
 )
 from trinity.extensibility.exceptions import (  # noqa: F401
-    InvalidPluginStatus,
+    InvalidComponentStatus,
 )
-from trinity.extensibility.plugin import (  # noqa: F401
-    BaseMainProcessPlugin,
-    BasePlugin,
-    PluginStatus,
+from trinity.extensibility.component import (  # noqa: F401
+    BaseMainProcessComponent,
+    BaseComponent,
+    ComponentStatus,
     TrinityBootInfo,
 )
-from trinity.extensibility.plugin_manager import (  # noqa: F401
-    PluginManager,
+from trinity.extensibility.component_manager import (  # noqa: F401
+    ComponentManager,
 )

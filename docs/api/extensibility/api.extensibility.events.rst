@@ -1,5 +1,5 @@
 Events
 ======
 
-.. autoclass:: trinity.extensibility.events.PluginStartedEvent
+.. autoclass:: trinity.extensibility.events.ComponentStartedEvent
   :members:

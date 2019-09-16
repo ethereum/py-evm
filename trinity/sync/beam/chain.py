@@ -87,7 +87,7 @@ class BeamSyncer(BaseService):
         - When you catch up with a peer, start downloading transactions needed to execute a block
         - At the checkpoint, switch to full block imports, with a custom importer
 
-    This syncer relies on a seperately orchestrated beam sync plugin, which:
+    This syncer relies on a seperately orchestrated beam sync component, which:
 
         - listens for DoStatelessBlockImport events
         - emits events when data is missing, like CollectMissingAccount

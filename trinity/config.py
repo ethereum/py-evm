@@ -99,14 +99,14 @@ from trinity.constants import (
     ROPSTEN_NETWORK_ID,
     SYNC_LIGHT,
 )
-from trinity.plugins.eth2.beacon.utils import (
+from trinity.components.eth2.beacon.utils import (
     extract_genesis_state_from_stream,
     extract_privkeys_from_dir,
 )
-from trinity.plugins.eth2.constants import (
+from trinity.components.eth2.constants import (
     VALIDATOR_KEY_DIR,
 )
-from trinity.plugins.eth2.network_generator.constants import (
+from trinity.components.eth2.network_generator.constants import (
     GENESIS_FILE,
 )
 
@@ -248,7 +248,7 @@ class TrinityConfig:
     to the more specific application configurations derived from
     :class:`~trinity.config.BaseAppConfig`.
 
-    This API is exposed to :class:`~trinity.extensibility.plugin.BasePlugin`
+    This API is exposed to :class:`~trinity.extensibility.component.BaseComponent`
     """
 
     _trinity_root_dir: Path = None

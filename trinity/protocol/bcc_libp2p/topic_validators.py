@@ -26,7 +26,7 @@ from libp2p.pubsub.pb import rpc_pb2
 
 from trinity._utils.shellart import bold_red
 
-logger = logging.getLogger('trinity.plugins.eth2.beacon.TopicValidator')
+logger = logging.getLogger('trinity.components.eth2.beacon.TopicValidator')
 
 
 def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:

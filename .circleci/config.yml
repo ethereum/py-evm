@@ -271,18 +271,18 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-wheel-cli
-  py36-eth1-plugins:
+  py36-eth1-components:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-eth1-plugins
-  py36-eth2-plugins:
+          TOXENV: py36-eth1-components
+  py36-eth2-components:
     <<: *common
     docker:
       - image: circleci/python:3.6
         environment:
-          TOXENV: py36-eth2-plugins
+          TOXENV: py36-eth2-components
 
   py37-rpc-state-quadratic:
     <<: *common
@@ -363,18 +363,18 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-wheel-cli
-  py37-eth1-plugins:
+  py37-eth1-components:
     <<: *common
     docker:
       - image: circleci/python:3.7
         environment:
-          TOXENV: py37-eth1-plugins
-  py37-eth2-plugins:
+          TOXENV: py37-eth1-components
+  py37-eth2-components:
     <<: *common
     docker:
       - image: circleci/python:3.7
         environment:
-          TOXENV: py37-eth2-plugins
+          TOXENV: py37-eth2-components
 
   docker-image-build-test:
     machine: true
@@ -403,9 +403,9 @@ workflows:
       - py37-eth2-utils
       - py37-eth2-fixtures
       - py37-eth2-integration
-      - py37-eth2-plugins
+      - py37-eth2-components
       - py37-libp2p
-      - py37-eth1-plugins
+      - py37-eth1-components
 
       - py37-rpc-state-quadratic
       - py37-rpc-state-zero_knowledge
@@ -426,8 +426,8 @@ workflows:
       - py36-eth2-utils
       - py36-eth2-fixtures
       - py36-eth2-integration
-      - py36-eth2-plugins
-      - py36-eth1-plugins
+      - py36-eth2-components
+      - py36-eth1-components
 
       - py36-lightchain_integration
 

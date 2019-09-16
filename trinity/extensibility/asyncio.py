@@ -2,12 +2,12 @@ import asyncio
 
 from lahja import AsyncioEndpoint
 
-from trinity.extensibility.events import PluginStartedEvent
+from trinity.extensibility.events import ComponentStartedEvent
 
-from .plugin import BaseIsolatedPlugin
+from .component import BaseIsolatedComponent
 
 
-class AsyncioIsolatedPlugin(BaseIsolatedPlugin):
+class AsyncioIsolatedComponent(BaseIsolatedComponent):
     _event_bus: AsyncioEndpoint = None
     _loop: asyncio.AbstractEventLoop
 
@@ -39,7 +39,7 @@ class AsyncioIsolatedPlugin(BaseIsolatedPlugin):
         self._event_bus = self._event_bus_service.get_event_bus()
 
         await self.event_bus.broadcast(
-            PluginStartedEvent(type(self))
+            ComponentStartedEvent(type(self))
         )
 
         self.do_start()

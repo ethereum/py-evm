@@ -13,14 +13,14 @@ from lahja import (
 
 if TYPE_CHECKING:
     from trinity.extensibility import (  # noqa: F401
-        BasePlugin,
+        BaseComponent,
     )
 
 
 @dataclass
-class PluginStartedEvent(BaseEvent):
+class ComponentStartedEvent(BaseEvent):
     """
-    Broadcasted when a plugin was started
+    Broadcasted when a component was started
     """
 
-    plugin_type: Type['BasePlugin']
+    component_type: Type['BaseComponent']

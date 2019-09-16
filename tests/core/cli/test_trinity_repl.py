@@ -1,6 +1,6 @@
 import pytest
 
-from trinity.plugins.builtin.attach.console import console
+from trinity.components.builtin.attach.console import console
 from pathlib import Path
 from trinity._utils.log_messages import (
     create_missing_ipc_error_message,
