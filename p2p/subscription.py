@@ -5,21 +5,21 @@ from typing import (
 )
 from types import TracebackType
 
-from p2p.abc import HandlerSubscriptionAPI
+from p2p.abc import SubscriptionAPI
 
 
-class HandlerSubscription(HandlerSubscriptionAPI):
-    def __init__(self, remove_fn: Callable[[], Any]) -> None:
-        self._remove_fn = remove_fn
+class Subscription(SubscriptionAPI):
+    def __init__(self, cancel_fn: Callable[[], Any]) -> None:
+        self._cancel_fn = cancel_fn
 
     def cancel(self) -> None:
-        self._remove_fn()
+        self._cancel_fn()
 
-    def __enter__(self) -> HandlerSubscriptionAPI:
+    def __enter__(self) -> SubscriptionAPI:
         return self
 
     def __exit__(self,
                  exc_type: Type[BaseException],
                  exc_value: BaseException,
                  exc_tb: TracebackType) -> None:
-        self._remove_fn()
+        self._cancel_fn()

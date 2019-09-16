@@ -16,7 +16,7 @@ from p2p.abc import (
     CommandAPI,
     CommandHandlerFn,
     ConnectionAPI,
-    HandlerSubscriptionAPI,
+    SubscriptionAPI,
     HandshakeReceiptAPI,
     MultiplexerAPI,
     NodeAPI,
@@ -31,7 +31,7 @@ from p2p.exceptions import (
     UnknownProtocol,
     UnknownProtocolCommand,
 )
-from p2p.handler_subscription import HandlerSubscription
+from p2p.subscription import Subscription
 from p2p.service import BaseService
 from p2p.p2p_proto import BaseP2PProtocol, DevP2PReceipt
 from p2p.typing import Capabilities
@@ -153,31 +153,31 @@ class Connection(ConnectionAPI, BaseService):
     def add_protocol_handler(self,
                              protocol_class: Type[ProtocolAPI],
                              handler_fn: ProtocolHandlerFn,
-                             ) -> HandlerSubscriptionAPI:
+                             ) -> SubscriptionAPI:
         if not self._multiplexer.has_protocol(protocol_class):
             raise UnknownProtocol(
                 f"Protocol {protocol_class} was not found int he connected "
                 f"protocols: {self._multiplexer.get_protocols()}"
             )
         self._protocol_handlers[protocol_class].add(handler_fn)
-        remove_fn = functools.partial(
+        cancel_fn = functools.partial(
             self._protocol_handlers[protocol_class].remove,
             handler_fn,
         )
-        return HandlerSubscription(remove_fn)
+        return Subscription(cancel_fn)
 
     def add_command_handler(self,
                             command_type: Type[CommandAPI],
                             handler_fn: CommandHandlerFn,
-                            ) -> HandlerSubscriptionAPI:
+                            ) -> SubscriptionAPI:
         for protocol in self._multiplexer.get_protocols():
             if protocol.supports_command(command_type):
                 self._command_handlers[command_type].add(handler_fn)
-                remove_fn = functools.partial(
+                cancel_fn = functools.partial(
                     self._command_handlers[command_type].remove,
                     handler_fn,
                 )
-                return HandlerSubscription(remove_fn)
+                return Subscription(cancel_fn)
         else:
             raise UnknownProtocolCommand(
                 f"Command {command_type} was not found in the connected "

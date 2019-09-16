@@ -423,7 +423,7 @@ class HandshakerAPI(ABC):
         ...
 
 
-class HandlerSubscriptionAPI(ContextManager['HandlerSubscriptionAPI']):
+class SubscriptionAPI(ContextManager['SubscriptionAPI']):
     @abstractmethod
     def cancel(self) -> None:
         ...
@@ -467,14 +467,14 @@ class ConnectionAPI(AsyncioServiceAPI):
     def add_protocol_handler(self,
                              protocol_type: Type[ProtocolAPI],
                              handler_fn: ProtocolHandlerFn,
-                             ) -> HandlerSubscriptionAPI:
+                             ) -> SubscriptionAPI:
         ...
 
     @abstractmethod
     def add_command_handler(self,
                             command_type: Type[CommandAPI],
                             handler_fn: CommandHandlerFn,
-                            ) -> HandlerSubscriptionAPI:
+                            ) -> SubscriptionAPI:
         ...
 
     #
