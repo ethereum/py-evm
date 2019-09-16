@@ -3,7 +3,6 @@ from typing import (
     Any,
     cast,
     Dict,
-    Sequence,
     Tuple,
 )
 
@@ -17,9 +16,8 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, HandshakeReceiptAPI, SessionAPI
+from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, SessionAPI
 from p2p.exceptions import PeerConnectionLost
-from p2p.handshake import DevP2PReceipt
 from p2p.protocol import (
     Payload,
 )
@@ -83,21 +81,12 @@ class ETHPeer(BaseChainPeer):
 
     _requests: ETHExchangeHandler = None
 
-    def process_handshake_receipts(self,
-                                   devp2p_receipt: DevP2PReceipt,
-                                   protocol_receipts: Sequence[HandshakeReceiptAPI]) -> None:
-        super().process_handshake_receipts(devp2p_receipt, protocol_receipts)
-        for receipt in protocol_receipts:
-            if isinstance(receipt, ETHHandshakeReceipt):
-                self.head_td = receipt.handshake_params.total_difficulty
-                self.head_hash = receipt.handshake_params.head_hash
-                self.genesis_hash = receipt.handshake_params.genesis_hash
-                self.network_id = receipt.handshake_params.network_id
-                break
-        else:
-            raise Exception(
-                "Did not find an `ETHHandshakeReceipt` in {protocol_receipts}"
-            )
+    def process_handshake_receipts(self) -> None:
+        receipt = self.connection.get_receipt_by_type(ETHHandshakeReceipt)
+        self.head_td = receipt.handshake_params.total_difficulty
+        self.head_hash = receipt.handshake_params.head_hash
+        self.genesis_hash = receipt.handshake_params.genesis_hash
+        self.network_id = receipt.handshake_params.network_id
 
     def get_extra_stats(self) -> Tuple[str, ...]:
         stats_pairs = self.requests.get_stats().items()

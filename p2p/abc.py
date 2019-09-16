@@ -412,6 +412,9 @@ class HandshakeReceiptAPI(ABC):
     protocol: ProtocolAPI
 
 
+THandshakeReceipt = TypeVar('THandshakeReceipt', bound=HandshakeReceiptAPI)
+
+
 class HandshakerAPI(ABC):
     logger: ExtendedDebugLogger
 
@@ -517,6 +520,10 @@ class ConnectionAPI(AsyncioServiceAPI):
 
     @abstractmethod
     def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
+        ...
+
+    @abstractmethod
+    def get_receipt_by_type(self, receipt_type: Type[THandshakeReceipt]) -> THandshakeReceipt:
         ...
 
     #

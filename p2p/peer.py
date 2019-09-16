@@ -11,7 +11,6 @@ from typing import (
     List,
     NamedTuple,
     FrozenSet,
-    Sequence,
     Tuple,
     Type,
     TYPE_CHECKING,
@@ -35,7 +34,6 @@ from p2p.abc import (
     CommandAPI,
     ConnectionAPI,
     HandshakerAPI,
-    HandshakeReceiptAPI,
     NodeAPI,
     ProtocolAPI,
     SessionAPI,
@@ -49,7 +47,6 @@ from p2p.exceptions import (
 from p2p.handshake import (
     dial_out,
     DevP2PHandshakeParams,
-    DevP2PReceipt,
 )
 from p2p.service import BaseService
 from p2p.p2p_proto import (
@@ -159,14 +156,9 @@ class BasePeer(BaseService):
         self.boot_manager = self.get_boot_manager()
         self.connection_tracker = self.setup_connection_tracker()
 
-        self.process_handshake_receipts(
-            connection.get_p2p_receipt(),
-            connection.protocol_receipts,
-        )
+        self.process_handshake_receipts()
 
-    def process_handshake_receipts(self,
-                                   devp2p_receipt: DevP2PReceipt,
-                                   protocol_receipts: Sequence[HandshakeReceiptAPI]) -> None:
+    def process_handshake_receipts(self) -> None:
         """
         Noop implementation for subclasses to override.
         """
