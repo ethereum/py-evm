@@ -16,7 +16,6 @@ from p2p.abc import (
 from p2p.exceptions import (
     ConnectionBusy,
     PeerConnectionLost,
-    UnknownProtocol,
 )
 from p2p.service import BaseService
 from p2p.typing import TRequestPayload, TResponsePayload
@@ -41,23 +40,12 @@ class ResponseCandidateStream(
     def __init__(
             self,
             connection: ConnectionAPI,
-            request_protocol_type: Type[ProtocolAPI],
+            request_protocol: ProtocolAPI,
             response_cmd_type: Type[CommandAPI]) -> None:
         # This style of initialization keeps `mypy` happy.
         BaseService.__init__(self, token=connection.cancel_token)
         self._connection = connection
-        self.request_protocol_type = request_protocol_type
-        try:
-            self.request_protocol = self._connection.get_multiplexer().get_protocol_by_type(
-                request_protocol_type,
-            )
-        except UnknownProtocol as err:
-            raise UnknownProtocol(
-                f"Response candidate stream configured to use "
-                f"{request_protocol_type} which is not available in the "
-                f"Multiplexer"
-            ) from err
-
+        self.request_protocol = request_protocol
         self.response_cmd_type = response_cmd_type
         self._lock = asyncio.Lock()
 

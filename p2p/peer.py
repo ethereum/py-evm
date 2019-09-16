@@ -123,7 +123,6 @@ class BasePeer(BaseService):
 
         # Connection instance
         self.connection = connection
-        self.multiplexer = connection.get_multiplexer()
 
         self.base_protocol = self.connection.get_base_protocol()
 
@@ -131,13 +130,13 @@ class BasePeer(BaseService):
         # backwards compat
         for protocol_class in self.supported_sub_protocols:
             try:
-                self.sub_proto = self.multiplexer.get_protocol_by_type(protocol_class)
+                self.sub_proto = self.connection.get_protocol_by_type(protocol_class)
             except UnknownProtocol:
                 pass
             else:
                 break
         else:
-            raise ValidationError("No supported subprotocols found in multiplexer")
+            raise ValidationError("No supported subprotocols found in Connection")
 
         # The self-identifying string that the remote names itself.
         self.client_version_string = self.connection.safe_client_version_string
@@ -208,7 +207,7 @@ class BasePeer(BaseService):
 
     @property
     def is_closing(self) -> bool:
-        return self.multiplexer.is_closing
+        return self.connection.is_closing
 
     def get_extra_stats(self) -> Tuple[str, ...]:
         return tuple()
@@ -222,7 +221,7 @@ class BasePeer(BaseService):
 
     @property
     def received_msgs_count(self) -> int:
-        return self.multiplexer.get_total_msg_count()
+        return self.connection.get_multiplexer().get_total_msg_count()
 
     def add_subscriber(self, subscriber: 'PeerSubscriber') -> None:
         self._subscribers.append(subscriber)
@@ -248,7 +247,7 @@ class BasePeer(BaseService):
         self.connection.add_command_handler(Disconnect, self._disconnect_handler)
 
         # setup handler for protocol messages to pass messages to subscribers
-        for protocol in self.multiplexer.get_protocols():
+        for protocol in self.connection.get_protocols():
             self.connection.add_protocol_handler(type(protocol), self._handle_subscriber_message)
 
         self.setup_protocol_handlers()

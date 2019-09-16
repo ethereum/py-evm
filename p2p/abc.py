@@ -327,6 +327,10 @@ class MultiplexerAPI(ABC):
     def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
         ...
 
+    @abstractmethod
+    def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
+        ...
+
     #
     # Streaming API
     #
@@ -456,6 +460,11 @@ class ConnectionAPI(AsyncioServiceAPI):
     def remote(self) -> NodeAPI:
         ...
 
+    @property
+    @abstractmethod
+    def is_closing(self) -> bool:
+        ...
+
     #
     # Subscriptions/Handler API
     #
@@ -493,6 +502,21 @@ class ConnectionAPI(AsyncioServiceAPI):
 
     @abstractmethod
     def get_p2p_receipt(self) -> 'DevP2PReceipt':
+        ...
+
+    #
+    # Protocol APIS
+    #
+    @abstractmethod
+    def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
+        ...
+
+    @abstractmethod
+    def get_protocol_by_type(self, protocol_type: Type[TProtocol]) -> TProtocol:
+        ...
+
+    @abstractmethod
+    def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
         ...
 
     #
