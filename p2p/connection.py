@@ -5,6 +5,7 @@ from typing import (
     DefaultDict,
     Sequence,
     Set,
+    Tuple,
     Type,
 )
 
@@ -23,6 +24,7 @@ from p2p.abc import (
     ProtocolAPI,
     ProtocolHandlerFn,
     SessionAPI,
+    TProtocol,
 )
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
@@ -198,6 +200,18 @@ class Connection(ConnectionAPI, BaseService):
 
     def get_p2p_receipt(self) -> DevP2PReceipt:
         return self._devp2p_receipt
+
+    #
+    # Protocol APIS
+    #
+    def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
+        return self._multiplexer.get_protocols()
+
+    def get_protocol_by_type(self, protocol_type: Type[TProtocol]) -> TProtocol:
+        return self._multiplexer.get_protocol_by_type(protocol_type)
+
+    def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
+        return self._multiplexer.get_protocol_for_command_type(command_type)
 
     #
     # Connection Metadata

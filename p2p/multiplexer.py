@@ -17,7 +17,7 @@ from async_generator import asynccontextmanager
 
 from cancel_token import CancelToken
 
-from eth_utils import get_extended_debug_logger
+from eth_utils import get_extended_debug_logger, ValidationError
 from eth_utils.toolz import cons
 
 from p2p._utils import (
@@ -218,6 +218,29 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
 
     def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
         return tuple(cons(self._base_protocol, self._protocols))
+
+    def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
+        supported_protocols = tuple(
+            protocol
+            for protocol in self.get_protocols()
+            if protocol.supports_command(command_type)
+        )
+
+        if len(supported_protocols) == 1:
+            return supported_protocols[0]
+        elif not supported_protocols:
+            raise UnknownProtocol(
+                f"Connection does not have any protocols that support the "
+                f"request command: {command_type}"
+            )
+        elif len(supported_protocols) > 1:
+            raise ValidationError(
+                f"Could not determine appropriate protocol for command: "
+                f"{command_type}.  Command was found in the "
+                f"protocols {supported_protocols}"
+            )
+        else:
+            raise Exception("This code path should be unreachable")
 
     #
     # Streaming API

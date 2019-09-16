@@ -2,6 +2,9 @@ import asyncio
 
 import pytest
 
+from eth_utils import ValidationError
+
+from p2p.exceptions import UnknownProtocol
 from p2p.protocol import Command, Protocol
 from p2p.p2p_proto import Ping, Pong, P2PProtocol
 
@@ -50,7 +53,7 @@ class ThirdProtocol(Protocol):
         self.transport.send(header, body)
 
 
-class UnknownProtocol(Protocol):
+class UnsupportedProtocol(Protocol):
     name = 'unknown'
     version = 1
     _commands = (CommandC, CommandD)
@@ -82,12 +85,12 @@ async def test_multiplexer_properties():
     assert multiplexer.has_protocol(P2PProtocol) is True
     assert multiplexer.has_protocol(SecondProtocol) is True
     assert multiplexer.has_protocol(ThirdProtocol) is True
-    assert multiplexer.has_protocol(UnknownProtocol) is False
+    assert multiplexer.has_protocol(UnsupportedProtocol) is False
 
     assert multiplexer.has_protocol(base_protocol) is True
     assert multiplexer.has_protocol(second_protocol) is True
     assert multiplexer.has_protocol(third_protocol) is True
-    assert multiplexer.has_protocol(UnknownProtocol(transport, 16, False)) is False
+    assert multiplexer.has_protocol(UnsupportedProtocol(transport, 16, False)) is False
 
     assert multiplexer.remote is transport.remote
 
@@ -211,3 +214,31 @@ async def test_multiplexer_p2p_and_two_more_protocols():
             assert isinstance(cmd_6, CommandD)
             assert isinstance(cmd_7, CommandA)
             assert isinstance(cmd_8, CommandB)
+
+
+class SharedProtocol(Protocol):
+    name = 'shared'
+    version = 1
+    _commands = (CommandB, CommandC)
+    cmd_length = 2
+
+
+@pytest.mark.asyncio
+async def test_connection_get_protocol_for_command_type():
+    multiplexer, _ = MultiplexerPairFactory(
+        protocol_types=(SecondProtocol, SharedProtocol),
+    )
+    second_proto = multiplexer.get_protocol_by_type(SecondProtocol)
+    shared_proto = multiplexer.get_protocol_by_type(SharedProtocol)
+
+    proto_for_command_A = multiplexer.get_protocol_for_command_type(CommandA)
+    assert proto_for_command_A is second_proto
+
+    proto_for_command_C = multiplexer.get_protocol_for_command_type(CommandC)
+    assert proto_for_command_C is shared_proto
+
+    with pytest.raises(UnknownProtocol):
+        multiplexer.get_protocol_for_command_type(CommandD)
+
+    with pytest.raises(ValidationError):
+        multiplexer.get_protocol_for_command_type(CommandB)

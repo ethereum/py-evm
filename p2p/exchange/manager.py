@@ -35,10 +35,10 @@ class ExchangeManager(ExchangeManagerAPI[TRequestPayload, TResponsePayload, TRes
     def __init__(
             self,
             connection: ConnectionAPI,
-            requesting_on: Type[ProtocolAPI],
+            requesting_on: ProtocolAPI,
             listening_for: Type[CommandAPI]) -> None:
         self._connection = connection
-        self._request_protocol_type = requesting_on
+        self._request_protocol = requesting_on
         self._response_command_type = listening_for
 
     async def launch_service(self) -> None:
@@ -49,7 +49,7 @@ class ExchangeManager(ExchangeManagerAPI[TRequestPayload, TResponsePayload, TRes
 
         self._response_stream = ResponseCandidateStream(
             self._connection,
-            self._request_protocol_type,
+            self._request_protocol,
             self._response_command_type,
         )
         self._connection.run_daemon(self._response_stream)

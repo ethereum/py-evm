@@ -162,8 +162,8 @@ async def test_connection_protocol_and_command_handlers():
         alice_connection.start_protocol_streams()
         bob_connection.start_protocol_streams()
 
-        bob_second_protocol = bob_connection.get_multiplexer().get_protocol_by_type(SecondProtocol)
-        bob_third_protocol = bob_connection.get_multiplexer().get_protocol_by_type(ThirdProtocol)
+        bob_second_protocol = bob_connection.get_protocol_by_type(SecondProtocol)
+        bob_third_protocol = bob_connection.get_protocol_by_type(ThirdProtocol)
 
         bob_second_protocol.send_cmd(CommandA)
         bob_second_protocol.send_cmd(CommandB)
