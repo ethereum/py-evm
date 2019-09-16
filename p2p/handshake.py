@@ -62,7 +62,7 @@ class Handshaker(HandshakerAPI):
     justification for this class's existence is to house parameters that are
     needed for the protocol handshake.
     """
-    logger = get_extended_debug_logger('p2p.connection.ProtocolHandler')
+    logger = get_extended_debug_logger('p2p.handshake.Handshaker')
 
 
 class DevP2PHandshakeParams(NamedTuple):
