@@ -345,3 +345,27 @@ async def test_trio_service_manager_propogates_and_records_exceptions():
         await manager.run()
 
     assert manager.did_error is True
+
+
+@pytest.mark.trio
+async def test_trio_service_lifecycle_run_and_clean_exit_with_child_service():
+    trigger_exit = trio.Event()
+
+    @as_service
+    async def ChildServiceTest(manager):
+        await trigger_exit.wait()
+
+    @as_service
+    async def ServiceTest(manager):
+        child_manager = manager.run_child_service(ChildServiceTest())
+        await child_manager.wait_started()
+
+    service = ServiceTest()
+    manager = Manager(service)
+
+    await do_service_lifecycle_check(
+        manager=manager,
+        manager_run_fn=manager.run,
+        trigger_exit_condition_fn=trigger_exit.set,
+        should_be_cancelled=False,
+    )

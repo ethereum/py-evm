@@ -187,6 +187,31 @@ class ManagerAPI(ABC):
         """
         ...
 
+    @abstractmethod
+    def run_child_service(self,
+                          service: ServiceAPI,
+                          daemon: bool = False,
+                          name: str = None) -> "ManagerAPI":
+        """
+        Run a service in the background.  If the function throws an exception it
+        will trigger the parent service to be cancelled and be propogated.
+
+        If `daemon == True` then the the service is expected to run indefinitely
+        and will trigger cancellation if the service finishes.
+        """
+        ...
+
+    @abstractmethod
+    def run_daemon_child_service(self,
+                                 service: ServiceAPI,
+                                 name: str = None) -> "ManagerAPI":
+        """
+        Run a daemon service in the background.
+
+        Equivalent to `run_child_service(..., daemon=True)`.
+        """
+        ...
+
 
 LogicFnType = Callable[..., Awaitable[Any]]
 
@@ -454,6 +479,23 @@ class Manager(ManagerAPI):
                         name: str = None) -> None:
 
         self.run_task(async_fn, *args, daemon=True, name=name)
+
+    def run_child_service(self,
+                          service: ServiceAPI,
+                          daemon: bool = False,
+                          name: str = None) -> "Manager":
+        child_manager = Manager(service)
+        self.run_task(
+            child_manager.run,
+            daemon=daemon,
+            name=name or repr(service)
+        )
+        return child_manager
+
+    def run_daemon_child_service(self,
+                                 service: ServiceAPI,
+                                 name: str = None) -> "Manager":
+        return self.run_child_service(service, daemon=True, name=name)
 
 
 @asynccontextmanager
