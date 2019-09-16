@@ -67,26 +67,22 @@ class EthstatsService(BaseService):
 
     async def _run(self) -> None:
         while self.is_operational:
-            try:
-                self.logger.info('Connecting to %s...', self.server_url)
-                async with websockets.connect(self.server_url) as websocket:
-                    client: EthstatsClient = EthstatsClient(
-                        websocket,
-                        self.node_id,
-                        token=self.cancel_token,
-                    )
+            self.logger.info('Connecting to %s...', self.server_url)
+            async with websockets.connect(self.server_url) as websocket:
+                client: EthstatsClient = EthstatsClient(
+                    websocket,
+                    self.node_id,
+                    token=self.cancel_token,
+                )
 
-                    self.run_child_service(client)
+                self.run_daemon_task(self.server_handler(client))
+                self.run_daemon_task(self.statistics_handler(client))
 
-                    await self.wait_first(
-                        self.server_handler(client),
-                        self.statistics_handler(client),
-                    )
-            except websockets.ConnectionClosed as e:
-                self.logger.info('Connection to %s is closed: %s', self.server_url, e)
-
-            self.logger.info('Reconnecting in 5s...')
-            await self.sleep(5)
+                await client.run()
+                if self.is_operational and not client.is_operational:
+                    self.logger.info('Connection to %s closed', self.server_url)
+                    self.logger.info('Reconnecting in 5s...')
+                    await self.sleep(5)
 
     # Wait for messages from server, respond when they arrive
     async def server_handler(self, client: EthstatsClient) -> None:

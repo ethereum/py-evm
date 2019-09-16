@@ -55,7 +55,11 @@ class EthstatsClient(BaseService):
     # Get messages from websocket, deserialize them and put into queue
     async def recv_handler(self) -> None:
         while self.is_operational:
-            json_string: str = await self.websocket.recv()
+            try:
+                json_string: str = await self.websocket.recv()
+            except websockets.ConnectionClosed as e:
+                self.logger.debug2("Connection closed: %s", e)
+                await self.cancel()
             try:
                 message: EthstatsMessage = self.deserialize_message(json_string)
             except EthstatsException as e:

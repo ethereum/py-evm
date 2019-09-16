@@ -1,0 +1,1 @@
+Ensure EthStatsService properly handles lost connections to the server
