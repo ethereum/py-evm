@@ -108,7 +108,7 @@ class BaseProxyPeer(BaseService):
         await self.cancellation()
 
     async def disconnect(self, reason: DisconnectReason) -> None:
-        self.logger.debug("Forwarding `disconnect()` call from proxy to actual peer", self)
+        self.logger.debug("Forwarding `disconnect()` call from proxy to actual peer: %s", self)
         await self.event_bus.broadcast(
             DisconnectPeerEvent(self.session, reason),
             TO_NETWORKING_BROADCAST_CONFIG,
