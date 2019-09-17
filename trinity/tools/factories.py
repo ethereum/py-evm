@@ -1,4 +1,3 @@
-import time
 from typing import (
     cast,
     Any,
@@ -49,11 +48,6 @@ except ImportError:
 
 MAINNET_GENESIS_HASH = to_bytes(hexstr='0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3')  # noqa: E501
 
-# Pick the genesis timestamp once at import time so that genesis hashes always matches up.
-# Before this change, we saw occasional test failures like:
-# trinity.exceptions.WrongGenesisFailure: <Node(0x6168@10.0.0.32)> genesis (0x0bd4168d48852843b8ae28714c4e8ab04a92896a84b59d8a968f646fcd6bc0ae) does not match ours (0x1a3dbf3c72a43b1c480590e81da36e35ed268d67395e1ac34c4455ca8af33017), disconnecting  # noqa: E501
-FACTORY_GENESIS_TIMESTAMP = int(time.time())
-
 
 class MemoryDBFactory(factory.Factory):
     class Meta:
@@ -85,14 +79,17 @@ class AsyncHeaderDBFactory(factory.Factory):
                 model_class: Type[AsyncHeaderDB],
                 *args: Any,
                 **kwargs: Any) -> AsyncHeaderDB:
-        headerdb = model_class(*args, **kwargs)
         from eth.chains.base import Chain
         from eth.tools.builder.chain import build, latest_mainnet_at, genesis
+
+        genesis_params = kwargs.pop('genesis_params', None)
+
+        headerdb = model_class(*args, **kwargs)
 
         build(
             Chain,
             latest_mainnet_at(0),
-            genesis(db=headerdb.db, params={"timestamp": FACTORY_GENESIS_TIMESTAMP}),
+            genesis(db=headerdb.db, params=genesis_params),
         )
         return headerdb
 
@@ -154,8 +151,14 @@ def ETHPeerPairFactory(*,
                        ) -> AsyncContextManager[Tuple[ETHPeer, ETHPeer]]:
     if alice_peer_context is None:
         alice_peer_context = ChainContextFactory()
+
     if bob_peer_context is None:
-        bob_peer_context = ChainContextFactory()
+        alice_genesis = alice_peer_context.headerdb.get_canonical_block_header_by_number(
+            BlockNumber(GENESIS_BLOCK_NUMBER),
+        )
+        bob_peer_context = ChainContextFactory(
+            headerdb__genesis_params={'timestamp': alice_genesis.timestamp},
+        )
 
     return cast(AsyncContextManager[Tuple[ETHPeer, ETHPeer]], PeerPairFactory(
         alice_peer_context=alice_peer_context,
@@ -239,7 +242,12 @@ def LESV1PeerPairFactory(*,
     if alice_peer_context is None:
         alice_peer_context = ChainContextFactory()
     if bob_peer_context is None:
-        bob_peer_context = ChainContextFactory()
+        alice_genesis = alice_peer_context.headerdb.get_canonical_block_header_by_number(
+            BlockNumber(GENESIS_BLOCK_NUMBER),
+        )
+        bob_peer_context = ChainContextFactory(
+            headerdb__genesis_params={'timestamp': alice_genesis.timestamp},
+        )
 
     return cast(AsyncContextManager[Tuple[LESV1Peer, LESV1Peer]], PeerPairFactory(
         alice_peer_context=alice_peer_context,
@@ -272,7 +280,12 @@ def LESV2PeerPairFactory(*,
     if alice_peer_context is None:
         alice_peer_context = ChainContextFactory()
     if bob_peer_context is None:
-        bob_peer_context = ChainContextFactory()
+        alice_genesis = alice_peer_context.headerdb.get_canonical_block_header_by_number(
+            BlockNumber(GENESIS_BLOCK_NUMBER),
+        )
+        bob_peer_context = ChainContextFactory(
+            headerdb__genesis_params={'timestamp': alice_genesis.timestamp},
+        )
 
     return cast(AsyncContextManager[Tuple[LESPeer, LESPeer]], PeerPairFactory(
         alice_peer_context=alice_peer_context,
