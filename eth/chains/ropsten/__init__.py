@@ -1,4 +1,5 @@
 from typing import Tuple, Type
+from eth_typing import BlockNumber
 from eth_utils import decode_hex
 
 from .constants import (
@@ -34,7 +35,10 @@ ROPSTEN_VM_CONFIGURATION = (
 
 
 class BaseRopstenChain:
-    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...] = ROPSTEN_VM_CONFIGURATION
+    vm_configuration: Tuple[
+        Tuple[BlockNumber, Type[VirtualMachineAPI]],
+        ...
+    ] = ROPSTEN_VM_CONFIGURATION
     chain_id: int = ROPSTEN_CHAIN_ID
 
 
@@ -50,7 +54,7 @@ ROPSTEN_GENESIS_HEADER = BlockHeader(
     bloom=0,
     mix_hash=constants.ZERO_HASH32,
     nonce=constants.GENESIS_NONCE,
-    block_number=0,
+    block_number=constants.GENESIS_BLOCK_NUMBER,
     parent_hash=constants.ZERO_HASH32,
     receipt_root=constants.BLANK_ROOT_HASH,
     uncles_hash=constants.EMPTY_UNCLE_HASH,

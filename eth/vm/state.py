@@ -8,6 +8,7 @@ from uuid import UUID
 
 from eth_typing import (
     Address,
+    BlockNumber,
     Hash32,
 )
 from eth_utils import (
@@ -96,7 +97,7 @@ class BaseState(Configurable, StateAPI):
         return self.execution_context.timestamp
 
     @property
-    def block_number(self) -> int:
+    def block_number(self) -> BlockNumber:
         """
         Return the current ``block_number`` from the current :attr:`~execution_context`
         """

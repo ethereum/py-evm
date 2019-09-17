@@ -108,7 +108,7 @@ def chain_id(chain_id: int, chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
 
 @curry
 def fork_at(vm_class: Type[VirtualMachineAPI],
-            at_block: int,
+            at_block: Union[int, BlockNumber],
             chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
     Adds the ``vm_class`` to the chain's ``vm_configuration``.
@@ -146,7 +146,7 @@ def fork_at(vm_class: Type[VirtualMachineAPI],
     else:
         base_configuration = tuple()
 
-    vm_configuration = base_configuration + ((at_block, vm_class),)
+    vm_configuration = base_configuration + ((BlockNumber(at_block), vm_class),)
     validate_vm_configuration(vm_configuration)
     return chain_class.configure(vm_configuration=vm_configuration)
 
@@ -236,7 +236,7 @@ istanbul_at = fork_at(IstanbulVM)
 latest_mainnet_at = petersburg_at
 
 GENESIS_DEFAULTS = cast(
-    Tuple[Tuple[str, Union[int, None, bytes, Address, Hash32]], ...],
+    Tuple[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]], ...],
     (
         ('difficulty', 1),
         ('extra_data', constants.GENESIS_EXTRA_DATA),
@@ -257,7 +257,7 @@ GENESIS_DEFAULTS = cast(
 
 @to_dict
 def _get_default_genesis_params(genesis_state: AccountState,
-                                ) -> Iterable[Tuple[str, Union[int, None, bytes, Address, Hash32]]]:
+                                ) -> Iterable[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]]]:  # noqa: E501
     for key, value in GENESIS_DEFAULTS:
         if key == 'state_root' and genesis_state:
             # leave out the `state_root` if a genesis state was specified
@@ -496,7 +496,7 @@ def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[ChainAPI], I
 
 
 @curry
-def at_block_number(block_number: BlockNumber, chain: MiningChainAPI) -> MiningChainAPI:
+def at_block_number(block_number: Union[int, BlockNumber], chain: MiningChainAPI) -> MiningChainAPI:
     """
     Rewind the chain back to the given block number.  Calls to things like
     ``get_canonical_head`` will still return the canonical head of the chain,
@@ -504,7 +504,7 @@ def at_block_number(block_number: BlockNumber, chain: MiningChainAPI) -> MiningC
     """
     if not isinstance(chain, MiningChainAPI):
         raise ValidationError("`at_block_number` may only be used with 'MiningChain")
-    at_block = chain.get_canonical_block_by_number(block_number)
+    at_block = chain.get_canonical_block_by_number(BlockNumber(block_number))
 
     db = chain.chaindb.db
     chain_at_block = type(chain)(db, chain.create_header_from_parent(at_block.header))

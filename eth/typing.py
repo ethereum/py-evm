@@ -95,4 +95,4 @@ class StaticMethod(Generic[TFunc]):
         self._func = value
 
 
-HeaderParams = Union[Optional[int], bytes, Address, Hash32]
+HeaderParams = Union[Optional[int], BlockNumber, bytes, Address, Hash32]

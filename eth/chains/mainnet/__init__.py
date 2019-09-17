@@ -3,6 +3,7 @@ from typing import (
     Type,
 )
 
+from eth_typing import BlockNumber
 from eth_utils import (
     decode_hex,
     encode_hex,
@@ -77,7 +78,7 @@ class MainnetHomesteadVM(MainnetDAOValidatorVM):
 
 
 MAINNET_FORK_BLOCKS = (
-    0,
+    eth_constants.GENESIS_BLOCK_NUMBER,
     HOMESTEAD_MAINNET_BLOCK,
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
@@ -98,7 +99,10 @@ MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
 
 class BaseMainnetChain:
     chain_id = MAINNET_CHAIN_ID
-    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...] = MAINNET_VM_CONFIGURATION
+    vm_configuration: Tuple[
+        Tuple[BlockNumber, Type[VirtualMachineAPI]],
+        ...
+    ] = MAINNET_VM_CONFIGURATION
 
 
 class MainnetChain(BaseMainnetChain, Chain):

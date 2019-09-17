@@ -14,6 +14,7 @@ from eth_bloom import (
 )
 
 from eth_typing import (
+    BlockNumber,
     Hash32,
 )
 
@@ -75,7 +76,7 @@ class FrontierBlock(BaseBlock):
     # Helpers
     #
     @property
-    def number(self) -> int:
+    def number(self) -> BlockNumber:
         return self.header.block_number
 
     @property
