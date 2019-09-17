@@ -52,26 +52,6 @@ async def test_expected_logs_for_full_mode(command):
         assert await contains_all(runner.stderr, {
             "Started DB server process",
             "Component started: Sync / PeerPool",
-            "Running server",
-            "IPC started at",
-        })
-
-
-@pytest.mark.parametrize(
-    'command',
-    (
-        ('trinity', '--tx-pool',),
-        ('trinity', '--tx-pool', '--ropsten',),
-    )
-)
-@pytest.mark.asyncio
-async def test_expected_logs_for_full_mode_with_txpool(command):
-    # Since this short-circuits on sucess, we can set the timeout high.
-    # We only hit the timeout if the test fails.
-    async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
-        assert await contains_all(runner.stderr, {
-            "Started DB server process",
-            "Component started: Sync / PeerPool",
             "Running Tx Pool",
             "Running server",
             "IPC started at",
@@ -81,8 +61,29 @@ async def test_expected_logs_for_full_mode_with_txpool(command):
 @pytest.mark.parametrize(
     'command',
     (
-        ('trinity', '--sync-mode=light', '--tx-pool',),
-        ('trinity', '--sync-mode=light', '--ropsten', '--tx-pool',),
+        ('trinity', '--disable-tx-pool',),
+        ('trinity', '--disable-tx-pool', '--ropsten',),
+    )
+)
+@pytest.mark.asyncio
+async def test_expected_logs_for_full_mode_with_txpool_disabled(command):
+    # Since this short-circuits on sucess, we can set the timeout high.
+    # We only hit the timeout if the test fails.
+    async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
+        assert await contains_all(runner.stderr, {
+            "Started DB server process",
+            "Component started: Sync / PeerPool",
+            "Transaction pool disabled",
+            "Running server",
+            "IPC started at",
+        })
+
+
+@pytest.mark.parametrize(
+    'command',
+    (
+        ('trinity', '--sync-mode=light'),
+        ('trinity', '--sync-mode=light', '--ropsten'),
     )
 )
 @pytest.mark.asyncio
@@ -93,7 +94,7 @@ async def test_expected_logs_with_disabled_txpool(command):
         assert await contains_all(runner.stderr, {
             "Started DB server process",
             "Component started: Sync / PeerPool",
-            "Transaction pool not available in light mode",
+            "Transaction pool does not support light mode",
         })
 
 
@@ -179,11 +180,11 @@ async def test_web3_commands_via_attached_console(command,
     (
         # mainnet
         ('trinity',),
-        ('trinity', '--tx-pool',),
+        ('trinity', '--disable-tx-pool',),
         ('trinity', '--sync-mode=light',),
         # ropsten
         ('trinity', '--ropsten',),
-        ('trinity', '--ropsten', '--tx-pool',),
+        ('trinity', '--ropsten', '--disable-tx-pool',),
         ('trinity', '--sync-mode=light', '--ropsten',),
     )
 )

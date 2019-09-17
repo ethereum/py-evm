@@ -24,7 +24,6 @@ from trinity.constants import (
     ROPSTEN_NETWORK_ID,
 )
 from trinity.db.manager import DBClient
-from trinity.events import ShutdownRequest
 from trinity.extensibility import (
     AsyncioIsolatedComponent,
 )
@@ -47,26 +46,26 @@ class TxComponent(AsyncioIsolatedComponent):
     @classmethod
     def configure_parser(cls, arg_parser: ArgumentParser, subparser: _SubParsersAction) -> None:
         arg_parser.add_argument(
-            "--tx-pool",
+            "--disable-tx-pool",
             action="store_true",
-            help="Enables the Transaction Pool (experimental)",
+            help="Disables the Transaction Pool",
         )
 
     def on_ready(self, manager_eventbus: EndpointAPI) -> None:
 
         light_mode = self.boot_info.args.sync_mode == SYNC_LIGHT
-        is_enabled = self.boot_info.args.tx_pool and not light_mode
+        is_disable = self.boot_info.args.disable_tx_pool
+        is_supported = not light_mode
+        is_enabled = not is_disable and is_supported
 
-        unsupported = self.boot_info.args.tx_pool and light_mode
-
-        if is_enabled and not unsupported:
+        if is_disable:
+            self.logger.debug("Transaction pool disabled")
+        elif not is_supported:
+            self.logger.warning("Transaction pool disabled.  Not supported in light mode.")
+        elif is_enabled:
             self.start()
-        elif unsupported:
-            unsupported_msg = "Transaction pool not available in light mode"
-            self.logger.error(unsupported_msg)
-            manager_eventbus.broadcast_nowait(ShutdownRequest(
-                unsupported_msg,
-            ))
+        else:
+            raise Exception("This code path should be unreachable")
 
     def do_start(self) -> None:
 
@@ -83,8 +82,6 @@ class TxComponent(AsyncioIsolatedComponent):
         elif self.boot_info.trinity_config.network_id == ROPSTEN_NETWORK_ID:
             validator = DefaultTransactionValidator(chain, BYZANTIUM_ROPSTEN_BLOCK)
         else:
-            # TODO: We could hint the user about e.g. a --tx-pool-no-validation flag to run the
-            # tx pool without tx validation in this case
             raise ValueError("The TxPool component only supports MainnetChain or RopstenChain")
 
         proxy_peer_pool = ETHProxyPeerPool(self.event_bus, TO_NETWORKING_BROADCAST_CONFIG)

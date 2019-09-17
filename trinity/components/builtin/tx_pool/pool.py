@@ -72,8 +72,7 @@ class TxPool(BaseService):
             await self._handle_tx(event.session, txs)
 
     async def _handle_tx(self, sender: SessionAPI, txs: Sequence[SignedTransactionAPI]) -> None:
-
-        self.logger.debug('Received %d transactions from %s', len(txs), sender)
+        self.logger.debug2('Received %d transactions from %s', len(txs), sender)
 
         self._add_txs_to_bloom(sender, txs)
 
