@@ -172,7 +172,7 @@ class BasePeer(BaseService):
         """
         pass
 
-    @property
+    @cached_property
     def has_event_bus(self) -> bool:
         return self._event_bus is not None
 
@@ -212,7 +212,7 @@ class BasePeer(BaseService):
     def get_extra_stats(self) -> Tuple[str, ...]:
         return tuple()
 
-    @property
+    @cached_property
     def boot_manager_class(self) -> Type[BasePeerBootManager]:
         return BasePeerBootManager
 
@@ -383,7 +383,7 @@ class PeerSubscriber(ABC):
         """
         pass
 
-    @property
+    @cached_property
     def msg_queue(self) -> 'asyncio.Queue[PeerMessage]':
         """
         Return the ``asyncio.Queue[PeerMessage]`` that this subscriber uses to receive messages.
@@ -392,7 +392,7 @@ class PeerSubscriber(ABC):
             self._msg_queue = asyncio.Queue(maxsize=self.msg_queue_maxsize)
         return self._msg_queue
 
-    @property
+    @cached_property
     def queue_size(self) -> int:
         """
         Return the size of the :meth:`msg_queue`.

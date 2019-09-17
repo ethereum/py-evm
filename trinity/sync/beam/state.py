@@ -178,7 +178,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
 
     async def download_accounts(
             self,
-            account_addresses: Iterable[Hash32],
+            account_addresses: Iterable[Address],
             root_hash: Hash32,
             urgent: bool=True) -> int:
         """

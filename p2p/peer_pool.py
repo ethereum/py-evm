@@ -1,6 +1,4 @@
-from abc import (
-    abstractmethod,
-)
+from abc import abstractmethod
 import asyncio
 import operator
 from typing import (
@@ -13,6 +11,8 @@ from typing import (
     Tuple,
     Type,
 )
+
+from cached_property import cached_property
 
 from cancel_token import (
     CancelToken,
@@ -138,7 +138,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self.peer_backends = self.setup_peer_backends()
         self.connection_tracker = self.setup_connection_tracker()
 
-    @property
+    @cached_property
     def has_event_bus(self) -> bool:
         return self._event_bus is not None
 
