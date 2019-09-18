@@ -245,7 +245,7 @@ class BlockAPI(rlp.Serializable, ABC):
 
     @property
     @abstractmethod
-    def number(self) -> int:
+    def number(self) -> BlockNumber:
         ...
 
     @property
@@ -678,7 +678,7 @@ class StackManipulationAPI(ABC):
 class ExecutionContextAPI(ABC):
     coinbase: Address
     timestamp: int
-    block_number: int
+    block_number: BlockNumber
     difficulty: int
     gas_limit: int
     prev_hashes: Sequence[Hash32]
@@ -1173,7 +1173,7 @@ class StateAPI(ConfigurableAPI):
 
     @property
     @abstractmethod
-    def block_number(self) -> int:
+    def block_number(self) -> BlockNumber:
         ...
 
     @property
@@ -1298,7 +1298,7 @@ class StateAPI(ConfigurableAPI):
     # Access self.prev_hashes (Read-only)
     #
     @abstractmethod
-    def get_ancestor_hash(self, block_number: int) -> Hash32:
+    def get_ancestor_hash(self, block_number: BlockNumber) -> Hash32:
         ...
 
     #
@@ -1557,7 +1557,7 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @staticmethod
     @abstractmethod
-    def get_uncle_reward(block_number: int, uncle: BlockAPI) -> int:
+    def get_uncle_reward(block_number: BlockNumber, uncle: BlockAPI) -> int:
         """
         Return the reward which should be given to the miner of the given `uncle`.
 
@@ -1655,7 +1655,7 @@ class VirtualMachineAPI(ConfigurableAPI):
 class HeaderChainAPI(ABC):
     header: BlockHeaderAPI
     chain_id: int
-    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...]
+    vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
 
     @abstractmethod
     def __init__(self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None) -> None:
@@ -1709,7 +1709,7 @@ class HeaderChainAPI(ABC):
 
 
 class ChainAPI(ConfigurableAPI):
-    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...]
+    vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
     chain_id: int
     chaindb: ChainDatabaseAPI
 

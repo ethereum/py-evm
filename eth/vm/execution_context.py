@@ -4,6 +4,7 @@ from typing import (
 
 from eth_typing import (
     Address,
+    BlockNumber,
     Hash32,
 )
 
@@ -24,7 +25,7 @@ class ExecutionContext:
             self,
             coinbase: Address,
             timestamp: int,
-            block_number: int,
+            block_number: BlockNumber,
             difficulty: int,
             gas_limit: int,
             prev_hashes: Iterable[Hash32],
@@ -46,7 +47,7 @@ class ExecutionContext:
         return self._timestamp
 
     @property
-    def block_number(self) -> int:
+    def block_number(self) -> BlockNumber:
         return self._block_number
 
     @property

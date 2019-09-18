@@ -9,6 +9,7 @@ from typing import (
     Union,
 )
 
+from eth_typing import BlockNumber
 from eth_utils.toolz import (
     assoc,
     last,
@@ -24,6 +25,7 @@ from eth.abc import (
     BlockHeaderAPI,
     VirtualMachineAPI,
 )
+from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.chains.base import Chain
 from eth.chains.mainnet import MainnetChain
 from eth.validation import (
@@ -53,8 +55,8 @@ MAINNET_VMS = collections.OrderedDict(
     in MainnetChain.vm_configuration
 )
 
-ForkStartBlocks = Sequence[Tuple[int, Union[str, Type[VirtualMachineAPI]]]]
-VMStartBlock = Tuple[int, Type[VirtualMachineAPI]]
+ForkStartBlocks = Sequence[Tuple[BlockNumber, Union[str, Type[VirtualMachineAPI]]]]
+VMStartBlock = Tuple[BlockNumber, Type[VirtualMachineAPI]]
 
 
 @to_tuple
@@ -74,7 +76,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
     # if no configuration was passed in, initialize the chain with the *latest*
     # Mainnet VM rules active at block 0.
     if not fork_start_blocks:
-        yield (0, last(MAINNET_VMS.values()))
+        yield (GENESIS_BLOCK_NUMBER, last(MAINNET_VMS.values()))
         return
 
     # Validate that there are no fork names which are not represented in the
@@ -103,7 +105,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
     # If no VM is set to start at block 0, default to the frontier VM
     start_blocks = set(start_block for start_block, _ in fork_start_blocks)
     if 0 not in start_blocks:
-        yield 0, MAINNET_VMS['frontier']
+        yield GENESIS_BLOCK_NUMBER, MAINNET_VMS['frontier']
 
     ordered_fork_start_blocks = sorted(fork_start_blocks, key=operator.itemgetter(0))
 
@@ -132,7 +134,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
 
 
 class BaseMainnetTesterChain(Chain):
-    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...] = _generate_vm_configuration()
+    vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...] = _generate_vm_configuration()  # noqa: E501
 
 
 class MainnetTesterChain(BaseMainnetTesterChain):

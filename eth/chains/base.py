@@ -113,7 +113,7 @@ class BaseChain(Configurable, ChainAPI):
     """
     chaindb: ChainDatabaseAPI = None
     chaindb_class: Type[ChainDatabaseAPI] = None
-    vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...] = None
+    vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...] = None
     chain_id: int = None
 
     @classmethod

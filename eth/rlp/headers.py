@@ -14,6 +14,7 @@ from rlp.sedes import (
 
 from eth_typing import (
     Address,
+    BlockNumber,
     Hash32,
 )
 
@@ -97,7 +98,7 @@ class BlockHeader(BlockHeaderAPI):
     @overload  # noqa: F811
     def __init__(self,
                  difficulty: int,
-                 block_number: int,
+                 block_number: BlockNumber,
                  gas_limit: int,
                  timestamp: int=None,
                  coinbase: Address=ZERO_ADDRESS,
@@ -115,7 +116,7 @@ class BlockHeader(BlockHeaderAPI):
 
     def __init__(self,              # type: ignore  # noqa: F811
                  difficulty: int,
-                 block_number: int,
+                 block_number: BlockNumber,
                  gas_limit: int,
                  timestamp: int=None,
                  coinbase: Address=ZERO_ADDRESS,

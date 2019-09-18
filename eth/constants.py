@@ -1,5 +1,6 @@
 from eth_typing import (
     Address,
+    BlockNumber,
     Hash32
 )
 
@@ -152,7 +153,7 @@ EMPTY_UNCLE_HASH = Hash32(b'\x1d\xccM\xe8\xde\xc7]z\xab\x85\xb5g\xb6\xcc\xd4\x1a
 #
 # Genesis Data
 #
-GENESIS_BLOCK_NUMBER = 0
+GENESIS_BLOCK_NUMBER = BlockNumber(0)
 GENESIS_DIFFICULTY = 17179869184
 GENESIS_GAS_LIMIT = 5000
 GENESIS_PARENT_HASH = ZERO_HASH32
