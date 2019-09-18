@@ -94,12 +94,12 @@ async def test_behavior_application():
         bob.add_command_handler(Ping, handle_ping)
 
         # ensure the API isn't already registered
-        assert not alice.has_api('ping-test')
+        assert not alice.has_behavior('ping-test')
         async with HasSendPing().apply(alice):
             # ensure it registers with the connect
-            assert alice.has_api('ping-test')
-            has_send_ping = alice.get_api('ping-test', HasSendPing)
+            assert alice.has_behavior('ping-test')
+            has_send_ping = alice.get_behavior('ping-test', HasSendPing)
             has_send_ping.send_ping()
             await asyncio.wait_for(got_ping.wait(), timeout=2)
         # ensure it removes itself from the API on exit
-        assert not alice.has_api('ping-test')
+        assert not alice.has_behavior('ping-test')

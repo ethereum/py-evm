@@ -518,16 +518,16 @@ class ConnectionAPI(AsyncioServiceAPI):
     #
     # Behavior API
     #
-    def add_api(self, name: str, behavior: BehaviorAPI) -> SubscriptionAPI:
+    def add_behavior(self, name: str, behavior: BehaviorAPI) -> SubscriptionAPI:
         ...
 
-    def remove_api(self, name: str) -> None:
+    def remove_behavior(self, name: str) -> None:
         ...
 
-    def has_api(self, name: str) -> bool:
+    def has_behavior(self, name: str) -> bool:
         ...
 
-    def get_api(self, name: str, behavior_type: Type[TBehavior]) -> TBehavior:
+    def get_behavior(self, name: str, behavior_type: Type[TBehavior]) -> TBehavior:
         ...
 
     #

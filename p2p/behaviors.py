@@ -147,6 +147,6 @@ class Application(BehaviorAPI):
                 if behavior.applies_to(connection):
                     await stack.enter_async_context(behavior.apply(connection))
 
-            with connection.add_api(self.name, self):
+            with connection.add_behavior(self.name, self):
                 self.on_apply(connection)
                 yield

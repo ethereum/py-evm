@@ -55,7 +55,7 @@ class Connection(ConnectionAPI, BaseService):
         Type[CommandAPI],
         Set[CommandHandlerFn]
     ]
-    _apis: Dict[str, BehaviorAPI]
+    _behaviors: Dict[str, BehaviorAPI]
 
     def __init__(self,
                  multiplexer: MultiplexerAPI,
@@ -77,7 +77,7 @@ class Connection(ConnectionAPI, BaseService):
         # before all necessary handlers have been added
         self._handlers_ready = asyncio.Event()
 
-        self._apis = {}
+        self._behaviors = {}
 
     def start_protocol_streams(self) -> None:
         self._handlers_ready.set()
@@ -199,26 +199,26 @@ class Connection(ConnectionAPI, BaseService):
     #
     # API extension
     #
-    def add_api(self, name: str, behavior: BehaviorAPI) -> SubscriptionAPI:
-        if name in self._apis:
+    def add_behavior(self, name: str, behavior: BehaviorAPI) -> SubscriptionAPI:
+        if name in self._behaviors:
             raise DuplicateAPI(
                 f"There is already an API registered under the name '{name}': "
-                f"{self._apis[name]}"
+                f"{self._behaviors[name]}"
             )
-        self._apis[name] = behavior
-        cancel_fn = functools.partial(self.remove_api, name)
+        self._behaviors[name] = behavior
+        cancel_fn = functools.partial(self.remove_behavior, name)
         return Subscription(cancel_fn)
 
-    def remove_api(self, name: str) -> None:
-        self._apis.pop(name)
+    def remove_behavior(self, name: str) -> None:
+        self._behaviors.pop(name)
 
-    def has_api(self, name: str) -> bool:
-        return name in self._apis
+    def has_behavior(self, name: str) -> bool:
+        return name in self._behaviors
 
-    def get_api(self, name: str, behavior_type: Type[TBehavior]) -> TBehavior:
-        if not self.has_api(name):
+    def get_behavior(self, name: str, behavior_type: Type[TBehavior]) -> TBehavior:
+        if not self.has_behavior(name):
             raise UnknownAPI(f"No API registered for the name '{name}'")
-        behavior = self._apis[name]
+        behavior = self._behaviors[name]
         if isinstance(behavior, behavior_type):
             return behavior
         else:
