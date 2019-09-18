@@ -1,3 +1,4 @@
+import asyncio
 from typing import (
     cast,
     Callable,
@@ -11,6 +12,7 @@ from lahja import EndpointAPI
 
 from cancel_token import CancelToken
 
+from eth_utils.toolz import partition_all
 from eth.abc import SignedTransactionAPI
 
 from p2p.abc import SessionAPI
@@ -24,6 +26,19 @@ from trinity.protocol.eth.peer import (
 from trinity.protocol.eth.events import (
     TransactionsEvent,
 )
+
+
+# The 'LOW_WATER` mark determines the minimum size at which we'll choose to
+# broadcast a chunk of transactions to our peers (even if we have more than
+# this locally available and ready).
+BATCH_LOW_WATER = 100
+
+# The `HIGH_WATER` mark determines the maximum number of transactions we'll
+# send in a batch to any given peer.  This is purely in place to ensure that we
+# have a strict upper bound on the total size of a `Transactions` message for
+# abnormal cases where we suddenly get a very large batch of transactions all
+# at once.
+BATCH_HIGH_WATER = 200
 
 
 class TxPool(BaseService):
@@ -72,6 +87,7 @@ class TxPool(BaseService):
         # We can expect the maximum memory footprint to be about 8.5mb for the bloom filters.
         self._bloom = RollingBloom(generation_size=100000, max_generations=144)
         self._bloom_salt = uuid.uuid4()
+        self._internal_queue: 'asyncio.Queue[Sequence[SignedTransactionAPI]]' = asyncio.Queue(2000)
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for
@@ -81,32 +97,48 @@ class TxPool(BaseService):
     async def _run(self) -> None:
         self.logger.info("Running Tx Pool")
 
+        self.run_daemon_task(self._process_transactions())
         async for event in self.wait_iter(self._event_bus.stream(TransactionsEvent)):
             txs = cast(List[SignedTransactionAPI], event.msg)
-            await self._handle_tx(event.session, txs)
+            self.run_task(self._handle_tx(event.session, txs))
 
     async def _handle_tx(self, sender: SessionAPI, txs: Sequence[SignedTransactionAPI]) -> None:
 
         self.logger.debug('Received %d transactions from %s', len(txs), sender)
 
         self._add_txs_to_bloom(sender, txs)
+        await self._internal_queue.put(txs)
 
-        for receiving_peer in await self._peer_pool.get_peers():
+    async def _process_transactions(self) -> None:
+        while self.is_operational:
+            buffer: List[SignedTransactionAPI] = []
 
-            if receiving_peer.session == sender:
-                continue
+            # wait for there to be items available on the queue.
+            buffer.extend(await self._internal_queue.get())
 
-            filtered_tx = self._filter_tx_for_peer(receiving_peer, txs)
-            if len(filtered_tx) == 0:
-                continue
+            # continue to pull items from the queue synchronously until the
+            # queue is either empty or we hit a sufficient size to justify
+            # sending to our peers.
+            while not self._internal_queue.empty():
+                if len(buffer) > BATCH_LOW_WATER:
+                    break
+                buffer.extend(self._internal_queue.get_nowait())
 
-            self.logger.debug2(
-                'Sending %d transactions to %s',
-                len(filtered_tx),
-                receiving_peer,
-            )
-            receiving_peer.sub_proto.send_transactions(filtered_tx)
-            self._add_txs_to_bloom(receiving_peer.session, filtered_tx)
+            # Now that the queue is either empty or we have an adequate number
+            # to send to our peers, broadcast them to the appropriate peers.
+            for batch in partition_all(BATCH_HIGH_WATER, buffer):
+                for receiving_peer in await self._peer_pool.get_peers():
+                    filtered_tx = self._filter_tx_for_peer(receiving_peer, batch)
+                    if len(filtered_tx) == 0:
+                        continue
+
+                    self.logger.debug2(
+                        'Sending %d transactions to %s',
+                        len(filtered_tx),
+                        receiving_peer,
+                    )
+                    receiving_peer.sub_proto.send_transactions(filtered_tx)
+                    self._add_txs_to_bloom(receiving_peer.session, filtered_tx)
 
     def _filter_tx_for_peer(
             self,
