@@ -24,12 +24,14 @@ from p2p.abc import (
     ProtocolAPI,
     ProtocolHandlerFn,
     SessionAPI,
+    THandshakeReceipt,
     TProtocol,
 )
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     MalformedMessage,
     PeerConnectionLost,
+    ReceiptNotFound,
     UnknownProtocol,
     UnknownProtocolCommand,
 )
@@ -212,6 +214,13 @@ class Connection(ConnectionAPI, BaseService):
 
     def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
         return self._multiplexer.get_protocol_for_command_type(command_type)
+
+    def get_receipt_by_type(self, receipt_type: Type[THandshakeReceipt]) -> THandshakeReceipt:
+        for receipt in self.protocol_receipts:
+            if isinstance(receipt, receipt_type):
+                return receipt
+        else:
+            raise ReceiptNotFound(f"Receipt not found: {receipt_type}")
 
     #
     # Connection Metadata

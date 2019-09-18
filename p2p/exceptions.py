@@ -189,3 +189,11 @@ class NoMatchingPeerCapabilities(BaseP2PError):
     """
     Raised during primary p2p handshake if there are no common capabilities with a peer.
     """
+    pass
+
+
+class ReceiptNotFound(BaseP2PError):
+    """
+    Raised when trying to retrieve a protocol receipt that isn't available
+    """
+    pass

@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple
+from typing import Tuple
 
 from lahja import EndpointAPI
 
@@ -10,8 +10,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, HandshakeReceiptAPI, SessionAPI
-from p2p.handshake import DevP2PReceipt
+from p2p.abc import CommandAPI, SessionAPI
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
@@ -76,20 +75,11 @@ class BCCPeer(BasePeer):
 
     _requests: BCCExchangeHandler = None
 
-    def process_handshake_receipts(self,
-                                   devp2p_receipt: DevP2PReceipt,
-                                   protocol_receipts: Sequence[HandshakeReceiptAPI]) -> None:
-        super().process_handshake_receipts(devp2p_receipt, protocol_receipts)
-        for receipt in protocol_receipts:
-            if isinstance(receipt, BCCHandshakeReceipt):
-                self.head_slot = receipt.handshake_params.head_slot
-                self.genesis_root = receipt.handshake_params.genesis_root
-                self.network_id = receipt.handshake_params.network_id
-                break
-        else:
-            raise Exception(
-                "Did not find an `BCCHandshakeReceipt` in {protocol_receipts}"
-            )
+    def process_handshake_receipts(self) -> None:
+        receipt = self.connection.get_receipt_by_type(BCCHandshakeReceipt)
+        self.head_slot = receipt.handshake_params.head_slot
+        self.genesis_root = receipt.handshake_params.genesis_root
+        self.network_id = receipt.handshake_params.network_id
 
     @property
     def requests(self) -> BCCExchangeHandler:
