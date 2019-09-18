@@ -81,6 +81,7 @@ def _main():
 
     # TODO make genesis_time configurable, ideally via some delay from now
     the_state_we_want = state.copy(genesis_time=1567777777)
+    print(the_state_we_want.hash_tree_root)
 
 
 if __name__ == "__main__":
