@@ -28,8 +28,17 @@ from trinity.protocol.eth.events import (
 )
 
 
-BATCH_LOW_WATER = 200
-BATCH_HIGH_WATER = 225
+# The 'LOW_WATER` mark determines the minimum size at which we'll choose to
+# broadcast a chunk of transactions to our peers (even if we have more than
+# this locally available and ready).
+BATCH_LOW_WATER = 100
+
+# The `HIGH_WATER` mark determines the maximum number of transactions we'll
+# send in a batch to any given peer.  This is purely in place to ensure that we
+# have a strict upper bound on the total size of a `Transactions` message for
+# abnormal cases where we suddenly get a very large batch of transactions all
+# at once.
+BATCH_HIGH_WATER = 200
 
 
 class TxPool(BaseService):
