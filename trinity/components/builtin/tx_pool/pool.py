@@ -9,10 +9,6 @@ import uuid
 
 from lahja import EndpointAPI
 
-from bloom_filter import (
-    BloomFilter
-)
-
 from cancel_token import CancelToken
 
 from eth.abc import SignedTransactionAPI
@@ -20,6 +16,7 @@ from eth.abc import SignedTransactionAPI
 from p2p.abc import SessionAPI
 from p2p.service import BaseService
 
+from trinity._utils.bloom import RollingBloom
 from trinity.protocol.eth.peer import (
     ETHProxyPeer,
     ETHProxyPeerPool,
@@ -54,10 +51,27 @@ class TxPool(BaseService):
             raise ValueError('Must pass a tx validation function')
 
         self.tx_validation_fn = tx_validation_fn
-        # 1m should give us 9000 blocks before that filter becomes less reliable
-        # It should take up about 1mb of memory
-        self._bloom = BloomFilter(max_elements=1000000)
-        self._bloom_salt = str(uuid.uuid4())
+        # The effectiveness of the filter is based on the number of peers int the peer pool.
+        #
+        # Assuming 25 peers:
+        # - each transaction will get sent to at most 24 peers resulting in 24 entries in the BF
+        # - rough estimate of 100 transactions per block
+        # - 2400 BF entries per block-of-transactions
+        # - we'll target rotating the bloom filter every 10 minutes -> 40 blocks
+        #
+        # This gives a target generation size of 24 * 100 * 40 -> 96000 (round up to 100,000)
+        #
+        # We want our BF to remain effective for at least 24 hours -> 1440 min -> 144 generations
+        #
+        # Memory size can be computed as:
+        #
+        # bits_per_bloom = (-1 * generation_size * log(0.1)) / (log(2) ** 2) -> 479252
+        # kbytes_per_bloom = bits_per_bloom / 8 / 1024 -> 58
+        # kbytes_total = max_generations * kbytes_per_bloom -> 8424
+        #
+        # We can expect the maximum memory footprint to be about 8.5mb for the bloom filters.
+        self._bloom = RollingBloom(generation_size=100000, max_generations=144)
+        self._bloom_salt = uuid.uuid4()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for
@@ -72,7 +86,8 @@ class TxPool(BaseService):
             await self._handle_tx(event.session, txs)
 
     async def _handle_tx(self, sender: SessionAPI, txs: Sequence[SignedTransactionAPI]) -> None:
-        self.logger.debug2('Received %d transactions from %s', len(txs), sender)
+
+        self.logger.debug('Received %d transactions from %s', len(txs), sender)
 
         self._add_txs_to_bloom(sender, txs)
 
@@ -106,13 +121,18 @@ class TxPool(BaseService):
         ]
 
     def _construct_bloom_entry(self, session: SessionAPI, tx: SignedTransactionAPI) -> bytes:
-        return f"{repr(session)}-{tx.hash}-{self._bloom_salt}".encode()
+        return b':'.join((
+            session.id.bytes,
+            tx.hash,
+            self._bloom_salt.bytes,
+        ))
 
     def _add_txs_to_bloom(self,
                           session: SessionAPI,
                           txs: Iterable[SignedTransactionAPI]) -> None:
         for val in txs:
-            self._bloom.add(self._construct_bloom_entry(session, val))
+            key = self._construct_bloom_entry(session, val)
+            self._bloom.add(key)
 
     async def do_cleanup(self) -> None:
         self.logger.info("Stopping Tx Pool...")
