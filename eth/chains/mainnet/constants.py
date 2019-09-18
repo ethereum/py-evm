@@ -42,3 +42,9 @@ BYZANTIUM_MAINNET_BLOCK = BlockNumber(4370000)
 # Petersburg Block
 #
 PETERSBURG_MAINNET_BLOCK = BlockNumber(7280000)
+
+#
+# Istanbul Block
+#
+# FIXME: Replace this with the correct blocknumber when it's decided
+ISTANBUL_MAINNET_BLOCK = BlockNumber(7280728)
