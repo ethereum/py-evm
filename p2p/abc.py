@@ -440,6 +440,32 @@ ProtocolHandlerFn = Callable[['ConnectionAPI', CommandAPI, Payload], Awaitable[A
 CommandHandlerFn = Callable[['ConnectionAPI', Payload], Awaitable[Any]]
 
 
+class BehaviorAPI(ABC):
+    """
+    A behavior is some unit of logic that applies to a `ConnectionAPI`.
+    Typical behaviors may perform an action when a certain command is received
+    such as responding to a `Ping` with a `Pong` message.
+    """
+    @abstractmethod
+    def applies_to(self, connection: 'ConnectionAPI') -> bool:
+        """
+        Return `True` if this Behavior should be applied to the `connection``
+        """
+        ...
+
+    @abstractmethod
+    def apply(self, connection: 'ConnectionAPI') -> AsyncContextManager[None]:
+        """
+        Context manager API used programatically by the `ContextManager` to
+        apply the behavior to the connection during the lifecycle of the
+        connection.
+        """
+        ...
+
+
+TBehavior = TypeVar('TBehavior', bound=BehaviorAPI)
+
+
 class ConnectionAPI(AsyncioServiceAPI):
     protocol_receipts: Tuple[HandshakeReceiptAPI, ...]
 
@@ -487,6 +513,21 @@ class ConnectionAPI(AsyncioServiceAPI):
                             command_type: Type[CommandAPI],
                             handler_fn: CommandHandlerFn,
                             ) -> SubscriptionAPI:
+        ...
+
+    #
+    # Behavior API
+    #
+    def add_behavior(self, name: str, behavior: BehaviorAPI) -> SubscriptionAPI:
+        ...
+
+    def remove_behavior(self, name: str) -> None:
+        ...
+
+    def has_behavior(self, name: str) -> bool:
+        ...
+
+    def get_behavior(self, name: str, behavior_type: Type[TBehavior]) -> TBehavior:
         ...
 
     #
