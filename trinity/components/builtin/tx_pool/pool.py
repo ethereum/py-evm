@@ -5,6 +5,7 @@ from typing import (
     Iterable,
     List,
     Sequence,
+    Tuple,
 )
 import uuid
 
@@ -66,6 +67,7 @@ class TxPool(BaseService):
             raise ValueError('Must pass a tx validation function')
 
         self.tx_validation_fn = tx_validation_fn
+
         # The effectiveness of the filter is based on the number of peers int the peer pool.
         #
         # Assuming 25 peers:
@@ -79,6 +81,7 @@ class TxPool(BaseService):
         # We want our BF to remain effective for at least 24 hours -> 1440 min -> 144 generations
         #
         # Memory size can be computed as:
+
         #
         # bits_per_bloom = (-1 * generation_size * log(0.1)) / (log(2) ** 2) -> 479252
         # kbytes_per_bloom = bits_per_bloom / 8 / 1024 -> 58
@@ -97,14 +100,17 @@ class TxPool(BaseService):
     async def _run(self) -> None:
         self.logger.info("Running Tx Pool")
 
+        # background process which aggregates transactions and relays them to
+        # our other peers.
         self.run_daemon_task(self._process_transactions())
+
         async for event in self.wait_iter(self._event_bus.stream(TransactionsEvent)):
             txs = cast(List[SignedTransactionAPI], event.msg)
             self.run_task(self._handle_tx(event.session, txs))
 
     async def _handle_tx(self, sender: SessionAPI, txs: Sequence[SignedTransactionAPI]) -> None:
 
-        self.logger.debug('Received %d transactions from %s', len(txs), sender)
+        self.logger.debug2('Received %d transactions from %s', len(txs), sender)
 
         self._add_txs_to_bloom(sender, txs)
         await self._internal_queue.put(txs)
@@ -133,24 +139,27 @@ class TxPool(BaseService):
                         continue
 
                     self.logger.debug2(
-                        'Sending %d transactions to %s',
+                        'Relaying %d transactions to %s',
                         len(filtered_tx),
                         receiving_peer,
                     )
                     receiving_peer.sub_proto.send_transactions(filtered_tx)
                     self._add_txs_to_bloom(receiving_peer.session, filtered_tx)
+                    # release to the event loop since this loop processes a
+                    # lot of data queue up a lot of outbound messages.
+                    await asyncio.sleep(0)
 
     def _filter_tx_for_peer(
             self,
             peer: ETHProxyPeer,
-            txs: Sequence[SignedTransactionAPI]) -> List[SignedTransactionAPI]:
+            txs: Sequence[SignedTransactionAPI]) -> Tuple[SignedTransactionAPI, ...]:
 
-        return [
+        return tuple(
             val for val in txs
             if self._construct_bloom_entry(peer.session, val) not in self._bloom
             # TODO: we need to keep track of invalid txs and eventually blacklist nodes
             if self.tx_validation_fn(val)
-        ]
+        )
 
     def _construct_bloom_entry(self, session: SessionAPI, tx: SignedTransactionAPI) -> bytes:
         return b':'.join((
