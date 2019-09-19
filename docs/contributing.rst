@@ -132,6 +132,19 @@ Before releasing a new version, build and test the package that will be released
     # Preview the upcoming release notes
     towncrier --draft
 
+Build the release notes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before bumping the version number, build the release notes.
+You must include the part of the version to bump (see below),
+which changes how the version number will show in the release notes.
+
+.. code:: sh
+
+    make notes bump=$$VERSION_PART_TO_BUMP$$
+
+If there are any errors, be sure to re-run make notes until it works.
+
 Push the release to github & pypi
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
