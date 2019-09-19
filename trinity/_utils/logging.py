@@ -37,8 +37,8 @@ LOG_MAX_MB = 5
 
 class TrinityLogFormatter(logging.Formatter):
 
-    def __init__(self, fmt: str, datefmt: str) -> None:
-        super().__init__(fmt, datefmt)
+    def __init__(self, fmt: str) -> None:
+        super().__init__(fmt)
 
     def format(self, record: logging.LogRecord) -> str:
         record.shortname = record.name.split('.')[-1]  # type: ignore
@@ -53,7 +53,6 @@ class TrinityLogFormatter(logging.Formatter):
 
 LOG_FORMATTER = TrinityLogFormatter(
     fmt='%(levelname)8s  %(asctime)s  %(shortname)20s  %(message)s',
-    datefmt='%m-%d %H:%M:%S'
 )
 
 
