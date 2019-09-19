@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Sequence
 from eth._utils.datatypes import Configurable
 from eth.constants import ZERO_HASH32
 from eth_typing import BLSSignature, Hash32
-from eth_utils import encode_hex
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import List, bytes32, bytes96, uint64
 
@@ -72,6 +72,21 @@ class BeaconBlockBody(ssz.Serializable):
     def is_empty(self) -> bool:
         return self == BeaconBlockBody()
 
+    def __str__(self) -> str:
+        return (
+            f"randao_reveal={humanize_hash(self.randao_reveal)},"
+            f" graffiti={humanize_hash(self.graffiti)},"
+            f" proposer_slashings={self.proposer_slashings},"
+            f" attester_slashings={self.attester_slashings},"
+            f" attestations={self.attestations},"
+            f" deposits={self.deposits},"
+            f" voluntary_exits={self.voluntary_exits},"
+            f" transfers={self.transfers}"
+        )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {str(self)}>"
+
 
 default_beacon_block_body = BeaconBlockBody()
 
@@ -102,15 +117,15 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
             signature=signature,
         )
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return (
-            f"<Block #{self.slot} "
-            f"parent_root={encode_hex(self.parent_root)[2:10]} "
-            f"signing_root={encode_hex(self.signing_root)[2:10]} "
-            f"hash_tree_root={encode_hex(self.hash_tree_root)[2:10]} "
-            f"state_root={encode_hex(self.state_root)[2:10]} "
-            f"attestations={self.body.attestations} "
-            ">"
+            f"[signing_root]={humanize_hash(self.signing_root)},"
+            f" [hash_tree_root]={humanize_hash(self.hash_tree_root)},"
+            f" slot={self.slot},"
+            f" parent_root={humanize_hash(self.parent_root)},"
+            f" state_root={humanize_hash(self.state_root)},"
+            f" body=({self.body}),"
+            f" signature={humanize_hash(self.signature)}"
         )
 
     @property
@@ -136,6 +151,9 @@ class BaseBeaconBlock(ssz.SignedSerializable, Configurable, ABC):
         Return the block denoted by the given block root.
         """
         ...
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {str(self)}>"
 
 
 class BeaconBlock(BaseBeaconBlock):

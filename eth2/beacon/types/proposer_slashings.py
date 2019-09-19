@@ -27,3 +27,10 @@ class ProposerSlashing(ssz.Serializable):
         super().__init__(
             proposer_index=proposer_index, header_1=header_1, header_2=header_2
         )
+
+    def __str__(self) -> str:
+        return (
+            f"proposer_index={self.proposer_index},"
+            f" header_1=({self.header_1}),"
+            f" header_2=({self.header_2})"
+        )

@@ -30,5 +30,10 @@ class PendingAttestation(ssz.Serializable):
             proposer_index=proposer_index,
         )
 
-    def __repr__(self) -> str:
-        return f"<PendingAttestation inclusion_delay={self.inclusion_delay} data={self.data}>"
+    def __str__(self) -> str:
+        return (
+            f"aggregation_bits={self.aggregation_bits},"
+            f" data=({self.data}),"
+            f" inclusion_delay={self.inclusion_delay},"
+            f" proposer_index={self.proposer_index}"
+        )

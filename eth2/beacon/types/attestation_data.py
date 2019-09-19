@@ -36,10 +36,10 @@ class AttestationData(ssz.Serializable):
 
     def __str__(self) -> str:
         return (
-            f"beacon_block_root={humanize_hash(self.beacon_block_root)[2:10]}"
-            f" source={self.source}"
-            f" target={self.target}"
-            f" | CL={self.crosslink}"
+            f"beacon_block_root={humanize_hash(self.beacon_block_root)},"
+            f" source=({self.source}),"
+            f" target=({self.target}),"
+            f" crosslink=({self.crosslink})"
         )
 
 

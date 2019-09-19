@@ -1,6 +1,7 @@
 from typing import Sequence
 
 from eth_typing import BLSSignature
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import Bitlist, List, bytes96, uint64
 
@@ -29,8 +30,13 @@ class Attestation(ssz.Serializable):
     ) -> None:
         super().__init__(aggregation_bits, data, custody_bits, signature)
 
-    def __repr__(self) -> str:
-        return f"<Attestation {self.data} >"
+    def __str__(self) -> str:
+        return (
+            f"aggregation_bits={self.aggregation_bits},"
+            f" data=({self.data}),"
+            f" custody_bits={self.custody_bits},"
+            f" signature={humanize_hash(self.signature)}"
+        )
 
 
 class IndexedAttestation(ssz.Serializable):
@@ -54,8 +60,13 @@ class IndexedAttestation(ssz.Serializable):
     ) -> None:
         super().__init__(custody_bit_0_indices, custody_bit_1_indices, data, signature)
 
-    def __repr__(self) -> str:
-        return f"<IndexedAttestation {self.data}>"
+    def __str__(self) -> str:
+        return (
+            f"custody_bit_0_indices={self.custody_bit_0_indices},"
+            f" custody_bit_1_indices={self.custody_bit_1_indices},"
+            f" data=({self.data}),"
+            f" signature={humanize_hash(self.signature)}"
+        )
 
 
 default_indexed_attestation = IndexedAttestation()

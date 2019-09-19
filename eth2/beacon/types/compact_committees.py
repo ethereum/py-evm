@@ -18,5 +18,8 @@ class CompactCommittee(ssz.Serializable):
     ) -> None:
         super().__init__(pubkeys=pubkeys, compact_validators=compact_validators)
 
+    def __str__(self) -> str:
+        return f"pubkeys={self.pubkeys}, compact_validators={self.compact_validators}"
+
 
 default_compact_committee = CompactCommittee()

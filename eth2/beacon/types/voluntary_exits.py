@@ -1,4 +1,5 @@
 from eth_typing import BLSSignature
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import bytes96, uint64
 
@@ -24,3 +25,13 @@ class VoluntaryExit(ssz.SignedSerializable):
         signature: BLSSignature = EMPTY_SIGNATURE,
     ) -> None:
         super().__init__(epoch, validator_index, signature)
+
+    def __str__(self) -> str:
+        return (
+            f"epoch={self.epoch},"
+            f" validator_index={self.validator_index},"
+            f" signature={humanize_hash(self.signature)}"
+        )
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: {str(self)}>"
