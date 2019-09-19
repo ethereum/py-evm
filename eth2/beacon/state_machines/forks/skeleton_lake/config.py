@@ -4,8 +4,6 @@ from eth2.beacon.constants import GWEI_PER_ETH
 from eth2.beacon.typing import Epoch, Gwei, Second, Slot
 from eth2.configs import Eth2Config
 
-from eth_utils import decode_hex
-
 MINIMAL_SERENITY_CONFIG = Eth2Config(
     # Misc
     SHARD_COUNT=8,

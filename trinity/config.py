@@ -49,7 +49,6 @@ from multiaddr import (
 )
 
 from eth2.beacon.chains.testnet import (
-#    TestnetChain,
     SkeletonLakeChain,
 )
 from eth2.beacon.genesis import (

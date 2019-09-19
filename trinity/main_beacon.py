@@ -51,12 +51,6 @@ from trinity._utils.profiling import (
     setup_cprofiler,
 )
 
-from pathlib import Path
-from eth2.beacon.tools.fixtures.loading import load_config_at_path
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_lengths,
-)
-
 
 def main_beacon() -> None:
     main_entry(

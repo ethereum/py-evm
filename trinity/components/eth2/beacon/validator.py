@@ -18,7 +18,6 @@ from cancel_token import (
     CancelToken,
 )
 from eth_utils import (
-    encode_hex,
     humanize_hash,
     to_tuple,
     ValidationError,
@@ -70,7 +69,6 @@ from p2p.service import (
 )
 from trinity._utils.shellart import (
     bold_green,
-    bold_white,
 )
 from trinity.components.eth2.beacon.slot_ticker import (
     SlotTickEvent,

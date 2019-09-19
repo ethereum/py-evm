@@ -350,7 +350,10 @@ class Node(BaseService):
                 await self.dial_peer(ip, port, peer_id)
                 return
             except ConnectionRefusedError:
-                logger.debug(f"could not connect to peer {peer_id} at {ip}:{port}; retrying attempt {i} of {DIAL_RETRY_COUNT}...")
+                logger.debug(
+                    f"could not connect to peer {peer_id} at {ip}:{port};"
+                    f" retrying attempt {i} of {DIAL_RETRY_COUNT}..."
+                )
                 continue
         raise ConnectionRefusedError
 
@@ -363,7 +366,7 @@ class Node(BaseService):
             port = maddr.value_for_protocol(protocols.P_TCP)
             peer_id = ID.from_base58(maddr.value_for_protocol(protocols.P_P2P))
             await self.dial_peer_with_retries(ip=ip, port=port, peer_id=peer_id)
-        except:
+        except Exception:
             traceback.print_exc()
             raise
 

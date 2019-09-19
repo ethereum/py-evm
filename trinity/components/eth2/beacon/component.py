@@ -90,8 +90,6 @@ class BeaconNodeComponent(AsyncioIsolatedComponent):
                 return key_pair
 
     def do_start(self) -> None:
-        logger = self.get_logger()
-
         trinity_config = self.boot_info.trinity_config
         key_pair = self._load_or_create_node_key()
         beacon_app_config = trinity_config.get_app_config(BeaconAppConfig)

@@ -11,6 +11,7 @@ from typing import (
 
 from eth_typing import (
     BLSPubkey,
+    Hash32,
 )
 
 from eth2._utils.bls import bls
@@ -63,7 +64,7 @@ def _read_privkey(stream: Union[Path, "StreamTextType"]) -> int:
 
 
 def extract_privkeys_from_dir(dir_path: Path) -> Dict[BLSPubkey, int]:
-    validator_keymap = {}  # pub -> priv
+    validator_keymap: Dict[BLSPubkey, int] = {}  # pub -> priv
     try:
         key_files = os.listdir(dir_path)
     except FileNotFoundError:
@@ -74,8 +75,7 @@ def extract_privkeys_from_dir(dir_path: Path) -> Dict[BLSPubkey, int]:
         privkey = _read_privkey(key_file_path)
         pubkey = bls.privtopub(privkey)
         validator_keymap[pubkey] = privkey
-        logger.debug(f'imported public key: {humanize_hash(pubkey)}')
+        logger.debug(f'imported public key: {humanize_hash(Hash32(pubkey))}')
     if len(validator_keymap) == 0:
         pass
-        #raise KeyFileNotFound("No validator key file is provided")
     return validator_keymap

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import logging
 from typing import Tuple, Type
 
 from eth._utils.datatypes import Configurable
@@ -12,8 +13,6 @@ from eth2.beacon.typing import FromBlockParams
 from eth2.configs import Eth2Config  # noqa: F401
 
 from .state_transitions import BaseStateTransition
-
-import logging
 
 logger = logging.getLogger("trinity.beacon.state_machines")
 logger.setLevel(logging.DEBUG)

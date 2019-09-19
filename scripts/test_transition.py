@@ -20,7 +20,6 @@ from eth2.beacon.types.blocks import BeaconBlock
 
 from eth2spec.phase0 import spec
 
-from eth2.beacon.tools.fixtures.loading import load_yaml_at
 
 def main():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s: %(message)s')
@@ -54,13 +53,15 @@ def main():
     print(f"trinity: {trinity_post.current_crosslinks[7]}")
     print(f"pyspec: {pyspec_post.current_crosslinks[7]}")
 
+
 def trinity_transition(pre_state, pre_block):
     transition = SerenityStateTransition(MINIMAL_SERENITY_CONFIG)
     next_state = transition.apply_state_transition(
-            pre_state, pre_block, 16, check_proposer_signature=True,
+        pre_state, pre_block, 16, check_proposer_signature=True,
     )
 
     return next_state
+
 
 def pyspec_transition(pre_state, pre_block):
     yaml = YAML(typ='base')

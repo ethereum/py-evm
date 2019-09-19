@@ -1,3 +1,4 @@
+import logging
 from typing import Sequence, Set, Tuple
 
 from eth_typing import Hash32
@@ -44,8 +45,6 @@ from eth2.beacon.typing import Bitfield, Epoch, Gwei, Shard, ValidatorIndex
 from eth2.beacon.validator_status_helpers import initiate_exit_for_validator
 from eth2.configs import CommitteeConfig, Eth2Config
 
-
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 

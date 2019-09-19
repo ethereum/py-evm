@@ -3,26 +3,15 @@ from argparse import (
     Namespace,
     _SubParsersAction,
 )
-import os
 from pathlib import (
     Path,
 )
 import sys
 import shutil
 import time
-from typing import (
-    Any,
-    Callable,
-    cast,
-    Dict,
-    Sequence,
-    Tuple,
-)
-
-from eth_typing import BLSPubkey
+from typing import Union, TYPE_CHECKING
 
 from eth_utils import (
-    humanize_seconds,
     to_int,
 )
 from ruamel.yaml import (
@@ -32,23 +21,9 @@ from ssz.tools import (
     to_formatted_dict,
 )
 
-from eth2._utils.hash import (
-    hash_eth2,
-)
 from eth2.beacon.state_machines.forks.skeleton_lake import MINIMAL_SERENITY_CONFIG
-from eth2.beacon.tools.builder.initializer import (
-    create_mock_genesis,
-)
 from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,
-)
-from eth2.beacon.typing import (
-    Second,
-    Timestamp,
-)
-from eth2._utils.bls import bls
-from trinity._utils.shellart import (
-    bold_green,
 )
 from trinity.config import (
     TrinityConfig,
@@ -57,10 +32,6 @@ from trinity.config import (
 from trinity.extensibility import (
     BaseMainProcessComponent,
 )
-from trinity.components.eth2.constants import (
-    VALIDATOR_KEY_DIR,
-)
-from eth2.beacon.tools.fixtures.loading import load_config_at_path
 import ssz
 
 from eth2.beacon.types.states import BeaconState
@@ -71,6 +42,9 @@ from trinity.components.eth2.network_generator.constants import (
 )
 
 from trinity.components.builtin.network_db.component import TrackingBackend
+
+if TYPE_CHECKING:
+    from typing import Any, IO  # noqa: F401
 
 
 class InteropComponent(BaseMainProcessComponent):
@@ -152,7 +126,7 @@ class InteropComponent(BaseMainProcessComponent):
         logger.info(f"Using genesis from {genesis_path}")
 
         # read the genesis!
-        with open(genesis_path, 'rb') as f:
+        with open(genesis_path, 'rb') as f:  # type: IO[Any]
             encoded = f.read()
         state = ssz.decode(encoded, sedes=BeaconState)
 
@@ -200,7 +174,7 @@ class InteropComponent(BaseMainProcessComponent):
             pass
         keys_dir.mkdir()
 
-        def parse_key(maybe_hexstr):
+        def parse_key(maybe_hexstr: str) -> Union[int, str]:
             try:
                 return to_int(hexstr=maybe_hexstr)
             except TypeError:
@@ -225,7 +199,11 @@ class InteropComponent(BaseMainProcessComponent):
                         sys.exit(1)
                 logger.info(f"Validating: {validators}")
                 yaml = YAML(typ="unsafe")
-                keys = yaml.load(Path('eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'))
+                keys = yaml.load(
+                    Path(
+                        'eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml'
+                    )
+                )
 
                 for validator_index in validators:
                     key = keys[validator_index]

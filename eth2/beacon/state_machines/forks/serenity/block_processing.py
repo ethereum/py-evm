@@ -1,3 +1,5 @@
+import logging
+
 from eth2._utils.hash import hash_eth2
 from eth2._utils.numeric import bitwise_xor
 from eth2._utils.tuple import update_tuple_item
@@ -19,8 +21,6 @@ from .block_validation import (
 )
 from .operation_processing import process_operations
 
-
-import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 

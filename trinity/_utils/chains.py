@@ -159,7 +159,9 @@ def _construct_trinity_config_params(
 
     yield 'trinity_tmp_root_dir', args.trinity_tmp_root_dir
     if args.trinity_tmp_root_dir:
-        yield 'trinity_root_dir', Path(tempfile.gettempdir()) / Path(_random_symbol_of_length(4))
+        yield 'trinity_root_dir', str(
+            Path(tempfile.gettempdir()) / Path(_random_symbol_of_length(4))
+        )
     elif args.trinity_root_dir is not None:
         yield 'trinity_root_dir', args.trinity_root_dir
 

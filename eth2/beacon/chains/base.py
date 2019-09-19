@@ -6,7 +6,7 @@ from eth._utils.datatypes import Configurable
 from eth.abc import AtomicDatabaseAPI
 from eth.exceptions import BlockNotFound
 from eth.validation import validate_word
-from eth_utils import ValidationError, encode_hex, humanize_hash
+from eth_utils import ValidationError, humanize_hash
 
 from eth2._utils.funcs import constantly
 from eth2._utils.ssz import validate_imported_block_unchanged
