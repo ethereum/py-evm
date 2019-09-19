@@ -64,7 +64,7 @@ class LESHandshakeParams(NamedTuple):
     network_id: int
     head_td: int
     head_hash: Hash32
-    head_num: BlockNumber
+    head_number: BlockNumber
     genesis_hash: Hash32
     serve_headers: bool
     serve_chain_since: Optional[BlockNumber]
@@ -86,7 +86,7 @@ class LESHandshakeParams(NamedTuple):
         yield 'networkId', self.network_id
         yield 'headTd', self.head_td
         yield 'headHash', self.head_hash
-        yield 'headNum', self.head_num
+        yield 'headNum', self.head_number
         yield 'genesisHash', self.genesis_hash
         if self.serve_headers is True:
             yield 'serveHeaders', None
