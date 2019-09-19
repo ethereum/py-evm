@@ -552,6 +552,10 @@ class ConnectionAPI(AsyncioServiceAPI):
     # Protocol APIS
     #
     @abstractmethod
+    def has_protocol(self, protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]]) -> bool:
+        ...
+
+    @abstractmethod
     def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
         ...
 

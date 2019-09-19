@@ -8,6 +8,7 @@ from typing import (
     Set,
     Tuple,
     Type,
+    Union,
 )
 
 from cached_property import cached_property
@@ -244,6 +245,9 @@ class Connection(ConnectionAPI, BaseService):
     #
     # Protocol APIS
     #
+    def has_protocol(self, protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]]) -> bool:
+        return self._multiplexer.has_protocol(protocol_identifier)
+
     def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
         return self._multiplexer.get_protocols()
 
