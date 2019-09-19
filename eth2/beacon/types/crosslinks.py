@@ -1,5 +1,5 @@
 from eth_typing import Hash32
-from eth_utils import encode_hex, humanize_hash
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import bytes32, uint64
 

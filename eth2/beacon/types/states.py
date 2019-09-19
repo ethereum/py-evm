@@ -2,7 +2,7 @@ from typing import Any, Callable, Sequence
 
 from eth.constants import ZERO_HASH32
 from eth_typing import Hash32
-from eth_utils import encode_hex, humanize_hash
+from eth_utils import humanize_hash
 import ssz
 from ssz.sedes import Bitvector, List, Vector, bytes32, uint64
 

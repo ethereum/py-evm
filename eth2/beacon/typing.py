@@ -1,4 +1,4 @@
-from typing import NamedTuple, NewType, Tuple
+from typing import Any, NamedTuple, NewType, Sequence, Tuple
 
 from eth_typing import Hash32
 
@@ -8,7 +8,7 @@ Shard = NewType("Shard", int)  # uint64
 
 
 class Bitfield(Tuple[bool, ...]):
-    def __new__(self, *args):
+    def __new__(self, *args: Sequence[Any]) -> "Bitfield":
         return tuple.__new__(Bitfield, *args)
 
     def __str__(self) -> str:
