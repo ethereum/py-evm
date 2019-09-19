@@ -1,0 +1,1 @@
+Added Istanbul block number to default Ropsten configuration: 6485846

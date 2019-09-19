@@ -53,6 +53,7 @@ from eth.vm.forks import (
     ByzantiumVM,
     ConstantinopleVM,
     PetersburgVM,
+    IstanbulVM,
 )
 
 
@@ -148,6 +149,8 @@ def _extract_vm_config(vm_config: Dict[str, str]) -> Iterable[VMFork]:
         yield to_int(hexstr=vm_config['constantinopleForkBlock']), ConstantinopleVM
     if 'petersburgForkBlock' in vm_config.keys():
         yield to_int(hexstr=vm_config['petersburgForkBlock']), PetersburgVM
+    if 'istanbulForkBlock' in vm_config.keys():
+        yield to_int(hexstr=vm_config['istanbulForkBlock']), IstanbulVM
 
 
 @to_tuple
