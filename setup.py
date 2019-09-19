@@ -113,7 +113,6 @@ deps = {
         PYEVM_DEPENDENCY,
         "ssz==0.1.5",
         "milagro-bls-binding==0.1.3",
-        "blspy>=0.1.8,<1",  # for `bls_chia`
     ],
     'eth2-lint': [
         "black==19.3b0",
@@ -139,7 +138,6 @@ def filter_dependencies(package_list, *package_name):
 # NOTE: Some dependencies break RTD builds. We can not install system dependencies on the
 # RTD system so we have to exclude these dependencies when we are in an RTD environment.
 if os.environ.get('READTHEDOCS', False):
-    deps['eth2'] = filter_dependencies(deps['eth2'], 'blspy')
     deps['p2p'] = filter_dependencies(deps['p2p'], 'python-snappy')
     deps['trinity'] = filter_dependencies(deps['trinity'], 'libp2p')
 

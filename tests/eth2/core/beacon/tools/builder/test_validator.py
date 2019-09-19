@@ -5,7 +5,6 @@ import pytest
 
 from eth2._utils.bitfield import get_empty_bitfield, has_voted
 from eth2._utils.bls import bls
-from eth2._utils.bls.backends.chia import ChiaBackend
 from eth2._utils.bls.backends.milagro import MilagroBackend
 from eth2.beacon.helpers import compute_domain
 from eth2.beacon.signature_domain import SignatureDomain
@@ -60,7 +59,7 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
 
     aggregated_pubs = bls.aggregate_pubkeys(pubs)
 
-    if votes_count == 0 and bls.backend in (ChiaBackend, MilagroBackend):
+    if votes_count == 0 and bls.backend == MilagroBackend:
         with pytest.raises(ValidationError):
             bls.validate(message_hash, aggregated_pubs, sigs, domain)
     else:

@@ -19,10 +19,3 @@ try:
     AVAILABLE_BACKENDS += (MilagroBackend,)
 except ImportError:
     pass
-
-try:
-    from .chia import ChiaBackend
-
-    AVAILABLE_BACKENDS += (ChiaBackend,)
-except ImportError:
-    pass
