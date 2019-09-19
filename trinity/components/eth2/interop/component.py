@@ -55,9 +55,9 @@ from trinity.config import (
     BeaconAppConfig,
 )
 from trinity.extensibility import (
-    BaseMainProcessPlugin,
+    BaseMainProcessComponent,
 )
-from trinity.plugins.eth2.constants import (
+from trinity.components.eth2.constants import (
     VALIDATOR_KEY_DIR,
 )
 from eth2.beacon.tools.fixtures.loading import load_config_at_path
@@ -65,15 +65,15 @@ import ssz
 
 from eth2.beacon.types.states import BeaconState
 
-from trinity.plugins.eth2.network_generator.constants import (
+from trinity.components.eth2.network_generator.constants import (
     GENESIS_FILE,
     KEYS_DIR,
 )
 
-from trinity.plugins.builtin.network_db.plugin import TrackingBackend
+from trinity.components.builtin.network_db.component import TrackingBackend
 
 
-class InteropPlugin(BaseMainProcessPlugin):
+class InteropComponent(BaseMainProcessComponent):
     @property
     def name(self) -> str:
         return "Interop"
@@ -236,7 +236,7 @@ class InteropPlugin(BaseMainProcessPlugin):
         else:
             logger.info("not running any validators")
 
-        # disable some plugins which shouldn't be running
+        # disable some components which shouldn't be running
         args.disable_discovery = True
         args.disable_upnp = True
         args.network_tracking_backend = TrackingBackend.do_not_track

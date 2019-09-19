@@ -46,6 +46,7 @@ from trinity.components.builtin.upnp.component import (
 )
 from trinity.components.eth2.network_generator.component import NetworkGeneratorComponent
 from trinity.components.eth2.beacon.component import BeaconNodeComponent
+from trinity.components.eth2.interop.component import InteropComponent
 from trinity.components.builtin.tx_pool.component import (
     TxComponent,
 )
@@ -64,6 +65,7 @@ BASE_COMPONENTS: Tuple[Type[BaseComponent], ...] = (
 BEACON_NODE_COMPONENTS: Tuple[Type[BaseComponent], ...] = (
     NetworkGeneratorComponent,
     BeaconNodeComponent,
+    InteropComponent,
 )
 
 
