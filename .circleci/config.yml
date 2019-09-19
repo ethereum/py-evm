@@ -28,9 +28,6 @@ common: &common
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
     - run:
-        name: install cmake
-        command: sudo apt install -y gcc g++ cmake
-    - run:
         name: install dependencies
         command: pip install --user tox
     - run:
@@ -56,9 +53,6 @@ geth_steps: &geth_steps
     - run:
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
-    - run:
-        name: install cmake
-        command: sudo apt install -y gcc g++ cmake
     - run:
         name: install dependencies
         command: pip install --user tox
@@ -99,9 +93,6 @@ eth2_fixtures: &eth2_fixtures
     - run:
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
-    - run:
-        name: install cmake
-        command: sudo apt install -y gcc g++ cmake
     - run:
         name: download the required yaml files if missing
         command: ./.circleci/get_eth2_fixtures.sh
