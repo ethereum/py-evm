@@ -430,27 +430,28 @@ class HandshakerAPI(ABC):
         ...
 
 
-class SubscriptionAPI(ContextManager['SubscriptionAPI']):
+QualifierFn = Callable[['ConnectionAPI', 'LogicAPI'], bool]
+
+
+class LogicAPI(ABC):
     @abstractmethod
-    def cancel(self) -> None:
+    def as_behavior(self, qualifier: QualifierFn = None) -> 'BehaviorAPI':
+        ...
+
+    @abstractmethod
+    def __call__(self, connection: 'ConnectionAPI') -> AsyncContextManager[None]:
         ...
 
 
-ProtocolHandlerFn = Callable[['ConnectionAPI', CommandAPI, Payload], Awaitable[Any]]
-CommandHandlerFn = Callable[['ConnectionAPI', Payload], Awaitable[Any]]
+TLogic = TypeVar('TLogic', bound=LogicAPI)
 
 
 class BehaviorAPI(ABC):
-    """
-    A behavior is some unit of logic that applies to a `ConnectionAPI`.
-    Typical behaviors may perform an action when a certain command is received
-    such as responding to a `Ping` with a `Pong` message.
-    """
+    qualifier: QualifierFn
+    logic: Any
+
     @abstractmethod
-    def applies_to(self, connection: 'ConnectionAPI') -> bool:
-        """
-        Return `True` if this Behavior should be applied to the `connection``
-        """
+    def should_apply_to(self, connection: 'ConnectionAPI') -> bool:
         ...
 
     @abstractmethod
@@ -464,6 +465,16 @@ class BehaviorAPI(ABC):
 
 
 TBehavior = TypeVar('TBehavior', bound=BehaviorAPI)
+
+
+class SubscriptionAPI(ContextManager['SubscriptionAPI']):
+    @abstractmethod
+    def cancel(self) -> None:
+        ...
+
+
+ProtocolHandlerFn = Callable[['ConnectionAPI', CommandAPI, Payload], Awaitable[Any]]
+CommandHandlerFn = Callable[['ConnectionAPI', Payload], Awaitable[Any]]
 
 
 class ConnectionAPI(AsyncioServiceAPI):
@@ -518,16 +529,20 @@ class ConnectionAPI(AsyncioServiceAPI):
     #
     # Behavior API
     #
-    def add_behavior(self, name: str, behavior: BehaviorAPI) -> SubscriptionAPI:
+    @abstractmethod
+    def add_logic(self, name: str, logic: LogicAPI) -> SubscriptionAPI:
         ...
 
-    def remove_behavior(self, name: str) -> None:
+    @abstractmethod
+    def remove_logic(self, name: str) -> None:
         ...
 
-    def has_behavior(self, name: str) -> bool:
+    @abstractmethod
+    def has_logic(self, name: str) -> bool:
         ...
 
-    def get_behavior(self, name: str, behavior_type: Type[TBehavior]) -> TBehavior:
+    @abstractmethod
+    def get_logic(self, name: str, logic_type: Type[TLogic]) -> TLogic:
         ...
 
     #

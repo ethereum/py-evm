@@ -16,19 +16,19 @@ from cached_property import cached_property
 from eth_keys import keys
 
 from p2p.abc import (
-    BehaviorAPI,
     CommandAPI,
     CommandHandlerFn,
     ConnectionAPI,
     SubscriptionAPI,
     HandshakeReceiptAPI,
+    LogicAPI,
     MultiplexerAPI,
     NodeAPI,
     ProtocolAPI,
     ProtocolHandlerFn,
     SessionAPI,
     THandshakeReceipt,
-    TBehavior,
+    TLogic,
     TProtocol,
 )
 from p2p.disconnect import DisconnectReason
@@ -56,7 +56,7 @@ class Connection(ConnectionAPI, BaseService):
         Type[CommandAPI],
         Set[CommandHandlerFn]
     ]
-    _behaviors: Dict[str, BehaviorAPI]
+    _logics: Dict[str, LogicAPI]
 
     def __init__(self,
                  multiplexer: MultiplexerAPI,
@@ -78,7 +78,7 @@ class Connection(ConnectionAPI, BaseService):
         # before all necessary handlers have been added
         self._handlers_ready = asyncio.Event()
 
-        self._behaviors = {}
+        self._logics = {}
 
     def start_protocol_streams(self) -> None:
         self._handlers_ready.set()
@@ -200,31 +200,31 @@ class Connection(ConnectionAPI, BaseService):
     #
     # API extension
     #
-    def add_behavior(self, name: str, behavior: BehaviorAPI) -> SubscriptionAPI:
-        if name in self._behaviors:
+    def add_logic(self, name: str, logic: LogicAPI) -> SubscriptionAPI:
+        if name in self._logics:
             raise DuplicateAPI(
                 f"There is already an API registered under the name '{name}': "
-                f"{self._behaviors[name]}"
+                f"{self._logics[name]}"
             )
-        self._behaviors[name] = behavior
-        cancel_fn = functools.partial(self.remove_behavior, name)
+        self._logics[name] = logic
+        cancel_fn = functools.partial(self.remove_logic, name)
         return Subscription(cancel_fn)
 
-    def remove_behavior(self, name: str) -> None:
-        self._behaviors.pop(name)
+    def remove_logic(self, name: str) -> None:
+        self._logics.pop(name)
 
-    def has_behavior(self, name: str) -> bool:
-        return name in self._behaviors
+    def has_logic(self, name: str) -> bool:
+        return name in self._logics
 
-    def get_behavior(self, name: str, behavior_type: Type[TBehavior]) -> TBehavior:
-        if not self.has_behavior(name):
+    def get_logic(self, name: str, logic_type: Type[TLogic]) -> TLogic:
+        if not self.has_logic(name):
             raise UnknownAPI(f"No API registered for the name '{name}'")
-        behavior = self._behaviors[name]
-        if isinstance(behavior, behavior_type):
-            return behavior
+        logic = self._logics[name]
+        if isinstance(logic, logic_type):
+            return logic
         else:
             raise TypeError(
-                f"Wrong behavior type.  expected: {behavior_type}  got: {type(behavior)}"
+                f"Wrong logic type.  expected: {logic_type}  got: {type(logic)}"
             )
 
     #

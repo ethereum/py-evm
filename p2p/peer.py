@@ -204,9 +204,7 @@ class BasePeer(BaseService):
     def get_extra_stats(self) -> Tuple[str, ...]:
         return tuple()
 
-    @cached_property
-    def boot_manager_class(self) -> Type[BasePeerBootManager]:
-        return BasePeerBootManager
+    boot_manager_class: Type[BasePeerBootManager] = BasePeerBootManager
 
     def get_boot_manager(self) -> BasePeerBootManager:
         return self.boot_manager_class(self)
