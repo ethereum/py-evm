@@ -1,1 +1,0 @@
-enable Istanbul fork on Ropsten chain

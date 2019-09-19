@@ -1,1 +1,0 @@
-Update codebase to more consistently use the ``eth_typing.BlockNumber`` type.

@@ -3,6 +3,21 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.7 (2019-09-19)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Enable Istanbul fork on Ropsten chain (`#1851 <https://github.com/ethereum/py-evm/issues/1851>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Update codebase to more consistently use the ``eth_typing.BlockNumber`` type. (`#1850 <https://github.com/ethereum/py-evm/issues/1850>`__)
+
+
 py-evm 0.3.0-alpha.6 (2019-09-05)
 ---------------------------------
 
