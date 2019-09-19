@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 
 from eth2._utils.bls import bls
 from eth2._utils.hash import hash_eth2
@@ -71,6 +72,7 @@ def _main():
         deposits += (deposit,)
 
     eth1_block_hash = b"\x42" * 32
+    # NOTE: this timestamp is a placeholder
     eth1_timestamp = 10000
     state = initialize_beacon_state_from_eth1(
         eth1_block_hash=eth1_block_hash,
@@ -79,9 +81,10 @@ def _main():
         config=config,
     )
 
-    # TODO make genesis_time configurable, ideally via some delay from now
-    the_state_we_want = state.copy(genesis_time=1567777777)
-    print(the_state_we_want.hash_tree_root)
+    genesis_time = int(time.time())
+    print(f"creating genesis at time {genesis_time}")
+    genesis_state = state.copy(genesis_time=genesis_time)
+    print(genesis_state.hash_tree_root.hex())
 
 
 if __name__ == "__main__":
