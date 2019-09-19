@@ -4,8 +4,6 @@ import collections
 import contextlib
 import functools
 from typing import (
-    Any,
-    cast,
     Dict,
     Iterator,
     List,
@@ -15,6 +13,8 @@ from typing import (
     Type,
     TYPE_CHECKING,
 )
+
+from async_exit_stack import AsyncExitStack
 
 from lahja import EndpointAPI
 
@@ -31,6 +31,7 @@ from eth_keys import datatypes
 from cancel_token import CancelToken
 
 from p2p.abc import (
+    BehaviorAPI,
     CommandAPI,
     ConnectionAPI,
     HandshakerAPI,
@@ -38,10 +39,8 @@ from p2p.abc import (
     ProtocolAPI,
     SessionAPI,
 )
-from p2p.constants import BLACKLIST_SECONDS_BAD_PROTOCOL
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
-    PeerConnectionLost,
     UnknownProtocol,
 )
 from p2p.handshake import (
@@ -49,11 +48,8 @@ from p2p.handshake import (
     DevP2PHandshakeParams,
 )
 from p2p.service import BaseService
-from p2p.p2p_proto import (
-    BaseP2PProtocol,
-    Disconnect,
-    Ping,
-)
+from p2p.p2p_api import P2PAPI
+from p2p.p2p_proto import BaseP2PProtocol
 from p2p.protocol import (
     Command,
     Payload,
@@ -102,11 +98,11 @@ class BasePeer(BaseService):
     listen_port = 30303
     # Will be set upon the successful completion of a P2P handshake.
     sub_proto: ProtocolAPI = None
-    disconnect_reason: DisconnectReason = None
 
     _event_bus: EndpointAPI = None
 
     base_protocol: BaseP2PProtocol
+    p2p_api: P2PAPI
 
     def __init__(self,
                  connection: ConnectionAPI,
@@ -121,8 +117,6 @@ class BasePeer(BaseService):
         # Connection instance
         self.connection = connection
 
-        self.base_protocol = self.connection.get_base_protocol()
-
         # TODO: need to remove this property but for now it is here to support
         # backwards compat
         for protocol_class in self.supported_sub_protocols:
@@ -134,9 +128,6 @@ class BasePeer(BaseService):
                 break
         else:
             raise ValidationError("No supported subprotocols found in Connection")
-
-        # The self-identifying string that the remote names itself.
-        self.client_version_string = self.connection.safe_client_version_string
 
         # Optional event bus handle
         self._event_bus = event_bus
@@ -163,6 +154,9 @@ class BasePeer(BaseService):
         Noop implementation for subclasses to override.
         """
         pass
+
+    def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
+        return ()
 
     @cached_property
     def has_event_bus(self) -> bool:
@@ -230,41 +224,32 @@ class BasePeer(BaseService):
         pass
 
     async def _run(self) -> None:
-        # setup handler to respond to ping messages
-        self.connection.add_command_handler(Ping, self._ping_handler)
+        async with AsyncExitStack() as stack:
+            await stack.enter_async_context(P2PAPI().as_behavior().apply(self.connection))
+            self.p2p_api = self.connection.get_logic('p2p', P2PAPI)
 
-        # setup handler for disconnect messages
-        self.connection.add_command_handler(Disconnect, self._disconnect_handler)
+            for behavior in self.get_behaviors():
+                if behavior.should_apply_to(self.connection):
+                    await stack.enter_async_context(behavior.apply(self.connection))
 
-        # setup handler for protocol messages to pass messages to subscribers
-        for protocol in self.connection.get_protocols():
-            self.connection.add_protocol_handler(type(protocol), self._handle_subscriber_message)
+            # setup handler for protocol messages to pass messages to subscribers
+            for protocol in self.connection.get_protocols():
+                self.connection.add_protocol_handler(
+                    type(protocol),
+                    self._handle_subscriber_message,
+                )
 
-        self.setup_protocol_handlers()
+            self.setup_protocol_handlers()
 
-        # The `boot` process is run in the background to allow the `run` loop
-        # to continue so that all of the Peer APIs can be used within the
-        # `boot` task.
-        self.run_child_service(self.boot_manager)
+            # The `boot` process is run in the background to allow the `run` loop
+            # to continue so that all of the Peer APIs can be used within the
+            # `boot` task.
+            self.run_child_service(self.boot_manager)
 
-        # Trigger the connection to start feeding messages though the handlers
-        self.connection.start_protocol_streams()
+            # Trigger the connection to start feeding messages though the handlers
+            self.connection.start_protocol_streams()
 
-        await self.cancellation()
-
-    async def _ping_handler(self, connection: ConnectionAPI, msg: Payload) -> None:
-        self.base_protocol.send_pong()
-
-    async def _disconnect_handler(self, connection: ConnectionAPI, msg: Payload) -> None:
-        msg = cast(Dict[str, Any], msg)
-        try:
-            reason = DisconnectReason(msg['reason'])
-        except TypeError:
-            self.logger.info('Unrecognized reason: %s', msg['reason_name'])
-        else:
-            self.disconnect_reason = reason
-
-        self.cancel_nowait()
+            await self.cancellation()
 
     async def _handle_subscriber_message(self,
                                          connection: ConnectionAPI,
@@ -274,38 +259,11 @@ class BasePeer(BaseService):
         for subscriber in self._subscribers:
             subscriber.add_msg(subscriber_msg)
 
-    def _disconnect(self, reason: DisconnectReason) -> None:
-        if reason is DisconnectReason.bad_protocol:
-            self.connection_tracker.record_blacklist(
-                self.remote,
-                timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
-                reason="Bad protocol",
-            )
-
-        self.logger.debug("Disconnecting from remote peer %s; reason: %s", self.remote, reason.name)
-        try:
-            self.base_protocol.send_disconnect(reason)
-        except PeerConnectionLost:
-            self.logger.debug("%s was already disconnected", self.remote)
-
     async def disconnect(self, reason: DisconnectReason) -> None:
-        """Send a disconnect msg to the remote node and stop this Peer.
-
-        Also awaits for self.cancel() to ensure any pending tasks are cleaned up.
-
-        :param reason: An item from the DisconnectReason enum.
-        """
-        self._disconnect(reason)
-        if self.is_operational:
-            await self.cancel()
+        await self.p2p_api.disconnect(reason)
 
     def disconnect_nowait(self, reason: DisconnectReason) -> None:
-        """
-        Non-coroutine version of `disconnect`
-        """
-        self._disconnect(reason)
-        if self.is_operational:
-            self.cancel_nowait()
+        self.p2p_api.disconnect_nowait(reason)
 
 
 class PeerMessage(NamedTuple):

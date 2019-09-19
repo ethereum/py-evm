@@ -17,8 +17,8 @@ async def test_unidirectional_handshake():
         bob_peer_context=bob_context,
     )
     async with peer_pair as (alice, bob):
-        assert bob.client_version_string == alice_context.client_version_string
-        assert alice.client_version_string == bob_context.client_version_string
+        assert bob.p2p_api.client_version_string == alice_context.client_version_string
+        assert alice.p2p_api.client_version_string == bob_context.client_version_string
 
 
 @pytest.mark.asyncio
