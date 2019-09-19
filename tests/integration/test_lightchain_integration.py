@@ -217,7 +217,7 @@ async def test_lightchain_integration(
 
     assert len(peer_pool) == 1
     peer = peer_pool.highest_td_peer
-    head = await peer_chain.coro_get_block_header_by_hash(peer.head_hash)
+    head = await peer_chain.coro_get_block_header_by_hash(peer.head_info.head_hash)
 
     # In order to answer queries for contract code, geth needs the state trie entry for the block
     # we specify in the query, but because of fast sync we can only assume it has that for recent

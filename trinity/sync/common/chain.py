@@ -76,7 +76,7 @@ class PeerHeaderSyncer(BaseService):
         self.db = db
         self.sync_progress: SyncProgress = None
         self._peer = peer
-        self._target_header_hash = peer.head_hash
+        self._target_header_hash = peer.head_info.head_hash
 
     def get_target_header_hash(self) -> Hash32:
         if self._target_header_hash is None:
@@ -97,16 +97,20 @@ class PeerHeaderSyncer(BaseService):
 
         head = await self.wait(self.db.coro_get_canonical_head())
         head_td = await self.wait(self.db.coro_get_score(head.hash))
-        if peer.head_td <= head_td:
+        if peer.head_info.head_td <= head_td:
             self.logger.info(
                 "Head TD (%d) announced by %s not higher than ours (%d), not syncing",
-                peer.head_td, peer, head_td)
+                peer.head_info.head_td, peer, head_td)
             return
         else:
             self.logger.debug(
                 "%s announced Head TD %d, which is higher than ours (%d), starting sync",
-                peer, peer.head_td, head_td)
-        self.sync_progress = SyncProgress(head.block_number, head.block_number, peer.head_number)
+                peer, peer.head_info.head_td, head_td)
+        self.sync_progress = SyncProgress(
+            head.block_number,
+            head.block_number,
+            peer.head_info.head_number,
+        )
         self.logger.info("Starting sync with %s", peer)
         last_received_header: BlockHeaderAPI = None
         # When we start the sync with a peer, we always request up to MAX_REORG_DEPTH extra
@@ -171,13 +175,13 @@ class PeerHeaderSyncer(BaseService):
                     request_parent = head
                 else:
                     request_parent = last_received_header
-                if head_td < peer.head_td:
+                if head_td < peer.head_info.head_td:
                     # peer claims to have a better header, but didn't return it. Boot peer
                     # TODO ... also blacklist, because it keeps trying to reconnect
                     self.logger.warning(
                         "%s announced difficulty %s, but didn't return any headers after %r@%s",
                         peer,
-                        peer.head_td,
+                        peer.head_info.head_td,
                         request_parent,
                         head_td,
                     )
@@ -231,7 +235,7 @@ class PeerHeaderSyncer(BaseService):
                 head_td += header.difficulty
 
             # Setting the latest header hash for the peer, before queuing header processing tasks
-            self._target_header_hash = peer.head_hash
+            self._target_header_hash = peer.head_info.head_hash
 
             yield new_headers
             last_received_header = new_headers[-1]

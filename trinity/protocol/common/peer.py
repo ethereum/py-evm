@@ -8,18 +8,15 @@ from typing import (
     Type,
 )
 
+from cached_property import cached_property
+
 from lahja import EndpointAPI
 
 from cancel_token import CancelToken
 
-from eth_typing import (
-    BlockNumber,
-    Hash32,
-)
-
 from eth_utils.toolz import groupby
 
-from p2p.abc import NodeAPI, SessionAPI
+from p2p.abc import BehaviorAPI, NodeAPI, SessionAPI
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import NoConnectedPeers
 from p2p.peer import (
@@ -39,6 +36,8 @@ from p2p.tracking.connection import (
 )
 
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
+from trinity.protocol.common.abc import ChainInfoAPI, HeadInfoAPI
+from trinity.protocol.common.api import ChainInfo, HeadInfo
 from trinity.protocol.common.handlers import BaseChainExchangeHandler
 
 from trinity.components.builtin.network_db.connection.tracker import ConnectionTrackerClient
@@ -59,11 +58,19 @@ class BaseChainPeer(BasePeer):
     boot_manager_class = DAOCheckBootManager
     context: ChainContext
 
-    head_td: int = None
-    head_hash: Hash32 = None
-    head_number: BlockNumber = None
-    network_id: int = None
-    genesis_hash: Hash32 = None
+    @cached_property
+    def head_info(self) -> HeadInfoAPI:
+        return self.connection.get_logic(HeadInfo.name, HeadInfo)
+
+    @cached_property
+    def chain_info(self) -> ChainInfoAPI:
+        return self.connection.get_logic(ChainInfo.name, ChainInfo)
+
+    def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
+        return (
+            HeadInfo().as_behavior(),
+            ChainInfo().as_behavior(),
+        )
 
     @property
     @abstractmethod
@@ -131,7 +138,8 @@ class BaseChainPeerPool(BasePeerPool):
         peers = tuple(self.connected_nodes.values())
         if not peers:
             raise NoConnectedPeers("No connected peers")
-        peers_by_td = groupby(operator.attrgetter('head_td'), peers)
+
+        peers_by_td = groupby(operator.attrgetter('head_info.head_td'), peers)
         max_td = max(peers_by_td.keys())
         return random.choice(peers_by_td[max_td])
 
@@ -140,7 +148,7 @@ class BaseChainPeerPool(BasePeerPool):
         # harder for callsites to get a list of peers while making blocking calls, as those peers
         # might disconnect in the meantime.
         peers = tuple(self.connected_nodes.values())
-        return [peer for peer in peers if peer.head_td >= min_td]
+        return [peer for peer in peers if peer.head_info.head_td >= min_td]
 
     def setup_connection_tracker(self) -> BaseConnectionTracker:
         if self.has_event_bus:

@@ -4,6 +4,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Sequence,
     Tuple,
     TYPE_CHECKING,
     Union,
@@ -135,6 +136,23 @@ class LESProtocol(Protocol):
         cmd = Status(self.cmd_id_offset, self.snappy_support)
         self.transport.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: %s", resp)
+
+    def send_announce(self,
+                      head_hash: Hash32,
+                      head_number: BlockNumber,
+                      head_td: int,
+                      reorg_depth: int = 0,
+                      params: Sequence[Any] = ()) -> None:
+        data = {
+            'head_hash': head_hash,
+            'head_number': head_number,
+            'head_td': head_td,
+            'reorg_depth': reorg_depth,
+            'params': params,
+        }
+        cmd = Announce(self.cmd_id_offset, self.snappy_support)
+        self.logger.debug("Sending LES/Announce msg: %s", data)
+        self.transport.send(*cmd.encode(data))
 
     def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int=None) -> int:
         if request_id is None:

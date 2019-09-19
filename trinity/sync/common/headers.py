@@ -861,7 +861,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         if not self._is_syncing_skeleton and self._last_target_header_hash is None:
             raise ValidationError("Cannot check the target hash before the first sync has started")
         elif self._is_syncing_skeleton:
-            return self._skeleton.peer.head_hash
+            return self._skeleton.peer.head_info.head_hash
         else:
             return self._last_target_header_hash
 
@@ -913,7 +913,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                 self._skeleton.cancel_nowait()
         finally:
             self.logger.debug2("Skeleton sync with %s ended", peer)
-            self._last_target_header_hash = peer.head_hash
+            self._last_target_header_hash = peer.head_info.head_hash
             self._skeleton = None
 
     @property
@@ -978,13 +978,13 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
     async def _validate_peer_is_ahead(self, peer: BaseChainPeer) -> None:
         head = await self._db.coro_get_canonical_head()
         head_td = await self._db.coro_get_score(head.hash)
-        if peer.head_td <= head_td:
+        if peer.head_info.head_td <= head_td:
             self.logger.debug(
                 "Head TD (%d) announced by %s not higher than ours (%d), not syncing",
-                peer.head_td, peer, head_td)
+                peer.head_info.head_td, peer, head_td)
             raise _PeerBehind(f"{peer} is behind us, not a valid target for sync")
         else:
             self.logger.debug(
                 "%s announced Head TD %d, which is higher than ours (%d), starting sync",
-                peer, peer.head_td, head_td)
+                peer, peer.head_info.head_td, head_td)
             pass

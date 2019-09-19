@@ -296,7 +296,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             # our best peer doesn't have the header we want, there are no eligible peers.
             raise NoEligiblePeers(f"Our best peer does not have the header {block_hash}")
 
-        head_number = peer.head_number
+        head_number = peer.les_api.head_info.head_number
         if head_number - header.block_number > MAX_REORG_DEPTH:
             # The peer claims to be far ahead of the header we requested
             if await self.headerdb.coro_get_canonical_block_hash(header.block_number) == block_hash:

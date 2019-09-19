@@ -179,6 +179,22 @@ class ETHProtocol(Protocol):
         header, body = cmd.encode(transactions)
         self.transport.send(header, body)
 
+    #
+    # NewBlock
+    #
+    def send_new_block(self,
+                       block_header: BlockHeaderAPI,
+                       transactions: Sequence[SignedTransactionAPI],
+                       uncles: Sequence[BlockHeaderAPI],
+                       total_difficulty: int) -> None:
+        cmd = NewBlock(self.cmd_id_offset, self.snappy_support)
+        # mypy doesn't recognize the following as a valid `Payload` type
+        header, body = cmd.encode({  # type: ignore
+            'block': (block_header, transactions, uncles),
+            'total_difficulty': total_difficulty,
+        })
+        self.transport.send(header, body)
+
 
 class ProxyETHProtocol:
     """
