@@ -268,8 +268,6 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
 
     state = state.copy(previous_crosslinks=state.current_crosslinks)
 
-    new_current_crosslinks = state.current_crosslinks
-
     for epoch in (previous_epoch, current_epoch):
         active_validators_indices = get_active_validator_indices(
             state.validators, epoch
@@ -300,10 +298,9 @@ def process_crosslinks(state: BeaconState, config: Eth2Config) -> BeaconState:
             if threshold_met:
                 state = state.copy(
                     current_crosslinks=update_tuple_item(
-                        new_current_crosslinks, shard, winning_crosslink
+                        state.current_crosslinks, shard, winning_crosslink
                     )
                 )
-                new_current_crosslinks = state.current_crosslinks
 
     return state
 
