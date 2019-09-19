@@ -21,6 +21,7 @@ clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
 	find . -name '*.pyo' -exec rm -f {} +
 	find . -name '*~' -exec rm -f {} +
+	find . -name '__pycache__' -exec rm -rf {} +
 
 lint:
 	tox -epy3{6,5}-lint
@@ -38,6 +39,7 @@ coverage:
 	open htmlcov/index.html
 
 build-docs:
+	pip install -e .[doc]
 	cd docs/; sphinx-build -W -T -E . _build/html
 
 doctest:
