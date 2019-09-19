@@ -3,7 +3,10 @@ from typing import (
     Type,
 )
 
-from eth.abc import VirtualMachineAPI
+from eth.abc import (
+    BlockNumber,
+    VirtualMachineAPI,
+)
 
 from p2p.peer import BasePeerContext
 
@@ -14,7 +17,7 @@ class ChainContext(BasePeerContext):
     def __init__(self,
                  headerdb: BaseAsyncHeaderDB,
                  network_id: int,
-                 vm_configuration: Tuple[Tuple[int, Type[VirtualMachineAPI]], ...],
+                 vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...],
                  client_version_string: str,
                  listen_port: int,
                  p2p_version: int,
