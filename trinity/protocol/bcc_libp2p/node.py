@@ -351,8 +351,13 @@ class Node(BaseService):
                 return
             except ConnectionRefusedError:
                 logger.debug(
-                    f"could not connect to peer {peer_id} at {ip}:{port};"
-                    f" retrying attempt {i} of {DIAL_RETRY_COUNT}..."
+                    "could not connect to peer %s at %s:%d;"
+                    " retrying attempt %d of %d...",
+                    peer_id,
+                    ip,
+                    port,
+                    i,
+                    DIAL_RETRY_COUNT,
                 )
                 continue
         raise ConnectionRefusedError
@@ -378,7 +383,7 @@ class Node(BaseService):
         )
         for result in results:
             if isinstance(result, Exception):
-                logger.warning(f"could not connect to {result}: {type(result)} {repr(result)}")
+                logger.warning("could not connect to %s", result)
 
     async def disconnect_peer(self, peer_id: ID) -> None:
         if peer_id in self.handshaked_peers:

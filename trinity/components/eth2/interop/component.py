@@ -137,7 +137,7 @@ class InteropComponent(BaseMainProcessComponent):
                 sys.exit(1)
 
             delta = args.start_time - now
-            logger.info(f"Time will begin {delta} seconds from now")
+            logger.info("Time will begin %d seconds from now", delta)
 
             # adapt the state, then print the new root!
             state = state.copy(
@@ -149,7 +149,7 @@ class InteropComponent(BaseMainProcessComponent):
                 sys.exit(1)
 
             start_time = now + args.start_delay
-            logger.info(f"Genesis time is {start_time}")
+            logger.info("Genesis time is %d", start_time)
 
             state = state.copy(
                 genesis_time=start_time

@@ -68,14 +68,14 @@ def extract_privkeys_from_dir(dir_path: Path) -> Dict[BLSPubkey, int]:
     try:
         key_files = os.listdir(dir_path)
     except FileNotFoundError:
-        logger.debug(f'Could not find key directory: {dir_path}')
+        logger.debug('Could not find key directory: %s', str(dir_path))
         return validator_keymap
     for key_file_name in key_files:
         key_file_path = dir_path / key_file_name
         privkey = _read_privkey(key_file_path)
         pubkey = bls.privtopub(privkey)
         validator_keymap[pubkey] = privkey
-        logger.debug(f'imported public key: {humanize_hash(Hash32(pubkey))}')
+        logger.debug('imported public key: %s', humanize_hash(Hash32(pubkey)))
     if len(validator_keymap) == 0:
         pass
     return validator_keymap
