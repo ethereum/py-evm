@@ -83,7 +83,7 @@ class LESPeer(BaseChainPeer):
         receipt = self.connection.get_receipt_by_type(LESHandshakeReceipt)
         self.head_td = receipt.handshake_params.head_td
         self.head_hash = receipt.handshake_params.head_hash
-        self.head_number = receipt.handshake_params.head_num
+        self.head_number = receipt.handshake_params.head_number
         self.genesis_hash = receipt.handshake_params.genesis_hash
         self.network_id = receipt.handshake_params.network_id
 
@@ -149,7 +149,7 @@ class LESPeerFactory(BaseChainPeerFactory):
             network_id=self.context.network_id,
             head_td=total_difficulty,
             head_hash=head.hash,
-            head_num=head.block_number,
+            head_number=head.block_number,
             genesis_hash=genesis_hash,
             serve_headers=True,
             # TODO: these should be configurable to allow us to serve this data.

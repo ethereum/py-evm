@@ -1,5 +1,8 @@
 from typing import cast, Any, Dict
 
+from cached_property import cached_property
+
+from eth_typing import Hash32
 from eth_utils import encode_hex
 
 from p2p.abc import MultiplexerAPI, ProtocolAPI
@@ -21,6 +24,26 @@ class ETHHandshakeReceipt(HandshakeReceipt):
     def __init__(self, protocol: ETHProtocol, handshake_params: ETHHandshakeParams) -> None:
         super().__init__(protocol)
         self.handshake_params = handshake_params
+
+    @cached_property
+    def head_hash(self) -> Hash32:
+        return self.handshake_params.head_hash
+
+    @cached_property
+    def genesis_hash(self) -> Hash32:
+        return self.handshake_params.genesis_hash
+
+    @cached_property
+    def network_id(self) -> int:
+        return self.handshake_params.network_id
+
+    @cached_property
+    def total_difficulty(self) -> int:
+        return self.handshake_params.total_difficulty
+
+    @cached_property
+    def version(self) -> int:
+        return self.handshake_params.version
 
 
 class ETHHandshaker(Handshaker):

@@ -184,7 +184,7 @@ class LESHandshakeParamsFactory(factory.Factory):
     network_id = MAINNET_NETWORK_ID
     head_td = GENESIS_DIFFICULTY
     head_hash = MAINNET_GENESIS_HASH
-    head_num = GENESIS_BLOCK_NUMBER
+    head_number = GENESIS_BLOCK_NUMBER
     genesis_hash = MAINNET_GENESIS_HASH
     serve_headers = True
     serve_chain_since = 0
