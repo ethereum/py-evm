@@ -7,10 +7,10 @@ import asyncio
 from lahja import EndpointAPI
 
 from eth.chains.mainnet import (
-    BYZANTIUM_MAINNET_BLOCK,
+    PETERSBURG_MAINNET_BLOCK,
 )
 from eth.chains.ropsten import (
-    BYZANTIUM_ROPSTEN_BLOCK,
+    PETERSBURG_ROPSTEN_BLOCK,
 )
 
 from trinity._utils.shutdown import exit_with_services
@@ -78,9 +78,9 @@ class TxComponent(AsyncioIsolatedComponent):
         chain = chain_config.full_chain_class(db)
 
         if self.boot_info.trinity_config.network_id == MAINNET_NETWORK_ID:
-            validator = DefaultTransactionValidator(chain, BYZANTIUM_MAINNET_BLOCK)
+            validator = DefaultTransactionValidator(chain, PETERSBURG_MAINNET_BLOCK)
         elif self.boot_info.trinity_config.network_id == ROPSTEN_NETWORK_ID:
-            validator = DefaultTransactionValidator(chain, BYZANTIUM_ROPSTEN_BLOCK)
+            validator = DefaultTransactionValidator(chain, PETERSBURG_ROPSTEN_BLOCK)
         else:
             raise ValueError("The TxPool component only supports MainnetChain or RopstenChain")
 

@@ -83,7 +83,7 @@ async def test_tx_propagation(event_bus,
 
             await asyncio.sleep(0.01)
             assert outgoing_tx == [
-                (node_two, txs_broadcasted_by_peer1),
+                (node_two, tuple(txs_broadcasted_by_peer1)),
             ]
             # Clear the recording, we asserted all we want and would like to have a fresh start
             outgoing_tx.clear()
@@ -118,7 +118,7 @@ async def test_tx_propagation(event_bus,
 
             # Check that Peer1 receives only the one tx that it didn't know about
             assert outgoing_tx == [
-                (node_one, [txs_broadcasted_by_peer2[0]]),
+                (node_one, (txs_broadcasted_by_peer2[0],)),
             ]
 
 
@@ -154,7 +154,7 @@ async def test_does_not_propagate_invalid_tx(event_bus,
 
         # Check that Peer2 received only the second tx which is valid
         assert outgoing_tx == [
-            (node_two, [txs_broadcasted_by_peer1[1]]),
+            (node_two, (txs_broadcasted_by_peer1[1],)),
         ]
 
 
