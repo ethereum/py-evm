@@ -161,7 +161,7 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
             (0, SpuriousDragonVM),
             (5, ByzantiumVM),
         )
-    elif network == 'ByzantiumToConstantinopleAt5':
+    elif network == 'ByzantiumToConstantinopleFixAt5':
         return (
             (0, ByzantiumVM),
             (5, ConstantinopleVM),
