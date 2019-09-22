@@ -362,18 +362,25 @@ FixtureAccountDetails = TypedDict('FixtureAccountDetails',
 FixtureAccountState = Dict[Address, FixtureAccountDetails]
 
 
-def normalize_account_state(account_state: FixtureAccountState) -> AccountState:
-    return {
-        to_canonical_address(address): {
-            'balance': to_int(state['balance']),
-            'code': decode_hex(state['code']),
-            'nonce': to_int(state['nonce']),
-            'storage': {
-                to_int(slot): big_endian_to_int(decode_hex(value))
-                for slot, value in state['storage'].items()
-            },
-        } for address, state in account_state.items()
-    }
+def normalize_account_state(account_state: FixtureAccountState) -> Union[AccountState, str]:
+    if isinstance(account_state, dict):
+        return {
+            to_canonical_address(address): {
+                'balance': to_int(state['balance']),
+                'code': decode_hex(state['code']),
+                'nonce': to_int(state['nonce']),
+                'storage': {
+                    to_int(slot): big_endian_to_int(decode_hex(value))
+                    for slot, value in state['storage'].items()
+                },
+            } for address, state in account_state.items()
+        }
+    elif isinstance(account_state, str):
+        # https://github.com/ethereum/tests/issues/637#issuecomment-532234905
+        # some fixtures have postState as a string instead of map
+        return account_state
+    else:
+        raise Exception('Invariant')
 
 
 @to_dict
