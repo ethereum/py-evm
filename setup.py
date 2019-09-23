@@ -5,6 +5,7 @@ from setuptools import setup, find_packages
 
 deps = {
     'eth': [
+        "blake2b-py>=0.1.2,<0.2",
         "cached-property>=1.5.1,<2",
         "eth-bloom>=1.0.3,<2.0.0",
         "eth-keys>=0.2.1,<0.3.0",
@@ -30,10 +31,8 @@ deps = {
     'test': [
         "hypothesis==3.69.5",
         "pexpect>=4.6, <5",
-        # pinned to <3.7 until async fixtures work again
-        # https://github.com/pytest-dev/pytest-asyncio/issues/89
-        "pytest>=3.6,<3.7",
-        "pytest-asyncio==0.9.0",
+        "pytest>=5.1.3,<6",
+        "pytest-asyncio>=0.10.0,<0.11",
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.18.1",

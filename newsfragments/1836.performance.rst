@@ -1,0 +1,2 @@
+Use new `blake2b-py library <https://github.com/davesque/blake2b-py>`_ for 560x speedup of
+Blake2 F compression function.
