@@ -1,4 +1,3 @@
-import logging
 from typing import Sequence, Set, Tuple
 
 from eth_typing import Hash32
@@ -44,9 +43,6 @@ from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import Bitfield, Epoch, Gwei, Shard, ValidatorIndex
 from eth2.beacon.validator_status_helpers import initiate_exit_for_validator
 from eth2.configs import CommitteeConfig, Eth2Config
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 def _bft_threshold_met(participation: Gwei, total: Gwei) -> bool:
@@ -480,18 +476,12 @@ def process_rewards_and_penalties(
     if current_epoch == config.GENESIS_EPOCH:
         return state
 
-    # logger.debug(f'processing rewards for epoch: {current_epoch}')
-
     rewards_for_attestations, penalties_for_attestations = get_attestation_deltas(
         state, config
     )
-    # logger.debug(f'rewards1: {rewards_for_attestations}')
-    # logger.debug(f'penalties1: {penalties_for_attestations}')
     rewards_for_crosslinks, penalties_for_crosslinks = get_crosslink_deltas(
         state, config
     )
-    # logger.debug(f'rewards2: {rewards_for_crosslinks}')
-    # logger.debug(f'penalties2: {penalties_for_crosslinks}')
 
     for index in range(len(state.validators)):
         index = ValidatorIndex(index)

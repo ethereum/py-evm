@@ -1,5 +1,3 @@
-import logging
-
 from eth2._utils.hash import hash_eth2
 from eth2._utils.numeric import bitwise_xor
 from eth2._utils.tuple import update_tuple_item
@@ -20,9 +18,6 @@ from .block_validation import (
     validate_proposer_signature,
 )
 from .operation_processing import process_operations
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 def process_block_header(
@@ -106,7 +101,6 @@ def process_block(
     config: Eth2Config,
     check_proposer_signature: bool = True,
 ) -> BeaconState:
-    # logger.debug('process_block called')
     state = process_block_header(state, block, config, check_proposer_signature)
     state = process_randao(state, block, config)
     state = process_eth1_data(state, block, config)
