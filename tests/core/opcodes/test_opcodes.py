@@ -886,12 +886,12 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
         ),
         (
             IstanbulVM,
-            2 ** 64 - 1,
-            2 ** 64 - 1,
+            2 ** 256 - 1,
+            2 ** 256 - 1,
         ),
         (
             IstanbulVM,
-            2 ** 64,
+            2 ** 256,
             ValidationError,
         ),
     )
