@@ -14,7 +14,8 @@ from .compression import (
     TMessageBlock,
 )
 
-TFCompressArgs = Tuple[int, TMessageBlock, bytes, Tuple[int, int], bool]
+TMessage = Tuple[int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int]
+TFCompressArgs = Tuple[int, TMessageBlock, TMessage, Tuple[int, int], bool]
 
 
 def extract_blake2b_parameters(input_bytes: bytes) -> TFCompressArgs:
@@ -28,7 +29,7 @@ def extract_blake2b_parameters(input_bytes: bytes) -> TFCompressArgs:
 
     h_state = cast(TMessageBlock, _get_64_bit_little_endian_words(input_bytes[4:68]))
 
-    message = input_bytes[68:196]
+    message = cast(TMessage, _get_64_bit_little_endian_words(input_bytes[68:196]))
 
     t_offset_counters = cast(Tuple[int, int], _get_64_bit_little_endian_words(input_bytes[196:212]))
 

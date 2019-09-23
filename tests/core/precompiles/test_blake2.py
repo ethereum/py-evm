@@ -57,6 +57,18 @@ def test_blake2(input_hex, expected_result):
             blake2b_compress(*blake2b_params)
     else:
         blake2b_params = extract_blake2b_parameters(input_bytes)
-        result_bytes = blake2b_compress(*blake2b_params)
+
+        # a bit of parameter massaging for the pure python implementation
+        rounds, h_state = blake2b_params[:2]
+        message = input_bytes[68:196]  # python implementation uses bytes instead of decoded ints
+        t_offset_counters, final_block_flag = blake2b_params[-2:]
+
+        result_bytes = blake2b_compress(
+            rounds,
+            h_state,
+            message,
+            t_offset_counters,
+            final_block_flag,
+        )
 
         assert result_bytes.hex() == expected_result
