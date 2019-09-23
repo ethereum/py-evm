@@ -126,9 +126,19 @@ class InteropComponent(BaseMainProcessComponent):
         logger.info(f"Using genesis from {genesis_path}")
 
         # read the genesis!
-        with open(genesis_path, 'rb') as f:  # type: IO[Any]
-            encoded = f.read()
-        state = ssz.decode(encoded, sedes=BeaconState)
+        try:
+            with open(genesis_path, 'rb') as f:  # type: IO[Any]
+                encoded = f.read()
+            state = ssz.decode(encoded, sedes=BeaconState)
+        except FileNotFoundError:
+            import os
+            logger.critical(
+                "Required: the genesis state at %s/genesis.ssz,"
+                " or the path to this state with command line"
+                " argument `--genesis-state-ssz-path $PATH`",
+                os.getcwd(),
+            )
+            sys.exit(1)
 
         now = int(time.time())
         if args.start_time:
