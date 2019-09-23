@@ -11,6 +11,7 @@ from eth2.beacon.chains.testnet import TestnetChain
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import XIAO_LONG_BAO_CONFIG
 from eth2.beacon.tools.builder.initializer import create_mock_genesis
+from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.beacon.typing import Timestamp
 from eth2.configs import Eth2GenesisConfig
 
@@ -27,6 +28,8 @@ for i, k in enumerate(privkeys):
     pubkey = bls.privtopub(k)
     index_to_pubkey[i] = pubkey
     keymap[pubkey] = k
+
+override_lengths(XIAO_LONG_BAO_CONFIG)
 
 genesis_state, genesis_block = create_mock_genesis(
     config=XIAO_LONG_BAO_CONFIG,
