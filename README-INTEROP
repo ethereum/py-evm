@@ -1,7 +1,7 @@
 # Instructions for getting trinity interoping with other clients
 
 1. Make sure you're on the right branch:
-   $ git checkout interop
+   $ git checkout master
 
 2. Install Python. Trinity definitely works with Python 3.7, and should work with Python
    3.6. If you don't already have Python 3.7 I (lithp) recommend installing it with pyenv
