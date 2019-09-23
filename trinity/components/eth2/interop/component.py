@@ -122,7 +122,7 @@ class InteropComponent(BaseMainProcessComponent):
             else:
                 beacon_config.database_dir.mkdir()
 
-        genesis_path = args.genesis_state_ssz_path or Path('genesis.ssz')
+        genesis_path = args.genesis_state_ssz_path or Path('resources/genesis.ssz')
         logger.info(f"Using genesis from {genesis_path}")
 
         # read the genesis!
