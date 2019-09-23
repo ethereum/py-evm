@@ -1077,12 +1077,11 @@ def test_gas_costs(vm_class, code, expect_gas_used):
             "b63a380cb2897d521994a85234ee2c181b5f844d2c624c002677e9703449d2fba551b3a8333bcdf5f2f7e08993d53923de3d64fcc68c034e717b9293fed7a421",  # noqa: E501
             None,
         ),
-        pytest.param(
+        (
             IstanbulVM,
             "ffffffff48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b61626300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000001",  # noqa: E501
             "fc59093aafa9ab43daae0e914c57635c5402d8e3d2130eb9b3cc181de7f0ecf9b22bf99a7815ce16419e200e01846e6b5df8cc7703041bbceb571de6631d2615",  # noqa: E501
             None,
-            marks=pytest.mark.skip(reason="This example currently uses >4 billion gas.")
         ),
     )
 )
@@ -1091,6 +1090,7 @@ def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception
         vm_class,
         CANONICAL_ADDRESS_B,
         code=b'',
+        gas=2**32 - 1,
         to=force_bytes_to_address(b'\x09'),
         data=to_bytes(hexstr=input_hex),
     )
