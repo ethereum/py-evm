@@ -63,6 +63,7 @@ from .constants import (
     KEYS_DIR,
 )
 
+
 class Client:
     name: str
     client_dir: Path
