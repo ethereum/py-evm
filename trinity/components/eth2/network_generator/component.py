@@ -36,14 +36,8 @@ from eth2._utils.hash import (
 from eth2.beacon.state_machines.forks.xiao_long_bao import (
     XiaoLongBaoStateMachine,
 )
-from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
-    XIAO_LONG_BAO_CONFIG,
-)
 from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
-)
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_lengths,
 )
 from eth2.beacon.typing import (
     Second,
@@ -68,7 +62,9 @@ from .constants import (
     KEYS_DIR,
 )
 
-override_lengths(XIAO_LONG_BAO_CONFIG)
+# NOTE: restore if you are using this component... temporary fix
+# see: https://github.com/ethereum/trinity/issues/786
+# override_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class Client:
