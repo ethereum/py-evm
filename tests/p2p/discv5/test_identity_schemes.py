@@ -190,3 +190,40 @@ def test_invalid_id_nonce_signature_validation():
             signature=signature,
             public_key=public_key,
         )
+
+
+@given(
+    initiator_private_key=private_key_st,
+    recipient_private_key=private_key_st,
+    id_nonce=id_nonce_st,
+)
+def test_session_key_derivation(initiator_private_key, recipient_private_key, id_nonce):
+    initiator_private_key_object = PrivateKey(initiator_private_key)
+    recipient_private_key_object = PrivateKey(recipient_private_key)
+
+    initiator_public_key = initiator_private_key_object.public_key.to_compressed_bytes()
+    recipient_public_key = recipient_private_key_object.public_key.to_compressed_bytes()
+
+    initiator_node_id = keccak(initiator_private_key_object.public_key.to_bytes())
+    recipient_node_id = keccak(recipient_private_key_object.public_key.to_bytes())
+
+    initiator_session_keys = V4IdentityScheme.compute_session_keys(
+        local_private_key=initiator_private_key,
+        remote_public_key=recipient_public_key,
+        local_node_id=initiator_node_id,
+        remote_node_id=recipient_node_id,
+        id_nonce=id_nonce,
+        is_locally_initiated=True,
+    )
+    recipient_session_keys = V4IdentityScheme.compute_session_keys(
+        local_private_key=recipient_private_key,
+        remote_public_key=initiator_public_key,
+        local_node_id=recipient_node_id,
+        remote_node_id=initiator_node_id,
+        id_nonce=id_nonce,
+        is_locally_initiated=False,
+    )
+
+    assert initiator_session_keys.auth_response_key == recipient_session_keys.auth_response_key
+    assert initiator_session_keys.encryption_key == recipient_session_keys.decryption_key
+    assert initiator_session_keys.decryption_key == recipient_session_keys.encryption_key

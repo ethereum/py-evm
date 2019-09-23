@@ -26,6 +26,7 @@ IP_V4_ADDRESS_ENR_KEY = b"ip"
 UDP_PORT_ENR_KEY = b"udp"
 
 WHO_ARE_YOU_MAGIC_SUFFIX = b"WHOAREYOU"
+HKDF_INFO = b"discovery v5 key agreement"
 
 # buffer size used for incoming UDP datagrams (should be larger than MAX_PACKET_SIZE)
 DATAGRAM_BUFFER_SIZE = 2048

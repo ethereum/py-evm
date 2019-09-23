@@ -294,6 +294,7 @@ async def test_peer_packer_sends_who_are_you(peer_packer,
 @pytest.mark.trio
 async def test_peer_packer_sends_auth_header(peer_packer,
                                              enr,
+                                             remote_private_key,
                                              remote_enr,
                                              remote_endpoint,
                                              incoming_packet_channels,

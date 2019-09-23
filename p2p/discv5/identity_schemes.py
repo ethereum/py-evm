@@ -12,6 +12,10 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from cryptography.hazmat.primitives.hashes import SHA256
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.backends import default_backend as cryptography_default_backend
+
 from eth_keys.datatypes import (
     PrivateKey,
     PublicKey,
@@ -28,6 +32,10 @@ from eth_utils import (
     ValidationError,
 )
 
+from p2p.ecies import (
+    ecdh_agree,
+)
+
 from p2p.discv5.typing import (
     AES128Key,
     IDNonce,
@@ -36,6 +44,7 @@ from p2p.discv5.typing import (
 )
 from p2p.discv5.constants import (
     AES128_KEY_SIZE,
+    HKDF_INFO,
 )
 
 
@@ -169,6 +178,7 @@ class V4IdentityScheme(IdentityScheme):
     public_key_enr_key = b"secp256k1"
 
     private_key_size = 32
+    cryptography_backend = cryptography_default_backend()
 
     #
     # ENR
@@ -232,9 +242,36 @@ class V4IdentityScheme(IdentityScheme):
                              id_nonce: IDNonce,
                              is_locally_initiated: bool
                              ) -> SessionKeys:
-        # TODO: do it properly
-        initiator_key = AES128Key(b"\x00" * AES128_KEY_SIZE)
-        recipient_key = AES128Key(b"\x11" * AES128_KEY_SIZE)
+        local_private_key_object = PrivateKey(local_private_key)
+        remote_public_key_object = PublicKey.from_compressed_bytes(remote_public_key)
+        secret = ecdh_agree(local_private_key_object, remote_public_key_object)
+
+        if is_locally_initiated:
+            initiator_node_id, recipient_node_id = local_node_id, remote_node_id
+        else:
+            initiator_node_id, recipient_node_id = remote_node_id, local_node_id
+
+        info = b"".join((
+            HKDF_INFO,
+            initiator_node_id,
+            recipient_node_id,
+        ))
+
+        hkdf = HKDF(
+            algorithm=SHA256(),
+            length=3 * AES128_KEY_SIZE,
+            salt=id_nonce,
+            info=info,
+            backend=cls.cryptography_backend,
+        )
+        expanded_key = hkdf.derive(secret)
+
+        if len(expanded_key) != 3 * AES128_KEY_SIZE:
+            raise Exception("Invariant: Secret is expanded to three AES128 keys")
+
+        initiator_key = expanded_key[:AES128_KEY_SIZE]
+        recipient_key = expanded_key[AES128_KEY_SIZE:2 * AES128_KEY_SIZE]
+        auth_response_key = expanded_key[2 * AES128_KEY_SIZE:3 * AES128_KEY_SIZE]
 
         if is_locally_initiated:
             encryption_key, decryption_key = initiator_key, recipient_key
@@ -242,9 +279,9 @@ class V4IdentityScheme(IdentityScheme):
             encryption_key, decryption_key = recipient_key, initiator_key
 
         return SessionKeys(
-            encryption_key=encryption_key,
-            decryption_key=decryption_key,
-            auth_response_key=AES128Key(b"\x22" * AES128_KEY_SIZE),
+            encryption_key=AES128Key(encryption_key),
+            decryption_key=AES128Key(decryption_key),
+            auth_response_key=AES128Key(auth_response_key),
         )
 
     @classmethod
