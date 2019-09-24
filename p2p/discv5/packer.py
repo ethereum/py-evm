@@ -619,12 +619,12 @@ class Packer(Service):
             raise ValueError(
                 "Peer packer for {encode_hex(remote_node_id)} has already been started"
             ) from lifecycle_error
-        except HandshakeFailure as handshake_failure:
+        except HandshakeFailure:
             # peer packer has logged a warning already
             self.logger.debug(
                 "Peer packer %s has failed to do handshake with %s",
                 managed_peer_packer.peer_packer,
-                handshake_failure,
+                encode_hex(remote_node_id),
             )
         finally:
             self.logger.info("Deregistering peer packer %s", managed_peer_packer.peer_packer)
