@@ -101,6 +101,10 @@ class PeerPacker(Service):
 
         self.outgoing_message_backlog: List[OutgoingMessage] = []
 
+        # This lock ensures that at all times, at most one incoming packet or outgoing message is
+        # being processed.
+        self.handling_lock = trio.Lock()
+
         self.handshake_successful_event: Optional[trio.Event] = None
 
     def __str__(self) -> str:
@@ -115,9 +119,8 @@ class PeerPacker(Service):
 
     async def handle_incoming_packets(self) -> None:
         async for incoming_packet in self.incoming_packet_receive_channel:
-            # Handle packets sequentially, so that the rest of the code doesn't have to deal
-            # with multiple packets being processed at the same time.
-            await self.handle_incoming_packet(incoming_packet)
+            async with self.handling_lock:
+                await self.handle_incoming_packet(incoming_packet)
 
     async def handle_incoming_packet(self, incoming_packet: IncomingPacket) -> None:
         if self.is_pre_handshake:
@@ -131,9 +134,8 @@ class PeerPacker(Service):
 
     async def handle_outgoing_messages(self) -> None:
         async for outgoing_message in self.outgoing_message_receive_channel:
-            # Similar to the incoming packets outgoing messages are processed in sequence, even
-            # though it's not that critical here
-            await self.handle_outgoing_message(outgoing_message)
+            async with self.handling_lock:
+                await self.handle_outgoing_message(outgoing_message)
 
     async def handle_outgoing_message(self, outgoing_message: OutgoingMessage) -> None:
         if self.is_pre_handshake:
@@ -164,24 +166,12 @@ class PeerPacker(Service):
                     f"Unable to find local ENR in DB by node id {encode_hex(self.local_node_id)}"
                 )
 
-            # There's a minimal chance that while we were looking up the ENRs in the db, we've
-            # initiated a handshake ourselves. Therefore, we check that we are still in the pre
-            # handshake state, if not we just drop the packet (which is what we always do with
-            # AuthTag packets received after we have initiated a handshake).
-            if self.is_pre_handshake:
-                self.logger.debug("Received %s as handshake initiation", incoming_packet)
-                self.start_handshake_as_recipient(
-                    auth_tag=incoming_packet.packet.auth_tag,
-                    local_enr=local_enr,
-                    remote_enr=remote_enr,
-                )
-            else:
-                self.logger.warning(
-                    "Dropping %s previously thought to initiate handshake as we have initiated "
-                    "handshake ourselves in the meantime",
-                    incoming_packet,
-                )
-
+            self.logger.debug("Received %s as handshake initiation", incoming_packet)
+            self.start_handshake_as_recipient(
+                auth_tag=incoming_packet.packet.auth_tag,
+                local_enr=local_enr,
+                remote_enr=remote_enr,
+            )
             self.logger.debug("Responding with WhoAreYou packet")
             await self.send_first_handshake_packet(incoming_packet.sender_endpoint)
         else:
@@ -312,21 +302,14 @@ class PeerPacker(Service):
             )
             raise HandshakeFailure()
 
-        # There is a minimal chance that while we were looking up the ENRs in the db, the peer has
-        # initiated a handshake by themselves. Therefore, we check that we are still in the pre
-        # handshake state, if not we just handle the packet again (which will most likely result in
-        # the message being put on the backlog).
-        if self.is_pre_handshake:
-            self.logger.info("Initiating handshake to send %s", outgoing_message)
-            self.start_handshake_as_initiator(
-                local_enr=local_enr,
-                remote_enr=remote_enr,
-                message=outgoing_message.message,
-            )
-            self.logger.debug("Sending initiating packet")
-            await self.send_first_handshake_packet(outgoing_message.receiver_endpoint)
-        else:
-            await self.handle_outgoing_message(outgoing_message)
+        self.logger.info("Initiating handshake to send %s", outgoing_message)
+        self.start_handshake_as_initiator(
+            local_enr=local_enr,
+            remote_enr=remote_enr,
+            message=outgoing_message.message,
+        )
+        self.logger.debug("Sending initiating packet")
+        await self.send_first_handshake_packet(outgoing_message.receiver_endpoint)
 
     async def handle_outgoing_message_during_handshake(self,
                                                        outgoing_message: OutgoingMessage
