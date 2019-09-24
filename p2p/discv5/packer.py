@@ -583,9 +583,9 @@ class Packer(Service):
             enr_db=self.enr_db,
             message_type_registry=self.message_type_registry,
             incoming_packet_receive_channel=incoming_packet_channels[1],
-            incoming_message_send_channel=self.incoming_message_send_channel,
+            incoming_message_send_channel=self.incoming_message_send_channel.clone(),
             outgoing_message_receive_channel=outgoing_message_channels[1],
-            outgoing_packet_send_channel=self.outgoing_packet_send_channel,
+            outgoing_packet_send_channel=self.outgoing_packet_send_channel.clone(),
         )
 
         manager = Manager(peer_packer)
