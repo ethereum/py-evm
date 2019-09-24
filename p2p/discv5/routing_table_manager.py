@@ -407,12 +407,12 @@ class RoutingTableManager(Service):
         )
 
     async def run(self) -> None:
-        components = (
+        child_services = (
             self.ping_handler,
             self.find_node_handler,
             self.ping_sender,
         )
-        for component in components:
-            self.manager.run_daemon_task(component.run)
+        for child_service in child_services:
+            self.manager.run_daemon_child_service(child_service)
 
         await self.manager.wait_cancelled()
