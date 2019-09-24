@@ -18,8 +18,9 @@ from cancel_token import (
     CancelToken,
 )
 from eth_utils import (
-    encode_hex,
+    humanize_hash,
     to_tuple,
+    ValidationError,
 )
 
 from eth2.beacon.chains.base import (
@@ -119,8 +120,8 @@ class Validator(BaseService):
 
     async def _run(self) -> None:
         self.logger.info(
-            bold_green("Validator service up  Handle indices=%s"),
-            tuple(self.validator_privkeys.keys())
+            bold_green("validating with indices %s"),
+            sorted(tuple(self.validator_privkeys.keys()))
         )
         self.run_daemon_task(self.handle_slot_tick())
         await self.cancellation()
@@ -130,10 +131,17 @@ class Validator(BaseService):
         The callback for `SlotTicker` and it's expected to be called twice for one slot.
         """
         async for event in self.event_bus.stream(SlotTickEvent):
-            if not event.is_second_tick:
-                await self.handle_first_tick(event.slot)
-            else:
-                await self.handle_second_tick(event.slot)
+            try:
+                if not event.is_second_tick:
+                    await self.handle_first_tick(event.slot)
+                else:
+                    await self.handle_second_tick(event.slot)
+            except ValidationError as e:
+                self.logger.warn("%s", e)
+                self.logger.warn(
+                    "SHOULD NOT GET A VALIDATION ERROR"
+                    " HERE AS IT IS INTERNAL TO OUR OWN CODE"
+                )
 
     def _get_this_epoch_assignment(self,
                                    validator_index: ValidatorIndex,
@@ -158,34 +166,33 @@ class Validator(BaseService):
         state_machine = self.chain.get_state_machine()
         state = self.chain.get_head_state()
         self.logger.debug(
-            # Align with debug log below
-            bold_green("Head       epoch=%s slot=%s state_root=%s"),
+            bold_green(
+                "status at slot %s in epoch %s: state_root %s, finalized_checkpoint %s"
+            ),
+            state.slot,
             state.current_epoch(self.slots_per_epoch),
-            head.slot,
-            encode_hex(head.state_root),
+            humanize_hash(head.state_root),
+            state.finalized_checkpoint,
         )
         self.logger.debug(
-            bold_green("Justified  epoch=%s root=%s  (current)"),
-            state.current_justified_checkpoint.epoch,
-            encode_hex(state.current_justified_checkpoint.root),
+            (
+                "status at slot %s in epoch %s:"
+                " previous_justified_checkpoint %s, current_justified_checkpoint %s"
+            ),
+            state.slot,
+            state.current_epoch(self.slots_per_epoch),
+            state.previous_justified_checkpoint,
+            state.current_justified_checkpoint,
         )
         self.logger.debug(
-            bold_green("Justified  epoch=%s root=%s  (previous)"),
-            state.previous_justified_checkpoint.epoch,
-            encode_hex(state.previous_justified_checkpoint.root),
-        )
-        self.logger.debug(
-            bold_green("Finalized  epoch=%s root=%s"),
-            state.finalized_checkpoint.epoch,
-            encode_hex(state.finalized_checkpoint.root),
-        )
-        self.logger.debug(
-            bold_green("current_epoch_attestations  %s"),
-            state.current_epoch_attestations,
-        )
-        self.logger.debug(
-            bold_green("previous_epoch_attestations %s"),
+            (
+                "status at slot %s in epoch %s:"
+                " previous_epoch_attestations %s, current_epoch_attestations %s"
+            ),
+            state.slot,
+            state.current_epoch(self.slots_per_epoch),
             state.previous_epoch_attestations,
+            state.current_epoch_attestations,
         )
         proposer_index = _get_proposer_index(
             state.copy(
@@ -236,13 +243,13 @@ class Validator(BaseService):
             attestations=ready_attestations,
         )
         self.logger.debug(
-            bold_green("Validator=%s proposing block=%s with attestations=%s"),
+            bold_green("validator %s is proposing a block %s with attestations %s"),
             proposer_index,
             block,
             block.body.attestations,
         )
         self.chain.import_block(block)
-        self.logger.debug("Brodcasting block %s", block)
+        self.logger.debug("broadcasting block %s", block)
         await self.p2p_node.broadcast_beacon_block(block)
         return block
 
@@ -360,7 +367,7 @@ class Validator(BaseService):
                 ),
             )
             self.logger.debug(
-                bold_green("Validators=%s attest to block=%s  attestation=%s"),
+                bold_green("validators %s attesting to block %s with attestation %s"),
                 attesting_validators_indices,
                 head,
                 attestation,
@@ -368,7 +375,7 @@ class Validator(BaseService):
             for validator_index in attesting_validators_indices:
                 self.latest_attested_epoch[validator_index] = epoch
 
-            self.logger.debug("Broadcasting attestation %s", attestation)
+            self.logger.debug("broadcasting attestation %s", attestation)
             await self.p2p_node.broadcast_attestation(attestation)
 
             attestations = attestations + (attestation,)

@@ -1,4 +1,9 @@
 import asyncio
+from dataclasses import dataclass
+import logging
+import operator
+import traceback
+import random
 from typing import (
     Dict,
     Iterable,
@@ -13,6 +18,7 @@ from cancel_token import (
 )
 
 from eth_utils import ValidationError, to_tuple
+from eth_utils.toolz import first
 
 from eth.exceptions import (
     BlockNotFound,
@@ -55,6 +61,8 @@ from libp2p.host.basic_host import (
 from libp2p.network.network_interface import (
     INetwork,
 )
+from libp2p.security.secio.transport import ID as SecIOID
+from libp2p.security.secio.transport import Transport as SecIOTransport
 from libp2p.network.stream.net_stream_interface import (
     INetStream,
 )
@@ -74,7 +82,6 @@ from libp2p.pubsub.gossipsub import (
     GossipSub,
 )
 from libp2p.security.base_transport import BaseSecureTransport
-from libp2p.security.insecure.transport import PLAINTEXT_PROTOCOL_ID, InsecureTransport
 from libp2p.stream_muxer.abc import IMuxedConn
 from libp2p.stream_muxer.mplex.exceptions import MplexStreamEOF, MplexStreamReset
 from libp2p.stream_muxer.mplex.mplex import MPLEX_PROTOCOL_ID, Mplex
@@ -129,10 +136,7 @@ from .utils import (
     write_resp,
 )
 
-from dataclasses import dataclass
-import operator
-from eth_utils.toolz import first
-
+logger = logging.getLogger('trinity.protocol.bcc_libp2p')
 
 REQ_RESP_HELLO_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_HELLO)
 REQ_RESP_GOODBYE_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_GOODBYE)
@@ -212,6 +216,9 @@ class PeerPool:
         return self.get_best("head_slot")
 
 
+DIAL_RETRY_COUNT = 10
+
+
 class Node(BaseService):
 
     _is_started: bool = False
@@ -221,8 +228,8 @@ class Node(BaseService):
     listen_port: int
     host: BasicHost
     pubsub: Pubsub
-    bootstrap_nodes: Optional[Tuple[Multiaddr, ...]]
-    preferred_nodes: Optional[Tuple[Multiaddr, ...]]
+    bootstrap_nodes: Tuple[Multiaddr, ...]
+    preferred_nodes: Tuple[Multiaddr, ...]
     chain: BaseBeaconChain
 
     handshaked_peers: PeerPool = None
@@ -237,8 +244,8 @@ class Node(BaseService):
             muxer_protocol_ops: Dict[TProtocol, IMuxedConn] = None,
             gossipsub_params: Optional[GossipsubParams] = None,
             cancel_token: CancelToken = None,
-            bootstrap_nodes: Tuple[Multiaddr, ...] = None,
-            preferred_nodes: Tuple[Multiaddr, ...] = None) -> None:
+            bootstrap_nodes: Tuple[Multiaddr, ...] = (),
+            preferred_nodes: Tuple[Multiaddr, ...] = ()) -> None:
         super().__init__(cancel_token)
         self.listen_ip = listen_ip
         self.listen_port = listen_port
@@ -248,7 +255,7 @@ class Node(BaseService):
         # TODO: Add key and peer_id to the peerstore
         if security_protocol_ops is None:
             security_protocol_ops = {
-                PLAINTEXT_PROTOCOL_ID: InsecureTransport(key_pair)
+                SecIOID: SecIOTransport(key_pair)
             }
         if muxer_protocol_ops is None:
             muxer_protocol_ops = {MPLEX_PROTOCOL_ID: Mplex}
@@ -332,22 +339,51 @@ class Node(BaseService):
             )
         )
 
+    async def dial_peer_with_retries(self, ip: str, port: int, peer_id: ID) -> None:
+        """
+        Dial the peer ``peer_id`` through the IPv4 protocol
+        """
+        for i in range(DIAL_RETRY_COUNT):
+            try:
+                # exponential backoff...
+                await asyncio.sleep(2**i + random.random())
+                await self.dial_peer(ip, port, peer_id)
+                return
+            except ConnectionRefusedError:
+                logger.debug(
+                    "could not connect to peer %s at %s:%d;"
+                    " retrying attempt %d of %d...",
+                    peer_id,
+                    ip,
+                    port,
+                    i,
+                    DIAL_RETRY_COUNT,
+                )
+                continue
+        raise ConnectionRefusedError
+
     async def dial_peer_maddr(self, maddr: Multiaddr) -> None:
         """
         Parse `maddr`, get the ip:port and PeerID, and call `dial_peer` with the parameters.
         """
-        ip = maddr.value_for_protocol(protocols.P_IP4)
-        port = maddr.value_for_protocol(protocols.P_TCP)
-        peer_id = ID.from_base58(maddr.value_for_protocol(protocols.P_P2P))
-        await self.dial_peer(ip=ip, port=port, peer_id=peer_id)
+        try:
+            ip = maddr.value_for_protocol(protocols.P_IP4)
+            port = maddr.value_for_protocol(protocols.P_TCP)
+            peer_id = ID.from_base58(maddr.value_for_protocol(protocols.P_P2P))
+            await self.dial_peer_with_retries(ip=ip, port=port, peer_id=peer_id)
+        except Exception:
+            traceback.print_exc()
+            raise
 
     async def connect_preferred_nodes(self) -> None:
-        if self.preferred_nodes is None or len(self.preferred_nodes) == 0:
-            return
-        await asyncio.wait([
-            self.dial_peer_maddr(node_maddr)
-            for node_maddr in self.preferred_nodes
-        ])
+        results = await asyncio.gather(
+            *(self.dial_peer_maddr(node_maddr)
+              for node_maddr in self.preferred_nodes),
+            return_exceptions=True,
+        )
+        for result in results:
+            if isinstance(result, Exception):
+                logger.warning("could not connect to %s", result)
 
     async def disconnect_peer(self, peer_id: ID) -> None:
         if peer_id in self.handshaked_peers:

@@ -200,6 +200,9 @@ def main_entry(trinity_boot: BootFn,
         args.func(args, trinity_config)
         return
 
+    if hasattr(args, 'munge_func'):
+        args.munge_func(args, trinity_config)
+
     processes = trinity_boot(
         args,
         trinity_config,
@@ -233,6 +236,10 @@ def main_entry(trinity_boot: BootFn,
         loop.close()
     except KeyboardInterrupt:
         kill_trinity_with_reason("CTRL+C / Keyboard Interrupt")
+    finally:
+        if trinity_config.trinity_tmp_root_dir:
+            import shutil
+            shutil.rmtree(trinity_config.trinity_root_dir)
 
 
 def display_launch_logs(trinity_config: TrinityConfig) -> None:

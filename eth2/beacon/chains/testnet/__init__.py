@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from eth2.beacon.chains.base import BeaconChain
+from eth2.beacon.state_machines.forks.skeleton_lake import SkeletonLakeStateMachine
 from eth2.beacon.state_machines.forks.xiao_long_bao import XiaoLongBaoStateMachine
 
 from .constants import TESTNET_CHAIN_ID
@@ -25,3 +26,9 @@ class BaseTestnetChain:
 
 class TestnetChain(BaseTestnetChain, BeaconChain):
     pass
+
+
+class SkeletonLakeChain(BeaconChain):
+    sm_configuration = (
+        (SkeletonLakeStateMachine.config.GENESIS_SLOT, SkeletonLakeStateMachine),
+    )

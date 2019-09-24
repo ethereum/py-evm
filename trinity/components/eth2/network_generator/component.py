@@ -36,14 +36,9 @@ from eth2._utils.hash import (
 from eth2.beacon.state_machines.forks.xiao_long_bao import (
     XiaoLongBaoStateMachine,
 )
-from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
-    XIAO_LONG_BAO_CONFIG,
-)
+from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.beacon.tools.builder.initializer import (
     create_mock_genesis,
-)
-from eth2.beacon.tools.misc.ssz_vector import (
-    override_lengths,
 )
 from eth2.beacon.typing import (
     Second,
@@ -67,8 +62,6 @@ from .constants import (
     GENESIS_FILE,
     KEYS_DIR,
 )
-
-override_lengths(XIAO_LONG_BAO_CONFIG)
 
 
 class Client:
@@ -195,6 +188,8 @@ class NetworkGeneratorComponent(BaseMainProcessComponent):
                                clients: Tuple[Client, ...]) -> None:
         logger = cls.get_logger()
         state_machine_class = XiaoLongBaoStateMachine
+        # NOTE: see https://github.com/ethereum/trinity/issues/786
+        override_lengths(XiaoLongBaoStateMachine.config)
 
         # Since create_mock_genesis takes a long time, update the real genesis_time later
         dummy_time = Timestamp(int(time.time()))

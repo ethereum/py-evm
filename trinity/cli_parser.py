@@ -167,6 +167,16 @@ trinity_parser.add_argument(
         "Port on which trinity should listen for incoming p2p/discovery connections. Default: 30303"
     ),
 )
+trinity_parser.add_argument(
+    '--trinity-tmp-root-dir',
+    action="store_true",
+    required=False,
+    default=False,
+    help=(
+        "If this flag is set, trinity will launch with a temporary root"
+        " directory as provided by the ``tempfile`` library."
+    ),
+)
 
 
 #

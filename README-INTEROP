@@ -1,0 +1,61 @@
+# Instructions for getting trinity interoping with other clients
+
+1. Make sure you're on the right branch:
+   $ git checkout master
+
+2. Install Python. Trinity definitely works with Python 3.7, and should work with Python
+   3.6. If you don't already have Python 3.7 I (lithp) recommend installing it with pyenv
+   (https://github.com/pyenv/pyenv#installation)
+
+   $ pyenv install 3.7.4
+   $ pyenv global 3.7.4
+
+3. You'll probably want to install all the trinity dependencies into a virtual
+   environment. I use pipenv:
+
+   $ pip install pipenv
+   (make sure you're in the root of trinity's repo)
+   $ pipenv --python 3.7  # it should say "creating virtual environment"
+   $ pipenv shell  # after this your prompt should have a new prefix
+
+4. Install trinity's many dependencies:
+
+   $ sudo apt install libsnappy-dev  # If you're using Ubuntu
+   $ brew install leveldb snappy  # If you're using osx
+   $ pip install -e .[eth2-dev]
+
+5. You should now be ready to run trinity!
+   For the purposes of interop trinity hard-codes some files, so it must be run with a cwd
+   of the repository root.
+
+   Here's an example of how to run it:
+
+   $ PYTHONWARNINGS=ignore::DeprecationWarning trinity-beacon -l DEBUG interop --validators 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15 --start-delay 20 --wipedb
+
+   If you want to run multiple instances of trinity, you'll need to give each of them a
+   unique root directory. To do so you can pass the --trinity-root-dir (it must come
+   before the "interop" command):
+
+   $ PYTHONWARNINGS=ignore::DeprecationWarning trinity-beacon -l DEBUG --trinity-root-dir /tmp/aa interop --validators 0,1,2,3,4,5,6,7 --start-delay 20 --wipedb
+
+   If you want to start trinity at a specific timestamp, you can pass --start-time in
+   lieu of --start-delay
+
+   And if you want to tell trinity which nodes to connect to, you may pass the
+   --preferred_nodes flag (this flag also must come before the "interop" command).
+
+   For example:
+
+   $ PYTHONWARNINGS=ignore::DeprecationWarning trinity-beacon -l DEBUG --trinity-root-dir /tmp/bb --preferred_nodes=/ip4/0.0.0.0/tcp/50000/p2p/16Uiu2HAm7juiTscxPzBroWEntQvuxBLeEmVHR4ScwtW6HNxXiNsa interop --validators 6,7,8,9,10,11 --start-time 1568090368 --wipedb
+
+   Note that Trinity currently requires the multiaddr to include the /p2p/[peerid] suffix.
+   We think this restriction could be removed if it's getting in your way, but that might
+   take a few hours.
+
+6. Unfortunately, Trinity takes a while to fully start. It's not ready to accept
+   connections until you see the log line: "BCCReceiveServer up"
+
+   It also takes Trinity a while to install the signal handler, so it's possible to get
+   Trinity stuck if you hit Ctrl-C too soon. It's safe to hit Ctrl-C after you see
+   "BCCReceiveServer up", but if you hit it before that there's a chance you'll have to
+   `kill -9` it.

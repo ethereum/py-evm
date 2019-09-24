@@ -49,7 +49,7 @@ from multiaddr import (
 )
 
 from eth2.beacon.chains.testnet import (
-    TestnetChain,
+    SkeletonLakeChain,
 )
 from eth2.beacon.genesis import (
     get_genesis_block,
@@ -276,6 +276,7 @@ class TrinityConfig:
                  genesis_config: Dict[str, Any]=None,
                  max_peers: int=25,
                  trinity_root_dir: str=None,
+                 trinity_tmp_root_dir: bool=False,
                  data_dir: str=None,
                  nodekey_path: str=None,
                  nodekey: PrivateKey=None,
@@ -303,6 +304,7 @@ class TrinityConfig:
 
         if trinity_root_dir is not None:
             self.trinity_root_dir = trinity_root_dir
+        self.trinity_tmp_root_dir = trinity_tmp_root_dir
 
         if not preferred_nodes and self.network_id in DEFAULT_PREFERRED_NODES:
             self.preferred_nodes = DEFAULT_PREFERRED_NODES[self.network_id]
@@ -687,7 +689,7 @@ class BeaconChainConfig:
         if self._beacon_chain_class is None:
             # TODO: we should be able to customize configs for tests/ instead of using the configs
             #   from `TestnetChain`
-            self._beacon_chain_class = TestnetChain.configure(
+            self._beacon_chain_class = SkeletonLakeChain.configure(
                 __name__=self.chain_name,
             )
         return self._beacon_chain_class
@@ -742,10 +744,10 @@ class BeaconAppConfig(BaseAppConfig):
         if args is not None:
             # This is quick and dirty way to get bootstrap_nodes
             trinity_config.bootstrap_nodes = tuple(
-                Multiaddr(maddr) for maddr in args.bootstrap_nodes.split(',')
+                Multiaddr(maddr.strip()) for maddr in args.bootstrap_nodes.split(',') if maddr
             ) if args.bootstrap_nodes is not None else tuple()
             trinity_config.preferred_nodes = tuple(
-                Multiaddr(maddr) for maddr in args.preferred_nodes.split(',')
+                Multiaddr(maddr.strip()) for maddr in args.preferred_nodes.split(',') if maddr
             ) if args.preferred_nodes is not None else tuple()
         return cls(trinity_config)
 
@@ -765,5 +767,5 @@ class BeaconAppConfig(BaseAppConfig):
         """
         return BeaconChainConfig.from_genesis_files(
             root_dir=self.trinity_config.trinity_root_dir,
-            chain_name="TestnetChain",
+            chain_name="SkeletonLakeChain",
         )
