@@ -462,7 +462,12 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         """
         peer = cast(BasePeer, peer)
         if peer.session in self.connected_nodes:
-            self.logger.info("%s finished[%s], removing from pool", peer, peer.disconnect_reason)
+            self.logger.info(
+                "Removing %s from pool: local_reason=%s remote_reason=%s",
+                peer,
+                peer.p2p_api.local_disconnect_reason,
+                peer.p2p_api.remote_disconnect_reason,
+            )
             self.connected_nodes.pop(peer.session)
         else:
             self.logger.warning(
@@ -510,7 +515,10 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                     humanize_seconds(peer.uptime),
                     peer.received_msgs_count,
                 )
-                self.logger.debug("client_version_string='%s'", peer.client_version_string)
+                self.logger.debug(
+                    "client_version_string='%s'",
+                    peer.p2p_api.safe_client_version_string,
+                )
                 for line in peer.get_extra_stats():
                     self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")
