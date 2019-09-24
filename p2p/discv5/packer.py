@@ -35,6 +35,9 @@ from p2p.discv5.channel_services import (
     OutgoingMessage,
     OutgoingPacket,
 )
+from p2p.discv5.constants import (
+    HANDSHAKE_TIMEOUT,
+)
 from p2p.discv5.enr import (
     ENR,
 )
@@ -97,6 +100,8 @@ class PeerPacker(Service):
         )
 
         self.outgoing_message_backlog: List[OutgoingMessage] = []
+
+        self.handshake_successful_event: Optional[trio.Event] = None
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}[{encode_hex(self.remote_node_id)[2:10]}]"
@@ -209,6 +214,7 @@ class PeerPacker(Service):
             raise  # let the service fail
         else:
             self.logger.info("Handshake with %s was successful", encode_hex(self.remote_node_id))
+            self.handshake_successful_event.set()
 
             # copy message backlog before we reset it
             outgoing_message_backlog = tuple(self.outgoing_message_backlog)
@@ -373,6 +379,8 @@ class PeerPacker(Service):
             remote_enr=remote_enr,
             initial_message=message,
         )
+        self.handshake_successful_event = trio.Event()
+        self.manager.run_task(self.check_handshake_timeout, self.handshake_successful_event)
 
         if not self.is_during_handshake:
             raise Exception("Invariant: After a handshake is started, the handshake is in progress")
@@ -392,9 +400,21 @@ class PeerPacker(Service):
             remote_enr=remote_enr,
             initiating_packet_auth_tag=auth_tag,
         )
+        self.handshake_successful_event = trio.Event()
+        self.manager.run_task(self.check_handshake_timeout, self.handshake_successful_event)
 
         if not self.is_during_handshake:
             raise Exception("Invariant: After a handshake is started, the handshake is in progress")
+
+    async def check_handshake_timeout(self, handshake_successful_event: trio.Event) -> None:
+        try:
+            with trio.fail_after(HANDSHAKE_TIMEOUT):
+                # Only the timeout for successful handshakes has to be checked as a failure during
+                # handshake will make the service as a whole fail.
+                await handshake_successful_event.wait()
+        except trio.TooSlowError as too_slow_error:
+            self.logger.warning("Handshake with %s has timed out", encode_hex(self.remote_node_id))
+            raise HandshakeFailure("Handshake has timed out") from too_slow_error
 
     #
     # Handshake states
@@ -425,6 +445,7 @@ class PeerPacker(Service):
         self.handshake_participant = None
         self.session_keys = None
         self.outgoing_message_backlog.clear()
+        self.handshake_finished_event = None
 
     def is_expecting_handshake_packet(self, incoming_packet: IncomingPacket) -> bool:
         """Check if the peer packer is waiting for the given packet to complete a handshake.
