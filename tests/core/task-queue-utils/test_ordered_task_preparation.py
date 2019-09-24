@@ -655,7 +655,7 @@ async def test_pruning_speed():
 
     # make sure pruning was fast enough
     duration = time.perf_counter() - start
-    assert duration < 0.0001
+    assert duration < 0.001
 
 
 @pytest.mark.asyncio
