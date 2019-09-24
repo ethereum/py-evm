@@ -439,7 +439,7 @@ class LogicAPI(ABC):
         ...
 
     @abstractmethod
-    def __call__(self, connection: 'ConnectionAPI') -> AsyncContextManager[None]:
+    def apply(self, connection: 'ConnectionAPI') -> AsyncContextManager[None]:
         ...
 
 

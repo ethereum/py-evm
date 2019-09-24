@@ -39,6 +39,7 @@ from p2p.abc import (
     ProtocolAPI,
     SessionAPI,
 )
+from p2p.constants import BLACKLIST_SECONDS_BAD_PROTOCOL
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     UnknownProtocol,
@@ -260,9 +261,21 @@ class BasePeer(BaseService):
             subscriber.add_msg(subscriber_msg)
 
     async def disconnect(self, reason: DisconnectReason) -> None:
+        if reason is DisconnectReason.bad_protocol:
+            self.connection_tracker.record_blacklist(
+                self.remote,
+                timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
+                reason="Bad protocol",
+            )
         await self.p2p_api.disconnect(reason)
 
     def disconnect_nowait(self, reason: DisconnectReason) -> None:
+        if reason is DisconnectReason.bad_protocol:
+            self.connection_tracker.record_blacklist(
+                self.remote,
+                timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
+                reason="Bad protocol",
+            )
         self.p2p_api.disconnect_nowait(reason)
 
 

@@ -48,7 +48,7 @@ class CommandHandler(BaseLogic):
         return HasCommand(self.command_type)
 
     @asynccontextmanager
-    async def __call__(self, connection: ConnectionAPI) -> AsyncIterator[None]:
+    async def apply(self, connection: ConnectionAPI) -> AsyncIterator[None]:
         self.connection = connection
 
         with connection.add_command_handler(self.command_type, self.handle):
@@ -75,7 +75,7 @@ class Application(BaseLogic):
         self._behaviors += (behavior,)
 
     @asynccontextmanager
-    async def __call__(self, connection: ConnectionAPI) -> AsyncIterator[None]:
+    async def apply(self, connection: ConnectionAPI) -> AsyncIterator[None]:
         self.connection = connection
 
         async with AsyncExitStack() as stack:

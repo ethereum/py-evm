@@ -2,6 +2,7 @@ import pytest
 
 from async_generator import asynccontextmanager
 
+from p2p.abc import ConnectionAPI, LogicAPI
 from p2p.logic import BaseLogic
 from p2p.qualifiers import (
     qualifier,
@@ -18,7 +19,7 @@ from p2p.tools.paragon import ParagonProtocol, BroadcastData
 
 class SimpleLogic(BaseLogic):
     @asynccontextmanager
-    async def __call__(self, connection):
+    async def apply(self, connection):
         yield
 
 
@@ -47,9 +48,11 @@ def my_logic():
 
 def test_and_qualifier(alice, bob, my_logic):
     def _is_alice(connection, logic):
+        assert isinstance(alice, ConnectionAPI)
         return connection is alice
 
     def _is_my_logic(connection, logic):
+        assert isinstance(logic, LogicAPI)
         return logic is my_logic
 
     qualifier = AndQualifier(_is_alice, _is_my_logic)
@@ -60,11 +63,13 @@ def test_and_qualifier(alice, bob, my_logic):
     assert qualifier(bob, SimpleLogic()) is False
 
 
-def test_or_qualifier():
+def test_or_qualifier(alice, my_logic):
     def _is_alice(connection, logic):
+        assert isinstance(alice, ConnectionAPI)
         return connection is alice
 
     def _is_my_logic(connection, logic):
+        assert isinstance(logic, LogicAPI)
         return logic is my_logic
 
     qualifier = OrQualifier(_is_alice, _is_my_logic)
@@ -78,6 +83,7 @@ def test_or_qualifier():
 def test_qualifier_fn_decorator(alice, bob, my_logic):
     @qualifier
     def _is_alice(connection, logic):
+        assert isinstance(connection, ConnectionAPI)
         return connection is alice
 
     assert isinstance(_is_alice, BaseQualifier)
@@ -86,13 +92,15 @@ def test_qualifier_fn_decorator(alice, bob, my_logic):
     assert _is_alice(bob, my_logic) is False
 
 
-def test_combining_qualifiers():
+def test_combining_qualifiers(alice, bob, my_logic):
     @qualifier
     def _is_alice(connection, logic):
+        assert isinstance(connection, ConnectionAPI)
         return connection is alice
 
     @qualifier
     def _is_my_logic(connection, logic):
+        assert isinstance(logic, LogicAPI)
         return logic is my_logic
 
     is_alice_and_my_logic = _is_alice & _is_my_logic

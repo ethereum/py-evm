@@ -41,7 +41,8 @@ class CancelOnDisconnect(CommandHandler):
         else:
             self.disconnect_reason = reason
 
-        connection.cancel_nowait()
+        if connection.is_operational:
+            connection.cancel_nowait()
 
 
 class P2PAPI(Application):
@@ -93,11 +94,13 @@ class P2PAPI(Application):
 
     async def disconnect(self, reason: DisconnectReason) -> None:
         self._disconnect(reason)
-        await self.connection.cancel()
+        if self.connection.is_operational:
+            await self.connection.cancel()
 
     def disconnect_nowait(self, reason: DisconnectReason) -> None:
         self._disconnect(reason)
-        self.connection.cancel_nowait()
+        if self.connection.is_operational:
+            self.connection.cancel_nowait()
 
     #
     # Sending Pings

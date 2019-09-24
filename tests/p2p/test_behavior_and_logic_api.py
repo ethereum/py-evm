@@ -19,7 +19,7 @@ from p2p.tools.factories import ConnectionPairFactory
 
 class SimpleLogic(BaseLogic):
     @asynccontextmanager
-    async def __call__(self, connection):
+    async def apply(self, connection):
         yield
 
 

@@ -15,6 +15,16 @@ from p2p.abc import (
 
 
 class Behavior(BehaviorAPI):
+    """
+    This class is primarily an internal API.  Users should rarely need to
+    instantiate this class or modify its behavior.
+
+    This class is responsible for:
+
+    * combining the business logic from `LogicAPI` and a `QualifierFn` which
+      decides whether the logic should be applied.
+    * managing the lifecycle of the `LogicAPI`
+    """
     _applied_to: ConnectionAPI = None
 
     def __init__(self, qualifier: QualifierFn, logic: LogicAPI) -> None:
@@ -34,6 +44,7 @@ class Behavior(BehaviorAPI):
                 f"connection: {self._applied_to}"
             )
         else:
+            # this acts as re-entrance protection for for the `Behavior` instance.
             self._applied_to = connection
 
         if hasattr(self.logic, '_behavior'):
@@ -42,9 +53,9 @@ class Behavior(BehaviorAPI):
                 f"{self.logic._behavior}"
             )
         else:
-            # this acts as re-entrance protection on the actual `LogicAPI` instances
+            # this acts as re-entrance protection on the actual `LogicAPI` instance
             self.logic._behavior = self
 
         # once the logic is bound to the connection we enter it's context.
-        async with self.logic(connection):
+        async with self.logic.apply(connection):
             yield
