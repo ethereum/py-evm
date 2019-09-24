@@ -32,4 +32,4 @@ class BaseBlock(Configurable, BlockAPI):
         )
 
     def __str__(self) -> str:
-        return "Block #{b.number}".format(b=self)
+        return f"Block #{self.number}"

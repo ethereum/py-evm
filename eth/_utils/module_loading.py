@@ -26,7 +26,7 @@ def import_string(dotted_path: str) -> ModuleType:
     try:
         return getattr(module, class_name)
     except AttributeError:
-        msg = 'Module "%s" does not define a "%s" attribute/class' % (
+        msg = 'Module "{}" does not define a "{}" attribute/class'.format(
             module_path, class_name)
         raise ImportError(msg)
 
@@ -48,7 +48,7 @@ def split_at_longest_importable_path(dotted_path: str) -> Tuple[str, str]:
             operator.attrgetter(remainder)(module)
         except AttributeError:
             raise ImportError(
-                "Unable to derive appropriate import path for {0}".format(
+                "Unable to derive appropriate import path for {}".format(
                     dotted_path,
                 )
             )

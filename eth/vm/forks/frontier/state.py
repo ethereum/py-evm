@@ -116,7 +116,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 # with an existing contract address.
                 computation = self.vm_state.get_computation(message, transaction_context)
                 computation.error = ContractCreationCollision(
-                    "Address collision while creating contract: {0}".format(
+                    "Address collision while creating contract: {}".format(
                         encode_hex(message.storage_address),
                     )
                 )

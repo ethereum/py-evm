@@ -73,7 +73,7 @@ def verify_state(expected_state: AccountState, state: StateAPI) -> None:
         for account, field, actual_value, expected_value in diff:
             if field == 'balance':
                 error_messages.append(
-                    "{0}({1}) | Actual: {2} | Expected: {3} | Delta: {4}".format(
+                    "{}({}) | Actual: {} | Expected: {} | Delta: {}".format(
                         to_normalized_address(account),
                         'balance',
                         actual_value,
@@ -83,7 +83,7 @@ def verify_state(expected_state: AccountState, state: StateAPI) -> None:
                 )
             else:
                 error_messages.append(
-                    "{0}({1}) | Actual: {2} | Expected: {3}".format(
+                    "{}({}) | Actual: {} | Expected: {}".format(
                         to_normalized_address(account),
                         field,
                         actual_value,
@@ -91,8 +91,8 @@ def verify_state(expected_state: AccountState, state: StateAPI) -> None:
                     )
                 )
         raise AssertionError(
-            "State DB did not match expected state on {0} values:\n"
-            "{1}".format(
+            "State DB did not match expected state on {} values:\n"
+            "{}".format(
                 len(error_messages),
                 "\n - ".join(error_messages),
             )
@@ -162,7 +162,7 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
             (5, ConstantinopleVM),
         )
     else:
-        raise ValueError("Network {0} does not match any known VM rules".format(network))
+        raise ValueError(f"Network {network} does not match any known VM rules")
 
 
 def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:

@@ -357,7 +357,7 @@ class JournalDB(BaseDB):
         Checks to be sure the changeset is known by the journal
         """
         if not self.journal.has_changeset(changeset_id):
-            raise ValidationError("Changeset not found in journal: {0}".format(
+            raise ValidationError("Changeset not found in journal: {}".format(
                 str(changeset_id)
             ))
 

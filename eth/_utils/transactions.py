@@ -92,7 +92,7 @@ def validate_transaction_signature(transaction: BaseTransaction) -> None:
     try:
         public_key = signature.recover_public_key_from_msg(message)
     except BadSignature as e:
-        raise ValidationError("Bad Signature: {0}".format(str(e)))
+        raise ValidationError("Bad Signature: {}".format(str(e)))
 
     if not signature.verify_msg(message, public_key):
         raise ValidationError("Invalid Signature")

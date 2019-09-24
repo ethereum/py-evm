@@ -22,19 +22,19 @@ from eth.constants import (
 def int_to_bytes32(value: Union[int, bool]) -> Hash32:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(
-            "Value must be an integer: Got: {0}".format(
+            "Value must be an integer: Got: {}".format(
                 type(value),
             )
         )
     if value < 0:
         raise ValueError(
-            "Value cannot be negative: Got: {0}".format(
+            "Value cannot be negative: Got: {}".format(
                 value,
             )
         )
     if value > UINT_256_MAX:
         raise ValueError(
-            "Value exeeds maximum UINT256 size.  Got: {0}".format(
+            "Value exeeds maximum UINT256 size.  Got: {}".format(
                 value,
             )
         )
@@ -112,13 +112,13 @@ def integer_squareroot(value: int) -> int:
     """
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(
-            "Value must be an integer: Got: {0}".format(
+            "Value must be an integer: Got: {}".format(
                 type(value),
             )
         )
     if value < 0:
         raise ValueError(
-            "Value cannot be negative: Got: {0}".format(
+            "Value cannot be negative: Got: {}".format(
                 value,
             )
         )

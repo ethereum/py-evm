@@ -88,9 +88,9 @@ class Configurable(ConfigurableAPI):
                 continue
             elif not hasattr(cls, key):
                 raise TypeError(
-                    "The {0}.configure cannot set attributes that are not "
-                    "already present on the base class. The attribute `{1}` was "
-                    "not found on the base class `{2}`".format(cls.__name__, key, cls)
+                    "The {}.configure cannot set attributes that are not "
+                    "already present on the base class. The attribute `{}` was "
+                    "not found on the base class `{}`".format(cls.__name__, key, cls)
                 )
 
         # overrides that are for sub-properties of this class
@@ -110,10 +110,10 @@ class Configurable(ConfigurableAPI):
 
             if not isinstance(sub_cls, type) or not issubclass(sub_cls, Configurable):
                 raise TypeError(
-                    "Unable to configure property `{0}` on class `{1}`.  The "
+                    "Unable to configure property `{}` on class `{}`.  The "
                     "property being configured must be a subclass of the "
                     "`Configurable` type.  Instead got the following object "
-                    "instance: {2}".format(
+                    "instance: {}".format(
                         key,
                         repr(cls),
                         repr(sub_cls),

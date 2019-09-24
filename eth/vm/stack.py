@@ -258,7 +258,7 @@ class Stack(StackAPI):
         try:
             self.values[-1], self.values[idx] = self.values[idx], self.values[-1]
         except IndexError:
-            raise InsufficientStack("Insufficient stack items for SWAP{0}".format(position))
+            raise InsufficientStack(f"Insufficient stack items for SWAP{position}")
 
     def dup(self, position: int) -> None:
         """
@@ -271,4 +271,4 @@ class Stack(StackAPI):
         try:
             self._append(self.values[peek_index])
         except IndexError:
-            raise InsufficientStack("Insufficient stack items for DUP{0}".format(position))
+            raise InsufficientStack(f"Insufficient stack items for DUP{position}")

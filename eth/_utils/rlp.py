@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import rlp
 from typing import (
     Iterable,
@@ -34,7 +32,7 @@ def diff_rlp_object(left: BaseBlock,
                 sub_diff = diff_rlp_object(left_value, right_value)
                 for sub_field_name, sub_left_value, sub_right_value in sub_diff:
                     yield (
-                        "{0}.{1}".format(field_name, sub_field_name),
+                        f"{field_name}.{sub_field_name}",
                         sub_left_value,
                         sub_right_value,
                     )
@@ -83,7 +81,7 @@ def validate_rlp_equal(obj_a: BaseBlock,
         "Mismatch between {obj_a_name} and {obj_b_name} on {0} fields:\n - {1}".format(
             len(diff),
             "\n - ".join(tuple(
-                "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
+                "{}:\n    (actual)  : {}\n    (expected): {}".format(
                     field_name.ljust(longest_field_name, ' '),
                     actual,
                     expected,
