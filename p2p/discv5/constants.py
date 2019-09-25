@@ -37,3 +37,5 @@ MAX_REQUEST_ID_ATTEMPTS = 100  # number of attempts we take to guess a available
 REQUEST_RESPONSE_TIMEOUT = 0.5  # timeout for waiting for response after request was sent
 HANDSHAKE_TIMEOUT = 1  # timeout for performing a handshake
 ROUTING_TABLE_PING_INTERVAL = 5  # interval of outgoing pings sent to maintain the routing table
+
+NUM_ROUTING_TABLE_BUCKETS = 256  # number of buckets in the routing table
