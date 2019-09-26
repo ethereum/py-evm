@@ -25,6 +25,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import BlockHeaderAPI
 from eth.rlp.headers import BlockHeader
 
 from p2p.abc import SessionAPI
@@ -138,14 +139,13 @@ class LESProtocol(Protocol):
         self.logger.debug("Sending LES/Status msg: %s", resp)
 
     def send_announce(self,
-                      head_hash: Hash32,
-                      head_number: BlockNumber,
+                      header: BlockHeaderAPI,
                       head_td: int,
                       reorg_depth: int = 0,
                       params: Sequence[Any] = ()) -> None:
         data = {
-            'head_hash': head_hash,
-            'head_number': head_number,
+            'head_hash': header.hash,
+            'head_number': header.block_number,
             'head_td': head_td,
             'reorg_depth': reorg_depth,
             'params': params,
@@ -201,7 +201,9 @@ class LESProtocol(Protocol):
         return request_id
 
     def send_block_headers(
-            self, headers: Tuple[BlockHeader, ...], buffer_value: int, request_id: int=None) -> int:
+            self, headers: Tuple[BlockHeaderAPI, ...],
+            buffer_value: int,
+            request_id: int=None) -> int:
         if request_id is None:
             request_id = gen_request_id()
         data = {

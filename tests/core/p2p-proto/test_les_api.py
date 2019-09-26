@@ -23,7 +23,7 @@ from trinity.tools.factories import (
 
 
 @pytest.fixture
-def bob_chain():
+def common_base_chain():
     chain = build(
         MiningChain,
         latest_mainnet_at(0),
@@ -34,25 +34,12 @@ def bob_chain():
 
 
 @pytest.fixture
-def alice_headerdb(bob_chain):
-    bob_genesis = bob_chain.headerdb.get_canonical_block_header_by_number(0)
-
-    chain = build(
-        MiningChain,
-        latest_mainnet_at(0),
-        disable_pow_check(),
-        genesis(params={"timestamp": bob_genesis.timestamp}),
-    )
-    return AsyncHeaderDB(chain.headerdb.db)
-
-
-@pytest.fixture
-async def alice_and_bob(alice_headerdb, bob_chain):
+async def alice_and_bob(common_base_chain):
     pair_factory = LESV2PeerPairFactory(
         alice_client_version='alice',
-        alice_peer_context=ChainContextFactory(headerdb=alice_headerdb),
+        alice_peer_context=ChainContextFactory(headerdb=AsyncHeaderDB(common_base_chain.headerdb.db)),  # noqa: E501
         bob_client_version='bob',
-        bob_peer_context=ChainContextFactory(headerdb=AsyncHeaderDB(bob_chain.headerdb.db)),
+        bob_peer_context=ChainContextFactory(headerdb=AsyncHeaderDB(common_base_chain.headerdb.db)),
     )
     async with pair_factory as (alice, bob):
         yield alice, bob
@@ -88,10 +75,10 @@ async def test_les_api_properties(alice):
 
 
 @pytest.mark.asyncio
-async def test_eth_api_head_info_updates_with_announce(alice, bob, bob_chain):
-    # mine two blocks on bob's chain
+async def test_eth_api_head_info_updates_with_announce(alice, bob, common_base_chain):
+    # bob mines two blocks on his chain
     bob_chain = build(
-        bob_chain,
+        common_base_chain,
         mine_block(),
         mine_block(),
     )
@@ -115,8 +102,7 @@ async def test_eth_api_head_info_updates_with_announce(alice, bob, bob_chain):
     assert head.block_number == 2
     total_difficulty = bob_chain.headerdb.get_score(head.hash)
     les_proto.send_announce(
-        head.hash,
-        head.block_number,
+        head,
         total_difficulty,
     )
 
