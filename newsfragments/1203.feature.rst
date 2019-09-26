@@ -1,0 +1,2 @@
+Upgrade `ipython` shell to `7.8.0` which supports `async` / `await` hence improves
+the UI/UX of `trinity attach` and `trinity db-shell`.

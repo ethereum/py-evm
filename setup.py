@@ -33,7 +33,7 @@ deps = {
         "coincurve>=10.0.0,<11.0.0",
         "dataclasses>=0.6, <1;python_version<'3.7'",
         "eth-utils>=1.7,<2",
-        "ipython>=6.2.1,<7.0.0",
+        "ipython>=7.8.0,<8.0.0",
         "plyvel==1.0.5",
         PYEVM_DEPENDENCY,
         "web3==4.4.1",
