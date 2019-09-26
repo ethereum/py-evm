@@ -79,7 +79,7 @@ deps = {
     'lint': [
         "flake8==3.5.0",
         "flake8-bugbear==18.8.0",
-        "mypy==0.701",
+        "mypy==0.730",
         "sqlalchemy-stubs==0.1",
     ],
     'doc': [

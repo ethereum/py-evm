@@ -264,11 +264,11 @@ class BCCServer(BaseServer[BCCPeerPool]):
                  ) -> None:
         # mypy does not like `BaseAsyncBeaconChainDB` in this super call since
         # the server defines it as a ChainDB.
-        super().__init__(  # type: ignore
+        super().__init__(
             privkey,
             port,
             chain,
-            chaindb,
+            chaindb,  # type: ignore
             headerdb,
             base_db,
             network_id,
@@ -298,9 +298,9 @@ class BCCServer(BaseServer[BCCPeerPool]):
         await self.cancel_token.wait()
 
     def _make_peer_pool(self) -> BCCPeerPool:
-        # mypy things that `self.chaindb` is the wrong type here.
-        context = BeaconContext(  # type: ignore
-            chain_db=self.chaindb,
+        # mypy thinks that `self.chaindb` is the wrong type here.
+        context = BeaconContext(
+            chain_db=self.chaindb,  # type: ignore
             network_id=self.network_id,
             client_version_string=self.p2p_handshake_params.client_version_string,
             listen_port=self.p2p_handshake_params.listen_port,

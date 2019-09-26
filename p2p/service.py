@@ -37,7 +37,6 @@ class ServiceEvents(ServiceEventsAPI):
 
 
 class BaseService(CancellableMixin, AsyncioServiceAPI):
-    logger: ExtendedDebugLogger = None
     # Use a WeakSet so that we don't have to bother updating it when tasks finish.
     _child_services: 'WeakSet[AsyncioServiceAPI]'
     _tasks: 'WeakSet[asyncio.Future[Any]]'

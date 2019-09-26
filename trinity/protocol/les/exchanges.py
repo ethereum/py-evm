@@ -56,7 +56,7 @@ class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
         validator = GetBlockHeadersValidator(*original_request_args)
 
         command_args = original_request_args + (gen_request_id(),)
-        request = self.request_class(*command_args)  # type: ignore
+        request = self.request_class(*command_args)
 
         return tuple(await self.get_result(
             request,

@@ -439,11 +439,11 @@ class BlockImportServer(BaseService):
             await import_completion
 
             if self.is_running:
-                _broadcast_import_complete(  # type: ignore
+                _broadcast_import_complete(
                     event_bus,
                     event.block,
                     event.broadcast_config(),
-                    import_completion,
+                    import_completion,  # type: ignore
                 )
             else:
                 break

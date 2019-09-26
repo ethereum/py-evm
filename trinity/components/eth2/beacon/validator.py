@@ -24,7 +24,7 @@ from eth_utils import (
 )
 
 from eth2.beacon.chains.base import (
-    BeaconChain,
+    BaseBeaconChain,
 )
 from eth2.beacon.helpers import (
     compute_epoch_of_slot,
@@ -80,7 +80,7 @@ GetReadyAttestationsFn = Callable[[], Sequence[Attestation]]
 
 
 class Validator(BaseService):
-    chain: BeaconChain
+    chain: BaseBeaconChain
     p2p_node: Node
     validator_privkeys: Dict[ValidatorIndex, int]
     event_bus: EndpointAPI
@@ -91,7 +91,7 @@ class Validator(BaseService):
 
     def __init__(
             self,
-            chain: BeaconChain,
+            chain: BaseBeaconChain,
             p2p_node: Node,
             validator_privkeys: Dict[ValidatorIndex, int],
             event_bus: EndpointAPI,

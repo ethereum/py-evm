@@ -65,6 +65,7 @@ from trinity.sync.common.strategies import (
 )
 from trinity._utils.datastructures import (
     DuplicateTasks,
+    NoPrerequisites,
     OrderedTaskPreparation,
     TaskQueue,
 )
@@ -544,7 +545,7 @@ class _PeerBehind(Exception):
     pass
 
 
-HeaderStitcher = OrderedTaskPreparation[BlockHeader, Hash32, OrderedTaskPreparation.NoPrerequisites]
+HeaderStitcher = OrderedTaskPreparation[BlockHeader, Hash32, NoPrerequisites]
 
 
 class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):

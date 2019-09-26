@@ -5,7 +5,11 @@ import pathlib
 import signal
 import subprocess
 import time
-from typing import Callable, Iterable
+from typing import (  # noqa: F401
+    Any,
+    Callable,
+    Iterable,
+)
 
 
 def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=30) -> None:
@@ -94,7 +98,7 @@ def kill_processes_gracefully(
 
 
 def kill_popen_gracefully(
-        popen: subprocess.Popen,
+        popen: 'subprocess.Popen[Any]',
         logger: Logger,
         SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
         SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:

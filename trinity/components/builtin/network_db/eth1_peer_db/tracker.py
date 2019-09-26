@@ -261,21 +261,21 @@ class SQLiteEth1PeerTracker(BaseEth1PeerTracker):
 
         if self.protocols is not None:
             if len(self.protocols) == 1:
-                yield Remote.protocol == self.protocols[0]  # type: ignore
+                yield Remote.protocol == self.protocols[0]
             else:
                 yield Remote.protocol.in_(self.protocols)  # type: ignore
 
         if self.protocol_versions is not None:
             if len(self.protocol_versions) == 1:
-                yield Remote.protocol_version == self.protocol_versions[0]  # type: ignore
+                yield Remote.protocol_version == self.protocol_versions[0]
             else:
                 yield Remote.protocol_version.in_(self.protocol_versions)  # type: ignore
 
         if self.network_id is not None:
-            yield Remote.network_id == self.network_id  # type: ignore
+            yield Remote.network_id == self.network_id
 
         if self.genesis_hash is not None:
-            yield Remote.genesis_hash == self.genesis_hash  # type: ignore
+            yield Remote.genesis_hash == self.genesis_hash
 
     def _get_peer_candidates(self,
                              num_requested: int,

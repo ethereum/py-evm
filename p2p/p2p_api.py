@@ -51,9 +51,6 @@ class P2PAPI(Application):
 
     logger = logging.getLogger('p2p.p2p_api.P2PAPI')
 
-    client_version_string: str
-    safe_client_version_string: str
-
     local_disconnect_reason: DisconnectReason = None
 
     def __init__(self) -> None:
