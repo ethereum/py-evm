@@ -1,6 +1,5 @@
 import asyncio
 from typing import (
-    cast,
     Callable,
     Iterable,
     List,
@@ -20,12 +19,12 @@ from p2p.abc import SessionAPI
 from p2p.service import BaseService
 
 from trinity._utils.bloom import RollingBloom
+from trinity.protocol.eth.events import (
+    TransactionsEvent,
+)
 from trinity.protocol.eth.peer import (
     ETHProxyPeer,
     ETHProxyPeerPool,
-)
-from trinity.protocol.eth.events import (
-    TransactionsEvent,
 )
 
 
@@ -105,8 +104,7 @@ class TxPool(BaseService):
         self.run_daemon_task(self._process_transactions())
 
         async for event in self.wait_iter(self._event_bus.stream(TransactionsEvent)):
-            txs = cast(List[SignedTransactionAPI], event.msg)
-            self.run_task(self._handle_tx(event.session, txs))
+            self.run_task(self._handle_tx(event.session, event.command.payload))
 
     async def _handle_tx(self, sender: SessionAPI, txs: Sequence[SignedTransactionAPI]) -> None:
 
@@ -136,6 +134,7 @@ class TxPool(BaseService):
                 for receiving_peer in await self._peer_pool.get_peers():
                     filtered_tx = self._filter_tx_for_peer(receiving_peer, batch)
                     if len(filtered_tx) == 0:
+                        self.logger.info('TXNS filtered down to ZERO')
                         continue
 
                     self.logger.debug2(
@@ -143,7 +142,7 @@ class TxPool(BaseService):
                         len(filtered_tx),
                         receiving_peer,
                     )
-                    receiving_peer.sub_proto.send_transactions(filtered_tx)
+                    receiving_peer.eth_api.send_transactions(filtered_tx)
                     self._add_txs_to_bloom(receiving_peer.session, filtered_tx)
                     # release to the event loop since this loop processes a
                     # lot of data queue up a lot of outbound messages.
@@ -157,7 +156,6 @@ class TxPool(BaseService):
         return tuple(
             val for val in txs
             if self._construct_bloom_entry(peer.session, val) not in self._bloom
-            # TODO: we need to keep track of invalid txs and eventually blacklist nodes
             if self.tx_validation_fn(val)
         )
 

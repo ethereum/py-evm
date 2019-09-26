@@ -13,6 +13,7 @@ from typing import (
     Dict,
     List,
     FrozenSet,
+    Optional,
     Type,
 )
 
@@ -50,6 +51,7 @@ from p2p.exceptions import (
     NoConnectedPeers,
     NoEligiblePeers,
 )
+from p2p.commands import BaseCommand
 from p2p.constants import (
     COMPLETION_TIMEOUT,
     MAX_REORG_DEPTH,
@@ -58,12 +60,10 @@ from p2p.constants import (
 )
 from p2p.disconnect import DisconnectReason
 from p2p.peer import PeerSubscriber
-from p2p.protocol import Command
 from p2p.service import (
     BaseService,
     service_timeout,
 )
-from p2p.typing import Payload
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
@@ -106,10 +106,10 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         BaseService.__init__(self, token)
         self.headerdb = headerdb
         self.peer_pool = peer_pool
-        self._pending_replies: Dict[int, Callable[[Payload], None]] = {}
+        self._pending_replies: Dict[int, Callable[[CommandAPI[Any]], None]] = {}
 
     # TODO: be more specific about what messages we want.
-    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset({Command})
+    subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset({BaseCommand})
 
     # Here we only care about replies to our requests, ignoring most msgs (which are supposed
     # to be handled by the chain syncer), so our queue should never grow too much.
@@ -118,22 +118,21 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def _run(self) -> None:
         with self.subscribe(self.peer_pool):
             while self.is_operational:
-                peer, cmd, msg = await self.wait(self.msg_queue.get())
-                if isinstance(msg, dict):
-                    request_id = msg.get('request_id')
-                    # request_id can be None here because not all LES messages include one. For
-                    # instance, the Announce msg doesn't.
-                    if request_id is not None and request_id in self._pending_replies:
-                        # This is a reply we're waiting for, so we consume it by passing it to the
-                        # registered callback.
-                        callback = self._pending_replies.pop(request_id)
-                        callback(msg)
+                peer, cmd = await self.wait(self.msg_queue.get())
+                request_id = getattr(cmd, 'request_id', None)
+                # request_id can be None here because not all LES messages include one. For
+                # instance, the Announce msg doesn't.
+                if request_id is not None and request_id in self._pending_replies:
+                    # This is a reply we're waiting for, so we consume it by passing it to the
+                    # registered callback.
+                    callback = self._pending_replies.pop(request_id)
+                    callback(cmd)
 
     async def _wait_for_reply(self, request_id: int) -> Dict[str, Any]:
         reply = None
         got_reply = asyncio.Event()
 
-        def callback(value: Payload) -> None:
+        def callback(value: CommandAPI[Any]) -> None:
             nonlocal reply
             reply = value
             got_reply.set()
@@ -165,7 +164,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def coro_get_block_body_by_hash(self, block_hash: Hash32) -> BlockBody:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
-        request_id = peer.sub_proto.send_get_block_bodies([block_hash])
+        request_id = peer.les_api.send_get_block_bodies([block_hash])
         reply = await self._wait_for_reply(request_id)
         if not reply['bodies']:
             raise BlockNotFound(f"Peer {peer} has no block with hash {block_hash}")
@@ -178,7 +177,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def coro_get_receipts(self, block_hash: Hash32) -> List[Receipt]:
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
-        request_id = peer.sub_proto.send_get_receipts(block_hash)
+        request_id = peer.les_api.send_get_receipts((block_hash,))
         reply = await self._wait_for_reply(request_id)
         if not reply['receipts']:
             raise BlockNotFound(f"No block with hash {block_hash} found")
@@ -200,7 +199,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             address: ETHAddress,
             peer: LESPeer) -> Account:
         key = keccak(address)
-        proof = await self._get_proof(peer, block_hash, account_key=b'', key=key)
+        proof = await self._get_proof(peer, block_hash, account_key=None, key=key)
         header = await self._get_block_header_by_hash(block_hash, peer)
         try:
             rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
@@ -251,7 +250,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             account's code hash
         """
         # request contract code
-        request_id = peer.sub_proto.send_get_contract_code(block_hash, keccak(address))
+        request_id = peer.les_api.send_get_contract_code(block_hash, keccak(address))
         reply = await self._wait_for_reply(request_id)
 
         if not reply['codes']:
@@ -354,11 +353,11 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
 
     async def _get_proof(self,
                          peer: LESPeer,
-                         block_hash: bytes,
-                         account_key: bytes,
+                         block_hash: Hash32,
+                         account_key: Optional[ETHAddress],
                          key: bytes,
                          from_level: int = 0) -> List[bytes]:
-        request_id = peer.sub_proto.send_get_proof(block_hash, account_key, key, from_level)
+        request_id = peer.les_api.send_get_proof(block_hash, account_key, key, from_level)
         reply = await self._wait_for_reply(request_id)
         return reply['proof']
 

@@ -16,26 +16,24 @@ from typing import (
 
 from p2p.abc import (
     AsyncioServiceAPI,
-    CommandAPI,
     ConnectionAPI,
-    RequestAPI,
     ProtocolAPI,
 )
 from p2p.stats.ema import EMA
 from p2p.stats.percentile import Percentile
 from p2p.stats.stddev import StandardDeviation
-from p2p.typing import (
-    TRequestPayload,
-    TResponsePayload,
-)
 
-from .typing import TResult, TRequest, TResponse
+from .typing import (
+    TResult,
+    TRequestCommand,
+    TResponseCommand,
+)
 
 if TYPE_CHECKING:
     import asyncio  # noqa: F401
 
 
-class NormalizerAPI(ABC, Generic[TResponsePayload, TResult]):
+class NormalizerAPI(ABC, Generic[TResponseCommand, TResult]):
     # This variable indicates how slow normalization is. If normalization requires
     # any non-trivial computation, consider it slow. Then, the Manager will run it in
     # a thread to ensure it doesn't block the main loop.
@@ -43,16 +41,16 @@ class NormalizerAPI(ABC, Generic[TResponsePayload, TResult]):
 
     @staticmethod
     @abstractmethod
-    def normalize_result(message: TResponsePayload) -> TResult:
+    def normalize_result(message: TResponseCommand) -> TResult:
         """
         Convert underlying peer message to final result
         """
         ...
 
 
-class ValidatorAPI(ABC, Generic[TResponse]):
+class ValidatorAPI(ABC, Generic[TResult]):
     @abstractmethod
-    def validate_result(self, result: TResponse) -> None:
+    def validate_result(self, result: TResult) -> None:
         ...
 
 
@@ -76,7 +74,7 @@ class PerformanceAPI(ABC):
         ...
 
 
-class PerformanceTrackerAPI(PerformanceAPI, Generic[TRequest, TResult]):
+class PerformanceTrackerAPI(PerformanceAPI, Generic[TRequestCommand, TResult]):
     """
     The statistics of how a command is performing.
     """
@@ -88,18 +86,18 @@ class PerformanceTrackerAPI(PerformanceAPI, Generic[TRequest, TResult]):
     @abstractmethod
     def record_response(self,
                         elapsed: float,
-                        request: TRequest,
+                        request: TRequestCommand,
                         result: TResult) -> None:
         ...
 
 
-class ResponseCandidateStreamAPI(AsyncioServiceAPI, Generic[TRequestPayload, TResponsePayload]):
+class ResponseCandidateStreamAPI(AsyncioServiceAPI, Generic[TRequestCommand, TResponseCommand]):
     response_timeout: float
 
-    pending_request: Optional[Tuple[float, 'asyncio.Future[TResponsePayload]']]
+    pending_request: Optional[Tuple[float, 'asyncio.Future[TResponseCommand]']]
 
     request_protocol_type: Type[ProtocolAPI]
-    response_cmd_type: Type[CommandAPI]
+    response_cmd_type: Type[TResponseCommand]
 
     last_response_time: float
 
@@ -108,16 +106,16 @@ class ResponseCandidateStreamAPI(AsyncioServiceAPI, Generic[TRequestPayload, TRe
             self,
             connection: ConnectionAPI,
             request_protocol_type: Type[ProtocolAPI],
-            response_cmd_type: Type[CommandAPI]) -> None:
+            response_cmd_type: Type[TResponseCommand]) -> None:
         ...
 
     @abstractmethod
     def payload_candidates(
             self,
-            request: RequestAPI[TRequestPayload],
-            tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], Any],
+            request: TRequestCommand,
+            tracker: PerformanceTrackerAPI[TRequestCommand, Any],
             *,
-            timeout: float = None) -> AsyncIterator[TResponsePayload]:
+            timeout: float = None) -> AsyncIterator[TResponseCommand]:
         """
         Make a request and iterate through candidates for a valid response.
 
@@ -145,8 +143,8 @@ class ResponseCandidateStreamAPI(AsyncioServiceAPI, Generic[TRequestPayload, TRe
         ...
 
 
-class ExchangeManagerAPI(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
-    _response_stream: Optional[ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload]]
+class ExchangeManagerAPI(ABC, Generic[TRequestCommand, TResponseCommand, TResult]):
+    _response_stream: Optional[ResponseCandidateStreamAPI[TRequestCommand, TResponseCommand]]
 
     tracker: PerformanceTrackerAPI[Any, TResult]
 
@@ -155,23 +153,23 @@ class ExchangeManagerAPI(ABC, Generic[TRequestPayload, TResponsePayload, TResult
             self,
             connection: ConnectionAPI,
             requesting_on: Type[ProtocolAPI],
-            listening_for: Type[CommandAPI]) -> None:
+            listening_for: Type[TResponseCommand]) -> None:
         ...
 
     @abstractmethod
     async def get_result(
             self,
-            request: RequestAPI[TRequestPayload],
-            normalizer: NormalizerAPI[TResponsePayload, TResult],
+            request: TRequestCommand,
+            normalizer: NormalizerAPI[TResponseCommand, TResult],
             validate_result: Callable[[TResult], None],
-            payload_validator: Callable[[TResponsePayload], None],
-            tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], TResult],
+            payload_validator: Callable[[TResponseCommand], None],
+            tracker: PerformanceTrackerAPI[TRequestCommand, TResult],
             timeout: float = None) -> TResult:
         ...
 
     @property
     @abstractmethod
-    def service(self) -> ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload]:
+    def service(self) -> ResponseCandidateStreamAPI[TRequestCommand, TResponseCommand]:
         """
         This service that needs to be running for calls to execute properly
         """
@@ -183,7 +181,7 @@ class ExchangeManagerAPI(ABC, Generic[TRequestPayload, TResponsePayload, TResult
         ...
 
 
-class ExchangeAPI(Generic[TRequestPayload, TResponsePayload, TResult]):
+class ExchangeAPI(ABC, Generic[TRequestCommand, TResponseCommand, TResult]):
     """
     The exchange object handles a few things, in rough order:
 
@@ -196,13 +194,16 @@ class ExchangeAPI(Generic[TRequestPayload, TResponsePayload, TResult]):
      - issue the request to the ExchangeManager, with the request, normalizer, and validators
      - await the normalized & validated response, and return it
 
-    TRequestPayload is the data as passed directly to the p2p command
-    TResponsePayload is the data as received directly from the p2p command response
+    TRequestCommand is the data as passed directly to the p2p command
+    TResponseCommand is the data as received directly from the p2p command response
     TResult is the response data after normalization
     """
-    request_class: Type[RequestAPI[TRequestPayload]]
     tracker_class: Type[PerformanceTrackerAPI[Any, TResult]]
-    tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], TResult]
+    tracker: PerformanceTrackerAPI[TRequestCommand, TResult]
+
+    @abstractmethod
+    def __init__(self, mgr: ExchangeManagerAPI[TRequestCommand, TResponseCommand, TResult]) -> None:
+        ...
 
     @abstractmethod
     def run_exchange(self, connection: ConnectionAPI) -> AsyncContextManager[None]:
@@ -211,21 +212,21 @@ class ExchangeAPI(Generic[TRequestPayload, TResponsePayload, TResult]):
     @abstractmethod
     async def get_result(
             self,
-            request: RequestAPI[TRequestPayload],
-            normalizer: NormalizerAPI[TResponsePayload, TResult],
+            request: TRequestCommand,
+            normalizer: NormalizerAPI[TResponseCommand, TResult],
             result_validator: ValidatorAPI[TResult],
-            payload_validator: Callable[[TRequestPayload, TResponsePayload], None],
+            payload_validator: Callable[[TRequestCommand, TResponseCommand], None],
             timeout: float = None) -> TResult:
         ...
 
     @classmethod
     @abstractmethod
-    def get_response_cmd_type(cls) -> Type[CommandAPI]:
+    def get_response_cmd_type(cls) -> Type[TResponseCommand]:
         ...
 
     @classmethod
     @abstractmethod
-    def get_request_cmd_type(cls) -> Type[CommandAPI]:
+    def get_request_cmd_type(cls) -> Type[TRequestCommand]:
         ...
 
     @abstractmethod

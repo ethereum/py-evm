@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from typing import (
+    cast,
     AsyncIterator,
+    Generic,
     Tuple,
     Type,
 )
@@ -10,14 +12,14 @@ from async_exit_stack import AsyncExitStack
 
 from p2p.abc import (
     BehaviorAPI,
-    CommandAPI,
     ConnectionAPI,
+    HandlerFn,
     LogicAPI,
     QualifierFn,
+    TCommand,
 )
 from p2p.behaviors import Behavior
 from p2p.qualifiers import HasCommand
-from p2p.typing import Payload
 
 
 class BaseLogic(LogicAPI):
@@ -33,12 +35,12 @@ class BaseLogic(LogicAPI):
         return Behavior(qualifier, self)
 
 
-class CommandHandler(BaseLogic):
+class CommandHandler(BaseLogic, Generic[TCommand]):
     """
     Base class to reduce boilerplate for Behaviors that want to register a
     handler against a single command.
     """
-    command_type: Type[CommandAPI]
+    command_type: Type[TCommand]
 
     # This property is
     connection: ConnectionAPI
@@ -51,11 +53,11 @@ class CommandHandler(BaseLogic):
     async def apply(self, connection: ConnectionAPI) -> AsyncIterator[None]:
         self.connection = connection
 
-        with connection.add_command_handler(self.command_type, self.handle):
+        with connection.add_command_handler(self.command_type, cast(HandlerFn, self.handle)):
             yield
 
     @abstractmethod
-    async def handle(self, connection: ConnectionAPI, msg: Payload) -> None:
+    async def handle(self, connection: ConnectionAPI, command: TCommand) -> None:
         ...
 
 

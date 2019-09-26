@@ -12,3 +12,6 @@ class HashOrNumber:
         if len(serial) == 32:
             return sedes.binary.deserialize(serial)
         return sedes.big_endian_int.deserialize(serial)
+
+
+hash_sedes = sedes.Binary(min_length=32, max_length=32)

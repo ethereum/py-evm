@@ -3,11 +3,13 @@ from typing import (
     Tuple,
 )
 
+from cached_property import cached_property
+
 from p2p.abc import HandshakerAPI, MultiplexerAPI
 from p2p.handshake import Handshaker
 from p2p.receipt import HandshakeReceipt
 
-from p2p.abc import ProtocolAPI
+from p2p.abc import BehaviorAPI, ProtocolAPI
 from p2p.constants import DEVP2P_V5
 from p2p.peer import (
     BasePeer,
@@ -17,11 +19,19 @@ from p2p.peer import (
 from p2p.peer_pool import BasePeerPool
 
 from .proto import ParagonProtocol
+from .api import ParagonAPI
 
 
 class ParagonPeer(BasePeer):
     supported_sub_protocols = (ParagonProtocol,)
     sub_proto: ParagonProtocol = None
+
+    @cached_property
+    def paragon_api(self) -> ParagonAPI:
+        return self.connection.get_logic(ParagonAPI.name, ParagonAPI)
+
+    def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
+        return super().get_behaviors() + (ParagonAPI().as_behavior(),)
 
 
 class ParagonContext(BasePeerContext):

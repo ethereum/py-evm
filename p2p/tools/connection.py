@@ -11,7 +11,7 @@ async def do_ping_pong_test(alice_connection: ConnectionAPI, bob_connection: Con
 
     async def _handle_ping(connection: ConnectionAPI, msg: Any) -> None:
         got_ping.set()
-        bob_connection.get_base_protocol().send_pong()
+        bob_connection.get_base_protocol().send(Pong(None))
 
     async def _handle_pong(connection: ConnectionAPI, msg: Any) -> None:
         got_pong.set()
@@ -19,7 +19,7 @@ async def do_ping_pong_test(alice_connection: ConnectionAPI, bob_connection: Con
     alice_connection.add_command_handler(Pong, _handle_pong)
     bob_connection.add_command_handler(Ping, _handle_ping)
 
-    alice_connection.get_base_protocol().send_ping()
+    alice_connection.get_base_protocol().send(Ping(None))
 
     await asyncio.wait_for(got_ping.wait(), timeout=1)
     await asyncio.wait_for(got_pong.wait(), timeout=1)

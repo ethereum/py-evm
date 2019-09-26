@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import (
+    Any,
     AsyncIterator,
     Iterable,
     Tuple,
@@ -10,6 +11,7 @@ from cancel_token import CancelToken, OperationCancelled
 
 from lahja import EndpointAPI
 
+from eth_typing import Hash32
 from eth_utils import get_extended_debug_logger
 
 from eth.exceptions import (
@@ -29,13 +31,14 @@ from p2p.peer import (
     BasePeer,
     PeerSubscriber,
 )
-from p2p.typing import Payload
 from p2p.service import BaseService
 
+from trinity._utils.headers import sequence_builder
 from trinity.db.eth1.header import BaseAsyncHeaderDB
-from trinity.protocol.common.events import PeerPoolMessageEvent
 from trinity.protocol.common.peer import BasePeerPool
-from trinity.protocol.common.requests import BaseHeaderRequest
+from trinity.protocol.common.payloads import BlockHeadersQuery
+
+from .events import PeerPoolMessageEvent
 
 
 class BaseRequestServer(BaseService, PeerSubscriber):
@@ -62,16 +65,15 @@ class BaseRequestServer(BaseService, PeerSubscriber):
 
     async def _handle_msg_loop(self) -> None:
         while self.is_operational:
-            peer, cmd, msg = await self.wait(self.msg_queue.get())
-            self.run_task(self._quiet_handle_msg(peer, cmd, msg))
+            peer, cmd = await self.wait(self.msg_queue.get())
+            self.run_task(self._quiet_handle_msg(peer, cmd))
 
     async def _quiet_handle_msg(
             self,
             peer: BasePeer,
-            cmd: CommandAPI,
-            msg: Payload) -> None:
+            cmd: CommandAPI[Any]) -> None:
         try:
-            await self._handle_msg(peer, cmd, msg)
+            await self._handle_msg(peer, cmd)
         except OperationCancelled:
             # Silently swallow OperationCancelled exceptions because otherwise they'll be caught
             # by the except below and treated as unexpected.
@@ -80,7 +82,7 @@ class BaseRequestServer(BaseService, PeerSubscriber):
             self.logger.exception("Unexpected error when processing msg from %s", peer)
 
     @abstractmethod
-    async def _handle_msg(self, peer: BasePeer, cmd: CommandAPI, msg: Payload) -> None:
+    async def _handle_msg(self, peer: BasePeer, cmd: CommandAPI[Any]) -> None:
         """
         Identify the command, and react appropriately.
         """
@@ -114,15 +116,14 @@ class BaseIsolatedRequestServer(BaseService):
     async def handle_stream(self, event_type: Type[PeerPoolMessageEvent]) -> None:
         while self.is_operational:
             async for event in self.wait_iter(self.event_bus.stream(event_type)):
-                self.run_task(self._quiet_handle_msg(event.session, event.cmd, event.msg))
+                self.run_task(self._quiet_handle_msg(event.session, event.command))
 
     async def _quiet_handle_msg(
             self,
             session: SessionAPI,
-            cmd: CommandAPI,
-            msg: Payload) -> None:
+            cmd: CommandAPI[Any]) -> None:
         try:
-            await self._handle_msg(session, cmd, msg)
+            await self._handle_msg(session, cmd)
         except OperationCancelled:
             # Silently swallow OperationCancelled exceptions because otherwise they'll be caught
             # by the except below and treated as unexpected.
@@ -133,8 +134,7 @@ class BaseIsolatedRequestServer(BaseService):
     @abstractmethod
     async def _handle_msg(self,
                           session: SessionAPI,
-                          cmd: CommandAPI,
-                          msg: Payload) -> None:
+                          cmd: CommandAPI[Any]) -> None:
         ...
 
 
@@ -146,17 +146,17 @@ class BasePeerRequestHandler(CancellableMixin):
         self.cancel_token = token
 
     async def lookup_headers(self,
-                             request: BaseHeaderRequest) -> Tuple[BlockHeader, ...]:
+                             query: BlockHeadersQuery) -> Tuple[BlockHeader, ...]:
         """
         Lookup :max_headers: headers starting at :block_number_or_hash:, skipping :skip: items
         between each, in reverse order if :reverse: is True.
         """
         try:
-            block_numbers = await self._get_block_numbers_for_request(request)
+            block_numbers = await self._get_block_numbers_for_query(query)
         except HeaderNotFound:
             self.logger.debug(
                 "Peer requested starting header %r that is unavailable, returning nothing",
-                request.block_number_or_hash)
+                query.block_number_or_hash)
             return tuple()
 
         headers: Tuple[BlockHeader, ...] = tuple([
@@ -166,23 +166,30 @@ class BasePeerRequestHandler(CancellableMixin):
         ])
         return headers
 
-    async def _get_block_numbers_for_request(self,
-                                             request: BaseHeaderRequest,
-                                             ) -> Tuple[BlockNumber, ...]:
+    async def _get_block_numbers_for_query(self,
+                                           query: BlockHeadersQuery,
+                                           ) -> Tuple[BlockNumber, ...]:
         """
         Generate the block numbers for a given `HeaderRequest`.
         """
-        if isinstance(request.block_number_or_hash, bytes):
+        if isinstance(query.block_number_or_hash, bytes):
             header = await self.wait(
-                self.db.coro_get_block_header_by_hash(request.block_number_or_hash))
-            return request.generate_block_numbers(header.block_number)
-        elif isinstance(request.block_number_or_hash, int):
-            # We don't need to pass in the block number to
-            # `generate_block_numbers` since the request is based on a numbered
-            # block identifier.
-            return request.generate_block_numbers()
+                self.db.coro_get_block_header_by_hash(Hash32(query.block_number_or_hash)))
+            return sequence_builder(
+                start_number=header.block_number,
+                max_length=query.max_headers,
+                skip=query.skip,
+                reverse=query.reverse,
+            )
+        elif isinstance(query.block_number_or_hash, int):
+            return sequence_builder(
+                start_number=query.block_number_or_hash,
+                max_length=query.max_headers,
+                skip=query.skip,
+                reverse=query.reverse,
+            )
         else:
-            actual_type = type(request.block_number_or_hash)
+            actual_type = type(query.block_number_or_hash)
             raise TypeError(f"Invariant: unexpected type for 'block_number_or_hash': {actual_type}")
 
     async def _generate_available_headers(

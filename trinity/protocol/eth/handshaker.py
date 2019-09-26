@@ -1,4 +1,4 @@
-from typing import cast, Any, Dict
+from typing import cast
 
 from cached_property import cached_property
 
@@ -14,14 +14,15 @@ from p2p.receipt import HandshakeReceipt
 
 from trinity.exceptions import WrongGenesisFailure, WrongNetworkFailure
 
-from .proto import ETHProtocol, ETHHandshakeParams
 from .commands import Status
+from .payloads import StatusPayload
+from .proto import ETHProtocol
 
 
 class ETHHandshakeReceipt(HandshakeReceipt):
-    handshake_params: ETHHandshakeParams
+    handshake_params: StatusPayload
 
-    def __init__(self, protocol: ETHProtocol, handshake_params: ETHHandshakeParams) -> None:
+    def __init__(self, protocol: ETHProtocol, handshake_params: StatusPayload) -> None:
         super().__init__(protocol)
         self.handshake_params = handshake_params
 
@@ -48,9 +49,9 @@ class ETHHandshakeReceipt(HandshakeReceipt):
 
 class ETHHandshaker(Handshaker):
     protocol_class = ETHProtocol
-    handshake_params: ETHHandshakeParams
+    handshake_params: StatusPayload
 
-    def __init__(self, handshake_params: ETHHandshakeParams) -> None:
+    def __init__(self, handshake_params: StatusPayload) -> None:
         self.handshake_params = handshake_params
 
     async def do_handshake(self,
@@ -61,20 +62,18 @@ class ETHHandshaker(Handshaker):
         Raises HandshakeFailure if the handshake is not successful.
         """
         protocol = cast(ETHProtocol, protocol)
-        protocol.send_handshake(self.handshake_params)
+        protocol.send(Status(self.handshake_params))
 
-        async for cmd, msg in multiplexer.stream_protocol_messages(protocol):
+        async for cmd in multiplexer.stream_protocol_messages(protocol):
             if not isinstance(cmd, Status):
                 raise HandshakeFailure(f"Expected a ETH Status msg, got {cmd}, disconnecting")
 
-            msg = cast(Dict[str, Any], msg)
-
-            remote_params = ETHHandshakeParams(
-                version=msg['protocol_version'],
-                network_id=msg['network_id'],
-                total_difficulty=msg['td'],
-                head_hash=msg['best_hash'],
-                genesis_hash=msg['genesis_hash'],
+            remote_params = StatusPayload(
+                version=cmd.payload.version,
+                network_id=cmd.payload.network_id,
+                total_difficulty=cmd.payload.total_difficulty,
+                head_hash=cmd.payload.head_hash,
+                genesis_hash=cmd.payload.genesis_hash,
             )
             receipt = ETHHandshakeReceipt(protocol, remote_params)
 

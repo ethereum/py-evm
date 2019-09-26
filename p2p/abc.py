@@ -8,7 +8,6 @@ from typing import (
     Callable,
     ClassVar,
     ContextManager,
-    Dict,
     Generic,
     Hashable,
     List,
@@ -21,16 +20,17 @@ from typing import (
 )
 import uuid
 
-
-from rlp import sedes
-
 from cancel_token import CancelToken
 
 from eth_utils import ExtendedDebugLogger
 
 from eth_keys import keys
 
-from p2p.typing import Capability, Capabilities, Payload, Structure, TRequestPayload
+from p2p.typing import (
+    Capabilities,
+    Capability,
+    TCommandPayload,
+)
 from p2p.transport_state import TransportState
 
 if TYPE_CHECKING:
@@ -142,60 +142,63 @@ class SessionAPI(ABC, Hashable):
     remote: NodeAPI
 
 
-class CommandAPI(ABC):
-    structure: Structure
-
-    cmd_id: int
-    cmd_id_offset: int
-    snappy_support: bool
+class SerializationCodecAPI(ABC, Generic[TCommandPayload]):
+    @abstractmethod
+    def encode(self, payload: TCommandPayload) -> bytes:
+        ...
 
     @abstractmethod
-    def __init__(self, cmd_id_offset: int, snappy_support: bool) -> None:
+    def decode(self, data: bytes) -> TCommandPayload:
         ...
+
+
+class CompressionCodecAPI(ABC):
+    @abstractmethod
+    def compress(self, data: bytes) -> bytes:
+        ...
+
+    @abstractmethod
+    def decompress(self, data: bytes) -> bytes:
+        ...
+
+
+class MessageAPI(ABC):
+    header: bytes
+    body: bytes
 
     @property
     @abstractmethod
-    def is_base_protocol(self) -> bool:
+    def command_id(self) -> int:
+        """
+        This is the combined `command_id_offset + protocol_command_id`
+        """
+        ...
+
+
+class CommandAPI(ABC, Generic[TCommandPayload]):
+    # This is the local `id` for the command within the context of the
+    # protocol.
+    protocol_command_id: ClassVar[int]
+    serialization_codec: SerializationCodecAPI[TCommandPayload]
+    compression_codec: CompressionCodecAPI
+
+    payload: TCommandPayload
+
+    @abstractmethod
+    def __init__(self, payload: TCommandPayload) -> None:
         ...
 
     @abstractmethod
-    def encode_payload(self, data: Union[Payload, sedes.CountableList]) -> bytes:
+    def encode(self, negotiated_command_id: int, snappy_support: bool) -> MessageAPI:
         ...
 
+    @classmethod
     @abstractmethod
-    def decode_payload(self, rlp_data: bytes) -> Payload:
-        ...
-
-    @abstractmethod
-    def encode(self, data: Payload) -> Tuple[bytes, bytes]:
-        ...
-
-    @abstractmethod
-    def decode(self, data: bytes) -> Payload:
-        ...
-
-    @abstractmethod
-    def decompress_payload(self, raw_payload: bytes) -> bytes:
-        ...
-
-    @abstractmethod
-    def compress_payload(self, raw_payload: bytes) -> bytes:
+    def decode(cls: Type['TCommand'], message: MessageAPI, snappy_support: bool) -> 'TCommand':
         ...
 
 
-class RequestAPI(ABC, Generic[TRequestPayload]):
-    """
-    Must define command_payload during init. This is the data that will
-    be sent to the peer with the request command.
-    """
-    # Defined at init time, with specific parameters:
-    command_payload: TRequestPayload
-
-    # Defined as class attributes in subclasses
-    # outbound command type
-    cmd_type: Type[CommandAPI]
-    # response command type
-    response_type: Type[CommandAPI]
+TCommand = TypeVar("TCommand", bound=CommandAPI[Any])
 
 
 class TransportAPI(ABC):
@@ -222,11 +225,11 @@ class TransportAPI(ABC):
         ...
 
     @abstractmethod
-    async def recv(self, token: CancelToken) -> bytes:
+    async def recv(self, token: CancelToken) -> MessageAPI:
         ...
 
     @abstractmethod
-    def send(self, header: bytes, body: bytes) -> None:
+    def send(self, message: MessageAPI) -> None:
         ...
 
     @abstractmethod
@@ -235,34 +238,40 @@ class TransportAPI(ABC):
 
 
 class ProtocolAPI(ABC):
-    transport: TransportAPI
     name: ClassVar[str]
     version: ClassVar[int]
 
-    cmd_length: int
+    # Command classes that this protocol supports.
+    commands: ClassVar[Tuple[Type[CommandAPI[Any]], ...]]
+    command_length: ClassVar[int]
 
-    cmd_id_offset: int
-
-    commands: Tuple[CommandAPI, ...]
-    cmd_by_type: Dict[Type[CommandAPI], CommandAPI]
-    cmd_by_id: Dict[int, CommandAPI]
-
-    @abstractmethod
-    def __init__(self, transport: TransportAPI, cmd_id_offset: int, snappy_support: bool) -> None:
-        ...
+    command_id_offset: int
+    snappy_support: bool
+    transport: TransportAPI
 
     @abstractmethod
-    def send_request(self, request: RequestAPI[Payload]) -> None:
+    def __init__(self,
+                 transport: TransportAPI,
+                 negotiated_command_id_offset: int,
+                 snappy_support: bool) -> None:
         ...
 
     @classmethod
     @abstractmethod
-    def supports_command(cls, cmd_type: Type[CommandAPI]) -> bool:
+    def supports_command(cls, command_type: Type[CommandAPI[Any]]) -> bool:
         ...
 
     @classmethod
     @abstractmethod
     def as_capability(cls) -> Capability:
+        ...
+
+    @abstractmethod
+    def get_command_type_for_command_id(self, command_id: int) -> Type[CommandAPI[Any]]:
+        ...
+
+    @abstractmethod
+    def send(self, command: CommandAPI[Any]) -> None:
         ...
 
 
@@ -328,7 +337,7 @@ class MultiplexerAPI(ABC):
         ...
 
     @abstractmethod
-    def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
+    def get_protocol_for_command_type(self, command_type: Type[CommandAPI[Any]]) -> ProtocolAPI:
         ...
 
     #
@@ -337,7 +346,7 @@ class MultiplexerAPI(ABC):
     @abstractmethod
     def stream_protocol_messages(self,
                                  protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
-                                 ) -> AsyncIterator[Tuple[CommandAPI, Payload]]:
+                                 ) -> AsyncIterator[CommandAPI[Any]]:
         ...
 
     #
@@ -477,8 +486,7 @@ class SubscriptionAPI(ContextManager['SubscriptionAPI']):
         ...
 
 
-ProtocolHandlerFn = Callable[['ConnectionAPI', CommandAPI, Payload], Awaitable[Any]]
-CommandHandlerFn = Callable[['ConnectionAPI', Payload], Awaitable[Any]]
+HandlerFn = Callable[['ConnectionAPI', CommandAPI[Any]], Awaitable[Any]]
 
 
 class ConnectionAPI(AsyncioServiceAPI):
@@ -519,14 +527,14 @@ class ConnectionAPI(AsyncioServiceAPI):
     @abstractmethod
     def add_protocol_handler(self,
                              protocol_type: Type[ProtocolAPI],
-                             handler_fn: ProtocolHandlerFn,
+                             handler_fn: HandlerFn,
                              ) -> SubscriptionAPI:
         ...
 
     @abstractmethod
     def add_command_handler(self,
-                            command_type: Type[CommandAPI],
-                            handler_fn: CommandHandlerFn,
+                            command_type: Type[CommandAPI[Any]],
+                            handler_fn: HandlerFn,
                             ) -> SubscriptionAPI:
         ...
 
@@ -583,7 +591,7 @@ class ConnectionAPI(AsyncioServiceAPI):
         ...
 
     @abstractmethod
-    def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
+    def get_protocol_for_command_type(self, command_type: Type[CommandAPI[Any]]) -> ProtocolAPI:
         ...
 
     @abstractmethod

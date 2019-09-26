@@ -7,10 +7,7 @@ from typing import (
 )
 
 from eth.abc import (
-    BlockAPI,
     BlockHeaderAPI,
-    ReceiptAPI,
-    SignedTransactionAPI,
 )
 
 from lahja import (
@@ -34,6 +31,20 @@ from trinity.protocol.common.typing import (
     ReceiptsBundles,
 )
 
+from .commands import (
+    BlockBodies,
+    BlockHeaders,
+    GetBlockBodies,
+    GetBlockHeaders,
+    GetNodeData,
+    GetReceipts,
+    NewBlock,
+    NewBlockHashes,
+    NodeData,
+    Receipts,
+    Transactions,
+)
+
 
 # Events flowing from PeerPool to Proxy
 
@@ -42,7 +53,7 @@ class GetBlockHeadersEvent(PeerPoolMessageEvent):
     Event to carry a ``GetBlockHeaders`` command from the peer pool to any process that
     subscribes the event through the event bus.
     """
-    pass
+    command: GetBlockHeaders
 
 
 class GetBlockBodiesEvent(PeerPoolMessageEvent):
@@ -50,7 +61,7 @@ class GetBlockBodiesEvent(PeerPoolMessageEvent):
     Event to carry a ``GetBlockBodies`` command from the peer pool to any process that
     subscribes the event through the event bus.
     """
-    pass
+    command: GetBlockBodies
 
 
 class GetReceiptsEvent(PeerPoolMessageEvent):
@@ -58,7 +69,7 @@ class GetReceiptsEvent(PeerPoolMessageEvent):
     Event to carry a ``GetReceipts`` command from the peer pool to any process that
     subscribes the event through the event bus.
     """
-    pass
+    command: GetReceipts
 
 
 class GetNodeDataEvent(PeerPoolMessageEvent):
@@ -66,7 +77,7 @@ class GetNodeDataEvent(PeerPoolMessageEvent):
     Event to carry a ``GetNodeData`` command from the peer pool to any process that
     subscribes the event through the event bus.
     """
-    pass
+    command: GetNodeData
 
 
 class TransactionsEvent(PeerPoolMessageEvent):
@@ -74,7 +85,7 @@ class TransactionsEvent(PeerPoolMessageEvent):
     Event to carry a ``Transactions`` command from the peer pool to any process that
     subscribes the event through the event bus.
     """
-    pass
+    command: Transactions
 
 
 class NewBlockEvent(PeerPoolMessageEvent):
@@ -82,7 +93,7 @@ class NewBlockEvent(PeerPoolMessageEvent):
     Event to carry a ``NewBlock`` command from the peer pool to any process that
     subscribes the event through the event bus.
     """
-    pass
+    command: NewBlock
 
 
 class NewBlockHashesEvent(PeerPoolMessageEvent):
@@ -90,7 +101,7 @@ class NewBlockHashesEvent(PeerPoolMessageEvent):
     Event to carry a ``Transactions`` command from the peer pool to any process that
     subscribes the event through the event bus.
     """
-    pass
+    command: NewBlockHashes
 
 # Events flowing from Proxy to PeerPool
 
@@ -102,7 +113,7 @@ class SendBlockHeadersEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     session: SessionAPI
-    headers: Sequence[BlockHeaderAPI]
+    command: BlockHeaders
 
 
 @dataclass
@@ -112,7 +123,7 @@ class SendBlockBodiesEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     session: SessionAPI
-    blocks: Sequence[BlockAPI]
+    command: BlockBodies
 
 
 @dataclass
@@ -122,7 +133,7 @@ class SendNodeDataEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     session: SessionAPI
-    nodes: Sequence[bytes]
+    command: NodeData
 
 
 @dataclass
@@ -132,7 +143,7 @@ class SendReceiptsEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     session: SessionAPI
-    receipts: Sequence[Sequence[ReceiptAPI]]
+    command: Receipts
 
 
 @dataclass
@@ -142,7 +153,7 @@ class SendTransactionsEvent(BaseEvent):
     peer that sits in the peer pool.
     """
     session: SessionAPI
-    transactions: Sequence[SignedTransactionAPI]
+    command: Transactions
 
 # EXCHANGE HANDLER REQUEST / RESPONSE PAIRS
 

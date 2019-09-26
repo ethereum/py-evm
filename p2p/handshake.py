@@ -2,9 +2,6 @@ import asyncio
 import functools
 import operator
 from typing import (
-    cast,
-    Any,
-    Dict,
     Iterable,
     NamedTuple,
     Sequence,
@@ -44,9 +41,10 @@ from p2p.multiplexer import (
 from p2p.p2p_proto import (
     DevP2PReceipt,
     Hello,
+    HelloPayload,
     BaseP2PProtocol,
-    P2PProtocolV5,
     P2PProtocolV4,
+    P2PProtocolV5,
 )
 from p2p.protocol import get_cmd_offsets
 from p2p.transport import Transport
@@ -90,7 +88,7 @@ def _select_capabilities(remote_capabilities: Capabilities,
 
     https://github.com/ethereum/devp2p/blob/master/rlpx.md#capability-messaging
     """
-    # Determine the remote capabilites that intersect with our own.
+    # Determine the remote capabilities that intersect with our own.
     matching_capabilities = tuple(sorted(
         set(local_capabilities).intersection(remote_capabilities),
         key=operator.itemgetter(0),
@@ -113,30 +111,34 @@ def _select_capabilities(remote_capabilities: Capabilities,
 
 
 async def _do_p2p_handshake(transport: TransportAPI,
-                            capabilites: Capabilities,
+                            capabilities: Capabilities,
                             p2p_handshake_params: DevP2PHandshakeParams,
                             base_protocol: BaseP2PProtocol,
                             token: CancelToken) -> Tuple[DevP2PReceipt, BaseP2PProtocol]:
     client_version_string, listen_port, p2p_version = p2p_handshake_params
-    base_protocol.send_handshake(client_version_string, capabilites, listen_port, p2p_version)
+    base_protocol.send(Hello(HelloPayload(
+        client_version_string=client_version_string,
+        capabilities=capabilities,
+        listen_port=listen_port,
+        version=p2p_version,
+        remote_public_key=transport.public_key.to_bytes(),
+    )))
 
     # The base `p2p` protocol handshake directly streams the messages as it has
     # strict requirements about receiving the `Hello` message first.
-    async for _, cmd, msg in stream_transport_messages(transport, base_protocol, token=token):
+    async for _, cmd in stream_transport_messages(transport, base_protocol, token=token):
         if not isinstance(cmd, Hello):
             raise HandshakeFailure(
                 f"First message across the DevP2P connection must be a Hello "
                 f"msg, got {cmd}, disconnecting"
             )
 
-        msg = cast(Dict[str, Any], msg)
-
         protocol: BaseP2PProtocol
 
         if base_protocol.version >= DEVP2P_V5:
             # Check whether to support Snappy Compression or not
             # based on other peer's p2p protocol version
-            snappy_support = msg['version'] >= DEVP2P_V5
+            snappy_support = cmd.payload.version >= DEVP2P_V5
 
             if snappy_support:
                 # Now update the base protocol to support snappy compression
@@ -144,7 +146,7 @@ async def _do_p2p_handshake(transport: TransportAPI,
                 # parity sends Ping immediately after handshake
                 protocol = P2PProtocolV5(
                     transport,
-                    cmd_id_offset=0,
+                    command_id_offset=0,
                     snappy_support=True,
                 )
             else:
@@ -154,11 +156,11 @@ async def _do_p2p_handshake(transport: TransportAPI,
 
         devp2p_receipt = DevP2PReceipt(
             protocol=protocol,
-            version=msg['version'],
-            client_version_string=msg['client_version_string'],
-            capabilities=msg['capabilities'],
-            remote_public_key=msg['remote_pubkey'],
-            listen_port=msg['listen_port'],
+            version=cmd.payload.version,
+            client_version_string=cmd.payload.client_version_string,
+            capabilities=cmd.payload.capabilities,
+            remote_public_key=cmd.payload.remote_public_key,
+            listen_port=cmd.payload.listen_port,
         )
         break
     else:
@@ -203,7 +205,11 @@ async def negotiate_protocol_handshakes(transport: TransportAPI,
     # compression disabled for the handshake.  As part of the handshake, a new
     # instance of this protocol will be created with snappy compression enabled
     # if it is supported by the protocol version.
-    ephemeral_base_protocol = p2p_protocol_class(transport, cmd_id_offset=0, snappy_support=False)
+    ephemeral_base_protocol = p2p_protocol_class(
+        transport,
+        command_id_offset=0,
+        snappy_support=False,
+    )
 
     # Perform the actual `p2p` protocol handshake.  We need the remote
     # capabilities data from the receipt to select the appropriate sub
@@ -251,8 +257,8 @@ async def negotiate_protocol_handshakes(transport: TransportAPI,
     protocol_cmd_offsets = get_cmd_offsets(selected_protocol_types)
     # Now instantiate instances of each of the protocol classes.
     selected_protocols = tuple(
-        protocol_class(transport, cmd_id_offset, base_protocol.snappy_support)
-        for protocol_class, cmd_id_offset
+        protocol_class(transport, command_id_offset, base_protocol.snappy_support)
+        for protocol_class, command_id_offset
         in zip(selected_protocol_types, protocol_cmd_offsets)
     )
     # Create `Multiplexer` to abstract all of the protocols into a single

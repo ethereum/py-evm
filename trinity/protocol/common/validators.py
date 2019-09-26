@@ -45,13 +45,13 @@ class BaseBlockHeadersValidator(ValidatorAPI[Tuple[BlockHeaderAPI, ...]]):
     def protocol_max_request_size(self) -> int:
         raise NotImplementedError
 
-    def validate_result(self, response: Tuple[BlockHeaderAPI, ...]) -> None:
-        if not response:
-            # An empty response is always valid
+    def validate_result(self, result: Tuple[BlockHeaderAPI, ...]) -> None:
+        if not result:
+            # An empty result is always valid
             return
         elif not self._is_numbered:
             block_hash = cast(Hash32, self.block_number_or_hash)
-            first_header = response[0]
+            first_header = result[0]
             if first_header.hash != block_hash:
                 raise ValidationError(
                     "Returned headers cannot be matched to header request. "
@@ -62,7 +62,7 @@ class BaseBlockHeadersValidator(ValidatorAPI[Tuple[BlockHeaderAPI, ...]]):
                 )
 
         block_numbers: Tuple[BlockNumber, ...] = tuple(
-            header.block_number for header in response
+            header.block_number for header in result
         )
         return self._validate_sequence(block_numbers)
 

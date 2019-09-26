@@ -20,9 +20,11 @@ from p2p.auth import decode_authentication
 from p2p.constants import DEVP2P_V5, DEVP2P_V4
 from p2p.p2p_proto import (
     Hello,
+    HelloPayload,
     P2PProtocolV4,
     P2PProtocolV5,
 )
+from p2p.message import Message
 from p2p.multiplexer import Multiplexer
 from p2p.transport import Transport
 
@@ -135,9 +137,13 @@ async def test_handshake():
         base_protocol=initiator_p2p_protocol,
         protocols=(),
     )
-    initiator_multiplexer.get_base_protocol().send_handshake(
-        'initiator', capabilities, 30303, DEVP2P_V5,
-    )
+    initiator_multiplexer.get_base_protocol().send(Hello(HelloPayload(
+        client_version_string='initiator',
+        capabilities=capabilities,
+        listen_port=30303,
+        version=DEVP2P_V5,
+        remote_public_key=initiator.privkey.public_key.to_bytes(),
+    )))
 
     responder_transport = Transport(
         remote=responder_remote,
@@ -155,9 +161,13 @@ async def test_handshake():
         base_protocol=responder_p2p_protocol,
         protocols=(),
     )
-    responder_multiplexer.get_base_protocol().send_handshake(
-        'responder', capabilities, 30303, DEVP2P_V5,
-    )
+    responder_multiplexer.get_base_protocol().send(Hello(HelloPayload(
+        client_version_string='responder',
+        capabilities=capabilities,
+        listen_port=30303,
+        version=DEVP2P_V5,
+        remote_public_key=responder.privkey.public_key.to_bytes(),
+    )))
 
     async with initiator_multiplexer.multiplex():
         async with responder_multiplexer.multiplex():
@@ -168,8 +178,8 @@ async def test_handshake():
                 responder_p2p_protocol,
             )
 
-            initiator_hello, _ = await asyncio.wait_for(initiator_stream.asend(None), timeout=0.1)
-            responder_hello, _ = await asyncio.wait_for(responder_stream.asend(None), timeout=0.1)
+            initiator_hello = await asyncio.wait_for(initiator_stream.asend(None), timeout=0.1)
+            responder_hello = await asyncio.wait_for(responder_stream.asend(None), timeout=0.1)
 
             await initiator_stream.aclose()
             await responder_stream.aclose()
@@ -266,9 +276,13 @@ async def test_handshake_eip8():
         base_protocol=initiator_p2p_protocol,
         protocols=(),
     )
-    initiator_multiplexer.get_base_protocol().send_handshake(
-        'initiator', capabilities, 30303, DEVP2P_V5,
-    )
+    initiator_multiplexer.get_base_protocol().send(Hello(HelloPayload(
+        client_version_string='initiator',
+        capabilities=capabilities,
+        listen_port=30303,
+        version=DEVP2P_V5,
+        remote_public_key=initiator.privkey.public_key.to_bytes(),
+    )))
 
     responder_transport = Transport(
         remote=responder_remote,
@@ -286,9 +300,13 @@ async def test_handshake_eip8():
         base_protocol=responder_p2p_protocol,
         protocols=(),
     )
-    responder_multiplexer.get_base_protocol().send_handshake(
-        'responder', capabilities, 30303, DEVP2P_V4,
-    )
+    responder_multiplexer.get_base_protocol().send(Hello(HelloPayload(
+        client_version_string='responder',
+        capabilities=capabilities,
+        listen_port=30303,
+        version=DEVP2P_V4,
+        remote_public_key=responder.privkey.public_key.to_bytes(),
+    )))
 
     async with initiator_multiplexer.multiplex():
         async with responder_multiplexer.multiplex():
@@ -299,8 +317,8 @@ async def test_handshake_eip8():
                 responder_p2p_protocol,
             )
 
-            initiator_hello, _ = await initiator_stream.asend(None)
-            responder_hello, _ = await responder_stream.asend(None)
+            initiator_hello = await initiator_stream.asend(None)
+            responder_hello = await responder_stream.asend(None)
 
             await initiator_stream.aclose()
             await responder_stream.aclose()
@@ -311,8 +329,16 @@ async def test_handshake_eip8():
 
 def test_eip8_hello():
     # Data taken from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8.md
-    payload = decode_hex(
+    payload_body = decode_hex(
         "f87137916b6e6574682f76302e39312f706c616e39cdc5836574683dc6846d6f726b1682270fb840"
         "fda1cff674c90c9a197539fe3dfb53086ace64f83ed7c6eabec741f7f381cc803e52ab2cd55d5569"
-        "bce4347107a310dfd5f88a010cd2ffd1005ca406f1842877c883666f6f836261720304")
-    Hello(cmd_id_offset=0, snappy_support=False).decode_payload(payload)
+        "bce4347107a310dfd5f88a010cd2ffd1005ca406f1842877c883666f6f836261720304"
+    )
+    msg = Message(b'', b'\x00' + payload_body)
+
+    cmd = Hello.decode(msg, snappy_support=False)
+    assert cmd.payload.capabilities == (('eth', 61), ('mork', 22))
+    assert cmd.payload.version == 55
+    assert cmd.payload.client_version_string == 'kneth/v0.91/plan9'
+    assert cmd.payload.listen_port == 9999
+    assert cmd.payload.remote_public_key == b'\xfd\xa1\xcf\xf6t\xc9\x0c\x9a\x19u9\xfe=\xfbS\x08j\xced\xf8>\xd7\xc6\xea\xbe\xc7A\xf7\xf3\x81\xcc\x80>R\xab,\xd5]Ui\xbc\xe44q\x07\xa3\x10\xdf\xd5\xf8\x8a\x01\x0c\xd2\xff\xd1\x00\\\xa4\x06\xf1\x84(w'  # noqa: E501

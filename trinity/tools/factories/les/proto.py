@@ -14,65 +14,37 @@ from lahja import EndpointAPI
 from cancel_token import CancelToken
 
 from eth_typing import BlockNumber
-from eth_utils import to_bytes
 
 from eth_keys import keys
-from eth.constants import GENESIS_DIFFICULTY, GENESIS_BLOCK_NUMBER
+from eth.constants import GENESIS_BLOCK_NUMBER
 
 from p2p import kademlia
 from p2p.abc import HandshakerAPI
 from p2p.tools.factories import PeerPairFactory
 
-from trinity.constants import MAINNET_NETWORK_ID
-
 from trinity.protocol.common.context import ChainContext
 
 from trinity.protocol.les.handshaker import LESV2Handshaker, LESV1Handshaker
 from trinity.protocol.les.peer import LESPeer, LESPeerFactory
-from trinity.protocol.les.proto import LESHandshakeParams, LESProtocolV1, LESProtocolV2
+from trinity.protocol.les.proto import LESProtocolV1, LESProtocolV2
 
 from trinity.tools.factories.chain_context import ChainContextFactory
 
-
-MAINNET_GENESIS_HASH = to_bytes(hexstr='0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3')  # noqa: E501
-
-
-class LESHandshakeParamsFactory(factory.Factory):
-    class Meta:
-        model = LESHandshakeParams
-
-    version = LESProtocolV2.version
-    network_id = MAINNET_NETWORK_ID
-    head_td = GENESIS_DIFFICULTY
-    head_hash = MAINNET_GENESIS_HASH
-    head_number = GENESIS_BLOCK_NUMBER
-    genesis_hash = MAINNET_GENESIS_HASH
-    serve_headers = True
-    serve_chain_since = 0
-    serve_state_since = None
-    serve_recent_state = None
-    serve_recent_chain = None
-    tx_relay = False
-    flow_control_bl = None
-    flow_control_mcr = None
-    flow_control_mrr = None
-    announce_type = factory.LazyAttribute(
-        lambda o: o.version if o.version >= LESProtocolV2.version else None
-    )
+from .payloads import StatusPayloadFactory
 
 
 class LESV1HandshakerFactory(factory.Factory):
     class Meta:
         model = LESV1Handshaker
 
-    handshake_params = factory.SubFactory(LESHandshakeParamsFactory, version=LESProtocolV1.version)
+    handshake_params = factory.SubFactory(StatusPayloadFactory, version=LESProtocolV1.version)
 
 
 class LESV2HandshakerFactory(factory.Factory):
     class Meta:
         model = LESV2Handshaker
 
-    handshake_params = factory.SubFactory(LESHandshakeParamsFactory, version=LESProtocolV2.version)
+    handshake_params = factory.SubFactory(StatusPayloadFactory, version=LESProtocolV2.version)
 
 
 class LESV1Peer(LESPeer):

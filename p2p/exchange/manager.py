@@ -7,12 +7,9 @@ from eth_utils import (
     ValidationError,
 )
 
-from p2p.abc import (
-    ConnectionAPI,
-    RequestAPI,
-)
+from p2p.abc import ConnectionAPI
+
 from p2p.exceptions import PeerConnectionLost
-from p2p.typing import TRequestPayload, TResponsePayload
 
 from .abc import (
     ExchangeManagerAPI,
@@ -20,28 +17,29 @@ from .abc import (
     PerformanceTrackerAPI,
     ResponseCandidateStreamAPI,
 )
+from .typing import TRequestCommand, TResponseCommand
 
 
 TResult = TypeVar('TResult')
 
 
-class ExchangeManager(ExchangeManagerAPI[TRequestPayload, TResponsePayload, TResult]):
-    _response_stream: ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload] = None
+class ExchangeManager(ExchangeManagerAPI[TRequestCommand, TResponseCommand, TResult]):
+    _response_stream: ResponseCandidateStreamAPI[TRequestCommand, TResponseCommand] = None
 
     def __init__(self,
                  connection: ConnectionAPI,
-                 response_stream: ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload],
+                 response_stream: ResponseCandidateStreamAPI[TRequestCommand, TResponseCommand],
                  ) -> None:
         self._connection = connection
         self._response_stream = response_stream
 
     async def get_result(
             self,
-            request: RequestAPI[TRequestPayload],
-            normalizer: NormalizerAPI[TResponsePayload, TResult],
+            request: TRequestCommand,
+            normalizer: NormalizerAPI[TResponseCommand, TResult],
             validate_result: Callable[[TResult], None],
-            payload_validator: Callable[[TResponsePayload], None],
-            tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], TResult],
+            payload_validator: Callable[[TResponseCommand], None],
+            tracker: PerformanceTrackerAPI[TRequestCommand, TResult],
             timeout: float = None) -> TResult:
 
         stream = self._response_stream
@@ -87,7 +85,7 @@ class ExchangeManager(ExchangeManagerAPI[TRequestPayload, TResponsePayload, TRes
         raise PeerConnectionLost(f"Response stream of {self._connection} was apparently closed")
 
     @property
-    def service(self) -> ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload]:
+    def service(self) -> ResponseCandidateStreamAPI[TRequestCommand, TResponseCommand]:
         """
         This service that needs to be running for calls to execute properly
         """

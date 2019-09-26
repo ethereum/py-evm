@@ -3,7 +3,7 @@ import asyncio
 import pytest
 
 from p2p.disconnect import DisconnectReason
-from p2p.p2p_proto import Pong
+from p2p.p2p_proto import Pong, Ping, Disconnect
 from p2p.p2p_api import P2PAPI
 
 from p2p.tools.factories import ConnectionPairFactory
@@ -49,7 +49,7 @@ async def test_p2p_api_pongs_when_pinged(bob, alice):
         async def handle_pong(connection, msg):
             got_pong.set()
         bob.add_command_handler(Pong, handle_pong)
-        bob.get_base_protocol().send_ping()
+        bob.get_base_protocol().send(Ping(None))
         await asyncio.wait_for(got_pong.wait(), timeout=1)
 
 
@@ -57,7 +57,7 @@ async def test_p2p_api_pongs_when_pinged(bob, alice):
 async def test_p2p_api_triggers_cancellation_on_disconnect(bob, alice):
     async with P2PAPI().as_behavior().apply(alice):
         p2p_api = alice.get_logic('p2p', P2PAPI)
-        bob.get_base_protocol().send_disconnect(DisconnectReason.CLIENT_QUITTING)
+        bob.get_base_protocol().send(Disconnect(DisconnectReason.CLIENT_QUITTING))
         await asyncio.wait_for(alice.events.cancelled.wait(), timeout=1)
         assert p2p_api.remote_disconnect_reason is DisconnectReason.CLIENT_QUITTING
         assert p2p_api.local_disconnect_reason is None

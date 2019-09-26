@@ -5,6 +5,8 @@ import struct
 
 import sha3
 
+import rlp
+
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
@@ -21,11 +23,10 @@ from eth_utils import (
 
 from p2p import auth
 from p2p._utils import (
-    get_devp2p_cmd_id,
     roundup_16,
     sxor,
 )
-from p2p.abc import NodeAPI, TransportAPI
+from p2p.abc import MessageAPI, NodeAPI, TransportAPI
 from p2p.auth import (
     decode_authentication,
     HandshakeResponder,
@@ -46,8 +47,12 @@ from p2p.exceptions import (
     UnreachablePeer,
 )
 from p2p.kademlia import Address, Node
+from p2p.message import Message
 from p2p.session import Session
 from p2p.transport_state import TransportState
+
+
+HEADER_DATA_SEDES = rlp.sedes.List((rlp.sedes.big_endian_int, rlp.sedes.big_endian_int))
 
 
 class Transport(TransportAPI):
@@ -246,7 +251,7 @@ class Transport(TransportAPI):
     def write(self, data: bytes) -> None:
         self._writer.write(data)
 
-    async def recv(self, token: CancelToken) -> bytes:
+    async def recv(self, token: CancelToken) -> MessageAPI:
         # Check that Transport read state is IDLE.
         if self.read_state is not TransportState.IDLE:
             # This is logged at INFO level because it indicates we are not
@@ -263,7 +268,7 @@ class Transport(TransportAPI):
         self.read_state = TransportState.HEADER
 
         try:
-            header_data = await self.read(HEADER_LEN + MAC_LEN, token)
+            header_bytes = await self.read(HEADER_LEN + MAC_LEN, token)
         except asyncio.CancelledError:
             self.logger.debug('Transport cancelled during header read. resetting to IDLE state')
             self.read_state = TransportState.IDLE
@@ -272,20 +277,21 @@ class Transport(TransportAPI):
         # Set status to indicate we are waiting to read the message body
         self.read_state = TransportState.BODY
         try:
-            header = self._decrypt_header(header_data)
+            padded_header = self._decrypt_header(header_bytes)
         except DecryptionError as err:
             self.logger.debug(
                 "Bad message header from peer %s: Error: %r",
                 self, err,
             )
             raise MalformedMessage from err
-        frame_size = self._get_frame_size(header)
+        # TODO: use `int.from_bytes(...)`
+        frame_size = self._get_frame_size(padded_header)
         # The frame_size specified in the header does not include the padding to 16-byte boundary,
         # so need to do this here to ensure we read all the frame's data.
         read_size = roundup_16(frame_size)
         frame_data = await self.read(read_size + MAC_LEN, token)
         try:
-            msg = self._decrypt_body(frame_data, frame_size)
+            body = self._decrypt_body(frame_data, frame_size)
         except DecryptionError as err:
             self.logger.debug(
                 "Bad message body from peer %s: Error: %r",
@@ -295,14 +301,22 @@ class Transport(TransportAPI):
 
         # Reset status back to IDLE
         self.read_state = TransportState.IDLE
-        return msg
 
-    def send(self, header: bytes, body: bytes) -> None:
-        cmd_id = get_devp2p_cmd_id(body)
-        self.logger.debug2("Sending msg with cmd id %d to %s", cmd_id, self)
+        # TODO: this can be optimized since the `header_data` will almost always be the same value.
+        # Decode the header data and re-encode to recover the unpadded header size.
+        header_data = rlp.decode(padded_header[3:], sedes=HEADER_DATA_SEDES, strict=False)
+        header = padded_header[:3] + rlp.encode(header_data)
+
+        return Message(header, body)
+
+    def send(self, message: MessageAPI) -> None:
+        header = message.header.ljust(roundup_16(len(message.header)), b'\x00')
+        body = message.body.ljust(roundup_16(len(message.body)), b'\x00')
         if self.is_closing:
             raise PeerConnectionLost(
-                "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
+                f"Attempted to send msg with cmd id {message.command_id} to "
+                f"disconnected peer {self.remote}"
+            )
 
         self.write(self._encrypt(header, body))
 

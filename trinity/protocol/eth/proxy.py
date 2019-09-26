@@ -3,7 +3,12 @@ from typing import (
     Tuple,
 )
 
-from eth.abc import BlockHeaderAPI
+from eth.abc import (
+    BlockAPI,
+    BlockHeaderAPI,
+    ReceiptAPI,
+    SignedTransactionAPI,
+)
 from eth_typing import (
     BlockIdentifier,
     Hash32,
@@ -16,20 +21,31 @@ from lahja import (
 
 from p2p.abc import SessionAPI
 
+from trinity._utils.errors import SupportsError
 from trinity.protocol.common.typing import (
     BlockBodyBundles,
     NodeDataBundles,
     ReceiptsBundles,
 )
-from trinity._utils.errors import (
-    SupportsError,
-)
+from trinity.rlp.block_body import BlockBody
 
+from .commands import (
+    BlockBodies,
+    BlockHeaders,
+    NodeData,
+    Receipts,
+    Transactions,
+)
 from .events import (
     GetBlockBodiesRequest,
     GetBlockHeadersRequest,
     GetNodeDataRequest,
     GetReceiptsRequest,
+    SendBlockBodiesEvent,
+    SendBlockHeadersEvent,
+    SendNodeDataEvent,
+    SendReceiptsEvent,
+    SendTransactionsEvent,
 )
 
 
@@ -152,3 +168,43 @@ class ProxyETHAPI:
         )
 
         return response.bundles
+
+    def send_transactions(self,
+                          txns: Sequence[SignedTransactionAPI]) -> None:
+        command = Transactions(tuple(txns))
+        self._event_bus.broadcast_nowait(
+            SendTransactionsEvent(self.session, command),
+            self._broadcast_config,
+        )
+
+    def send_block_headers(self, headers: Sequence[BlockHeaderAPI]) -> None:
+        command = BlockHeaders(tuple(headers))
+        self._event_bus.broadcast_nowait(
+            SendBlockHeadersEvent(self.session, command),
+            self._broadcast_config,
+        )
+
+    def send_block_bodies(self, blocks: Sequence[BlockAPI]) -> None:
+        block_bodies = tuple(
+            BlockBody(block.transactions, block.uncles)
+            for block in blocks
+        )
+        command = BlockBodies(block_bodies)
+        self._event_bus.broadcast_nowait(
+            SendBlockBodiesEvent(self.session, command),
+            self._broadcast_config,
+        )
+
+    def send_receipts(self, receipts: Sequence[Sequence[ReceiptAPI]]) -> None:
+        command = Receipts(tuple(map(tuple, receipts)))
+        self._event_bus.broadcast_nowait(
+            SendReceiptsEvent(self.session, command),
+            self._broadcast_config,
+        )
+
+    def send_node_data(self, nodes: Sequence[bytes]) -> None:
+        command = NodeData(tuple(nodes))
+        self._event_bus.broadcast_nowait(
+            SendNodeDataEvent(self.session, command),
+            self._broadcast_config,
+        )

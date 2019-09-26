@@ -1,30 +1,10 @@
 import itertools
 import random
-from typing import Any, Generator, Iterable, Tuple, Type
-
-from rlp import sedes
-
-from eth_utils import to_tuple
+from typing import Any, Generator, Tuple, Type
 
 from p2p.abc import CommandAPI, ProtocolAPI
-from p2p.protocol import Command, Protocol
-
-
-STRUCTURE_SEDES = (
-    sedes.big_endian_int,
-    sedes.binary,
-)
-
-
-@to_tuple
-def StructureFactory(high_water_mark: int = 4,
-                     ) -> Iterable[Tuple[str, Any]]:
-    for idx in range(high_water_mark):
-        name = f"field_{idx}"
-        sedes = random.choice(STRUCTURE_SEDES)
-        yield (name, sedes)
-        if random.randrange(idx, high_water_mark + 2) >= high_water_mark:
-            break
+from p2p.commands import BaseCommand, NoneSerializationCodec
+from p2p.protocol import BaseProtocol
 
 
 ACTIONS = (
@@ -93,19 +73,20 @@ def CommandNameFactory() -> str:
 
 
 def CommandFactory(name: str = None,
-                   cmd_id: int = None,
-                   structure: Tuple[Tuple[str, Any], ...] = None) -> Type[CommandAPI]:
-    if structure is None:
-        structure = StructureFactory()
-    if cmd_id is None:
-        cmd_id = 0
+                   command_id: int = None) -> Type[CommandAPI[None]]:
+    # TODO: this needs to be simplified to account for codecs.
+    if command_id is None:
+        command_id = 0
     if name is None:
         name = CommandNameFactory()
 
     return type(
         name,
-        (Command,),
-        {'_cmd_id': cmd_id, 'structure': structure},
+        (BaseCommand,),
+        {
+            'protocol_command_id': command_id,
+            'serialization_codec': NoneSerializationCodec(),
+        },
     )
 
 
@@ -124,7 +105,7 @@ def ProtocolNameFactory() -> str:
 
 def ProtocolFactory(name: str = None,
                     version: int = None,
-                    commands: Tuple[Type[CommandAPI], ...] = None) -> Type[ProtocolAPI]:
+                    commands: Tuple[Type[CommandAPI[Any]], ...] = None) -> Type[ProtocolAPI]:
     if name is None:
         name = ProtocolNameFactory()
     if version is None:
@@ -132,14 +113,17 @@ def ProtocolFactory(name: str = None,
     if commands is None:
         num_commands = random.randrange(1, 6)
         commands = tuple(
-            CommandFactory(cmd_id=cmd_id)
-            for cmd_id in range(num_commands)
+            CommandFactory(command_id=command_id)
+            for command_id in range(num_commands)
         )
-
-    cmd_length = len(commands)
 
     return type(
         name.title(),
-        (Protocol,),
-        {'name': name, 'version': version, '_commands': commands, 'cmd_length': cmd_length},
+        (BaseProtocol,),
+        {
+            'name': name,
+            'version': version,
+            'commands': commands,
+            'command_length': len(commands),
+        },
     )

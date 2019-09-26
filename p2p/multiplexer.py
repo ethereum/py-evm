@@ -1,6 +1,7 @@
 import asyncio
 import collections
 from typing import (
+    Any,
     AsyncIterator,
     cast,
     DefaultDict,
@@ -20,9 +21,6 @@ from cancel_token import CancelToken
 from eth_utils import get_extended_debug_logger, ValidationError
 from eth_utils.toolz import cons
 
-from p2p._utils import (
-    get_devp2p_cmd_id,
-)
 from p2p.abc import (
     CommandAPI,
     MultiplexerAPI,
@@ -38,52 +36,53 @@ from p2p.exceptions import (
     UnknownProtocolCommand,
 )
 from p2p.p2p_proto import BaseP2PProtocol
-from p2p.protocol import Protocol
 from p2p.resource_lock import ResourceLock
 from p2p.transport_state import TransportState
-from p2p.typing import Payload
 
 
 async def stream_transport_messages(transport: TransportAPI,
                                     base_protocol: BaseP2PProtocol,
                                     *protocols: ProtocolAPI,
                                     token: CancelToken = None,
-                                    ) -> AsyncIterator[Tuple[ProtocolAPI, CommandAPI, Payload]]:
+                                    ) -> AsyncIterator[Tuple[ProtocolAPI, CommandAPI[Any]]]:
     """
-    Streams 3-tuples of (Protocol, Command, Payload) over the provided `Transport`
+    Streams 2-tuples of (Protocol, Command) over the provided `Transport`
     """
     # A cache for looking up the proper protocol instance for a given command
     # id.
-    cmd_id_cache: Dict[int, ProtocolAPI] = {}
+    command_id_cache: Dict[int, ProtocolAPI] = {}
 
     while not transport.is_closing:
-        raw_msg = await transport.recv(token)
+        msg = await transport.recv(token)
+        command_id = msg.command_id
 
-        cmd_id = get_devp2p_cmd_id(raw_msg)
-
-        if cmd_id not in cmd_id_cache:
-            if cmd_id < base_protocol.cmd_length:
-                cmd_id_cache[cmd_id] = base_protocol
+        if msg.command_id not in command_id_cache:
+            if command_id < base_protocol.command_length:
+                command_id_cache[command_id] = base_protocol
             else:
                 for protocol in protocols:
-                    if cmd_id < protocol.cmd_id_offset + protocol.cmd_length:
-                        cmd_id_cache[cmd_id] = protocol
+                    if command_id < protocol.command_id_offset + protocol.command_length:
+                        command_id_cache[command_id] = protocol
                         break
                 else:
                     protocol_infos = '  '.join(tuple(
-                        f"{proto.name}@{proto.version}[offset={proto.cmd_id_offset},cmd_length={proto.cmd_length}]"  # noqa: E501
+                        (
+                            f"{proto.name}@{proto.version}"
+                            f"[offset={proto.command_id_offset},"
+                            f"command_length={proto.command_length}]"
+                        )
                         for proto in cons(base_protocol, protocols)
                     ))
                     raise UnknownProtocolCommand(
-                        f"No protocol found for cmd_id {cmd_id}: Available "
+                        f"No protocol found for command_id {command_id}: Available "
                         f"protocol/offsets are: {protocol_infos}"
                     )
 
-        msg_proto = cmd_id_cache[cmd_id]
-        cmd = msg_proto.cmd_by_id[cmd_id]
-        msg = cmd.decode(raw_msg)
+        msg_proto = command_id_cache[command_id]
+        command_type = msg_proto.get_command_type_for_command_id(command_id)
+        cmd = command_type.decode(msg, msg_proto.snappy_support)
 
-        yield msg_proto, cmd, msg
+        yield msg_proto, cmd
 
         # yield to the event loop for a moment to allow `transport.is_closing`
         # a chance to update.
@@ -96,10 +95,10 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     _multiplex_token: CancelToken
 
     _transport: TransportAPI
-    _msg_counts: DefaultDict[Type[CommandAPI], int]
+    _msg_counts: DefaultDict[Type[CommandAPI[Any]], int]
 
     _protocol_locks: ResourceLock
-    _protocol_queues: Dict[Type[ProtocolAPI], 'asyncio.Queue[Tuple[CommandAPI, Payload]]']
+    _protocol_queues: Dict[Type[ProtocolAPI], 'asyncio.Queue[CommandAPI[Any]]']
 
     def __init__(self,
                  transport: TransportAPI,
@@ -190,7 +189,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     #
     def has_protocol(self, protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]]) -> bool:
         try:
-            if isinstance(protocol_identifier, Protocol):
+            if isinstance(protocol_identifier, ProtocolAPI):
                 self.get_protocol_by_type(type(protocol_identifier))
                 return True
             elif isinstance(protocol_identifier, type):
@@ -219,7 +218,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     def get_protocols(self) -> Tuple[ProtocolAPI, ...]:
         return tuple(cons(self._base_protocol, self._protocols))
 
-    def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
+    def get_protocol_for_command_type(self, command_type: Type[CommandAPI[Any]]) -> ProtocolAPI:
         supported_protocols = tuple(
             protocol
             for protocol in self.get_protocols()
@@ -247,13 +246,13 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
     #
     def stream_protocol_messages(self,
                                  protocol_identifier: Union[ProtocolAPI, Type[ProtocolAPI]],
-                                 ) -> AsyncIterator[Tuple[CommandAPI, Payload]]:
+                                 ) -> AsyncIterator[CommandAPI[Any]]:
         """
         Stream the messages for the specified protocol.
         """
-        if isinstance(protocol_identifier, Protocol):
+        if isinstance(protocol_identifier, ProtocolAPI):
             protocol_class = type(protocol_identifier)
-        elif isinstance(protocol_identifier, type) and issubclass(protocol_identifier, Protocol):
+        elif isinstance(protocol_identifier, type) and issubclass(protocol_identifier, ProtocolAPI):
             protocol_class = protocol_identifier
         else:
             raise TypeError("Unknown protocol identifier: {protocol}")
@@ -280,8 +279,8 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
         )
 
     async def _stream_protocol_messages(self,
-                                        protocol_class: Type[Protocol],
-                                        ) -> AsyncIterator[Tuple[CommandAPI, Payload]]:
+                                        protocol_class: Type[ProtocolAPI],
+                                        ) -> AsyncIterator[CommandAPI[Any]]:
         """
         Stream the messages for the specified protocol.
         """
@@ -390,7 +389,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
             *self._protocols,
             token=token,
         ), token=token)
-        async for protocol, cmd, msg in msg_stream:
+        async for protocol, cmd in msg_stream:
             # track total number of messages received for each command type.
             self._msg_counts[type(cmd)] += 1
 
@@ -399,7 +398,7 @@ class Multiplexer(CancellableMixin, MultiplexerAPI):
                 # We must use `put_nowait` here to ensure that in the event
                 # that a single protocol queue is full that we don't block
                 # other protocol messages getting through.
-                queue.put_nowait((cmd, msg))
+                queue.put_nowait(cmd)
             except asyncio.QueueFull:
                 self.logger.error(
                     (

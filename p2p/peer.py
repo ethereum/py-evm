@@ -4,6 +4,7 @@ import collections
 import contextlib
 import functools
 from typing import (
+    Any,
     Dict,
     Iterator,
     List,
@@ -39,6 +40,7 @@ from p2p.abc import (
     ProtocolAPI,
     SessionAPI,
 )
+from p2p.commands import BaseCommand
 from p2p.constants import BLACKLIST_SECONDS_BAD_PROTOCOL
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
@@ -52,10 +54,6 @@ from p2p.handshake import (
 from p2p.service import BaseService
 from p2p.p2p_api import P2PAPI
 from p2p.p2p_proto import BaseP2PProtocol
-from p2p.protocol import (
-    Command,
-    Payload,
-)
 from p2p.tracking.connection import (
     BaseConnectionTracker,
     NoopConnectionTracker,
@@ -143,7 +141,7 @@ class BasePeer(BaseService):
 
         # A counter of the number of messages this peer has received for each
         # message type.
-        self.received_msgs: Dict[CommandAPI, int] = collections.defaultdict(int)
+        self.received_msgs: Dict[CommandAPI[Any], int] = collections.defaultdict(int)
 
         # Manages the boot process
         self.boot_manager = self.get_boot_manager()
@@ -260,9 +258,8 @@ class BasePeer(BaseService):
 
     async def _handle_subscriber_message(self,
                                          connection: ConnectionAPI,
-                                         cmd: CommandAPI,
-                                         msg: Payload) -> None:
-        subscriber_msg = PeerMessage(self, cmd, msg)
+                                         cmd: CommandAPI[Any]) -> None:
+        subscriber_msg = PeerMessage(self, cmd)
         for subscriber in self._subscribers:
             subscriber.add_msg(subscriber_msg)
 
@@ -303,8 +300,7 @@ class BasePeer(BaseService):
 
 class PeerMessage(NamedTuple):
     peer: BasePeer
-    command: CommandAPI
-    payload: Payload
+    command: CommandAPI[Any]
 
 
 class PeerSubscriber(ABC):
@@ -316,12 +312,12 @@ class PeerSubscriber(ABC):
 
     @property
     @abstractmethod
-    def subscription_msg_types(self) -> FrozenSet[Type[CommandAPI]]:
+    def subscription_msg_types(self) -> FrozenSet[Type[CommandAPI[Any]]]:
         """
         The :class:`p2p.protocol.Command` types that this class subscribes to. Any
         command which is not in this set will not be passed to this subscriber.
 
-        The base command class :class:`p2p.protocol.Command` can be used to enable
+        The base command class :class:`p2p.commands.BaseCommand` can be used to enable
         **all** command types.
 
         .. note: This API only applies to sub-protocol commands. Base protocol
@@ -331,9 +327,9 @@ class PeerSubscriber(ABC):
         ...
 
     @functools.lru_cache(maxsize=64)
-    def is_subscription_command(self, cmd_type: Type[CommandAPI]) -> bool:
+    def is_subscription_command(self, cmd_type: Type[CommandAPI[Any]]) -> bool:
         return bool(self.subscription_msg_types.intersection(
-            {cmd_type, Command}
+            {cmd_type, BaseCommand}
         ))
 
     @property
@@ -386,7 +382,7 @@ class PeerSubscriber(ABC):
         """
         Add a :class:`~p2p.peer.PeerMessage` to the subscriber.
         """
-        peer, cmd, _ = msg
+        peer, cmd = msg
 
         if not self.is_subscription_command(type(cmd)):
             if hasattr(self, 'logger'):
@@ -451,7 +447,7 @@ class PeerSubscriber(ABC):
 class MsgBuffer(PeerSubscriber):
     logger = get_extended_debug_logger('p2p.peer.MsgBuffer')
     msg_queue_maxsize = 500
-    subscription_msg_types = frozenset({Command})
+    subscription_msg_types = frozenset({BaseCommand})
 
     @to_tuple
     def get_messages(self) -> Iterator[PeerMessage]:

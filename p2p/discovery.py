@@ -63,15 +63,14 @@ from eth_hash.auto import keccak
 
 from cancel_token import CancelToken, OperationCancelled
 
+from p2p import constants
+from p2p.abc import AddressAPI, NodeAPI, ProtocolAPI
 from p2p.events import (
     PeerCandidatesRequest,
     RandomBootnodeRequest,
     BaseRequestResponseEvent,
     PeerCandidatesResponse,
 )
-from p2p import protocol
-from p2p import constants
-from p2p.abc import AddressAPI, NodeAPI
 from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes, UnableToGetDiscV5Ticket
 from p2p.kademlia import Address, Node, RoutingTable, check_relayed_addr, sort_by_distance
 from p2p.service import BaseService
@@ -1350,7 +1349,7 @@ class CallbackManager(UserDict):
                 return True
 
 
-def get_v5_topic(proto: Type[protocol.Protocol], genesis_hash: Hash32) -> bytes:
+def get_v5_topic(proto: Type[ProtocolAPI], genesis_hash: Hash32) -> bytes:
     proto_id = proto.name.upper()
     if proto.version != 1:
         proto_id += str(proto.version)

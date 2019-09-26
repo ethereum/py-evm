@@ -1,27 +1,26 @@
 import logging
-from typing import cast, Any, Dict, Optional
+from typing import Optional
 
 from cached_property import cached_property
 
 from p2p.abc import ConnectionAPI
 from p2p.logic import Application, CommandHandler
 from p2p.disconnect import DisconnectReason
-from p2p.p2p_proto import Disconnect, Ping
+from p2p.p2p_proto import Disconnect, Ping, Pong
 from p2p.qualifiers import always
-from p2p.typing import Payload
 
 
-class PongWhenPinged(CommandHandler):
+class PongWhenPinged(CommandHandler[Ping]):
     """
     Sends a `Pong` message anytime a `Ping` message is received.
     """
     command_type = Ping
 
-    async def handle(self, connection: ConnectionAPI, msg: Payload) -> None:
-        connection.get_base_protocol().send_pong()
+    async def handle(self, connection: ConnectionAPI, cmd: Ping) -> None:
+        connection.get_base_protocol().send(Pong(None))
 
 
-class CancelOnDisconnect(CommandHandler):
+class CancelOnDisconnect(CommandHandler[Disconnect]):
     """
     Listens for `Disconnect` messages, recording the *reason* and triggering
     cancellation of the Connection.
@@ -32,14 +31,8 @@ class CancelOnDisconnect(CommandHandler):
 
     disconnect_reason: DisconnectReason = None
 
-    async def handle(self, connection: ConnectionAPI, msg: Payload) -> None:
-        msg = cast(Dict[str, Any], msg)
-        try:
-            reason = DisconnectReason(msg['reason'])
-        except TypeError:
-            self.logger.debug('Got unknown disconnect reason reason: %s', msg)
-        else:
-            self.disconnect_reason = reason
+    async def handle(self, connection: ConnectionAPI, cmd: Disconnect) -> None:
+        self.disconnect_reason = cmd.payload
 
         if connection.is_operational:
             connection.cancel_nowait()
@@ -85,8 +78,7 @@ class P2PAPI(Application):
             self.connection,
             reason.name,
         )
-        base_protocol = self.connection.get_base_protocol()
-        base_protocol.send_disconnect(reason)
+        self.send_disconnect(reason)
         self.local_disconnect_reason = reason
 
     async def disconnect(self, reason: DisconnectReason) -> None:
@@ -103,5 +95,10 @@ class P2PAPI(Application):
     # Sending Pings
     #
     def send_ping(self) -> None:
-        base_protocol = self.connection.get_base_protocol()
-        base_protocol.send_ping()
+        self.connection.get_base_protocol().send(Ping(None))
+
+    def send_pong(self) -> None:
+        self.connection.get_base_protocol().send(Pong(None))
+
+    def send_disconnect(self, reason: DisconnectReason) -> None:
+        self.connection.get_base_protocol().send(Disconnect(reason))

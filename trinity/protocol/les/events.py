@@ -3,7 +3,6 @@ from dataclasses import (
 )
 from typing import (
     List,
-    Tuple,
     Type,
 )
 
@@ -26,6 +25,10 @@ from trinity.protocol.common.events import (
     PeerPoolMessageEvent,
 )
 from trinity.rlp.block_body import BlockBody
+
+from .commands import (
+    BlockHeaders,
+)
 
 
 @dataclass
@@ -126,10 +129,8 @@ class GetBlockHeadersEvent(PeerPoolMessageEvent):
 @dataclass
 class SendBlockHeadersEvent(BaseEvent):
     """
-    Event to proxy a ``LESPeer.sub_proto.send_block_heades`` call from a proxy peer to the actual
+    Event to proxy a ``LESPeer.sub_proto.send_block_headers`` call from a proxy peer to the actual
     peer that sits in the peer pool.
     """
     session: SessionAPI
-    headers: Tuple[BlockHeader, ...]
-    buffer_value: int
-    request_id: int
+    command: BlockHeaders

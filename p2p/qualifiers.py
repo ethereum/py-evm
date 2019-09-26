@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import (
+    Any,
     Type,
     TypeVar,
 )
@@ -70,7 +71,7 @@ class HasProtocol(BaseQualifier):
 
 
 class HasCommand(BaseQualifier):
-    def __init__(self, command_type: Type[CommandAPI]) -> None:
+    def __init__(self, command_type: Type[CommandAPI[Any]]) -> None:
         self._command_type = command_type
 
     def __call__(self, connection: ConnectionAPI, logic: LogicAPI) -> bool:

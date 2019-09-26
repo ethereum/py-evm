@@ -1,89 +1,177 @@
+from typing import Tuple
+
+from eth_typing import Hash32
+from eth_utils.curried import (
+    apply_formatter_at_index,
+    apply_formatter_to_array,
+)
+from eth_utils.toolz import compose
 from rlp import sedes
 
+from eth.abc import BlockHeaderAPI, ReceiptAPI
 from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import BaseTransactionFields
 
-from p2p.protocol import Command
+from p2p.commands import BaseCommand, RLPCodec
 
+from trinity.protocol.common.payloads import BlockHeadersQuery
 from trinity.rlp.block_body import BlockBody
-from trinity.rlp.sedes import HashOrNumber
+from trinity.rlp.sedes import HashOrNumber, hash_sedes
+
+from .payloads import (
+    StatusPayload,
+    NewBlockHash,
+    BlockFields,
+    NewBlockPayload,
+)
 
 
-hash_sedes = sedes.Binary(min_length=32, max_length=32)
+STATUS_STRUCTURE = sedes.List((
+    sedes.big_endian_int,
+    sedes.big_endian_int,
+    sedes.big_endian_int,
+    hash_sedes,
+    hash_sedes,
+))
 
 
-class Status(Command):
-    _cmd_id = 0
-    structure = (
-        ('protocol_version', sedes.big_endian_int),
-        ('network_id', sedes.big_endian_int),
-        ('td', sedes.big_endian_int),
-        ('best_hash', hash_sedes),
-        ('genesis_hash', hash_sedes),
+class Status(BaseCommand[StatusPayload]):
+    protocol_command_id = 0
+    serialization_codec = RLPCodec(
+        sedes=STATUS_STRUCTURE,
+        process_inbound_payload_fn=compose(
+            lambda args: StatusPayload(*args),
+        ),
     )
 
 
-class NewBlockHashes(Command):
-    _cmd_id = 1
-    structure = sedes.CountableList(sedes.List([hash_sedes, sedes.big_endian_int]))
+NEW_BLOCK_HASHES_STRUCTURE = sedes.CountableList(sedes.List([hash_sedes, sedes.big_endian_int]))
 
 
-class Transactions(Command):
-    _cmd_id = 2
-    structure = sedes.CountableList(BaseTransactionFields)
-
-
-class GetBlockHeaders(Command):
-    _cmd_id = 3
-    structure = (
-        ('block_number_or_hash', HashOrNumber()),
-        ('max_headers', sedes.big_endian_int),
-        ('skip', sedes.big_endian_int),
-        ('reverse', sedes.boolean),
+class NewBlockHashes(BaseCommand[Tuple[NewBlockHash, ...]]):
+    protocol_command_id = 1
+    serialization_codec = RLPCodec(
+        sedes=NEW_BLOCK_HASHES_STRUCTURE,
+        process_inbound_payload_fn=apply_formatter_to_array(lambda args: NewBlockHash(*args)),
     )
 
 
-class BlockHeaders(Command):
-    _cmd_id = 4
-    structure = sedes.CountableList(BlockHeader)
+TRANSACTIONS_STRUCTURE = sedes.CountableList(BaseTransactionFields)
 
 
-class GetBlockBodies(Command):
-    _cmd_id = 5
-    structure = sedes.CountableList(sedes.binary)
-
-
-class BlockBodies(Command):
-    _cmd_id = 6
-    structure = sedes.CountableList(BlockBody)
-
-
-class NewBlock(Command):
-    _cmd_id = 7
-    structure = (
-        ('block', sedes.List([BlockHeader,
-                              sedes.CountableList(BaseTransactionFields),
-                              sedes.CountableList(BlockHeader)])),
-        ('total_difficulty', sedes.big_endian_int),
+class Transactions(BaseCommand[Tuple[BaseTransactionFields, ...]]):
+    protocol_command_id = 2
+    serialization_codec: RLPCodec[Tuple[BaseTransactionFields, ...]] = RLPCodec(
+        sedes=TRANSACTIONS_STRUCTURE,
     )
 
 
-class GetNodeData(Command):
-    _cmd_id = 13
-    structure = sedes.CountableList(hash_sedes)
+GET_BLOCK_HEADERS_STRUCTURE = sedes.List((
+    HashOrNumber(),
+    sedes.big_endian_int,
+    sedes.big_endian_int,
+    sedes.boolean,
+))
 
 
-class NodeData(Command):
-    _cmd_id = 14
-    structure = sedes.CountableList(sedes.binary)
+class GetBlockHeaders(BaseCommand[BlockHeadersQuery]):
+    protocol_command_id = 3
+    serialization_codec = RLPCodec(
+        sedes=GET_BLOCK_HEADERS_STRUCTURE,
+        process_inbound_payload_fn=lambda args: BlockHeadersQuery(*args),
+    )
 
 
-class GetReceipts(Command):
-    _cmd_id = 15
-    structure = sedes.CountableList(hash_sedes)
+BLOCK_HEADERS_STRUCTURE = sedes.CountableList(BlockHeader)
 
 
-class Receipts(Command):
-    _cmd_id = 16
-    structure = sedes.CountableList(sedes.CountableList(Receipt))
+class BlockHeaders(BaseCommand[Tuple[BlockHeaderAPI, ...]]):
+    protocol_command_id = 4
+    serialization_codec: RLPCodec[Tuple[BlockHeaderAPI, ...]] = RLPCodec(
+        sedes=BLOCK_HEADERS_STRUCTURE,
+    )
+
+
+GET_BLOCK_BODIES_STRUCTURE = sedes.CountableList(hash_sedes)
+
+
+class GetBlockBodies(BaseCommand[Tuple[Hash32, ...]]):
+    protocol_command_id = 5
+    serialization_codec: RLPCodec[Tuple[Hash32, ...]] = RLPCodec(
+        sedes=GET_BLOCK_BODIES_STRUCTURE,
+    )
+
+
+BLOCK_BODIES_STRUCTURE = sedes.CountableList(BlockBody)
+
+
+class BlockBodies(BaseCommand[Tuple[BlockBody, ...]]):
+    protocol_command_id = 6
+    serialization_codec: RLPCodec[Tuple[BlockBody, ...]] = RLPCodec(
+        sedes=BLOCK_BODIES_STRUCTURE,
+    )
+
+
+NEW_BLOCK_STRUCTURE = sedes.List((
+    sedes.List((
+        BlockHeader,
+        sedes.CountableList(BaseTransactionFields),
+        sedes.CountableList(BlockHeader)
+    )),
+    sedes.big_endian_int
+))
+
+
+class NewBlock(BaseCommand[NewBlockPayload]):
+    protocol_command_id = 7
+    serialization_codec = RLPCodec(
+        sedes=NEW_BLOCK_STRUCTURE,
+        process_inbound_payload_fn=compose(
+            lambda args: NewBlockPayload(*args),
+            apply_formatter_at_index(
+                lambda args: BlockFields(*args),
+                0,
+            )
+        )
+    )
+
+
+GET_NODE_DATA_STRUCTURE = sedes.CountableList(hash_sedes)
+
+
+class GetNodeData(BaseCommand[Tuple[Hash32, ...]]):
+    protocol_command_id = 13
+    serialization_codec: RLPCodec[Tuple[Hash32, ...]] = RLPCodec(
+        sedes=GET_NODE_DATA_STRUCTURE,
+    )
+
+
+NODE_DATA_STRUCTURE = sedes.CountableList(sedes.binary)
+
+
+class NodeData(BaseCommand[Tuple[bytes, ...]]):
+    protocol_command_id = 14
+    serialization_codec: RLPCodec[Tuple[bytes, ...]] = RLPCodec(
+        sedes=NODE_DATA_STRUCTURE,
+    )
+
+
+GET_RECEIPTS_STRUCTURE = sedes.CountableList(hash_sedes)
+
+
+class GetReceipts(BaseCommand[Tuple[Hash32, ...]]):
+    protocol_command_id = 15
+    serialization_codec: RLPCodec[Tuple[Hash32, ...]] = RLPCodec(
+        sedes=GET_RECEIPTS_STRUCTURE,
+    )
+
+
+RECEIPTS_STRUCTURE = sedes.CountableList(sedes.CountableList(Receipt))
+
+
+class Receipts(BaseCommand[Tuple[Tuple[ReceiptAPI, ...], ...]]):
+    protocol_command_id = 16
+    serialization_codec: RLPCodec[Tuple[Tuple[ReceiptAPI, ...], ...]] = RLPCodec(
+        sedes=RECEIPTS_STRUCTURE,
+    )

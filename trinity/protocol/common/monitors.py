@@ -67,7 +67,7 @@ class BaseChainTipMonitor(BaseService, PeerSubscriber):
     async def _handle_msg_loop(self) -> None:
         new_tip_types = tuple(self.subscription_msg_types)
         while self.is_operational:
-            peer, cmd, msg = await self.wait(self.msg_queue.get())
+            peer, cmd = await self.wait(self.msg_queue.get())
             if isinstance(cmd, new_tip_types):
                 self._notify_tip()
 

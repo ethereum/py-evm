@@ -3,6 +3,7 @@ import asyncio
 from collections import Counter
 import typing
 from typing import (
+    Any,
     FrozenSet,
     Iterable,
     List,
@@ -67,7 +68,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
     the round-trip-time that peers take to respond to GetNodeData commands.
     """
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for

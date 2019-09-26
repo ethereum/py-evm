@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     List,
     Tuple,
     TYPE_CHECKING,
@@ -23,7 +24,6 @@ from lahja import (
 
 from p2p.abc import BehaviorAPI, CommandAPI, HandshakerAPI, SessionAPI
 from p2p.peer_pool import BasePeerPool
-from p2p.typing import Payload
 
 from trinity.rlp.block_body import BlockBody
 from trinity.protocol.common.peer import (
@@ -37,28 +37,28 @@ from trinity.protocol.common.peer_pool_event_bus import (
     BaseProxyPeerPool,
 )
 
-from .api import LESAPI
+from .api import LESV1API, LESV2API
 from .commands import GetBlockHeaders
 from .constants import (
     MAX_HEADERS_FETCH,
 )
 from .events import (
-    GetBlockHeadersEvent,
-    SendBlockHeadersEvent,
-)
-from .proto import (
-    LESHandshakeParams,
-    LESProtocolV1,
-    LESProtocolV2,
-    ProxyLESProtocol,
-)
-from .events import (
     GetAccountRequest,
     GetBlockBodyByHashRequest,
     GetBlockHeaderByHashRequest,
+    GetBlockHeadersEvent,
     GetContractCodeRequest,
     GetReceiptsRequest,
+    SendBlockHeadersEvent,
 )
+from .payloads import (
+    StatusPayload,
+)
+from .proto import (
+    LESProtocolV1,
+    LESProtocolV2,
+)
+from .proxy import ProxyLESAPI
 from .handshaker import LESV1Handshaker, LESV2Handshaker
 
 if TYPE_CHECKING:
@@ -72,11 +72,16 @@ class LESPeer(BaseChainPeer):
     sub_proto: Union[LESProtocolV1, LESProtocolV2] = None
 
     def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
-        return super().get_behaviors() + (LESAPI().as_behavior(),)
+        return super().get_behaviors() + (LESV1API().as_behavior(), LESV2API().as_behavior())
 
     @cached_property
-    def les_api(self) -> LESAPI:
-        return self.connection.get_logic(LESAPI.name, LESAPI)
+    def les_api(self) -> Union[LESV1API, LESV2API]:
+        if self.connection.has_protocol(LESProtocolV2):
+            return self.connection.get_logic(LESV2API.name, LESV2API)
+        elif self.connection.has_protocol(LESProtocolV1):
+            return self.connection.get_logic(LESV1API.name, LESV1API)
+        else:
+            raise Exception("Should be unreachable")
 
 
 class LESProxyPeer(BaseProxyPeer):
@@ -89,18 +94,22 @@ class LESProxyPeer(BaseProxyPeer):
     def __init__(self,
                  session: SessionAPI,
                  event_bus: EndpointAPI,
-                 sub_proto: ProxyLESProtocol):
+                 les_api: ProxyLESAPI):
 
         super().__init__(session, event_bus)
 
-        self.sub_proto = sub_proto
+        self.les_api = les_api
 
     @classmethod
     def from_session(cls,
                      session: SessionAPI,
                      event_bus: EndpointAPI,
                      broadcast_config: BroadcastConfig) -> 'LESProxyPeer':
-        return cls(session, event_bus, ProxyLESProtocol(session, event_bus, broadcast_config))
+        return cls(
+            session,
+            event_bus,
+            ProxyLESAPI(session, event_bus, broadcast_config),
+        )
 
 
 class LESPeerFactory(BaseChainPeerFactory):
@@ -133,8 +142,8 @@ class LESPeerFactory(BaseChainPeerFactory):
             flow_control_mrr=None,
             announce_type=None,
         )
-        v1_handshake_params = LESHandshakeParams(version=1, **handshake_params_kwargs)
-        v2_handshake_params = LESHandshakeParams(version=2, **handshake_params_kwargs)
+        v1_handshake_params = StatusPayload(version=1, **handshake_params_kwargs)
+        v2_handshake_params = StatusPayload(version=2, **handshake_params_kwargs)
 
         return (
             LESV1Handshaker(handshake_params=v1_handshake_params),
@@ -163,7 +172,7 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
             SendBlockHeadersEvent,
             lambda ev: self.try_with_session(
                 ev.session,
-                lambda peer: peer.sub_proto.send_block_headers(ev.headers, ev.buffer_value, ev.request_id)  # noqa: E501
+                lambda peer: peer.sub_proto.send(ev.command)
             )
         )
 
@@ -213,10 +222,9 @@ class LESPeerPoolEventServer(PeerPoolEventServer[LESPeer]):
 
     async def handle_native_peer_message(self,
                                          session: SessionAPI,
-                                         cmd: CommandAPI,
-                                         msg: Payload) -> None:
+                                         cmd: CommandAPI[Any]) -> None:
         if isinstance(cmd, GetBlockHeaders):
-            await self.event_bus.broadcast(GetBlockHeadersEvent(session, cmd, msg))
+            await self.event_bus.broadcast(GetBlockHeadersEvent(session, cmd))
         else:
             raise Exception(f"Command {cmd} is not broadcasted")
 

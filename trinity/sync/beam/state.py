@@ -4,6 +4,7 @@ from concurrent.futures import CancelledError
 import itertools
 import typing
 from typing import (
+    Any,
     FrozenSet,
     Iterable,
     Set,
@@ -81,7 +82,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
     _num_predictive_requests_by_peer: typing.Counter[ETHPeer]
 
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for

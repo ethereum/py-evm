@@ -16,6 +16,8 @@ from eth.constants import (
     GENESIS_BLOCK_NUMBER
 )
 from eth.db.header import HeaderDB
+
+from p2p.abc import ProtocolAPI
 from p2p.constants import (
     DISCOVERY_EVENTBUS_ENDPOINT,
 )
@@ -29,9 +31,6 @@ from p2p.discovery import (
 )
 from p2p.kademlia import (
     Address,
-)
-from p2p.protocol import (
-    Protocol,
 )
 from p2p.service import (
     BaseService,
@@ -58,9 +57,12 @@ from trinity._utils.shutdown import (
 )
 
 
-def get_protocol(trinity_config: TrinityConfig) -> Type[Protocol]:
+def get_protocol(trinity_config: TrinityConfig) -> Type[ProtocolAPI]:
     # For now DiscoveryByTopicProtocol supports a single topic, so we use the latest
     # version of our supported protocols. Maybe this could be more generic?
+    # TODO: This needs to support the beacon protocol when we have a way to
+    # check the config, if trinity is being run as a beacon node.
+
     eth1_config = trinity_config.get_app_config(Eth1AppConfig)
     if eth1_config.database_mode is Eth1DbMode.LIGHT:
         return LESProtocolV2
@@ -68,7 +70,7 @@ def get_protocol(trinity_config: TrinityConfig) -> Type[Protocol]:
         return ETHProtocol
 
 
-def get_discv5_topic(trinity_config: TrinityConfig, protocol: Type[Protocol]) -> bytes:
+def get_discv5_topic(trinity_config: TrinityConfig, protocol: Type[ProtocolAPI]) -> bytes:
     db = DBClient.connect(trinity_config.database_ipc_path)
 
     header_db = HeaderDB(db)

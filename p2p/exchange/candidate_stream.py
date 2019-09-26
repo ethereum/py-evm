@@ -8,17 +8,14 @@ from typing import (
 )
 
 from p2p.abc import (
-    CommandAPI,
     ConnectionAPI,
     ProtocolAPI,
-    RequestAPI,
 )
 from p2p.exceptions import (
     ConnectionBusy,
     PeerConnectionLost,
 )
 from p2p.service import BaseService
-from p2p.typing import TRequestPayload, TResponsePayload
 
 from .abc import (
     PerformanceTrackerAPI,
@@ -28,20 +25,24 @@ from .constants import (
     ROUND_TRIP_TIMEOUT,
     NUM_QUEUED_REQUESTS,
 )
+from .typing import (
+    TRequestCommand,
+    TResponseCommand,
+)
 
 
 class ResponseCandidateStream(
-        ResponseCandidateStreamAPI[TRequestPayload, TResponsePayload],
+        ResponseCandidateStreamAPI[TRequestCommand, TResponseCommand],
         BaseService):
     response_timeout: float = ROUND_TRIP_TIMEOUT
 
-    pending_request: Tuple[float, 'asyncio.Future[TResponsePayload]'] = None
+    pending_request: Tuple[float, 'asyncio.Future[TResponseCommand]'] = None
 
     def __init__(
             self,
             connection: ConnectionAPI,
             request_protocol: ProtocolAPI,
-            response_cmd_type: Type[CommandAPI]) -> None:
+            response_cmd_type: Type[TResponseCommand]) -> None:
         # This style of initialization keeps `mypy` happy.
         BaseService.__init__(self, token=connection.cancel_token)
 
@@ -55,10 +56,10 @@ class ResponseCandidateStream(
 
     async def payload_candidates(
             self,
-            request: RequestAPI[TRequestPayload],
-            tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], Any],
+            request: TRequestCommand,
+            tracker: PerformanceTrackerAPI[TRequestCommand, Any],
             *,
-            timeout: float = None) -> AsyncIterator[TResponsePayload]:
+            timeout: float = None) -> AsyncIterator[TResponseCommand]:
         """
         Make a request and iterate through candidates for a valid response.
 
@@ -107,12 +108,12 @@ class ResponseCandidateStream(
     async def _run(self) -> None:
         self.logger.debug("Launching %r", self)
 
-        # mypy doesn't recognizet the `TResponsePayload` as being an allowed
+        # mypy doesn't recognizet the `TResponseCommand` as being an allowed
         # variant of the expected `Payload` type.
         with self._connection.add_command_handler(self.response_cmd_type, self._handle_msg):  # type: ignore  # noqa: E501
             await self.cancellation()
 
-    async def _handle_msg(self, connection: ConnectionAPI, msg: TResponsePayload) -> None:
+    async def _handle_msg(self, connection: ConnectionAPI, cmd: TResponseCommand) -> None:
         if self.pending_request is None:
             self.logger.debug(
                 "Got unexpected %s payload from %s", self.response_cmd_name, self._connection
@@ -122,14 +123,14 @@ class ResponseCandidateStream(
         send_time, future = self.pending_request
         self.last_response_time = time.perf_counter() - send_time
         try:
-            future.set_result(msg)
+            future.set_result(cmd)
         except asyncio.InvalidStateError:
             self.logger.debug(
                 "%s received a message response, but future was already done",
                 self,
             )
 
-    async def _get_payload(self, timeout: float) -> TResponsePayload:
+    async def _get_payload(self, timeout: float) -> TResponseCommand:
         send_time, future = self.pending_request
         try:
             payload = await self.wait(future, timeout=timeout)
@@ -141,7 +142,7 @@ class ResponseCandidateStream(
 
         return payload
 
-    def _request(self, request: RequestAPI[TRequestPayload]) -> None:
+    def _request(self, request: TRequestCommand) -> None:
         if not self._lock.locked():
             # This is somewhat of an invariant check but since there the
             # linkage between the lock and this method are loose this sanity
@@ -149,9 +150,9 @@ class ResponseCandidateStream(
             raise Exception("Invariant: cannot issue a request without an acquired lock")
 
         # TODO: better API for getting at the protocols from the connection....
-        self.request_protocol.send_request(request)
+        self.request_protocol.send(request)
 
-        future: 'asyncio.Future[TResponsePayload]' = asyncio.Future()
+        future: 'asyncio.Future[TResponseCommand]' = asyncio.Future()
         self.pending_request = (time.perf_counter(), future)
 
     @property

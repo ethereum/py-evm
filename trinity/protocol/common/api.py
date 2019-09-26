@@ -8,7 +8,7 @@ from p2p.qualifiers import HasProtocol
 
 from trinity.protocol.eth.api import ETHAPI
 from trinity.protocol.eth.proto import ETHProtocol
-from trinity.protocol.les.api import LESAPI
+from trinity.protocol.les.api import LESV1API, LESV2API
 from trinity.protocol.les.proto import LESProtocolV1, LESProtocolV2
 
 from .abc import ChainInfoAPI, HeadInfoAPI
@@ -29,11 +29,13 @@ class ChainInfo(Application, ChainInfoAPI):
     def genesis_hash(self) -> Hash32:
         return self._get_logic().genesis_hash
 
-    def _get_logic(self) -> Union[ETHAPI, LESAPI]:
+    def _get_logic(self) -> Union[ETHAPI, LESV1API, LESV2API]:
         if self.connection.has_protocol(ETHProtocol):
             return self.connection.get_logic(ETHAPI.name, ETHAPI)
-        elif self.connection.has_protocol(LESProtocolV2) or self.connection.has_protocol(LESProtocolV1):  # noqa: E501
-            return self.connection.get_logic(LESAPI.name, LESAPI)
+        elif self.connection.has_protocol(LESProtocolV2):
+            return self.connection.get_logic(LESV2API.name, LESV2API)
+        elif self.connection.has_protocol(LESProtocolV1):
+            return self.connection.get_logic(LESV1API.name, LESV1API)
         else:
             raise Exception("Unreachable code path")
 
@@ -48,9 +50,12 @@ class HeadInfo(Application, HeadInfoAPI):
         if self.connection.has_protocol(ETHProtocol):
             eth_logic = self.connection.get_logic(ETHAPI.name, ETHAPI)
             return eth_logic.head_info
-        elif self.connection.has_protocol(LESProtocolV2) or self.connection.has_protocol(LESProtocolV1):  # noqa: E501
-            les_logic = self.connection.get_logic(LESAPI.name, LESAPI)
-            return les_logic.head_info
+        elif self.connection.has_protocol(LESProtocolV2):
+            les_v2_logic = self.connection.get_logic(LESV2API.name, LESV2API)
+            return les_v2_logic.head_info
+        elif self.connection.has_protocol(LESProtocolV1):
+            les_v1_logic = self.connection.get_logic(LESV1API.name, LESV1API)
+            return les_v1_logic.head_info
         else:
             raise Exception("Unreachable code path")
 

@@ -1,7 +1,5 @@
 from typing import (
     cast,
-    Any,
-    Dict,
     Type,
     Union,
 )
@@ -20,21 +18,20 @@ from p2p.receipt import HandshakeReceipt
 
 from trinity.exceptions import WrongGenesisFailure, WrongNetworkFailure
 
-from .commands import Status, StatusV2
-
-from .proto import LESHandshakeParams, LESProtocolV1, LESProtocolV2
-
+from .commands import StatusV1, StatusV2
+from .payloads import StatusPayload
+from .proto import LESProtocolV1, LESProtocolV2
 
 AnyLESProtocol = Union[LESProtocolV1, LESProtocolV2]
 AnyLESProtocolClass = Union[Type[LESProtocolV1], Type[LESProtocolV2]]
 
 
 class LESHandshakeReceipt(HandshakeReceipt):
-    handshake_params: LESHandshakeParams
+    handshake_params: StatusPayload
 
     def __init__(self,
                  protocol: AnyLESProtocol,
-                 handshake_params: LESHandshakeParams,
+                 handshake_params: StatusPayload,
                  ) -> None:
         super().__init__(protocol)
         self.handshake_params = handshake_params
@@ -61,9 +58,9 @@ class LESHandshakeReceipt(HandshakeReceipt):
 
 
 class BaseLESHandshaker(Handshaker):
-    handshake_params: LESHandshakeParams
+    handshake_params: StatusPayload
 
-    def __init__(self, handshake_params: LESHandshakeParams) -> None:
+    def __init__(self, handshake_params: StatusPayload) -> None:
         if handshake_params.version != self.protocol_class.version:
             raise Exception("DID NOT MATCH")
         self.handshake_params = handshake_params
@@ -76,44 +73,23 @@ class BaseLESHandshaker(Handshaker):
         Raises HandshakeFailure if the handshake is not successful.
         """
         protocol = cast(AnyLESProtocol, protocol)
-        protocol.send_handshake(self.handshake_params)
+        protocol.send(protocol.status_command_type(self.handshake_params))
 
-        async for cmd, msg in multiplexer.stream_protocol_messages(protocol):
-            if not isinstance(cmd, (Status, StatusV2)):
+        async for cmd in multiplexer.stream_protocol_messages(protocol):
+            if not isinstance(cmd, (StatusV1, StatusV2)):
                 raise HandshakeFailure(f"Expected a LES Status msg, got {cmd}, disconnecting")
 
-            msg = cast(Dict[str, Any], msg)
-
-            remote_params = LESHandshakeParams(
-                version=msg['protocolVersion'],
-                network_id=msg['networkId'],
-                head_td=msg['headTd'],
-                head_hash=msg['headHash'],
-                head_number=msg['headNum'],
-                genesis_hash=msg['genesisHash'],
-                serve_headers=('serveHeaders' in msg),
-                serve_chain_since=msg.get('serveChainSince'),
-                serve_state_since=msg.get('serveStateSince'),
-                serve_recent_chain=msg.get('serveRecentChain'),
-                serve_recent_state=msg.get('serveRecentState'),
-                tx_relay=('txRelay' in msg),
-                flow_control_bl=msg.get('flowControl/BL'),
-                flow_control_mcr=msg.get('flowControl/MRC'),
-                flow_control_mrr=msg.get('flowControl/MRR'),
-                announce_type=msg.get('announceType'),  # TODO: only in StatusV2
-            )
-
-            if remote_params.network_id != self.handshake_params.network_id:
+            if cmd.payload.network_id != self.handshake_params.network_id:
                 raise WrongNetworkFailure(
                     f"{multiplexer.remote} network "
-                    f"({remote_params.network_id}) does not match ours "
+                    f"({cmd.payload.network_id}) does not match ours "
                     f"({self.handshake_params.network_id}), disconnecting"
                 )
 
-            if remote_params.genesis_hash != self.handshake_params.genesis_hash:
+            if cmd.payload.genesis_hash != self.handshake_params.genesis_hash:
                 raise WrongGenesisFailure(
                     f"{multiplexer.remote} genesis "
-                    f"({encode_hex(remote_params.genesis_hash)}) does "
+                    f"({encode_hex(cmd.payload.genesis_hash)}) does "
                     f"not match ours "
                     f"({encode_hex(self.handshake_params.genesis_hash)}), "
                     f"disconnecting"
@@ -123,10 +99,10 @@ class BaseLESHandshaker(Handshaker):
             # are the only side serving data, but right now both our chain
             # syncer and the Peer.boot() method expect the remote to reply to
             # header requests, so if they don't we simply disconnect here.
-            if remote_params.serve_headers is False:
+            if cmd.payload.serve_headers is False:
                 raise HandshakeFailure(f"{multiplexer.remote} doesn't serve headers, disconnecting")
 
-            receipt = LESHandshakeReceipt(protocol, remote_params)
+            receipt = LESHandshakeReceipt(protocol, cmd.payload)
             break
         else:
             raise HandshakeFailure("Message stream exited before finishing handshake")
@@ -135,8 +111,10 @@ class BaseLESHandshaker(Handshaker):
 
 
 class LESV1Handshaker(BaseLESHandshaker):
+    status_command_type = StatusV1
     protocol_class = LESProtocolV1
 
 
 class LESV2Handshaker(BaseLESHandshaker):
+    status_command_type = StatusV2
     protocol_class = LESProtocolV2
