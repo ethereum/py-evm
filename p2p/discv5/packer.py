@@ -35,6 +35,9 @@ from p2p.discv5.channel_services import (
     OutgoingMessage,
     OutgoingPacket,
 )
+from p2p.discv5.constants import (
+    HANDSHAKE_TIMEOUT,
+)
 from p2p.discv5.enr import (
     ENR,
 )
@@ -98,6 +101,12 @@ class PeerPacker(Service):
 
         self.outgoing_message_backlog: List[OutgoingMessage] = []
 
+        # This lock ensures that at all times, at most one incoming packet or outgoing message is
+        # being processed.
+        self.handling_lock = trio.Lock()
+
+        self.handshake_successful_event: Optional[trio.Event] = None
+
     def __str__(self) -> str:
         return f"{self.__class__.__name__}[{encode_hex(self.remote_node_id)[2:10]}]"
 
@@ -110,9 +119,8 @@ class PeerPacker(Service):
 
     async def handle_incoming_packets(self) -> None:
         async for incoming_packet in self.incoming_packet_receive_channel:
-            # Handle packets sequentially, so that the rest of the code doesn't have to deal
-            # with multiple packets being processed at the same time.
-            await self.handle_incoming_packet(incoming_packet)
+            async with self.handling_lock:
+                await self.handle_incoming_packet(incoming_packet)
 
     async def handle_incoming_packet(self, incoming_packet: IncomingPacket) -> None:
         if self.is_pre_handshake:
@@ -126,9 +134,8 @@ class PeerPacker(Service):
 
     async def handle_outgoing_messages(self) -> None:
         async for outgoing_message in self.outgoing_message_receive_channel:
-            # Similar to the incoming packets outgoing messages are processed in sequence, even
-            # though it's not that critical here
-            await self.handle_outgoing_message(outgoing_message)
+            async with self.handling_lock:
+                await self.handle_outgoing_message(outgoing_message)
 
     async def handle_outgoing_message(self, outgoing_message: OutgoingMessage) -> None:
         if self.is_pre_handshake:
@@ -159,24 +166,12 @@ class PeerPacker(Service):
                     f"Unable to find local ENR in DB by node id {encode_hex(self.local_node_id)}"
                 )
 
-            # There's a minimal chance that while we were looking up the ENRs in the db, we've
-            # initiated a handshake ourselves. Therefore, we check that we are still in the pre
-            # handshake state, if not we just drop the packet (which is what we always do with
-            # AuthTag packets received after we have initiated a handshake).
-            if self.is_pre_handshake:
-                self.logger.debug("Received %s as handshake initiation", incoming_packet)
-                self.start_handshake_as_recipient(
-                    auth_tag=incoming_packet.packet.auth_tag,
-                    local_enr=local_enr,
-                    remote_enr=remote_enr,
-                )
-            else:
-                self.logger.warning(
-                    "Dropping %s previously thought to initiate handshake as we have initiated "
-                    "handshake ourselves in the meantime",
-                    incoming_packet,
-                )
-
+            self.logger.debug("Received %s as handshake initiation", incoming_packet)
+            self.start_handshake_as_recipient(
+                auth_tag=incoming_packet.packet.auth_tag,
+                local_enr=local_enr,
+                remote_enr=remote_enr,
+            )
             self.logger.debug("Responding with WhoAreYou packet")
             await self.send_first_handshake_packet(incoming_packet.sender_endpoint)
         else:
@@ -209,6 +204,7 @@ class PeerPacker(Service):
             raise  # let the service fail
         else:
             self.logger.info("Handshake with %s was successful", encode_hex(self.remote_node_id))
+            self.handshake_successful_event.set()
 
             # copy message backlog before we reset it
             outgoing_message_backlog = tuple(self.outgoing_message_backlog)
@@ -306,21 +302,14 @@ class PeerPacker(Service):
             )
             raise HandshakeFailure()
 
-        # There is a minimal chance that while we were looking up the ENRs in the db, the peer has
-        # initiated a handshake by themselves. Therefore, we check that we are still in the pre
-        # handshake state, if not we just handle the packet again (which will most likely result in
-        # the message being put on the backlog).
-        if self.is_pre_handshake:
-            self.logger.info("Initiating handshake to send %s", outgoing_message)
-            self.start_handshake_as_initiator(
-                local_enr=local_enr,
-                remote_enr=remote_enr,
-                message=outgoing_message.message,
-            )
-            self.logger.debug("Sending initiating packet")
-            await self.send_first_handshake_packet(outgoing_message.receiver_endpoint)
-        else:
-            await self.handle_outgoing_message(outgoing_message)
+        self.logger.info("Initiating handshake to send %s", outgoing_message)
+        self.start_handshake_as_initiator(
+            local_enr=local_enr,
+            remote_enr=remote_enr,
+            message=outgoing_message.message,
+        )
+        self.logger.debug("Sending initiating packet")
+        await self.send_first_handshake_packet(outgoing_message.receiver_endpoint)
 
     async def handle_outgoing_message_during_handshake(self,
                                                        outgoing_message: OutgoingMessage
@@ -373,6 +362,8 @@ class PeerPacker(Service):
             remote_enr=remote_enr,
             initial_message=message,
         )
+        self.handshake_successful_event = trio.Event()
+        self.manager.run_task(self.check_handshake_timeout, self.handshake_successful_event)
 
         if not self.is_during_handshake:
             raise Exception("Invariant: After a handshake is started, the handshake is in progress")
@@ -392,9 +383,21 @@ class PeerPacker(Service):
             remote_enr=remote_enr,
             initiating_packet_auth_tag=auth_tag,
         )
+        self.handshake_successful_event = trio.Event()
+        self.manager.run_task(self.check_handshake_timeout, self.handshake_successful_event)
 
         if not self.is_during_handshake:
             raise Exception("Invariant: After a handshake is started, the handshake is in progress")
+
+    async def check_handshake_timeout(self, handshake_successful_event: trio.Event) -> None:
+        try:
+            with trio.fail_after(HANDSHAKE_TIMEOUT):
+                # Only the timeout for successful handshakes has to be checked as a failure during
+                # handshake will make the service as a whole fail.
+                await handshake_successful_event.wait()
+        except trio.TooSlowError as too_slow_error:
+            self.logger.warning("Handshake with %s has timed out", encode_hex(self.remote_node_id))
+            raise HandshakeFailure("Handshake has timed out") from too_slow_error
 
     #
     # Handshake states
@@ -425,6 +428,7 @@ class PeerPacker(Service):
         self.handshake_participant = None
         self.session_keys = None
         self.outgoing_message_backlog.clear()
+        self.handshake_finished_event = None
 
     def is_expecting_handshake_packet(self, incoming_packet: IncomingPacket) -> bool:
         """Check if the peer packer is waiting for the given packet to complete a handshake.
@@ -579,9 +583,9 @@ class Packer(Service):
             enr_db=self.enr_db,
             message_type_registry=self.message_type_registry,
             incoming_packet_receive_channel=incoming_packet_channels[1],
-            incoming_message_send_channel=self.incoming_message_send_channel,
+            incoming_message_send_channel=self.incoming_message_send_channel.clone(),
             outgoing_message_receive_channel=outgoing_message_channels[1],
-            outgoing_packet_send_channel=self.outgoing_packet_send_channel,
+            outgoing_packet_send_channel=self.outgoing_packet_send_channel.clone(),
         )
 
         manager = Manager(peer_packer)
@@ -615,12 +619,12 @@ class Packer(Service):
             raise ValueError(
                 "Peer packer for {encode_hex(remote_node_id)} has already been started"
             ) from lifecycle_error
-        except HandshakeFailure as handshake_failure:
+        except HandshakeFailure:
             # peer packer has logged a warning already
             self.logger.debug(
                 "Peer packer %s has failed to do handshake with %s",
                 managed_peer_packer.peer_packer,
-                handshake_failure,
+                encode_hex(remote_node_id),
             )
         finally:
             self.logger.info("Deregistering peer packer %s", managed_peer_packer.peer_packer)

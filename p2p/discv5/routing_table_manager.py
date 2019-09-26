@@ -54,7 +54,7 @@ from p2p.discv5.typing import (
 class BaseRoutingTableManagerComponent(Service):
     """Base class for services that participate in managing the routing table."""
 
-    logger = logging.getLogger("p2p.discv5.routing_table_manager.BaseRoutingTableManager")
+    logger = logging.getLogger("p2p.discv5.routing_table_manager.BaseRoutingTableManagerComponent")
 
     def __init__(self,
                  local_node_id: NodeID,
@@ -192,10 +192,10 @@ class BaseRoutingTableManagerComponent(Service):
             await self.enr_db.insert_or_update(enr)
 
 
-class PingHandler(BaseRoutingTableManagerComponent):
+class PingHandlerService(BaseRoutingTableManagerComponent):
     """Responds to Pings with Pongs and requests ENR updates."""
 
-    logger = logging.getLogger("p2p.discv5.routing_table_manager.PingHandler")
+    logger = logging.getLogger("p2p.discv5.routing_table_manager.PingHandlerService")
 
     def __init__(self,
                  local_node_id: NodeID,
@@ -243,10 +243,10 @@ class PingHandler(BaseRoutingTableManagerComponent):
         await self.outgoing_message_send_channel.send(outgoing_message)
 
 
-class FindNodeHandler(BaseRoutingTableManagerComponent):
+class FindNodeHandlerService(BaseRoutingTableManagerComponent):
     """Responds to FindNode with Nodes messages."""
 
-    logger = logging.getLogger("p2p.discv5.routing_table_manager.PingHandler")
+    logger = logging.getLogger("p2p.discv5.routing_table_manager.FindNodeHandlerService")
 
     def __init__(self,
                  local_node_id: NodeID,
@@ -296,10 +296,10 @@ class FindNodeHandler(BaseRoutingTableManagerComponent):
         await self.outgoing_message_send_channel.send(outgoing_message)
 
 
-class PingSender(BaseRoutingTableManagerComponent):
+class PingSenderService(BaseRoutingTableManagerComponent):
     """Regularly sends pings to peers to check if they are still alive or not."""
 
-    logger = logging.getLogger("p2p.discv5.routing_table_manager.RoutingTableMaintainer")
+    logger = logging.getLogger("p2p.discv5.routing_table_manager.PingSenderService")
 
     def __init__(self,
                  local_node_id: NodeID,
@@ -393,26 +393,26 @@ class RoutingTableManager(Service):
             "enr_db": enr_db,
         })
 
-        self.ping_handler = PingHandler(
+        self.ping_handler_service = PingHandlerService(
             outgoing_message_send_channel=outgoing_message_send_channel,
             **shared_component_kwargs,
         )
-        self.find_node_handler = FindNodeHandler(
+        self.find_node_handler_service = FindNodeHandlerService(
             outgoing_message_send_channel=outgoing_message_send_channel,
             **shared_component_kwargs,
         )
-        self.ping_sender = PingSender(
+        self.ping_sender_service = PingSenderService(
             endpoint_vote_send_channel=endpoint_vote_send_channel,
             **shared_component_kwargs,
         )
 
     async def run(self) -> None:
-        components = (
-            self.ping_handler,
-            self.find_node_handler,
-            self.ping_sender,
+        child_services = (
+            self.ping_handler_service,
+            self.find_node_handler_service,
+            self.ping_sender_service,
         )
-        for component in components:
-            self.manager.run_daemon_task(component.run)
+        for child_service in child_services:
+            self.manager.run_daemon_child_service(child_service)
 
         await self.manager.wait_cancelled()
