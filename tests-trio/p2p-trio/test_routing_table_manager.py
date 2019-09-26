@@ -32,9 +32,9 @@ from p2p.discv5.routing_table import (
     FlatRoutingTable,
 )
 from p2p.discv5.routing_table_manager import (
-    FindNodeHandler,
-    PingHandler,
-    PingSender,
+    FindNodeHandlerService,
+    PingHandlerService,
+    PingSenderService,
 )
 
 from p2p.tools.factories.discovery import (
@@ -113,62 +113,62 @@ async def message_dispatcher(enr_db, incoming_message_channels, outgoing_message
 
 
 @pytest_trio.trio_fixture
-async def ping_handler(local_enr,
-                       routing_table,
-                       message_dispatcher,
-                       enr_db,
-                       incoming_message_channels,
-                       outgoing_message_channels):
-    ping_handler = PingHandler(
+async def ping_handler_service(local_enr,
+                               routing_table,
+                               message_dispatcher,
+                               enr_db,
+                               incoming_message_channels,
+                               outgoing_message_channels):
+    ping_handler_service = PingHandlerService(
         local_node_id=local_enr.node_id,
         routing_table=routing_table,
         message_dispatcher=message_dispatcher,
         enr_db=enr_db,
         outgoing_message_send_channel=outgoing_message_channels[0],
     )
-    async with background_service(ping_handler):
-        yield ping_handler
+    async with background_service(ping_handler_service):
+        yield ping_handler_service
 
 
 @pytest_trio.trio_fixture
-async def find_node_handler(local_enr,
-                            routing_table,
-                            message_dispatcher,
-                            enr_db,
-                            incoming_message_channels,
-                            outgoing_message_channels,
-                            endpoint_vote_channels):
-    find_node_handler = FindNodeHandler(
+async def find_node_handler_service(local_enr,
+                                    routing_table,
+                                    message_dispatcher,
+                                    enr_db,
+                                    incoming_message_channels,
+                                    outgoing_message_channels,
+                                    endpoint_vote_channels):
+    find_node_handler_service = FindNodeHandlerService(
         local_node_id=local_enr.node_id,
         routing_table=routing_table,
         message_dispatcher=message_dispatcher,
         enr_db=enr_db,
         outgoing_message_send_channel=outgoing_message_channels[0],
     )
-    async with background_service(find_node_handler):
-        yield ping_handler
+    async with background_service(find_node_handler_service):
+        yield find_node_handler_service
 
 
 @pytest_trio.trio_fixture
-async def ping_sender(local_enr,
-                      routing_table,
-                      message_dispatcher,
-                      enr_db,
-                      incoming_message_channels,
-                      endpoint_vote_channels):
-    ping_sender = PingSender(
+async def ping_sender_service(local_enr,
+                              routing_table,
+                              message_dispatcher,
+                              enr_db,
+                              incoming_message_channels,
+                              endpoint_vote_channels):
+    ping_sender_service = PingSenderService(
         local_node_id=local_enr.node_id,
         routing_table=routing_table,
         message_dispatcher=message_dispatcher,
         enr_db=enr_db,
         endpoint_vote_send_channel=endpoint_vote_channels[0],
     )
-    async with background_service(ping_sender):
-        yield ping_sender
+    async with background_service(ping_sender_service):
+        yield ping_sender_service
 
 
 @pytest.mark.trio
-async def test_ping_handler_sends_pong(ping_handler,
+async def test_ping_handler_sends_pong(ping_handler_service,
                                        incoming_message_channels,
                                        outgoing_message_channels,
                                        local_enr):
@@ -186,7 +186,7 @@ async def test_ping_handler_sends_pong(ping_handler,
 
 
 @pytest.mark.trio
-async def test_ping_handler_updates_routing_table(ping_handler,
+async def test_ping_handler_updates_routing_table(ping_handler_service,
                                                   incoming_message_channels,
                                                   outgoing_message_channels,
                                                   local_enr,
@@ -208,7 +208,7 @@ async def test_ping_handler_updates_routing_table(ping_handler,
 
 
 @pytest.mark.trio
-async def test_ping_handler_requests_updated_enr(ping_handler,
+async def test_ping_handler_requests_updated_enr(ping_handler_service,
                                                  incoming_message_channels,
                                                  outgoing_message_channels,
                                                  local_enr,
@@ -239,7 +239,7 @@ async def test_ping_handler_requests_updated_enr(ping_handler,
 
 
 @pytest.mark.trio
-async def test_find_node_handler_sends_nodes(find_node_handler,
+async def test_find_node_handler_sends_nodes(find_node_handler_service,
                                              incoming_message_channels,
                                              outgoing_message_channels,
                                              local_enr):
@@ -256,7 +256,7 @@ async def test_find_node_handler_sends_nodes(find_node_handler,
 
 
 @pytest.mark.trio
-async def test_send_ping(ping_sender,
+async def test_send_ping(ping_sender_service,
                          routing_table,
                          incoming_message_channels,
                          outgoing_message_channels,
@@ -272,7 +272,7 @@ async def test_send_ping(ping_sender,
 
 
 @pytest.mark.trio
-async def test_send_endpoint_vote(ping_sender,
+async def test_send_endpoint_vote(ping_sender_service,
                                   routing_table,
                                   incoming_message_channels,
                                   outgoing_message_channels,
