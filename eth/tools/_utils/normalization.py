@@ -360,29 +360,31 @@ FixtureAccountDetails = TypedDict('FixtureAccountDetails',
 FixtureAccountState = Dict[Address, FixtureAccountDetails]
 
 
-def normalize_account_state(account_state: FixtureAccountState) -> Union[AccountState, str]:
-    if isinstance(account_state, dict):
-        return {
-            to_canonical_address(address): {
-                'balance': to_int(state['balance']),
-                'code': decode_hex(state['code']),
-                'nonce': to_int(state['nonce']),
-                'storage': {
-                    to_int(slot): big_endian_to_int(decode_hex(value))
-                    for slot, value in state['storage'].items()
-                },
-            } for address, state in account_state.items()
-        }
-    elif isinstance(account_state, str):
-        # https://github.com/ethereum/tests/issues/637#issuecomment-532234905
-        # some fixtures have postState as a string instead of map
-        return account_state
+def normalize_account_state(account_state: FixtureAccountState) -> AccountState:
+    return {
+        to_canonical_address(address): {
+            'balance': to_int(state['balance']),
+            'code': decode_hex(state['code']),
+            'nonce': to_int(state['nonce']),
+            'storage': {
+                to_int(slot): big_endian_to_int(decode_hex(value))
+                for slot, value in state['storage'].items()
+            },
+        } for address, state in account_state.items()
+    }
+
+
+def normalize_post_state(postate: FixtureAccountState) -> AccountState:
+    # poststate might not be present in some fixtures
+    # https://github.com/ethereum/tests/issues/637#issuecomment-534072897
+    if postate is None:
+        return {}
     else:
-        raise Exception('Invariant')
+        return normalize_account_state(postate)
 
 
 @to_dict
-def normalize_post_state(post_state: Dict[str, Any]) -> Iterable[Tuple[str, bytes]]:
+def normalize_post_state_hash(post_state: Dict[str, Any]) -> Iterable[Tuple[str, bytes]]:
     yield 'hash', decode_hex(post_state['hash'])
     if 'logs' in post_state:
         yield 'logs', decode_hex(post_state['logs'])
@@ -398,7 +400,7 @@ def normalize_statetest_fixture(fixture: Dict[str, Any],
     normalized_fixture = {
         'env': normalize_environment(fixture['env']),
         'pre': normalize_account_state(fixture['pre']),
-        'post': normalize_post_state(post_state),
+        'post': normalize_post_state_hash(post_state),
         'transaction': normalize_unsigned_transaction(
             fixture['transaction'],
             post_state['indexes'],
@@ -545,7 +547,7 @@ def normalize_blockchain_fixtures(fixture: Dict[str, Any]) -> Dict[str, Any]:
         'genesisBlockHeader': normalize_block_header(fixture['genesisBlockHeader']),
         'lastblockhash': decode_hex(fixture['lastblockhash']),
         'pre': normalize_account_state(fixture['pre']),
-        'postState': normalize_account_state(fixture['postState']),
+        'postState': normalize_post_state(fixture.get('postState')),
         'network': fixture['network'],
     }
 
