@@ -1,10 +1,9 @@
 import asyncio
 from typing import (
-    Any,
-    cast,
-    Dict,
     Tuple,
 )
+
+from cached_property import cached_property
 
 from lahja import EndpointAPI
 
@@ -16,7 +15,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, SessionAPI
+from p2p.abc import BehaviorAPI, CommandAPI, HandshakerAPI, SessionAPI
 from p2p.exceptions import PeerConnectionLost
 from p2p.protocol import (
     Payload,
@@ -41,6 +40,7 @@ from trinity.protocol.common.typing import (
     ReceiptsBundles,
 )
 
+from .api import ETHAPI
 from .commands import (
     GetBlockHeaders,
     GetBlockBodies,
@@ -70,7 +70,7 @@ from .events import (
 )
 from .proto import ETHProtocol, ProxyETHProtocol, ETHHandshakeParams
 from .handlers import ETHExchangeHandler, ProxyETHExchangeHandler
-from .handshaker import ETHHandshaker, ETHHandshakeReceipt
+from .handshaker import ETHHandshaker
 
 
 class ETHPeer(BaseChainPeer):
@@ -81,12 +81,12 @@ class ETHPeer(BaseChainPeer):
 
     _requests: ETHExchangeHandler = None
 
-    def process_handshake_receipts(self) -> None:
-        receipt = self.connection.get_receipt_by_type(ETHHandshakeReceipt)
-        self.head_td = receipt.handshake_params.total_difficulty
-        self.head_hash = receipt.handshake_params.head_hash
-        self.genesis_hash = receipt.handshake_params.genesis_hash
-        self.network_id = receipt.handshake_params.network_id
+    def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
+        return super().get_behaviors() + (ETHAPI().as_behavior(),)
+
+    @cached_property
+    def eth_api(self) -> ETHAPI:
+        return self.connection.get_logic(ETHAPI.name, ETHAPI)
 
     def get_extra_stats(self) -> Tuple[str, ...]:
         stats_pairs = self.requests.get_stats().items()
@@ -99,19 +99,6 @@ class ETHPeer(BaseChainPeer):
         if self._requests is None:
             self._requests = ETHExchangeHandler(self.connection)
         return self._requests
-
-    def setup_protocol_handlers(self) -> None:
-        self.connection.add_command_handler(NewBlock, self._handle_new_block)
-
-    async def _handle_new_block(self, connection: ConnectionAPI, msg: Payload) -> None:
-        msg = cast(Dict[str, Any], msg)
-        header, _, _ = msg['block']
-        actual_head = header.parent_hash
-        actual_td = msg['total_difficulty'] - header.difficulty
-
-        if actual_td > self.head_td:
-            self.head_hash = actual_head
-            self.head_td = actual_td
 
 
 class ETHProxyPeer(BaseProxyPeer):

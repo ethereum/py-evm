@@ -1,11 +1,10 @@
 from typing import (
-    cast,
-    Dict,
     List,
     Tuple,
-    Union,
     TYPE_CHECKING,
 )
+
+from cached_property import cached_property
 
 from cancel_token import CancelToken
 from eth.rlp.accounts import Account
@@ -13,10 +12,7 @@ from eth.rlp.headers import BlockHeader
 from eth.rlp.receipts import Receipt
 from lahja import EndpointAPI
 
-from eth_typing import (
-    BlockNumber,
-    Hash32,
-)
+from eth_typing import BlockNumber
 
 from eth.constants import GENESIS_BLOCK_NUMBER
 
@@ -24,7 +20,7 @@ from lahja import (
     BroadcastConfig,
 )
 
-from p2p.abc import CommandAPI, ConnectionAPI, HandshakerAPI, SessionAPI
+from p2p.abc import BehaviorAPI, CommandAPI, HandshakerAPI, SessionAPI
 from p2p.peer_pool import BasePeerPool
 from p2p.typing import Payload
 
@@ -40,10 +36,8 @@ from trinity.protocol.common.peer_pool_event_bus import (
     BaseProxyPeerPool,
 )
 
-from .commands import (
-    Announce,
-    GetBlockHeaders,
-)
+from .api import LESAPI
+from .commands import GetBlockHeaders
 from .constants import (
     MAX_HEADERS_FETCH,
 )
@@ -65,7 +59,7 @@ from .events import (
     GetReceiptsRequest,
 )
 from .handlers import LESExchangeHandler
-from .handshaker import LESV1Handshaker, LESV2Handshaker, LESHandshakeReceipt
+from .handshaker import LESV1Handshaker, LESV2Handshaker
 
 if TYPE_CHECKING:
     from trinity.sync.light.service import BaseLightPeerChain  # noqa: F401
@@ -79,13 +73,12 @@ class LESPeer(BaseChainPeer):
 
     _requests: LESExchangeHandler = None
 
-    def process_handshake_receipts(self) -> None:
-        receipt = self.connection.get_receipt_by_type(LESHandshakeReceipt)
-        self.head_td = receipt.handshake_params.head_td
-        self.head_hash = receipt.handshake_params.head_hash
-        self.head_number = receipt.handshake_params.head_number
-        self.genesis_hash = receipt.handshake_params.genesis_hash
-        self.network_id = receipt.handshake_params.network_id
+    def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
+        return super().get_behaviors() + (LESAPI().as_behavior(),)
+
+    @cached_property
+    def les_api(self) -> LESAPI:
+        return self.connection.get_logic(LESAPI.name, LESAPI)
 
     def get_extra_stats(self) -> Tuple[str, ...]:
         stats_pairs = self.requests.get_stats().items()
@@ -98,15 +91,6 @@ class LESPeer(BaseChainPeer):
         if self._requests is None:
             self._requests = LESExchangeHandler(self.connection)
         return self._requests
-
-    def setup_protocol_handlers(self) -> None:
-        self.connection.add_command_handler(Announce, self._handle_announce)
-
-    async def _handle_announce(self, connection: ConnectionAPI, msg: Payload) -> None:
-        head_info = cast(Dict[str, Union[int, Hash32, BlockNumber]], msg)
-        self.head_td = cast(int, head_info['head_td'])
-        self.head_hash = cast(Hash32, head_info['head_hash'])
-        self.head_number = cast(BlockNumber, head_info['head_number'])
 
 
 class LESProxyPeer(BaseProxyPeer):

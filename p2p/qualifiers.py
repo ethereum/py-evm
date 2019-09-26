@@ -16,10 +16,10 @@ TQualifierFn = TypeVar("TQualifierFn", bound=QualifierFn)
 
 
 class BaseQualifier(ABC):
-    def __and__(self, other: QualifierFn) -> QualifierFn:
+    def __and__(self, other: QualifierFn) -> 'BaseQualifier':
         return AndQualifier(self, other)
 
-    def __or__(self, other: QualifierFn) -> QualifierFn:
+    def __or__(self, other: QualifierFn) -> 'BaseQualifier':
         return OrQualifier(self, other)
 
     @abstractmethod

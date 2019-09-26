@@ -4,6 +4,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Sequence,
     Tuple,
     TYPE_CHECKING,
     Union,
@@ -24,6 +25,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import BlockHeaderAPI
 from eth.rlp.headers import BlockHeader
 
 from p2p.abc import SessionAPI
@@ -136,6 +138,22 @@ class LESProtocol(Protocol):
         self.transport.send(*cmd.encode(resp))
         self.logger.debug("Sending LES/Status msg: %s", resp)
 
+    def send_announce(self,
+                      header: BlockHeaderAPI,
+                      head_td: int,
+                      reorg_depth: int = 0,
+                      params: Sequence[Any] = ()) -> None:
+        data = {
+            'head_hash': header.hash,
+            'head_number': header.block_number,
+            'head_td': head_td,
+            'reorg_depth': reorg_depth,
+            'params': params,
+        }
+        cmd = Announce(self.cmd_id_offset, self.snappy_support)
+        self.logger.debug("Sending LES/Announce msg: %s", data)
+        self.transport.send(*cmd.encode(data))
+
     def send_get_block_bodies(self, block_hashes: List[bytes], request_id: int=None) -> int:
         if request_id is None:
             request_id = gen_request_id()
@@ -183,7 +201,9 @@ class LESProtocol(Protocol):
         return request_id
 
     def send_block_headers(
-            self, headers: Tuple[BlockHeader, ...], buffer_value: int, request_id: int=None) -> int:
+            self, headers: Tuple[BlockHeaderAPI, ...],
+            buffer_value: int,
+            request_id: int=None) -> int:
         if request_id is None:
             request_id = gen_request_id()
         data = {

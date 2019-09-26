@@ -107,10 +107,10 @@ class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
             remote=peer.remote,
             is_outbound=not peer.inbound,
             last_connected_at=None,
-            genesis_hash=peer.genesis_hash,
+            genesis_hash=peer.chain_info.genesis_hash,
             protocol=peer.sub_proto.name,
             protocol_version=peer.sub_proto.version,
-            network_id=peer.network_id,
+            network_id=peer.chain_info.network_id,
         )
 
     def deregister_peer(self, peer: BasePeer) -> None:
@@ -154,10 +154,10 @@ class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
             remote=peer.remote,
             is_outbound=not peer.inbound,
             last_connected_at=datetime.datetime.utcnow(),
-            genesis_hash=peer.genesis_hash,
+            genesis_hash=peer.chain_info.genesis_hash,
             protocol=peer.sub_proto.name,
             protocol_version=peer.sub_proto.version,
-            network_id=peer.network_id,
+            network_id=peer.chain_info.network_id,
         )
 
     @abstractmethod
