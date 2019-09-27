@@ -45,6 +45,10 @@ class ExchangeManager(ExchangeManagerAPI[TRequestPayload, TResponsePayload, TRes
             timeout: float = None) -> TResult:
 
         stream = self._response_stream
+        if not stream.is_operational:
+            raise PeerConnectionLost(
+                f"Response stream closed before sending request to {self._connection}"
+            )
 
         async for payload in stream.payload_candidates(request, tracker, timeout=timeout):
             try:

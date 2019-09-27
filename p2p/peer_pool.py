@@ -266,6 +266,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
 
         self.run_child_service(peer)
         await self.wait(peer.events.started.wait(), timeout=1)
+        await self.wait(peer.ready.wait(), timeout=1)
         if peer.is_operational:
             self._add_peer(peer, ())
         else:
