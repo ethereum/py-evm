@@ -1,7 +1,6 @@
 from abc import abstractmethod
 import asyncio
 from typing import (
-    cast,
     Generic,
     Sequence,
     Tuple,
@@ -15,8 +14,6 @@ from cancel_token import CancelToken, OperationCancelled
 from eth_typing import BlockNumber
 
 from eth.abc import AtomicDatabaseAPI, VirtualMachineAPI
-
-from eth2.beacon.chains.base import BeaconChain
 
 from p2p.abc import NodeAPI
 from p2p.constants import DEFAULT_MAX_PEERS, DEVP2P_V5
@@ -34,12 +31,8 @@ from trinity.chains.base import AsyncChainAPI
 from trinity.constants import DEFAULT_PREFERRED_NODES
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.db.eth1.header import BaseAsyncHeaderDB
-from trinity.db.beacon.chain import BaseAsyncBeaconChainDB
 from trinity.protocol.common.context import ChainContext
 from trinity.protocol.common.peer import BasePeerPool
-from trinity.protocol.bcc.context import BeaconContext
-from trinity.protocol.bcc.peer import BCCPeerPool
-from trinity.protocol.bcc.servers import BCCReceiveServer
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.les.peer import LESPeerPool
 
@@ -243,80 +236,4 @@ class LightServer(BaseServer[LESPeerPool]):
             context=context,
             token=self.cancel_token,
             event_bus=self.event_bus
-        )
-
-
-class BCCServer(BaseServer[BCCPeerPool]):
-
-    def __init__(self,
-                 privkey: datatypes.PrivateKey,
-                 port: int,
-                 chain: AsyncChainAPI,
-                 chaindb: BaseAsyncBeaconChainDB,
-                 headerdb: BaseAsyncHeaderDB,
-                 base_db: AtomicDatabaseAPI,
-                 network_id: int,
-                 max_peers: int = DEFAULT_MAX_PEERS,
-                 bootstrap_nodes: Sequence[NodeAPI] = None,
-                 preferred_nodes: Sequence[NodeAPI] = None,
-                 event_bus: EndpointAPI = None,
-                 token: CancelToken = None,
-                 ) -> None:
-        # mypy does not like `BaseAsyncBeaconChainDB` in this super call since
-        # the server defines it as a ChainDB.
-        super().__init__(
-            privkey,
-            port,
-            chain,
-            chaindb,  # type: ignore
-            headerdb,
-            base_db,
-            network_id,
-            max_peers,
-            bootstrap_nodes,
-            preferred_nodes,
-            event_bus,
-            token,
-        )
-        self.receive_server = self._make_receive_server()
-
-    async def _run(self) -> None:
-        self.logger.info("Running server...")
-        await self._start_tcp_listener()
-        self.logger.info(
-            "enode://%s@%s:%s",
-            self.privkey.public_key.to_hex()[2:],
-            BOUND_IP,
-            self.port,
-        )
-        self.logger.info('network: %s', self.network_id)
-        self.logger.info('peers: max_peers=%s', self.max_peers)
-
-        self.run_daemon(self.peer_pool)
-        self.run_daemon(self.receive_server)
-
-        await self.cancel_token.wait()
-
-    def _make_peer_pool(self) -> BCCPeerPool:
-        # mypy thinks that `self.chaindb` is the wrong type here.
-        context = BeaconContext(
-            chain_db=self.chaindb,  # type: ignore
-            network_id=self.network_id,
-            client_version_string=self.p2p_handshake_params.client_version_string,
-            listen_port=self.p2p_handshake_params.listen_port,
-            p2p_version=self.p2p_handshake_params.version,
-        )
-        return BCCPeerPool(
-            privkey=self.privkey,
-            max_peers=self.max_peers,
-            context=context,
-            token=self.cancel_token,
-            event_bus=self.event_bus
-        )
-
-    def _make_receive_server(self) -> BCCReceiveServer:
-        return BCCReceiveServer(
-            chain=cast(BeaconChain, self.chain),
-            peer_pool=self.peer_pool,
-            token=self.cancel_token,
         )

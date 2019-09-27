@@ -1,5 +1,4 @@
 import asyncio
-import importlib
 from typing import Tuple
 
 from eth.exceptions import BlockNotFound
@@ -25,9 +24,11 @@ from trinity.protocol.bcc_libp2p.configs import (
     PUBSUB_TOPIC_BEACON_BLOCK,
 )
 from trinity.protocol.bcc_libp2p.servers import AttestationPool, OrphanBlockPool
-from trinity.tools.bcc_factories import ReceiveServerFactory
-
-bcc_helpers = importlib.import_module("tests.core.p2p-proto.bcc.helpers")
+from trinity.tools.bcc_factories import (
+    AsyncBeaconChainDBFactory,
+    BeaconBlockFactory,
+    ReceiveServerFactory,
+)
 
 
 class FakeChain(_TestnetChain):
@@ -54,7 +55,7 @@ class FakeChain(_TestnetChain):
 
 async def get_fake_chain() -> FakeChain:
     genesis_config = Eth2GenesisConfig(XIAO_LONG_BAO_CONFIG)
-    chain_db = await bcc_helpers.get_genesis_chain_db(genesis_config=genesis_config)
+    chain_db = AsyncBeaconChainDBFactory(genesis_config=genesis_config)
     return FakeChain(
         base_db=chain_db.db, attestation_pool=TempPool(), genesis_config=genesis_config
     )
@@ -148,9 +149,9 @@ def test_attestation_pool():
 
 def test_orphan_block_pool():
     pool = OrphanBlockPool()
-    b0 = bcc_helpers.create_test_block()
-    b1 = bcc_helpers.create_test_block(parent=b0)
-    b2 = bcc_helpers.create_test_block(parent=b0, state_root=b"\x11" * 32)
+    b0 = BeaconBlockFactory()
+    b1 = BeaconBlockFactory(parent=b0)
+    b2 = BeaconBlockFactory(parent=b0, state_root=b"\x11" * 32)
     # test: add
     pool.add(b1)
     assert b1 in pool._pool

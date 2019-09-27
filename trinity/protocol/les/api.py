@@ -61,9 +61,6 @@ class LESAPI(Application):
     name = 'les'
     qualifier = HasProtocol(LESProtocol) | HasProtocol(LESProtocolV2)
 
-    network_id: int
-    genesis_hash: Hash32
-
     head_info: HeadInfoTracker
 
     def __init__(self) -> None:

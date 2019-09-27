@@ -36,9 +36,9 @@ import ssz
 
 from eth2.beacon.types.states import BeaconState
 
-from trinity.components.eth2.network_generator.constants import (
+from trinity.components.eth2.constants import (
     GENESIS_FILE,
-    KEYS_DIR,
+    VALIDATOR_KEY_DIR,
 )
 
 from trinity.components.builtin.network_db.component import TrackingBackend
@@ -176,7 +176,7 @@ class InteropComponent(BaseMainProcessComponent):
             yaml.dump(to_formatted_dict(state), f)
 
         # Save the validator keys to the data dir
-        keys_dir = trinity_config.trinity_root_dir / KEYS_DIR
+        keys_dir = trinity_config.trinity_root_dir / VALIDATOR_KEY_DIR
         try:
             shutil.rmtree(keys_dir)
         except FileNotFoundError:

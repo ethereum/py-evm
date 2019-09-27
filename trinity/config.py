@@ -105,8 +105,6 @@ from trinity.components.eth2.beacon.utils import (
 )
 from trinity.components.eth2.constants import (
     VALIDATOR_KEY_DIR,
-)
-from trinity.components.eth2.network_generator.constants import (
     GENESIS_FILE,
 )
 
