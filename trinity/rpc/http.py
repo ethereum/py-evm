@@ -78,8 +78,8 @@ class HTTPServer(BaseService):
         await runner.setup()
         site = web.TCPSite(runner, self.host, self.port)
         await site.start()
-
-        await self.cancel_token.wait()
+        self.logger.info('HTTP started at: %s', site.name)
+        await self.cancellation()
 
     async def _cleanup(self) -> None:
         await self.server.shutdown()

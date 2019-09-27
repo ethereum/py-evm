@@ -7,7 +7,16 @@ from pathlib import Path
 import signal
 import sys
 import time
-from typing import ClassVar, Dict, List, MutableSet, NamedTuple, Optional, Tuple
+from typing import (
+    ClassVar,
+    Dict,
+    List,
+    MutableSet,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from eth_utils import encode_hex, remove_0x_prefix
 from libp2p.crypto.secp256k1 import Secp256k1PrivateKey
@@ -62,19 +71,22 @@ class Node:
         name: str,
         node_privkey: str,
         port: int,
+        start_time: float,
+        validators: Sequence[int],
         rpcport: Optional[int] = None,
         preferred_nodes: Optional[Tuple["Node", ...]] = None,
     ) -> None:
         self.name = name
         self.node_privkey = Secp256k1PrivateKey.new(bytes.fromhex(node_privkey))
         self.port = port
+        self.validators = validators
         if preferred_nodes is None:
             preferred_nodes = []
         self.preferred_nodes = preferred_nodes
         self.rpcport = rpcport
 
         self.tasks = []
-        self.start_time = time.monotonic()
+        self.start_time = start_time
         self.logs_expected = {}
         self.logs_expected["stdout"] = set()
         self.logs_expected["stderr"] = set()
@@ -88,7 +100,7 @@ class Node:
 
     @property
     def logging_name(self) -> str:
-        return f"{self.name}@{str(self.peer_id)}"
+        return f"{self.name}@{str(self.peer_id)[:5]}"
 
     @property
     def root_dir(self) -> Path:
@@ -111,18 +123,15 @@ class Node:
             f"--port={self.port}",
             f"--trinity-root-dir={self.root_dir}",
             f"--beacon-nodekey={remove_0x_prefix(encode_hex(self.node_privkey.to_bytes()))}",
+            f"--preferred_nodes={','.join(str(node.maddr) for node in self.preferred_nodes)}",
             f"--rpcport={self.rpcport}",
-            "--disable-discovery",
             "--enable-http",
-            "--network-tracking-backend=do-not-track",
-            "--disable-upnp",
             "-l debug2",
+            "interop",
+            f"--validators={','.join(str(v) for v in self.validators)}",
+            f"--start-time={self.start_time}",
+            "--wipedb",
         ]
-        if len(self.preferred_nodes) != 0:
-            preferred_nodes_str = ",".join(
-                [str(node.maddr) for node in self.preferred_nodes]
-            )
-            _cmds.append(f"--preferred_nodes={preferred_nodes_str}")
         _cmd = " ".join(_cmds)
         return _cmd
 
@@ -190,26 +199,12 @@ class Node:
 
 
 async def main():
-    num_validators = 9
-    genesis_delay = 20
+    start_delay = 20
+    start_time = int(time.time()) + start_delay
 
     proc = await run(f"rm -rf {Node.dir_root}")
     await proc.wait()
     proc = await run(f"mkdir -p {Node.dir_root}")
-    await proc.wait()
-
-    print("Generating genesis file")
-    proc = await run(
-        " ".join(
-            (
-                "trinity-beacon",
-                "testnet",
-                f"--num={num_validators}",
-                f"--network-dir={Node.dir_root}",
-                f"--genesis-delay={genesis_delay}",
-            )
-        )
-    )
     await proc.wait()
 
     def sigint_handler(sig, frame):
@@ -223,14 +218,18 @@ async def main():
         node_privkey="6b94ffa2d9b8ee85afb9d7153c463ea22789d3bbc5d961cc4f63a41676883c19",
         port=30304,
         preferred_nodes=[],
+        validators=[0, 1, 2, 3, 4, 5, 6, 7],
         rpcport=8555,
+        start_time=start_time,
     )
     node_bob = Node(
         name="bob",
         node_privkey="f5ad1c57b5a489fc8f21ad0e5a19c1f1a60b8ab357a2100ff7e75f3fa8a4fd2e",
         port=30305,
         preferred_nodes=[node_alice],
+        validators=[8, 9, 10, 11, 12, 13, 14, 15],
         rpcport=8666,
+        start_time=start_time,
     )
 
     asyncio.ensure_future(node_alice.run())

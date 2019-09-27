@@ -143,8 +143,7 @@ class InteropComponent(BaseMainProcessComponent):
         now = int(time.time())
         if args.start_time:
             if args.start_time <= now:
-                logger.info(f"--start-time must be a time in the future. Current time is {now}")
-                sys.exit(1)
+                logger.warning(f"--start-time must be a time in the future. Current time is {now}")
 
             delta = args.start_time - now
             logger.info("Time will begin %d seconds from now", delta)
