@@ -1,10 +1,11 @@
-from typing import cast, Any, Dict
+from typing import cast, Any, Dict, Tuple
 
 from cached_property import cached_property
 
 from eth_typing import BlockNumber, Hash32
 
 from p2p.abc import ConnectionAPI
+from p2p.exchange import ExchangeAPI, ExchangeLogic
 from p2p.logic import Application, CommandHandler
 from p2p.qualifiers import HasProtocol
 from p2p.typing import Payload
@@ -12,6 +13,12 @@ from p2p.typing import Payload
 from trinity.protocol.common.abc import HeadInfoAPI
 
 from .commands import NewBlock
+from .exchanges import (
+    GetBlockBodiesExchange,
+    GetBlockHeadersExchange,
+    GetNodeDataExchange,
+    GetReceiptsExchange,
+)
 from .handshaker import ETHHandshakeReceipt
 from .proto import ETHProtocol
 
@@ -66,9 +73,40 @@ class ETHAPI(Application):
 
     head_info: HeadInfoTracker
 
+    get_block_bodies: GetBlockBodiesExchange
+    get_block_headers: GetBlockHeadersExchange
+    get_node_data: GetNodeDataExchange
+    get_receipts: GetReceiptsExchange
+
     def __init__(self) -> None:
         self.head_info = HeadInfoTracker()
         self.add_child_behavior(self.head_info.as_behavior())
+
+        # Request/Response API
+        self.get_block_bodies = GetBlockBodiesExchange()
+        self.get_block_headers = GetBlockHeadersExchange()
+        self.get_node_data = GetNodeDataExchange()
+        self.get_receipts = GetReceiptsExchange()
+
+        self.add_child_behavior(ExchangeLogic(self.get_block_bodies).as_behavior())
+        self.add_child_behavior(ExchangeLogic(self.get_block_headers).as_behavior())
+        self.add_child_behavior(ExchangeLogic(self.get_node_data).as_behavior())
+        self.add_child_behavior(ExchangeLogic(self.get_receipts).as_behavior())
+
+    @cached_property
+    def exchanges(self) -> Tuple[ExchangeAPI[Any, Any, Any], ...]:
+        return (
+            self.get_block_bodies,
+            self.get_block_headers,
+            self.get_node_data,
+            self.get_receipts,
+        )
+
+    def get_extra_stats(self) -> Tuple[str, ...]:
+        return tuple(
+            f"{exchange.get_response_cmd_type()}: {exchange.tracker.get_stats()}"
+            for exchange in self.exchanges
+        )
 
     @cached_property
     def receipt(self) -> ETHHandshakeReceipt:

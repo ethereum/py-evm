@@ -61,7 +61,7 @@ async def test_eth_peer_get_receipts_round_trip_with_full_response(eth_peer_and_
         remote.sub_proto.send_receipts(receipts)
         await asyncio.sleep(0)
 
-    get_receipts_task = asyncio.ensure_future(peer.requests.get_receipts(headers))
+    get_receipts_task = asyncio.ensure_future(peer.eth_api.get_receipts(headers))
     asyncio.ensure_future(send_receipts())
 
     response = await get_receipts_task
@@ -82,7 +82,7 @@ async def test_eth_peer_get_receipts_round_trip_with_partial_response(eth_peer_a
         remote.sub_proto.send_receipts((receipts[2], receipts[1], receipts[4]))
         await asyncio.sleep(0)
 
-    get_receipts_task = asyncio.ensure_future(peer.requests.get_receipts(headers))
+    get_receipts_task = asyncio.ensure_future(peer.eth_api.get_receipts(headers))
     asyncio.ensure_future(send_receipts())
 
     response = await get_receipts_task
@@ -107,7 +107,7 @@ async def test_eth_peer_get_receipts_round_trip_with_noise(eth_peer_and_remote):
         remote.sub_proto.send_transactions([])
         await asyncio.sleep(0)
 
-    get_receipts_task = asyncio.ensure_future(peer.requests.get_receipts(headers))
+    get_receipts_task = asyncio.ensure_future(peer.eth_api.get_receipts(headers))
     asyncio.ensure_future(send_receipts())
 
     response = await get_receipts_task
@@ -133,7 +133,7 @@ async def test_eth_peer_get_receipts_round_trip_no_match_invalid_response(eth_pe
         remote.sub_proto.send_receipts(receipts)
         await asyncio.sleep(0)
 
-    get_receipts_task = asyncio.ensure_future(peer.requests.get_receipts(headers))
+    get_receipts_task = asyncio.ensure_future(peer.eth_api.get_receipts(headers))
     asyncio.ensure_future(send_receipts())
 
     response = await get_receipts_task

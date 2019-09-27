@@ -16,9 +16,6 @@ from lahja import (
 
 from p2p.abc import SessionAPI
 
-from trinity.protocol.common.handlers import (
-    BaseChainExchangeHandler,
-)
 from trinity.protocol.common.typing import (
     BlockBodyBundles,
     NodeDataBundles,
@@ -34,34 +31,14 @@ from .events import (
     GetNodeDataRequest,
     GetReceiptsRequest,
 )
-from .exchanges import (
-    GetBlockBodiesExchange,
-    GetBlockHeadersExchange,
-    GetNodeDataExchange,
-    GetReceiptsExchange,
-)
 
 
-class ETHExchangeHandler(BaseChainExchangeHandler):
-    _exchange_config = {
-        'get_block_bodies': GetBlockBodiesExchange,
-        'get_block_headers': GetBlockHeadersExchange,
-        'get_node_data': GetNodeDataExchange,
-        'get_receipts': GetReceiptsExchange,
-    }
-
-    # These are needed only to please mypy.
-    get_block_bodies: GetBlockBodiesExchange
-    get_node_data: GetNodeDataExchange
-    get_receipts: GetReceiptsExchange
-
-
-class ProxyETHExchangeHandler:
+class ProxyETHAPI:
     """
-    An ``ETHExchangeHandler`` that can be used outside of the process that runs the peer pool. Any
+    An ``ETHAPI`` that can be used outside of the process that runs the peer pool. Any
     action performed on this class is delegated to the process that runs the peer pool.
     """
-    logger = get_extended_debug_logger('trinity.protocol.eth.handlers.ProxyETHExchangeHandler')
+    logger = get_extended_debug_logger('trinity.protocol.eth.proxy.ProxyETHAPI')
 
     def __init__(self,
                  session: SessionAPI,

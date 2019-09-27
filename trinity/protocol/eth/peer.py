@@ -69,7 +69,7 @@ from .events import (
     TransactionsEvent,
 )
 from .proto import ETHProtocol, ProxyETHProtocol, ETHHandshakeParams
-from .handlers import ETHExchangeHandler, ProxyETHExchangeHandler
+from .proxy import ProxyETHAPI
 from .handshaker import ETHHandshaker
 
 
@@ -79,26 +79,12 @@ class ETHPeer(BaseChainPeer):
     supported_sub_protocols = (ETHProtocol,)
     sub_proto: ETHProtocol = None
 
-    _requests: ETHExchangeHandler = None
-
     def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
         return super().get_behaviors() + (ETHAPI().as_behavior(),)
 
     @cached_property
     def eth_api(self) -> ETHAPI:
         return self.connection.get_logic(ETHAPI.name, ETHAPI)
-
-    def get_extra_stats(self) -> Tuple[str, ...]:
-        stats_pairs = self.requests.get_stats().items()
-        return tuple(
-            f"{cmd_name}: {stats}" for cmd_name, stats in stats_pairs
-        )
-
-    @property
-    def requests(self) -> ETHExchangeHandler:
-        if self._requests is None:
-            self._requests = ETHExchangeHandler(self.connection)
-        return self._requests
 
 
 class ETHProxyPeer(BaseProxyPeer):
@@ -112,12 +98,12 @@ class ETHProxyPeer(BaseProxyPeer):
                  session: SessionAPI,
                  event_bus: EndpointAPI,
                  sub_proto: ProxyETHProtocol,
-                 requests: ProxyETHExchangeHandler):
+                 eth_api: ProxyETHAPI):
 
         super().__init__(session, event_bus)
 
         self.sub_proto = sub_proto
-        self.requests = requests
+        self.eth_api = eth_api
 
     @classmethod
     def from_session(cls,
@@ -128,7 +114,7 @@ class ETHProxyPeer(BaseProxyPeer):
             session,
             event_bus,
             ProxyETHProtocol(session, event_bus, broadcast_config),
-            ProxyETHExchangeHandler(session, event_bus, broadcast_config)
+            ProxyETHAPI(session, event_bus, broadcast_config)
         )
 
 
@@ -221,7 +207,7 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
             self,
             event: GetBlockHeadersRequest) -> Tuple[BlockHeader, ...]:
         peer = self.get_peer(event.session)
-        return await peer.requests.get_block_headers(
+        return await peer.eth_api.get_block_headers(
             event.block_number_or_hash,
             event.max_headers,
             skip=event.skip,
@@ -235,7 +221,7 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
         return await self.with_node_and_timeout(
             event.session,
             event.timeout,
-            lambda peer: peer.requests.get_receipts(event.headers)
+            lambda peer: peer.eth_api.get_receipts(event.headers)
         )
 
     async def handle_get_block_bodies_request(self,
@@ -243,7 +229,7 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
         return await self.with_node_and_timeout(
             event.session,
             event.timeout,
-            lambda peer: peer.requests.get_block_bodies(event.headers)
+            lambda peer: peer.eth_api.get_block_bodies(event.headers)
         )
 
     async def handle_get_node_data_request(self,
@@ -251,7 +237,7 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
         return await self.with_node_and_timeout(
             event.session,
             event.timeout,
-            lambda peer: peer.requests.get_node_data(event.node_hashes)
+            lambda peer: peer.eth_api.get_node_data(event.node_hashes)
         )
 
     async def handle_native_peer_message(self,

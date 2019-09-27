@@ -249,7 +249,7 @@ class PeerHeaderSyncer(BaseService):
         """Fetch a batch of headers starting at start_at and return the ones we're missing."""
         self.logger.debug("Requsting chain of headers from %s starting at #%d", peer, start_at)
 
-        return await peer.requests.get_block_headers(
+        return await peer.chain_api.get_block_headers(
             start_at,
             peer.max_headers_fetch,
             skip=0,

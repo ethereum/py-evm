@@ -298,7 +298,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             # Get best peer, by GetNodeData speed
             peer = await self._queen_tracker.get_queen_peer()
 
-            if urgent_batch_id is not None and peer.requests.get_node_data.is_requesting:
+            if urgent_batch_id is not None and peer.eth_api.get_node_data.is_requesting:
                 # Our best peer for node data has an in-flight GetNodeData request
                 # Probably, backfill is asking this peer for data
                 # This is right in the critical path, so we'd prefer this never happen
@@ -497,7 +497,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
         num_nodes = len(node_hashes)
         self.logger.debug2("Requesting %d nodes from %s", num_nodes, peer)
         try:
-            return await peer.requests.get_node_data(node_hashes, timeout=self._reply_timeout)
+            return await peer.eth_api.get_node_data(node_hashes, timeout=self._reply_timeout)
         except asyncio.TimeoutError as err:
             # This kind of exception shouldn't necessarily *drop* the peer,
             # so capture error, log and swallow

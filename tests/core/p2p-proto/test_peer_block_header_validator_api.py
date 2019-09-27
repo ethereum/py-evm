@@ -75,7 +75,7 @@ async def test_eth_peer_get_headers_round_trip(eth_peer_and_remote,
     async def send_headers():
         remote.sub_proto.send_block_headers(headers)
 
-    get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(*params))
+    get_headers_task = asyncio.ensure_future(peer.chain_api.get_block_headers(*params))
     asyncio.ensure_future(send_headers())
 
     response = await get_headers_task
@@ -101,9 +101,9 @@ async def test_eth_peer_get_headers_round_trip_concurrent_requests(eth_peer_and_
     params = (0, 1, 0, False)
 
     tasks = [
-        asyncio.ensure_future(peer.requests.get_block_headers(*params)),
-        asyncio.ensure_future(peer.requests.get_block_headers(*params)),
-        asyncio.ensure_future(peer.requests.get_block_headers(*params)),
+        asyncio.ensure_future(peer.chain_api.get_block_headers(*params)),
+        asyncio.ensure_future(peer.chain_api.get_block_headers(*params)),
+        asyncio.ensure_future(peer.chain_api.get_block_headers(*params)),
     ]
     asyncio.ensure_future(send_headers())
     results = await asyncio.gather(*tasks)
@@ -130,7 +130,7 @@ async def test_les_peer_get_headers_round_trip(les_peer_and_remote,
 
     request_id_monitor = RequestIDMonitor()
     with request_id_monitor.subscribe_peer(remote):
-        get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(*params))
+        get_headers_task = asyncio.ensure_future(peer.chain_api.get_block_headers(*params))
         request_id = await request_id_monitor.next_request_id()
 
     remote.sub_proto.send_block_headers(headers, 0, request_id)
@@ -154,7 +154,7 @@ async def test_eth_peer_get_headers_round_trip_with_noise(eth_peer_and_remote):
         remote.sub_proto.send_block_headers(headers)
         await asyncio.sleep(0)
 
-    get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(0, 10, 0, False))
+    get_headers_task = asyncio.ensure_future(peer.chain_api.get_block_headers(0, 10, 0, False))
     asyncio.ensure_future(send_responses())
 
     response = await get_headers_task
@@ -180,7 +180,7 @@ async def test_eth_peer_get_headers_round_trip_does_not_match_invalid_response(e
         remote.sub_proto.send_block_headers(headers)
         await asyncio.sleep(0)
 
-    get_headers_task = asyncio.ensure_future(peer.requests.get_block_headers(0, 5, 0, False))
+    get_headers_task = asyncio.ensure_future(peer.chain_api.get_block_headers(0, 5, 0, False))
     asyncio.ensure_future(send_responses())
 
     response = await get_headers_task

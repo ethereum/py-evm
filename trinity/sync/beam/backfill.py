@@ -40,7 +40,7 @@ def _get_items_per_second(tracker: PerformanceAPI) -> float:
 
 
 def _peer_sort_key(peer: ETHPeer) -> float:
-    return _get_items_per_second(peer.requests.get_node_data.tracker)
+    return _get_items_per_second(peer.eth_api.get_node_data.tracker)
 
 
 class QueenTrackerAPI(ABC):
@@ -167,7 +167,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
                 self.logger.debug("Switching queen peer from %s to %s", old_queen, peer)
                 continue
 
-            if peer.requests.get_node_data.is_requesting:
+            if peer.eth_api.get_node_data.is_requesting:
                 # skip the peer if there's an active request
                 self.logger.debug("Backfill is skipping active peer %s", peer)
                 self.call_later(10, self._waiting_peers.put_nowait, peer)
@@ -190,7 +190,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
     async def _make_request(self, peer: ETHPeer, request_hashes: Tuple[Hash32, ...]) -> None:
         self._num_requests_by_peer[peer] += 1
         try:
-            nodes = await peer.requests.get_node_data(request_hashes)
+            nodes = await peer.eth_api.get_node_data(request_hashes)
         except asyncio.TimeoutError:
             self._node_hashes.extend(request_hashes)
             self.call_later(GAP_BETWEEN_TESTS * 2, self._waiting_peers.put_nowait, peer)

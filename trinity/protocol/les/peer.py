@@ -58,7 +58,6 @@ from .events import (
     GetContractCodeRequest,
     GetReceiptsRequest,
 )
-from .handlers import LESExchangeHandler
 from .handshaker import LESV1Handshaker, LESV2Handshaker
 
 if TYPE_CHECKING:
@@ -71,26 +70,12 @@ class LESPeer(BaseChainPeer):
     supported_sub_protocols = (LESProtocol, LESProtocolV2)
     sub_proto: LESProtocol = None
 
-    _requests: LESExchangeHandler = None
-
     def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
         return super().get_behaviors() + (LESAPI().as_behavior(),)
 
     @cached_property
     def les_api(self) -> LESAPI:
         return self.connection.get_logic(LESAPI.name, LESAPI)
-
-    def get_extra_stats(self) -> Tuple[str, ...]:
-        stats_pairs = self.requests.get_stats().items()
-        return tuple(
-            f"{cmd_name}: {stats}" for cmd_name, stats in stats_pairs
-        )
-
-    @property
-    def requests(self) -> LESExchangeHandler:
-        if self._requests is None:
-            self._requests = LESExchangeHandler(self.connection)
-        return self._requests
 
 
 class LESProxyPeer(BaseProxyPeer):

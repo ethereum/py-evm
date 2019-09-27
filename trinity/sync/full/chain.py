@@ -395,7 +395,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
         """
         self.logger.debug("Requesting block bodies for %d headers from %s", len(batch), peer)
         try:
-            block_body_bundles = await peer.requests.get_block_bodies(tuple(batch))
+            block_body_bundles = await peer.eth_api.get_block_bodies(tuple(batch))
         except asyncio.TimeoutError as err:
             self.logger.debug(
                 "Timed out requesting block bodies for %d headers from %s", len(batch), peer,
@@ -917,7 +917,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
         """
         self.logger.debug("Requesting receipts for %d headers from %s", len(batch), peer)
         try:
-            receipt_bundles = await peer.requests.get_receipts(tuple(batch))
+            receipt_bundles = await peer.eth_api.get_receipts(tuple(batch))
         except asyncio.TimeoutError as err:
             self.logger.debug(
                 "Timed out requesting receipts for %d headers from %s", len(batch), peer,

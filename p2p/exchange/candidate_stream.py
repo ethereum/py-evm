@@ -44,6 +44,7 @@ class ResponseCandidateStream(
             response_cmd_type: Type[CommandAPI]) -> None:
         # This style of initialization keeps `mypy` happy.
         BaseService.__init__(self, token=connection.cancel_token)
+
         self._connection = connection
         self.request_protocol = request_protocol
         self.response_cmd_type = response_cmd_type

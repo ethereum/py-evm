@@ -149,6 +149,10 @@ class BasePeer(BaseService):
         self.connection_tracker = self.setup_connection_tracker()
 
         self.process_handshake_receipts()
+        # This API provides an awaitable so that users of the
+        # `peer.connection.get_logic` APIs can wait until the logic APIs have
+        # been installed to the connection.
+        self.ready = asyncio.Event()
 
     def process_handshake_receipts(self) -> None:
         """
@@ -249,6 +253,7 @@ class BasePeer(BaseService):
 
             # Trigger the connection to start feeding messages though the handlers
             self.connection.start_protocol_streams()
+            self.ready.set()
 
             await self.cancellation()
 

@@ -1,21 +1,50 @@
 from functools import partial
 from typing import (
+    AsyncIterator,
     Callable,
     Type,
 )
 
-from p2p.abc import CommandAPI, RequestAPI
+from async_generator import asynccontextmanager
+
+from p2p.abc import (
+    CommandAPI,
+    ConnectionAPI,
+    RequestAPI,
+)
+from p2p.service import run_service
 from p2p.typing import TRequestPayload, TResponsePayload
 
 from .abc import ExchangeAPI, NormalizerAPI, ValidatorAPI
+from .candidate_stream import ResponseCandidateStream
 from .manager import ExchangeManager
 from .typing import TResult
 
 
 class BaseExchange(ExchangeAPI[TRequestPayload, TResponsePayload, TResult]):
-    def __init__(self, mgr: ExchangeManager[TRequestPayload, TResponsePayload, TResult]) -> None:
-        self._manager = mgr
-        self.tracker = self.tracker_class()
+    _manager: ExchangeManager[TRequestPayload, TResponsePayload, TResult]
+
+    @asynccontextmanager
+    async def run_exchange(self, connection: ConnectionAPI) -> AsyncIterator[None]:
+        protocol = connection.get_protocol_for_command_type(self.get_request_cmd_type())
+
+        response_stream: ResponseCandidateStream[TRequestPayload, TResponsePayload] = ResponseCandidateStream(  # noqa: E501
+            connection,
+            protocol,
+            self.get_response_cmd_type(),
+        )
+
+        try:
+            self.tracker = self.tracker_class()
+            self._manager = ExchangeManager(
+                connection,
+                response_stream,
+            )
+            async with run_service(response_stream):
+                yield
+        finally:
+            del self._manager
+            del self.tracker
 
     async def get_result(
             self,
@@ -31,9 +60,6 @@ class BaseExchange(ExchangeAPI[TRequestPayload, TResponsePayload, TResult]):
         - the manager service is running
         - the payload validator is primed with the request payload
         """
-        if not self._manager.is_operational:
-            await self._manager.launch_service()
-
         # bind the outbound request payload to the payload validator
         message_validator = partial(payload_validator, request.command_payload)
 

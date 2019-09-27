@@ -6,6 +6,7 @@ from typing import (
     List,
     Tuple,
     Type,
+    Union,
 )
 
 from cached_property import cached_property
@@ -38,7 +39,8 @@ from p2p.tracking.connection import (
 from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.protocol.common.abc import ChainInfoAPI, HeadInfoAPI
 from trinity.protocol.common.api import ChainInfo, HeadInfo
-from trinity.protocol.common.handlers import BaseChainExchangeHandler
+from trinity.protocol.eth.api import ETHAPI
+from trinity.protocol.les.api import LESAPI
 
 from trinity.components.builtin.network_db.connection.tracker import ConnectionTrackerClient
 from trinity.components.builtin.network_db.eth1_peer_db.tracker import (
@@ -59,6 +61,15 @@ class BaseChainPeer(BasePeer):
     context: ChainContext
 
     @cached_property
+    def chain_api(self) -> Union[ETHAPI, LESAPI]:
+        if self.connection.has_logic(ETHAPI.name):
+            return self.connection.get_logic(ETHAPI.name, ETHAPI)
+        elif self.connection.has_logic(LESAPI.name):
+            return self.connection.get_logic(LESAPI.name, LESAPI)
+        else:
+            raise Exception("Should be unreachable")
+
+    @cached_property
     def head_info(self) -> HeadInfoAPI:
         return self.connection.get_logic(HeadInfo.name, HeadInfo)
 
@@ -71,11 +82,6 @@ class BaseChainPeer(BasePeer):
             HeadInfo().as_behavior(),
             ChainInfo().as_behavior(),
         )
-
-    @property
-    @abstractmethod
-    def requests(self) -> BaseChainExchangeHandler:
-        ...
 
     @property
     @abstractmethod

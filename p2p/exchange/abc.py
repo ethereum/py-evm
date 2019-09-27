@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import (
     Any,
     AsyncIterator,
+    AsyncContextManager,
     Callable,
     Dict,
     Generic,
@@ -158,15 +159,6 @@ class ExchangeManagerAPI(ABC, Generic[TRequestPayload, TResponsePayload, TResult
         ...
 
     @abstractmethod
-    async def launch_service(self) -> None:
-        ...
-
-    @property
-    @abstractmethod
-    def is_operational(self) -> bool:
-        ...
-
-    @abstractmethod
     async def get_result(
             self,
             request: RequestAPI[TRequestPayload],
@@ -191,7 +183,7 @@ class ExchangeManagerAPI(ABC, Generic[TRequestPayload, TResponsePayload, TResult
         ...
 
 
-class ExchangeAPI(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
+class ExchangeAPI(Generic[TRequestPayload, TResponsePayload, TResult]):
     """
     The exchange object handles a few things, in rough order:
 
@@ -212,7 +204,8 @@ class ExchangeAPI(ABC, Generic[TRequestPayload, TResponsePayload, TResult]):
     tracker_class: Type[PerformanceTrackerAPI[Any, TResult]]
     tracker: PerformanceTrackerAPI[RequestAPI[TRequestPayload], TResult]
 
-    def __init__(self, mgr: ExchangeManagerAPI[TRequestPayload, TResponsePayload, TResult]) -> None:
+    @abstractmethod
+    def run_exchange(self, connection: ConnectionAPI) -> AsyncContextManager[None]:
         ...
 
     @abstractmethod

@@ -447,7 +447,7 @@ class SkeletonSyncer(BaseService, Generic[TChainPeer]):
         try:
             self.logger.debug("Requsting chain of headers from %s starting at #%d", peer, start_at)
 
-            headers = await self.wait(peer.requests.get_block_headers(
+            headers = await self.wait(peer.chain_api.get_block_headers(
                 start_at,
                 header_limit,
                 derived_skip,
@@ -750,7 +750,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             self, peer: TChainPeer, start_at: BlockNumber, length: int) -> Tuple[BlockHeader, ...]:
         self.logger.debug("Requesting %d headers from %s", length, peer)
         try:
-            return await peer.requests.get_block_headers(start_at, length, skip=0, reverse=False)
+            return await peer.chain_api.get_block_headers(start_at, length, skip=0, reverse=False)
         except asyncio.TimeoutError as err:
             self.logger.debug("Timed out requesting %d headers from %s", length, peer)
             return tuple()

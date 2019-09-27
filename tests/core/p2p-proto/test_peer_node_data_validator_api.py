@@ -53,7 +53,7 @@ async def test_eth_peer_get_node_data_round_trip(eth_peer_and_remote, node_keys,
     async def send_node_data():
         remote.sub_proto.send_node_data(nodes)
 
-    request = asyncio.ensure_future(peer.requests.get_node_data(node_keys))
+    request = asyncio.ensure_future(peer.eth_api.get_node_data(node_keys))
     asyncio.ensure_future(send_node_data())
     response = await request
 
@@ -75,7 +75,7 @@ async def test_eth_peer_get_headers_round_trip_partial_response(eth_peer_and_rem
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_responses())
-    response = await peer.requests.get_node_data(node_keys)
+    response = await peer.eth_api.get_node_data(node_keys)
 
     assert len(response) == 10
     assert response[:10] == node_data[:10]
@@ -95,7 +95,7 @@ async def test_eth_peer_get_headers_round_trip_with_noise(eth_peer_and_remote):
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_responses())
-    response = await peer.requests.get_node_data(node_keys)
+    response = await peer.eth_api.get_node_data(node_keys)
 
     assert len(response) == len(nodes)
     assert response == node_data
@@ -119,7 +119,7 @@ async def test_eth_peer_get_headers_round_trip_does_not_match_invalid_response(e
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_responses())
-    response = await peer.requests.get_node_data(node_keys)
+    response = await peer.eth_api.get_node_data(node_keys)
 
     assert len(response) == len(nodes)
     assert response == node_data

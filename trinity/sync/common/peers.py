@@ -63,7 +63,7 @@ class WaitingPeers(Generic[TChainPeer]):
     def _get_peer_rank(self, peer: TChainPeer) -> float:
         scores = [
             self._sort_key(exchange.tracker)
-            for exchange in peer.requests
+            for exchange in peer.chain_api.exchanges
             if issubclass(exchange.get_response_cmd_type(), self._response_command_type)
         ]
 
