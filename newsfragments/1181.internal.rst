@@ -1,1 +1,0 @@
-The ``ConnectionAPI`` now has a mirrored version of ``MultiplexerAPI.has_protocol`` via ``ConnectionAPI.has_protocol``

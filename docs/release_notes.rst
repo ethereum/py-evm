@@ -5,6 +5,50 @@ Trinity is moving fast. Read up on all the latest improvements.
 
 .. towncrier release notes start
 
+Trinity 0.1.0-alpha.29 (2019-09-30)
+-----------------------------------
+
+Features
+~~~~~~~~
+
+- Added Istanbul block number to default Ropsten configuration: 6485846 (`#907 <https://github.com/ethereum/trinity/issues/907>`__)
+- Upgrade `ipython` shell to `7.8.0` which supports `async` / `await` hence improves
+  the UI/UX of `trinity attach` and `trinity db-shell`. (`#1203 <https://github.com/ethereum/trinity/issues/1203>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Fixed handshake bug that caused all inbound connections to fail with: ``"AttributeError: 'Session' object has no attribute 'address'"`` (`#1129 <https://github.com/ethereum/trinity/issues/1129>`__)
+- Ensure EthStatsService properly handles lost connections to the server (`#1139 <https://github.com/ethereum/trinity/issues/1139>`__)
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Document how to install, run and develop with the Trinity DappNode package. (`#1082 <https://github.com/ethereum/trinity/issues/1082>`__)
+
+
+Internal Changes - for Trinity Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Add a ``make create-dappnode-image`` command to expose Trinity as a DappNode package. The
+  package can be found as ``trinity.public.dappnode.eth``. (`#1082 <https://github.com/ethereum/trinity/issues/1082>`__)
+- ``Plugins`` are now called ``Components``. We've found ``Components`` to be a
+  better term for the provided functionality, especially since it is less loaded
+  with the assumption of being something that *optionally extends* functionality
+  when in reality Trinity's core functionality is built out of ``Components``. (`#1140 <https://github.com/ethereum/trinity/issues/1140>`__)
+- Add ``ConnectionAPI.get_protocol_for_command_type`` (`#1145 <https://github.com/ethereum/trinity/issues/1145>`__)
+- Add ``ConnectionAPI.get_receipt_by_type(receipt_type: Type[ReceiptAPI])`` API (`#1148 <https://github.com/ethereum/trinity/issues/1148>`__)
+- The ``ConnectionAPI`` now has a mirrored version of ``MultiplexerAPI.has_protocol`` via ``ConnectionAPI.has_protocol`` (`#1181 <https://github.com/ethereum/trinity/issues/1181>`__)
+
+
+Miscellaneous changes
+~~~~~~~~~~~~~~~~~~~~~
+
+- `#1135 <https://github.com/ethereum/trinity/issues/1135>`__, `#1142 <https://github.com/ethereum/trinity/issues/1142>`__, `#1150 <https://github.com/ethereum/trinity/issues/1150>`__
+
+
 Trinity 0.1.0-alpha.28 (2019-09-12)
 -----------------------------------
 

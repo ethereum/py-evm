@@ -1,1 +1,0 @@
-Add ``ConnectionAPI.get_protocol_for_command_type``

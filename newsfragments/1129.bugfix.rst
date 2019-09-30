@@ -1,1 +1,0 @@
-Fixed handshake bug that caused all inbound connections to fail with: ``"AttributeError: 'Session' object has no attribute 'address'"``

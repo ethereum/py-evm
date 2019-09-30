@@ -1,1 +1,0 @@
-Transaction pool is now enabled by default.  Use ``--disable-tx-pool`` to disable the transaction pool.  Currently the transaction pool does not support light mode and will be automatically disabled if running in light mode.

@@ -1,1 +1,0 @@
-Rework the base ``p2p`` protocol functionality to be based on the new ``p2p.behaviors`` APIs.
