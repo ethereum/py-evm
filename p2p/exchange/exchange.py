@@ -24,6 +24,9 @@ from .typing import TResult
 class BaseExchange(ExchangeAPI[TRequestPayload, TResponsePayload, TResult]):
     _manager: ExchangeManager[TRequestPayload, TResponsePayload, TResult]
 
+    def __init__(self) -> None:
+        self.tracker = self.tracker_class()
+
     @asynccontextmanager
     async def run_exchange(self, connection: ConnectionAPI) -> AsyncIterator[None]:
         protocol = connection.get_protocol_for_command_type(self.get_request_cmd_type())
@@ -35,7 +38,6 @@ class BaseExchange(ExchangeAPI[TRequestPayload, TResponsePayload, TResult]):
         )
 
         try:
-            self.tracker = self.tracker_class()
             self._manager = ExchangeManager(
                 connection,
                 response_stream,
@@ -44,7 +46,6 @@ class BaseExchange(ExchangeAPI[TRequestPayload, TResponsePayload, TResult]):
                 yield
         finally:
             del self._manager
-            del self.tracker
 
     async def get_result(
             self,
