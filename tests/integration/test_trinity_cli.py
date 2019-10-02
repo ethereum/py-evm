@@ -136,16 +136,20 @@ async def test_expected_logs_for_light_mode(command):
 async def test_web3_commands_via_attached_console(command,
                                                   expected_network_id,
                                                   expected_genesis_hash,
-                                                  xdg_trinity_root):
+                                                  xdg_trinity_root,
+                                                  unused_tcp_port):
 
     command = tuple(
         fragment.replace('{trinity_root_path}', str(xdg_trinity_root))
         for fragment
         in command
     )
+    # use a random port each time, in case a previous run went awry and left behind a
+    # trinity instance
+    command += (f'--port={str(unused_tcp_port)}',)
     attach_cmd = list(command[1:] + ('attach',))
 
-    async with AsyncProcessRunner.run(command, timeout_sec=40) as runner:
+    async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
         assert await contains_all(runner.stderr, {
             "Started DB server process",
             "Component started: Sync / PeerPool",
@@ -165,9 +169,9 @@ async def test_web3_commands_via_attached_console(command,
             attached_trinity.expect(f"'{expected_network_id}'")
             attached_trinity.sendline("w3")
             attached_trinity.expect("web3.main.Web3")
-            attached_trinity.sendline("w3.eth.getBlock('latest').number")
+            attached_trinity.sendline("w3.eth.getBlock(0).number")
             attached_trinity.expect(str(GENESIS_BLOCK_NUMBER))
-            attached_trinity.sendline("w3.eth.getBlock('latest').hash")
+            attached_trinity.sendline("w3.eth.getBlock(0).hash")
             attached_trinity.expect(expected_genesis_hash)
         except pexpect.TIMEOUT:
             raise Exception("Trinity attach timeout")
