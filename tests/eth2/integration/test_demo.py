@@ -97,5 +97,6 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
     assert state.slot == chain_length + genesis_slot
 
     # Justification assertions
+    assert state.previous_justified_checkpoint.epoch == 2 + genesis_epoch
     assert state.current_justified_checkpoint.epoch == 3 + genesis_epoch
     assert state.finalized_checkpoint.epoch == 2 + genesis_epoch
