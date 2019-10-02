@@ -35,9 +35,9 @@ async def test_token_bucket_initial_tokens():
     # since the bucket starts out full the loop
     # should take near zero time
     expected = await measure_zero(10)
-    # drift is allowed to be up to 200% since we're working with very small
+    # drift is allowed to be up to 1000% since we're working with very small
     # numbers.
-    assert_fuzzy_equal(delta, expected, allowed_drift=2)
+    assert_fuzzy_equal(delta, expected, allowed_drift=10)
 
 
 @pytest.mark.asyncio
