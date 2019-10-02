@@ -3,7 +3,6 @@ import pytest
 from eth2._utils.bls import bls
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
-from eth2.beacon.helpers import compute_epoch_of_slot
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
