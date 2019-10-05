@@ -33,12 +33,11 @@ def collect_touched_accounts(computation: BaseComputation,
 
     # collect those explicitly marked for deletion ("beneficiary" is of SELFDESTRUCT)
     for beneficiary in sorted(set(computation.accounts_to_delete.values())):
-        # Special case to account for geth+parity bug
-        # https://github.com/ethereum/EIPs/issues/716
-        if beneficiary == THREE:
-            yield beneficiary
-            continue
-        if (computation.is_error and computation.is_origin_computation) or ancestor_had_error:
+        if computation.is_error or ancestor_had_error:
+            # Special case to account for geth+parity bug
+            # https://github.com/ethereum/EIPs/issues/716
+            if beneficiary == THREE:
+                yield beneficiary
             continue
         else:
             yield beneficiary
