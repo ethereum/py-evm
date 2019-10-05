@@ -45,7 +45,7 @@ def collect_touched_accounts(computation: BaseComputation,
 
     # collect account directly addressed
     if computation.msg.to != constants.CREATE_CONTRACT_ADDRESS:
-        if (computation.is_error and computation.is_origin_computation) or ancestor_had_error:
+        if computation.is_error or ancestor_had_error:
             pass
         else:
             yield computation.msg.to
