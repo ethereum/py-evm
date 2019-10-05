@@ -17,6 +17,9 @@ from mypy_extensions import (
 from p2p.trio_service import (
     Service,
 )
+from p2p.trio_utils import (
+    every,
+)
 
 from p2p.discv5.abc import (
     EnrDbApi,
@@ -312,17 +315,13 @@ class PingSenderService(BaseRoutingTableManagerComponent):
         self.endpoint_vote_send_channel = endpoint_vote_send_channel
 
     async def run(self) -> None:
-        while True:
-            deadline = trio.current_time() + ROUTING_TABLE_PING_INTERVAL
-
+        async for _ in every(ROUTING_TABLE_PING_INTERVAL):  # noqa: F841
             if len(self.routing_table) > 0:
                 node_id = self.routing_table.get_oldest_entry()
                 self.logger.debug("Pinging %s", encode_hex(node_id))
                 await self.ping(node_id)
             else:
                 self.logger.warning("Routing table is empty, no one to ping")
-
-            await trio.sleep_until(deadline)
 
     async def ping(self, node_id: NodeID) -> None:
         local_enr = await self.get_local_enr()
