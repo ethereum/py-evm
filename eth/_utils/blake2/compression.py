@@ -177,4 +177,4 @@ def blake2b_compress(
         G(3, 4, 9, 14)
 
     result_message_words = (h_starting_state[i] ^ v[i] ^ v[i + 8] for i in range(8))
-    return struct.pack('<8%s' % Blake2b.WORDFMT, *result_message_words)
+    return struct.pack(f'<8{Blake2b.WORDFMT}', *result_message_words)
