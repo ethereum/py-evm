@@ -151,10 +151,7 @@ class BlockHeader(BlockHeaderAPI):
         )
 
     def __str__(self) -> str:
-        return '<BlockHeader #{0} {1}>'.format(
-            self.block_number,
-            encode_hex(self.hash)[2:10],
-        )
+        return f'<BlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
 
     _hash = None
 
