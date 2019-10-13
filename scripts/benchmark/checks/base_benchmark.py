@@ -48,7 +48,7 @@ class BaseBenchmark(ABC):
         print_default_benchmark_total_line(stat)
 
     def run(self) -> DefaultStat:
-        logging.info(bold_yellow('Starting benchmark: {}\n'.format(self.name)))
+        logging.info(bold_yellow(f'Starting benchmark: {self.name}\n'))
         self.print_result_header()
         stat = self.execute()
         self.print_total_line(stat)

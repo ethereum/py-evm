@@ -143,7 +143,7 @@ class BaseERC20Benchmark(BaseBenchmark):
             gas=FIRST_TX_GAS_LIMIT,
             data=decode_hex(w3_tx['data']),
         )
-        logging.debug('Applying Transaction {}'.format(tx))
+        logging.debug(f'Applying Transaction {tx}')
         block, receipt, computation = chain.apply_transaction(tx)
         # Keep track of deployed contract address
         self.deployed_contract_address = computation.msg.storage_address
