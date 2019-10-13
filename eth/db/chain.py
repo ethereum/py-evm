@@ -87,7 +87,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             encoded_uncles = self.db[uncles_hash]
         except KeyError:
             raise HeaderNotFound(
-                "No uncles found for hash {0}".format(uncles_hash)
+                f"No uncles found for hash {uncles_hash}"
             )
         else:
             return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
@@ -102,8 +102,9 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         try:
             header = cls._get_block_header_by_hash(db, block_hash)
         except HeaderNotFound:
-            raise ValueError("Cannot use unknown block hash as canonical head: {}".format(
-                header.hash))
+            raise ValueError(
+                f"Cannot use unknown block hash as canonical head: {header.hash}"
+            )
 
         new_canonical_headers = tuple(reversed(
             cls._find_new_ancestors(db, header, genesis_parent_hash)))
@@ -298,7 +299,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
-            raise TransactionNotFound("Block {} is not in the canonical chain".format(block_number))
+            raise TransactionNotFound(f"Block {block_number} is not in the canonical chain")
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         encoded_index = rlp.encode(transaction_index)
         encoded_transaction = transaction_db[encoded_index]
@@ -306,7 +307,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             return rlp.decode(encoded_transaction, sedes=transaction_class)
         else:
             raise TransactionNotFound(
-                "No transaction is at index {} of block {}".format(transaction_index, block_number))
+                f"No transaction is at index {transaction_index} of block {block_number}"
+            )
 
     def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
         """
@@ -322,7 +324,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             encoded_key = self.db[key]
         except KeyError:
             raise TransactionNotFound(
-                "Transaction {} not found in canonical chain".format(encode_hex(transaction_hash)))
+                f"Transaction {encode_hex(transaction_hash)} not found in canonical chain"
+            )
 
         transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
         return (transaction_key.block_number, transaction_key.index)
@@ -337,7 +340,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
-            raise ReceiptNotFound("Block {} is not in the canonical chain".format(block_number))
+            raise ReceiptNotFound(f"Block {block_number} is not in the canonical chain")
 
         receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_key = rlp.encode(receipt_index)
@@ -346,7 +349,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             return rlp.decode(receipt_data, sedes=Receipt)
         else:
             raise ReceiptNotFound(
-                "Receipt with index {} not found in block".format(receipt_index))
+                f"Receipt with index {receipt_index} not found in block"
+            )
 
     @staticmethod
     def _get_block_transaction_data(db: DatabaseAPI, transaction_root: Hash32) -> Iterable[Hash32]:

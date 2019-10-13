@@ -67,7 +67,7 @@ class HeaderDB(HeaderDatabaseAPI):
             encoded_key = db[number_to_hash_key]
         except KeyError:
             raise HeaderNotFound(
-                "No canonical header for block number #{0}".format(block_number)
+                f"No canonical header for block number #{block_number}"
             )
         else:
             return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
@@ -121,8 +121,7 @@ class HeaderDB(HeaderDatabaseAPI):
         try:
             header_rlp = db[block_hash]
         except KeyError:
-            raise HeaderNotFound("No header with hash {0} found".format(
-                encode_hex(block_hash)))
+            raise HeaderNotFound(f"No header with hash {encode_hex(block_hash)} found")
         return _decode_block_header(header_rlp)
 
     def get_score(self, block_hash: Hash32) -> int:
@@ -133,8 +132,7 @@ class HeaderDB(HeaderDatabaseAPI):
         try:
             encoded_score = db[SchemaV1.make_block_hash_to_score_lookup_key(block_hash)]
         except KeyError:
-            raise HeaderNotFound("No header with hash {0} found".format(
-                encode_hex(block_hash)))
+            raise HeaderNotFound(f"No header with hash {encode_hex(block_hash)} found")
         return rlp.decode(encoded_score, sedes=rlp.sedes.big_endian_int)
 
     def header_exists(self, block_hash: Hash32) -> bool:
@@ -222,8 +220,9 @@ class HeaderDB(HeaderDatabaseAPI):
         is_genesis = first_header.parent_hash == genesis_parent_hash
         if not is_genesis and not cls._header_exists(db, first_header.parent_hash):
             raise ParentNotFound(
-                "Cannot persist block header ({}) with unknown parent ({})".format(
-                    encode_hex(first_header.hash), encode_hex(first_header.parent_hash)))
+                f"Cannot persist block header ({encode_hex(first_header.hash)}) "
+                f"with unknown parent ({encode_hex(first_header.parent_hash)})"
+            )
 
         if is_genesis:
             score = 0
@@ -241,11 +240,9 @@ class HeaderDB(HeaderDatabaseAPI):
         for parent, child in sliding_window(2, orig_headers_seq):
             if parent.hash != child.parent_hash:
                 raise ValidationError(
-                    "Non-contiguous chain. Expected {} to have {} as parent but was {}".format(
-                        encode_hex(child.hash),
-                        encode_hex(parent.hash),
-                        encode_hex(child.parent_hash),
-                    )
+                    f"Non-contiguous chain. Expected {encode_hex(child.hash)} "
+                    f"to have {encode_hex(parent.hash)} as parent "
+                    f"but was {encode_hex(child.parent_hash)}"
                 )
 
             curr_chain_head = child
@@ -285,7 +282,7 @@ class HeaderDB(HeaderDatabaseAPI):
             header = cls._get_block_header_by_hash(db, block_hash)
         except HeaderNotFound:
             raise ValueError(
-                "Cannot use unknown block hash as canonical head: {}".format(block_hash)
+                f"Cannot use unknown block hash as canonical head: {block_hash}"
             )
 
         new_canonical_headers = tuple(reversed(

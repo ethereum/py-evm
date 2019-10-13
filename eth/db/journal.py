@@ -126,7 +126,7 @@ class Journal(BaseDB):
         if custom_checkpoint is not None:
             if custom_checkpoint in self._journal_data:
                 raise ValidationError(
-                    "Tried to record with an existing checkpoint: %r" % custom_checkpoint
+                    f"Tried to record with an existing checkpoint: {repr(custom_checkpoint)}"
                 )
             else:
                 checkpoint = custom_checkpoint
@@ -144,7 +144,7 @@ class Journal(BaseDB):
                 break
         else:
             # checkpoint not found!
-            raise ValidationError("No checkpoint %s was found" % through_checkpoint_id)
+            raise ValidationError(f"No checkpoint {through_checkpoint_id} was found")
 
         # This might be optimized further by iterating the other direction and
         # ignoring any follow-up rollbacks on the same variable.
@@ -161,7 +161,7 @@ class Journal(BaseDB):
                 elif type(old_value) is bytes:
                     self._current_values[old_key] = old_value
                 else:
-                    raise ValidationError("Unexpected value, must be bytes: %r" % old_value)
+                    raise ValidationError(f"Unexpected value, must be bytes: {repr(old_value)}")
 
             if checkpoint_id in self._clears_at:
                 self._clears_at.remove(checkpoint_id)
@@ -192,7 +192,7 @@ class Journal(BaseDB):
                 return True
             elif at_checkpoint == reversion_changeset_id:
                 return False
-        raise ValidationError("Checkpoint %s is not in the journal" % at_checkpoint)
+        raise ValidationError(f"Checkpoint {at_checkpoint} is not in the journal")
 
     def commit_checkpoint(self, commit_to: JournalDBCheckpoint) -> ChangesetDict:
         """
@@ -207,7 +207,7 @@ class Journal(BaseDB):
                 checkpoint_idx = -1 - positions_before_last
                 break
         else:
-            raise ValidationError("No checkpoint %s was found" % commit_to)
+            raise ValidationError(f"No checkpoint {commit_to} was found")
 
         if checkpoint_idx == -1 * len(self._checkpoint_stack):
             raise ValidationError(
