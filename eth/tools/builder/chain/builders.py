@@ -448,12 +448,12 @@ def copy(chain: MiningChainAPI) -> MiningChainAPI:
         raise ValidationError("`at_block_number` may only be used with 'MiningChain")
     base_db = chain.chaindb.db
     if not isinstance(base_db, AtomicDB):
-        raise ValidationError("Unsupported database type: {0}".format(type(base_db)))
+        raise ValidationError(f"Unsupported database type: {type(base_db)}")
 
     if isinstance(base_db.wrapped_db, MemoryDB):
         db = AtomicDB(MemoryDB(base_db.wrapped_db.kv_store.copy()))
     else:
-        raise ValidationError("Unsupported wrapped database: {0}".format(type(base_db.wrapped_db)))
+        raise ValidationError(f"Unsupported wrapped database: {type(base_db.wrapped_db)}")
 
     chain_copy = type(chain)(db, chain.header)
     return chain_copy

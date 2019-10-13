@@ -61,8 +61,8 @@ def generate_fixture_tests(metafunc: Any,
         all_fixture_paths = find_fixture_files(base_fixture_path)
         current_file_hash = get_fixtures_file_hash(all_fixture_paths)
 
-        data_cache_key = 'pyevm/statetest/fixtures/{0}/data'.format(fixture_namespace)
-        file_hash_cache_key = 'pyevm/statetest/fixtures/{0}/data-hash'.format(fixture_namespace)
+        data_cache_key = f'pyevm/statetest/fixtures/{fixture_namespace}/data'
+        file_hash_cache_key = f'pyevm/statetest/fixtures/{fixture_namespace}/data-hash'
 
         cached_file_hash = metafunc.config.cache.get(file_hash_cache_key, None)
         cached_fixture_data = metafunc.config.cache.get(data_cache_key, None)
@@ -83,7 +83,7 @@ def generate_fixture_tests(metafunc: Any,
 
         if not len(all_fixtures):
             raise AssertionError(
-                "Suspiciously found zero fixtures: {0}".format(base_fixture_path)
+                f"Suspiciously found zero fixtures: {base_fixture_path}"
             )
 
         filtered_fixtures = filter_fn(preprocess_fn(all_fixtures))
