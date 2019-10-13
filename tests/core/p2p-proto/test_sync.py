@@ -454,7 +454,7 @@ async def test_light_syncer(request,
 
 @pytest.fixture
 def leveldb_churner():
-    yield from load_fixture_db(DBFixture.state_churner)
+    yield from load_fixture_db(DBFixture.STATE_CHURNER)
 
 
 @pytest.fixture

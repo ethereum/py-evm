@@ -226,4 +226,4 @@ class InteropComponent(BaseMainProcessComponent):
         # disable some components which shouldn't be running
         args.disable_discovery = True
         args.disable_upnp = True
-        args.network_tracking_backend = TrackingBackend.do_not_track
+        args.network_tracking_backend = TrackingBackend.DO_NOT_TRACK

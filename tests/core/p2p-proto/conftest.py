@@ -11,12 +11,12 @@ from tests.core.integration_test_helpers import (
 
 @pytest.fixture
 def leveldb_20():
-    yield from load_fixture_db(DBFixture.twenty_pow_headers)
+    yield from load_fixture_db(DBFixture.TWENTY_POW_HEADERS)
 
 
 @pytest.fixture
 def leveldb_1000():
-    yield from load_fixture_db(DBFixture.thousand_pow_headers)
+    yield from load_fixture_db(DBFixture.THOUSAND_POW_HEADERS)
 
 
 @pytest.fixture

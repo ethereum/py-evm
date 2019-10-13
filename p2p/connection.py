@@ -117,7 +117,7 @@ class Connection(ConnectionAPI, BaseService):
                 self.remote,
                 err,
             )
-            self.get_base_protocol().send_disconnect(DisconnectReason.bad_protocol)
+            self.get_base_protocol().send_disconnect(DisconnectReason.BAD_PROTOCOL)
             pass
 
     async def _cleanup(self) -> None:

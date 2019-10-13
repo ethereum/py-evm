@@ -90,13 +90,13 @@ def load_mining_chain(db):
 
 
 class DBFixture(Enum):
-    twenty_pow_headers = '20pow_headers.ldb'
-    thousand_pow_headers = '1000pow_headers.ldb'
+    TWENTY_POW_HEADERS = '20pow_headers.ldb'
+    THOUSAND_POW_HEADERS = '1000pow_headers.ldb'
 
     # this chain updates and churns storage, as well as creating a bunch of
     # contracts that are later deleted. It was built with:
     # build_pow_churning_fixture(db, 128)
-    state_churner = 'churn_state.ldb'
+    STATE_CHURNER = 'churn_state.ldb'
 
 
 def load_fixture_db(db_fixture, db_class=LevelDB):

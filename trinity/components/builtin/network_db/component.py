@@ -75,7 +75,7 @@ class NetworkDBComponent(AsyncioIsolatedComponent):
             ),
             action=NormalizeTrackingBackend,
             choices=('sqlite3', 'memory', 'do-not-track'),
-            default=TrackingBackend.sqlite3,
+            default=TrackingBackend.SQLITE3,
             type=str,
         )
         tracking_parser.add_argument(
@@ -162,12 +162,12 @@ class NetworkDBComponent(AsyncioIsolatedComponent):
     def _get_blacklist_tracker(self) -> BaseConnectionTracker:
         backend = self.boot_info.args.network_tracking_backend
 
-        if backend is TrackingBackend.sqlite3:
+        if backend is TrackingBackend.SQLITE3:
             session = self._get_database_session()
             return SQLiteConnectionTracker(session)
-        elif backend is TrackingBackend.memory:
+        elif backend is TrackingBackend.MEMORY:
             return MemoryConnectionTracker()
-        elif backend is TrackingBackend.do_not_track:
+        elif backend is TrackingBackend.DO_NOT_TRACK:
             return NoopConnectionTracker()
         else:
             raise Exception(f"INVARIANT: {backend}")
@@ -188,7 +188,7 @@ class NetworkDBComponent(AsyncioIsolatedComponent):
 
         backend = self.boot_info.args.network_tracking_backend
 
-        if backend is TrackingBackend.sqlite3:
+        if backend is TrackingBackend.SQLITE3:
             session = self._get_database_session()
 
             # TODO: correctly determine protocols and versions
@@ -202,9 +202,9 @@ class NetworkDBComponent(AsyncioIsolatedComponent):
                 protocols=protocols,
                 protocol_versions=protocol_versions,
             )
-        elif backend is TrackingBackend.memory:
+        elif backend is TrackingBackend.MEMORY:
             return MemoryEth1PeerTracker()
-        elif backend is TrackingBackend.do_not_track:
+        elif backend is TrackingBackend.DO_NOT_TRACK:
             return NoopEth1PeerTracker()
         else:
             raise Exception(f"INVARIANT: {backend}")

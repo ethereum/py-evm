@@ -279,7 +279,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
             )
         except asyncio.TimeoutError as err:
             self.logger.debug('Timout waiting for peer to boot: %s', err)
-            await peer.disconnect(DisconnectReason.timeout)
+            await peer.disconnect(DisconnectReason.TIMEOUT)
             return
         except HandshakeFailure as err:
             self.connection_tracker.record_failure(peer.remote, err)
@@ -318,7 +318,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         self.logger.info("Stopping all peers ...")
         peers = self.connected_nodes.values()
         disconnections = (
-            peer.disconnect(DisconnectReason.client_quitting)
+            peer.disconnect(DisconnectReason.CLIENT_QUITTING)
             for peer in peers
             if peer.is_running
         )
@@ -444,14 +444,14 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                 "Successfully connected to %s but peer pool is full.  Disconnecting.",
                 peer,
             )
-            await peer.disconnect(DisconnectReason.too_many_peers)
+            await peer.disconnect(DisconnectReason.TOO_MANY_PEERS)
             return
         elif not self.is_operational:
             self.logger.debug(
                 "Successfully connected to %s but peer pool no longer operational.  Disconnecting.",
                 peer,
             )
-            await peer.disconnect(DisconnectReason.client_quitting)
+            await peer.disconnect(DisconnectReason.CLIENT_QUITTING)
             return
         else:
             await self.start_peer(peer)

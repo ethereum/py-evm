@@ -139,7 +139,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                 self.logger.debug("%s gone during checkpoint prerequisite request: %s", peer, exc)
                 # Wait until peer is fully disconnected before continuing, so we don't reattempt
                 # with the same peer repeatedly.
-                await peer.disconnect(DisconnectReason.disconnect_requested)
+                await peer.disconnect(DisconnectReason.DISCONNECT_REQUESTED)
                 continue
 
             if not headers:
@@ -147,7 +147,7 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
                     "Disconnecting from %s. Returned no header while resolving checkpoint",
                     peer
                 )
-                await peer.disconnect(DisconnectReason.useless_peer)
+                await peer.disconnect(DisconnectReason.USELESS_PEER)
             else:
                 header = headers[0]
 

@@ -68,7 +68,7 @@ async def test_peer_pool_iter(request, event_loop):
         assert peer3 in peers
 
         peers = []
-        asyncio.ensure_future(peer2.disconnect(DisconnectReason.disconnect_requested))
+        asyncio.ensure_future(peer2.disconnect(DisconnectReason.DISCONNECT_REQUESTED))
         async for peer in pool:
             peers.append(peer)
 
