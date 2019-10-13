@@ -69,17 +69,11 @@ def check_pow(block_number: int,
         block_number, cache, mining_hash, big_endian_to_int(nonce))
     if mining_output[b'mix digest'] != mix_hash:
         raise ValidationError(
-            "mix hash mismatch; expected: {} != actual: {}. "
-            "Mix hash calculated from block #{}, mine hash {}, nonce {}, difficulty {}, "
-            "cache hash {}".format(
-                encode_hex(mining_output[b'mix digest']),
-                encode_hex(mix_hash),
-                block_number,
-                encode_hex(mining_hash),
-                encode_hex(nonce),
-                difficulty,
-                encode_hex(keccak(cache)),
-            )
+            f"mix hash mismatch; expected: {encode_hex(mining_output[b'mix digest'])} "
+            f"!= actual: {encode_hex(mix_hash)}. "
+            f"Mix hash calculated from block #{block_number}, "
+            f"mine hash {encode_hex(mining_hash)}, nonce {encode_hex(nonce)}"
+            f", difficulty {difficulty}, cache hash {encode_hex(keccak(cache))}"
         )
     result = big_endian_to_int(mining_output[b'result'])
     validate_lte(result, 2**256 // difficulty, title="POW Difficulty")
