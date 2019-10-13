@@ -244,6 +244,7 @@ def validate_gas_limit(gas_limit: int, parent_gas_limit: int) -> None:
 
 ALLOWED_HEADER_FIELDS = {
     'coinbase',
+    'difficulty',
     'gas_limit',
     'timestamp',
     'extra_data',
