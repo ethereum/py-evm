@@ -29,6 +29,7 @@ deps = {
         "plyvel>=1.0.5,<1.2.0",
     ],
     'test': [
+        "factory-boy==2.11.1",
         "hypothesis==3.69.5",
         "pexpect>=4.6, <5",
         "pytest>=5.1.3,<6",

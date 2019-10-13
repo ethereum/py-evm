@@ -139,7 +139,7 @@ class VM(Configurable, VirtualMachineAPI):
                     db: AtomicDatabaseAPI,
                     header: BlockHeaderAPI,
                     chain_context: ChainContextAPI,
-                    previous_hashes: Iterable[Hash32] = ()
+                    previous_hashes: Iterable[Hash32] = (),
                     ) -> StateAPI:
         """
         You probably want `VM().state` instead of this.
@@ -295,6 +295,7 @@ class VM(Configurable, VirtualMachineAPI):
         self._block = self.get_block().copy(
             header=self.configure_header(
                 coinbase=block.header.coinbase,
+                difficulty=block.header.difficulty,
                 gas_limit=block.header.gas_limit,
                 timestamp=block.header.timestamp,
                 extra_data=block.header.extra_data,
@@ -305,14 +306,15 @@ class VM(Configurable, VirtualMachineAPI):
             uncles=block.uncles,
         )
 
+        execution_context = self.create_execution_context(
+            block.header, self.previous_hashes, self.chain_context)
+
+        header = self.get_header()
         # we need to re-initialize the `state` to update the execution context.
-        self._state = self.build_state(self.chaindb.db,
-                                       self.get_header(),
-                                       self.chain_context,
-                                       self.previous_hashes)
+        self._state = self.get_state_class()(self.chaindb.db, execution_context, header.state_root)
 
         # run all of the transactions.
-        new_header, receipts, _ = self.apply_all_transactions(block.transactions, self.get_header())
+        new_header, receipts, _ = self.apply_all_transactions(block.transactions, header)
 
         self._block = self.set_block_transactions(
             self.get_block(),
