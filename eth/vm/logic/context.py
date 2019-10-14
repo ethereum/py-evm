@@ -188,12 +188,9 @@ def returndatacopy(computation: BaseComputation) -> None:
     if returndata_start_position + size > len(computation.return_data):
         raise OutOfBoundsRead(
             "Return data length is not sufficient to satisfy request.  Asked "
-            "for data from index {0} to {1}.  Return data is {2} bytes in "
-            "length.".format(
-                returndata_start_position,
-                returndata_start_position + size,
-                len(computation.return_data),
-            )
+            f"for data from index {returndata_start_position} "
+            f"to {returndata_start_position + size}.  "
+            f"Return data is {len(computation.return_data)} bytes in length."
         )
 
     computation.extend_memory(mem_start_position, size)

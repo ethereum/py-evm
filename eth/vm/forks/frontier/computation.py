@@ -56,7 +56,7 @@ class FrontierComputation(BaseComputation):
 
             if sender_balance < self.msg.value:
                 raise InsufficientFunds(
-                    "Insufficient funds: {0} < {1}".format(sender_balance, self.msg.value)
+                    f"Insufficient funds: {sender_balance} < {self.msg.value}"
                 )
 
             self.state.delta_balance(self.msg.sender, -1 * self.msg.value)

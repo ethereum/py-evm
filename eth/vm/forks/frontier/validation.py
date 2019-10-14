@@ -17,11 +17,8 @@ def validate_frontier_transaction(state: StateAPI,
 
     if sender_balance < gas_cost:
         raise ValidationError(
-            "Sender {} cannot afford txn gas {} with account balance {}".format(
-                transaction.sender,
-                gas_cost,
-                sender_balance,
-            )
+            f"Sender {transaction.sender} cannot afford txn gas "
+            f"{gas_cost} with account balance {sender_balance}"
         )
 
     total_cost = transaction.value + gas_cost
@@ -38,9 +35,7 @@ def validate_frontier_transaction_against_header(_vm: VirtualMachineAPI,
                                                  transaction: SignedTransactionAPI) -> None:
     if base_header.gas_used + transaction.gas > base_header.gas_limit:
         raise ValidationError(
-            "Transaction exceeds gas limit: using {}, bringing total to {}, but limit is {}".format(
-                transaction.gas,
-                base_header.gas_used + transaction.gas,
-                base_header.gas_limit,
-            )
+            f"Transaction exceeds gas limit: using {transaction.gas}, "
+            f"bringing total to {base_header.gas_used + transaction.gas}, "
+            f"but limit is {base_header.gas_limit}"
         )

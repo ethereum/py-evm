@@ -97,10 +97,7 @@ class BaseCall(Opcode, ABC):
         if insufficient_funds or stack_too_deep:
             computation.return_data = b''
             if insufficient_funds:
-                err_message = "Insufficient Funds: have: {0} | need: {1}".format(
-                    sender_balance,
-                    value,
-                )
+                err_message = f"Insufficient Funds: have: {sender_balance} | need: {value}"
             elif stack_too_deep:
                 err_message = "Stack Limit Reached"
             else:
@@ -345,11 +342,11 @@ def compute_eip150_msg_gas(*,
     if computation.get_gas_remaining() < extra_gas:
         # It feels wrong to raise an OutOfGas exception outside of GasMeter,
         # but I don't see an easy way around it.
-        raise OutOfGas("Out of gas: Needed {0} - Remaining {1} - Reason: {2}".format(
-            extra_gas,
-            computation.get_gas_remaining(),
-            mnemonic,
-        ))
+        raise OutOfGas(
+            f"Out of gas: Needed {extra_gas}"
+            f" - Remaining {computation.get_gas_remaining()}"
+            f" - Reason: {mnemonic}"
+        )
     gas = min(
         gas,
         max_child_gas_eip150(computation.get_gas_remaining() - extra_gas))
