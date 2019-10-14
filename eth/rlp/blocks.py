@@ -26,10 +26,7 @@ class BaseBlock(Configurable, BlockAPI):
         return self.header.is_genesis
 
     def __repr__(self) -> str:
-        return '<{class_name}(#{b})>'.format(
-            class_name=self.__class__.__name__,
-            b=str(self),
-        )
+        return f'<{self.__class__.__name__}(#{str(self)})>'
 
     def __str__(self) -> str:
-        return "Block #{b.number}".format(b=self)
+        return f"Block #{self.number}"

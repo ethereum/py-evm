@@ -31,7 +31,7 @@ class MissingAccountTrieNode(EVMMissingData, MissingTrieNode):
         return self.requested_key
 
     def __repr__(self) -> str:
-        return "MissingAccountTrieNode: {}".format(self)
+        return f"MissingAccountTrieNode: {self}"
 
     def __str__(self) -> str:
         superclass_str = EVMMissingData.__str__(self)
@@ -104,7 +104,7 @@ class MissingBytecode(EVMMissingData):
         return self.args[0]
 
     def __repr__(self) -> str:
-        return "MissingBytecode: {}".format(self)
+        return f"MissingBytecode: {self}"
 
     def __str__(self) -> str:
         superclass_str = EVMMissingData.__str__(self)

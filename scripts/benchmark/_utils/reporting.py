@@ -63,65 +63,55 @@ HASH_UNDERLINE = '#' * REPORT_TABLE_LENGTH
 
 def print_default_benchmark_result_header() -> None:
     logging.info(SINGLE_UNDERLINE)
-    logging.info(bold_white('|{:^19}|{:^16}|{:^16}|{:^16}|{:^16}|{:^20}|{:^16}|{:^16}|'.format(
-        'VM',
-        'total seconds',
-        'total tx',
-        'tx / second',
-        'total blocks',
-        'blocks / second',
-        'total gas',
-        'gas / second'
-    )))
+    logging.info(
+        bold_white(
+            f"|{'VM':^19}|{'total seconds':^16}|{'total tx':^16}"
+            f"|{'tx / second':^16}|{'total blocks':^16}|{'blocks / second':^20}"
+            f"|{'total gas':^16}|{'gas / second':^16}|"
+        )
+    )
     logging.info(SINGLE_UNDERLINE)
 
 
 def print_default_benchmark_stat_line(stat: DefaultStat) -> None:
     logging.info(
-        '|{stat.caption:^19}'
-        '|{stat.total_seconds:^16.3f}'
-        '|{stat.total_tx:^16}'
-        '|{stat.tx_per_second:^16.3f}'
-        '|{stat.total_blocks:^16}'
-        '|{stat.blocks_per_second:^20.3f}'
-        '|{stat.total_gas:^16,}'
-        '|{stat.gas_per_second:^16,.3f}'
-        '|'.format(
-            stat=stat
-        ))
+        f'|{stat.caption:^19}'
+        f'|{stat.total_seconds:^16.3f}'
+        f'|{stat.total_tx:^16}'
+        f'|{stat.tx_per_second:^16.3f}'
+        f'|{stat.total_blocks:^16}'
+        f'|{stat.blocks_per_second:^20.3f}'
+        f'|{stat.total_gas:^16,}'
+        f'|{stat.gas_per_second:^16,.3f}|'
+    )
 
 
 def print_default_benchmark_total_line(stat: DefaultStat) -> None:
     logging.info(SINGLE_UNDERLINE)
-    logging.info(bold_white(
-        '|{caption:^19}'
-        '|{stat.total_seconds:^16.3f}'
-        '|{stat.total_tx:^16}'
-        '|{tx_per_second:^16}'
-        '|{stat.total_blocks:^16}'
-        '|{blocks_per_second:^20}'
-        '|{stat.total_gas:^16,}'
-        '|{gas_per_second:^16}'
-        '|'.format(
-            caption='Total',
-            gas_per_second='-',
-            tx_per_second='-',
-            blocks_per_second='-',
-            stat=stat
-        )))
-    logging.info(bold_white(
-        '|{caption:^19}'
-        '|{stat.avg_total_seconds:^16.3f}'
-        '|{stat.avg_total_tx:^16.0f}'
-        '|{stat.tx_per_second:^16.3f}'
-        '|{stat.avg_total_blocks:^16.0f}'
-        '|{stat.blocks_per_second:^20.3f}'
-        '|{stat.avg_total_gas:^16,.0f}'
-        '|{stat.gas_per_second:^16,.3f}'
-        '|'.format(
-            caption='Avg',
-            stat=stat
-        )))
+    logging.info(
+        bold_white(
+            f'|{"Total":^19}' # caption
+            f'|{stat.total_seconds:^16.3f}'
+            f'|{stat.total_tx:^16}'
+            f'|{"-":^16}' # tx_per_second
+            f'|{stat.total_blocks:^16}'
+            f'|{"-":^20}' # blocks_per_second
+            f'|{stat.total_gas:^16,}'
+            f'|{"-":^16}|' # gas per second
+        )
+    )
+    logging.info(
+        bold_white(
+            f'|{"Avg":^19}'
+            f'|{stat.avg_total_seconds:^16.3f}'
+            f'|{stat.avg_total_tx:^16.0f}'
+            f'|{stat.tx_per_second:^16.3f}'
+            f'|{stat.avg_total_blocks:^16.0f}'
+            f'|{stat.blocks_per_second:^20.3f}'
+            f'|{stat.avg_total_gas:^16,.0f}'
+            f'|{stat.gas_per_second:^16,.3f}|'
+        )
+    )
     logging.info(DOUBLE_UNDERLINE + '\n')
 
 

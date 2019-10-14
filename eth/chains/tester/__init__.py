@@ -91,7 +91,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
         MAINNET_VMS.keys()
     ))
     if unknown_forks:
-        raise ValidationError("Configuration contains unknown forks: {0}".format(unknown_forks))
+        raise ValidationError(f"Configuration contains unknown forks: {unknown_forks}")
 
     # Validate that *if* an explicit value was passed in for dao_start_block
     # that the Homestead fork rules are part of the VM configuration.

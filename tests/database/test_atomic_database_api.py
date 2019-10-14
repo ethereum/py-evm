@@ -14,7 +14,7 @@ def atomic_db(request, tmpdir):
     elif request.param == 'level':
         return LevelDB(db_path=tmpdir.mkdir("level_db_path"))
     else:
-        raise ValueError("Unexpected database type: {}".format(request.param))
+        raise ValueError(f"Unexpected database type: {request.param}")
 
 
 @pytest.fixture
