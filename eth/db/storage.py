@@ -254,7 +254,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         journal_diff = self._journal_storage.diff()
         if len(journal_diff) > 0:
             raise ValidationError(
-                f"StorageDB had a dirty journal when it needed to be clean: {repr(journal_diff)}"
+                f"StorageDB had a dirty journal when it needed to be clean: {journal_diff!r}"
             )
 
     @property

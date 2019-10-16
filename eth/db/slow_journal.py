@@ -99,7 +99,7 @@ class Journal(BaseDB):
         if custom_changeset_id is not None:
             if custom_changeset_id in self.journal_data:
                 raise ValidationError(
-                    f"Tried to record with an existing changeset id: {repr(custom_changeset_id)}"
+                    f"Tried to record with an existing changeset id: {custom_changeset_id!r}"
                 )
             else:
                 changeset_id = custom_changeset_id

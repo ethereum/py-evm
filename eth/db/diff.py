@@ -147,7 +147,7 @@ class DBDiff(ABC_Mapping):
             for key, val in self._changes.items()
             if val is not DELETED
         ]
-        return f"<DBDiff: deletions={repr(deleted)}, updates={repr(updated)}>"
+        return f"<DBDiff: deletions={deleted!r}, updates={updated!r}>"
 
     def __len__(self) -> int:
         return len(self._changes)

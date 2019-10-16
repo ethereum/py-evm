@@ -545,7 +545,7 @@ class VM(Configurable, VirtualMachineAPI):
         """
         if not isinstance(block, self.get_block_class()):
             raise ValidationError(
-                f"This vm ({repr(self)}) is not equipped to validate a block of type {repr(block)}"
+                f"This vm ({self!r}) is not equipped to validate a block of type {block!r}"
             )
 
         if block.is_genesis:

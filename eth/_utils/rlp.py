@@ -71,8 +71,8 @@ def validate_rlp_equal(obj_a: BaseBlock,
     diff = diff_rlp_object(obj_a, obj_b)
     if len(diff) == 0:
         raise TypeError(
-            f"{obj_a_name} ({repr(obj_a)}) != "
-            f"{obj_b_name} ({repr(obj_b)}) but got an empty diff"
+            f"{obj_a_name} ({obj_a!r}) != "
+            f"{obj_b_name} ({obj_b!r}) but got an empty diff"
         )
     longest_field_name = max(len(field_name) for field_name, _, _ in diff)
     

@@ -110,10 +110,10 @@ class Configurable(ConfigurableAPI):
 
             if not isinstance(sub_cls, type) or not issubclass(sub_cls, Configurable):
                 raise TypeError(
-                    f"Unable to configure property `{key}` on class `{repr(cls)}`.  The "
+                    f"Unable to configure property `{key}` on class `{cls!r}`.  The "
                     "property being configured must be a subclass of the "
                     "`Configurable` type.  Instead got the following object "
-                    f"instance: {repr(sub_cls)}"
+                    f"instance: {sub_cls!r}"
                 )
 
             configured_sub_cls = sub_cls.configure(**sub_overrides)

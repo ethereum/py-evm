@@ -175,7 +175,7 @@ def validate_stack_int(value: int) -> None:
         return
     raise ValidationError(
         "Invalid Stack Item: Must be either a length 32 byte "
-        f"string or a 256 bit integer. Got {repr(value)}"
+        f"string or a 256 bit integer. Got {value!r}"
     )
 
 
@@ -184,7 +184,7 @@ def validate_stack_bytes(value: bytes) -> None:
         return
     raise ValidationError(
         "Invalid Stack Item: Must be either a length 32 byte "
-        f"string or a 256 bit integer. Got {repr(value)}"
+        f"string or a 256 bit integer. Got {value!r}"
     )
 
 

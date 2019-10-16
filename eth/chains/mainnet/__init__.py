@@ -58,13 +58,13 @@ class MainnetDAOValidatorVM(HomesteadVM):
         if header.block_number in extra_data_block_nums:
             if cls.support_dao_fork and header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
                 raise ValidationError(
-                    f"Block {repr(header)} must have extra data "
+                    f"Block {header!r} must have extra data "
                     f"{encode_hex(DAO_FORK_MAINNET_EXTRA_DATA)} not "
                     f"{encode_hex(header.extra_data)} when supporting DAO fork"
                 )
             elif not cls.support_dao_fork and header.extra_data == DAO_FORK_MAINNET_EXTRA_DATA:
                 raise ValidationError(
-                    f"Block {repr(header)} must not have extra data "
+                    f"Block {header!r} must not have extra data "
                     f"{encode_hex(DAO_FORK_MAINNET_EXTRA_DATA)} when declining the DAO fork"
                 )
 

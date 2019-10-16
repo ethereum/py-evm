@@ -204,8 +204,8 @@ class AccountDB(AccountDatabaseAPI):
             if expected_storage_root != actual_storage_root:
                 raise ValidationError(
                     "Storage root was not saved to account before trying to persist roots. "
-                    f"Account {repr(address)} had storage {repr(actual_storage_root)}, "
-                    f"but should be {repr(expected_storage_root)}."
+                    f"Account {address!r} had storage {actual_storage_root!r}, "
+                    f"but should be {expected_storage_root!r}."
                 )
 
     #
@@ -425,12 +425,12 @@ class AccountDB(AccountDatabaseAPI):
         db_diff = self._journaldb.diff()
         if len(db_diff):
             raise ValidationError(
-                f"AccountDB had a dirty db when it needed to be clean: {repr(db_diff)}" 
+                f"AccountDB had a dirty db when it needed to be clean: {db_diff!r}" 
             )
         trie_diff = self._journaltrie.diff()
         if len(trie_diff):
             raise ValidationError(
-                f"AccountDB had a dirty trie when it needed to be clean: {repr(trie_diff)}"
+                f"AccountDB had a dirty trie when it needed to be clean: {trie_diff!r}"
             )
 
     def _log_pending_accounts(self) -> None:

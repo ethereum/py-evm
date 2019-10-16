@@ -56,7 +56,7 @@ class MissingStorageTrieNode(EVMMissingData, MissingTrieNode):
             account_address: Address,
             *args: bytes) -> None:
         if not isinstance(account_address, bytes):
-            raise TypeError(f"Account address must be bytes, was: {repr(account_address)}")
+            raise TypeError(f"Account address must be bytes, was: {account_address!r}")
 
         super().__init__(
             missing_node_hash,
@@ -95,7 +95,7 @@ class MissingBytecode(EVMMissingData):
     """
     def __init__(self, missing_code_hash: Hash32) -> None:
         if not isinstance(missing_code_hash, bytes):
-            raise TypeError(f"Missing code hash must be bytes, was: {repr(missing_code_hash)}")
+            raise TypeError(f"Missing code hash must be bytes, was: {missing_code_hash!r}")
 
         super().__init__(missing_code_hash)
 

@@ -36,4 +36,4 @@ class MemoryDB(BaseDB):
         return len(self.kv_store)
 
     def __repr__(self) -> str:
-        return f"MemoryDB({repr(self.kv_store)})"
+        return f"MemoryDB({self.kv_store!r})"

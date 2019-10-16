@@ -26,7 +26,7 @@ from eth.abc import StackAPI
 def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
     return ValidationError(
         "Stack must always be bytes or int, "
-        f"got {repr(item_type)} type, val {repr(value)}"
+        f"got {item_type!r} type, val {value!r}"
     )
 
 

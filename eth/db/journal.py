@@ -126,7 +126,7 @@ class Journal(BaseDB):
         if custom_checkpoint is not None:
             if custom_checkpoint in self._journal_data:
                 raise ValidationError(
-                    f"Tried to record with an existing checkpoint: {repr(custom_checkpoint)}"
+                    f"Tried to record with an existing checkpoint: {custom_checkpoint!r}"
                 )
             else:
                 checkpoint = custom_checkpoint
@@ -161,7 +161,7 @@ class Journal(BaseDB):
                 elif type(old_value) is bytes:
                     self._current_values[old_key] = old_value
                 else:
-                    raise ValidationError(f"Unexpected value, must be bytes: {repr(old_value)}")
+                    raise ValidationError(f"Unexpected value, must be bytes: {old_value!r}")
 
             if checkpoint_id in self._clears_at:
                 self._clears_at.remove(checkpoint_id)
