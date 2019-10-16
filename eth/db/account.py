@@ -405,7 +405,8 @@ class AccountDB(AccountDatabaseAPI):
             if new_root not in self._raw_store_db and new_root != BLANK_ROOT_HASH:
                 raise ValidationError(
                     "After persisting storage trie, a root node was not found. "
-                    f"State root for account 0x{address.hex()} is missing for hash 0x{new_root.hex()}."
+                    f"State root for account 0x{address.hex()} "
+                    f"is missing for hash 0x{new_root.hex()}."
                 )
 
         # reset local storage trackers
@@ -425,7 +426,7 @@ class AccountDB(AccountDatabaseAPI):
         db_diff = self._journaldb.diff()
         if len(db_diff):
             raise ValidationError(
-                f"AccountDB had a dirty db when it needed to be clean: {db_diff!r}" 
+                f"AccountDB had a dirty db when it needed to be clean: {db_diff!r}"
             )
         trie_diff = self._journaltrie.diff()
         if len(trie_diff):

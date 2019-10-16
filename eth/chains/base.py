@@ -164,7 +164,8 @@ class BaseChain(Configurable, ChainAPI):
         for index, (parent, child) in enumerate(header_pairs):
             if child.parent_hash != parent.hash:
                 raise ValidationError(
-                    f"Invalid header chain; {child} has parent {child.parent_hash}, but expected {parent.hash}"
+                    f"Invalid header chain; {child} has parent {child.parent_hash},"
+                    f" but expected {parent.hash}"
                 )
             should_check_seal = index in indices_to_check_seal
             vm_class = cls.get_vm_class_for_block_number(child.block_number)
@@ -598,12 +599,14 @@ class Chain(BaseChain):
         low_bound, high_bound = compute_gas_limit_bounds(parent_header)
         if header.gas_limit < low_bound:
             raise ValidationError(
-                f"The gas limit on block {encode_hex(header.hash)} is too low: {header.gas_limit}. "
+                f"The gas limit on block {encode_hex(header.hash)} "
+                f"is too low: {header.gas_limit}. "
                 f"It must be at least {low_bound}"
             )
         elif header.gas_limit > high_bound:
             raise ValidationError(
-                f"The gas limit on block {encode_hex(header.hash)} is too high: {header.gas_limit}. "
+                f"The gas limit on block {encode_hex(header.hash)} "
+                f"is too high: {header.gas_limit}. "
                 f"It must be at most {high_bound}"
             )
 

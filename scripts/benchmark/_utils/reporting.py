@@ -90,14 +90,14 @@ def print_default_benchmark_total_line(stat: DefaultStat) -> None:
     logging.info(SINGLE_UNDERLINE)
     logging.info(
         bold_white(
-            f'|{"Total":^19}' # caption
+            f'|{"Total":^19}'  # caption
             f'|{stat.total_seconds:^16.3f}'
             f'|{stat.total_tx:^16}'
-            f'|{"-":^16}' # tx_per_second
+            f'|{"-":^16}'  # tx_per_second
             f'|{stat.total_blocks:^16}'
-            f'|{"-":^20}' # blocks_per_second
+            f'|{"-":^20}'  # blocks_per_second
             f'|{stat.total_gas:^16,}'
-            f'|{"-":^16}|' # gas per second
+            f'|{"-":^16}|'  # gas per second
         )
     )
     logging.info(

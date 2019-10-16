@@ -75,13 +75,15 @@ def validate_rlp_equal(obj_a: BaseBlock,
             f"{obj_b_name} ({obj_b!r}) but got an empty diff"
         )
     longest_field_name = max(len(field_name) for field_name, _, _ in diff)
-    
-    err_fields = "\n - ".join(tuple(
-                    f"{field_name.ljust(longest_field_name, ' ')}:\n"
-                    f"    (actual)  : {actual}\n    (expected): {expected}"
-                    for field_name, actual, expected
-                    in diff
-                ))
+
+    err_fields = "\n - ".join(
+        tuple(
+            f"{field_name.ljust(longest_field_name, ' ')}:\n"
+            f"    (actual)  : {actual}\n    (expected): {expected}"
+            for field_name, actual, expected
+            in diff
+        )
+    )
     error_message = (
         f"Mismatch between {obj_a_name} and {obj_b_name} "
         f"on {len(diff)} fields:\n - {err_fields}"
