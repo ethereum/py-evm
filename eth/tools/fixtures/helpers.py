@@ -154,7 +154,7 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
     elif network == 'ByzantiumToConstantinopleFixAt5':
         return (
             (0, ByzantiumVM),
-            (5, ConstantinopleVM),
+            (5, PetersburgVM),
         )
     else:
         raise ValueError(f"Network {network} does not match any known VM rules")
