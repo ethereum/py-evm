@@ -12,7 +12,6 @@ def construct_evm_runtime_identifier() -> str:
 
     platform = sys.platform
     v = sys.version_info
-    # mypy Doesn't recognize the `sys` module as having an `implementation` attribute.
     imp = sys.implementation
 
     return f"Py-EVM/{__version__}/{platform}/{imp.name}{v.major}.{v.minor}.{v.micro}"
