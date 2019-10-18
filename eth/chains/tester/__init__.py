@@ -34,7 +34,7 @@ from eth.validation import (
 from eth.vm.forks.homestead import HomesteadVM
 
 
-class MaintainGasLimitMixin(object):
+class MaintainGasLimitMixin:
     @classmethod
     def create_header_from_parent(cls,
                                   parent_header: BlockHeaderAPI,
@@ -43,7 +43,7 @@ class MaintainGasLimitMixin(object):
         Call the parent class method maintaining the same gas_limit as the
         previous block.
         """
-        return super(MaintainGasLimitMixin, cls).create_header_from_parent(  # type: ignore
+        return super().create_header_from_parent(  # type: ignore
             parent_header,
             **assoc(header_params, 'gas_limit', parent_header.gas_limit)
         )
@@ -81,12 +81,12 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
 
     # Validate that there are no fork names which are not represented in the
     # mainnet chain.
-    fork_names = set(
+    fork_names = {
         fork_name for
         _, fork_name
         in fork_start_blocks
         if isinstance(fork_name, str)
-    )
+    }
     unknown_forks = sorted(fork_names.difference(
         MAINNET_VMS.keys()
     ))
@@ -103,7 +103,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
         )
 
     # If no VM is set to start at block 0, default to the frontier VM
-    start_blocks = set(start_block for start_block, _ in fork_start_blocks)
+    start_blocks = {start_block for start_block, _ in fork_start_blocks}
     if 0 not in start_blocks:
         yield GENESIS_BLOCK_NUMBER, MAINNET_VMS['frontier']
 

@@ -18,14 +18,14 @@ from typing import (
 
 
 # No set literals because we support Python 2.6.
-TRUE_VALUES = set((
+TRUE_VALUES = {
     True,
     'True',
     'true',
-))
+}
 
 
-class empty(object):
+class empty:
     """
     We use this sentinel object, instead of None, as None is a plausible value
     for a default in real Python code.

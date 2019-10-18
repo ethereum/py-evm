@@ -1,5 +1,3 @@
-from __future__ import unicode_literals
-
 import pytest
 
 from eth_utils import (
@@ -127,7 +125,7 @@ def test_validate_is_boolean(value, is_valid):
         (tuple(), 0, True),
         ([1], 1, True),
         ({'A': 'B', 'C': 1}, 3, False),
-        (set(['A', 'B', 1, 2]), 4, True),
+        ({'A', 'B', 1, 2}, 4, True),
         ('abcde', 4, False),
         (b'123', 3, True),
         (range(1, 10), 9, True)
@@ -147,7 +145,7 @@ def test_validate_length(value, length, is_valid):
         (tuple(), 0, True),
         ([1], 0, False),
         ({'A': 'B', 'C': 1}, 3, True),
-        (set(['A', 'B', 1, 2]), 2, False),
+        ({'A', 'B', 1, 2}, 2, False),
         ('abcde', 5, True),
         (b'123', 3, True),
         (range(1, 10), 15, True),

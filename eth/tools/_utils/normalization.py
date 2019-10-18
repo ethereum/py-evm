@@ -224,7 +224,7 @@ def state_definition_to_dict(state_definition: GeneralState) -> AccountState:
         assert TypeError("State definition must either be a mapping or a sequence")
 
     seen_keys = set(concat(d.keys() for d in state_dict.values()))
-    bad_keys = seen_keys - set(["balance", "nonce", "storage", "code"])
+    bad_keys = seen_keys - {"balance", "nonce", "storage", "code"}
     if bad_keys:
         raise ValidationError(
             f"State definition contains the following invalid account fields: {', '.join(bad_keys)}"

@@ -1,4 +1,4 @@
-class Empty(object):
+class Empty:
     pass
 
 
