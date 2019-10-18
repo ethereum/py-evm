@@ -266,6 +266,10 @@ class BasePeer(BaseService):
             subscriber.add_msg(subscriber_msg)
 
     async def disconnect(self, reason: DisconnectReason) -> None:
+        """
+        On completion of this method, the peer will be disconnected
+        and not in the peer pool anymore.
+        """
         if reason is DisconnectReason.bad_protocol:
             self.connection_tracker.record_blacklist(
                 self.remote,
@@ -273,6 +277,10 @@ class BasePeer(BaseService):
                 reason="Bad protocol",
             )
         await self.p2p_api.disconnect(reason)
+        if self.is_operational:
+            await self.cancel()
+
+        await self.events.finished.wait()
 
     def disconnect_nowait(self, reason: DisconnectReason) -> None:
         if reason is DisconnectReason.bad_protocol:
