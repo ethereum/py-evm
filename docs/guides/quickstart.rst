@@ -34,7 +34,7 @@ It can be installed through the following command.
 
 .. code:: sh
 
-  apt-get install libsnappy-dev
+  apt-get install libsnappy-dev libgmp3-dev
 
 Finally, we can install the ``trinity`` package via pip.
 
