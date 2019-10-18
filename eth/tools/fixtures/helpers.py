@@ -68,34 +68,24 @@ def setup_state(desired_state: AccountState, state: StateAPI) -> None:
 
 def verify_state(expected_state: AccountState, state: StateAPI) -> None:
     diff = diff_state(expected_state, state)
+    new_line = "\n"
     if diff:
         error_messages = []
         for account, field, actual_value, expected_value in diff:
             if field == 'balance':
                 error_messages.append(
-                    "{0}({1}) | Actual: {2} | Expected: {3} | Delta: {4}".format(
-                        to_normalized_address(account),
-                        'balance',
-                        actual_value,
-                        expected_value,
-                        cast(int, actual_value) - cast(int, expected_value),
-                    )
+                    f"{to_normalized_address(account)}(balance) | "
+                    f"Actual: {actual_value} | Expected: {expected_value} | "
+                    f"Delta: {cast(int, actual_value) - cast(int, expected_value)}"
                 )
             else:
                 error_messages.append(
-                    "{0}({1}) | Actual: {2} | Expected: {3}".format(
-                        to_normalized_address(account),
-                        field,
-                        actual_value,
-                        expected_value,
-                    )
+                    f"{to_normalized_address(account)}({field}) | "
+                    f"Actual: {actual_value} | Expected: {expected_value}"
                 )
         raise AssertionError(
-            "State DB did not match expected state on {0} values:\n"
-            "{1}".format(
-                len(error_messages),
-                "\n - ".join(error_messages),
-            )
+            f"State DB did not match expected state on {len(error_messages)} values:{new_line}"
+            f"{f'{new_line} - '.join(error_messages)}"
         )
 
 
@@ -162,7 +152,7 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
             (5, ConstantinopleVM),
         )
     else:
-        raise ValueError("Network {0} does not match any known VM rules".format(network))
+        raise ValueError(f"Network {network} does not match any known VM rules")
 
 
 def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:

@@ -109,7 +109,7 @@ def fixture_transaction_class(fixture_data):
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis Transaction class has not been implemented")
     else:
-        raise ValueError("Unknown Fork Name: {0}".format(fork_name))
+        raise ValueError(f"Unknown Fork Name: {fork_name}")
 
 
 def test_transaction_fixtures(fixture, fixture_transaction_class):

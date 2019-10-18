@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import rlp
 from typing import (
     Iterable,
@@ -34,7 +32,7 @@ def diff_rlp_object(left: BaseBlock,
                 sub_diff = diff_rlp_object(left_value, right_value)
                 for sub_field_name, sub_left_value, sub_right_value in sub_diff:
                     yield (
-                        "{0}.{1}".format(field_name, sub_field_name),
+                        f"{field_name}.{sub_field_name}",
                         sub_left_value,
                         sub_right_value,
                     )
@@ -71,29 +69,22 @@ def validate_rlp_equal(obj_a: BaseBlock,
     diff = diff_rlp_object(obj_a, obj_b)
     if len(diff) == 0:
         raise TypeError(
-            "{} ({!r}) != {} ({!r}) but got an empty diff".format(
-                obj_a_name,
-                obj_a,
-                obj_b_name,
-                obj_b,
-            )
+            f"{obj_a_name} ({obj_a!r}) != "
+            f"{obj_b_name} ({obj_b!r}) but got an empty diff"
         )
     longest_field_name = max(len(field_name) for field_name, _, _ in diff)
-    error_message = (
-        "Mismatch between {obj_a_name} and {obj_b_name} on {0} fields:\n - {1}".format(
-            len(diff),
-            "\n - ".join(tuple(
-                "{0}:\n    (actual)  : {1}\n    (expected): {2}".format(
-                    field_name.ljust(longest_field_name, ' '),
-                    actual,
-                    expected,
-                )
-                for field_name, actual, expected
-                in diff
-            )),
-            obj_a_name=obj_a_name,
-            obj_b_name=obj_b_name,
+
+    err_fields = "\n - ".join(
+        tuple(
+            f"{field_name.ljust(longest_field_name, ' ')}:\n"
+            f"    (actual)  : {actual}\n    (expected): {expected}"
+            for field_name, actual, expected
+            in diff
         )
+    )
+    error_message = (
+        f"Mismatch between {obj_a_name} and {obj_b_name} "
+        f"on {len(diff)} fields:\n - {err_fields}"
     )
     raise ValidationError(error_message)
 

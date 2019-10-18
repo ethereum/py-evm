@@ -128,10 +128,10 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
             data=b''
         )
 
-        logging.debug('Applying Transaction {}'.format(tx))
+        logging.debug(f'Applying Transaction {tx}')
 
         block, receipt, computation = chain.apply_transaction(tx)
 
-        logging.debug('Block {}'.format(block))
-        logging.debug('Receipt {}'.format(receipt))
-        logging.debug('Computation {}'.format(computation))
+        logging.debug(f'Block {block}')
+        logging.debug(f'Receipt {receipt}')
+        logging.debug(f'Computation {computation}')

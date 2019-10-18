@@ -1,4 +1,3 @@
-
 #
 # New gas costs for some opcodes
 #

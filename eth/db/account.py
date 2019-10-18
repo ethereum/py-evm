@@ -204,11 +204,8 @@ class AccountDB(AccountDatabaseAPI):
             if expected_storage_root != actual_storage_root:
                 raise ValidationError(
                     "Storage root was not saved to account before trying to persist roots. "
-                    "Account %r had storage %r, but should be %r." % (
-                        address,
-                        actual_storage_root,
-                        expected_storage_root,
-                    )
+                    f"Account {address!r} had storage {actual_storage_root!r}, "
+                    f"but should be {expected_storage_root!r}."
                 )
 
     #
@@ -408,10 +405,8 @@ class AccountDB(AccountDatabaseAPI):
             if new_root not in self._raw_store_db and new_root != BLANK_ROOT_HASH:
                 raise ValidationError(
                     "After persisting storage trie, a root node was not found. "
-                    "State root for account 0x%s is missing for hash 0x%s." % (
-                        address.hex(),
-                        new_root.hex(),
-                    )
+                    f"State root for account 0x{address.hex()} "
+                    f"is missing for hash 0x{new_root.hex()}."
                 )
 
         # reset local storage trackers
@@ -431,12 +426,12 @@ class AccountDB(AccountDatabaseAPI):
         db_diff = self._journaldb.diff()
         if len(db_diff):
             raise ValidationError(
-                "AccountDB had a dirty db when it needed to be clean: %r" % db_diff
+                f"AccountDB had a dirty db when it needed to be clean: {db_diff!r}"
             )
         trie_diff = self._journaltrie.diff()
         if len(trie_diff):
             raise ValidationError(
-                "AccountDB had a dirty trie when it needed to be clean: %r" % trie_diff
+                f"AccountDB had a dirty trie when it needed to be clean: {trie_diff!r}"
             )
 
     def _log_pending_accounts(self) -> None:

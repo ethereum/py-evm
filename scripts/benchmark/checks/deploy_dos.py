@@ -147,7 +147,7 @@ class BaseDOSContractBenchmark(BaseBenchmark):
             data=decode_hex(w3_tx1['data']),
         )
 
-        logging.debug('Applying Transaction {}'.format(tx))
+        logging.debug(f'Applying Transaction {tx}')
 
         block, receipt, computation = chain.apply_transaction(tx)
         self.deployed_contract_address = computation.msg.storage_address

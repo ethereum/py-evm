@@ -138,16 +138,16 @@ class DBDiff(ABC_Mapping):
 
     def __repr__(self) -> str:
         deleted = [
-            'key=%s' % encode_hex(key)
+            f'key={encode_hex(key)}'
             for key, val in self._changes.items()
             if val is DELETED
         ]
         updated = [
-            "key=%s to val=%s" % (encode_hex(key), encode_hex(cast(bytes, val)))
+            f"key={encode_hex(key)} to val={encode_hex(cast(bytes, val))}"
             for key, val in self._changes.items()
             if val is not DELETED
         ]
-        return "<DBDiff: deletions=%r, updates=%r>" % (deleted, updated)
+        return f"<DBDiff: deletions={deleted!r}, updates={updated!r}>"
 
     def __len__(self) -> int:
         return len(self._changes)

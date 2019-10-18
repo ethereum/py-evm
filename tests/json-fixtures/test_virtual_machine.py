@@ -106,7 +106,7 @@ def get_block_hash_for_testing(self, block_number):
     elif block_number < self.block_number - 256:
         return b''
     else:
-        return keccak(to_bytes(text="{0}".format(block_number)))
+        return keccak(to_bytes(text=f"{block_number}"))
 
 
 HomesteadComputationForTesting = HomesteadComputation.configure(
@@ -136,7 +136,7 @@ def vm_class(request):
     elif request.param == 'SpuriousDragon':
         pytest.skip('Only the Homestead VM rules are currently supported')
     else:
-        assert False, "Unsupported VM: {0}".format(request.param)
+        assert False, f"Unsupported VM: {request.param}"
 
 
 def fixture_to_computation(fixture, code, vm):
@@ -235,7 +235,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
             expected_logs_hash = fixture['logs']
             assert expected_logs_hash == actual_logs_hash
         elif log_entries:
-            raise AssertionError("Got log entries: {0}".format(log_entries))
+            raise AssertionError(f"Got log entries: {log_entries}")
 
         expected_output = fixture['out']
         assert computation.output == expected_output
@@ -245,7 +245,7 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
         expected_gas_remaining = fixture['gas']
         actual_gas_remaining = gas_meter.gas_remaining
         gas_delta = actual_gas_remaining - expected_gas_remaining
-        assert gas_delta == 0, "Gas difference: {0}".format(gas_delta)
+        assert gas_delta == 0, f"Gas difference: {gas_delta}"
 
         call_creates = fixture.get('callcreates', [])
         assert len(computation.children) == len(call_creates)

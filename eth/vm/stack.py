@@ -25,10 +25,8 @@ from eth.abc import StackAPI
 
 def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
     return ValidationError(
-        "Stack must always be bytes or int, got {!r} type, val {!r}".format(
-            item_type,
-            value,
-        )
+        "Stack must always be bytes or int, "
+        f"got {item_type!r} type, val {value!r}"
     )
 
 
@@ -258,7 +256,7 @@ class Stack(StackAPI):
         try:
             self.values[-1], self.values[idx] = self.values[idx], self.values[-1]
         except IndexError:
-            raise InsufficientStack("Insufficient stack items for SWAP{0}".format(position))
+            raise InsufficientStack(f"Insufficient stack items for SWAP{position}")
 
     def dup(self, position: int) -> None:
         """
@@ -271,4 +269,4 @@ class Stack(StackAPI):
         try:
             self._append(self.values[peek_index])
         except IndexError:
-            raise InsufficientStack("Insufficient stack items for DUP{0}".format(position))
+            raise InsufficientStack(f"Insufficient stack items for DUP{position}")

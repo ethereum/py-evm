@@ -47,8 +47,8 @@ def compute_gas_limit(parent_header: BlockHeader, gas_limit_floor: int) -> int:
     if gas_limit_floor < GAS_LIMIT_MINIMUM:
         raise ValueError(
             "The `gas_limit_floor` value must be greater than the "
-            "GAS_LIMIT_MINIMUM.  Got {0}.  Must be greater than "
-            "{1}".format(gas_limit_floor, GAS_LIMIT_MINIMUM)
+            f"GAS_LIMIT_MINIMUM.  Got {gas_limit_floor}.  Must be greater than "
+            f"{GAS_LIMIT_MINIMUM}"
         )
 
     decay = parent_header.gas_limit // GAS_LIMIT_EMA_DENOMINATOR
@@ -90,11 +90,8 @@ def generate_header_from_parent_header(
         timestamp = max(int(time.time()), parent_header.timestamp + 1)
     elif timestamp <= parent_header.timestamp:
         raise ValueError(
-            "header.timestamp ({}) should be higher than"
-            "parent_header.timestamp ({})".format(
-                timestamp,
-                parent_header.timestamp,
-            )
+            f"header.timestamp ({timestamp}) should be higher than"
+            f"parent_header.timestamp ({parent_header.timestamp})"
         )
     header = BlockHeader(
         difficulty=compute_difficulty_fn(parent_header, timestamp),

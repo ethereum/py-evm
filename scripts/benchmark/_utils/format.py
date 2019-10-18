@@ -8,6 +8,6 @@ def format_block(block: BaseBlock) -> str:
     return (
         "\n\n"
         "------------------------Block------------------------------------\n"
-        "Number #{b.number:>12} Hash {hash}\n"
+        f"Number #{block.number:>12} Hash {encode_hex(block.hash)}\n"
         "-----------------------------------------------------------------\n"
-    ).format(b=block, hash=encode_hex(block.hash))
+    )

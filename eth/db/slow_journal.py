@@ -99,7 +99,7 @@ class Journal(BaseDB):
         if custom_changeset_id is not None:
             if custom_changeset_id in self.journal_data:
                 raise ValidationError(
-                    "Tried to record with an existing changeset id: %r" % custom_changeset_id
+                    f"Tried to record with an existing changeset id: {custom_changeset_id!r}"
                 )
             else:
                 changeset_id = custom_changeset_id
@@ -357,9 +357,7 @@ class JournalDB(BaseDB):
         Checks to be sure the changeset is known by the journal
         """
         if not self.journal.has_changeset(changeset_id):
-            raise ValidationError("Changeset not found in journal: {0}".format(
-                str(changeset_id)
-            ))
+            raise ValidationError(f"Changeset not found in journal: {str(changeset_id)}")
 
     def has_changeset(self, changeset_id: uuid.UUID) -> bool:
         return self.journal.has_changeset(changeset_id)

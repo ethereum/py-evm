@@ -8,7 +8,7 @@ from typing import (
 
 
 def derive_compile_path(contract_path: pathlib.Path) -> pathlib.Path:
-    return contract_path.with_name('{}-compiled'.format(contract_path.name))
+    return contract_path.with_name(f'{contract_path.name}-compiled')
 
 
 def compile_contract(contract_path: pathlib.Path) -> None:
@@ -35,4 +35,4 @@ def get_compiled_contract(contract_path: pathlib.Path, contract_name: str) -> Di
 
     with open(compiled_path) as file:
         data = json.load(file)
-    return data["contracts"]["{}:{}".format(contract_path, contract_name)]
+    return data["contracts"][f"{contract_path}:{contract_name}"]

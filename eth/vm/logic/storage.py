@@ -35,12 +35,12 @@ def sstore(computation: BaseComputation) -> None:
     else:
         gas_cost = constants.GAS_SRESET
 
-    computation.consume_gas(gas_cost, reason="SSTORE: {0}[{1}] -> {2} ({3})".format(
-        encode_hex(computation.msg.storage_address),
-        slot,
-        value,
-        current_value,
-    ))
+    computation.consume_gas(
+        gas_cost, reason=(
+            f"SSTORE: {encode_hex(computation.msg.storage_address)}"
+            f"[{slot}] -> {value} ({current_value})"
+        )
+    )
 
     if gas_refund:
         computation.refund_gas(gas_refund)
@@ -113,12 +113,9 @@ def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: BaseComputation)
 
     computation.consume_gas(
         gas_cost,
-        reason="SSTORE: {0}[{1}] -> {2} (current: {3} / original: {4})".format(
-            encode_hex(computation.msg.storage_address),
-            slot,
-            value,
-            current_value,
-            original_value,
+        reason=(
+            f"SSTORE: {encode_hex(computation.msg.storage_address)}"
+            f"[{slot}] -> {value} (current: {current_value} / original: {original_value})"
         )
     )
 

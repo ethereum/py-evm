@@ -91,7 +91,7 @@ def normalize_int(value: IntConvertible) -> int:
     elif is_string(value):
         return int(value)
     else:
-        raise TypeError("Unsupported type: Got `{0}`".format(type(value)))
+        raise TypeError(f"Unsupported type: Got `{type(value)}`")
 
 
 def normalize_bytes(value: Union[bytes, str]) -> bytes:
@@ -154,9 +154,9 @@ def dict_normalizer(formatters: Dict[Any, Callable[..., Any]],
         missing_keys = required_set_form - keys
         superfluous_keys = keys - all_keys
         if missing_keys:
-            raise KeyError("Missing required keys: {}".format(", ".join(missing_keys)))
+            raise KeyError(f"Missing required keys: {', '.join(missing_keys)}")
         if superfluous_keys:
-            raise KeyError("Superfluous keys: {}".format(", ".join(superfluous_keys)))
+            raise KeyError(f"Superfluous keys: {', '.join(superfluous_keys)}")
 
         return apply_formatters_to_dict(formatters, d)
 
@@ -224,12 +224,10 @@ def state_definition_to_dict(state_definition: GeneralState) -> AccountState:
         assert TypeError("State definition must either be a mapping or a sequence")
 
     seen_keys = set(concat(d.keys() for d in state_dict.values()))
-    bad_keys = seen_keys - set(["balance", "nonce", "storage", "code"])
+    bad_keys = seen_keys - {"balance", "nonce", "storage", "code"}
     if bad_keys:
         raise ValidationError(
-            "State definition contains the following invalid account fields: {}".format(
-                ", ".join(bad_keys)
-            )
+            f"State definition contains the following invalid account fields: {', '.join(bad_keys)}"
         )
 
     return state_dict

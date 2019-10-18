@@ -31,18 +31,16 @@ class MissingAccountTrieNode(EVMMissingData, MissingTrieNode):
         return self.requested_key
 
     def __repr__(self) -> str:
-        return "MissingAccountTrieNode: {}".format(self)
+        return f"MissingAccountTrieNode: {self}"
 
     def __str__(self) -> str:
         superclass_str = EVMMissingData.__str__(self)
         return (
-            "State trie database is missing node for hash {}, which is needed to look up account "
-            "with address hash {} at root hash {} -- {}".format(
-                encode_hex(self.missing_node_hash),
-                encode_hex(self.address_hash),
-                encode_hex(self.state_root_hash),
-                superclass_str,
-            )
+            "State trie database is missing node for hash "
+            f"{encode_hex(self.missing_node_hash)}, which is needed to look up account "
+            f"with address hash {encode_hex(self.address_hash)} "
+            f"at root hash {encode_hex(self.state_root_hash)} "
+            f"-- {superclass_str}"
         )
 
 
@@ -58,7 +56,7 @@ class MissingStorageTrieNode(EVMMissingData, MissingTrieNode):
             account_address: Address,
             *args: bytes) -> None:
         if not isinstance(account_address, bytes):
-            raise TypeError("Account address must be bytes, was: %r" % account_address)
+            raise TypeError(f"Account address must be bytes, was: {account_address!r}")
 
         super().__init__(
             missing_node_hash,
@@ -77,19 +75,17 @@ class MissingStorageTrieNode(EVMMissingData, MissingTrieNode):
         return self.args[3]
 
     def __repr__(self) -> str:
-        return "MissingStorageTrieNode: {}".format(self)
+        return f"MissingStorageTrieNode: {self}"
 
     def __str__(self) -> str:
         superclass_str = EVMMissingData.__str__(self)
         return (
-            "Storage trie database is missing hash {} needed to look up key {} "
-            "at root hash {} in account address {} -- {}".format(
-                encode_hex(self.missing_node_hash),
-                encode_hex(self.requested_key),
-                encode_hex(self.root_hash),
-                encode_hex(self.account_address),
-                superclass_str,
-            )
+            "Storage trie database is missing hash "
+            f"{encode_hex(self.missing_node_hash)} "
+            f"needed to look up key {encode_hex(self.requested_key)} "
+            f"at root hash {encode_hex(self.root_hash)} "
+            f"in account address {encode_hex(self.account_address)} "
+            f"-- {superclass_str}"
         )
 
 
@@ -99,7 +95,7 @@ class MissingBytecode(EVMMissingData):
     """
     def __init__(self, missing_code_hash: Hash32) -> None:
         if not isinstance(missing_code_hash, bytes):
-            raise TypeError("Missing code hash must be bytes, was: %r" % missing_code_hash)
+            raise TypeError(f"Missing code hash must be bytes, was: {missing_code_hash!r}")
 
         super().__init__(missing_code_hash)
 
@@ -108,11 +104,12 @@ class MissingBytecode(EVMMissingData):
         return self.args[0]
 
     def __repr__(self) -> str:
-        return "MissingBytecode: {}".format(self)
+        return f"MissingBytecode: {self}"
 
     def __str__(self) -> str:
         superclass_str = EVMMissingData.__str__(self)
-        return "Database is missing bytecode for code hash {} -- {}".format(
-            encode_hex(self.missing_code_hash),
-            superclass_str,
+        return (
+            f"Database is missing bytecode for code hash "
+            f"{encode_hex(self.missing_code_hash)} "
+            f"-- {superclass_str}"
         )

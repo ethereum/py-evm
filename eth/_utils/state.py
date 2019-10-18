@@ -35,7 +35,7 @@ def diff_state(
             if actual_storage_value != expected_storage_value:
                 yield (
                     account,
-                    'storage[{0}]'.format(slot),
+                    f'storage[{slot}]',
                     actual_storage_value,
                     expected_storage_value,
                 )

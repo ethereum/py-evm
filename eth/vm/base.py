@@ -150,7 +150,7 @@ class VM(Configurable, VirtualMachineAPI):
     #
     @property
     def logger(self) -> logging.Logger:
-        return logging.getLogger('eth.vm.base.VM.{0}'.format(self.__class__.__name__))
+        return logging.getLogger(f'eth.vm.base.VM.{self.__class__.__name__}')
 
     #
     # Execution
@@ -230,11 +230,8 @@ class VM(Configurable, VirtualMachineAPI):
         """
         if base_header.block_number != self.get_header().block_number:
             raise ValidationError(
-                "This VM instance must only work on block #{}, "
-                "but the target header has block #{}".format(
-                    self.get_header().block_number,
-                    base_header.block_number,
-                )
+                f"This VM instance must only work on block #{self.get_header().block_number}, "
+                f"but the target header has block #{base_header.block_number}"
             )
 
         receipts = []
@@ -271,10 +268,8 @@ class VM(Configurable, VirtualMachineAPI):
         """
         if self.get_block().number != block.number:
             raise ValidationError(
-                "This VM can only import blocks at number #{}, the attempted block was #{}".format(
-                    self.get_block().number,
-                    block.number,
-                )
+                f"This VM can only import blocks at number #{self.get_block().number},"
+                f" the attempted block was #{block.number}"
             )
 
         self._block = self.get_block().copy(
@@ -413,11 +408,9 @@ class VM(Configurable, VirtualMachineAPI):
 
         if unknown_fields:
             raise AttributeError(
-                "Unable to set the field(s) {0} on the `BlockHeader` class. "
-                "Received the following unexpected fields: {1}.".format(
-                    ", ".join(known_fields),
-                    ", ".join(unknown_fields),
-                )
+                f"Unable to set the field(s) {', '.join(known_fields)} "
+                "on the `BlockHeader` class. "
+                f"Received the following unexpected fields: {', '.join(unknown_fields)}."
             )
 
         header = block.header.copy(**kwargs)
@@ -530,8 +523,8 @@ class VM(Configurable, VirtualMachineAPI):
                 continue
             elif log.address not in receipt.bloom_filter:
                 raise ValidationError(
-                    "The address from the log entry at position {0} is not "
-                    "present in the provided bloom filter.".format(log_idx)
+                    f"The address from the log entry at position {log_idx} is not "
+                    "present in the provided bloom filter."
                 )
             already_checked.add(log.address)
 
@@ -541,9 +534,8 @@ class VM(Configurable, VirtualMachineAPI):
                     continue
                 elif uint32.serialize(topic) not in receipt.bloom_filter:
                     raise ValidationError(
-                        "The topic at position {0} from the log entry at "
-                        "position {1} is not present in the provided bloom "
-                        "filter.".format(topic_idx, log_idx)
+                        f"The topic at position {topic_idx} from the log entry at "
+                        f"position {log_idx} is not present in the provided bloom filter."
                     )
                 already_checked.add(topic)
 
@@ -553,10 +545,7 @@ class VM(Configurable, VirtualMachineAPI):
         """
         if not isinstance(block, self.get_block_class()):
             raise ValidationError(
-                "This vm ({0!r}) is not equipped to validate a block of type {1!r}".format(
-                    self,
-                    block,
-                )
+                f"This vm ({self!r}) is not equipped to validate a block of type {block!r}"
             )
 
         if block.is_genesis:
@@ -568,33 +557,28 @@ class VM(Configurable, VirtualMachineAPI):
         tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
         if tx_root_hash != block.header.transaction_root:
             raise ValidationError(
-                "Block's transaction_root ({0}) does not match expected value: {1}".format(
-                    block.header.transaction_root, tx_root_hash))
+                f"Block's transaction_root ({block.header.transaction_root}) "
+                f"does not match expected value: {tx_root_hash}"
+            )
 
         if len(block.uncles) > MAX_UNCLES:
             raise ValidationError(
-                "Blocks may have a maximum of {0} uncles.  Found "
-                "{1}.".format(MAX_UNCLES, len(block.uncles))
+                f"Blocks may have a maximum of {MAX_UNCLES} uncles.  "
+                f"Found {len(block.uncles)}."
             )
 
         if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
-                "- state_root: {0}".format(
-                    block.header.state_root,
-                )
+                f"- state_root: {block.header.state_root}"
             )
         local_uncle_hash = keccak(rlp.encode(block.uncles))
         if local_uncle_hash != block.header.uncles_hash:
             raise ValidationError(
                 "`uncles_hash` and block `uncles` do not match.\n"
-                " - num_uncles       : {0}\n"
-                " - block uncle_hash : {1}\n"
-                " - header uncle_hash: {2}".format(
-                    len(block.uncles),
-                    local_uncle_hash,
-                    block.header.uncles_hash,
-                )
+                f" - num_uncles       : {len(block.uncles)}\n"
+                f" - block uncle_hash : {local_uncle_hash}\n"
+                f" - header uncle_hash: {block.header.uncles_hash}"
             )
 
     @classmethod
@@ -615,22 +599,18 @@ class VM(Configurable, VirtualMachineAPI):
 
             if header.block_number != parent_header.block_number + 1:
                 raise ValidationError(
-                    "Blocks must be numbered consecutively. Block number #{} has parent #{}".format(
-                        header.block_number,
-                        parent_header.block_number,
-                    )
+                    "Blocks must be numbered consecutively. "
+                    f"Block number #{header.block_number} "
+                    f"has parent #{parent_header.block_number}"
                 )
 
             # timestamp
             if header.timestamp <= parent_header.timestamp:
                 raise ValidationError(
-                    "timestamp must be strictly later than parent, but is {} seconds before.\n"
-                    "- child  : {}\n"
-                    "- parent : {}. ".format(
-                        parent_header.timestamp - header.timestamp,
-                        header.timestamp,
-                        parent_header.timestamp,
-                    )
+                    "timestamp must be strictly later than parent, "
+                    f"but is {parent_header.timestamp - header.timestamp} seconds before.\n"
+                    f"- child  : {header.timestamp}\n"
+                    f"- parent : {parent_header.timestamp}. "
                 )
 
             if check_seal:
@@ -659,21 +639,24 @@ class VM(Configurable, VirtualMachineAPI):
         """
         if uncle.block_number >= block.number:
             raise ValidationError(
-                "Uncle number ({0}) is higher than block number ({1})".format(
-                    uncle.block_number, block.number))
-
+                f"Uncle number ({uncle.block_number}) is higher than "
+                f"block number ({block.number})"
+            )
         if uncle.block_number != uncle_parent.block_number + 1:
             raise ValidationError(
-                "Uncle number ({0}) is not one above ancestor's number ({1})".format(
-                    uncle.block_number, uncle_parent.block_number))
+                f"Uncle number ({uncle.block_number}) is not one above "
+                f"ancestor's number ({uncle_parent.block_number})"
+            )
         if uncle.timestamp < uncle_parent.timestamp:
             raise ValidationError(
-                "Uncle timestamp ({0}) is before ancestor's timestamp ({1})".format(
-                    uncle.timestamp, uncle_parent.timestamp))
+                f"Uncle timestamp ({uncle.timestamp}) is before "
+                f"ancestor's timestamp ({uncle_parent.timestamp})"
+            )
         if uncle.gas_used > uncle.gas_limit:
             raise ValidationError(
-                "Uncle's gas usage ({0}) is above the limit ({1})".format(
-                    uncle.gas_used, uncle.gas_limit))
+                f"Uncle's gas usage ({uncle.gas_used}) is above "
+                f"the limit ({uncle.gas_limit})"
+            )
 
     #
     # State

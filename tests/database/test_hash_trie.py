@@ -11,7 +11,7 @@ from eth.db.hash_trie import (
 )
 
 
-class ExplicitHashTrie(object):
+class ExplicitHashTrie:
     _trie = None
 
     def __init__(self, trie):
