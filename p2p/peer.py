@@ -276,7 +276,8 @@ class BasePeer(BaseService):
                 timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
                 reason="Bad protocol",
             )
-        await self.p2p_api.disconnect(reason)
+        if hasattr(self, "p2p_api"):
+            await self.p2p_api.disconnect(reason)
         if self.is_operational:
             await self.cancel()
 
