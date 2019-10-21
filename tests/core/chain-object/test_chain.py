@@ -65,7 +65,8 @@ def test_import_block(chain, tx):
         new_block, receipts, computations = chain.build_block_with_transactions([tx])
         computations[0].raise_if_error()
 
-    block, _, _ = chain.import_block(new_block)
+    block_import_result = chain.import_block(new_block)
+    block = block_import_result.imported_block
 
     assert block.transactions == (tx,)
     assert chain.get_block_by_hash(block.hash) == block

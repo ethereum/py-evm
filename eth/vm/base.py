@@ -28,6 +28,7 @@ import rlp
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockAPI,
+    BlockAndMetaWitness,
     BlockHeaderAPI,
     ChainContextAPI,
     ChainDatabaseAPI,
@@ -261,7 +262,7 @@ class VM(Configurable, VirtualMachineAPI):
     #
     # Mining
     #
-    def import_block(self, block: BlockAPI) -> BlockAPI:
+    def import_block(self, block: BlockAPI) -> BlockAndMetaWitness:
         if self.get_block().number != block.number:
             raise ValidationError(
                 f"This VM can only import blocks at number #{self.get_block().number},"
@@ -301,15 +302,15 @@ class VM(Configurable, VirtualMachineAPI):
 
         return self.mine_block()
 
-    def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
+    def mine_block(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
         packed_block = self.pack_block(self.get_block(), *args, **kwargs)
 
-        final_block = self.finalize_block(packed_block)
+        block_result = self.finalize_block(packed_block)
 
         # Perform validation
-        self.validate_block(final_block)
+        self.validate_block(block_result.block)
 
-        return final_block
+        return block_result
 
     def set_block_transactions(self,
                                base_block: BlockAPI,
@@ -362,7 +363,7 @@ class VM(Configurable, VirtualMachineAPI):
             else:
                 self.logger.debug("No uncle reward given to %s", uncle.coinbase)
 
-    def finalize_block(self, block: BlockAPI) -> BlockAPI:
+    def finalize_block(self, block: BlockAPI) -> BlockAndMetaWitness:
         if block.number > 0:
             snapshot = self.state.snapshot()
             try:
@@ -375,9 +376,20 @@ class VM(Configurable, VirtualMachineAPI):
 
         # We need to call `persist` here since the state db batches
         # all writes until we tell it to write to the underlying db
-        self.state.persist()
+        meta_witness = self.state.persist()
 
-        return block.copy(header=block.header.copy(state_root=self.state.state_root))
+        final_block = block.copy(header=block.header.copy(state_root=self.state.state_root))
+
+        self.logger.debug(
+            "%s reads %d unique node hashes, %d addresses, %d bytecodes, and %d storage slots",
+            final_block,
+            len(meta_witness.hashes),
+            len(meta_witness.accounts_queried),
+            len(meta_witness.account_bytecodes_queried),
+            meta_witness.total_slots_queried,
+        )
+
+        return BlockAndMetaWitness(final_block, meta_witness)
 
     def pack_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAPI:
         if 'uncles' in kwargs:

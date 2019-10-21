@@ -1,6 +1,8 @@
 from typing import (
+    FrozenSet,
     List,
     NamedTuple,
+    Set,
 )
 
 from eth_hash.auto import keccak
@@ -285,6 +287,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         self._storage_cache = CacheDB(self._storage_lookup)
         self._locked_changes = JournalDB(self._storage_cache)
         self._journal_storage = JournalDB(self._locked_changes)
+        self._accessed_slots: Set[int] = set()
 
         # Track how many times we have cleared the storage. This is journaled
         # in lockstep with other storage changes. That way, we can detect if a revert
@@ -293,6 +296,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         self._clear_count = JournalDB(MemoryDB({CLEAR_COUNT_KEY_NAME: to_bytes(0)}))
 
     def get(self, slot: int, from_journal: bool=True) -> int:
+        self._accessed_slots.add(slot)
         key = int_to_big_endian(slot)
         lookup_db = self._journal_storage if from_journal else self._locked_changes
         try:
@@ -412,6 +416,9 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
             raise ValidationError(
                 f"StorageDB had a dirty journal when it needed to be clean: {journal_diff!r}"
             )
+
+    def get_accessed_slots(self) -> FrozenSet[int]:
+        return frozenset(self._accessed_slots)
 
     @property
     def has_changed_root(self) -> bool:
