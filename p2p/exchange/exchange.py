@@ -37,15 +37,12 @@ class BaseExchange(ExchangeAPI[TRequestPayload, TResponsePayload, TResult]):
             self.get_response_cmd_type(),
         )
 
-        try:
-            self._manager = ExchangeManager(
-                connection,
-                response_stream,
-            )
-            async with run_service(response_stream):
-                yield
-        finally:
-            del self._manager
+        self._manager = ExchangeManager(
+            connection,
+            response_stream,
+        )
+        async with run_service(response_stream):
+            yield
 
     async def get_result(
             self,
