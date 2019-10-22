@@ -42,6 +42,7 @@ from p2p.abc import (
 from p2p.constants import BLACKLIST_SECONDS_BAD_PROTOCOL
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
+    PeerConnectionLost,
     UnknownProtocol,
 )
 from p2p.handshake import (
@@ -277,7 +278,11 @@ class BasePeer(BaseService):
                 reason="Bad protocol",
             )
         if hasattr(self, "p2p_api"):
-            await self.p2p_api.disconnect(reason)
+            try:
+                await self.p2p_api.disconnect(reason)
+            except PeerConnectionLost:
+                self.logger.debug("Tried to disconnect from %s, but already disconnected", self)
+
         if self.is_operational:
             await self.cancel()
 
@@ -290,7 +295,10 @@ class BasePeer(BaseService):
                 timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
                 reason="Bad protocol",
             )
-        self.p2p_api.disconnect_nowait(reason)
+        try:
+            self.p2p_api.disconnect_nowait(reason)
+        except PeerConnectionLost:
+            self.logger.debug("Tried to nowait disconnect from %s, but already disconnected", self)
 
 
 class PeerMessage(NamedTuple):
