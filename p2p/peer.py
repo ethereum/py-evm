@@ -42,6 +42,7 @@ from p2p.abc import (
 from p2p.constants import BLACKLIST_SECONDS_BAD_PROTOCOL
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
+    PeerConnectionLost,
     UnknownProtocol,
 )
 from p2p.handshake import (
@@ -266,13 +267,26 @@ class BasePeer(BaseService):
             subscriber.add_msg(subscriber_msg)
 
     async def disconnect(self, reason: DisconnectReason) -> None:
+        """
+        On completion of this method, the peer will be disconnected
+        and not in the peer pool anymore.
+        """
         if reason is DisconnectReason.bad_protocol:
             self.connection_tracker.record_blacklist(
                 self.remote,
                 timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
                 reason="Bad protocol",
             )
-        await self.p2p_api.disconnect(reason)
+        if hasattr(self, "p2p_api"):
+            try:
+                await self.p2p_api.disconnect(reason)
+            except PeerConnectionLost:
+                self.logger.debug("Tried to disconnect from %s, but already disconnected", self)
+
+        if self.is_operational:
+            await self.cancel()
+
+        await self.events.finished.wait()
 
     def disconnect_nowait(self, reason: DisconnectReason) -> None:
         if reason is DisconnectReason.bad_protocol:
@@ -281,7 +295,10 @@ class BasePeer(BaseService):
                 timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
                 reason="Bad protocol",
             )
-        self.p2p_api.disconnect_nowait(reason)
+        try:
+            self.p2p_api.disconnect_nowait(reason)
+        except PeerConnectionLost:
+            self.logger.debug("Tried to nowait disconnect from %s, but already disconnected", self)
 
 
 class PeerMessage(NamedTuple):

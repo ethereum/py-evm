@@ -15,11 +15,17 @@ from lahja import EndpointAPI
 
 from cancel_token import CancelToken
 
-from eth_utils.toolz import groupby
+from eth_utils.toolz import (
+    excepts,
+    groupby,
+)
 
 from p2p.abc import BehaviorAPI, NodeAPI, SessionAPI
 from p2p.disconnect import DisconnectReason
-from p2p.exceptions import NoConnectedPeers
+from p2p.exceptions import (
+    NoConnectedPeers,
+    UnknownAPI,
+)
 from p2p.peer import (
     BasePeer,
     BasePeerFactory,
@@ -145,7 +151,8 @@ class BaseChainPeerPool(BasePeerPool):
         if not peers:
             raise NoConnectedPeers("No connected peers")
 
-        peers_by_td = groupby(operator.attrgetter('head_info.head_td'), peers)
+        td_getter = excepts(UnknownAPI, operator.attrgetter('head_info.head_td'), lambda _: 0)
+        peers_by_td = groupby(td_getter, peers)
         max_td = max(peers_by_td.keys())
         return random.choice(peers_by_td[max_td])
 
