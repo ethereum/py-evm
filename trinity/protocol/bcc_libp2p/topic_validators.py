@@ -14,12 +14,14 @@ from eth.exceptions import BlockNotFound
 
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.attestation_helpers import get_attestation_data_slot
-from eth2.beacon.exceptions import SignatureError
 from eth2.beacon.chains.base import BaseBeaconChain
 from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.state_machines.forks.serenity.block_processing import process_block_header
-from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
+from eth2.beacon.state_machines.forks.serenity.block_validation import (
+    validate_attestation,
+    validate_proposer_signature,
+)
 from eth2.beacon.typing import Slot
+from eth2.configs import CommitteeConfig
 
 from libp2p.peer.id import ID
 from libp2p.pubsub.pb import rpc_pb2
@@ -42,8 +44,8 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
             return False
 
         state_machine = chain.get_state_machine(block.slot - 1)
-        state = chain.get_state_by_slot(block.slot - 1)
         state_transition = state_machine.state_transition
+        state = chain.get_head_state()
         # Fast forward to state in future slot in order to pass
         # block.slot validity check
         state = state_transition.apply_state_transition(
@@ -51,8 +53,8 @@ def get_beacon_block_validator(chain: BaseBeaconChain) -> Callable[..., bool]:
             future_slot=block.slot,
         )
         try:
-            process_block_header(state, block, state_machine.config, True)
-        except (ValidationError, SignatureError) as error:
+            validate_proposer_signature(state, block, CommitteeConfig(state_machine.config))
+        except ValidationError as error:
             logger.debug(
                 bold_red("Failed to validate block=%s, error=%s"),
                 encode_hex(block.signing_root),

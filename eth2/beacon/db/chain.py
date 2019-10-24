@@ -201,7 +201,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         """
         with self.db.atomic_batch() as db:
             if block.is_genesis:
-                self._handle_exceptional_justification_and_finality(db, block)
+                self._handle_exceptional_justification_and_finality(block)
 
             return self._persist_block(db, block, block_class, fork_choice_scoring)
 
@@ -805,7 +805,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             self._update_justified_head(*result)
 
     def _handle_exceptional_justification_and_finality(
-        self, db: DatabaseAPI, genesis_block: BaseBeaconBlock
+        self, genesis_block: BaseBeaconBlock
     ) -> None:
         """
         The genesis ``BeaconState`` lacks the correct justification and finality

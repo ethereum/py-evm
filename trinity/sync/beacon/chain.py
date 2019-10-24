@@ -142,7 +142,8 @@ class BeaconChainSyncer(BaseService):
             if last_block is None:
                 try:
                     await self.validate_first_batch(batch)
-                except ValidationError:
+                except ValidationError as error:
+                    self.logger.debug("Invalid first batch: %s", error)
                     return
             else:
                 if batch[0].parent_root != last_block.signing_root:
@@ -197,22 +198,33 @@ class BeaconChainSyncer(BaseService):
             yield batch
 
             slot = batch[-1].slot + 1
+            if slot > self.sync_peer.head_slot:
+                break
 
     async def validate_first_batch(self, batch: Tuple[BaseBeaconBlock, ...]) -> None:
-        parent_root = batch[0].parent_root
-        parent_slot = batch[0].slot - 1
+        try:
+            first_block = batch[0]
+        except IndexError:
+            raise ValidationError("Batch is empty")
 
-        if parent_slot < 0:
-            raise Exception(
+        if first_block.slot == 0:
+            raise ValidationError(
                 "Invariant: Syncing starts with the child of a finalized block, so never with the "
                 "genesis block"
             )
 
-        canonical_parent = await self.chain_db.coro_get_canonical_block_by_slot(
-            parent_slot,
+        parent = await self.chain_db.coro_get_block_by_root(
+            first_block.parent_root,
             BeaconBlock,
         )
-        if canonical_parent.signing_root != parent_root:
-            message = f"Peer has different block finalized at slot #{parent_slot}"
+        finalized_head = await self.chain_db.coro_get_finalized_head(BeaconBlock)
+
+        if parent.signing_root != finalized_head.signing_root:
+            message = f"Peer has different block finalized at slot #{parent.slot}"
             self.logger.info(message)
+            self.logger.info(
+                "first_batch_parent %s, finalized_head %s",
+                parent,
+                finalized_head,
+            )
             raise ValidationError(message)

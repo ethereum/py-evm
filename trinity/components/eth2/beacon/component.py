@@ -37,6 +37,12 @@ from .validator import (
     Validator,
 )
 
+from trinity.sync.beacon.chain import BeaconChainSyncer
+from trinity.db.beacon.chain import AsyncBeaconChainDB
+from trinity.sync.common.chain import (
+    SyncBlockImporter,
+)
+
 
 class BeaconNodeComponent(AsyncioIsolatedComponent):
 
@@ -150,14 +156,28 @@ class BeaconNodeComponent(AsyncioIsolatedComponent):
             token=libp2p_node.cancel_token,
         )
 
+        syncer = BeaconChainSyncer(
+            chain_db=AsyncBeaconChainDB(
+                base_db,
+                chain_config.genesis_config,
+            ),
+            peer_pool=libp2p_node.handshaked_peers,
+            block_importer=SyncBlockImporter(chain),
+            genesis_config=chain_config.genesis_config,
+            token=libp2p_node.cancel_token,
+
+        )
+
         asyncio.ensure_future(exit_with_services(
             self._event_bus_service,
             libp2p_node,
             receive_server,
             slot_ticker,
             validator,
+            syncer,
         ))
         asyncio.ensure_future(libp2p_node.run())
         asyncio.ensure_future(receive_server.run())
         asyncio.ensure_future(slot_ticker.run())
         asyncio.ensure_future(validator.run())
+        asyncio.ensure_future(syncer.run())

@@ -108,3 +108,18 @@ async def test_sync_when_already_at_best_head(request, event_loop, event_bus):
             slot = correct_block.slot
             alice_block = alice.chain.get_canonical_block_by_slot(slot)
             assert alice_block == correct_block
+
+
+@pytest.mark.asyncio
+async def test_sync_skipped_slots(request, event_loop, event_bus):
+    genesis = BeaconBlockFactory()
+    alice_branch = (genesis,) + BeaconBlockFactory.create_branch(length=0, root=genesis)
+    bob_branch = (genesis,) + BeaconBlockFactory.create_branch_by_slots(
+        slots=tuple(range(4, 99)), root=genesis
+    )
+    assert bob_branch[0].slot == 0
+    assert bob_branch[1].slot == 4
+    async with get_sync_setup(
+        request, event_loop, event_bus, alice_branch, bob_branch
+    ) as (alice, bob):
+        assert_synced(alice, bob, bob_branch)

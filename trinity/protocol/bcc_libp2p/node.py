@@ -17,7 +17,7 @@ from cancel_token import (
     CancelToken,
 )
 
-from eth_utils import ValidationError, to_tuple
+from eth_utils import ValidationError, encode_hex, to_tuple
 from eth_utils.toolz import first
 
 from eth.exceptions import (
@@ -92,6 +92,7 @@ from multiaddr import (
 )
 
 import ssz
+from ssz.tools import to_formatted_dict
 
 from p2p.service import (
     BaseService,
@@ -136,7 +137,9 @@ from .utils import (
     write_resp,
 )
 
+
 logger = logging.getLogger('trinity.protocol.bcc_libp2p')
+
 
 REQ_RESP_HELLO_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_HELLO)
 REQ_RESP_GOODBYE_SSZ = make_rpc_v1_ssz_protocol_id(REQ_RESP_GOODBYE)
@@ -186,6 +189,16 @@ class Peer:
         self, block_roots: Sequence[HashTreeRoot]
     ) -> Tuple[BaseBeaconBlock, ...]:
         return await self.node.request_recent_beacon_blocks(self._id, block_roots)
+
+    def __repr__(self) -> str:
+        return (
+            f"Peer {self._id} "
+            f"fork_version={encode_hex(self.fork_version)} "
+            f"finalized_root={encode_hex(self.finalized_root)} "
+            f"finalized_epoch={self.finalized_epoch} "
+            f"head_root={encode_hex(self.head_root)} "
+            f"head_slot={self.head_slot}"
+        )
 
 
 class PeerPool:
@@ -338,6 +351,12 @@ class Node(BaseService):
                 addrs=[make_tcp_ip_maddr(ip, port)],
             )
         )
+        try:
+            # TODO: set a time limit on completing saying hello
+            await self.say_hello(peer_id)
+        except HandshakeFailure as e:
+            self.logger.info("HandshakeFailure: %s", str(e))
+            # TODO: handle it
 
     async def dial_peer_with_retries(self, ip: str, port: int, peer_id: ID) -> None:
         """
@@ -536,14 +555,14 @@ class Node(BaseService):
             if has_error:
                 await self.disconnect_peer(peer_id)
                 return
-        self.logger.debug("Received the hello message %s", hello_other_side)
+        self.logger.debug("Received the hello message %s", to_formatted_dict(hello_other_side))
 
         try:
             await self._validate_hello_req(hello_other_side)
         except ValidationError as error:
             self.logger.info(
                 "Handshake failed: hello message %s is invalid: %s",
-                hello_other_side,
+                to_formatted_dict(hello_other_side),
                 str(error)
             )
             await stream.reset()
@@ -553,7 +572,7 @@ class Node(BaseService):
 
         hello_mine = self._make_hello_packet()
 
-        self.logger.debug("Sending our hello message %s", hello_mine)
+        self.logger.debug("Sending our hello message %s", to_formatted_dict(hello_mine))
         try:
             await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
             has_error = False
@@ -589,6 +608,7 @@ class Node(BaseService):
         await stream.close()
 
     async def say_hello(self, peer_id: ID) -> None:
+        self.logger.info("Say hello to %s", str(peer_id))
         hello_mine = self._make_hello_packet()
 
         self.logger.debug(
@@ -597,7 +617,7 @@ class Node(BaseService):
             [REQ_RESP_HELLO_SSZ],
         )
         stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
-        self.logger.debug("Sending our hello message %s", hello_mine)
+        self.logger.debug("Sending our hello message %s", to_formatted_dict(hello_mine))
         try:
             await write_req(stream, hello_mine)
             has_error = False
@@ -632,7 +652,7 @@ class Node(BaseService):
 
         self.logger.debug(
             "Received the hello message %s, resp_code=%s",
-            hello_other_side,
+            to_formatted_dict(hello_other_side),
             resp_code,
         )
 
@@ -641,7 +661,7 @@ class Node(BaseService):
             # TODO: Do something according to the `ResponseCode`
             error_msg = (
                 "resp_code != ResponseCode.SUCCESS, "
-                f"resp_code={resp_code}, error_msg={hello_other_side}"
+                f"resp_code={resp_code}, error_msg={to_formatted_dict(hello_other_side)}"
             )
             self.logger.info("Handshake failed: %s", error_msg)
             await stream.reset()
@@ -652,7 +672,9 @@ class Node(BaseService):
         try:
             await self._validate_hello_req(hello_other_side)
         except ValidationError as error:
-            error_msg = f"hello message {hello_other_side} is invalid: {str(error)}"
+            error_msg = (
+                f"hello message {to_formatted_dict(hello_other_side)} is invalid: {str(error)}"
+            )
             self.logger.info(
                 "Handshake failed: %s. Disconnecting %s",
                 error_msg,
@@ -692,7 +714,7 @@ class Node(BaseService):
             elif isinstance(error, MplexStreamEOF):
                 await stream.close()
 
-        self.logger.debug("Received the goodbye message %s", goodbye)
+        self.logger.debug("Received the goodbye message %s", to_formatted_dict(goodbye))
 
         if not has_error:
             await stream.close()
@@ -857,7 +879,10 @@ class Node(BaseService):
         finally:
             if has_error:
                 return
-        self.logger.debug("Received the beacon blocks request message %s", beacon_blocks_request)
+        self.logger.debug(
+            "Received the beacon blocks request message %s",
+            to_formatted_dict(beacon_blocks_request)
+        )
 
         try:
             requested_head_block = self.chain.get_block_by_hash_tree_root(
