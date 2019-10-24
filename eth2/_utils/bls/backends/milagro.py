@@ -2,10 +2,6 @@ from typing import Iterator, Sequence, Tuple
 
 from eth_typing import BLSPubkey, BLSSignature, Hash32
 from eth_utils import to_tuple
-from py_ecc.bls.typing import Domain
-
-from eth2._utils.bls.backends.base import BaseBLSBackend
-from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE
 from milagro_bls_binding import (
     aggregate_pubkeys,
     aggregate_signatures,
@@ -14,6 +10,10 @@ from milagro_bls_binding import (
     verify,
     verify_multiple,
 )
+from py_ecc.bls.typing import Domain
+
+from eth2._utils.bls.backends.base import BaseBLSBackend
+from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE
 
 
 def to_int(domain: Domain) -> int:
