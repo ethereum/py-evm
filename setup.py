@@ -34,7 +34,7 @@ deps = {
         "dataclasses>=0.6, <1;python_version<'3.7'",
         "eth-utils>=1.7,<2",
         "ipython>=7.8.0,<8.0.0",
-        "plyvel==1.0.5",
+        "plyvel==1.1.0",
         PYEVM_DEPENDENCY,
         "web3==4.4.1",
         "lahja>=0.14.5,<0.15.0",
