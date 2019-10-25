@@ -3,8 +3,12 @@ from py_ecc.optimized_bls12_381 import curve_order
 import pytest
 
 from eth2._utils.bls import bls
-from eth2._utils.bls.backends import AVAILABLE_BACKENDS, NoOpBackend
+from eth2._utils.bls.backends.milagro import MilagroBackend
+from eth2._utils.bls.backends.noop import NoOpBackend
+from eth2._utils.bls.backends.py_ecc import PyECCBackend
 from eth2.beacon.constants import EMPTY_PUBKEY, EMPTY_SIGNATURE
+
+BACKENDS = (NoOpBackend, MilagroBackend, PyECCBackend)
 
 
 def assert_pubkey(obj):
@@ -20,7 +24,7 @@ def domain():
     return (123).to_bytes(8, "big")
 
 
-@pytest.mark.parametrize("backend", AVAILABLE_BACKENDS)
+@pytest.mark.parametrize("backend", BACKENDS)
 def test_sanity(backend, domain):
     bls.use(backend)
     msg_0 = b"\x32" * 32
@@ -65,7 +69,7 @@ def test_sanity(backend, domain):
     )
 
 
-@pytest.mark.parametrize("backend", AVAILABLE_BACKENDS)
+@pytest.mark.parametrize("backend", BACKENDS)
 @pytest.mark.parametrize(
     "privkey",
     [
@@ -86,7 +90,7 @@ def test_bls_core_succeed(backend, privkey, domain):
     assert bls.verify(msg, pub, sig, domain=domain)
 
 
-@pytest.mark.parametrize("backend", AVAILABLE_BACKENDS)
+@pytest.mark.parametrize("backend", BACKENDS)
 @pytest.mark.parametrize("privkey", [(0), (curve_order), (curve_order + 1)])
 def test_invalid_private_key(backend, privkey, domain):
     bls.use(backend)
@@ -97,14 +101,14 @@ def test_invalid_private_key(backend, privkey, domain):
         bls.sign(msg, privkey, domain=domain)
 
 
-@pytest.mark.parametrize("backend", AVAILABLE_BACKENDS)
+@pytest.mark.parametrize("backend", BACKENDS)
 def test_empty_aggregation(backend):
     bls.use(backend)
     assert bls.aggregate_pubkeys([]) == EMPTY_PUBKEY
     assert bls.aggregate_signatures([]) == EMPTY_SIGNATURE
 
 
-@pytest.mark.parametrize("backend", AVAILABLE_BACKENDS)
+@pytest.mark.parametrize("backend", BACKENDS)
 def test_verify_empty_signatures(backend, domain):
     # Want EMPTY_SIGNATURE to fail in Trinity
     bls.use(backend)
@@ -138,7 +142,7 @@ def test_verify_empty_signatures(backend, domain):
             validate_multiple_2()
 
 
-@pytest.mark.parametrize("backend", AVAILABLE_BACKENDS)
+@pytest.mark.parametrize("backend", BACKENDS)
 @pytest.mark.parametrize(
     "msg, privkeys",
     [
@@ -158,7 +162,7 @@ def test_signature_aggregation(backend, msg, privkeys, domain):
     assert bls.verify(msg, aggpub, aggsig, domain=domain)
 
 
-@pytest.mark.parametrize("backend", AVAILABLE_BACKENDS)
+@pytest.mark.parametrize("backend", BACKENDS)
 @pytest.mark.parametrize("msg_1, msg_2", [(b"\x12" * 32, b"\x34" * 32)])
 @pytest.mark.parametrize(
     "privkeys_1, privkeys_2",

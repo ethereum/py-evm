@@ -113,6 +113,8 @@ deps = {
         "rlp>=1.1.0,<2.0.0",
         PYEVM_DEPENDENCY,
         "ssz==0.1.5",
+    ],
+    'eth2-extra': [
         "milagro-bls-binding==0.1.3",
     ],
     'eth2-lint': [
@@ -155,6 +157,7 @@ deps['dev'] = (
 deps['eth2-dev'] = (
     deps['dev'] +
     deps['eth2'] +
+    deps['eth2-extra'] +
     deps['eth2-lint']
 )
 
