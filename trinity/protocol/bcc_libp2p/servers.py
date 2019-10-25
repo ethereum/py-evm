@@ -1,4 +1,6 @@
 from typing import (
+    Awaitable,
+    Callable,
     Dict,
     Iterable,
     List,
@@ -185,15 +187,29 @@ class BCCReceiveServer(BaseService):
         self.run_daemon_task(self._process_orphan_blocks_loop())
         await self.cancellation()
 
-    async def _handle_beacon_attestation_loop(self) -> None:
+    async def _handle_message(
+            self,
+            topic: str,
+            handler: Callable[[rpc_pb2.Message], Awaitable[None]]) -> None:
+        queue = self.topic_msg_queues[topic]
         while True:
-            msg = await self.topic_msg_queues[PUBSUB_TOPIC_BEACON_ATTESTATION].get()
-            await self._handle_beacon_attestations(msg)
+            message = await queue.get()
+            # Libp2p let the sender receive their own message, which we need to ignore here.
+            if message.from_id == self.p2p_node.peer_id:
+                continue
+            await handler(message)
+
+    async def _handle_beacon_attestation_loop(self) -> None:
+        await self._handle_message(
+            PUBSUB_TOPIC_BEACON_ATTESTATION,
+            self._handle_beacon_attestations
+        )
 
     async def _handle_beacon_block_loop(self) -> None:
-        while True:
-            msg = await self.topic_msg_queues[PUBSUB_TOPIC_BEACON_BLOCK].get()
-            await self._handle_beacon_block(msg)
+        await self._handle_message(
+            PUBSUB_TOPIC_BEACON_BLOCK,
+            self._handle_beacon_block
+        )
 
     async def _process_orphan_blocks_loop(self) -> None:
         """
