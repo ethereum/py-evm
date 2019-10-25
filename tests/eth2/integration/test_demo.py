@@ -3,11 +3,10 @@ import pytest
 from eth2._utils.bls import bls
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
-from eth2.beacon.helpers import compute_epoch_of_slot
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
-from eth2.beacon.state_machines.forks.serenity.configs import SERENITY_CONFIG
+from eth2.beacon.state_machines.forks.skeleton_lake import MINIMAL_SERENITY_CONFIG
 from eth2.beacon.tools.builder.initializer import create_mock_genesis
 from eth2.beacon.tools.builder.proposer import create_mock_block
 from eth2.beacon.tools.builder.validator import create_mock_signed_attestations_at_slot
@@ -22,16 +21,7 @@ def fork_choice_scoring():
 @pytest.mark.parametrize(("validator_count"), ((40),))
 def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
     bls.use_noop_backend()
-    slots_per_epoch = 8
-    config = SERENITY_CONFIG._replace(
-        SLOTS_PER_EPOCH=slots_per_epoch,
-        GENESIS_EPOCH=compute_epoch_of_slot(
-            SERENITY_CONFIG.GENESIS_SLOT, slots_per_epoch
-        ),
-        TARGET_COMMITTEE_SIZE=3,
-        SHARD_COUNT=2,
-        MIN_ATTESTATION_INCLUSION_DELAY=2,
-    )
+    config = MINIMAL_SERENITY_CONFIG
     override_lengths(config)
     fixture_sm_class = SerenityStateMachine.configure(
         __name__="SerenityStateMachineForTesting", config=config
@@ -57,7 +47,7 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
     state = genesis_state
     block = genesis_block
 
-    chain_length = 3 * config.SLOTS_PER_EPOCH
+    chain_length = 4 * config.SLOTS_PER_EPOCH
     blocks = (block,)
 
     attestations_map = {}  # Dict[Slot, Sequence[Attestation]]
@@ -106,5 +96,6 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
     assert state.slot == chain_length + genesis_slot
 
     # Justification assertions
-    assert state.current_justified_checkpoint.epoch == genesis_epoch
-    assert state.finalized_checkpoint.epoch == genesis_epoch
+    assert state.previous_justified_checkpoint.epoch == 2 + genesis_epoch
+    assert state.current_justified_checkpoint.epoch == 3 + genesis_epoch
+    assert state.finalized_checkpoint.epoch == 2 + genesis_epoch
