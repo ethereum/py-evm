@@ -33,7 +33,7 @@ def w3(tester):
 
 
 @pytest.fixture
-def logs_lookback_period():
+def blocks_delayed_to_query_logs():
     return 3
 
 

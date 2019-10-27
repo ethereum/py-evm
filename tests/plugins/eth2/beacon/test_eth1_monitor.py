@@ -43,7 +43,9 @@ def test_deploy(w3, registration_contract):
 
 
 @pytest.mark.trio
-async def test_eth1_monitor_filter(w3, registration_contract, logs_lookback_period):
+async def test_eth1_monitor_filter(
+    w3, registration_contract, tester, blocks_delayed_to_query_logs
+):
     deposit(w3, registration_contract, MIN_DEPOSIT_AMOUNT)
     print("!@# deposit #0")
     deposit(w3, registration_contract, MIN_DEPOSIT_AMOUNT)
@@ -51,10 +53,25 @@ async def test_eth1_monitor_filter(w3, registration_contract, logs_lookback_peri
         w3,
         registration_contract.address,
         registration_contract.abi,
-        0,
-        logs_lookback_period,
+        blocks_delayed_to_query_logs,
     )
     async with background_service(m):
         deposit(w3, registration_contract, MIN_DEPOSIT_AMOUNT)
+        tester.mine_blocks(blocks_delayed_to_query_logs)
         await wait_all_tasks_blocked()
         print("!@# deposit #1")
+
+
+@pytest.mark.trio
+async def test_eth1_monitor_block_filter(
+    w3, registration_contract, blocks_delayed_to_query_logs, tester
+):
+    m = Eth1Monitor(
+        w3,
+        registration_contract.address,
+        registration_contract.abi,
+        blocks_delayed_to_query_logs,
+    )
+    async with background_service(m):
+        tester.mine_blocks(10)
+        await wait_all_tasks_blocked()
