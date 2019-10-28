@@ -9,11 +9,11 @@ from p2p.qualifiers import HasProtocol
 from trinity.protocol.eth.api import ETHAPI
 from trinity.protocol.eth.proto import ETHProtocol
 from trinity.protocol.les.api import LESAPI
-from trinity.protocol.les.proto import LESProtocol, LESProtocolV2
+from trinity.protocol.les.proto import LESProtocolV1, LESProtocolV2
 
 from .abc import ChainInfoAPI, HeadInfoAPI
 
-AnyETHLES = HasProtocol(ETHProtocol) | HasProtocol(LESProtocolV2) | HasProtocol(LESProtocol)
+AnyETHLES = HasProtocol(ETHProtocol) | HasProtocol(LESProtocolV2) | HasProtocol(LESProtocolV1)
 
 
 class ChainInfo(Application, ChainInfoAPI):
@@ -32,7 +32,7 @@ class ChainInfo(Application, ChainInfoAPI):
     def _get_logic(self) -> Union[ETHAPI, LESAPI]:
         if self.connection.has_protocol(ETHProtocol):
             return self.connection.get_logic(ETHAPI.name, ETHAPI)
-        elif self.connection.has_protocol(LESProtocolV2) or self.connection.has_protocol(LESProtocol):  # noqa: E501
+        elif self.connection.has_protocol(LESProtocolV2) or self.connection.has_protocol(LESProtocolV1):  # noqa: E501
             return self.connection.get_logic(LESAPI.name, LESAPI)
         else:
             raise Exception("Unreachable code path")
@@ -48,7 +48,7 @@ class HeadInfo(Application, HeadInfoAPI):
         if self.connection.has_protocol(ETHProtocol):
             eth_logic = self.connection.get_logic(ETHAPI.name, ETHAPI)
             return eth_logic.head_info
-        elif self.connection.has_protocol(LESProtocolV2) or self.connection.has_protocol(LESProtocol):  # noqa: E501
+        elif self.connection.has_protocol(LESProtocolV2) or self.connection.has_protocol(LESProtocolV1):  # noqa: E501
             les_logic = self.connection.get_logic(LESAPI.name, LESAPI)
             return les_logic.head_info
         else:

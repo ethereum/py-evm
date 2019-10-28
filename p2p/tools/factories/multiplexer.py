@@ -5,9 +5,9 @@ from cancel_token import CancelToken
 from eth_keys import keys
 
 from p2p.abc import MultiplexerAPI, NodeAPI, ProtocolAPI, TransportAPI
-from p2p.constants import DEVP2P_V4, DEVP2P_V5
+from p2p.constants import DEVP2P_V5
 from p2p.multiplexer import Multiplexer
-from p2p.p2p_proto import BaseP2PProtocol, P2PProtocol, P2PProtocolV4
+from p2p.p2p_proto import BaseP2PProtocol, P2PProtocolV4, P2PProtocolV5
 from p2p.protocol import get_cmd_offsets
 
 from .cancel_token import CancelTokenFactory
@@ -18,12 +18,6 @@ TransportPair = Tuple[
     TransportAPI,
     TransportAPI,
 ]
-
-
-BASE_PROTOCOL_CLASS_MAP = {
-    DEVP2P_V4: P2PProtocolV4,
-    DEVP2P_V5: P2PProtocol,
-}
 
 
 def MultiplexerPairFactory(*,
@@ -63,7 +57,7 @@ def MultiplexerPairFactory(*,
     p2p_protocol_class: Type[BaseP2PProtocol]
 
     if snappy_support:
-        p2p_protocol_class = P2PProtocol
+        p2p_protocol_class = P2PProtocolV5
     else:
         p2p_protocol_class = P2PProtocolV4
 

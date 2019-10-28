@@ -112,7 +112,7 @@ class LESHandshakeParams(NamedTuple):
             yield "announceType", self.announce_type
 
 
-class LESProtocol(Protocol):
+class LESProtocolV1(Protocol):
     name = 'les'
     version = 1
     _commands = (
@@ -254,7 +254,7 @@ class LESProtocol(Protocol):
         return request_id
 
 
-class LESProtocolV2(LESProtocol):
+class LESProtocolV2(LESProtocolV1):
     version = 2
     _commands = (  # type: ignore  # mypy doesn't like us overriding this.
         StatusV2,

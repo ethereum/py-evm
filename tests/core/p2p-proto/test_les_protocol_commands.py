@@ -2,7 +2,7 @@ import asyncio
 import pytest
 
 from trinity.protocol.les.proto import (
-    LESProtocol,
+    LESProtocolV1,
     LESProtocolV2,
 )
 
@@ -32,8 +32,8 @@ async def test_les_protocol_methods_request_id(
 
     # Setting up the peers which are just connected by streams
     peer, remote = les_peer_and_remote
-    assert isinstance(peer.sub_proto, LESProtocol)
-    assert isinstance(remote.sub_proto, LESProtocol)
+    assert isinstance(peer.sub_proto, LESProtocolV1)
+    assert isinstance(remote.sub_proto, LESProtocolV1)
 
     # setup message collection
     messages = []

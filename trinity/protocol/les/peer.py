@@ -2,6 +2,7 @@ from typing import (
     List,
     Tuple,
     TYPE_CHECKING,
+    Union,
 )
 
 from cached_property import cached_property
@@ -47,7 +48,7 @@ from .events import (
 )
 from .proto import (
     LESHandshakeParams,
-    LESProtocol,
+    LESProtocolV1,
     LESProtocolV2,
     ProxyLESProtocol,
 )
@@ -67,8 +68,8 @@ if TYPE_CHECKING:
 class LESPeer(BaseChainPeer):
     max_headers_fetch = MAX_HEADERS_FETCH
 
-    supported_sub_protocols = (LESProtocol, LESProtocolV2)
-    sub_proto: LESProtocol = None
+    supported_sub_protocols = (LESProtocolV1, LESProtocolV2)
+    sub_proto: Union[LESProtocolV1, LESProtocolV2] = None
 
     def get_behaviors(self) -> Tuple[BehaviorAPI, ...]:
         return super().get_behaviors() + (LESAPI().as_behavior(),)

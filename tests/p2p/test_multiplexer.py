@@ -6,7 +6,7 @@ from eth_utils import ValidationError
 
 from p2p.exceptions import UnknownProtocol
 from p2p.protocol import Command, Protocol
-from p2p.p2p_proto import Ping, Pong, P2PProtocol
+from p2p.p2p_proto import Ping, Pong, P2PProtocolV5
 
 from p2p.tools.factories import MultiplexerPairFactory
 
@@ -71,18 +71,18 @@ async def test_multiplexer_properties():
     )
     transport = multiplexer.get_transport()
 
-    base_protocol = multiplexer.get_protocol_by_type(P2PProtocol)
+    base_protocol = multiplexer.get_protocol_by_type(P2PProtocolV5)
     second_protocol = multiplexer.get_protocol_by_type(SecondProtocol)
     third_protocol = multiplexer.get_protocol_by_type(ThirdProtocol)
 
     assert multiplexer.get_base_protocol() is base_protocol
     assert multiplexer.get_protocols() == (base_protocol, second_protocol, third_protocol)
 
-    assert multiplexer.get_protocol_by_type(P2PProtocol) is base_protocol
+    assert multiplexer.get_protocol_by_type(P2PProtocolV5) is base_protocol
     assert multiplexer.get_protocol_by_type(SecondProtocol) is second_protocol
     assert multiplexer.get_protocol_by_type(ThirdProtocol) is third_protocol
 
-    assert multiplexer.has_protocol(P2PProtocol) is True
+    assert multiplexer.has_protocol(P2PProtocolV5) is True
     assert multiplexer.has_protocol(SecondProtocol) is True
     assert multiplexer.has_protocol(ThirdProtocol) is True
     assert multiplexer.has_protocol(UnsupportedProtocol) is False
@@ -101,11 +101,11 @@ async def test_multiplexer_only_p2p_protocol():
 
     async with alice_multiplexer.multiplex():
         async with bob_multiplexer.multiplex():
-            alice_stream = alice_multiplexer.stream_protocol_messages(P2PProtocol)
-            bob_stream = bob_multiplexer.stream_protocol_messages(P2PProtocol)
+            alice_stream = alice_multiplexer.stream_protocol_messages(P2PProtocolV5)
+            bob_stream = bob_multiplexer.stream_protocol_messages(P2PProtocolV5)
 
-            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocol)
-            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocol)
+            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocolV5)
+            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocolV5)
 
             alice_p2p_protocol.send_ping()
             cmd, _ = await asyncio.wait_for(bob_stream.asend(None), timeout=0.1)
@@ -123,15 +123,15 @@ async def test_multiplexer_p2p_and_paragon_protocol():
 
     async with alice_multiplexer.multiplex():
         async with bob_multiplexer.multiplex():
-            alice_p2p_stream = alice_multiplexer.stream_protocol_messages(P2PProtocol)
-            bob_p2p_stream = bob_multiplexer.stream_protocol_messages(P2PProtocol)
+            alice_p2p_stream = alice_multiplexer.stream_protocol_messages(P2PProtocolV5)
+            bob_p2p_stream = bob_multiplexer.stream_protocol_messages(P2PProtocolV5)
             alice_second_stream = alice_multiplexer.stream_protocol_messages(SecondProtocol)
             bob_second_stream = bob_multiplexer.stream_protocol_messages(SecondProtocol)
 
-            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocol)
+            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocolV5)
             alice_second_protocol = alice_multiplexer.get_protocol_by_type(SecondProtocol)
 
-            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocol)
+            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocolV5)
             bob_second_protocol = bob_multiplexer.get_protocol_by_type(SecondProtocol)
 
             alice_second_protocol.send_cmd(CommandA)
@@ -166,18 +166,18 @@ async def test_multiplexer_p2p_and_two_more_protocols():
 
     async with alice_multiplexer.multiplex():
         async with bob_multiplexer.multiplex():
-            alice_p2p_stream = alice_multiplexer.stream_protocol_messages(P2PProtocol)
-            bob_p2p_stream = bob_multiplexer.stream_protocol_messages(P2PProtocol)
+            alice_p2p_stream = alice_multiplexer.stream_protocol_messages(P2PProtocolV5)
+            bob_p2p_stream = bob_multiplexer.stream_protocol_messages(P2PProtocolV5)
             alice_second_stream = alice_multiplexer.stream_protocol_messages(SecondProtocol)
             bob_second_stream = bob_multiplexer.stream_protocol_messages(SecondProtocol)
             alice_third_stream = alice_multiplexer.stream_protocol_messages(ThirdProtocol)
             bob_third_stream = bob_multiplexer.stream_protocol_messages(ThirdProtocol)
 
-            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocol)
+            alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocolV5)
             alice_second_protocol = alice_multiplexer.get_protocol_by_type(SecondProtocol)
             alice_third_protocol = alice_multiplexer.get_protocol_by_type(ThirdProtocol)
 
-            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocol)
+            bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocolV5)
             bob_second_protocol = bob_multiplexer.get_protocol_by_type(SecondProtocol)
             bob_third_protocol = bob_multiplexer.get_protocol_by_type(ThirdProtocol)
 

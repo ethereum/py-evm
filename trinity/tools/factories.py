@@ -37,7 +37,7 @@ from trinity.protocol.eth.proto import ETHHandshakeParams, ETHProtocol
 
 from trinity.protocol.les.handshaker import LESV2Handshaker, LESV1Handshaker
 from trinity.protocol.les.peer import LESPeer, LESPeerFactory
-from trinity.protocol.les.proto import LESHandshakeParams, LESProtocol, LESProtocolV2
+from trinity.protocol.les.proto import LESHandshakeParams, LESProtocolV1, LESProtocolV2
 
 
 try:
@@ -204,7 +204,7 @@ class LESV1HandshakerFactory(factory.Factory):
     class Meta:
         model = LESV1Handshaker
 
-    handshake_params = factory.SubFactory(LESHandshakeParamsFactory, version=LESProtocol.version)
+    handshake_params = factory.SubFactory(LESHandshakeParamsFactory, version=LESProtocolV1.version)
 
 
 class LESV2HandshakerFactory(factory.Factory):
@@ -215,7 +215,7 @@ class LESV2HandshakerFactory(factory.Factory):
 
 
 class LESV1Peer(LESPeer):
-    supported_sub_protocols = (LESProtocol,)  # type: ignore
+    supported_sub_protocols = (LESProtocolV1,)  # type: ignore
 
 
 class LESV1PeerFactory(LESPeerFactory):

@@ -1,7 +1,7 @@
 import pytest
 
 from p2p.constants import DEVP2P_V4, DEVP2P_V5
-from p2p.p2p_proto import P2PProtocol, P2PProtocolV4
+from p2p.p2p_proto import P2PProtocolV4, P2PProtocolV5
 from p2p.tools.factories import ConnectionPairFactory, ProtocolFactory
 from p2p.tools.connection import do_ping_pong_test
 from p2p.tools.handshake import NoopHandshaker
@@ -39,7 +39,7 @@ async def test_connection_pair_factory_no_protocols_with_different_p2p_versions(
         if expected_base_protocol_version == DEVP2P_V4:
             expected_base_protocol_class = P2PProtocolV4
         elif expected_base_protocol_version == DEVP2P_V5:
-            expected_base_protocol_class = P2PProtocol
+            expected_base_protocol_class = P2PProtocolV5
         else:
             raise Exception(f"unrecognized version: {expected_base_protocol_version}")
 

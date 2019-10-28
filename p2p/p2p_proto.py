@@ -11,7 +11,7 @@ import rlp
 from rlp import sedes
 
 from p2p.abc import TransportAPI
-from p2p.constants import P2P_PROTOCOL_COMMAND_LENGTH
+from p2p.constants import DEVP2P_V4, DEVP2P_V5, P2P_PROTOCOL_COMMAND_LENGTH
 from p2p.disconnect import DisconnectReason as _DisconnectReason
 from p2p.exceptions import MalformedMessage
 from p2p.receipt import HandshakeReceipt
@@ -136,7 +136,7 @@ class BaseP2PProtocol(Protocol):
 
 
 class P2PProtocolV4(BaseP2PProtocol):
-    version = 4
+    version = DEVP2P_V4
 
     def __init__(self, transport: TransportAPI, cmd_id_offset: int, snappy_support: bool) -> None:
         if snappy_support is True:
@@ -147,8 +147,8 @@ class P2PProtocolV4(BaseP2PProtocol):
         super().__init__(transport, cmd_id_offset=cmd_id_offset, snappy_support=False)
 
 
-class P2PProtocol(BaseP2PProtocol):
-    version = 5
+class P2PProtocolV5(BaseP2PProtocol):
+    version = DEVP2P_V5
 
 
 class DevP2PReceipt(HandshakeReceipt):

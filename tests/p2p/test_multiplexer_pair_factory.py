@@ -1,7 +1,7 @@
 import pytest
 
 from p2p.constants import DEVP2P_V4, DEVP2P_V5
-from p2p.p2p_proto import P2PProtocol, P2PProtocolV4
+from p2p.p2p_proto import P2PProtocolV4, P2PProtocolV5
 from p2p.tools.factories import MultiplexerPairFactory, NodeFactory
 
 
@@ -24,7 +24,7 @@ def test_multiplexer_pair_factory():
         (DEVP2P_V4, DEVP2P_V4, P2PProtocolV4),
         (DEVP2P_V4, DEVP2P_V5, P2PProtocolV4),
         (DEVP2P_V5, DEVP2P_V4, P2PProtocolV4),
-        (DEVP2P_V5, DEVP2P_V5, P2PProtocol),
+        (DEVP2P_V5, DEVP2P_V5, P2PProtocolV5),
     ),
 )
 @pytest.mark.asyncio

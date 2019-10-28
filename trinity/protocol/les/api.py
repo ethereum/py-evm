@@ -14,7 +14,7 @@ from trinity.protocol.common.abc import HeadInfoAPI
 
 from .commands import Announce
 from .handshaker import LESHandshakeReceipt
-from .proto import LESProtocol, LESProtocolV2
+from .proto import LESProtocolV1, LESProtocolV2
 from .exchanges import GetBlockHeadersExchange
 
 
@@ -61,7 +61,7 @@ class HeadInfoTracker(CommandHandler, HeadInfoAPI):
 
 class LESAPI(Application):
     name = 'les'
-    qualifier = HasProtocol(LESProtocol) | HasProtocol(LESProtocolV2)
+    qualifier = HasProtocol(LESProtocolV1) | HasProtocol(LESProtocolV2)
 
     head_info: HeadInfoTracker
 

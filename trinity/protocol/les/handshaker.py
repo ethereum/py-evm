@@ -22,11 +22,11 @@ from trinity.exceptions import WrongGenesisFailure, WrongNetworkFailure
 
 from .commands import Status, StatusV2
 
-from .proto import LESHandshakeParams, LESProtocol, LESProtocolV2
+from .proto import LESHandshakeParams, LESProtocolV1, LESProtocolV2
 
 
-AnyLESProtocol = Union[LESProtocol, LESProtocolV2]
-AnyLESProtocolClass = Union[Type[LESProtocol], Type[LESProtocolV2]]
+AnyLESProtocol = Union[LESProtocolV1, LESProtocolV2]
+AnyLESProtocolClass = Union[Type[LESProtocolV1], Type[LESProtocolV2]]
 
 
 class LESHandshakeReceipt(HandshakeReceipt):
@@ -135,7 +135,7 @@ class BaseLESHandshaker(Handshaker):
 
 
 class LESV1Handshaker(BaseLESHandshaker):
-    protocol_class = LESProtocol
+    protocol_class = LESProtocolV1
 
 
 class LESV2Handshaker(BaseLESHandshaker):
