@@ -96,6 +96,37 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
     assert state.slot == chain_length + genesis_slot
 
     # Justification assertions
+    # NOTE: why are the number `2` or `3` used in the checks below?
+    # Answer:
+    # "We do not check any justification and finality during epochs 0 or 1. We do check for
+    # justification and finality from epoch 2 onward."
+    # [epoch 0]------[epoch 1]------>
+    #
+    # "In epoch 2, we justify the current epoch. This epoch is in fact justified but we do not
+    # recognize it in the protocol due to an artifact of the construction of the genesis state
+    # (using the `zero` value for `Checkpoint` type)."
+    # [epoch 0]------[epoch 1]------[epoch 2]*------>
+    # []*: checkpoint justified
+    # []**: checkpoint finalized
+    #
+    # "In epoch 3, we have the previous justified checkpoint at the prior current justified
+    # checkpoint (so `GENESIS_EPOCH + 2`) and we justify this current epoch. we check finality here
+    # and see that we finalize the prior justified checkpoint at epoch 2."
+    # [epoch 0]------[epoch 1]------[epoch 2]**------[epoch 3]*------>
+    #
+    # "Given the way we handle epoch processing (i.e. process a given epoch at the start of
+    # the next epoch), we need to transition through `4 * SLOTS_PER_EPOCH` worth of slots to
+    # include the processing of epoch 3."
+    #
+    # source: https://github.com/ethereum/trinity/pull/1214#issuecomment-546184080
+    #
+    # epoch | prev_justified_checkpoint | cur_justified_checkpoint | finalized_checkpoint
+    # ------|---------------------------|--------------------------|---------------------
+    # 0     | 0                         | 0                        | 0
+    # 1     | 0                         | 0                        | 0
+    # 2     | 0                         | 0                        | 0
+    # 3     | 0                         | 2                        | 0
+    # 4     | 2                         | 3                        | 2
     assert state.previous_justified_checkpoint.epoch == 2 + genesis_epoch
     assert state.current_justified_checkpoint.epoch == 3 + genesis_epoch
     assert state.finalized_checkpoint.epoch == 2 + genesis_epoch
