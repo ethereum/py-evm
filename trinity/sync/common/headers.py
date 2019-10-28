@@ -9,6 +9,7 @@ from typing import (
     FrozenSet,
     Generic,
     Iterable,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -38,6 +39,7 @@ from eth.exceptions import (
     HeaderNotFound,
 )
 from eth.rlp.headers import BlockHeader
+from lahja import EndpointAPI
 
 from p2p.abc import CommandAPI
 from p2p.constants import SEAL_CHECK_RANDOM_SAMPLE_RATE
@@ -58,11 +60,13 @@ from trinity.sync.common.constants import (
     EMPTY_PEER_RESPONSE_PENALTY,
     MAX_SKELETON_REORG_DEPTH,
 )
+from trinity.sync.common.events import SyncingRequest, SyncingResponse
 from trinity.sync.common.peers import TChainPeer, WaitingPeers
 from trinity.sync.common.strategies import (
     FromGenesisLaunchStrategy,
     SyncLaunchStrategyAPI,
 )
+from trinity.sync.common.types import SyncProgress
 from trinity._utils.datastructures import (
     DuplicateTasks,
     NoPrerequisites,
@@ -576,6 +580,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             (ETHBlockHeaders, LESBlockHEaders),
         )
         self._peer_pool = peer_pool
+        self.sync_progress: SyncProgress = None
 
     def register_peer(self, peer: BasePeer) -> None:
         super().register_peer(peer)
@@ -641,6 +646,8 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             self._filler_header_tasks.complete(batch_id, tuple())
 
         peer = await self._waiting_peers.get_fastest()
+        if not self.sync_progress:
+            await self._init_sync_progress(parent_header, peer)
 
         def complete_task() -> None:
             self._filler_header_tasks.complete(batch_id, (
@@ -744,6 +751,11 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             else:
                 # stitch headers together in order, ignoring duplicates
                 self._stitcher.register_tasks(headers, ignore_duplicates=True)
+                if self.sync_progress:
+                    last_received_header = headers[-1]
+                    self.sync_progress = self.sync_progress.update_current_block(
+                        last_received_header.block_number,
+                    )
                 return headers
 
     async def _request_headers(
@@ -766,6 +778,13 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
         except Exception:
             self.logger.exception("Unknown error when getting headers")
             raise
+
+    async def _init_sync_progress(self, parent_header: BlockHeader, peer: TChainPeer) -> None:
+        self.sync_progress = SyncProgress(
+            parent_header.block_number,
+            parent_header.block_number,
+            peer.head_info.head_number,
+        )
 
 
 def first_nonconsecutive_header(headers: Sequence[BlockHeader]) -> int:
@@ -873,6 +892,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
 
     async def _run(self) -> None:
         self.run_daemon(self._tip_monitor)
+        self._run_handle_sync_status_requests()
         self.run_daemon(self._meat)
         await self.wait(self._build_skeleton())
 
@@ -989,3 +1009,25 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
                 "%s announced Head TD %d, which is higher than ours (%d), starting sync",
                 peer, peer.head_info.head_td, head_td)
             pass
+
+    def _run_handle_sync_status_requests(self) -> None:
+        if self._peer_pool.has_event_bus:
+            event_bus = self._peer_pool.get_event_bus()
+            self.run_daemon_task(self._handle_sync_status_requests(event_bus))
+        else:
+            self.logger.warning(
+                "Cannot start task for handling eth_syncing requests "
+                "as peer pool doesn't have an event_bus"
+            )
+
+    def _get_sync_status(self) -> Tuple[bool, Optional[SyncProgress]]:
+        if not self._is_syncing_skeleton or not self._meat.sync_progress:
+            return False, None
+        return True, self._meat.sync_progress
+
+    async def _handle_sync_status_requests(self, event_bus: EndpointAPI) -> None:
+        async for req in event_bus.stream(SyncingRequest):
+            await event_bus.broadcast(
+                SyncingResponse(*self._get_sync_status()),
+                req.broadcast_config()
+            )
