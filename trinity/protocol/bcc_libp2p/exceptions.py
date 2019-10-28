@@ -6,11 +6,14 @@ class HandshakeFailure(BaseLibp2pError):
     pass
 
 
-class ReadMessageFailure(BaseLibp2pError):
+class MessageIOFailure(BaseLibp2pError):
+    pass
+
+class ReadMessageFailure(MessageIOFailure):
     pass
 
 
-class WriteMessageFailure(BaseLibp2pError):
+class WriteMessageFailure(MessageIOFailure):
     pass
 
 
