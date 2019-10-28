@@ -1,9 +1,12 @@
+try:
+    import factory
+except ImportError:
+    raise ImportError("The p2p.tools.factories module requires the `factory_boy` library.")
+
 from typing import (
     cast,
-    Any,
     AsyncContextManager,
     Tuple,
-    Type,
 )
 
 from lahja import EndpointAPI
@@ -11,169 +14,27 @@ from lahja import EndpointAPI
 from cancel_token import CancelToken
 
 from eth_typing import BlockNumber
-
 from eth_utils import to_bytes
 
 from eth_keys import keys
-
-from eth.db.header import HeaderDB
-from eth.db.backends.memory import MemoryDB
-from eth.db.atomic import AtomicDB
 from eth.constants import GENESIS_DIFFICULTY, GENESIS_BLOCK_NUMBER
-from eth.chains.mainnet import MAINNET_VM_CONFIGURATION
 
 from p2p import kademlia
 from p2p.abc import HandshakerAPI
 from p2p.tools.factories import PeerPairFactory
 
 from trinity.constants import MAINNET_NETWORK_ID
-from trinity.db.eth1.header import AsyncHeaderDB
 
 from trinity.protocol.common.context import ChainContext
-
-from trinity.protocol.eth.handshaker import ETHHandshaker
-from trinity.protocol.eth.peer import ETHPeer, ETHPeerFactory
-from trinity.protocol.eth.proto import ETHHandshakeParams, ETHProtocol
 
 from trinity.protocol.les.handshaker import LESV2Handshaker, LESV1Handshaker
 from trinity.protocol.les.peer import LESPeer, LESPeerFactory
 from trinity.protocol.les.proto import LESHandshakeParams, LESProtocolV1, LESProtocolV2
 
-
-try:
-    import factory
-except ImportError:
-    raise ImportError("The p2p.tools.factories module requires the `factory_boy` library.")
+from trinity.tools.factories.chain_context import ChainContextFactory
 
 
 MAINNET_GENESIS_HASH = to_bytes(hexstr='0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3')  # noqa: E501
-
-
-class MemoryDBFactory(factory.Factory):
-    class Meta:
-        model = MemoryDB
-
-
-class AtomicDBFactory(factory.Factory):
-    class Meta:
-        model = AtomicDB
-
-    wrapped_db = factory.SubFactory(MemoryDBFactory)
-
-
-class HeaderDBFactory(factory.Factory):
-    class Meta:
-        model = HeaderDB
-
-    db = factory.SubFactory(AtomicDBFactory)
-
-
-class AsyncHeaderDBFactory(factory.Factory):
-    class Meta:
-        model = AsyncHeaderDB
-
-    db = factory.SubFactory(AtomicDBFactory)
-
-    @classmethod
-    def _create(cls,
-                model_class: Type[AsyncHeaderDB],
-                *args: Any,
-                **kwargs: Any) -> AsyncHeaderDB:
-        from eth.chains.base import Chain
-        from eth.tools.builder.chain import build, latest_mainnet_at, genesis
-
-        genesis_params = kwargs.pop('genesis_params', None)
-
-        headerdb = model_class(*args, **kwargs)
-
-        build(
-            Chain,
-            latest_mainnet_at(0),
-            genesis(db=headerdb.db, params=genesis_params),
-        )
-        return headerdb
-
-
-class ChainContextFactory(factory.Factory):
-    class Meta:
-        model = ChainContext
-
-    network_id = 1
-    client_version_string = 'test'
-    headerdb = factory.SubFactory(AsyncHeaderDBFactory)
-    vm_configuration = ((0, MAINNET_VM_CONFIGURATION[-1][1]),)
-    listen_port = 30303
-    p2p_version = 5
-
-
-class ETHHandshakeParamsFactory(factory.Factory):
-    class Meta:
-        model = ETHHandshakeParams
-
-    head_hash = MAINNET_GENESIS_HASH
-    genesis_hash = MAINNET_GENESIS_HASH
-    network_id = MAINNET_NETWORK_ID
-    total_difficulty = GENESIS_DIFFICULTY
-    version = ETHProtocol.version
-
-    @classmethod
-    def from_headerdb(cls, headerdb: HeaderDB, **kwargs: Any) -> ETHHandshakeParams:
-        head = headerdb.get_canonical_head()
-        head_score = headerdb.get_score(head.hash)
-        # TODO: https://github.com/ethereum/py-evm/issues/1847
-        genesis = headerdb.get_canonical_block_header_by_number(BlockNumber(GENESIS_BLOCK_NUMBER))
-        return cls(
-            head_hash=head.hash,
-            genesis_hash=genesis.hash,
-            total_difficulty=head_score,
-            **kwargs
-        )
-
-
-class ETHHandshakerFactory(factory.Factory):
-    class Meta:
-        model = ETHHandshaker
-
-    handshake_params = factory.SubFactory(ETHHandshakeParamsFactory)
-
-
-def ETHPeerPairFactory(*,
-                       alice_peer_context: ChainContext = None,
-                       alice_remote: kademlia.Node = None,
-                       alice_private_key: keys.PrivateKey = None,
-                       alice_client_version: str = 'bob',
-                       bob_peer_context: ChainContext = None,
-                       bob_remote: kademlia.Node = None,
-                       bob_private_key: keys.PrivateKey = None,
-                       bob_client_version: str = 'bob',
-                       cancel_token: CancelToken = None,
-                       event_bus: EndpointAPI = None,
-                       ) -> AsyncContextManager[Tuple[ETHPeer, ETHPeer]]:
-    if alice_peer_context is None:
-        alice_peer_context = ChainContextFactory()
-
-    if bob_peer_context is None:
-        alice_genesis = alice_peer_context.headerdb.get_canonical_block_header_by_number(
-            BlockNumber(GENESIS_BLOCK_NUMBER),
-        )
-        bob_peer_context = ChainContextFactory(
-            headerdb__genesis_params={'timestamp': alice_genesis.timestamp},
-        )
-
-    return cast(AsyncContextManager[Tuple[ETHPeer, ETHPeer]], PeerPairFactory(
-        alice_peer_context=alice_peer_context,
-        alice_peer_factory_class=ETHPeerFactory,
-        bob_peer_context=bob_peer_context,
-        bob_peer_factory_class=ETHPeerFactory,
-        alice_remote=alice_remote,
-        alice_private_key=alice_private_key,
-        alice_client_version=alice_client_version,
-        bob_remote=bob_remote,
-        bob_private_key=bob_private_key,
-        bob_client_version=bob_client_version,
-        cancel_token=cancel_token,
-        event_bus=event_bus,
-    ))
 
 
 class LESHandshakeParamsFactory(factory.Factory):
@@ -222,9 +83,11 @@ class LESV1PeerFactory(LESPeerFactory):
     peer_class = LESV1Peer
 
     async def get_handshakers(self) -> Tuple[HandshakerAPI, ...]:
-        return (
-            LESV1Handshaker(LESHandshakeParamsFactory(version=1)),
-        )
+        return tuple(filter(
+            # mypy doesn't know these have a `handshake_params` property
+            lambda handshaker: handshaker.handshake_params.version == 1,  # type: ignore
+            await super().get_handshakers()
+        ))
 
 
 def LESV1PeerPairFactory(*,
