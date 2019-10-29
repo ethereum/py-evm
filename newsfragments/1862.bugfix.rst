@@ -1,0 +1,4 @@
+Fix issue where Py-EVM crashes when `0` is used as a value for `seal_check_random_sample_rate`.
+Previously, this would lead to a DivideByZero error, whereas now it is recognized as not performing
+any seal check. This is also symmetric to the current *opposite* behavior of passing `1` to check
+every single header instead of taking samples.

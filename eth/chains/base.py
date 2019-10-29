@@ -153,6 +153,8 @@ class BaseChain(Configurable, ChainAPI):
         all_indices = range(len(descendants))
         if seal_check_random_sample_rate == 1:
             indices_to_check_seal = set(all_indices)
+        elif seal_check_random_sample_rate == 0:
+            indices_to_check_seal = set()
         else:
             sample_size = len(all_indices) // seal_check_random_sample_rate
             indices_to_check_seal = set(random.sample(all_indices, sample_size))
