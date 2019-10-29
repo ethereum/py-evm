@@ -162,8 +162,8 @@ class BaseChain(Configurable, ChainAPI):
         for index, (parent, child) in enumerate(header_pairs):
             if child.parent_hash != parent.hash:
                 raise ValidationError(
-                    f"Invalid header chain; {child} has parent {child.parent_hash},"
-                    f" but expected {parent.hash}"
+                    f"Invalid header chain; {child} has parent {encode_hex(child.parent_hash)},"
+                    f" but expected {encode_hex(parent.hash)}"
                 )
             should_check_seal = index in indices_to_check_seal
             vm_class = cls.get_vm_class_for_block_number(child.block_number)
