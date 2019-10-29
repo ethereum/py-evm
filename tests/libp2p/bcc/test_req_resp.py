@@ -169,11 +169,11 @@ async def test_request_beacon_blocks_invalid_request(monkeypatch):
         # TEST: Can not request blocks with `start_slot` greater than head block slot
         start_slot = 2
 
-        def get_block_by_hash_tree_root(root):
+        def get_block_by_root(root):
             return head_block
 
         monkeypatch.setattr(
-            bob.chain, "get_block_by_hash_tree_root", get_block_by_hash_tree_root
+            bob.chain, "get_block_by_root", get_block_by_root
         )
 
         count = 1
@@ -289,11 +289,11 @@ async def test_request_beacon_blocks_on_nonexist_chain(monkeypatch):
 
         request_head_block_root = b"\x56" * 32
 
-        def get_block_by_hash_tree_root(root):
+        def get_block_by_root(root):
             raise BlockNotFound
 
         monkeypatch.setattr(
-            bob.chain, "get_block_by_hash_tree_root", get_block_by_hash_tree_root
+            bob.chain, "get_block_by_root", get_block_by_root
         )
 
         start_slot = 0
@@ -323,9 +323,9 @@ async def test_request_recent_beacon_blocks(monkeypatch):
             body=BeaconBlockBody(),
         )
         blocks = [head_block.copy(slot=slot) for slot in range(5)]
-        mock_root_to_block_db = {block.hash_tree_root: block for block in blocks}
+        mock_root_to_block_db = {block.signing_root: block for block in blocks}
 
-        def get_block_by_hash_tree_root(root):
+        def get_block_by_root(root):
             validate_word(root)
             if root in mock_root_to_block_db:
                 return mock_root_to_block_db[root]
@@ -333,15 +333,15 @@ async def test_request_recent_beacon_blocks(monkeypatch):
                 raise BlockNotFound
 
         monkeypatch.setattr(
-            bob.chain, "get_block_by_hash_tree_root", get_block_by_hash_tree_root
+            bob.chain, "get_block_by_root", get_block_by_root
         )
 
         requesting_block_roots = [
-            blocks[0].hash_tree_root,
+            blocks[0].signing_root,
             b"\x12" * 32,  # Unknown block root
-            blocks[1].hash_tree_root,
+            blocks[1].signing_root,
             b"\x23" * 32,  # Unknown block root
-            blocks[3].hash_tree_root,
+            blocks[3].signing_root,
         ]
         requested_blocks = await alice.request_recent_beacon_blocks(
             peer_id=bob.peer_id, block_roots=requesting_block_roots
