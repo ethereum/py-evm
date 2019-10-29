@@ -8,10 +8,11 @@ from eth_typing import (
     Hash32,
 )
 
+from eth.abc import ExecutionContextAPI
 from eth._utils.generator import CachedIterable
 
 
-class ExecutionContext:
+class ExecutionContext(ExecutionContextAPI):
     _coinbase = None
 
     _timestamp = None

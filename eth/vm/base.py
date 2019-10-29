@@ -31,6 +31,7 @@ from eth.abc import (
     ChainContextAPI,
     ChainDatabaseAPI,
     ComputationAPI,
+    ExecutionContextAPI,
     ReceiptAPI,
     SignedTransactionAPI,
     StateAPI,
@@ -68,6 +69,9 @@ from eth._utils.headers import (
 from eth.validation import (
     validate_length_lte,
     validate_gas_limit,
+)
+from eth.vm.execution_context import (
+    ExecutionContext,
 )
 from eth.vm.interrupt import (
     EVMMissingData,
@@ -142,7 +146,7 @@ class VM(Configurable, VirtualMachineAPI):
         even if you don't have the VM initialized. This is a convenience method to do that.
         """
 
-        execution_context = header.create_execution_context(previous_hashes, chain_context)
+        execution_context = cls.create_execution_context(header, previous_hashes, chain_context)
         return cls.get_state_class()(db, execution_context, header.state_root)
 
     #
@@ -172,6 +176,20 @@ class VM(Configurable, VirtualMachineAPI):
         self.validate_receipt(receipt)
 
         return receipt, computation
+
+    @staticmethod
+    def create_execution_context(header: BlockHeaderAPI,
+                                 prev_hashes: Iterable[Hash32],
+                                 chain_context: ChainContextAPI) -> ExecutionContextAPI:
+        return ExecutionContext(
+            coinbase=header.coinbase,
+            timestamp=header.timestamp,
+            block_number=header.block_number,
+            difficulty=header.difficulty,
+            gas_limit=header.gas_limit,
+            prev_hashes=prev_hashes,
+            chain_id=chain_context.chain_id,
+        )
 
     def execute_bytecode(self,
                          origin: Address,
