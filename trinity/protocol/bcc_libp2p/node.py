@@ -885,7 +885,7 @@ class Node(BaseService):
         )
 
         try:
-            requested_head_block = self.chain.get_block_by_hash_tree_root(
+            requested_head_block = self.chain.get_block_by_root(
                 beacon_blocks_request.head_block_root
             )
         except (BlockNotFound, ValidationError) as error:
@@ -1076,7 +1076,7 @@ class Node(BaseService):
         recent_beacon_blocks = []
         for block_root in recent_beacon_blocks_request.block_roots:
             try:
-                block = self.chain.get_block_by_hash_tree_root(block_root)
+                block = self.chain.get_block_by_root(block_root)
             except (BlockNotFound, ValidationError):
                 pass
             else:
