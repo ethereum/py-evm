@@ -20,6 +20,7 @@ from async_generator import (
 )
 from cancel_token import CancelToken, OperationCancelled
 from eth_typing import (
+    BlockIdentifier,
     BlockNumber,
     Hash32,
 )
@@ -706,6 +707,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             raise ValidationError(
                 f"Can't request {length} headers, because peer maximum is {peer.max_headers_fetch}"
             )
+
         headers = await self._request_headers(
             peer,
             BlockNumber(parent_header.block_number + 1),
@@ -759,7 +761,8 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
                 return headers
 
     async def _request_headers(
-            self, peer: TChainPeer, start_at: BlockNumber, length: int) -> Tuple[BlockHeader, ...]:
+            self, peer: TChainPeer, start_at: BlockIdentifier, length: int
+    ) -> Tuple[BlockHeader, ...]:
         self.logger.debug("Requesting %d headers from %s", length, peer)
         try:
             return await peer.chain_api.get_block_headers(start_at, length, skip=0, reverse=False)
@@ -780,10 +783,19 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
             raise
 
     async def _init_sync_progress(self, parent_header: BlockHeader, peer: TChainPeer) -> None:
+        try:
+            latest_block_number = peer.head_info.head_number
+        except AttributeError:
+            headers = await self._request_headers(peer, peer.head_info.head_hash, 1)
+            if headers:
+                latest_block_number = headers[0].block_number
+            else:
+                return
+
         self.sync_progress = SyncProgress(
             parent_header.block_number,
             parent_header.block_number,
-            peer.head_info.head_number,
+            latest_block_number,
         )
 
 
