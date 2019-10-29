@@ -5,6 +5,7 @@ from abc import (
 from typing import (
     Any,
     Callable,
+    ClassVar,
     ContextManager,
     Dict,
     Iterable,
@@ -1358,6 +1359,7 @@ class StateAPI(ConfigurableAPI):
 class VirtualMachineAPI(ConfigurableAPI):
     fork: str  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
     chaindb: ChainDatabaseAPI
+    extra_data_max_bytes: ClassVar[int]
 
     @abstractmethod
     def __init__(self, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> None:

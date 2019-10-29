@@ -3,6 +3,7 @@ import itertools
 import logging
 from typing import (
     Any,
+    ClassVar,
     Iterable,
     Iterator,
     Optional,
@@ -90,6 +91,7 @@ class VM(Configurable, VirtualMachineAPI):
         - ``_state_class``: The :class:`~eth.abc.StateAPI` class used by this VM for execution.
     """
     block_class: Type[BlockAPI] = None
+    extra_data_max_bytes: ClassVar[int] = 32
     fork: str = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
     chaindb: ChainDatabaseAPI = None
     _state_class: Type[StateAPI] = None
@@ -549,7 +551,11 @@ class VM(Configurable, VirtualMachineAPI):
             )
 
         if block.is_genesis:
-            validate_length_lte(block.header.extra_data, 32, title="BlockHeader.extra_data")
+            validate_length_lte(
+                block.header.extra_data,
+                self.extra_data_max_bytes,
+                title="BlockHeader.extra_data"
+            )
         else:
             parent_header = get_parent_header(block.header, self.chaindb)
             self.validate_header(block.header, parent_header)
@@ -593,7 +599,8 @@ class VM(Configurable, VirtualMachineAPI):
             # to validate genesis header, check if it equals canonical header at block number 0
             raise ValidationError("Must have access to parent header to validate current header")
         else:
-            validate_length_lte(header.extra_data, 32, title="BlockHeader.extra_data")
+            validate_length_lte(
+                header.extra_data, cls.extra_data_max_bytes, title="BlockHeader.extra_data")
 
             validate_gas_limit(header.gas_limit, parent_header.gas_limit)
 
