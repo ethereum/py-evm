@@ -676,13 +676,40 @@ class StackManipulationAPI(ABC):
 
 
 class ExecutionContextAPI(ABC):
-    coinbase: Address
-    timestamp: int
-    block_number: BlockNumber
-    difficulty: int
-    gas_limit: int
-    prev_hashes: Sequence[Hash32]
-    chain_id: int
+    @property
+    @abstractmethod
+    def coinbase(self) -> Address:
+        ...
+
+    @property
+    @abstractmethod
+    def timestamp(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def block_number(self) -> BlockNumber:
+        ...
+
+    @property
+    @abstractmethod
+    def difficulty(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def gas_limit(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def prev_hashes(self) -> Iterable[Hash32]:
+        ...
+
+    @property
+    @abstractmethod
+    def chain_id(self) -> int:
+        ...
 
 
 class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
@@ -1394,6 +1421,13 @@ class VirtualMachineAPI(ConfigurableAPI):
                           header: BlockHeaderAPI,
                           transaction: SignedTransactionAPI
                           ) -> Tuple[ReceiptAPI, ComputationAPI]:
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def create_execution_context(header: BlockHeaderAPI,
+                                 prev_hashes: Iterable[Hash32],
+                                 chain_context: ChainContextAPI) -> ExecutionContextAPI:
         ...
 
     @abstractmethod
