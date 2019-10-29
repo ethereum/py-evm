@@ -69,7 +69,7 @@ class BeaconBlocksRequest(ssz.Serializable):
 
     def __init__(
         self,
-        head_block_root: HashTreeRoot,
+        head_block_root: SigningRoot,
         start_slot: Slot,
         count: int,
         step: int,
@@ -96,7 +96,7 @@ class RecentBeaconBlocksRequest(ssz.Serializable):
         ('block_roots', List(bytes32, 1)),
     ]
 
-    def __init__(self, block_roots: Sequence[HashTreeRoot]) -> None:
+    def __init__(self, block_roots: Sequence[SigningRoot]) -> None:
         super().__init__(block_roots)
 
 
