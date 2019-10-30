@@ -290,11 +290,14 @@ class AccountDB(AccountDatabaseAPI):
     def delete_account(self, address: Address) -> None:
         validate_canonical_address(address, title="Storage Address")
 
+        # We must wipe the storage first, because if it's the first time we load it,
+        #   then we want to load it with the original storage root hash, not the
+        #   empty one. (in case of a later revert, we don't want to poison the storage cache)
+        self._wipe_storage(address)
+
         if address in self._account_cache:
             del self._account_cache[address]
         del self._journaltrie[address]
-
-        self._wipe_storage(address)
 
     def account_exists(self, address: Address) -> bool:
         validate_canonical_address(address, title="Storage Address")
