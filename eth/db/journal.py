@@ -226,6 +226,7 @@ class Journal(BaseDB):
         self._current_values = {}
         self._checkpoint_stack.clear()
         self.record_checkpoint()
+        self._ignore_wrapped_db = False
         return final_changes
 
     def flatten(self) -> None:

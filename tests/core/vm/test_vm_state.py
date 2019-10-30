@@ -74,3 +74,25 @@ def test_set_storage_input_validation(state, address, slot, new_value):
 def test_delete_storage_input_validation(state):
     with pytest.raises(ValidationError):
         state.delete_storage(INVALID_ADDRESS)
+
+
+@pytest.mark.parametrize('read_storage_before_snapshot', [True, ])
+def test_revert_selfdestruct(state, read_storage_before_snapshot):
+    state.set_storage(ADDRESS, 1, 2)
+    state.persist()
+
+    if read_storage_before_snapshot:
+        assert state.get_storage(ADDRESS, 1) == 2
+
+    # take a snapshot when the ADDRESS storage is *not* dirty, so it doesn't have a checkpoint
+    snapshot = state.snapshot()
+    try:
+        # simulate a self-destruct, which puts a clear() in the storage journal
+        state.delete_account(ADDRESS)
+    finally:
+        # revert *all* changes to journal, aka pop_all()
+        state.revert(snapshot)
+        # This was breaking (when there was no read before snapshot), because the journal
+        #   forgot to set _ignore_wrapped_db = False
+
+    assert state.get_storage(ADDRESS, 1) == 2
