@@ -7,6 +7,11 @@ from eth_tester import EthereumTester, PyEVMBackend
 from web3 import Web3
 from web3.providers.eth_tester import EthereumTesterProvider
 
+from trinity.plugins.eth2.beacon.eth1_monitor import Eth1Monitor
+from p2p.trio_service import background_service
+
+from async_generator import asynccontextmanager
+
 # Ref: https://github.com/ethereum/eth2.0-specs/blob/dev/deposit_contract/tests/contracts/conftest.py  # noqa: E501
 
 
@@ -38,6 +43,11 @@ def blocks_delayed_to_query_logs():
 
 
 @pytest.fixture
+def polling_period():
+    return 0.01
+
+
+@pytest.fixture
 def registration_contract(w3, tester, contract_json):
     contract_bytecode = contract_json["bytecode"]
     contract_abi = contract_json["abi"]
@@ -49,3 +59,18 @@ def registration_contract(w3, tester, contract_json):
         address=tx_receipt.contractAddress, abi=contract_abi
     )
     return registration_deployed
+
+
+@pytest.fixture
+async def eth1_monitor(
+    w3, registration_contract, blocks_delayed_to_query_logs, polling_period
+):
+    m = Eth1Monitor(
+        w3,
+        registration_contract.address,
+        registration_contract.abi,
+        blocks_delayed_to_query_logs,
+        polling_period,
+    )
+    async with background_service(m):
+        yield m
