@@ -57,6 +57,9 @@ class AsyncHeaderDBFactory(factory.Factory):
 
         headerdb = model_class(*args, **kwargs)
 
+        # SIDE EFFECT!
+        # This uses the side effect of initializing a chain using the `builder`
+        # tool to populate the genesis state into the database.
         build(
             Chain,
             latest_mainnet_at(0),
