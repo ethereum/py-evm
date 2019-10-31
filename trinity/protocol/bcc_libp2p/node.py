@@ -558,7 +558,6 @@ class Node(BaseService):
             )
             await stream.reset()
             await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
-            await self.disconnect_peer(peer_id)
             return
 
         hello_mine = self._make_hello_packet()
