@@ -45,7 +45,7 @@ from p2p.p2p_proto import (
     DevP2PReceipt,
     Hello,
     BaseP2PProtocol,
-    P2PProtocol,
+    P2PProtocolV5,
     P2PProtocolV4,
 )
 from p2p.protocol import get_cmd_offsets
@@ -72,7 +72,7 @@ class DevP2PHandshakeParams(NamedTuple):
 
     def get_base_protocol_class(self) -> Type[BaseP2PProtocol]:
         if self.version == 5:
-            return P2PProtocol
+            return P2PProtocolV5
         elif self.version == 4:
             return P2PProtocolV4
         else:
@@ -142,7 +142,7 @@ async def _do_p2p_handshake(transport: TransportAPI,
                 # Now update the base protocol to support snappy compression
                 # This is needed so that Trinity is compatible with parity since
                 # parity sends Ping immediately after handshake
-                protocol = P2PProtocol(
+                protocol = P2PProtocolV5(
                     transport,
                     cmd_id_offset=0,
                     snappy_support=True,

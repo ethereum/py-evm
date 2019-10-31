@@ -8,7 +8,7 @@ from trinity.protocol.eth.peer import ETHPeer
 from trinity.protocol.eth.proto import ETHProtocol
 from trinity.protocol.les.peer import LESPeer
 from trinity.protocol.les.proto import (
-    LESProtocol,
+    LESProtocolV1,
     LESProtocolV2,
 )
 
@@ -29,8 +29,8 @@ async def test_LES_v1_peers():
         assert isinstance(alice, LESPeer)
         assert isinstance(bob, LESPeer)
 
-        assert isinstance(alice.sub_proto, LESProtocol)
-        assert isinstance(bob.sub_proto, LESProtocol)
+        assert isinstance(alice.sub_proto, LESProtocolV1)
+        assert isinstance(bob.sub_proto, LESProtocolV1)
 
 
 @pytest.mark.asyncio

@@ -7,7 +7,7 @@ from p2p.tools.factories import (
     ProtocolFactory,
     DevP2PHandshakeParamsFactory,
 )
-from p2p.p2p_proto import P2PProtocol, P2PProtocolV4
+from p2p.p2p_proto import P2PProtocolV4, P2PProtocolV5
 from p2p.handshake import (
     negotiate_protocol_handshakes,
     DevP2PHandshakeParams,
@@ -53,7 +53,7 @@ async def test_handshake_with_v4_and_v5_disables_snappy():
     alice_p2p_protocol = alice_p2p_receipt.protocol
     bob_p2p_protocol = bob_p2p_receipt.protocol
 
-    assert isinstance(alice_p2p_protocol, P2PProtocol)
+    assert isinstance(alice_p2p_protocol, P2PProtocolV5)
     assert alice_p2p_protocol.snappy_support is False
 
     assert isinstance(bob_p2p_protocol, P2PProtocolV4)
@@ -106,12 +106,12 @@ async def test_handshake_with_single_protocol():
     assert isinstance(alice_receipt.protocol, protocol_class)
     assert isinstance(bob_receipt.protocol, protocol_class)
 
-    assert isinstance(alice_multiplexer.get_base_protocol(), P2PProtocol)
-    assert isinstance(alice_multiplexer.get_protocols()[0], P2PProtocol)
+    assert isinstance(alice_multiplexer.get_base_protocol(), P2PProtocolV5)
+    assert isinstance(alice_multiplexer.get_protocols()[0], P2PProtocolV5)
     assert isinstance(alice_multiplexer.get_protocols()[1], protocol_class)
 
-    assert isinstance(bob_multiplexer.get_base_protocol(), P2PProtocol)
-    assert isinstance(bob_multiplexer.get_protocols()[0], P2PProtocol)
+    assert isinstance(bob_multiplexer.get_base_protocol(), P2PProtocolV5)
+    assert isinstance(bob_multiplexer.get_protocols()[0], P2PProtocolV5)
     assert isinstance(bob_multiplexer.get_protocols()[1], protocol_class)
 
     alice_p2p_protocol = alice_p2p_receipt.protocol
@@ -172,20 +172,20 @@ async def test_handshake_with_multiple_protocols():
     assert len(alice_receipts) == 2
     assert len(bob_receipts) == 2
 
-    assert isinstance(alice_p2p_receipt.protocol, P2PProtocol)
+    assert isinstance(alice_p2p_receipt.protocol, P2PProtocolV5)
     assert isinstance(alice_receipts[0].protocol, A2)
     assert isinstance(alice_receipts[1].protocol, C3)
 
-    assert isinstance(alice_p2p_receipt.protocol, P2PProtocol)
+    assert isinstance(alice_p2p_receipt.protocol, P2PProtocolV5)
     assert isinstance(bob_receipts[0].protocol, A2)
     assert isinstance(bob_receipts[1].protocol, C3)
 
-    assert isinstance(alice_multiplexer.get_base_protocol(), P2PProtocol)
-    assert isinstance(alice_multiplexer.get_protocols()[0], P2PProtocol)
+    assert isinstance(alice_multiplexer.get_base_protocol(), P2PProtocolV5)
+    assert isinstance(alice_multiplexer.get_protocols()[0], P2PProtocolV5)
     assert isinstance(alice_multiplexer.get_protocols()[1], A2)
     assert isinstance(alice_multiplexer.get_protocols()[2], C3)
 
-    assert isinstance(bob_multiplexer.get_base_protocol(), P2PProtocol)
-    assert isinstance(bob_multiplexer.get_protocols()[0], P2PProtocol)
+    assert isinstance(bob_multiplexer.get_base_protocol(), P2PProtocolV5)
+    assert isinstance(bob_multiplexer.get_protocols()[0], P2PProtocolV5)
     assert isinstance(bob_multiplexer.get_protocols()[1], A2)
     assert isinstance(bob_multiplexer.get_protocols()[2], C3)

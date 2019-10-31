@@ -20,8 +20,8 @@ from p2p.auth import decode_authentication
 from p2p.constants import DEVP2P_V5, DEVP2P_V4
 from p2p.p2p_proto import (
     Hello,
-    P2PProtocol,
     P2PProtocolV4,
+    P2PProtocolV5,
 )
 from p2p.multiplexer import Multiplexer
 from p2p.transport import Transport
@@ -129,7 +129,7 @@ async def test_handshake():
         egress_mac=initiator_egress_mac,
         ingress_mac=initiator_ingress_mac
     )
-    initiator_p2p_protocol = P2PProtocol(initiator_transport, 0, False)
+    initiator_p2p_protocol = P2PProtocolV5(initiator_transport, 0, False)
     initiator_multiplexer = Multiplexer(
         transport=initiator_transport,
         base_protocol=initiator_p2p_protocol,
@@ -149,7 +149,7 @@ async def test_handshake():
         egress_mac=egress_mac,
         ingress_mac=ingress_mac,
     )
-    responder_p2p_protocol = P2PProtocol(responder_transport, 0, False)
+    responder_p2p_protocol = P2PProtocolV5(responder_transport, 0, False)
     responder_multiplexer = Multiplexer(
         transport=responder_transport,
         base_protocol=responder_p2p_protocol,
@@ -260,7 +260,7 @@ async def test_handshake_eip8():
         egress_mac=initiator_egress_mac,
         ingress_mac=initiator_ingress_mac
     )
-    initiator_p2p_protocol = P2PProtocol(initiator_transport, 0, False)
+    initiator_p2p_protocol = P2PProtocolV5(initiator_transport, 0, False)
     initiator_multiplexer = Multiplexer(
         transport=initiator_transport,
         base_protocol=initiator_p2p_protocol,
