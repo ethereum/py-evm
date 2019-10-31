@@ -14,6 +14,11 @@ from async_generator import asynccontextmanager
 from cancel_token import CancelToken
 
 from libp2p.crypto.secp256k1 import create_new_key_pair
+from libp2p.peer.id import ID
+from libp2p.peer.peerinfo import (
+    PeerInfo,
+)
+
 
 from eth_utils import to_tuple
 
@@ -43,7 +48,7 @@ from multiaddr import Multiaddr
 
 from trinity.db.beacon.chain import AsyncBeaconChainDB
 
-from trinity.protocol.bcc_libp2p.node import Node, PeerPool
+from trinity.protocol.bcc_libp2p.node import Node, PeerPool, Peer
 from trinity.protocol.bcc_libp2p.servers import BCCReceiveServer
 from trinity.sync.beacon.chain import BeaconChainSyncer
 
@@ -88,6 +93,18 @@ class NodeFactory(factory.Factory):
         )
 
 
+class PeerFactory(factory.Factory):
+    class Meta:
+        model = Peer
+    _id = factory.Sequence(lambda n: ID(f'peer{n}'))
+    node = factory.SubFactory(NodeFactory)
+    fork_version = None
+    finalized_root = ZERO_HASH32
+    finalized_epoch = 0
+    head_root = ZERO_HASH32
+    head_slot = 0
+
+
 @asynccontextmanager
 async def ConnectionPairFactory(
     alice_chaindb: AsyncBeaconChainDB = None,
@@ -97,11 +114,24 @@ async def ConnectionPairFactory(
 ) -> AsyncIterator[Tuple[Node, Node]]:
     if cancel_token is None:
         cancel_token = CancelTokenFactory()
-    alice = NodeFactory(chain__db=alice_chaindb.db, cancel_token=cancel_token)
-    bob = NodeFactory(chain__db=bob_chaindb.db, cancel_token=cancel_token)
+    alice_kwargs = {}
+    bob_kwargs = {}
+
+    if alice_chaindb is not None:
+        alice_kwargs["chain__db"] = alice_chaindb.db
+    if bob_chaindb is not None:
+        bob_kwargs["chain__db"] = bob_chaindb.db
+
+    alice = NodeFactory(cancel_token=cancel_token, **alice_kwargs)
+    bob = NodeFactory(cancel_token=cancel_token, **bob_kwargs)
     async with run_service(alice), run_service(bob):
         await asyncio.sleep(0.01)
-        await alice.dial_peer_maddr(bob.listen_maddr_with_peer_id)
+        await alice.host.connect(
+            PeerInfo(
+                peer_id=bob.peer_id,
+                addrs=[bob.listen_maddr],
+            )
+        )
         await asyncio.sleep(0.01)
         if say_hello:
             await alice.say_hello(bob.peer_id)

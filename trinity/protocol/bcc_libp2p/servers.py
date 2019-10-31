@@ -1,3 +1,4 @@
+import asyncio
 from typing import (
     Awaitable,
     Callable,
@@ -7,7 +8,6 @@ from typing import (
     Set,
     Tuple,
     Union,
-    TYPE_CHECKING,
 )
 
 from cancel_token import (
@@ -56,10 +56,6 @@ from .configs import (
     PUBSUB_TOPIC_BEACON_BLOCK,
     PUBSUB_TOPIC_BEACON_ATTESTATION,
 )
-
-if TYPE_CHECKING:
-    import asyncio  # noqa: F401
-
 
 PROCESS_ORPHAN_BLOCKS_PERIOD = 10.0
 
@@ -177,6 +173,7 @@ class BCCReceiveServer(BaseService):
         self.p2p_node = p2p_node
         self.attestation_pool = AttestationPool()
         self.orphan_block_pool = OrphanBlockPool()
+        self.ready = asyncio.Event()
 
     async def _run(self) -> None:
         while not self.p2p_node.is_started:
@@ -185,6 +182,7 @@ class BCCReceiveServer(BaseService):
         self.run_daemon_task(self._handle_beacon_attestation_loop())
         self.run_daemon_task(self._handle_beacon_block_loop())
         self.run_daemon_task(self._process_orphan_blocks_loop())
+        self.ready.set()
         await self.cancellation()
 
     async def _handle_message(
@@ -196,8 +194,11 @@ class BCCReceiveServer(BaseService):
             message = await queue.get()
             # Libp2p let the sender receive their own message, which we need to ignore here.
             if message.from_id == self.p2p_node.peer_id:
+                queue.task_done()
                 continue
-            await handler(message)
+            else:
+                await handler(message)
+                queue.task_done()
 
     async def _handle_beacon_attestation_loop(self) -> None:
         await self._handle_message(
@@ -297,7 +298,7 @@ class BCCReceiveServer(BaseService):
             # Successfully imported the block. See if any blocks in `self.orphan_block_pool`
             # depend on it. If there are, try to import them.
             # TODO: should be done asynchronously?
-            self._try_import_orphan_blocks(block.parent_root)
+            self._try_import_orphan_blocks(block.signing_root)
             # Remove attestations in block that are also in the attestation pool.
             self.attestation_pool.batch_remove(block.body.attestations)
 

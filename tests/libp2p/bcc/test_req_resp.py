@@ -1,5 +1,3 @@
-import asyncio
-
 from eth.constants import ZERO_HASH32
 from eth.exceptions import BlockNotFound
 from eth.validation import validate_word
@@ -12,6 +10,7 @@ from trinity.protocol.bcc_libp2p.exceptions import HandshakeFailure, RequestFail
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
 from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
 from trinity.protocol.bcc_libp2p.utils import read_req, write_resp
+from trinity.tools.async_method import wait_until_true
 from trinity.tools.bcc_factories import ConnectionPairFactory, NodeFactory
 
 
@@ -19,7 +18,6 @@ from trinity.tools.bcc_factories import ConnectionPairFactory, NodeFactory
 async def test_hello_success():
     async with ConnectionPairFactory(say_hello=False) as (alice, bob):
         await alice.say_hello(bob.peer_id)
-        await asyncio.sleep(0.01)
         assert bob.peer_id in alice.handshaked_peers
         assert alice.peer_id in bob.handshaked_peers
 
@@ -39,7 +37,6 @@ async def test_hello_failure_invalid_hello_packet(monkeypatch, mock_timeout):
         # Test: Handshake fails when sending invalid hello packet.
         with pytest.raises(HandshakeFailure):
             await alice.say_hello(bob.peer_id)
-        await asyncio.sleep(0.01)
         assert alice.peer_id not in bob.handshaked_peers
         assert bob.peer_id not in alice.handshaked_peers
 
@@ -55,7 +52,6 @@ async def test_hello_failure_invalid_hello_packet(monkeypatch, mock_timeout):
         # Test: Handshake fails when sending invalid hello packet.
         with pytest.raises(HandshakeFailure):
             await alice.say_hello(bob.peer_id)
-        await asyncio.sleep(0.01)
         assert alice.peer_id not in bob.handshaked_peers
         assert bob.peer_id not in alice.handshaked_peers
 
@@ -74,7 +70,6 @@ async def test_hello_failure_failure_response():
         # Test: Handshake fails when the response is not success.
         with pytest.raises(HandshakeFailure):
             await alice.say_hello(bob.peer_id)
-        await asyncio.sleep(0.01)
         assert alice.peer_id not in bob.handshaked_peers
 
 
@@ -82,9 +77,8 @@ async def test_hello_failure_failure_response():
 async def test_goodbye():
     async with ConnectionPairFactory() as (alice, bob):
         await alice.say_goodbye(bob.peer_id, GoodbyeReasonCode.FAULT_OR_ERROR)
-        await asyncio.sleep(0.01)
         assert bob.peer_id not in alice.handshaked_peers
-        assert alice.peer_id not in bob.handshaked_peers
+        assert await wait_until_true(lambda: alice.peer_id not in bob.handshaked_peers)
 
 
 @pytest.mark.asyncio

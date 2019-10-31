@@ -83,7 +83,7 @@ from libp2p.pubsub.gossipsub import (
 )
 from libp2p.security.base_transport import BaseSecureTransport
 from libp2p.stream_muxer.abc import IMuxedConn
-from libp2p.stream_muxer.mplex.exceptions import MplexStreamEOF, MplexStreamReset
+from libp2p.network.stream.exceptions import StreamEOF, StreamReset
 from libp2p.stream_muxer.mplex.mplex import MPLEX_PROTOCOL_ID, Mplex
 
 from multiaddr import (
@@ -545,11 +545,11 @@ class Node(BaseService):
         try:
             hello_other_side = await read_req(stream, HelloRequest)
             has_error = False
-        except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, ReadMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -576,11 +576,11 @@ class Node(BaseService):
         try:
             await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
             has_error = False
-        except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, WriteMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -621,11 +621,11 @@ class Node(BaseService):
         try:
             await write_req(stream, hello_mine)
             has_error = False
-        except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, WriteMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -636,13 +636,13 @@ class Node(BaseService):
 
         self.logger.debug("Waiting for hello from the other side")
         try:
-            resp_code, hello_other_side = await read_resp(stream, HelloRequest)
+            resp_code, response = await read_resp(stream, HelloRequest)
             has_error = False
-        except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, ReadMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -652,7 +652,7 @@ class Node(BaseService):
 
         self.logger.debug(
             "Received the hello message %s, resp_code=%s",
-            to_formatted_dict(hello_other_side),
+            response,
             resp_code,
         )
 
@@ -661,14 +661,14 @@ class Node(BaseService):
             # TODO: Do something according to the `ResponseCode`
             error_msg = (
                 "resp_code != ResponseCode.SUCCESS, "
-                f"resp_code={resp_code}, error_msg={to_formatted_dict(hello_other_side)}"
+                f"resp_code={resp_code}, error_msg={response}"
             )
             self.logger.info("Handshake failed: %s", error_msg)
             await stream.reset()
             await self.disconnect_peer(peer_id)
             raise HandshakeFailure(error_msg)
 
-        hello_other_side = cast(HelloRequest, hello_other_side)
+        hello_other_side = cast(HelloRequest, response)
         try:
             await self._validate_hello_req(hello_other_side)
         except ValidationError as error:
@@ -707,11 +707,11 @@ class Node(BaseService):
         try:
             goodbye = await read_req(stream, Goodbye)
             has_error = False
-        except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, ReadMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
 
         self.logger.debug("Received the goodbye message %s", to_formatted_dict(goodbye))
@@ -732,11 +732,11 @@ class Node(BaseService):
         try:
             await write_req(stream, goodbye)
             has_error = False
-        except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, WriteMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
 
         if not has_error:
@@ -834,10 +834,9 @@ class Node(BaseService):
             self.logger.debug(
                 (
                     "The requested head block is not on our canonical chain  "
-                    "requested_head_block: %s  canonical_block_at_slot: %s"
+                    "requested_head_block: %s"
                 ),
                 requested_head_block,
-                canonical_block_at_slot,
             )
             block_match = False
         finally:
@@ -870,11 +869,11 @@ class Node(BaseService):
         try:
             beacon_blocks_request = await read_req(stream, BeaconBlocksRequest)
             has_error = False
-        except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, ReadMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -902,11 +901,11 @@ class Node(BaseService):
                 try:
                     await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
                     has_error = False
-                except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+                except (WriteMessageFailure, StreamEOF, StreamReset) as error:
                     has_error = True
                     if isinstance(error, WriteMessageFailure):
                         await stream.reset()
-                    elif isinstance(error, MplexStreamEOF):
+                    elif isinstance(error, StreamEOF):
                         await stream.close()
                 finally:
                     if has_error:
@@ -927,11 +926,11 @@ class Node(BaseService):
                     try:
                         await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
                         has_error = False
-                    except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+                    except (WriteMessageFailure, StreamEOF, StreamReset) as error:
                         has_error = True
                         if isinstance(error, WriteMessageFailure):
                             await stream.reset()
-                        elif isinstance(error, MplexStreamEOF):
+                        elif isinstance(error, StreamEOF):
                             await stream.close()
                     finally:
                         if has_error:
@@ -950,11 +949,11 @@ class Node(BaseService):
         try:
             await write_resp(stream, beacon_blocks_response, ResponseCode.SUCCESS)
             has_error = False
-        except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, WriteMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -998,11 +997,11 @@ class Node(BaseService):
         try:
             await write_req(stream, beacon_blocks_request)
             has_error = False
-        except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, WriteMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -1014,11 +1013,11 @@ class Node(BaseService):
         try:
             resp_code, beacon_blocks_response = await read_resp(stream, BeaconBlocksResponse)
             has_error = False
-        except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, ReadMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -1059,11 +1058,11 @@ class Node(BaseService):
         try:
             recent_beacon_blocks_request = await read_req(stream, RecentBeaconBlocksRequest)
             has_error = False
-        except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, ReadMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -1087,11 +1086,11 @@ class Node(BaseService):
         try:
             await write_resp(stream, recent_beacon_blocks_response, ResponseCode.SUCCESS)
             has_error = False
-        except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, WriteMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -1128,11 +1127,11 @@ class Node(BaseService):
         try:
             await write_req(stream, recent_beacon_blocks_request)
             has_error = False
-        except (WriteMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, WriteMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
@@ -1147,11 +1146,11 @@ class Node(BaseService):
                 RecentBeaconBlocksResponse,
             )
             has_error = False
-        except (ReadMessageFailure, MplexStreamEOF, MplexStreamReset) as error:
+        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
             has_error = True
             if isinstance(error, ReadMessageFailure):
                 await stream.reset()
-            elif isinstance(error, MplexStreamEOF):
+            elif isinstance(error, StreamEOF):
                 await stream.close()
         finally:
             if has_error:
