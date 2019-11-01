@@ -77,7 +77,7 @@ async def test_skeleton_syncer(request, event_loop, event_bus, chaindb_fresh, ch
     )
     async with peer_pair as (client_peer, server_peer):
 
-        client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
+        client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer], event_bus=event_bus)
         client = FastChainSyncer(LatestTestChain(chaindb_fresh.db), chaindb_fresh, client_peer_pool)
         server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
 
@@ -190,7 +190,7 @@ async def test_beam_syncer(
         # manually add endpoint for trie data gatherer to serve requests
         gatherer_config = ConnectionConfig.from_name(f"GathererEndpoint-{unique_process_name}")
 
-        client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer])
+        client_peer_pool = MockPeerPoolWithConnectedPeers([client_peer], event_bus=event_bus)
         server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
 
         async with run_peer_pool_event_server(
@@ -260,7 +260,8 @@ async def test_regular_syncer(request, event_loop, event_bus, chaindb_fresh, cha
         client = RegularChainSyncer(
             ByzantiumTestChain(chaindb_fresh.db),
             chaindb_fresh,
-            MockPeerPoolWithConnectedPeers([client_peer]))
+            MockPeerPoolWithConnectedPeers([client_peer], event_bus=event_bus)
+        )
         server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
 
         async with run_peer_pool_event_server(
@@ -381,7 +382,8 @@ async def test_regular_syncer_fallback(request, event_loop, event_bus, chaindb_f
         client = FallbackTesting_RegularChainSyncer(
             ByzantiumTestChain(chaindb_fresh.db),
             chaindb_fresh,
-            MockPeerPoolWithConnectedPeers([client_peer]))
+            MockPeerPoolWithConnectedPeers([client_peer], event_bus=event_bus)
+        )
         server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
 
         async with run_peer_pool_event_server(
@@ -425,7 +427,8 @@ async def test_light_syncer(request,
         client = LightChainSyncer(
             LatestTestChain(chaindb_fresh.db),
             chaindb_fresh,
-            MockPeerPoolWithConnectedPeers([client_peer]))
+            MockPeerPoolWithConnectedPeers([client_peer], event_bus=event_bus)
+        )
         server_peer_pool = MockPeerPoolWithConnectedPeers([server_peer], event_bus=event_bus)
 
         async with run_peer_pool_event_server(
