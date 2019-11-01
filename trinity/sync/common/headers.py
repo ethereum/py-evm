@@ -1038,7 +1038,7 @@ class BaseHeaderChainSyncer(BaseService, HeaderSyncerAPI, Generic[TChainPeer]):
         return True, self._meat.sync_progress
 
     async def _handle_sync_status_requests(self, event_bus: EndpointAPI) -> None:
-        async for req in event_bus.stream(SyncingRequest):
+        async for req in self.wait_iter(event_bus.stream(SyncingRequest)):
             await event_bus.broadcast(
                 SyncingResponse(*self._get_sync_status()),
                 req.broadcast_config()
