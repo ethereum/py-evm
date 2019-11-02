@@ -32,8 +32,10 @@ from eth_keys import (
     datatypes,
 )
 from eth_utils import (
+    ExtendedDebugLogger,
     ValidationError,
     encode_hex,
+    get_extended_debug_logger,
     to_tuple,
 )
 from libp2p.network.stream.exceptions import (
@@ -55,6 +57,7 @@ from multiaddr import (
 )
 import multihash
 import ssz
+from ssz.tools import to_formatted_dict
 
 from .configs import (
     MAX_CHUNK_SIZE,
@@ -277,21 +280,49 @@ def get_requested_beacon_blocks(
 
 class Interaction:
     stream: INetStream
+    logger: ExtendedDebugLogger
 
     def __init__(self, stream: INetStream):
         self.stream = stream
+        self.logger = get_extended_debug_logger("trinity.protocol.bcc_libp2p.Interaction")
 
     async def write_request(self, message: MsgType) -> None:
+        self.logger.debug(
+            "Request %s to %s  %s",
+            type(message).__name__,
+            self.peer_id,
+            to_formatted_dict(message),
+        )
         await write_req(self.stream, message)
 
     async def respond(self, message: MsgType) -> None:
+        self.logger.debug(
+            "Respond %s to %s  %s",
+            type(message).__name__,
+            self.peer_id,
+            to_formatted_dict(message),
+        )
         await write_resp(self.stream, message, ResponseCode.SUCCESS)
 
     async def read_request(self, message_type: Type[MsgType]) -> MsgType:
-        return await read_req(self.stream, message_type)
+        request = await read_req(self.stream, message_type)
+        self.logger.debug(
+            "Received request %s from %s  %s",
+            message_type.__name__,
+            self.peer_id,
+            to_formatted_dict(request),
+        )
+        return request
 
     async def read_response(self, message_type: Type[MsgType]) -> MsgType:
-        return await read_resp(self.stream, message_type)
+        response = await read_resp(self.stream, message_type)
+        self.logger.debug(
+            "Received response %s from %s  %s",
+            message_type.__name__,
+            self.peer_id,
+            to_formatted_dict(response),
+        )
+        return response
 
     @property
     def peer_id(self) -> ID:

@@ -558,15 +558,10 @@ class Node(BaseService):
         stream = await self.new_stream(peer_id, REQ_RESP_HELLO_SSZ)
         async with self.new_interaction(stream) as interaction:
             hello_mine = self._make_hello_packet()
-            self.logger.debug("Sending our hello message %s", to_formatted_dict(hello_mine))
             await interaction.write_request(hello_mine)
 
             self.logger.debug("Waiting for hello from the other side")
             hello_other_side = await interaction.read_response(HelloRequest)
-            self.logger.debug(
-                "Received hello from the other side  %s",
-                to_formatted_dict(hello_other_side),
-            )
 
             await validate_hello(self.chain, hello_other_side)
 
@@ -580,14 +575,12 @@ class Node(BaseService):
             peer_id = interaction.peer_id
             self.logger.debug("Waiting for goodbye from %s", str(peer_id))
             goodbye = await interaction.read_request(Goodbye)
-            self.logger.debug("Received the goodbye message %s", to_formatted_dict(goodbye))
             await self.disconnect_peer(peer_id)
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
         stream = await self.new_stream(peer_id, REQ_RESP_GOODBYE_SSZ)
         async with self.new_interaction(stream) as interaction:
             goodbye = Goodbye(reason)
-            self.logger.debug("Sending our goodbye message %s", goodbye)
             await interaction.write_request(goodbye)
             await self.disconnect_peer(peer_id)
 
