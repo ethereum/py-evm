@@ -5,6 +5,7 @@ import operator
 import traceback
 import random
 from typing import (
+    AsyncIterator,
     Dict,
     Iterable,
     Optional,
@@ -113,6 +114,10 @@ from .exceptions import (
     ReadMessageFailure,
     RequestFailure,
     WriteMessageFailure,
+    InteractionFailure,
+    MessageIOFailure,
+    ResponseFailure,
+    IrrelevantNetwork,
 )
 from .messages import (
     Goodbye,
@@ -133,7 +138,9 @@ from .utils import (
     read_resp,
     write_req,
     write_resp,
+    Interaction,
 )
+from async_generator import asynccontextmanager
 
 
 logger = logging.getLogger('trinity.protocol.bcc_libp2p')
@@ -456,9 +463,34 @@ class Node(BaseService):
     # RPC Handlers
     #
 
-    # TODO: Add a wrapper or decorator to handle the exceptions in handlers,
-    #   to close the streams safely. Probably starting from: if the function
-    #   returns successfully, then close the stream. Otherwise, reset the stream.
+    async def new_stream(self, peer_id: ID, protocol: TProtocol) -> INetStream:
+        self.logger.debug(
+            "Opening new stream to peer=%s with protocol=%s",
+            peer_id,
+            protocol,
+        )
+        return await self.host.new_stream(peer_id, [protocol])
+
+    @asynccontextmanager
+    async def new_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
+        peer_id = stream.mplex_conn.peer_id
+        interaction = Interaction(stream)
+        try:
+            yield interaction
+        except MessageIOFailure as error:
+            await self.disconnect_peer(peer_id)
+            raise InteractionFailure() from error
+        except ResponseFailure as error:
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
+            raise InteractionFailure() from error
+        except IrrelevantNetwork as error:
+            await stream.reset()
+            await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
+            await self.disconnect_peer(peer_id)
+            raise InteractionFailure from error
+        finally:
+            await stream.close()
 
     # TODO: Handle the reputation of peers. Deduct their scores and even disconnect when they
     #   behave.
@@ -472,7 +504,7 @@ class Node(BaseService):
         state = self.chain.get_head_state()
         config = state_machine.config
         if hello_other_side.fork_version != state.fork.current_version:
-            raise ValidationError(
+            raise IrrelevantNetwork(
                 "`fork_version` mismatches: "
                 f"hello_other_side.fork_version={hello_other_side.fork_version}, "
                 f"state.fork.current_version={state.fork.current_version}"
@@ -498,7 +530,7 @@ class Node(BaseService):
             finalized_epoch_start_slot)
 
         if hello_other_side.finalized_root != finalized_root:
-            raise ValidationError(
+            raise IrrelevantNetwork(
                 "`finalized_root` mismatches: "
                 f"hello_other_side.finalized_root={hello_other_side.finalized_root}, "
                 f"hello_other_side.finalized_epoch={hello_other_side.finalized_epoch}, "
@@ -532,6 +564,15 @@ class Node(BaseService):
             # TODO: kickoff syncing process with this peer
             self.logger.debug("Peer's chain is ahead of us, start syncing with the peer.")
             pass
+
+    def _add_peer_from_hello(self, peer_id: ID, hello_other_side: HelloRequest) -> None:
+        if peer_id not in self.handshaked_peers:
+            peer = Peer.from_hello_request(self, peer_id, hello_other_side)
+            self.handshaked_peers.add(peer)
+            self.logger.debug(
+                "Handshake from %s is finished. Added to the `handshake_peers`",
+                peer_id,
+            )
 
     async def _handle_hello(self, stream: INetStream) -> None:
         # TODO: Find out when we should respond the `ResponseCode`
@@ -573,13 +614,7 @@ class Node(BaseService):
             await self.disconnect_peer(peer_id)
             return
 
-        if peer_id not in self.handshaked_peers:
-            peer = Peer.from_hello_request(self, peer_id, hello_other_side)
-            self.handshaked_peers.add(peer)
-            self.logger.debug(
-                "Handshake from %s is finished. Added to the `handshake_peers`",
-                peer_id,
-            )
+        self._add_peer_from_hello(peer_id, hello_other_side)
 
         # Check if we are behind the peer
         self._compare_chain_tip_and_finalized_epoch(
@@ -590,82 +625,36 @@ class Node(BaseService):
         await stream.close()
 
     async def say_hello(self, peer_id: ID) -> None:
+        try:
+            await self._say_hello(peer_id)
+        except InteractionFailure as error:
+            raise HandshakeFailure() from error
+
+    async def _say_hello(self, peer_id: ID) -> None:
         self.logger.info("Say hello to %s", str(peer_id))
-        hello_mine = self._make_hello_packet()
 
-        self.logger.debug(
-            "Opening new stream to peer=%s with protocols=%s",
-            peer_id,
-            [REQ_RESP_HELLO_SSZ],
-        )
-        stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
-        self.logger.debug("Sending our hello message %s", to_formatted_dict(hello_mine))
-        try:
-            await write_req(stream, hello_mine)
-        except WriteMessageFailure as error:
-            await self.disconnect_peer(peer_id)
-            error_msg = f"fail to write request={hello_mine}"
-            self.logger.info("Handshake failed: %s", error_msg)
-            raise HandshakeFailure(error_msg)
+        stream = await self.new_stream(peer_id, REQ_RESP_HELLO_SSZ)
+        async with self.new_interaction(stream) as interaction:
+            hello_mine = self._make_hello_packet()
+            self.logger.debug("Sending our hello message %s", to_formatted_dict(hello_mine))
+            await interaction.write_request(hello_mine)
 
-        self.logger.debug("Waiting for hello from the other side")
-        try:
-            resp_code, response = await read_resp(stream, HelloRequest)
-        except ReadMessageFailure as error:
-            await self.disconnect_peer(peer_id)
-            self.logger.info("Handshake failed: fail to read the response")
-            raise HandshakeFailure("fail to read the response")
-
-        self.logger.debug(
-            "Received the hello message %s, resp_code=%s",
-            response,
-            resp_code,
-        )
-
-        # TODO: Handle the case when `resp_code` is not success.
-        if resp_code != ResponseCode.SUCCESS:
-            # TODO: Do something according to the `ResponseCode`
-            error_msg = (
-                "resp_code != ResponseCode.SUCCESS, "
-                f"resp_code={resp_code}, error_msg={response}"
-            )
-            self.logger.info("Handshake failed: %s", error_msg)
-            await stream.reset()
-            await self.disconnect_peer(peer_id)
-            raise HandshakeFailure(error_msg)
-
-        hello_other_side = cast(HelloRequest, response)
-        try:
-            await self._validate_hello_req(hello_other_side)
-        except ValidationError as error:
-            error_msg = (
-                f"hello message {to_formatted_dict(hello_other_side)} is invalid: {str(error)}"
-            )
-            self.logger.info(
-                "Handshake failed: %s. Disconnecting %s",
-                error_msg,
-                peer_id,
-            )
-            await stream.reset()
-            await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
-            await self.disconnect_peer(peer_id)
-            raise HandshakeFailure(error_msg) from error
-
-        if peer_id not in self.handshaked_peers:
-            peer = Peer.from_hello_request(self, peer_id, hello_other_side)
-            self.handshaked_peers.add(peer)
+            self.logger.debug("Waiting for hello from the other side")
+            hello_other_side = await interaction.read_response(HelloRequest)
             self.logger.debug(
-                "Handshake to peer=%s is finished. Added to the `handshake_peers`",
-                peer_id,
+                "Received hello from the other side  %s",
+                to_formatted_dict(hello_other_side),
             )
 
-        # Check if we are behind the peer
-        self._compare_chain_tip_and_finalized_epoch(
-            hello_other_side.finalized_epoch,
-            hello_other_side.head_slot,
-        )
+            await self._validate_hello_req(hello_other_side)
 
-        await stream.close()
+            self._add_peer_from_hello(peer_id, hello_other_side)
+
+            # Check if we are behind the peer
+            self._compare_chain_tip_and_finalized_epoch(
+                hello_other_side.finalized_epoch,
+                hello_other_side.head_slot,
+            )
 
     async def _handle_goodbye(self, stream: INetStream) -> None:
         peer_id = stream.mplex_conn.peer_id
@@ -848,9 +837,9 @@ class Node(BaseService):
                     await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
                 except WriteMessageFailure:
                     self.logger.info(
-                            "Processing beacon blocks request failed: failed to write message %s",
-                            reason,
-                        )
+                        "Processing beacon blocks request failed: failed to write message %s",
+                        reason,
+                    )
                 else:
                     await stream.close()
                 return

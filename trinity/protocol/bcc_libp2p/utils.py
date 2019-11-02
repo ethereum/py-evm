@@ -1,6 +1,5 @@
 import asyncio
 from typing import (
-    Tuple,
     Type,
     TypeVar,
     Union,
@@ -37,6 +36,7 @@ from .configs import (
 from .exceptions import (
     ReadMessageFailure,
     WriteMessageFailure,
+    ResponseFailure,
 )
 from libp2p.network.stream.exceptions import StreamEOF, StreamReset
 
@@ -64,6 +64,19 @@ def make_rpc_v1_ssz_protocol_id(message_name: str) -> str:
 
 # TODO: Refactor: Probably move these [de]serialization functions to `Node` as methods,
 #   expose the hard-coded to parameters, and pass the timeout from the methods?
+
+class Interaction:
+    stream: INetStream
+
+    def __init__(self, stream: INetStream):
+        self.stream = stream
+
+    async def write_request(self, message: MsgType) -> None:
+        await write_req(self.stream, message)
+
+    async def read_response(self, message_type: Type[MsgType]) -> MsgType:
+        response = await read_resp(self.stream, message_type)
+        return response
 
 
 async def read_req(
@@ -93,7 +106,7 @@ async def write_req(
 async def read_resp(
     stream: INetStream,
     msg_type: Type[MsgType],
-) -> Tuple[ResponseCode, Union[MsgType, str]]:
+) -> MsgType:
     """
     Read a `MsgType` response message from the `stream`.
     `ReadMessageFailure` is raised if fail to read the message.
@@ -109,15 +122,13 @@ async def read_resp(
         resp_code = ResponseCode(result_bytes[0])
     except ValueError:
         raise ReadMessageFailure(f"unknown resp_code={result_bytes[0]}")
-    msg: Union[MsgType, str]
-    # `MsgType`
     if resp_code == ResponseCode.SUCCESS:
-        msg = await _read_ssz_stream(stream, msg_type, timeout=RESP_TIMEOUT)
+        return await _read_ssz_stream(stream, msg_type, timeout=RESP_TIMEOUT)
     # error message
     else:
         msg_bytes = await _read_varint_prefixed_bytes(stream, timeout=RESP_TIMEOUT)
         msg = msg_bytes.decode("utf-8")
-    return resp_code, msg
+        raise ResponseFailure(msg)
 
 
 async def write_resp(
@@ -157,7 +168,8 @@ async def write_resp(
     # TODO: Handle exceptions from stream?
     await _write_stream(stream, resp_code_byte + msg_bytes)
 
-async def _write_stream(stream, data):
+
+async def _write_stream(stream: INetStream, data: bytes) -> None:
     try:
         await stream.write(data)
     except StreamEOF as error:
@@ -166,27 +178,30 @@ async def _write_stream(stream, data):
     except StreamReset as error:
         raise WriteMessageFailure() from error
 
-async def _read_stream(stream, len_payload: int, timeout):
+
+async def _read_stream(stream: INetStream, len_payload: int, timeout: float) -> bytes:
     try:
         return await asyncio.wait_for(stream.read(len_payload), timeout)
     except asyncio.TimeoutError as error:
-        raise ReadMessageFailure() from error
+        raise ReadMessageFailure("Timeout")
     except StreamEOF as error:
         await stream.close()
         raise ReadMessageFailure() from error
     except StreamReset as error:
         raise ReadMessageFailure() from error
 
-async def _decode_uvarint_from_stream(stream, timeout):
+
+async def _decode_uvarint_from_stream(stream: INetStream, timeout: float) -> None:
     try:
         return await asyncio.wait_for(decode_uvarint_from_stream(stream), timeout)
     except asyncio.TimeoutError as error:
-        raise ReadMessageFailure() from error
+        raise ReadMessageFailure("Timeout")
     except StreamEOF as error:
         await stream.close()
         raise ReadMessageFailure() from error
     except StreamReset as error:
         raise ReadMessageFailure() from error
+
 
 async def _read_varint_prefixed_bytes(
     stream: INetStream,
