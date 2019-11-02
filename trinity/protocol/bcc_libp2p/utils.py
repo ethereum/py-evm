@@ -74,9 +74,18 @@ class Interaction:
     async def write_request(self, message: MsgType) -> None:
         await write_req(self.stream, message)
 
+    async def respond(self, message: MsgType) -> None:
+        await write_resp(self.stream, message, ResponseCode.SUCCESS)
+
+    async def read_request(self, message_type: Type[MsgType]) -> MsgType:
+        return await read_req(self.stream, message_type)
+
     async def read_response(self, message_type: Type[MsgType]) -> MsgType:
-        response = await read_resp(self.stream, message_type)
-        return response
+        return await read_resp(self.stream, message_type)
+
+    @property
+    def peer_id(self) -> ID:
+        return self.stream.mplex_conn.peer_id
 
 
 async def read_req(

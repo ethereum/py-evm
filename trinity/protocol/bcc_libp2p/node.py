@@ -115,7 +115,6 @@ from .exceptions import (
     RequestFailure,
     WriteMessageFailure,
     InteractionFailure,
-    MessageIOFailure,
     ResponseFailure,
     IrrelevantNetwork,
 )
@@ -473,11 +472,15 @@ class Node(BaseService):
 
     @asynccontextmanager
     async def new_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
-        peer_id = stream.mplex_conn.peer_id
         interaction = Interaction(stream)
+        peer_id = interaction.peer_id
         try:
             yield interaction
-        except MessageIOFailure as error:
+        except WriteMessageFailure as error:
+            await self.disconnect_peer(peer_id)
+            raise InteractionFailure() from error
+        except ReadMessageFailure as error:
+            # Try respond with INVALID_REQUEST
             await self.disconnect_peer(peer_id)
             raise InteractionFailure() from error
         except ResponseFailure as error:
@@ -575,54 +578,32 @@ class Node(BaseService):
             )
 
     async def _handle_hello(self, stream: INetStream) -> None:
+        try:
+            await self.__handle_hello(stream)
+        except InteractionFailure as error:
+            raise HandshakeFailure() from error
+
+    async def __handle_hello(self, stream: INetStream) -> None:
         # TODO: Find out when we should respond the `ResponseCode`
         #   other than `ResponseCode.SUCCESS`.
 
-        peer_id = stream.mplex_conn.peer_id
-
-        self.logger.debug("Waiting for hello from the other side")
-        try:
-            hello_other_side = await read_req(stream, HelloRequest)
-        except ReadMessageFailure as error:
-            await self.disconnect_peer(peer_id)
-            return
-        self.logger.info("hello message is %s", hello_other_side)
-        self.logger.debug("Received the hello message %s", to_formatted_dict(hello_other_side))
-
-        try:
+        async with self.new_interaction(stream) as interaction:
+            peer_id = interaction.peer_id
+            self.logger.debug("Handler: Waiting for hello from the other side")
+            hello_other_side = await interaction.read_request(HelloRequest)
+            self.logger.info("Received HELLO from %s  %s", str(peer_id), hello_other_side)
             await self._validate_hello_req(hello_other_side)
-        except ValidationError as error:
-            self.logger.info(
-                "Handshake failed: hello message %s is invalid: %s",
-                to_formatted_dict(hello_other_side),
-                str(error)
+
+            hello_mine = self._make_hello_packet()
+            await interaction.respond(hello_mine)
+
+            self._add_peer_from_hello(peer_id, hello_other_side)
+
+            # Check if we are behind the peer
+            self._compare_chain_tip_and_finalized_epoch(
+                hello_other_side.finalized_epoch,
+                hello_other_side.head_slot,
             )
-            await stream.reset()
-            await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
-            return
-
-        hello_mine = self._make_hello_packet()
-
-        self.logger.debug("Sending our hello message %s", to_formatted_dict(hello_mine))
-        try:
-            await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
-        except WriteMessageFailure as error:
-            self.logger.info(
-                "Handshake failed: failed to write message %s",
-                hello_mine,
-            )
-            await self.disconnect_peer(peer_id)
-            return
-
-        self._add_peer_from_hello(peer_id, hello_other_side)
-
-        # Check if we are behind the peer
-        self._compare_chain_tip_and_finalized_epoch(
-            hello_other_side.finalized_epoch,
-            hello_other_side.head_slot,
-        )
-
-        await stream.close()
 
     async def say_hello(self, peer_id: ID) -> None:
         try:
