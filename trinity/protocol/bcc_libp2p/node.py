@@ -25,9 +25,6 @@ from eth.exceptions import (
     BlockNotFound,
 )
 
-from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
-)
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
@@ -42,9 +39,6 @@ from eth2.beacon.typing import (
     Slot,
     Version,
     SigningRoot,
-)
-from eth2.beacon.constants import (
-    ZERO_SIGNING_ROOT,
 )
 
 from libp2p import (
@@ -138,6 +132,9 @@ from .utils import (
     write_req,
     write_resp,
     Interaction,
+    compare_chain_tip_and_finalized_epoch,
+    validate_hello,
+    get_requested_beacon_blocks,
 )
 from async_generator import asynccontextmanager
 
@@ -503,44 +500,6 @@ class Node(BaseService):
     #   - Record peers' joining time.
     #   - Disconnect peers when they fail to join in a certain amount of time.
 
-    async def _validate_hello_req(self, hello_other_side: HelloRequest) -> None:
-        state_machine = self.chain.get_state_machine()
-        state = self.chain.get_head_state()
-        config = state_machine.config
-        if hello_other_side.fork_version != state.fork.current_version:
-            raise IrrelevantNetwork(
-                "`fork_version` mismatches: "
-                f"hello_other_side.fork_version={hello_other_side.fork_version}, "
-                f"state.fork.current_version={state.fork.current_version}"
-            )
-
-        # Can not validate the checkpoint with `finalized_epoch` higher than ours
-        if hello_other_side.finalized_epoch > state.finalized_checkpoint.epoch:
-            return
-
-        # Get the finalized root at `hello_other_side.finalized_epoch`
-        # Edge case where nothing is finalized yet
-        if (
-            hello_other_side.finalized_epoch == 0 and
-            hello_other_side.finalized_root == ZERO_SIGNING_ROOT
-        ):
-            return
-
-        finalized_epoch_start_slot = compute_start_slot_of_epoch(
-            hello_other_side.finalized_epoch,
-            config.SLOTS_PER_EPOCH,
-        )
-        finalized_root = self.chain.get_canonical_block_root(
-            finalized_epoch_start_slot)
-
-        if hello_other_side.finalized_root != finalized_root:
-            raise IrrelevantNetwork(
-                "`finalized_root` mismatches: "
-                f"hello_other_side.finalized_root={hello_other_side.finalized_root}, "
-                f"hello_other_side.finalized_epoch={hello_other_side.finalized_epoch}, "
-                f"our `finalized_root` at the same `finalized_epoch`={finalized_root}"
-            )
-
     def _make_hello_packet(self) -> HelloRequest:
         state = self.chain.get_head_state()
         head = self.chain.get_canonical_head()
@@ -552,22 +511,6 @@ class Node(BaseService):
             head_root=head.signing_root,
             head_slot=head.slot,
         )
-
-    def _compare_chain_tip_and_finalized_epoch(self,
-                                               peer_finalized_epoch: Epoch,
-                                               peer_head_slot: Slot) -> None:
-        checkpoint = self.chain.get_head_state().finalized_checkpoint
-        head_block = self.chain.get_canonical_head()
-        peer_has_higher_finalized_epoch = peer_finalized_epoch > checkpoint.epoch
-        peer_has_equal_finalized_epoch = peer_finalized_epoch == checkpoint.epoch
-        peer_has_higher_head_slot = peer_head_slot > head_block.slot
-        if (
-            peer_has_higher_finalized_epoch or
-            (peer_has_equal_finalized_epoch and peer_has_higher_head_slot)
-        ):
-            # TODO: kickoff syncing process with this peer
-            self.logger.debug("Peer's chain is ahead of us, start syncing with the peer.")
-            pass
 
     def _add_peer_from_hello(self, peer_id: ID, hello_other_side: HelloRequest) -> None:
         if peer_id not in self.handshaked_peers:
@@ -593,7 +536,7 @@ class Node(BaseService):
             self.logger.debug("Handler: Waiting for hello from the other side")
             hello_other_side = await interaction.read_request(HelloRequest)
             self.logger.info("Received HELLO from %s  %s", str(peer_id), hello_other_side)
-            await self._validate_hello_req(hello_other_side)
+            await validate_hello(self.chain, hello_other_side)
 
             hello_mine = self._make_hello_packet()
             await interaction.respond(hello_mine)
@@ -601,10 +544,7 @@ class Node(BaseService):
             self._add_peer_from_hello(peer_id, hello_other_side)
 
             # Check if we are behind the peer
-            self._compare_chain_tip_and_finalized_epoch(
-                hello_other_side.finalized_epoch,
-                hello_other_side.head_slot,
-            )
+            compare_chain_tip_and_finalized_epoch(self.chain, hello_other_side)
 
     async def say_hello(self, peer_id: ID) -> None:
         try:
@@ -628,15 +568,12 @@ class Node(BaseService):
                 to_formatted_dict(hello_other_side),
             )
 
-            await self._validate_hello_req(hello_other_side)
+            await validate_hello(self.chain, hello_other_side)
 
             self._add_peer_from_hello(peer_id, hello_other_side)
 
             # Check if we are behind the peer
-            self._compare_chain_tip_and_finalized_epoch(
-                hello_other_side.finalized_epoch,
-                hello_other_side.head_slot,
-            )
+            compare_chain_tip_and_finalized_epoch(self.chain, hello_other_side)
 
     async def _handle_goodbye(self, stream: INetStream) -> None:
         async with self.new_interaction(stream) as interaction:
@@ -653,118 +590,6 @@ class Node(BaseService):
             self.logger.debug("Sending our goodbye message %s", goodbye)
             await interaction.write_request(goodbye)
             await self.disconnect_peer(peer_id)
-
-    @to_tuple
-    def _get_blocks_from_canonical_chain_by_slot(
-        self,
-        slot_of_requested_blocks: Sequence[Slot],
-    ) -> Iterable[BaseBeaconBlock]:
-        # If peer's head block is on our canonical chain,
-        # start getting the requested blocks by slots.
-        for slot in slot_of_requested_blocks:
-            try:
-                block = self.chain.get_canonical_block_by_slot(slot)
-            except BlockNotFound:
-                pass
-            else:
-                yield block
-
-    @to_tuple
-    def _get_blocks_from_fork_chain_by_root(
-        self,
-        start_slot: Slot,
-        peer_head_block: BaseBeaconBlock,
-        slot_of_requested_blocks: Sequence[Slot],
-    ) -> Iterable[BaseBeaconBlock]:
-        # Peer's head block is on a fork chain,
-        # start getting the requested blocks by
-        # traversing the history from the head.
-
-        # `slot_of_requested_blocks` starts with earliest slot
-        # and end with most recent slot, so we start traversing
-        # from the most recent slot.
-        cur_index = len(slot_of_requested_blocks) - 1
-        block = peer_head_block
-        if block.slot == slot_of_requested_blocks[cur_index]:
-            yield block
-            cur_index -= 1
-        while block.slot > start_slot and cur_index >= 0:
-            try:
-                block = self.chain.get_block_by_root(block.parent_root)
-            except (BlockNotFound, ValidationError):
-                # This should not happen as we only persist block if its
-                # ancestors are also in the database.
-                break
-            else:
-                while block.slot < slot_of_requested_blocks[cur_index]:
-                    if cur_index > 0:
-                        cur_index -= 1
-                    else:
-                        break
-                if block.slot == slot_of_requested_blocks[cur_index]:
-                    yield block
-
-    def _validate_start_slot(self, start_slot: Slot) -> None:
-        config = self.chain.get_state_machine().config
-        state = self.chain.get_head_state()
-        finalized_epoch_start_slot = compute_start_slot_of_epoch(
-            epoch=state.finalized_checkpoint.epoch,
-            slots_per_epoch=config.SLOTS_PER_EPOCH,
-        )
-        if start_slot < finalized_epoch_start_slot:
-            raise ValidationError(
-                f"`start_slot`({start_slot}) lower than our"
-                f" latest finalized slot({finalized_epoch_start_slot})"
-            )
-
-    def _get_requested_beacon_blocks(
-        self,
-        beacon_blocks_request: BeaconBlocksRequest,
-        requested_head_block: BaseBeaconBlock,
-    ) -> Tuple[BaseBeaconBlock, ...]:
-        slot_of_requested_blocks = tuple(
-            beacon_blocks_request.start_slot + i * beacon_blocks_request.step
-            for i in range(beacon_blocks_request.count)
-        )
-        self.logger.info("slot_of_requested_blocks: %s", slot_of_requested_blocks)
-        slot_of_requested_blocks = tuple(
-            filter(lambda slot: slot <= requested_head_block.slot, slot_of_requested_blocks)
-        )
-
-        if len(slot_of_requested_blocks) == 0:
-            return tuple()
-
-        # We have the peer's head block in our database,
-        # next check if the head block is on our canonical chain.
-        try:
-            canonical_block_at_slot = self.chain.get_canonical_block_by_slot(
-                requested_head_block.slot
-            )
-            block_match = canonical_block_at_slot == requested_head_block
-        except BlockNotFound:
-            self.logger.debug(
-                (
-                    "The requested head block is not on our canonical chain  "
-                    "requested_head_block: %s"
-                ),
-                requested_head_block,
-            )
-            block_match = False
-        finally:
-            if block_match:
-                # Peer's head block is on our canonical chain
-                return self._get_blocks_from_canonical_chain_by_slot(
-                    slot_of_requested_blocks
-                )
-            else:
-                # Peer's head block is not on our canonical chain
-                # Validate `start_slot` is greater than our latest finalized slot
-                self._validate_start_slot(beacon_blocks_request.start_slot)
-                return self._get_blocks_from_fork_chain_by_root(
-                    beacon_blocks_request.start_slot,
-                    requested_head_block,
-                    slot_of_requested_blocks,
-                )
 
     async def _handle_beacon_blocks(self, stream: INetStream) -> None:
         peer_id = stream.mplex_conn.peer_id
@@ -814,8 +639,8 @@ class Node(BaseService):
                 return
             else:
                 try:
-                    requested_beacon_blocks = self._get_requested_beacon_blocks(
-                        beacon_blocks_request, requested_head_block
+                    requested_beacon_blocks = get_requested_beacon_blocks(
+                        self.chain, beacon_blocks_request, requested_head_block
                     )
                 except ValidationError as val_error:
                     reason = "Invalid request: " + str(val_error)
