@@ -489,8 +489,9 @@ class Node(BaseService):
             raise InteractionFailure() from error
         except IrrelevantNetwork as error:
             await stream.reset()
-            await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
-            await self.disconnect_peer(peer_id)
+            asyncio.ensure_future(
+                self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
+            )
             raise InteractionFailure from error
         finally:
             await stream.close()
@@ -638,33 +639,20 @@ class Node(BaseService):
             )
 
     async def _handle_goodbye(self, stream: INetStream) -> None:
-        peer_id = stream.mplex_conn.peer_id
-        self.logger.debug("Waiting for goodbye from %s", peer_id)
-        try:
-            goodbye = await read_req(stream, Goodbye)
-        except ReadMessageFailure as error:
-            pass
-        else:
-            await stream.close()
-        self.logger.debug("Received the goodbye message %s", to_formatted_dict(goodbye))
-        await self.disconnect_peer(peer_id)
+        async with self.new_interaction(stream) as interaction:
+            peer_id = interaction.peer_id
+            self.logger.debug("Waiting for goodbye from %s", str(peer_id))
+            goodbye = await interaction.read_request(Goodbye)
+            self.logger.debug("Received the goodbye message %s", to_formatted_dict(goodbye))
+            await self.disconnect_peer(peer_id)
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
-        goodbye = Goodbye(reason)
-        self.logger.debug(
-            "Opening new stream to peer=%s with protocols=%s",
-            peer_id,
-            [REQ_RESP_GOODBYE_SSZ],
-        )
-        stream = await self.host.new_stream(peer_id, [REQ_RESP_GOODBYE_SSZ])
-        self.logger.debug("Sending our goodbye message %s", goodbye)
-        try:
-            await write_req(stream, goodbye)
-        except WriteMessageFailure as error:
-            pass
-        else:
-            await stream.close()
-        await self.disconnect_peer(peer_id)
+        stream = await self.new_stream(peer_id, REQ_RESP_GOODBYE_SSZ)
+        async with self.new_interaction(stream) as interaction:
+            goodbye = Goodbye(reason)
+            self.logger.debug("Sending our goodbye message %s", goodbye)
+            await interaction.write_request(goodbye)
+            await self.disconnect_peer(peer_id)
 
     @to_tuple
     def _get_blocks_from_canonical_chain_by_slot(
