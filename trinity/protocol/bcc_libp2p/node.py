@@ -539,7 +539,7 @@ class Node(BaseService):
             await validate_hello(self.chain, hello_other_side)
 
             hello_mine = self._make_hello_packet()
-            await interaction.respond(hello_mine)
+            await interaction.write_response(hello_mine)
 
             self._add_peer_from_hello(peer_id, hello_other_side)
 
@@ -574,14 +574,14 @@ class Node(BaseService):
         async with self.new_interaction(stream) as interaction:
             peer_id = interaction.peer_id
             self.logger.debug("Waiting for goodbye from %s", str(peer_id))
-            goodbye = await interaction.read_request(Goodbye)
+            goodbye = await interaction.try_read_request(Goodbye)
             await self.disconnect_peer(peer_id)
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
         stream = await self.new_stream(peer_id, REQ_RESP_GOODBYE_SSZ)
         async with self.new_interaction(stream) as interaction:
             goodbye = Goodbye(reason)
-            await interaction.write_request(goodbye)
+            await interaction.try_write_request(goodbye)
             await self.disconnect_peer(peer_id)
 
     async def _handle_beacon_blocks(self, stream: INetStream) -> None:

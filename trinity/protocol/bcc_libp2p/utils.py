@@ -295,7 +295,13 @@ class Interaction:
         )
         await write_req(self.stream, message)
 
-    async def respond(self, message: MsgType) -> None:
+    async def try_write_request(self, message: MsgType) -> None:
+        try:
+            self.request(message)
+        except WriteMessageFailure:
+            pass
+
+    async def write_response(self, message: MsgType) -> None:
         self.logger.debug(
             "Respond %s to %s  %s",
             type(message).__name__,
@@ -313,6 +319,12 @@ class Interaction:
             to_formatted_dict(request),
         )
         return request
+
+    async def try_read_request(self, message_type: Type[MsgType]) -> MsgType:
+        try:
+            self.read_request(message_type)
+        except ReadMessageFailure:
+            pass
 
     async def read_response(self, message_type: Type[MsgType]) -> MsgType:
         response = await read_resp(self.stream, message_type)
