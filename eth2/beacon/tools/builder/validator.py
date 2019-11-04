@@ -369,7 +369,7 @@ def create_mock_slashable_attestation(
         privkey=keymap[state.validators[attesting_indices[0]].pubkey],
         state=state,
         slot=attestation_slot,
-        signature_domain=SignatureDomain.DOMAIN_ATTESTATION,
+        signature_domain=SignatureDomain.DOMAIN_BEACON_ATTESTER,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
     )
     validator_indices = tuple(committee[i] for i in attesting_indices)
@@ -520,7 +520,7 @@ def _create_mock_signed_attestation(
             privkey=privkey,
             state=state,
             slot=attestation_slot,
-            signature_domain=SignatureDomain.DOMAIN_ATTESTATION,
+            signature_domain=SignatureDomain.DOMAIN_BEACON_ATTESTER,
             slots_per_epoch=slots_per_epoch,
         )
         for privkey in privkeys

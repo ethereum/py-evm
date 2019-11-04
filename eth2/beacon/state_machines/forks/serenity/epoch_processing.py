@@ -527,8 +527,7 @@ def _update_validator_activation_epoch(
     if validator.activation_epoch == FAR_FUTURE_EPOCH:
         return validator.copy(
             activation_epoch=compute_activation_exit_epoch(
-                state.current_epoch(config.SLOTS_PER_EPOCH),
-                config.MAX_SEED_LOOKAHEAD,
+                state.current_epoch(config.SLOTS_PER_EPOCH), config.MAX_SEED_LOOKAHEAD
             )
         )
     else:

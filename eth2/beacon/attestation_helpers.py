@@ -65,7 +65,7 @@ def validate_indexed_attestation_aggregate_signature(
 
     domain = get_domain(
         state,
-        SignatureDomain.DOMAIN_ATTESTATION,
+        SignatureDomain.DOMAIN_BEACON_ATTESTER,
         slots_per_epoch,
         indexed_attestation.data.target.epoch,
     )
