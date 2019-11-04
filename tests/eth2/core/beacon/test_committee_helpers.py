@@ -5,7 +5,7 @@ import pytest
 
 from eth2.beacon.committee_helpers import (
     _calculate_first_committee_at_slot,
-    _find_proposer_in_committee,
+    compute_proposer_index,
     get_beacon_proposer_index,
     get_committee_count,
     get_committees_per_slot,
@@ -147,12 +147,12 @@ def test_get_start_shard(
 SOME_SEED = b"\x33" * 32
 
 
-def test_find_proposer_in_committee(genesis_validators, config):
+def test_compute_proposer_index(genesis_validators, config):
     epoch = random.randrange(config.GENESIS_EPOCH, 2 ** 64)
     proposer_index = random.randrange(0, len(genesis_validators))
 
     validators = tuple()
-    # NOTE: validators supplied to ``_find_proposer_in_committee``
+    # NOTE: validators supplied to ``compute_proposer_index``
     # should at a minimum have 17 ETH as ``effective_balance``.
     # Using 1 ETH should maintain the same spirit of the test and
     # ensure we can know the likely candidate ahead of time.
@@ -164,12 +164,12 @@ def test_find_proposer_in_committee(genesis_validators, config):
             validators += (validator.copy(effective_balance=one_eth_in_gwei),)
 
     assert (
-        _find_proposer_in_committee(
+        compute_proposer_index(
             validators,
             range(len(validators)),
-            epoch,
             SOME_SEED,
             config.MAX_EFFECTIVE_BALANCE,
+            config.SHUFFLE_ROUND_COUNT,
         )
         == proposer_index
     )

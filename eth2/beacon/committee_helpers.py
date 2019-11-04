@@ -85,21 +85,23 @@ def get_start_shard(state: BeaconState, epoch: Epoch, config: CommitteeConfig) -
 MAX_ROUNDS = 100
 
 
-def _find_proposer_in_committee(
+def compute_proposer_index(
     validators: Sequence[Validator],
-    committee: Sequence[ValidatorIndex],
-    epoch: Epoch,
+    indices: Sequence[ValidatorIndex],
     seed: Hash32,
     max_effective_balance: Gwei,
+    shuffle_round_count: int,
 ) -> ValidatorIndex:
     """
+    Return from ``indices`` a random index sampled by effective balance.
+
     Loop through the validators in the committee one by one.
     A validator with higher balance would be chosen as the proposer more likely.
     It is expected to end in just 1 or 2 rounds.
     More than `MAX_ROUNDS` rounds is rare and could consider as a bug.
 
     Detail:
-    The committee passed in here should consist 'active' validators.
+    The ``indices`` passed in here should consist 'active' validators.
     An active validator has a balance of at least 17 Ether and at most 32 Ether.
     This function choose a number between 0 and 1, which is represented by
     `random_byte / MAX_RANDOM_BYTE`. The probability of a validator chosen as
@@ -108,15 +110,23 @@ def _find_proposer_in_committee(
     validator has 17 Ether and has the 17/32 probability of being chosen.
     This requires 1 out of (17/32)^100 chance to reach 100 rounds.
     """
-    base = int(epoch)
-    committee_len = len(committee)
+    if len(indices) == 0:
+        raise ValidationError("There is no any active validator.")
+
     i = 0
-    while i < MAX_ROUNDS:
-        candidate_index = committee[(base + i) % committee_len]
+    while True:
+        candidate_index = indices[
+            compute_shuffled_index(
+                ValidatorIndex(i % len(indices)),
+                len(indices),
+                seed,
+                shuffle_round_count,
+            )
+        ]
         random_byte = hash_eth2(seed + (i // 32).to_bytes(8, "little"))[i % 32]
         effective_balance = validators[candidate_index].effective_balance
         if effective_balance * MAX_RANDOM_BYTE >= max_effective_balance * random_byte:
-            return candidate_index
+            return ValidatorIndex(candidate_index)
         i += 1
     else:
         raise ImprobableToReach(
@@ -156,21 +166,18 @@ def get_beacon_proposer_index(
     """
     Return the current beacon proposer index.
     """
-
-    first_committee = _calculate_first_committee_at_slot(
-        state, state.slot, committee_config
-    )
-
     current_epoch = state.current_epoch(committee_config.SLOTS_PER_EPOCH)
 
-    seed = get_seed(state, current_epoch, committee_config)
-
-    return _find_proposer_in_committee(
+    seed = hash_eth2(
+        get_seed(state, current_epoch, committee_config)
+        + state.slot.to_bytes(8, "little")
+    indices = get_active_validator_indices(state.validators, current_epoch)
+    return compute_proposer_index(
         state.validators,
-        first_committee,
-        current_epoch,
+        indices,
         seed,
         committee_config.MAX_EFFECTIVE_BALANCE,
+        committee_config.SHUFFLE_ROUND_COUNT,
     )
 
 
