@@ -22,11 +22,10 @@ from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
 )
 from eth2.beacon.typing import (
-    Epoch,
-    HashTreeRoot,
-    SigningRoot,
     Slot,
-    Version,
+)
+from eth.exceptions import (
+    BlockNotFound,
 )
 from eth_keys import (
     datatypes,
@@ -34,7 +33,6 @@ from eth_keys import (
 from eth_utils import (
     ExtendedDebugLogger,
     ValidationError,
-    encode_hex,
     get_extended_debug_logger,
     to_tuple,
 )
@@ -57,7 +55,9 @@ from multiaddr import (
 )
 import multihash
 import ssz
-from ssz.tools import to_formatted_dict
+from ssz.tools import (
+    to_formatted_dict,
+)
 
 from .configs import (
     MAX_CHUNK_SIZE,
@@ -70,23 +70,18 @@ from .configs import (
     ResponseCode,
 )
 from .exceptions import (
-    IrrelevantNetwork,
-    ReadMessageFailure,
-    PeerRespondedAnError,
-    WriteMessageFailure,
     InvalidRequest,
     InvalidRequestSaidPeer,
+    IrrelevantNetwork,
+    ReadMessageFailure,
     ServerErrorSaidPeer,
+    WriteMessageFailure,
 )
 from .messages import (
     BeaconBlocksRequest,
     HelloRequest,
     RecentBeaconBlocksRequest,
 )
-from eth.exceptions import (
-    BlockNotFound,
-)
-
 
 MsgType = TypeVar("MsgType", bound=ssz.Serializable)
 
@@ -149,10 +144,11 @@ async def validate_hello(chain: BaseBeaconChain, hello_other_side: HelloRequest)
             f"our `finalized_root` at the same `finalized_epoch`={finalized_root}"
         )
 
+
 def compare_chain_tip_and_finalized_epoch(
     chain: BaseBeaconChain,
     hello_other_side: HelloRequest,
-    )-> None:
+)-> None:
     checkpoint = chain.get_head_state().finalized_checkpoint
     head_block = chain.get_canonical_head()
 
@@ -181,6 +177,7 @@ def validate_start_slot(chain: BaseBeaconChain, start_slot: Slot) -> None:
             f" latest finalized slot({finalized_epoch_start_slot})"
         )
 
+
 @to_tuple
 def get_blocks_from_canonical_chain_by_slot(
     chain: BaseBeaconChain,
@@ -195,6 +192,7 @@ def get_blocks_from_canonical_chain_by_slot(
             pass
         else:
             yield block
+
 
 @to_tuple
 def get_blocks_from_fork_chain_by_root(
@@ -230,6 +228,7 @@ def get_blocks_from_fork_chain_by_root(
                     break
             if block.slot == slot_of_requested_blocks[cur_index]:
                 yield block
+
 
 def _get_requested_beacon_blocks(
     chain: BaseBeaconChain,
@@ -285,7 +284,7 @@ def _get_requested_beacon_blocks(
 
 def get_requested_beacon_blocks(
     chain: BaseBeaconChain,
-    request:BeaconBlocksRequest
+    request: BeaconBlocksRequest
 ) -> Tuple[BaseBeaconBlock, ...]:
     try:
         requested_head = chain.get_block_by_hash_tree_root(
@@ -309,8 +308,12 @@ def get_requested_beacon_blocks(
     except ValidationError as val_error:
         raise InvalidRequest(str(val_error))
 
+
 @to_tuple
-def get_recent_beacon_blocks(chain: BaseBeaconChain, request: RecentBeaconBlocksRequest):
+def get_recent_beacon_blocks(
+    chain: BaseBeaconChain,
+    request: RecentBeaconBlocksRequest,
+) -> Iterable[BaseBeaconBlock]:
     for block_root in request.block_roots:
         try:
             block = chain.get_block_by_hash_tree_root(block_root)
@@ -374,7 +377,7 @@ class Interaction:
         try:
             return await self.read_request(message_type)
         except ReadMessageFailure:
-            pass
+            return None
 
     async def read_response(self, message_type: Type[MsgType]) -> MsgType:
         response = await read_resp(self.stream, message_type)

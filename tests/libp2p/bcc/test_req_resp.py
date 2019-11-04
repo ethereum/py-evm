@@ -9,7 +9,12 @@ from trinity.protocol.bcc_libp2p.configs import GoodbyeReasonCode, ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import HandshakeFailure, RequestFailure
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
 from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
-from trinity.protocol.bcc_libp2p.utils import read_req, write_resp, get_blocks_from_canonical_chain_by_slot, get_blocks_from_fork_chain_by_root
+from trinity.protocol.bcc_libp2p.utils import (
+    get_blocks_from_canonical_chain_by_slot,
+    get_blocks_from_fork_chain_by_root,
+    read_req,
+    write_resp,
+)
 from trinity.tools.async_method import wait_until_true
 from trinity.tools.bcc_factories import ConnectionPairFactory, NodeFactory
 
@@ -138,8 +143,7 @@ async def test_get_blocks_from_canonical_chain_by_slot(
     )
 
     result_blocks = get_blocks_from_canonical_chain_by_slot(
-        chain=node.chain,
-        slot_of_requested_blocks=slot_of_requested_blocks
+        chain=node.chain, slot_of_requested_blocks=slot_of_requested_blocks
     )
 
     expected_blocks = [mock_slot_to_block_db[slot] for slot in expected_block_slots]

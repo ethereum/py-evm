@@ -7,10 +7,10 @@ import pytest
 
 from trinity.protocol.bcc_libp2p.configs import ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import (
-    ReadMessageFailure,
-    WriteMessageFailure,
     InvalidRequestSaidPeer,
+    ReadMessageFailure,
     ServerErrorSaidPeer,
+    WriteMessageFailure,
 )
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
 from trinity.protocol.bcc_libp2p.utils import (
@@ -86,7 +86,7 @@ async def test_read_write_resp_msg(msg):
     "resp_code, error_cls, error_msg",
     (
         (ResponseCode.INVALID_REQUEST, InvalidRequestSaidPeer, "error msg"),
-        (ResponseCode.SERVER_ERROR, ServerErrorSaidPeer,"error msg"),
+        (ResponseCode.SERVER_ERROR, ServerErrorSaidPeer, "error msg"),
     ),
 )
 @pytest.mark.asyncio
@@ -94,7 +94,7 @@ async def test_read_write_resp_msg_error_resp_code(resp_code, error_cls, error_m
     s = FakeNetStream()
     await write_resp(s, error_msg, resp_code)
     with pytest.raises(error_cls, match=error_msg):
-        msg_read = await read_resp(s, HelloRequest)
+        await read_resp(s, HelloRequest)
 
 
 @pytest.mark.asyncio

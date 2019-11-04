@@ -7,23 +7,17 @@ import random
 from typing import (
     AsyncIterator,
     Dict,
-    Iterable,
     Optional,
     Sequence,
     Tuple,
-    cast,
 )
 
 from cancel_token import (
     CancelToken,
 )
 
-from eth_utils import ValidationError, encode_hex, to_tuple
+from eth_utils import encode_hex
 from eth_utils.toolz import first
-
-from eth.exceptions import (
-    BlockNotFound,
-)
 
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
@@ -85,7 +79,6 @@ from multiaddr import (
 )
 
 import ssz
-from ssz.tools import to_formatted_dict
 
 from p2p.service import (
     BaseService,
@@ -108,7 +101,6 @@ from .exceptions import (
     ReadMessageFailure,
     RequestFailure,
     WriteMessageFailure,
-    InteractionFailure,
     PeerRespondedAnError,
     IrrelevantNetwork,
     UnhandshakedPeer,
@@ -130,10 +122,6 @@ from .topic_validators import (
 from .utils import (
     make_rpc_v1_ssz_protocol_id,
     make_tcp_ip_maddr,
-    read_req,
-    read_resp,
-    write_req,
-    write_resp,
     Interaction,
     compare_chain_tip_and_finalized_epoch,
     validate_hello,
@@ -504,21 +492,24 @@ class Node(BaseService):
             raise HandshakeFailure from error
 
     @asynccontextmanager
-    async def post_handshake_handler_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
+    async def post_handshake_handler_interaction(
+        self,
+        stream: INetStream
+    ) -> AsyncIterator[Interaction]:
         try:
             async with self.new_interaction(stream) as interaction:
                 peer_id = interaction.peer_id
                 yield interaction
         except WriteMessageFailure as error:
-            self.logger.log("WriteMessageFailure %s", error)
+            self.logger.debug("WriteMessageFailure %s", error)
             return
         except ReadMessageFailure as error:
-            self.logger.log("ReadMessageFailure %s", error)
+            self.logger.debug("ReadMessageFailure %s", error)
             return
         except UnhandshakedPeer as error:
             await stream.reset()
             await self.disconnect_peer(peer_id)
-            self.logger.log("Disconnected peer  %s", error)
+            self.logger.debug("Disconnected peer  %s", error)
             return
 
     @asynccontextmanager
@@ -594,7 +585,7 @@ class Node(BaseService):
     async def _handle_goodbye(self, stream: INetStream) -> None:
         async with self.new_interaction(stream) as interaction:
             peer_id = interaction.peer_id
-            goodbye = await interaction.try_read_request(Goodbye)
+            await interaction.try_read_request(Goodbye)
             await self.disconnect_peer(peer_id)
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
