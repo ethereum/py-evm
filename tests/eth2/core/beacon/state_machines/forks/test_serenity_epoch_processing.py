@@ -24,7 +24,6 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _bft_threshold_met,
-    _compute_next_active_index_roots,
     _determine_new_finalized_epoch,
     _determine_slashing_penalty,
     compute_activation_exit_epoch,
@@ -641,30 +640,3 @@ def test_process_slashings(
         - result_state.balances[slashing_validator_index]
     )
     assert penalty == expected_penalty
-
-
-@pytest.mark.parametrize(
-    ("slots_per_epoch," "epochs_per_historical_vector," "state_slot,"),
-    [(4, 16, 4), (4, 16, 64)],
-)
-def test_update_active_index_roots(
-    genesis_state,
-    config,
-    state_slot,
-    slots_per_epoch,
-    epochs_per_historical_vector,
-    max_seed_lookahead,
-):
-    state = genesis_state.copy(slot=state_slot)
-
-    result = _compute_next_active_index_roots(state, config)
-
-    index_root = ssz.get_hash_tree_root(
-        get_active_validator_indices(
-            state.validators, compute_epoch_of_slot(state.slot, slots_per_epoch)
-        ),
-        ssz.sedes.List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
-    )
-
-    target_epoch = state.next_epoch(slots_per_epoch) + max_seed_lookahead
-    assert result[target_epoch % epochs_per_historical_vector] == index_root

@@ -102,15 +102,6 @@ def get_randao_mix(
     return state.randao_mixes[epoch % epochs_per_historical_vector]
 
 
-def get_active_index_root(
-    state: "BeaconState", epoch: Epoch, epochs_per_historical_vector: int
-) -> Hash32:
-    """
-    Return the index root at a recent ``epoch``.
-    """
-    return state.active_index_roots[epoch % epochs_per_historical_vector]
-
-
 def _epoch_for_seed(epoch: Epoch) -> Hash32:
     return Hash32(epoch.to_bytes(8, byteorder="little"))
 
@@ -124,7 +115,6 @@ def _get_seed(
     epoch: Epoch,
     domain_type: DomainType,
     randao_provider: RandaoProvider,
-    active_index_root_provider: ActiveIndexRootProvider,
     epoch_provider: Callable[[Epoch], Hash32],
     committee_config: CommitteeConfig,
 ) -> Hash32:
@@ -138,12 +128,9 @@ def _get_seed(
         ),
         committee_config.EPOCHS_PER_HISTORICAL_VECTOR,
     )
-    active_index_root = active_index_root_provider(
-        state, epoch, committee_config.EPOCHS_PER_HISTORICAL_VECTOR
-    )
     epoch_as_bytes = epoch_provider(epoch)
 
-    return hash_eth2(domain_type + active_index_root + epoch_as_bytes + randao_mix)
+    return hash_eth2(domain_type + epoch_as_bytes + randao_mix)
 
 
 def get_seed(
@@ -156,13 +143,7 @@ def get_seed(
     Generate a seed for the given ``epoch``.
     """
     return _get_seed(
-        state,
-        epoch,
-        domain_type,
-        get_randao_mix,
-        get_active_index_root,
-        _epoch_for_seed,
-        committee_config,
+        state, epoch, domain_type, get_randao_mix, _epoch_for_seed, committee_config
     )
 
 

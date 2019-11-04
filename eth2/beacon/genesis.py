@@ -3,7 +3,6 @@ from typing import Sequence, Type
 from eth_typing import Hash32
 import ssz
 
-from eth2.beacon.committee_helpers import get_compact_committees_root
 from eth2.beacon.constants import DEPOSIT_CONTRACT_TREE_DEPTH, SECONDS_PER_DAY
 from eth2.beacon.deposit_helpers import process_deposit
 from eth2.beacon.helpers import get_active_validator_indices
@@ -33,24 +32,6 @@ def is_genesis_trigger(
             active_validator_count += 1
 
     return active_validator_count == config.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
-
-
-def state_with_validator_digests(state: BeaconState, config: Eth2Config) -> BeaconState:
-    active_validator_indices = get_active_validator_indices(
-        state.validators, config.GENESIS_EPOCH
-    )
-    active_index_root = ssz.get_hash_tree_root(
-        active_validator_indices, ssz.List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT)
-    )
-    active_index_roots = (active_index_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
-    committee_root = get_compact_committees_root(
-        state, config.GENESIS_EPOCH, CommitteeConfig(config)
-    )
-    compact_committees_roots = (committee_root,) * config.EPOCHS_PER_HISTORICAL_VECTOR
-    return state.copy(
-        active_index_roots=active_index_roots,
-        compact_committees_roots=compact_committees_roots,
-    )
 
 
 def _genesis_time_from_eth1_timestamp(eth1_timestamp: Timestamp) -> Timestamp:
@@ -103,7 +84,7 @@ def initialize_beacon_state_from_eth1(
                 validator_index, activate_validator, config.GENESIS_EPOCH
             )
 
-    return state_with_validator_digests(state, config)
+    return state
 
 
 def is_valid_genesis_state(state: BeaconState, config: Eth2Config) -> bool:

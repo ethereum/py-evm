@@ -39,7 +39,9 @@ def process_block_header(
         latest_block_header=BeaconBlockHeader(
             slot=block.slot,
             parent_root=block.parent_root,
+            # `state_root` is zeroed and overwritten in the next `process_slot` call
             body_root=block.body.hash_tree_root,
+            # `signature` is zeroed
         )
     )
 

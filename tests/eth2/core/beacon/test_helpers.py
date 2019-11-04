@@ -196,14 +196,6 @@ def test_get_seed(
             + epochs_per_historical_vector.to_bytes(32, byteorder="little")
         )
 
-    def mock_get_active_index_root(state, epoch, epochs_per_historical_vector):
-        return hash_eth2(
-            state.hash_tree_root
-            + epoch.to_bytes(32, byteorder="little")
-            + slots_per_epoch.to_bytes(32, byteorder="little")
-            + epochs_per_historical_vector.to_bytes(32, byteorder="little")
-        )
-
     state = genesis_state
     epoch = 1
     state = state.copy(
@@ -219,7 +211,6 @@ def test_get_seed(
         epoch=epoch,
         domain_type=domain_type,
         randao_provider=mock_get_randao_mix,
-        active_index_root_provider=mock_get_active_index_root,
         epoch_provider=lambda *_: epoch_as_bytes,
         committee_config=committee_config,
     )

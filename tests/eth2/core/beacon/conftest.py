@@ -592,9 +592,6 @@ def sample_beacon_state_params(
         # Shuffling
         "start_shard": 1,
         "randao_mixes": (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
-        "active_index_roots": (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
-        "compact_committees_roots": (ZERO_HASH32,)
-        * config.EPOCHS_PER_HISTORICAL_VECTOR,
         # Slashings
         "slashings": (0,) * config.EPOCHS_PER_SLASHINGS_VECTOR,
         # Attestations

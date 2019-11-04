@@ -5,7 +5,6 @@ import ssz.sedes as sedes
 
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.blocks import BeaconBlockBody
-from eth2.beacon.types.compact_committees import CompactCommittee
 from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
@@ -34,8 +33,6 @@ def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:
             "validators": config.VALIDATOR_REGISTRY_LIMIT,
             "balances": config.VALIDATOR_REGISTRY_LIMIT,
             "randao_mixes": config.EPOCHS_PER_HISTORICAL_VECTOR,
-            "active_index_roots": config.EPOCHS_PER_HISTORICAL_VECTOR,
-            "compact_committees_roots": config.EPOCHS_PER_HISTORICAL_VECTOR,
             "slashings": config.EPOCHS_PER_SLASHINGS_VECTOR,
             "previous_epoch_attestations": config.MAX_ATTESTATIONS
             * config.SLOTS_PER_EPOCH,
@@ -43,10 +40,6 @@ def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:
             * config.SLOTS_PER_EPOCH,
             "previous_crosslinks": config.SHARD_COUNT,
             "current_crosslinks": config.SHARD_COUNT,
-        },
-        CompactCommittee: {
-            "pubkeys": config.MAX_VALIDATORS_PER_COMMITTEE,
-            "compact_validators": config.MAX_VALIDATORS_PER_COMMITTEE,
         },
         HistoricalBatch: {
             "block_roots": config.SLOTS_PER_HISTORICAL_ROOT,

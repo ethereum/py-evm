@@ -86,7 +86,6 @@ def test_get_genesis_beacon_state(
     assert state.start_shard == 0
     assert len(state.randao_mixes) == epochs_per_historical_vector
     assert state.randao_mixes == (ZERO_HASH32,) * epochs_per_historical_vector
-    assert len(state.active_index_roots) == epochs_per_historical_vector
 
     # Slashings
     assert len(state.slashings) == epochs_per_slashings_vector
