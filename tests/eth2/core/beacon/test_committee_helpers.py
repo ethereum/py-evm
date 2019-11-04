@@ -148,7 +148,6 @@ SOME_SEED = b"\x33" * 32
 
 
 def test_compute_proposer_index(genesis_validators, config):
-    epoch = random.randrange(config.GENESIS_EPOCH, 2 ** 64)
     proposer_index = random.randrange(0, len(genesis_validators))
 
     validators = tuple()

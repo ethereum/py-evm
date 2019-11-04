@@ -1,7 +1,6 @@
 import random
 
 import pytest
-import ssz
 
 from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2.beacon.committee_helpers import (
@@ -18,7 +17,6 @@ from eth2.beacon.epoch_processing_helpers import get_base_reward
 from eth2.beacon.helpers import (
     compute_epoch_of_slot,
     compute_start_slot_of_epoch,
-    get_active_validator_indices,
     get_block_root,
     get_block_root_at_slot,
 )

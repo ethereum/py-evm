@@ -1,11 +1,9 @@
 from typing import Iterable, Sequence, Tuple
 
-from eth_typing import BLSPubkey, Hash32
+from eth_typing import Hash32
 from eth_utils import ValidationError, to_tuple
-import ssz
 
 from eth2._utils.hash import hash_eth2
-from eth2._utils.tuple import update_tuple_item
 from eth2.beacon.constants import MAX_INDEX_COUNT, MAX_RANDOM_BYTE
 from eth2.beacon.exceptions import ImprobableToReach
 from eth2.beacon.helpers import (

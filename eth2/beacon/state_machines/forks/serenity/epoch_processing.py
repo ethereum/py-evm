@@ -2,7 +2,6 @@ from typing import Sequence, Set, Tuple
 
 from eth_typing import Hash32
 from eth_utils.toolz import curry
-import ssz
 
 from eth2._utils.tuple import update_tuple_item, update_tuple_item_with_fn
 from eth2.beacon.committee_helpers import (

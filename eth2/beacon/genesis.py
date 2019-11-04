@@ -15,7 +15,7 @@ from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import calculate_effective_balance
 from eth2.beacon.typing import Timestamp, ValidatorIndex
 from eth2.beacon.validator_status_helpers import activate_validator
-from eth2.configs import CommitteeConfig, Eth2Config
+from eth2.configs import Eth2Config
 
 
 def is_genesis_trigger(
