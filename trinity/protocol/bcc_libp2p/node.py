@@ -563,7 +563,6 @@ class Node(BaseService):
 
         async with self.new_handshake_interaction(stream) as interaction:
             peer_id = interaction.peer_id
-            self.logger.debug("Handler: Waiting for hello from the other side")
             hello_other_side = await interaction.read_request(HelloRequest)
             self.logger.info("Received HELLO from %s  %s", str(peer_id), hello_other_side)
             await validate_hello(self.chain, hello_other_side)
@@ -583,8 +582,6 @@ class Node(BaseService):
         async with self.new_handshake_interaction(stream) as interaction:
             hello_mine = self._make_hello_packet()
             await interaction.write_request(hello_mine)
-
-            self.logger.debug("Waiting for hello from the other side")
             hello_other_side = await interaction.read_response(HelloRequest)
 
             await validate_hello(self.chain, hello_other_side)
@@ -597,7 +594,6 @@ class Node(BaseService):
     async def _handle_goodbye(self, stream: INetStream) -> None:
         async with self.new_interaction(stream) as interaction:
             peer_id = interaction.peer_id
-            self.logger.debug("Waiting for goodbye from %s", str(peer_id))
             goodbye = await interaction.try_read_request(Goodbye)
             await self.disconnect_peer(peer_id)
 
@@ -616,7 +612,6 @@ class Node(BaseService):
         # TODO: Should it be a successful response if peer is requesting
         # blocks on a fork we don't have data for?
 
-        self.logger.debug("Waiting for beacon blocks request from the other side")
         async with self.post_handshake_handler_interaction(stream) as interaction:
             peer_id = interaction.peer_id
             self._check_peer_handshaked(peer_id)

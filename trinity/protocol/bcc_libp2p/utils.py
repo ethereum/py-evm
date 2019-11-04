@@ -360,6 +360,7 @@ class Interaction:
         await write_resp(self.stream, error_message, code)
 
     async def read_request(self, message_type: Type[MsgType]) -> MsgType:
+        self.logger.debug("Waiting %s from %s", message_type.__name__, self.peer_id)
         request = await read_req(self.stream, message_type)
         self.logger.debug(
             "Received request %s from %s  %s",
