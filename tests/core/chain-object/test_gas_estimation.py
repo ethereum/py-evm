@@ -1,6 +1,9 @@
 import pytest
 
 from eth.estimators.gas import binary_gas_search_1000_tolerance
+from eth.tools.factories.transaction import (
+    new_transaction
+)
 from eth.vm.forks import (
     FrontierVM,
     HomesteadVM,
@@ -15,7 +18,6 @@ from eth._utils.address import force_bytes_to_address
 
 from tests.core.helpers import (
     fill_block,
-    new_transaction,
 )
 
 

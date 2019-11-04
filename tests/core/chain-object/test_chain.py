@@ -9,13 +9,13 @@ from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
 from eth.exceptions import (
     TransactionNotFound,
 )
+from eth.tools.factories.transaction import (
+    new_transaction
+)
 from eth.vm.forks.frontier.blocks import FrontierBlock
 
 from tests.core.fixtures import (
     valid_block_rlp,
-)
-from tests.core.helpers import (
-    new_transaction,
 )
 
 

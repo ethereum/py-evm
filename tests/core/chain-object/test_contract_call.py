@@ -1,10 +1,7 @@
 from eth_utils.toolz import (
     assoc,
 )
-from tests.core.helpers import (
-    new_transaction,
-    # vm_specific_chain,
-)
+
 
 from eth_utils import (
     decode_hex,
@@ -18,7 +15,9 @@ from eth.exceptions import (
     OutOfGas,
     Revert,
 )
-
+from eth.tools.factories.transaction import (
+    new_transaction
+)
 from eth.vm.forks import (
     FrontierVM,
     HomesteadVM,

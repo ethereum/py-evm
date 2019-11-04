@@ -6,9 +6,8 @@ from eth import constants
 from eth.chains.base import (
     MiningChain,
 )
-
-from tests.core.helpers import (
-    new_transaction,
+from eth.tools.factories.transaction import (
+    new_transaction
 )
 
 

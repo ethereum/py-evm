@@ -27,6 +27,9 @@ from eth.chains.base import (
 from eth.rlp.blocks import (
     BaseBlock,
 )
+from eth.tools.factories.transaction import (
+    new_transaction
+)
 from .base_benchmark import (
     BaseBenchmark,
 )
@@ -43,9 +46,7 @@ from _utils.compile import (
 from _utils.reporting import (
     DefaultStat,
 )
-from _utils.tx import (
-    new_transaction,
-)
+
 
 FIRST_TX_GAS_LIMIT = 1400000
 SECOND_TX_GAS_LIMIT = 60000

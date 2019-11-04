@@ -14,6 +14,9 @@ from eth.chains.base import (
 from eth.rlp.blocks import (
     BaseBlock,
 )
+from eth.tools.factories.transaction import (
+    new_transaction
+)
 
 from .base_benchmark import (
     BaseBenchmark,
@@ -32,9 +35,6 @@ from _utils.reporting import (
 )
 from _utils.shellart import (
     bold_yellow,
-)
-from _utils.tx import (
-    new_transaction,
 )
 
 

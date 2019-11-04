@@ -39,9 +39,8 @@ from eth.vm.forks.frontier.blocks import (
 from eth.vm.forks.homestead.blocks import (
     HomesteadBlock,
 )
-
-from tests.core.helpers import (
-    new_transaction,
+from eth.tools.factories.transaction import (
+    new_transaction
 )
 
 
