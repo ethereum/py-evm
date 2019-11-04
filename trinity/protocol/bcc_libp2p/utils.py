@@ -74,6 +74,7 @@ from .exceptions import (
     ReadMessageFailure,
     PeerRespondedAnError,
     WriteMessageFailure,
+    InvalidRequest,
 )
 from .messages import (
     BeaconBlocksRequest,
@@ -273,6 +274,33 @@ def get_requested_beacon_blocks(
                 requested_head_block,
                 slot_of_requested_blocks,
             )
+
+
+def get_requested_beacon_blocks(
+    chain: BaseBeaconChain,
+    request:BeaconBlocksRequest
+) -> Tuple[BaseBeaconBlock, ...]:
+    try:
+        requested_head = chain.get_block_by_hash_tree_root(
+            request.head_block_root
+        )
+    except (BlockNotFound, ValidationError) as error:
+        logger.info("Sending empty blocks, reason: %s", error)
+        return tuple()
+
+    # Check if slot of specified head block is greater than specified start slot
+    if requested_head.slot < request.start_slot:
+        raise InvalidRequest(
+            f"head block slot({requested_head.slot}) lower than `start_slot`({request.start_slot})"
+        )
+
+    try:
+        requested_beacon_blocks = get_requested_beacon_blocks(
+            chain, request, requested_head
+        )
+        return requested_beacon_blocks
+    except ValidationError as val_error:
+        raise InvalidRequest(str(val_error))
 
 
 # TODO: Refactor: Probably move these [de]serialization functions to `Node` as methods,
