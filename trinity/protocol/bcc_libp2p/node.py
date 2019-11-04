@@ -471,28 +471,52 @@ class Node(BaseService):
     @asynccontextmanager
     async def new_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
         interaction = Interaction(stream)
-        peer_id = interaction.peer_id
         try:
             yield interaction
+        finally:
+            await stream.close()
+
+    @asynccontextmanager
+    async def new_handshake_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
+        try:
+            async with self.new_interaction(stream) as interaction:
+                peer_id = interaction.peer_id
+                yield interaction
         except WriteMessageFailure as error:
             await self.disconnect_peer(peer_id)
-            raise InteractionFailure() from error
+            raise HandshakeFailure() from error
         except ReadMessageFailure as error:
             # Try respond with INVALID_REQUEST
             await self.disconnect_peer(peer_id)
-            raise InteractionFailure() from error
-        except (PeerRespondedAnError, UnhandshakedPeer) as error:
+            raise HandshakeFailure() from error
+        except PeerRespondedAnError as error:
             await stream.reset()
             await self.disconnect_peer(peer_id)
-            raise InteractionFailure() from error
+            raise HandshakeFailure() from error
         except IrrelevantNetwork as error:
             await stream.reset()
             asyncio.ensure_future(
                 self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
             )
-            raise InteractionFailure from error
-        finally:
-            await stream.close()
+            raise HandshakeFailure from error
+
+    @asynccontextmanager
+    async def new_post_handshake_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
+        try:
+            async with self.new_interaction(stream) as interaction:
+                peer_id = interaction.peer_id
+                yield interaction
+        except WriteMessageFailure as error:
+            self.logger.log("WriteMessageFailure %s", error)
+            return
+        except ReadMessageFailure as error:
+            self.logger.log("ReadMessageFailure %s", error)
+            return
+        except (PeerRespondedAnError, UnhandshakedPeer) as error:
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
+            self.logger.log("Disconnected peer  %s", error)
+            return
 
     # TODO: Handle the reputation of peers. Deduct their scores and even disconnect when they
     #   behave.
@@ -523,16 +547,10 @@ class Node(BaseService):
             )
 
     async def _handle_hello(self, stream: INetStream) -> None:
-        try:
-            await self.__handle_hello(stream)
-        except InteractionFailure as error:
-            raise HandshakeFailure() from error
-
-    async def __handle_hello(self, stream: INetStream) -> None:
         # TODO: Find out when we should respond the `ResponseCode`
         #   other than `ResponseCode.SUCCESS`.
 
-        async with self.new_interaction(stream) as interaction:
+        async with self.new_handshake_interaction(stream) as interaction:
             peer_id = interaction.peer_id
             self.logger.debug("Handler: Waiting for hello from the other side")
             hello_other_side = await interaction.read_request(HelloRequest)
@@ -548,16 +566,10 @@ class Node(BaseService):
             compare_chain_tip_and_finalized_epoch(self.chain, hello_other_side)
 
     async def say_hello(self, peer_id: ID) -> None:
-        try:
-            await self._say_hello(peer_id)
-        except InteractionFailure as error:
-            raise HandshakeFailure() from error
-
-    async def _say_hello(self, peer_id: ID) -> None:
         self.logger.info("Say hello to %s", str(peer_id))
 
         stream = await self.new_stream(peer_id, REQ_RESP_HELLO_SSZ)
-        async with self.new_interaction(stream) as interaction:
+        async with self.new_handshake_interaction(stream) as interaction:
             hello_mine = self._make_hello_packet()
             await interaction.write_request(hello_mine)
 

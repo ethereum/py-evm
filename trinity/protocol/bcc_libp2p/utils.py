@@ -325,7 +325,7 @@ class Interaction:
 
     async def try_write_request(self, message: MsgType) -> None:
         try:
-            self.request(message)
+            await self.write_request(message)
         except WriteMessageFailure:
             pass
 
