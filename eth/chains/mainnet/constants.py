@@ -46,5 +46,4 @@ PETERSBURG_MAINNET_BLOCK = BlockNumber(7280000)
 #
 # Istanbul Block
 #
-# FIXME: Replace this with the correct blocknumber when it's decided
-ISTANBUL_MAINNET_BLOCK = BlockNumber(7280728)
+ISTANBUL_MAINNET_BLOCK = BlockNumber(9069000)
