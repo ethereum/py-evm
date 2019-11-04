@@ -322,7 +322,7 @@ class Interaction:
 
     async def try_read_request(self, message_type: Type[MsgType]) -> MsgType:
         try:
-            self.read_request(message_type)
+            return await self.read_request(message_type)
         except ReadMessageFailure:
             pass
 
