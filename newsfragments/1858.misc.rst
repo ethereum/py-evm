@@ -1,2 +1,3 @@
 Update the upstream tests to `v7.0.0 beta.1 <https://github.com/ethereum/tests/releases/tag/v7.0.0-beta.1>`_
 and address the two arising disagreements.
+Set Istanbul block for mainnet to 9069000.
