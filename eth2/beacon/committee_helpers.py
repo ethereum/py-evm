@@ -8,7 +8,12 @@ from eth2._utils.hash import hash_eth2
 from eth2._utils.tuple import update_tuple_item
 from eth2.beacon.constants import MAX_INDEX_COUNT, MAX_RANDOM_BYTE
 from eth2.beacon.exceptions import ImprobableToReach
-from eth2.beacon.helpers import get_active_validator_indices, get_seed
+from eth2.beacon.helpers import (
+    get_active_validator_indices,
+    get_seed,
+    signature_domain_to_domain_type,
+)
+from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.compact_committees import CompactCommittee
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
@@ -167,10 +172,14 @@ def get_beacon_proposer_index(
     Return the current beacon proposer index.
     """
     current_epoch = state.current_epoch(committee_config.SLOTS_PER_EPOCH)
+    domain_type = signature_domain_to_domain_type(
+        SignatureDomain.DOMAIN_BEACON_PROPOSER
+    )
 
     seed = hash_eth2(
-        get_seed(state, current_epoch, committee_config)
+        get_seed(state, current_epoch, domain_type, committee_config)
         + state.slot.to_bytes(8, "little")
+    )
     indices = get_active_validator_indices(state.validators, current_epoch)
     return compute_proposer_index(
         state.validators,
@@ -252,9 +261,13 @@ def get_crosslink_committee(
 
     active_validator_indices = get_active_validator_indices(state.validators, epoch)
 
+    domain_type = signature_domain_to_domain_type(
+        SignatureDomain.DOMAIN_BEACON_ATTESTER
+    )
+
     return _compute_committee(
         indices=active_validator_indices,
-        seed=get_seed(state, epoch, config),
+        seed=get_seed(state, epoch, domain_type, config),
         index=target_shard,
         count=get_committee_count(
             len(active_validator_indices),

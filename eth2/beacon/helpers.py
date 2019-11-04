@@ -112,7 +112,7 @@ def get_active_index_root(
 
 
 def _epoch_for_seed(epoch: Epoch) -> Hash32:
-    return Hash32(epoch.to_bytes(32, byteorder="little"))
+    return Hash32(epoch.to_bytes(8, byteorder="little"))
 
 
 RandaoProvider = Callable[["BeaconState", Epoch, int], Hash32]
@@ -122,6 +122,7 @@ ActiveIndexRootProvider = Callable[["BeaconState", Epoch, int], Hash32]
 def _get_seed(
     state: "BeaconState",
     epoch: Epoch,
+    domain_type: DomainType,
     randao_provider: RandaoProvider,
     active_index_root_provider: ActiveIndexRootProvider,
     epoch_provider: Callable[[Epoch], Hash32],
@@ -142,11 +143,14 @@ def _get_seed(
     )
     epoch_as_bytes = epoch_provider(epoch)
 
-    return hash_eth2(randao_mix + active_index_root + epoch_as_bytes)
+    return hash_eth2(domain_type + active_index_root + epoch_as_bytes + randao_mix)
 
 
 def get_seed(
-    state: "BeaconState", epoch: Epoch, committee_config: CommitteeConfig
+    state: "BeaconState",
+    epoch: Epoch,
+    domain_type: DomainType,
+    committee_config: CommitteeConfig,
 ) -> Hash32:
     """
     Generate a seed for the given ``epoch``.
@@ -154,6 +158,7 @@ def get_seed(
     return _get_seed(
         state,
         epoch,
+        domain_type,
         get_randao_mix,
         get_active_index_root,
         _epoch_for_seed,
@@ -187,7 +192,7 @@ def _get_fork_version(fork: Fork, epoch: Epoch) -> Version:
         return fork.current_version
 
 
-def _signature_domain_to_domain_type(s: SignatureDomain) -> DomainType:
+def signature_domain_to_domain_type(s: SignatureDomain) -> DomainType:
     return DomainType(s.to_bytes(4, byteorder="little"))
 
 
@@ -198,7 +203,7 @@ def compute_domain(
     NOTE: we deviate from the spec here by taking the enum ``SignatureDomain`` and
     converting before creating the domain.
     """
-    domain_type = _signature_domain_to_domain_type(signature_domain)
+    domain_type = signature_domain_to_domain_type(signature_domain)
     return Domain(domain_type + fork_version)
 
 
