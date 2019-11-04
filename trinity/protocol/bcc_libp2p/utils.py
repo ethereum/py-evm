@@ -75,6 +75,8 @@ from .exceptions import (
     PeerRespondedAnError,
     WriteMessageFailure,
     InvalidRequest,
+    InvalidRequestSaidPeer,
+    ServerErrorSaidPeer,
 )
 from .messages import (
     BeaconBlocksRequest,
@@ -437,7 +439,12 @@ async def read_resp(
     else:
         msg_bytes = await _read_varint_prefixed_bytes(stream, timeout=RESP_TIMEOUT)
         msg = msg_bytes.decode("utf-8")
-        raise PeerRespondedAnError(msg)
+        if resp_code == ResponseCode.INVALID_REQUEST:
+            raise InvalidRequestSaidPeer(msg)
+        elif resp_code == ResponseCode.SERVER_ERROR:
+            raise ServerErrorSaidPeer(msg)
+        else:
+            raise Exception("Invariant: Should not reach here")
 
 
 async def write_resp(

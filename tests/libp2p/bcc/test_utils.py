@@ -9,6 +9,8 @@ from trinity.protocol.bcc_libp2p.configs import ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import (
     ReadMessageFailure,
     WriteMessageFailure,
+    InvalidRequestSaidPeer,
+    ServerErrorSaidPeer,
 )
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
 from trinity.protocol.bcc_libp2p.utils import (
@@ -76,25 +78,23 @@ async def test_read_write_resp_msg(msg):
     s = FakeNetStream()
     resp_code = ResponseCode.SUCCESS
     await write_resp(s, msg, resp_code)
-    resp_code_read, msg_read = await read_resp(s, type(msg))
-    assert resp_code_read == resp_code
+    msg_read = await read_resp(s, type(msg))
     assert msg_read == msg
 
 
 @pytest.mark.parametrize(
-    "resp_code, error_msg",
+    "resp_code, error_cls, error_msg",
     (
-        (ResponseCode.INVALID_REQUEST, "error msg"),
-        (ResponseCode.SERVER_ERROR, "error msg"),
+        (ResponseCode.INVALID_REQUEST, InvalidRequestSaidPeer, "error msg"),
+        (ResponseCode.SERVER_ERROR, ServerErrorSaidPeer,"error msg"),
     ),
 )
 @pytest.mark.asyncio
-async def test_read_write_resp_msg_error_resp_code(resp_code, error_msg):
+async def test_read_write_resp_msg_error_resp_code(resp_code, error_cls, error_msg):
     s = FakeNetStream()
     await write_resp(s, error_msg, resp_code)
-    resp_code_read, msg_read = await read_resp(s, HelloRequest)
-    assert resp_code_read == resp_code
-    assert msg_read == error_msg
+    with pytest.raises(error_cls, match=error_msg):
+        msg_read = await read_resp(s, HelloRequest)
 
 
 @pytest.mark.asyncio

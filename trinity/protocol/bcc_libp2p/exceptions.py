@@ -29,6 +29,11 @@ class RequestFailure(BaseLibp2pError):
 class PeerRespondedAnError(BaseLibp2pError):
     pass
 
+class InvalidRequestSaidPeer(PeerRespondedAnError):
+    pass
+
+class ServerErrorSaidPeer(PeerRespondedAnError):
+    pass
 
 class IrrelevantNetwork(BaseLibp2pError):
     pass
