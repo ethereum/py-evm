@@ -80,6 +80,10 @@ from .messages import (
     BeaconBlocksRequest,
     HelloRequest,
 )
+from eth.exceptions import (
+    BlockNotFound,
+)
+
 
 MsgType = TypeVar("MsgType", bound=ssz.Serializable)
 
@@ -224,7 +228,7 @@ def get_blocks_from_fork_chain_by_root(
             if block.slot == slot_of_requested_blocks[cur_index]:
                 yield block
 
-def get_requested_beacon_blocks(
+def _get_requested_beacon_blocks(
     chain: BaseBeaconChain,
     beacon_blocks_request: BeaconBlocksRequest,
     requested_head_block: BaseBeaconBlock,
@@ -295,7 +299,7 @@ def get_requested_beacon_blocks(
         )
 
     try:
-        requested_beacon_blocks = get_requested_beacon_blocks(
+        requested_beacon_blocks = _get_requested_beacon_blocks(
             chain, request, requested_head
         )
         return requested_beacon_blocks
@@ -337,6 +341,15 @@ class Interaction:
             to_formatted_dict(message),
         )
         await write_resp(self.stream, message, ResponseCode.SUCCESS)
+
+    async def write_error_response(self, error_message: str, code: ResponseCode) -> None:
+        self.logger.debug(
+            "Respond %s to %s  %s",
+            type(message).__name__,
+            self.peer_id,
+            to_formatted_dict(message),
+        )
+        await write_resp(self.stream, error_message, code)
 
     async def read_request(self, message_type: Type[MsgType]) -> MsgType:
         request = await read_req(self.stream, message_type)

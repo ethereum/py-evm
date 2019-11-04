@@ -9,7 +9,7 @@ from trinity.protocol.bcc_libp2p.configs import GoodbyeReasonCode, ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import HandshakeFailure, RequestFailure
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
 from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
-from trinity.protocol.bcc_libp2p.utils import read_req, write_resp
+from trinity.protocol.bcc_libp2p.utils import read_req, write_resp, get_blocks_from_canonical_chain_by_slot, get_blocks_from_fork_chain_by_root
 from trinity.tools.async_method import wait_until_true
 from trinity.tools.bcc_factories import ConnectionPairFactory, NodeFactory
 
@@ -137,7 +137,8 @@ async def test_get_blocks_from_canonical_chain_by_slot(
         node.chain, "get_canonical_block_by_slot", get_canonical_block_by_slot
     )
 
-    result_blocks = node._get_blocks_from_canonical_chain_by_slot(
+    result_blocks = get_blocks_from_canonical_chain_by_slot(
+        chain=node.chain,
         slot_of_requested_blocks=slot_of_requested_blocks
     )
 
@@ -262,7 +263,8 @@ async def test_get_blocks_from_fork_chain_by_root(
 
     monkeypatch.setattr(node.chain, "get_block_by_root", get_block_by_root)
 
-    requested_blocks = node._get_blocks_from_fork_chain_by_root(
+    requested_blocks = get_blocks_from_fork_chain_by_root(
+        chain=node.chain,
         start_slot=slot_of_requested_blocks[0],
         peer_head_block=fork_chain_blocks[-1],
         slot_of_requested_blocks=slot_of_requested_blocks,
