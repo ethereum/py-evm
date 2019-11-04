@@ -2,7 +2,6 @@ import math
 import random
 from typing import Dict, Iterable, Sequence, Tuple
 
-from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey, BLSSignature, Hash32
 from eth_utils import to_tuple
 from eth_utils.toolz import keymap as keymapper
@@ -11,17 +10,14 @@ from eth_utils.toolz import pipe
 from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2._utils.bls import Domain, bls
 from eth2.beacon.committee_helpers import (
-    get_committee_count,
-    get_crosslink_committee,
-    get_shard_delta,
-    get_start_shard,
+    get_beacon_committee,
+    get_committee_count_at_slot,
 )
 from eth2.beacon.constants import ZERO_SIGNING_ROOT
 from eth2.beacon.helpers import (
     compute_domain,
-    compute_epoch_of_slot,
-    compute_start_slot_of_epoch,
-    get_active_validator_indices,
+    compute_epoch_at_slot,
+    compute_start_slot_at_epoch,
     get_block_root,
     get_block_root_at_slot,
     get_domain,
@@ -36,7 +32,6 @@ from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
@@ -45,15 +40,16 @@ from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.typing import (
     Bitfield,
     CommitteeIndex,
+    CommitteeValidatorIndex,
     Epoch,
     Gwei,
-    Shard,
     SigningRoot,
     Slot,
     ValidatorIndex,
     default_bitfield,
+    default_committee_index,
     default_epoch,
-    default_shard,
+    default_slot,
 )
 from eth2.configs import CommitteeConfig, Eth2Config
 
@@ -63,33 +59,25 @@ def _mk_pending_attestation(
     bitfield: Bitfield = default_bitfield,
     target_root: SigningRoot = ZERO_SIGNING_ROOT,
     target_epoch: Epoch = default_epoch,
-    shard: Shard = default_shard,
-    start_epoch: Epoch = default_epoch,
-    parent_root: Hash32 = ZERO_HASH32,
-    data_root: Hash32 = ZERO_HASH32,
+    slot: Slot = default_slot,
+    committee_index: CommitteeIndex = default_committee_index,
 ) -> PendingAttestation:
     return PendingAttestation(
         aggregation_bits=bitfield,
         data=AttestationData(
+            slot=slot,
+            index=committee_index,
             target=Checkpoint(epoch=target_epoch, root=target_root),
-            crosslink=Crosslink(
-                shard=shard,
-                parent_root=parent_root,
-                start_epoch=start_epoch,
-                end_epoch=target_epoch,
-                data_root=data_root,
-            ),
         ),
     )
 
 
 def mk_pending_attestation_from_committee(
-    parent: Crosslink,
     committee_size: int,
-    shard: Shard,
     target_epoch: Epoch = default_epoch,
     target_root: SigningRoot = ZERO_SIGNING_ROOT,
-    data_root: Hash32 = ZERO_HASH32,
+    slot: Slot = default_slot,
+    committee_index: CommitteeIndex = default_committee_index,
 ) -> PendingAttestation:
     bitfield = get_empty_bitfield(committee_size)
     for i in range(committee_size):
@@ -99,62 +87,52 @@ def mk_pending_attestation_from_committee(
         bitfield=bitfield,
         target_root=target_root,
         target_epoch=target_epoch,
-        shard=shard,
-        start_epoch=parent.end_epoch,
-        parent_root=parent.hash_tree_root,
-        data_root=data_root,
+        slot=slot,
+        committee_index=committee_index,
     )
 
 
 def _mk_some_pending_attestations_with_some_participation_in_epoch(
-    state: BeaconState,
-    epoch: Epoch,
-    config: Eth2Config,
-    participation_ratio: float,
-    number_of_shards_to_check: int,
+    state: BeaconState, epoch: Epoch, config: Eth2Config, participation_ratio: float
 ) -> Iterable[PendingAttestation]:
     block_root = get_block_root(
         state, epoch, config.SLOTS_PER_EPOCH, config.SLOTS_PER_HISTORICAL_ROOT
     )
-    epoch_start_shard = get_start_shard(state, epoch, CommitteeConfig(config))
+    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
 
-    if epoch == state.current_epoch(config.SLOTS_PER_EPOCH):
-        parent_crosslinks = state.current_crosslinks
-    else:
-        parent_crosslinks = state.previous_crosslinks
-
-    for shard in range(
-        epoch_start_shard, epoch_start_shard + number_of_shards_to_check
-    ):
-        shard = Shard(shard % config.SHARD_COUNT)
-        crosslink_committee = get_crosslink_committee(
-            state, epoch, shard, CommitteeConfig(config)
+    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
+        committee_count_at_slot = get_committee_count_at_slot(
+            state,
+            Slot(slot),
+            config.MAX_COMMITTEES_PER_SLOT,
+            config.SLOTS_PER_EPOCH,
+            config.TARGET_COMMITTEE_SIZE,
         )
-        if not crosslink_committee:
-            continue
+        for committee_index in range(committee_count_at_slot):
+            beacon_committee = get_beacon_committee(
+                state, slot, committee_index, CommitteeConfig(config)
+            )
+            if not beacon_committee:
+                continue
+            committee_size = len(beacon_committee)
+            participants_count = math.ceil(participation_ratio * committee_size)
+            if not participants_count:
+                return tuple()
 
-        participants_count = math.ceil(participation_ratio * len(crosslink_committee))
-        if not participants_count:
-            return tuple()
-
-        yield mk_pending_attestation_from_committee(
-            parent_crosslinks[shard],
-            participants_count,
-            shard,
-            target_epoch=epoch,
-            target_root=block_root,
-        )
+            yield mk_pending_attestation_from_committee(
+                committee_size,
+                target_epoch=epoch,
+                target_root=block_root,
+                slot=Slot(slot),
+                committee_index=CommitteeIndex(committee_index),
+            )
 
 
 def mk_all_pending_attestations_with_some_participation_in_epoch(
     state: BeaconState, epoch: Epoch, config: Eth2Config, participation_ratio: float
 ) -> Iterable[PendingAttestation]:
     return _mk_some_pending_attestations_with_some_participation_in_epoch(
-        state,
-        epoch,
-        config,
-        participation_ratio,
-        get_shard_delta(state, epoch, CommitteeConfig(config)),
+        state, epoch, config, participation_ratio
     )
 
 
@@ -198,7 +176,7 @@ def aggregate_votes(
     bitfield: Bitfield,
     sigs: Sequence[BLSSignature],
     voting_sigs: Sequence[BLSSignature],
-    attesting_indices: Sequence[CommitteeIndex],
+    attesting_indices: Sequence[CommitteeValidatorIndex],
 ) -> Tuple[Bitfield, BLSSignature]:
     """
     Aggregate the votes.
@@ -237,7 +215,7 @@ def sign_transaction(
         state,
         signature_domain,
         slots_per_epoch,
-        message_epoch=compute_epoch_of_slot(slot, slots_per_epoch),
+        message_epoch=compute_epoch_at_slot(slot, slots_per_epoch),
     )
     return bls.sign(message_hash=message_hash, privkey=privkey, domain=domain)
 
@@ -330,7 +308,6 @@ def create_mock_slashable_attestation(
     """
     attester_index = ValidatorIndex(0)
     committee = (attester_index,)
-    shard = Shard(0)
 
     # Use genesis block root as `beacon_block_root`, only for tests.
     beacon_block_root = get_block_root_at_slot(
@@ -342,23 +319,32 @@ def create_mock_slashable_attestation(
     # Get `source_root`
     source_root = get_block_root_at_slot(
         state,
-        compute_start_slot_of_epoch(
+        compute_start_slot_at_epoch(
             state.current_justified_checkpoint.epoch, config.SLOTS_PER_EPOCH
         ),
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
-    previous_crosslink = state.current_crosslinks[shard]
+    committee_count_at_slot = get_committee_count_at_slot(
+        state,
+        Slot(attestation_slot),
+        config.MAX_COMMITTEES_PER_SLOT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
+    )
+    assert committee_count_at_slot > 0
+    committee_index = CommitteeIndex(0)
 
     attestation_data = AttestationData(
+        slot=attestation_slot,
+        index=committee_index,
         beacon_block_root=beacon_block_root,
         source=Checkpoint(
             epoch=state.current_justified_checkpoint.epoch, root=source_root
         ),
         target=Checkpoint(
-            epoch=compute_epoch_of_slot(attestation_slot, config.SLOTS_PER_EPOCH),
+            epoch=compute_epoch_at_slot(attestation_slot, config.SLOTS_PER_EPOCH),
             root=target_root,
         ),
-        crosslink=previous_crosslink,
     )
 
     message_hash = _get_mock_message(attestation_data)
@@ -388,7 +374,7 @@ def create_mock_attester_slashing_is_double_vote(
     keymap: Dict[BLSPubkey, int],
     attestation_epoch: Epoch,
 ) -> AttesterSlashing:
-    attestation_slot_1 = compute_start_slot_of_epoch(
+    attestation_slot_1 = compute_start_slot_at_epoch(
         attestation_epoch, config.SLOTS_PER_EPOCH
     )
     attestation_slot_2 = Slot(attestation_slot_1 + 1)
@@ -412,7 +398,7 @@ def create_mock_attester_slashing_is_surround_vote(
     attestation_epoch: Epoch,
 ) -> AttesterSlashing:
     # target_epoch_2 < target_epoch_1
-    attestation_slot_2 = compute_start_slot_of_epoch(
+    attestation_slot_2 = compute_start_slot_at_epoch(
         attestation_epoch, config.SLOTS_PER_EPOCH
     )
     attestation_slot_1 = Slot(attestation_slot_2 + config.SLOTS_PER_EPOCH)
@@ -448,8 +434,8 @@ def _get_target_root(
     state: BeaconState, config: Eth2Config, beacon_block_root: SigningRoot
 ) -> SigningRoot:
 
-    epoch = compute_epoch_of_slot(state.slot, config.SLOTS_PER_EPOCH)
-    epoch_start_slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_at_slot(state.slot, config.SLOTS_PER_EPOCH)
+    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
     if epoch_start_slot == state.slot:
         return beacon_block_root
     else:
@@ -471,7 +457,7 @@ def _get_mock_message(attestation_data: AttestationData) -> Hash32:
 
 def _get_mock_attesting_indices(
     committee: Sequence[ValidatorIndex], num_voted_attesters: int
-) -> Tuple[CommitteeIndex, ...]:
+) -> Tuple[CommitteeValidatorIndex, ...]:
     """
     Get voting indices of the given ``committee``.
     """
@@ -479,7 +465,7 @@ def _get_mock_attesting_indices(
     assert num_voted_attesters <= committee_size
 
     attesting_indices = tuple(
-        CommitteeIndex(i)
+        CommitteeValidatorIndex(i)
         for i in random.sample(range(committee_size), num_voted_attesters)
     )
 
@@ -495,7 +481,7 @@ def _create_mock_signed_attestation(
     keymap: Dict[BLSPubkey, int],
     slots_per_epoch: int,
     is_for_simulation: bool = True,
-    attesting_indices: Sequence[CommitteeIndex] = None,
+    attesting_indices: Sequence[CommitteeValidatorIndex] = None,
 ) -> Attestation:
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
@@ -545,35 +531,33 @@ def _create_mock_signed_attestation(
     )
 
 
-# TODO(ralexstokes) merge in w/ ``get_committee_assignment``
-def get_crosslink_committees_at_slot(
-    state: BeaconState, slot: Slot, config: Eth2Config
-) -> Tuple[Tuple[Tuple[ValidatorIndex, ...], Shard], ...]:
-    epoch = compute_epoch_of_slot(slot, config.SLOTS_PER_EPOCH)
-    active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = (
-        get_committee_count(
-            len(active_validators),
-            config.SHARD_COUNT,
-            config.SLOTS_PER_EPOCH,
-            config.TARGET_COMMITTEE_SIZE,
-        )
-        // config.SLOTS_PER_EPOCH
-    )
-    results = []
-    offset = committees_per_slot * (slot % config.SLOTS_PER_EPOCH)
-    slot_start_shard = Shard(
-        (get_start_shard(state, epoch, CommitteeConfig(config)) + offset)
-        % config.SHARD_COUNT
-    )
-    for i in range(committees_per_slot):
-        shard = (slot_start_shard + i) % config.SHARD_COUNT
-        committee = get_crosslink_committee(
-            state, epoch, shard, CommitteeConfig(config)
-        )
-        results.append((committee, Shard(shard)))
+# # TODO(ralexstokes) merge in w/ ``get_committee_assignment``
+# def get_beacon_committee_count_at_slot(
+#     state: BeaconState, slot: Slot, config: Eth2Config
+# ) -> Tuple[Tuple[Tuple[ValidatorIndex, ...], Shard], ...]:
+#     epoch = compute_epoch_at_slot(slot, config.SLOTS_PER_EPOCH)
+#     committee_count_at_slot = get_committee_count_at_slot(
+#         state,
+#         slot,
+#         config.MAX_COMMITTEES_PER_SLOT,
+#         config.SLOTS_PER_EPOCH,
+#         config.TARGET_COMMITTEE_SIZE,
+#     )
 
-    return tuple(results)
+#     results = []
+#     offset = committee_count_at_slot * (slot % config.SLOTS_PER_EPOCH)
+#     slot_start_shard = Shard(
+#         (get_start_shard(state, epoch, CommitteeConfig(config)) + offset)
+#         % config.MAX_COMMITTEES_PER_SLOT
+#     )
+#     for i in range(committee_count_at_slot):
+#         shard = (slot_start_shard + i) % config.MAX_COMMITTEES_PER_SLOT
+#         committee = get_beacon_committee(
+#             state, epoch, shard, CommitteeConfig(config)
+#         )
+#         results.append((committee, Shard(shard)))
+
+#     return tuple(results)
 
 
 def create_signed_attestation_at_slot(
@@ -584,8 +568,8 @@ def create_signed_attestation_at_slot(
     beacon_block_root: SigningRoot,
     validator_privkeys: Dict[ValidatorIndex, int],
     committee: Tuple[ValidatorIndex, ...],
-    shard: Shard,
-    attesting_indices: Sequence[CommitteeIndex],
+    committee_index: CommitteeIndex,
+    attesting_indices: Sequence[CommitteeValidatorIndex],
 ) -> Attestation:
     """
     Create the attestations of the given ``attestation_slot`` slot with ``validator_privkeys``.
@@ -593,25 +577,19 @@ def create_signed_attestation_at_slot(
     state_transition = state_machine.state_transition
     state = state_transition.apply_state_transition(state, future_slot=attestation_slot)
 
-    target_epoch = compute_epoch_of_slot(attestation_slot, config.SLOTS_PER_EPOCH)
+    target_epoch = compute_epoch_at_slot(attestation_slot, config.SLOTS_PER_EPOCH)
 
     target_root = _get_target_root(state, config, beacon_block_root)
 
-    parent_crosslink = state.current_crosslinks[shard]
-
     attestation_data = AttestationData(
+        slot=attestation_slot,
+        index=committee_index,
         beacon_block_root=beacon_block_root,
         source=Checkpoint(
             epoch=state.current_justified_checkpoint.epoch,
             root=state.current_justified_checkpoint.root,
         ),
         target=Checkpoint(root=target_root, epoch=target_epoch),
-        crosslink=Crosslink(
-            shard=shard,
-            parent_root=parent_crosslink.hash_tree_root,
-            start_epoch=parent_crosslink.end_epoch,
-            end_epoch=target_epoch,
-        ),
     )
 
     return _create_mock_signed_attestation(
@@ -640,35 +618,32 @@ def create_mock_signed_attestations_at_slot(
     """
     Create the mocking attestations of the given ``attestation_slot`` slot with ``keymap``.
     """
-    crosslink_committees_at_slot = get_crosslink_committees_at_slot(
-        state, attestation_slot, config
+    committee_count_at_slot = get_committee_count_at_slot(
+        state,
+        attestation_slot,
+        config.MAX_COMMITTEES_PER_SLOT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
     )
 
     # Get `target_root`
     target_root = _get_target_root(state, config, beacon_block_root)
-    target_epoch = compute_epoch_of_slot(state.slot, config.SLOTS_PER_EPOCH)
+    target_epoch = compute_epoch_at_slot(state.slot, config.SLOTS_PER_EPOCH)
 
-    for crosslink_committee in crosslink_committees_at_slot:
-        committee, shard = crosslink_committee
-
-        parent_crosslink = state.current_crosslinks[shard]
+    for committee_index in range(committee_count_at_slot):
+        committee = get_beacon_committee(
+            state, attestation_slot, committee_index, CommitteeConfig(config)
+        )
 
         attestation_data = AttestationData(
+            slot=attestation_slot,
+            index=CommitteeIndex(committee_index),
             beacon_block_root=beacon_block_root,
             source=Checkpoint(
                 epoch=state.current_justified_checkpoint.epoch,
                 root=state.current_justified_checkpoint.root,
             ),
             target=Checkpoint(root=target_root, epoch=target_epoch),
-            crosslink=Crosslink(
-                shard=shard,
-                parent_root=parent_crosslink.hash_tree_root,
-                start_epoch=parent_crosslink.end_epoch,
-                end_epoch=min(
-                    target_epoch,
-                    parent_crosslink.end_epoch + config.MAX_EPOCHS_PER_CROSSLINK,
-                ),
-            ),
         )
 
         num_voted_attesters = int(len(committee) * voted_attesters_ratio)
@@ -702,7 +677,7 @@ def create_mock_voluntary_exit(
             message_hash=voluntary_exit.signing_root,
             privkey=keymap[state.validators[validator_index].pubkey],
             state=state,
-            slot=compute_start_slot_of_epoch(target_epoch, config.SLOTS_PER_EPOCH),
+            slot=compute_start_slot_at_epoch(target_epoch, config.SLOTS_PER_EPOCH),
             signature_domain=SignatureDomain.DOMAIN_VOLUNTARY_EXIT,
             slots_per_epoch=config.SLOTS_PER_EPOCH,
         )

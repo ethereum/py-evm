@@ -11,7 +11,7 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
         "slots_per_epoch,"
         "min_attestation_inclusion_delay,"
         "target_committee_size,"
-        "shard_count,"
+        "max_committees_per_slot,"
         "state_slot,"
         "slots_per_historical_root"
     ),

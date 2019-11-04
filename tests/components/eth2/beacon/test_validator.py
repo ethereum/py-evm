@@ -14,16 +14,13 @@ from lahja import (
 )
 import pytest
 
-from eth2.beacon.attestation_helpers import (
-    get_attestation_data_slot,
-)
 from eth2.beacon.helpers import (
-    compute_epoch_of_slot,
+    compute_epoch_at_slot,
 )
 from eth2.beacon.exceptions import (
     NoCommitteeAssignment,
 )
-from eth2.beacon.helpers import compute_start_slot_of_epoch
+from eth2.beacon.helpers import compute_start_slot_at_epoch
 from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
@@ -103,7 +100,7 @@ async def get_linked_validators(event_loop, event_bus) -> Tuple[Validator, Valid
 
 def _get_slot_with_validator_selected(candidate_indices, state, config):
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    epoch_start_slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
+    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
 
     for index in candidate_indices:
         try:
@@ -304,7 +301,7 @@ async def test_validator_get_committee_assigment(event_loop, event_bus):
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=alice_indices)
     state_machine = alice.chain.get_state_machine()
     state = alice.chain.get_head_state()
-    epoch = compute_epoch_of_slot(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_at_slot(state.slot, state_machine.config.SLOTS_PER_EPOCH)
 
     assert alice.this_epoch_assignment[alice_indices[0]][0] == -1
     alice._get_this_epoch_assignment(alice_indices[0], epoch)
@@ -319,19 +316,15 @@ async def test_validator_attest(event_loop, event_bus, monkeypatch):
     state_machine = alice.chain.get_state_machine()
     state = alice.chain.get_head_state()
 
-    epoch = compute_epoch_of_slot(state.slot, state_machine.config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_at_slot(state.slot, state_machine.config.SLOTS_PER_EPOCH)
     assignment = alice._get_this_epoch_assignment(alice_indices[0], epoch)
 
     attestations = await alice.attest(assignment.slot)
     assert len(attestations) == 1
     attestation = attestations[0]
-    assert get_attestation_data_slot(
-        state,
-        attestation.data,
-        state_machine.config,
-    ) == assignment.slot
+    assert attestation.data.slot == assignment.slot
     assert attestation.data.beacon_block_root == head.signing_root
-    assert attestation.data.crosslink.shard == assignment.shard
+    assert attestation.data.index == assignment.committee_index
 
     # Advance the state and validate the attestation
     config = state_machine.config

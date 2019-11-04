@@ -27,7 +27,7 @@ from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
 from eth2.beacon.helpers import (
-    compute_epoch_of_slot,
+    compute_epoch_at_slot,
 )
 from eth2.beacon.state_machines.base import (
     BaseBeaconStateMachine,
@@ -59,8 +59,8 @@ from eth2.beacon.types.states import (
 )
 from eth2.beacon.typing import (
     CommitteeIndex,
+    CommitteeValidatorIndex,
     Epoch,
-    Shard,
     Slot,
     ValidatorIndex,
 )
@@ -114,7 +114,7 @@ class Validator(BaseService):
             self.latest_attested_epoch[validator_index] = Epoch(-1)
             self.this_epoch_assignment[validator_index] = (
                 Epoch(-1),
-                CommitteeAssignment((), Shard(-1), Slot(-1)),
+                CommitteeAssignment((), CommitteeIndex(-1), Slot(-1)),
             )
         self.get_ready_attestations: GetReadyAttestationsFn = get_ready_attestations_fn
 
@@ -202,7 +202,7 @@ class Validator(BaseService):
         )
         # `latest_proposed_epoch` is used to prevent validator from erraneously proposing twice
         # in the same epoch due to service crashing.
-        epoch = compute_epoch_of_slot(slot, self.slots_per_epoch)
+        epoch = compute_epoch_at_slot(slot, self.slots_per_epoch)
         if proposer_index in self.validator_privkeys:
             has_proposed = epoch <= self.latest_proposed_epoch[proposer_index]
             if not has_proposed:
@@ -300,20 +300,22 @@ class Validator(BaseService):
         return not has_attested and slot == assignment.slot
 
     @to_tuple
-    def _get_attesting_validator_and_shard(self,
-                                           assignments: Dict[ValidatorIndex, CommitteeAssignment],
-                                           slot: Slot,
-                                           epoch: Epoch) -> Iterable[Tuple[ValidatorIndex, Shard]]:
+    def _get_attesting_validator_and_committee_index(
+        self,
+        assignments: Dict[ValidatorIndex, CommitteeAssignment],
+        slot: Slot,
+        epoch: Epoch
+    ) -> Iterable[Tuple[ValidatorIndex, CommitteeIndex]]:
         for validator_index, assignment in assignments.items():
             if self._is_attesting(validator_index, assignment, slot, epoch):
-                yield (validator_index, assignment.shard)
+                yield (validator_index, assignment.committee_index)
 
     async def attest(self, slot: Slot) -> Tuple[Attestation, ...]:
         attestations: Tuple[Attestation, ...] = ()
         head = self.chain.get_canonical_head()
         state_machine = self.chain.get_state_machine()
         state = self.chain.get_head_state()
-        epoch = compute_epoch_of_slot(slot, self.slots_per_epoch)
+        epoch = compute_epoch_at_slot(slot, self.slots_per_epoch)
 
         validator_assignments = {
             validator_index: self._get_this_epoch_assignment(
@@ -322,7 +324,7 @@ class Validator(BaseService):
             )
             for validator_index in self.validator_privkeys
         }
-        attesting_validators = self._get_attesting_validator_and_shard(
+        attesting_validators = self._get_attesting_validator_and_committee_index(
             validator_assignments,
             slot,
             epoch,
@@ -330,17 +332,17 @@ class Validator(BaseService):
         if len(attesting_validators) == 0:
             return ()
 
-        # Sort the attesting validators by shard
+        # Sort the attesting validators by committee index
         sorted_attesting_validators = sorted(
             attesting_validators,
             key=itemgetter(1),
         )
-        # Group the attesting validators by shard
+        # Group the attesting validators by committee index
         attesting_validators_groups = groupby(
             sorted_attesting_validators,
             key=itemgetter(1),
         )
-        for shard, group in attesting_validators_groups:
+        for committee_index, group in attesting_validators_groups:
             # Get the validator_index -> privkey map of the attesting validators
             attesting_validator_privkeys = {
                 attesting_data[0]: self.validator_privkeys[attesting_data[0]]
@@ -360,9 +362,9 @@ class Validator(BaseService):
                 head.signing_root,
                 attesting_validator_privkeys,
                 assignment.committee,
-                shard,
+                assignment.committee_index,
                 tuple(
-                    CommitteeIndex(assignment.committee.index(index))
+                    CommitteeValidatorIndex(assignment.committee.index(index))
                     for index in attesting_validators_indices
                 ),
             )

@@ -1,147 +1,51 @@
 import random
 
-from eth_utils import ValidationError
 import pytest
 
 from eth2.beacon.committee_helpers import (
-    _calculate_first_committee_at_slot,
     compute_proposer_index,
+    get_beacon_committee,
     get_beacon_proposer_index,
-    get_committee_count,
-    get_committees_per_slot,
-    get_crosslink_committee,
-    get_shard_delta,
-    get_start_shard,
-)
-from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
-    get_active_validator_indices,
+    get_committee_count_at_slot,
 )
 from eth2.configs import CommitteeConfig
 
 
 @pytest.mark.parametrize(
     (
-        "active_validator_count,"
-        "slots_per_epoch,"
-        "target_committee_size,"
-        "shard_count,"
-        "expected_committee_count"
-    ),
-    [
-        # SHARD_COUNT // SLOTS_PER_EPOCH
-        (1000, 20, 10, 50, 40),
-        # active_validator_count // SLOTS_PER_EPOCH // TARGET_COMMITTEE_SIZE
-        (500, 20, 10, 100, 40),
-        # 1
-        (20, 10, 3, 10, 10),
-        # 1
-        (40, 5, 10, 5, 5),
-    ],
-)
-def test_get_committees_per_slot(
-    active_validator_count,
-    slots_per_epoch,
-    target_committee_size,
-    shard_count,
-    expected_committee_count,
-):
-    assert expected_committee_count // slots_per_epoch == get_committees_per_slot(
-        active_validator_count=active_validator_count,
-        shard_count=shard_count,
-        slots_per_epoch=slots_per_epoch,
-        target_committee_size=target_committee_size,
-    )
-
-
-@pytest.mark.parametrize(
-    (
-        "active_validator_count,"
-        "slots_per_epoch,"
-        "target_committee_size,"
-        "shard_count,"
-        "expected_committee_count"
-    ),
-    [
-        # SHARD_COUNT // SLOTS_PER_EPOCH
-        (1000, 20, 10, 50, 40),
-        # active_validator_count // SLOTS_PER_EPOCH // TARGET_COMMITTEE_SIZE
-        (500, 20, 10, 100, 40),
-        # 1
-        (20, 10, 3, 10, 10),
-        # 1
-        (40, 5, 10, 5, 5),
-    ],
-)
-def test_get_committee_count(
-    active_validator_count,
-    slots_per_epoch,
-    target_committee_size,
-    shard_count,
-    expected_committee_count,
-):
-    assert expected_committee_count == get_committee_count(
-        active_validator_count=active_validator_count,
-        shard_count=shard_count,
-        slots_per_epoch=slots_per_epoch,
-        target_committee_size=target_committee_size,
-    )
-
-
-@pytest.mark.parametrize(
-    (
         "validator_count,"
         "slots_per_epoch,"
         "target_committee_size,"
-        "shard_count,"
-        "expected_shard_delta,"
+        "max_committees_per_slot,"
+        "expected_committee_count"
     ),
     [
-        # SHARD_COUNT - SHARD_COUNT // SLOTS_PER_EPOCH
-        (1000, 25, 5, 50, 50 - 50 // 20),
+        # MAX_COMMITTEES_PER_SLOT // SLOTS_PER_EPOCH
+        (1000, 20, 10, 50, 40),
         # active_validator_count // SLOTS_PER_EPOCH // TARGET_COMMITTEE_SIZE
         (500, 20, 10, 100, 40),
+        # 1
+        (20, 10, 3, 10, 10),
+        # 1
+        (40, 5, 10, 5, 5),
     ],
 )
-def test_get_shard_delta(genesis_state, expected_shard_delta, config):
+def test_get_committee_count_at_slot(
+    validator_count,
+    slots_per_epoch,
+    target_committee_size,
+    max_committees_per_slot,
+    expected_committee_count,
+    genesis_state,
+):
     state = genesis_state
-    epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-
-    assert get_shard_delta(state, epoch, config) == expected_shard_delta
-
-
-@pytest.mark.parametrize(
-    (
-        "validator_count,"
-        "slots_per_epoch,"
-        "target_committee_size,"
-        "shard_count,"
-        "current_epoch,"
-        "target_epoch,"
-        "expected_epoch_start_shard,"
-    ),
-    [
-        (1000, 25, 5, 50, 3, 2, 2),
-        (1000, 25, 5, 50, 3, 3, 0),
-        (1000, 25, 5, 50, 3, 4, 48),
-        (1000, 25, 5, 50, 3, 5, None),
-    ],
-)
-def test_get_start_shard(
-    genesis_state, current_epoch, target_epoch, expected_epoch_start_shard, config
-):
-    state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(current_epoch, config.SLOTS_PER_EPOCH)
+    assert expected_committee_count // slots_per_epoch == get_committee_count_at_slot(
+        state,
+        state.slot,
+        max_committees_per_slot=max_committees_per_slot,
+        slots_per_epoch=slots_per_epoch,
+        target_committee_size=target_committee_size,
     )
-
-    if expected_epoch_start_shard is None:
-        with pytest.raises(ValidationError):
-            get_start_shard(state, target_epoch, CommitteeConfig(config))
-    else:
-        epoch_start_shard = get_start_shard(
-            state, target_epoch, CommitteeConfig(config)
-        )
-        assert epoch_start_shard == expected_epoch_start_shard
 
 
 SOME_SEED = b"\x33" * 32
@@ -174,36 +78,6 @@ def test_compute_proposer_index(genesis_validators, config):
     )
 
 
-def test_calculate_first_committee_at_slot(genesis_state, config):
-    state = genesis_state
-    slots_per_epoch = config.SLOTS_PER_EPOCH
-    shard_count = config.SHARD_COUNT
-    target_committee_size = config.TARGET_COMMITTEE_SIZE
-
-    current_epoch = state.current_epoch(slots_per_epoch)
-
-    active_validator_indices = get_active_validator_indices(
-        state.validators, current_epoch
-    )
-
-    committees_per_slot = get_committees_per_slot(
-        len(active_validator_indices),
-        shard_count,
-        slots_per_epoch,
-        target_committee_size,
-    )
-
-    assert state.slot % config.SLOTS_PER_EPOCH == 0
-    for slot in range(state.slot, state.slot + config.SLOTS_PER_EPOCH):
-        offset = committees_per_slot * (slot % slots_per_epoch)
-        shard = (get_start_shard(state, current_epoch, config) + offset) % shard_count
-        committee = get_crosslink_committee(state, current_epoch, shard, config)
-
-        assert committee == _calculate_first_committee_at_slot(
-            state, slot, CommitteeConfig(config)
-        )
-
-
 def _invalidate_all_but_proposer(proposer_index, index, validator):
     if proposer_index == index:
         return validator
@@ -214,10 +88,7 @@ def _invalidate_all_but_proposer(proposer_index, index, validator):
 @pytest.mark.parametrize(("validator_count,"), [(1000)])
 def test_get_beacon_proposer_index(genesis_state, config):
     state = genesis_state
-    first_committee = _calculate_first_committee_at_slot(
-        state, state.slot, CommitteeConfig(config)
-    )
-    some_validator_index = random.sample(first_committee, 1)[0]
+    some_validator_index = random.sample(range(len(state.validators)), 1)[0]
 
     state = state.copy(
         validators=tuple(
@@ -233,18 +104,24 @@ def test_get_beacon_proposer_index(genesis_state, config):
 
 
 @pytest.mark.parametrize(("validator_count,"), [(1000)])
-def test_get_crosslink_committee(genesis_state, config):
+def test_get_beacon_committee(genesis_state, config):
+    state = genesis_state
     indices = tuple()
-    for shard in range(
-        get_shard_delta(genesis_state, config.GENESIS_EPOCH, CommitteeConfig(config))
-    ):
-        some_committee = get_crosslink_committee(
-            genesis_state,
-            genesis_state.current_epoch(config.SLOTS_PER_EPOCH),
-            genesis_state.start_shard + shard,
-            CommitteeConfig(config),
+    epoch_start_slot = state.slot
+
+    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
+        committees_at_slot = get_committee_count_at_slot(
+            state,
+            slot,
+            config.MAX_COMMITTEES_PER_SLOT,
+            config.SLOTS_PER_EPOCH,
+            config.TARGET_COMMITTEE_SIZE,
         )
-        indices += tuple(some_committee)
+        for committee_index in range(committees_at_slot):
+            some_committee = get_beacon_committee(
+                state, slot, committee_index, CommitteeConfig(config)
+            )
+            indices += tuple(some_committee)
 
     assert set(indices) == set(range(len(genesis_state.validators)))
     assert len(indices) == len(genesis_state.validators)

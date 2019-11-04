@@ -3,7 +3,7 @@ import pytest
 
 from eth2.beacon.committee_helpers import get_beacon_proposer_index
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
-from eth2.beacon.helpers import compute_start_slot_of_epoch
+from eth2.beacon.helpers import compute_start_slot_at_epoch
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_attestations,
@@ -18,7 +18,6 @@ from eth2.beacon.tools.builder.validator import (
     create_mock_voluntary_exit,
 )
 from eth2.beacon.types.blocks import BeaconBlockBody
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.configs import CommitteeConfig
 
 
@@ -67,7 +66,7 @@ def test_process_max_attestations(
         "validator_count",
         "slots_per_epoch",
         "target_committee_size",
-        "shard_count",
+        "max_committees_per_slot",
         "block_root_1",
         "block_root_2",
         "success",
@@ -125,7 +124,7 @@ def test_process_proposer_slashings(
         "validator_count",
         "slots_per_epoch",
         "target_committee_size",
-        "shard_count",
+        "max_committees_per_slot",
         "min_attestation_inclusion_delay",
     ),
     [(100, 2, 2, 2, 1)],
@@ -190,7 +189,7 @@ def test_process_attester_slashings(
         "slots_per_epoch,"
         "min_attestation_inclusion_delay,"
         "target_committee_size,"
-        "shard_count,"
+        "max_committees_per_slot,"
         "success,"
     ),
     [(10, 2, 1, 2, 2, True), (10, 2, 1, 2, 2, False), (40, 4, 2, 3, 5, True)],
@@ -225,13 +224,9 @@ def test_process_attestations(
     assert len(attestations) > 0
 
     if not success:
-        # create invalid attestation by shard
-        # i.e. wrong parent
-        invalid_attestation_data = attestations[-1].data.copy(
-            crosslink=attestations[-1].data.crosslink.copy(
-                parent_root=Crosslink(shard=333).hash_tree_root
-            )
-        )
+        # create invalid attestation
+        # i.e. wrong slot
+        invalid_attestation_data = attestations[-1].data.copy(slot=state.slot + 1)
         invalid_attestation = attestations[-1].copy(data=invalid_attestation_data)
         attestations = attestations[:-1] + (invalid_attestation,)
 
@@ -270,7 +265,7 @@ def test_process_voluntary_exits(
     success,
 ):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(
+        slot=compute_start_slot_at_epoch(
             config.GENESIS_EPOCH + config.PERSISTENT_COMMITTEE_PERIOD,
             config.SLOTS_PER_EPOCH,
         )

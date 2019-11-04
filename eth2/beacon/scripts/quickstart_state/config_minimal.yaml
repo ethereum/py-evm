@@ -4,12 +4,12 @@
 # Misc
 # ---------------------------------------------------------------
 
-# [customized] Just 8 shards for testing purposes
-SHARD_COUNT: 8
+# [customized] Just 4 committees for slot for testing purposes
+MAX_COMMITTEES_PER_SLOT: 4
 # [customized] unsecure, but fast
 TARGET_COMMITTEE_SIZE: 4
-# 2**12 (= 4,096)
-MAX_VALIDATORS_PER_COMMITTEE: 4096
+# 2**11 (= 2,048)
+MAX_VALIDATORS_PER_COMMITTEE: 2048
 # 2**2 (= 4)
 MIN_PER_EPOCH_CHURN_LIMIT: 4
 # 2**16 (= 65,536)
@@ -50,7 +50,7 @@ BLS_WITHDRAWAL_PREFIX: 0x00
 
 # Time parameters
 # ---------------------------------------------------------------
-# 6 seconds 6 seconds
+# [customized] Faster for testing purposes
 SECONDS_PER_SLOT: 6
 # 2**0 (= 1) slots 6 seconds
 MIN_ATTESTATION_INCLUSION_DELAY: 1
@@ -68,8 +68,6 @@ SLOTS_PER_HISTORICAL_ROOT: 64
 MIN_VALIDATOR_WITHDRAWABILITY_DELAY: 256
 # 2**11 (= 2,048) epochs
 PERSISTENT_COMMITTEE_PERIOD: 2048
-# [customized] fast catchup crosslinks
-MAX_EPOCHS_PER_CROSSLINK: 4
 # 2**2 (= 4) epochs
 MIN_EPOCHS_TO_INACTIVITY_PENALTY: 4
 # [customized] 2**12 (= 4,096) epochs
@@ -122,7 +120,7 @@ MAX_TRANSFERS: 0
 # ---------------------------------------------------------------
 DOMAIN_BEACON_PROPOSER: 0x00000000
 DOMAIN_RANDAO: 0x01000000
-DOMAIN_BEACON_ATTESTER: 0x02000000
+DOMAIN_BEACON_ATTESTER: 0 x02000000
 DOMAIN_DEPOSIT: 0x03000000
 DOMAIN_VOLUNTARY_EXIT: 0x04000000
 DOMAIN_TRANSFER: 0x05000000

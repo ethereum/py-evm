@@ -24,11 +24,11 @@ if TYPE_CHECKING:
     from eth2.beacon.types.states import BeaconState  # noqa: F401
 
 
-def compute_epoch_of_slot(slot: Slot, slots_per_epoch: int) -> Epoch:
+def compute_epoch_at_slot(slot: Slot, slots_per_epoch: int) -> Epoch:
     return Epoch(slot // slots_per_epoch)
 
 
-def compute_start_slot_of_epoch(epoch: Epoch, slots_per_epoch: int) -> Slot:
+def compute_start_slot_at_epoch(epoch: Epoch, slots_per_epoch: int) -> Slot:
     return Slot(epoch * slots_per_epoch)
 
 
@@ -88,7 +88,7 @@ def get_block_root(
 ) -> SigningRoot:
     return get_block_root_at_slot(
         state,
-        compute_start_slot_of_epoch(epoch, slots_per_epoch),
+        compute_start_slot_at_epoch(epoch, slots_per_epoch),
         slots_per_historical_root,
     )
 

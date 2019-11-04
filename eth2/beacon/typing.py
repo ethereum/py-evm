@@ -16,10 +16,11 @@ class Bitfield(Tuple[bool, ...]):
         return f"0b{''.join(elems)}"
 
 
-ValidatorIndex = NewType("ValidatorIndex", int)  # uint64
-CommitteeIndex = NewType(
-    "CommitteeIndex", int
-)  # uint64 The i-th position in a committee tuple
+CommitteeIndex = NewType("CommitteeIndex", int)  # uint64, a committee index at a slot
+ValidatorIndex = NewType("ValidatorIndex", int)  # uint64, a validator registry index
+CommitteeValidatorIndex = NewType(
+    "CommitteeValidatorIndex", int
+)  # uint64, the i-th position in a committee tuple
 
 Gwei = NewType("Gwei", int)  # uint64
 
@@ -45,6 +46,7 @@ class FromBlockParams(NamedTuple):
 default_slot = Slot(0)
 default_epoch = Epoch(0)
 default_shard = Shard(0)
+default_committee_index = CommitteeIndex(0)
 default_validator_index = ValidatorIndex(0)
 default_gwei = Gwei(0)
 default_timestamp = Timestamp(0)

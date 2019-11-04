@@ -1,4 +1,4 @@
-from typing import Iterable, Sequence, Tuple
+from typing import Iterable, Sequence
 
 from eth_typing import Hash32
 from eth_utils import ValidationError, to_tuple
@@ -7,6 +7,7 @@ from eth2._utils.hash import hash_eth2
 from eth2.beacon.constants import MAX_INDEX_COUNT, MAX_RANDOM_BYTE
 from eth2.beacon.exceptions import ImprobableToReach
 from eth2.beacon.helpers import (
+    compute_epoch_at_slot,
     get_active_validator_indices,
     get_seed,
     signature_domain_to_domain_type,
@@ -14,74 +15,26 @@ from eth2.beacon.helpers import (
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
-from eth2.beacon.typing import Epoch, Gwei, Shard, Slot, ValidatorIndex
+from eth2.beacon.typing import CommitteeIndex, Gwei, Slot, ValidatorIndex
 from eth2.configs import CommitteeConfig
 
 
-def get_committees_per_slot(
-    active_validator_count: int,
-    shard_count: int,
+def get_committee_count_at_slot(
+    state: BeaconState,
+    slot: Slot,
+    max_committees_per_slot: int,
     slots_per_epoch: int,
     target_committee_size: int,
 ) -> int:
+    epoch = compute_epoch_at_slot(slot, slots_per_epoch)
+    active_validator_indices = get_active_validator_indices(state.validators, epoch)
     return max(
         1,
         min(
-            shard_count // slots_per_epoch,
-            active_validator_count // slots_per_epoch // target_committee_size,
+            max_committees_per_slot,
+            len(active_validator_indices) // slots_per_epoch // target_committee_size,
         ),
     )
-
-
-def get_committee_count(
-    active_validator_count: int,
-    shard_count: int,
-    slots_per_epoch: int,
-    target_committee_size: int,
-) -> int:
-    return (
-        get_committees_per_slot(
-            active_validator_count, shard_count, slots_per_epoch, target_committee_size
-        )
-        * slots_per_epoch
-    )
-
-
-def get_shard_delta(state: BeaconState, epoch: Epoch, config: CommitteeConfig) -> int:
-    shard_count = config.SHARD_COUNT
-    slots_per_epoch = config.SLOTS_PER_EPOCH
-
-    active_validator_indices = get_active_validator_indices(state.validators, epoch)
-
-    return min(
-        get_committee_count(
-            len(active_validator_indices),
-            shard_count,
-            slots_per_epoch,
-            config.TARGET_COMMITTEE_SIZE,
-        ),
-        shard_count - shard_count // slots_per_epoch,
-    )
-
-
-def get_start_shard(state: BeaconState, epoch: Epoch, config: CommitteeConfig) -> Shard:
-    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
-    if epoch > next_epoch:
-        raise ValidationError("Asking for start shard for an epoch after next")
-
-    check_epoch = int(next_epoch)
-    shard = (
-        state.start_shard + get_shard_delta(state, current_epoch, config)
-    ) % config.SHARD_COUNT
-    while check_epoch > epoch:
-        check_epoch -= 1
-        shard = (
-            shard
-            + config.SHARD_COUNT
-            - get_shard_delta(state, Epoch(check_epoch), config)
-        ) % config.SHARD_COUNT
-    return shard
 
 
 MAX_ROUNDS = 100
@@ -134,32 +87,6 @@ def compute_proposer_index(
         raise ImprobableToReach(
             f"Search for a proposer failed after {MAX_ROUNDS} rounds."
         )
-
-
-def _calculate_first_committee_at_slot(
-    state: BeaconState, slot: Slot, config: CommitteeConfig
-) -> Tuple[ValidatorIndex, ...]:
-    slots_per_epoch = config.SLOTS_PER_EPOCH
-    shard_count = config.SHARD_COUNT
-    target_committee_size = config.TARGET_COMMITTEE_SIZE
-
-    current_epoch = state.current_epoch(slots_per_epoch)
-
-    active_validator_indices = get_active_validator_indices(
-        state.validators, current_epoch
-    )
-
-    committees_per_slot = get_committees_per_slot(
-        len(active_validator_indices),
-        shard_count,
-        slots_per_epoch,
-        target_committee_size,
-    )
-
-    offset = committees_per_slot * (slot % slots_per_epoch)
-    shard = (get_start_shard(state, current_epoch, config) + offset) % shard_count
-
-    return get_crosslink_committee(state, current_epoch, shard, config)
 
 
 def get_beacon_proposer_index(
@@ -249,12 +176,17 @@ def _compute_committee(
 
 
 @to_tuple
-def get_crosslink_committee(
-    state: BeaconState, epoch: Epoch, shard: Shard, config: CommitteeConfig
+def get_beacon_committee(
+    state: BeaconState, slot: Slot, index: CommitteeIndex, config: CommitteeConfig
 ) -> Iterable[ValidatorIndex]:
-    target_shard = (
-        shard + config.SHARD_COUNT - get_start_shard(state, epoch, config)
-    ) % config.SHARD_COUNT
+    epoch = compute_epoch_at_slot(slot, config.SLOTS_PER_EPOCH)
+    committees_per_slot = get_committee_count_at_slot(
+        state,
+        slot,
+        config.MAX_COMMITTEES_PER_SLOT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
+    )
 
     active_validator_indices = get_active_validator_indices(state.validators, epoch)
 
@@ -265,12 +197,7 @@ def get_crosslink_committee(
     return _compute_committee(
         indices=active_validator_indices,
         seed=get_seed(state, epoch, domain_type, config),
-        index=target_shard,
-        count=get_committee_count(
-            len(active_validator_indices),
-            config.SHARD_COUNT,
-            config.SLOTS_PER_EPOCH,
-            config.TARGET_COMMITTEE_SIZE,
-        ),
+        index=(slot % config.SLOTS_PER_EPOCH) * committees_per_slot + index,
+        count=committees_per_slot * config.SLOTS_PER_EPOCH,
         shuffle_round_count=config.SHUFFLE_ROUND_COUNT,
     )

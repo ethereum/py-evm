@@ -4,7 +4,7 @@ from eth_utils.toolz import concat, first, mapcat
 import pytest
 
 from eth2._utils.bls import bls
-from eth2.beacon.helpers import compute_start_slot_of_epoch, get_domain
+from eth2.beacon.helpers import compute_start_slot_at_epoch, get_domain
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.state_machines.forks.serenity.block_processing import (
     process_eth1_data,
@@ -39,7 +39,7 @@ def test_randao_processing(
     )
 
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
+    slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
 
     randao_reveal = _generate_randao_reveal(
         privkey=proposer_privkey, slot=slot, state=state, config=config

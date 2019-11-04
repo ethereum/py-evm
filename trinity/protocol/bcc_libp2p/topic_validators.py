@@ -13,7 +13,6 @@ from eth_utils import (
 from eth.exceptions import BlockNotFound
 
 from eth2.beacon.types.attestations import Attestation
-from eth2.beacon.attestation_helpers import get_attestation_data_slot
 from eth2.beacon.chains.base import BaseBeaconChain
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
@@ -98,14 +97,9 @@ def get_beacon_attestation_validator(chain: BaseBeaconChain) -> Callable[..., bo
 
         # Fast forward to state in future slot in order to pass
         # attestation.data.slot validity check
-        attestation_data_slot = get_attestation_data_slot(
-            state,
-            attestation.data,
-            config,
-        )
         future_state = state_machine.state_transition.apply_state_transition(
             state,
-            future_slot=Slot(attestation_data_slot + config.MIN_ATTESTATION_INCLUSION_DELAY),
+            future_slot=Slot(attestation.data.slot + config.MIN_ATTESTATION_INCLUSION_DELAY),
         )
         try:
             validate_attestation(

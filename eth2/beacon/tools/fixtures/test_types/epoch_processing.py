@@ -1,7 +1,6 @@
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
-    process_crosslinks,
     process_final_updates,
     process_justification_and_finalization,
     process_registry_updates,
@@ -44,11 +43,6 @@ class JustificationAndFinalizationHandler(EpochProcessingHandler):
     processor = process_justification_and_finalization
 
 
-class CrosslinksHandler(EpochProcessingHandler):
-    name = "crosslinks"
-    processor = process_crosslinks
-
-
 class RegistryUpdatesHandler(EpochProcessingHandler):
     name = "registry_updates"
     processor = process_registry_updates
@@ -66,7 +60,6 @@ class FinalUpdatesHandler(EpochProcessingHandler):
 
 EpochProcessingHandlerType = Tuple[
     Type[JustificationAndFinalizationHandler],
-    Type[CrosslinksHandler],
     Type[RegistryUpdatesHandler],
     Type[SlashingsHandler],
     Type[FinalUpdatesHandler],
@@ -78,7 +71,6 @@ class EpochProcessingTestType(TestType[EpochProcessingHandlerType]):
 
     handlers = (
         JustificationAndFinalizationHandler,
-        CrosslinksHandler,
         RegistryUpdatesHandler,
         SlashingsHandler,
         FinalUpdatesHandler,

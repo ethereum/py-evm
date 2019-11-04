@@ -2,7 +2,7 @@ from eth_utils import ValidationError
 import pytest
 
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
-from eth2.beacon.helpers import compute_start_slot_of_epoch
+from eth2.beacon.helpers import compute_start_slot_at_epoch
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     _validate_eligible_exit_epoch,
     _validate_validator_has_not_exited,
@@ -26,7 +26,7 @@ def test_validate_voluntary_exit(
     genesis_state, keymap, slots_per_epoch, persistent_committee_period, config
 ):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(
+        slot=compute_start_slot_at_epoch(
             config.GENESIS_EPOCH + persistent_committee_period, slots_per_epoch
         )
     )
@@ -79,7 +79,7 @@ def test_validate_eligible_exit_epoch(
     success,
 ):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch)
+        slot=compute_start_slot_at_epoch(current_epoch, slots_per_epoch)
     )
 
     validator_index = 0
@@ -111,7 +111,7 @@ def test_validate_validator_minimum_lifespan(
     success,
 ):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch)
+        slot=compute_start_slot_at_epoch(current_epoch, slots_per_epoch)
     )
     validator_index = 0
     validator = state.validators[validator_index].copy(

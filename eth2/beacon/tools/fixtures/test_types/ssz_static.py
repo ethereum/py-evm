@@ -15,7 +15,6 @@ from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.block_headers import BeaconBlockHeader
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
@@ -190,11 +189,6 @@ class CheckpointHandler(SSZHandler):
     object_type = Checkpoint
 
 
-class CrosslinkHandler(SSZHandler):
-    name = "Crosslink"
-    object_type = Crosslink
-
-
 class DepositHandler(SSZHandler):
     name = "Deposit"
     object_type = Deposit
@@ -260,7 +254,6 @@ SSZStaticHandlerType = Tuple[
     Type[BeaconBlockHeaderHandler],
     Type[BeaconStateHandler],
     Type[CheckpointHandler],
-    Type[CrosslinkHandler],
     Type[DepositHandler],
     Type[DepositDataHandler],
     Type[Eth1DataHandler],
@@ -288,7 +281,6 @@ class SSZStaticTestType(TestType[SSZStaticHandlerType]):
         BeaconBlockHeaderHandler,
         BeaconStateHandler,
         CheckpointHandler,
-        CrosslinkHandler,
         DepositHandler,
         DepositDataHandler,
         Eth1DataHandler,

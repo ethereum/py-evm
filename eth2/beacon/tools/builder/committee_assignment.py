@@ -3,22 +3,22 @@ from typing import NamedTuple, Tuple
 from eth_utils import ValidationError
 
 from eth2.beacon.committee_helpers import (
-    get_committee_count,
-    get_crosslink_committee,
-    get_start_shard,
+    get_beacon_committee,
+    get_committee_count_at_slot,
 )
 from eth2.beacon.exceptions import NoCommitteeAssignment
-from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
-    get_active_validator_indices,
-)
+from eth2.beacon.helpers import compute_start_slot_at_epoch
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import Epoch, Shard, Slot, ValidatorIndex
+from eth2.beacon.typing import CommitteeIndex, Epoch, Slot, ValidatorIndex
 from eth2.configs import CommitteeConfig, Eth2Config
 
 CommitteeAssignment = NamedTuple(
     "CommitteeAssignment",
-    (("committee", Tuple[ValidatorIndex, ...]), ("shard", Shard), ("slot", Slot)),
+    (
+        ("committee", Tuple[ValidatorIndex, ...]),
+        ("committee_index", CommitteeIndex),
+        ("slot", Slot),
+    ),
 )
 
 
@@ -32,7 +32,7 @@ def get_committee_assignment(
     """
     Return the ``CommitteeAssignment`` in the ``epoch`` for ``validator_index``.
     ``CommitteeAssignment.committee`` is the tuple array of validators in the committee
-    ``CommitteeAssignment.shard`` is the shard to which the committee is assigned
+    ``CommitteeAssignment.index`` is the index to which the committee is assigned
     ``CommitteeAssignment.slot`` is the slot at which the committee is assigned
     """
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
@@ -41,28 +41,23 @@ def get_committee_assignment(
             f"Epoch for committee assignment ({epoch}) must not be after next epoch {next_epoch}."
         )
 
-    active_validators = get_active_validator_indices(state.validators, epoch)
-    committees_per_slot = (
-        get_committee_count(
-            len(active_validators),
-            config.SHARD_COUNT,
+    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
+
+    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
+        committees_at_slot = get_committee_count_at_slot(
+            state,
+            Slot(slot),
+            config.MAX_COMMITTEES_PER_SLOT,
             config.SLOTS_PER_EPOCH,
             config.TARGET_COMMITTEE_SIZE,
         )
-        // config.SLOTS_PER_EPOCH
-    )
-    epoch_start_slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
-    epoch_start_shard = get_start_shard(state, epoch, CommitteeConfig(config))
-
-    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
-        offset = committees_per_slot * (slot % config.SLOTS_PER_EPOCH)
-        slot_start_shard = (epoch_start_shard + offset) % config.SHARD_COUNT
-        for i in range(committees_per_slot):
-            shard = Shard((slot_start_shard + i) % config.SHARD_COUNT)
-            committee = get_crosslink_committee(
-                state, epoch, shard, CommitteeConfig(config)
+        for committee_index in range(committees_at_slot):
+            committee = get_beacon_committee(
+                state, slot, committee_index, CommitteeConfig(config)
             )
             if validator_index in committee:
-                return CommitteeAssignment(committee, Shard(shard), Slot(slot))
+                return CommitteeAssignment(
+                    committee, CommitteeIndex(committee_index), Slot(slot)
+                )
 
     raise NoCommitteeAssignment

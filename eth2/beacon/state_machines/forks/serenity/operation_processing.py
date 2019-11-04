@@ -2,7 +2,6 @@ from typing import Tuple
 
 from eth_utils import ValidationError
 
-from eth2.beacon.attestation_helpers import get_attestation_data_slot
 from eth2.beacon.committee_helpers import get_beacon_proposer_index
 from eth2.beacon.deposit_helpers import process_deposit
 from eth2.beacon.epoch_processing_helpers import decrease_balance, increase_balance
@@ -103,13 +102,11 @@ def process_attestations(
     new_previous_epoch_attestations: Tuple[PendingAttestation, ...] = tuple()
     for attestation in block.body.attestations:
         validate_attestation(state, attestation, config)
-
-        attestation_slot = get_attestation_data_slot(state, attestation.data, config)
         proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
         pending_attestation = PendingAttestation(
             aggregation_bits=attestation.aggregation_bits,
             data=attestation.data,
-            inclusion_delay=state.slot - attestation_slot,
+            inclusion_delay=state.slot - attestation.data.slot,
             proposer_index=proposer_index,
         )
 

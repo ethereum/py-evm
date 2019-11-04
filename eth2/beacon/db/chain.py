@@ -21,7 +21,7 @@ from eth2.beacon.db.exceptions import (
 )
 from eth2.beacon.db.schema import SchemaV1
 from eth2.beacon.fork_choice.scoring import ScoringFn as ForkChoiceScoringFn
-from eth2.beacon.helpers import compute_epoch_of_slot
+from eth2.beacon.helpers import compute_epoch_at_slot
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock  # noqa: F401
 from eth2.beacon.types.states import BeaconState  # noqa: F401
 from eth2.beacon.typing import Epoch, HashTreeRoot, SigningRoot, Slot
@@ -186,7 +186,7 @@ class BeaconChainDB(BaseBeaconChainDB):
         try:
             justified_head_root = self._get_justified_head_root(db)
             slot = self.get_slot_by_root(justified_head_root)
-            return compute_epoch_of_slot(slot, self.genesis_config.SLOTS_PER_EPOCH)
+            return compute_epoch_at_slot(slot, self.genesis_config.SLOTS_PER_EPOCH)
         except JustifiedHeadNotFound:
             return self.genesis_config.GENESIS_EPOCH
 

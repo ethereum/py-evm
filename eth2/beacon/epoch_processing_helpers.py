@@ -1,14 +1,11 @@
 from typing import Iterable, Sequence, Set, Tuple
 
-from eth_typing import Hash32
 from eth_utils import ValidationError, to_tuple
-from eth_utils.toolz import curry, groupby, thread_first
 
 from eth2._utils.bitfield import Bitfield, has_voted
 from eth2._utils.numeric import integer_squareroot
 from eth2._utils.tuple import update_tuple_item_with_fn
-from eth2.beacon.attestation_helpers import get_attestation_data_slot
-from eth2.beacon.committee_helpers import get_crosslink_committee
+from eth2.beacon.committee_helpers import get_beacon_committee
 from eth2.beacon.constants import BASE_REWARDS_PER_EPOCH
 from eth2.beacon.exceptions import InvalidEpochError
 from eth2.beacon.helpers import (
@@ -19,10 +16,9 @@ from eth2.beacon.helpers import (
 )
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import Epoch, Gwei, Shard, ValidatorIndex
+from eth2.beacon.typing import Epoch, Gwei, ValidatorIndex
 from eth2.configs import CommitteeConfig, Eth2Config
 
 
@@ -57,8 +53,8 @@ def get_attesting_indices(
     """
     Return the sorted attesting indices corresponding to ``attestation_data`` and ``bitfield``.
     """
-    committee = get_crosslink_committee(
-        state, attestation_data.target.epoch, attestation_data.crosslink.shard, config
+    committee = get_beacon_committee(
+        state, attestation_data.slot, attestation_data.index, config
     )
     return set(index for i, index in enumerate(committee) if has_voted(bitfield, i))
 
@@ -148,9 +144,7 @@ def get_matching_head_attestations(
 ) -> Iterable[PendingAttestation]:
     for a in get_matching_source_attestations(state, epoch, config):
         beacon_block_root = get_block_root_at_slot(
-            state,
-            get_attestation_data_slot(state, a.data, config),
-            config.SLOTS_PER_HISTORICAL_ROOT,
+            state, a.data.slot, config.SLOTS_PER_HISTORICAL_ROOT
         )
         if a.data.beacon_block_root == beacon_block_root:
             yield a
@@ -175,97 +169,6 @@ def get_attesting_balance(
     return get_total_balance(
         state,
         get_unslashed_attesting_indices(state, attestations, CommitteeConfig(config)),
-    )
-
-
-def _score_crosslink(
-    state: BeaconState,
-    crosslink: Crosslink,
-    attestations: Sequence[PendingAttestation],
-    config: Eth2Config,
-) -> Tuple[Gwei, Hash32]:
-    return (get_attesting_balance(state, attestations, config), crosslink.data_root)
-
-
-def _find_winning_crosslink_and_attesting_indices_from_candidates(
-    state: BeaconState,
-    candidate_attestations: Sequence[PendingAttestation],
-    config: Eth2Config,
-) -> Tuple[Crosslink, Set[ValidatorIndex]]:
-    attestations_by_crosslink = groupby(
-        lambda a: a.data.crosslink, candidate_attestations
-    )
-
-    winning_crosslink, winning_attestations = max(
-        attestations_by_crosslink.items(),
-        key=lambda pair: _score_crosslink(
-            state, pair[0], pair[1], config  # crosslink  # attestations
-        ),
-        default=(Crosslink(), tuple()),
-    )
-
-    return (
-        winning_crosslink,
-        get_unslashed_attesting_indices(
-            state, winning_attestations, CommitteeConfig(config)
-        ),
-    )
-
-
-@to_tuple
-def _get_attestations_for_shard(
-    attestations: Sequence[PendingAttestation], shard: Shard
-) -> Iterable[PendingAttestation]:
-    for a in attestations:
-        if a.data.crosslink.shard == shard:
-            yield a
-
-
-@curry
-def _crosslink_or_parent_is_valid(
-    valid_crosslink: Crosslink, candidate: Crosslink
-) -> bool:
-    return valid_crosslink.hash_tree_root in (
-        candidate.parent_root,
-        candidate.hash_tree_root,
-    )
-
-
-@to_tuple
-def _get_attestations_for_valid_crosslink(
-    attestations: Sequence[PendingAttestation],
-    state: BeaconState,
-    shard: Shard,
-    config: Eth2Config,
-) -> Iterable[PendingAttestation]:
-    return filter(
-        lambda a: _crosslink_or_parent_is_valid(
-            state.current_crosslinks[shard], a.data.crosslink
-        ),
-        attestations,
-    )
-
-
-def _find_candidate_attestations_for_shard(
-    state: BeaconState, epoch: Epoch, shard: Shard, config: Eth2Config
-) -> Tuple[PendingAttestation, ...]:
-    return thread_first(
-        state,
-        (get_matching_source_attestations, epoch, config),
-        (_get_attestations_for_shard, shard),
-        (_get_attestations_for_valid_crosslink, state, shard, config),
-    )
-
-
-def get_winning_crosslink_and_attesting_indices(
-    *, state: BeaconState, epoch: Epoch, shard: Shard, config: Eth2Config
-) -> Tuple[Crosslink, Set[ValidatorIndex]]:
-    candidate_attestations = _find_candidate_attestations_for_shard(
-        state, epoch, shard, config
-    )
-
-    return _find_winning_crosslink_and_attesting_indices_from_candidates(
-        state, candidate_attestations, config
     )
 
 

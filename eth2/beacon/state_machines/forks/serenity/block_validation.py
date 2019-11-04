@@ -1,6 +1,5 @@
 from typing import Iterable, Sequence, Tuple, cast  # noqa: F401
 
-from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey, BLSSignature, Hash32
 from eth_utils import ValidationError, encode_hex
 import ssz
@@ -8,31 +7,30 @@ import ssz
 from eth2._utils.bls import bls
 from eth2._utils.hash import hash_eth2
 from eth2.beacon.attestation_helpers import (
-    get_attestation_data_slot,
     is_slashable_attestation_data,
     validate_indexed_attestation,
 )
 from eth2.beacon.committee_helpers import (
+    get_beacon_committee,
     get_beacon_proposer_index,
-    get_crosslink_committee,
+    get_committee_count_at_slot,
 )
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import get_indexed_attestation
 from eth2.beacon.exceptions import SignatureError
-from eth2.beacon.helpers import compute_epoch_of_slot, get_domain
+from eth2.beacon.helpers import compute_epoch_at_slot, get_domain
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
-from eth2.beacon.typing import Epoch, Shard, SigningRoot, Slot
+from eth2.beacon.typing import CommitteeIndex, Epoch, SigningRoot, Slot
 from eth2.configs import CommitteeConfig, Eth2Config
 
 
@@ -184,8 +182,8 @@ def validate_proposer_slashing(
 def validate_proposer_slashing_epoch(
     proposer_slashing: ProposerSlashing, slots_per_epoch: int
 ) -> None:
-    epoch_1 = compute_epoch_of_slot(proposer_slashing.header_1.slot, slots_per_epoch)
-    epoch_2 = compute_epoch_of_slot(proposer_slashing.header_2.slot, slots_per_epoch)
+    epoch_1 = compute_epoch_at_slot(proposer_slashing.header_1.slot, slots_per_epoch)
+    epoch_2 = compute_epoch_at_slot(proposer_slashing.header_2.slot, slots_per_epoch)
 
     if epoch_1 != epoch_2:
         raise ValidationError(
@@ -229,7 +227,7 @@ def validate_block_header_signature(
                 state,
                 SignatureDomain.DOMAIN_BEACON_PROPOSER,
                 slots_per_epoch,
-                compute_epoch_of_slot(header.slot, slots_per_epoch),
+                compute_epoch_at_slot(header.slot, slots_per_epoch),
             ),
         )
     except SignatureError as error:
@@ -284,10 +282,26 @@ def validate_some_slashing(
 #
 # Attestation validation
 #
-def _validate_eligible_shard_number(shard: Shard, shard_count: int) -> None:
-    if shard >= shard_count:
+def _validate_eligible_committee_index(
+    state: BeaconState,
+    attestation_slot: Slot,
+    committee_index: CommitteeIndex,
+    max_committees_per_slot: int,
+    slots_per_epoch: int,
+    target_committee_size: int,
+) -> None:
+    committee_count = get_committee_count_at_slot(
+        state,
+        attestation_slot,
+        max_committees_per_slot,
+        slots_per_epoch,
+        target_committee_size,
+    )
+    if committee_index >= committee_count:
         raise ValidationError(
-            f"Attestation with shard {shard} must be less than the total shard count {shard_count}"
+            f"Attestation with committee index {committee_index} must be"
+            f" less than the calculated committee count {committee_count}"
+            f" of slot {attestation_slot}"
         )
 
 
@@ -331,42 +345,6 @@ def _validate_checkpoint(
         )
 
 
-def _validate_crosslink(
-    crosslink: Crosslink,
-    target_epoch: Epoch,
-    parent_crosslink: Crosslink,
-    max_epochs_per_crosslink: int,
-) -> None:
-    if crosslink.start_epoch != parent_crosslink.end_epoch:
-        raise ValidationError(
-            f"Crosslink with start_epoch {crosslink.start_epoch} did not match the parent"
-            f" crosslink's end epoch {parent_crosslink.end_epoch}."
-        )
-
-    expected_end_epoch = min(
-        target_epoch, parent_crosslink.end_epoch + max_epochs_per_crosslink
-    )
-    if crosslink.end_epoch != expected_end_epoch:
-        raise ValidationError(
-            f"The crosslink did not have the expected end epoch {expected_end_epoch}."
-            f" The end epoch was {crosslink.end_epoch} and the expected was the minimum of"
-            f" the target epoch {target_epoch} or the parent's end epoch plus the"
-            f" max_epochs_per_crosslink {parent_crosslink.end_epoch + max_epochs_per_crosslink}."
-        )
-
-    if crosslink.parent_root != parent_crosslink.hash_tree_root:
-        raise ValidationError(
-            f"The parent root of the crosslink {crosslink.parent_root} did not match the root of"
-            f" the expected parent's crosslink {parent_crosslink.hash_tree_root}."
-        )
-
-    if crosslink.data_root != ZERO_HASH32:
-        raise ValidationError(
-            f"The data root for this crosslink should be the zero hash."
-            f" Instead it was {crosslink.data_root}"
-        )
-
-
 def _validate_attestation_data(
     state: BeaconState, data: AttestationData, config: Eth2Config
 ) -> None:
@@ -374,16 +352,22 @@ def _validate_attestation_data(
     current_epoch = state.current_epoch(slots_per_epoch)
     previous_epoch = state.previous_epoch(slots_per_epoch, config.GENESIS_EPOCH)
 
-    attestation_slot = get_attestation_data_slot(state, data, config)
+    attestation_slot = data.slot
 
     if data.target.epoch == current_epoch:
         expected_checkpoint = state.current_justified_checkpoint
-        parent_crosslink = state.current_crosslinks[data.crosslink.shard]
     else:
         expected_checkpoint = state.previous_justified_checkpoint
-        parent_crosslink = state.previous_crosslinks[data.crosslink.shard]
 
-    _validate_eligible_shard_number(data.crosslink.shard, config.SHARD_COUNT)
+    _validate_eligible_committee_index(
+        state,
+        attestation_slot,
+        data.index,
+        config.MAX_COMMITTEES_PER_SLOT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
+    )
+
     _validate_eligible_target_epoch(data.target.epoch, current_epoch, previous_epoch)
     validate_attestation_slot(
         attestation_slot,
@@ -392,21 +376,13 @@ def _validate_attestation_data(
         config.MIN_ATTESTATION_INCLUSION_DELAY,
     )
     _validate_checkpoint(data.source, expected_checkpoint)
-    _validate_crosslink(
-        data.crosslink,
-        data.target.epoch,
-        parent_crosslink,
-        config.MAX_EPOCHS_PER_CROSSLINK,
-    )
 
 
 def _validate_aggregation_bits(
     state: BeaconState, attestation: Attestation, config: CommitteeConfig
 ) -> None:
     data = attestation.data
-    committee = get_crosslink_committee(
-        state, data.target.epoch, data.crosslink.shard, config
-    )
+    committee = get_beacon_committee(state, data.slot, data.index, config)
     if not (
         len(attestation.aggregation_bits)
         == len(attestation.custody_bits)

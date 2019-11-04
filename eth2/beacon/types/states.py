@@ -8,12 +8,11 @@ from ssz.sedes import Bitvector, List, Vector, bytes32, uint64
 
 from eth2._utils.tuple import update_tuple_item, update_tuple_item_with_fn
 from eth2.beacon.constants import JUSTIFICATION_BITS_LENGTH, ZERO_SIGNING_ROOT
-from eth2.beacon.helpers import compute_epoch_of_slot
+from eth2.beacon.helpers import compute_epoch_at_slot
 from eth2.beacon.typing import (
     Bitfield,
     Epoch,
     Gwei,
-    Shard,
     SigningRoot,
     Slot,
     Timestamp,
@@ -23,9 +22,7 @@ from eth2.configs import Eth2Config
 
 from .block_headers import BeaconBlockHeader, default_beacon_block_header
 from .checkpoints import Checkpoint, default_checkpoint
-from .crosslinks import Crosslink, default_crosslink
 from .defaults import (
-    default_shard,
     default_slot,
     default_timestamp,
     default_tuple,
@@ -65,7 +62,6 @@ class BeaconState(ssz.Serializable):
         ("validators", List(Validator, 1)),
         ("balances", List(uint64, 1)),
         # Shuffling
-        ("start_shard", uint64),
         ("randao_mixes", Vector(bytes32, 1)),
         # Slashings
         (
@@ -75,9 +71,6 @@ class BeaconState(ssz.Serializable):
         # Attestations
         ("previous_epoch_attestations", List(PendingAttestation, 1)),
         ("current_epoch_attestations", List(PendingAttestation, 1)),
-        # Crosslinks
-        ("previous_crosslinks", Vector(Crosslink, 1)),
-        ("current_crosslinks", Vector(Crosslink, 1)),
         # Justification
         ("justification_bits", Bitvector(JUSTIFICATION_BITS_LENGTH)),
         ("previous_justified_checkpoint", Checkpoint),
@@ -101,13 +94,10 @@ class BeaconState(ssz.Serializable):
         eth1_deposit_index: int = 0,
         validators: Sequence[Validator] = default_tuple,
         balances: Sequence[Gwei] = default_tuple,
-        start_shard: Shard = default_shard,
         randao_mixes: Sequence[Hash32] = default_tuple,
         slashings: Sequence[Gwei] = default_tuple,
         previous_epoch_attestations: Sequence[PendingAttestation] = default_tuple,
         current_epoch_attestations: Sequence[PendingAttestation] = default_tuple,
-        previous_crosslinks: Sequence[Crosslink] = default_tuple,
-        current_crosslinks: Sequence[Crosslink] = default_tuple,
         justification_bits: Bitfield = default_justification_bits,
         previous_justified_checkpoint: Checkpoint = default_checkpoint,
         current_justified_checkpoint: Checkpoint = default_checkpoint,
@@ -142,14 +132,6 @@ class BeaconState(ssz.Serializable):
                 slashings = default_tuple_of_size(
                     config.EPOCHS_PER_SLASHINGS_VECTOR, Gwei(0)
                 )
-            if previous_crosslinks == default_tuple:
-                previous_crosslinks = default_tuple_of_size(
-                    config.SHARD_COUNT, default_crosslink
-                )
-            if current_crosslinks == default_tuple:
-                current_crosslinks = default_tuple_of_size(
-                    config.SHARD_COUNT, default_crosslink
-                )
 
         super().__init__(
             genesis_time=genesis_time,
@@ -164,13 +146,10 @@ class BeaconState(ssz.Serializable):
             eth1_deposit_index=eth1_deposit_index,
             validators=validators,
             balances=balances,
-            start_shard=start_shard,
             randao_mixes=randao_mixes,
             slashings=slashings,
             previous_epoch_attestations=previous_epoch_attestations,
             current_epoch_attestations=current_epoch_attestations,
-            previous_crosslinks=previous_crosslinks,
-            current_crosslinks=current_crosslinks,
             justification_bits=justification_bits,
             previous_justified_checkpoint=previous_justified_checkpoint,
             current_justified_checkpoint=current_justified_checkpoint,
@@ -246,7 +225,7 @@ class BeaconState(ssz.Serializable):
         )
 
     def current_epoch(self, slots_per_epoch: int) -> Epoch:
-        return compute_epoch_of_slot(self.slot, slots_per_epoch)
+        return compute_epoch_at_slot(self.slot, slots_per_epoch)
 
     def previous_epoch(self, slots_per_epoch: int, genesis_epoch: Epoch) -> Epoch:
         current_epoch = self.current_epoch(slots_per_epoch)

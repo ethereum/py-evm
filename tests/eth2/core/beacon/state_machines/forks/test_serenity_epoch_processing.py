@@ -1,22 +1,18 @@
-import random
-
 import pytest
 
 from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2.beacon.committee_helpers import (
+    get_beacon_committee,
     get_beacon_proposer_index,
-    get_shard_delta,
-    get_start_shard,
+    get_committee_count_at_slot,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
     GWEI_PER_ETH,
     JUSTIFICATION_BITS_LENGTH,
 )
-from eth2.beacon.epoch_processing_helpers import get_base_reward
 from eth2.beacon.helpers import (
-    compute_epoch_of_slot,
-    compute_start_slot_of_epoch,
+    compute_start_slot_at_epoch,
     get_block_root,
     get_block_root_at_slot,
 )
@@ -26,20 +22,15 @@ from eth2.beacon.state_machines.forks.serenity.epoch_processing import (
     _determine_slashing_penalty,
     compute_activation_exit_epoch,
     get_attestation_deltas,
-    get_crosslink_deltas,
-    process_crosslinks,
     process_justification_and_finalization,
     process_registry_updates,
     process_slashings,
 )
 from eth2.beacon.tools.builder.validator import (
-    get_crosslink_committees_at_slot,
     mk_all_pending_attestations_with_full_participation_in_epoch,
-    mk_all_pending_attestations_with_some_participation_in_epoch,
 )
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import Gwei
@@ -195,92 +186,6 @@ def test_process_justification_and_finalization(
     assert post_state.finalized_checkpoint.epoch == finalized_epoch_after
 
 
-@pytest.mark.parametrize(("slots_per_epoch," "shard_count,"), [(10, 10)])
-@pytest.mark.parametrize(
-    ("success_in_previous_epoch," "success_in_current_epoch,"),
-    [(False, False), (True, False), (False, True)],
-)
-def test_process_crosslinks(
-    genesis_state, config, success_in_previous_epoch, success_in_current_epoch
-):
-    shard_count = config.SHARD_COUNT
-    current_slot = config.SLOTS_PER_EPOCH * 5 - 1
-    current_epoch = compute_epoch_of_slot(current_slot, config.SLOTS_PER_EPOCH)
-    assert current_epoch - 4 >= 0
-
-    previous_crosslinks = tuple(
-        Crosslink(shard=i, start_epoch=current_epoch - 4, end_epoch=current_epoch - 3)
-        for i in range(shard_count)
-    )
-    parent_crosslinks = tuple(
-        Crosslink(
-            shard=i,
-            parent_root=previous_crosslinks[i].hash_tree_root,
-            start_epoch=current_epoch - 2,
-            end_epoch=current_epoch - 1,
-        )
-        for i in range(shard_count)
-    )
-    new_crosslinks = tuple(
-        Crosslink(
-            shard=i,
-            parent_root=parent_crosslinks[i].hash_tree_root,
-            start_epoch=current_epoch - 1,
-            end_epoch=current_epoch,
-        )
-        for i in range(shard_count)
-    )
-
-    # generate expected state for correct crosslink generation
-    state = genesis_state.copy(
-        slot=current_slot,
-        previous_crosslinks=previous_crosslinks,
-        current_crosslinks=parent_crosslinks,
-    )
-
-    previous_epoch = current_epoch - 1
-
-    expected_success_shards = set()
-    previous_epoch_attestations = tuple(
-        mk_all_pending_attestations_with_some_participation_in_epoch(
-            state, previous_epoch, config, 0.7 if success_in_previous_epoch else 0
-        )
-    )
-    if success_in_previous_epoch:
-        for a in previous_epoch_attestations:
-            expected_success_shards.add(a.data.crosslink.shard)
-
-    current_epoch_attestations = tuple(
-        mk_all_pending_attestations_with_some_participation_in_epoch(
-            state, current_epoch, config, 0.7 if success_in_current_epoch else 0
-        )
-    )
-    if success_in_current_epoch:
-        for a in current_epoch_attestations:
-            expected_success_shards.add(a.data.crosslink.shard)
-
-    state = state.copy(
-        previous_epoch_attestations=previous_epoch_attestations,
-        current_epoch_attestations=current_epoch_attestations,
-    )
-
-    post_state = process_crosslinks(state, config)
-
-    assert post_state.previous_crosslinks == state.current_crosslinks
-
-    for shard in range(shard_count):
-        crosslink = post_state.current_crosslinks[shard]
-        if shard in expected_success_shards:
-            if success_in_current_epoch:
-                expected_crosslink = new_crosslinks[shard]
-            else:
-                expected_crosslink = parent_crosslinks[shard]
-            assert crosslink == expected_crosslink
-        else:
-            # no change
-            assert crosslink == state.current_crosslinks[shard]
-
-
 # TODO better testing on attestation deltas
 @pytest.mark.parametrize(("validator_count,"), [(10)])
 @pytest.mark.parametrize(
@@ -292,7 +197,7 @@ def test_get_attestation_deltas(
     config,
     slots_per_epoch,
     target_committee_size,
-    shard_count,
+    max_committees_per_slot,
     min_attestation_inclusion_delay,
     inactivity_penalty_quotient,
     finalized_epoch,
@@ -304,28 +209,27 @@ def test_get_attestation_deltas(
         slot=current_slot, finalized_checkpoint=Checkpoint(epoch=finalized_epoch)
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
-    epoch_start_shard = get_start_shard(state, previous_epoch, CommitteeConfig(config))
-    shard_delta = get_shard_delta(state, previous_epoch, CommitteeConfig(config))
-
-    a = epoch_start_shard
-    b = epoch_start_shard + shard_delta
-    if a > b:
-        valid_shards_for_epoch = range(b, a)
-    else:
-        valid_shards_for_epoch = range(a, b)
 
     indices_to_check = set()
 
-    prev_epoch_start_slot = compute_start_slot_of_epoch(previous_epoch, slots_per_epoch)
+    prev_epoch_start_slot = compute_start_slot_at_epoch(previous_epoch, slots_per_epoch)
     prev_epoch_attestations = tuple()
     for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + slots_per_epoch):
-        committee, shard = get_crosslink_committees_at_slot(
-            state, slot, CommitteeConfig(config)
-        )[0]
-        if not committee:
+        committee_count = get_committee_count_at_slot(
+            state,
+            slot,
+            config.MAX_COMMITTEES_PER_SLOT,
+            config.SLOTS_PER_EPOCH,
+            config.TARGET_COMMITTEE_SIZE,
+        )
+
+        if committee_count <= 0:
             continue
-        if shard not in valid_shards_for_epoch:
-            continue
+
+        committee_index = 0
+        committee = get_beacon_committee(
+            state, slot, committee_index, CommitteeConfig(config)
+        )
         participants_bitfield = get_empty_bitfield(len(committee))
         for i, index in enumerate(committee):
             indices_to_check.add(index)
@@ -338,7 +242,11 @@ def test_get_attestation_deltas(
                     state.copy(slot=slot), CommitteeConfig(config)
                 ),
                 data=AttestationData(**sample_attestation_data_params).copy(
-                    crosslink=Crosslink(shard=shard),
+                    slot=slot,
+                    index=committee_index,
+                    beacon_block_root=get_block_root_at_slot(
+                        state, slot, config.SLOTS_PER_HISTORICAL_ROOT
+                    ),
                     target=Checkpoint(
                         epoch=previous_epoch,
                         root=get_block_root(
@@ -347,9 +255,6 @@ def test_get_attestation_deltas(
                             config.SLOTS_PER_EPOCH,
                             config.SLOTS_PER_HISTORICAL_ROOT,
                         ),
-                    ),
-                    beacon_block_root=get_block_root_at_slot(
-                        state, slot, config.SLOTS_PER_HISTORICAL_ROOT
                     ),
                 ),
             ),
@@ -361,120 +266,11 @@ def test_get_attestation_deltas(
 
 @pytest.mark.parametrize(
     (
-        "validator_count,"
-        "slots_per_epoch,"
-        "target_committee_size,"
-        "shard_count,"
-        "current_slot,"
-        "num_attesting_validators,"
-        "genesis_slot,"
+        "validator_count",
+        "slots_per_epoch",
+        "target_committee_size",
+        "max_committees_per_slot",
     ),
-    [(50, 10, 5, 10, 100, 3, 0), (50, 10, 5, 10, 100, 4, 0)],
-)
-def test_process_rewards_and_penalties_for_crosslinks(
-    genesis_state,
-    config,
-    slots_per_epoch,
-    target_committee_size,
-    shard_count,
-    current_slot,
-    num_attesting_validators,
-    max_effective_balance,
-    min_attestation_inclusion_delay,
-    sample_attestation_data_params,
-    sample_pending_attestation_record_params,
-):
-    state = genesis_state.copy(slot=current_slot)
-    previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
-
-    prev_epoch_start_slot = compute_start_slot_of_epoch(previous_epoch, slots_per_epoch)
-    prev_epoch_crosslink_committees = [
-        get_crosslink_committees_at_slot(state, slot, CommitteeConfig(config))[0]
-        for slot in range(
-            prev_epoch_start_slot, prev_epoch_start_slot + slots_per_epoch
-        )
-    ]
-
-    # Record which validators attest during each slot for reward collation.
-    each_slot_attestion_validators_list = []
-
-    epoch_start_shard = get_start_shard(state, previous_epoch, CommitteeConfig(config))
-    shard_delta = get_shard_delta(state, previous_epoch, CommitteeConfig(config))
-
-    a = epoch_start_shard
-    b = epoch_start_shard + shard_delta
-    if a > b:
-        valid_shards_for_epoch = range(b, a)
-    else:
-        valid_shards_for_epoch = range(a, b)
-
-    indices_to_check = set()
-
-    previous_epoch_attestations = []
-    for committee, shard in prev_epoch_crosslink_committees:
-        if shard not in valid_shards_for_epoch:
-            continue
-        for index in committee:
-            indices_to_check.add(index)
-        # Randomly sample `num_attesting_validators` validators
-        # from the committee to attest in this slot.
-        crosslink_attesting_validators = random.sample(
-            committee, num_attesting_validators
-        )
-        each_slot_attestion_validators_list.append(crosslink_attesting_validators)
-        participants_bitfield = get_empty_bitfield(len(committee))
-        for index in crosslink_attesting_validators:
-            participants_bitfield = set_voted(
-                participants_bitfield, committee.index(index)
-            )
-        previous_epoch_attestations.append(
-            PendingAttestation(**sample_pending_attestation_record_params).copy(
-                aggregation_bits=participants_bitfield,
-                data=AttestationData(**sample_attestation_data_params).copy(
-                    target=Checkpoint(epoch=previous_epoch),
-                    crosslink=Crosslink(
-                        shard=shard, parent_root=Crosslink().hash_tree_root
-                    ),
-                ),
-            )
-        )
-    state = state.copy(previous_epoch_attestations=tuple(previous_epoch_attestations))
-
-    rewards_received, penalties_received = get_crosslink_deltas(state, config)
-
-    expected_rewards_received = {index: 0 for index in range(len(state.validators))}
-    validator_balance = max_effective_balance
-    for i in range(slots_per_epoch):
-        crosslink_committee, shard = prev_epoch_crosslink_committees[i]
-        if shard not in valid_shards_for_epoch:
-            continue
-        attesting_validators = each_slot_attestion_validators_list[i]
-        total_attesting_balance = len(attesting_validators) * validator_balance
-        total_committee_balance = len(crosslink_committee) * validator_balance
-        for index in crosslink_committee:
-            if index in attesting_validators:
-                reward = (
-                    get_base_reward(state=state, index=index, config=config)
-                    * total_attesting_balance
-                    // total_committee_balance
-                )
-                expected_rewards_received[index] += reward
-            else:
-                penalty = get_base_reward(state=state, index=index, config=config)
-                expected_rewards_received[index] -= penalty
-
-    # Check the rewards/penalties match
-    for index in range(len(state.validators)):
-        if index not in indices_to_check:
-            continue
-        assert (
-            rewards_received[index] - penalties_received[index]
-            == expected_rewards_received[index]
-        )
-
-
-@pytest.mark.parametrize(
-    ("validator_count", "slots_per_epoch", "target_committee_size", "shard_count"),
     [(10, 10, 9, 10)],
 )
 def test_process_registry_updates(
@@ -572,7 +368,7 @@ def test_determine_slashing_penalty(
     expected_penalty,
 ):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch)
+        slot=compute_start_slot_at_epoch(current_epoch, slots_per_epoch)
     )
     # if the size of the v-set changes then update the parameters above
     assert len(state.validators) == 10
@@ -616,7 +412,7 @@ def test_process_slashings(
     expected_penalty,
 ):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(current_epoch, slots_per_epoch),
+        slot=compute_start_slot_at_epoch(current_epoch, slots_per_epoch),
         slashings=slashings,
     )
     slashing_validator_index = 0

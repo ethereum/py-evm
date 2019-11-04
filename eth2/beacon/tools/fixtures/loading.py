@@ -4,7 +4,7 @@ from typing import Any, Dict
 from eth_utils.toolz import assoc, keyfilter
 from ruamel.yaml import YAML
 
-from eth2.beacon.helpers import compute_epoch_of_slot
+from eth2.beacon.helpers import compute_epoch_at_slot
 from eth2.configs import Eth2Config
 
 
@@ -17,7 +17,7 @@ def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
                 lambda name: all(key not in name for key in filtered_keys), dict_config
             ),
             "GENESIS_EPOCH",
-            compute_epoch_of_slot(
+            compute_epoch_at_slot(
                 dict_config["GENESIS_SLOT"], dict_config["SLOTS_PER_EPOCH"]
             ),
         )

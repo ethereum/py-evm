@@ -1,16 +1,12 @@
 import random
 
-from eth_utils.toolz import random_sample
 import pytest
 
 from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2._utils.tuple import update_tuple_item
-from eth2.beacon.committee_helpers import get_crosslink_committee
+from eth2.beacon.committee_helpers import get_beacon_committee
 from eth2.beacon.constants import FAR_FUTURE_EPOCH, GWEI_PER_ETH
 from eth2.beacon.epoch_processing_helpers import (
-    _find_winning_crosslink_and_attesting_indices_from_candidates,
-    _get_attestations_for_shard,
-    _get_attestations_for_valid_crosslink,
     compute_activation_exit_epoch,
     decrease_balance,
     get_attesting_indices,
@@ -23,11 +19,9 @@ from eth2.beacon.epoch_processing_helpers import (
     increase_balance,
 )
 from eth2.beacon.exceptions import InvalidEpochError
-from eth2.beacon.helpers import compute_start_slot_of_epoch
-from eth2.beacon.tools.builder.validator import mk_pending_attestation_from_committee
+from eth2.beacon.helpers import compute_start_slot_at_epoch
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.typing import Gwei
 from eth2.configs import CommitteeConfig
@@ -65,16 +59,17 @@ def test_decrease_balance(genesis_state, delta):
 @pytest.mark.parametrize(("validator_count,"), [(1000)])
 def test_get_attesting_indices(genesis_state, config):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(3, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_at_epoch(3, config.SLOTS_PER_EPOCH)
     )
     target_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    target_shard = (state.start_shard + 3) % config.SHARD_COUNT
-    some_committee = get_crosslink_committee(
-        state, target_epoch, target_shard, CommitteeConfig(config)
+    target_slot = compute_start_slot_at_epoch(target_epoch, config.SLOTS_PER_EPOCH)
+    committee_index = 0
+    some_committee = get_beacon_committee(
+        state, target_slot, committee_index, CommitteeConfig(config)
     )
 
     data = AttestationData(
-        target=Checkpoint(epoch=target_epoch), crosslink=Crosslink(shard=target_shard)
+        slot=target_slot, index=committee_index, target=Checkpoint(epoch=target_epoch)
     )
     some_subset_count = random.randrange(1, len(some_committee) // 2)
     some_subset = random.sample(some_committee, some_subset_count)
@@ -122,7 +117,7 @@ def test_get_matching_source_attestations(
     genesis_state, current_epoch, target_epoch, success, config
 ):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(current_epoch, config.SLOTS_PER_EPOCH),
+        slot=compute_start_slot_at_epoch(current_epoch, config.SLOTS_PER_EPOCH),
         current_epoch_attestations=tuple(
             PendingAttestation(
                 data=AttestationData(
@@ -154,7 +149,7 @@ def test_get_matching_source_attestations(
 
 def test_get_matching_target_attestations(genesis_state, config):
     some_epoch = config.GENESIS_EPOCH + 20
-    some_slot = compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH)
+    some_slot = compute_start_slot_at_epoch(some_epoch, config.SLOTS_PER_EPOCH)
     some_target_root = b"\x33" * 32
     target_attestations = tuple(
         (
@@ -187,10 +182,11 @@ def test_get_matching_target_attestations(genesis_state, config):
     assert attestations == target_attestations
 
 
+@pytest.mark.parametrize(("validator_count,"), [(1000)])
 def test_get_matching_head_attestations(genesis_state, config):
     some_epoch = config.GENESIS_EPOCH + 20
     some_slot = (
-        compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH)
+        compute_start_slot_at_epoch(some_epoch, config.SLOTS_PER_EPOCH)
         + config.SLOTS_PER_EPOCH // 4
     )
     some_target_root = b"\x33" * 32
@@ -198,9 +194,10 @@ def test_get_matching_head_attestations(genesis_state, config):
         (
             PendingAttestation(
                 data=AttestationData(
+                    slot=some_slot - 1,
+                    index=0,
                     beacon_block_root=some_target_root,
                     target=Checkpoint(epoch=some_epoch - 1),
-                    crosslink=Crosslink(shard=i),
                 )
             )
             for i in range(3)
@@ -218,7 +215,7 @@ def test_get_matching_head_attestations(genesis_state, config):
         )
     )
     state = genesis_state.copy(
-        slot=some_slot - 1,
+        slot=some_slot,
         block_roots=tuple(
             some_target_root for _ in range(config.SLOTS_PER_HISTORICAL_ROOT)
         ),
@@ -233,16 +230,17 @@ def test_get_matching_head_attestations(genesis_state, config):
 @pytest.mark.parametrize(("validator_count,"), [(1000)])
 def test_get_unslashed_attesting_indices(genesis_state, config):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(3, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_at_epoch(3, config.SLOTS_PER_EPOCH)
     )
     target_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    target_shard = (state.start_shard + 3) % config.SHARD_COUNT
-    some_committee = get_crosslink_committee(
-        state, target_epoch, target_shard, CommitteeConfig(config)
+    target_slot = compute_start_slot_at_epoch(target_epoch, config.SLOTS_PER_EPOCH)
+    committee_index = 0
+    some_committee = get_beacon_committee(
+        state, target_slot, committee_index, CommitteeConfig(config)
     )
 
     data = AttestationData(
-        target=Checkpoint(epoch=target_epoch), crosslink=Crosslink(shard=target_shard)
+        slot=state.slot, index=committee_index, target=Checkpoint(epoch=target_epoch)
     )
     some_subset_count = random.randrange(1, len(some_committee) // 2)
     some_subset = random.sample(some_committee, some_subset_count)
@@ -268,147 +266,6 @@ def test_get_unslashed_attesting_indices(genesis_state, config):
 
     assert set(indices) == set(some_subset)
     assert len(indices) == len(some_subset)
-
-
-@pytest.mark.parametrize(("validator_count,"), [(1000)])
-def test_find_candidate_attestations_for_shard(genesis_state, config):
-    some_epoch = config.GENESIS_EPOCH + 20
-    # start on some shard and walk a subset of them
-    some_shard = 3
-    shard_offset = 24
-
-    state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
-        start_shard=some_shard,
-        current_crosslinks=tuple(
-            Crosslink(shard=i, data_root=(i).to_bytes(32, "little"))
-            for i in range(config.SHARD_COUNT)
-        ),
-    )
-
-    # sample a subset of the shards to make attestations for
-    some_shards_with_attestations = random.sample(
-        range(some_shard, some_shard + shard_offset), shard_offset // 2
-    )
-
-    committee_and_shard_pairs = tuple(
-        (
-            get_crosslink_committee(
-                state, some_epoch, some_shard + i, CommitteeConfig(config)
-            ),
-            some_shard + i,
-        )
-        for i in range(shard_offset)
-        if some_shard + i in some_shards_with_attestations
-    )
-
-    pending_attestations = {
-        shard: mk_pending_attestation_from_committee(
-            state.current_crosslinks[shard], len(committee), shard
-        )
-        for committee, shard in committee_and_shard_pairs
-    }
-
-    # invalidate some crosslinks to test the crosslink filter
-    some_crosslinks_to_mangle = random.sample(
-        some_shards_with_attestations, len(some_shards_with_attestations) // 2
-    )
-
-    shards_with_valid_crosslinks = set(some_shards_with_attestations) - set(
-        some_crosslinks_to_mangle
-    )
-
-    crosslinks = tuple()
-    for shard in range(config.SHARD_COUNT):
-        if shard in shards_with_valid_crosslinks:
-            crosslinks += (state.current_crosslinks[shard],)
-        else:
-            crosslinks += (Crosslink(),)
-
-    state = state.copy(current_crosslinks=crosslinks)
-
-    # check around the range of shards we built up
-    for shard in range(0, some_shard + shard_offset + 3):
-        if shard in some_shards_with_attestations:
-            attestations = _get_attestations_for_shard(
-                pending_attestations.values(), shard
-            )
-            assert attestations == (pending_attestations[shard],)
-
-            if shard in some_crosslinks_to_mangle:
-                assert not _get_attestations_for_valid_crosslink(
-                    pending_attestations.values(), state, shard, config
-                )
-            else:
-                attestations = _get_attestations_for_valid_crosslink(
-                    pending_attestations.values(), state, shard, config
-                )
-                assert attestations == (pending_attestations[shard],)
-        else:
-            assert not _get_attestations_for_shard(pending_attestations.values(), shard)
-            assert not _get_attestations_for_valid_crosslink(
-                pending_attestations.values(), state, shard, config
-            )
-
-
-@pytest.mark.parametrize(("validator_count,"), [(1000)])
-@pytest.mark.parametrize(("number_of_candidates,"), [(0), (1), (3)])
-def test_find_winning_crosslink_and_attesting_indices_from_candidates(
-    genesis_state, number_of_candidates, config
-):
-    some_epoch = config.GENESIS_EPOCH + 20
-    some_shard = 3
-
-    state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(some_epoch, config.SLOTS_PER_EPOCH),
-        start_shard=some_shard,
-        current_crosslinks=tuple(
-            Crosslink(shard=i, data_root=(i).to_bytes(32, "little"))
-            for i in range(config.SHARD_COUNT)
-        ),
-    )
-
-    full_committee = get_crosslink_committee(
-        state, some_epoch, some_shard, CommitteeConfig(config)
-    )
-
-    # break the committees up into different subsets to simulate different
-    # attestations for the same crosslink
-    committees = tuple(
-        random_sample(len(full_committee) // number_of_candidates, full_committee)
-        for _ in range(number_of_candidates)
-    )
-    seen = set()
-    filtered_committees = tuple()
-    for committee in committees:
-        deduplicated_committee = tuple()
-        for index in committee:
-            if index in seen:
-                pass
-            else:
-                seen.add(index)
-                deduplicated_committee += (index,)
-        filtered_committees += (deduplicated_committee,)
-
-    candidates = tuple(
-        mk_pending_attestation_from_committee(
-            state.current_crosslinks[some_shard],
-            len(full_committee),
-            some_shard,
-            target_epoch=some_epoch,
-        )
-        for committee in filtered_committees
-    )
-
-    if number_of_candidates == 0:
-        expected_result = (Crosslink(), set())
-    else:
-        expected_result = (candidates[0].data.crosslink, set(sorted(full_committee)))
-
-    result = _find_winning_crosslink_and_attesting_indices_from_candidates(
-        state, candidates, config
-    )
-    assert result == expected_result
 
 
 def test_get_base_reward(genesis_state, config):

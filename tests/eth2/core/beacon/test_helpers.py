@@ -7,7 +7,7 @@ from eth2.beacon.constants import FAR_FUTURE_EPOCH, GWEI_PER_ETH
 from eth2.beacon.helpers import (
     _get_fork_version,
     _get_seed,
-    compute_start_slot_of_epoch,
+    compute_start_slot_at_epoch,
     get_active_validator_indices,
     get_block_root_at_slot,
     get_domain,
@@ -199,7 +199,7 @@ def test_get_seed(
     state = genesis_state
     epoch = 1
     state = state.copy(
-        slot=compute_start_slot_of_epoch(epoch, committee_config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_at_epoch(epoch, committee_config.SLOTS_PER_EPOCH)
     )
 
     epoch_as_bytes = epoch.to_bytes(32, "little")

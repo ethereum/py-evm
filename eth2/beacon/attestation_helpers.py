@@ -1,13 +1,8 @@
 from eth_utils import ValidationError
 
 from eth2._utils.bls import bls
-from eth2.beacon.committee_helpers import get_committee_count, get_start_shard
 from eth2.beacon.exceptions import SignatureError
-from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
-    get_active_validator_indices,
-    get_domain,
-)
+from eth2.beacon.helpers import get_domain
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestation_data_and_custody_bits import (
@@ -15,32 +10,6 @@ from eth2.beacon.types.attestation_data_and_custody_bits import (
 )
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import Slot
-from eth2.configs import CommitteeConfig, Eth2Config
-
-
-def get_attestation_data_slot(
-    state: BeaconState, data: AttestationData, config: Eth2Config
-) -> Slot:
-    active_validator_indices = get_active_validator_indices(
-        state.validators, data.target.epoch
-    )
-    committee_count = get_committee_count(
-        len(active_validator_indices),
-        config.SHARD_COUNT,
-        config.SLOTS_PER_EPOCH,
-        config.TARGET_COMMITTEE_SIZE,
-    )
-    offset = (
-        data.crosslink.shard
-        + config.SHARD_COUNT
-        - get_start_shard(state, data.target.epoch, CommitteeConfig(config))
-    ) % config.SHARD_COUNT
-    committees_per_slot = committee_count // config.SLOTS_PER_EPOCH
-    return (
-        compute_start_slot_of_epoch(data.target.epoch, config.SLOTS_PER_EPOCH)
-        + offset // committees_per_slot
-    )
 
 
 def validate_indexed_attestation_aggregate_signature(

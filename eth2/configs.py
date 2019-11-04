@@ -6,7 +6,7 @@ Eth2Config = NamedTuple(
     "Eth2Config",
     (
         # Misc
-        ("SHARD_COUNT", int),
+        ("MAX_COMMITTEES_PER_SLOT", int),
         ("TARGET_COMMITTEE_SIZE", int),
         ("MAX_VALIDATORS_PER_COMMITTEE", int),
         ("MIN_PER_EPOCH_CHURN_LIMIT", int),
@@ -34,7 +34,6 @@ Eth2Config = NamedTuple(
         ("SLOTS_PER_HISTORICAL_ROOT", int),
         ("MIN_VALIDATOR_WITHDRAWABILITY_DELAY", int),
         ("PERSISTENT_COMMITTEE_PERIOD", int),
-        ("MAX_EPOCHS_PER_CROSSLINK", int),
         ("MIN_EPOCHS_TO_INACTIVITY_PENALTY", int),
         # State list lengths
         ("EPOCHS_PER_HISTORICAL_VECTOR", int),
@@ -65,7 +64,7 @@ class CommitteeConfig:
         # Basic
         self.GENESIS_SLOT = config.GENESIS_SLOT
         self.GENESIS_EPOCH = config.GENESIS_EPOCH
-        self.SHARD_COUNT = config.SHARD_COUNT
+        self.MAX_COMMITTEES_PER_SLOT = config.MAX_COMMITTEES_PER_SLOT
         self.SLOTS_PER_EPOCH = config.SLOTS_PER_EPOCH
         self.TARGET_COMMITTEE_SIZE = config.TARGET_COMMITTEE_SIZE
         self.SHUFFLE_ROUND_COUNT = config.SHUFFLE_ROUND_COUNT

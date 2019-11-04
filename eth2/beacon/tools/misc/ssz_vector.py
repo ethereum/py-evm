@@ -38,8 +38,6 @@ def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:
             * config.SLOTS_PER_EPOCH,
             "current_epoch_attestations": config.MAX_ATTESTATIONS
             * config.SLOTS_PER_EPOCH,
-            "previous_crosslinks": config.SHARD_COUNT,
-            "current_crosslinks": config.SHARD_COUNT,
         },
         HistoricalBatch: {
             "block_roots": config.SLOTS_PER_HISTORICAL_ROOT,
