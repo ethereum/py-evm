@@ -66,7 +66,7 @@ def test_validate_validator_has_not_exited(
     ("validator_count", "slots_per_epoch", "target_committee_size"), [(40, 2, 2)]
 )
 @pytest.mark.parametrize(
-    ("activation_exit_delay", "current_epoch", "voluntary_exit_epoch", "success"),
+    ("max_seed_lookahead", "current_epoch", "voluntary_exit_epoch", "success"),
     [(4, 8, 8, True), (4, 8, 8 + 1, False)],
 )
 def test_validate_eligible_exit_epoch(
@@ -137,7 +137,7 @@ def test_validate_validator_minimum_lifespan(
         "validator_count",
         "slots_per_epoch",
         "target_committee_size",
-        "activation_exit_delay",
+        "max_seed_lookahead",
     ),
     [(40, 2, 2, 2)],
 )

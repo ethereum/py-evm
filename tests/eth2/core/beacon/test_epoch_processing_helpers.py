@@ -90,12 +90,12 @@ def test_get_attesting_indices(genesis_state, config):
     assert len(indices) == len(some_subset)
 
 
-def test_compute_activation_exit_epoch(activation_exit_delay):
+def test_compute_activation_exit_epoch(max_seed_lookahead):
     epoch = random.randrange(0, FAR_FUTURE_EPOCH)
     entry_exit_effect_epoch = compute_activation_exit_epoch(
-        epoch, activation_exit_delay
+        epoch, max_seed_lookahead
     )
-    assert entry_exit_effect_epoch == (epoch + 1 + activation_exit_delay)
+    assert entry_exit_effect_epoch == (epoch + 1 + max_seed_lookahead)
 
 
 @pytest.mark.parametrize(

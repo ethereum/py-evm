@@ -520,7 +520,7 @@ def test_process_registry_updates(
     assert pre_activation_validator.activation_epoch == FAR_FUTURE_EPOCH
     assert post_activation_validator.activation_eligibility_epoch != FAR_FUTURE_EPOCH
     activation_epoch = compute_activation_exit_epoch(
-        state.current_epoch(config.SLOTS_PER_EPOCH), config.ACTIVATION_EXIT_DELAY
+        state.current_epoch(config.SLOTS_PER_EPOCH), config.MAX_SEED_LOOKAHEAD
     )
     assert post_activation_validator.is_active(activation_epoch)
     # Check if the activating_validator is exited
@@ -653,7 +653,7 @@ def test_update_active_index_roots(
     state_slot,
     slots_per_epoch,
     epochs_per_historical_vector,
-    activation_exit_delay,
+    max_seed_lookahead,
 ):
     state = genesis_state.copy(slot=state_slot)
 
@@ -666,5 +666,5 @@ def test_update_active_index_roots(
         ssz.sedes.List(ssz.uint64, config.VALIDATOR_REGISTRY_LIMIT),
     )
 
-    target_epoch = state.next_epoch(slots_per_epoch) + activation_exit_delay
+    target_epoch = state.next_epoch(slots_per_epoch) + max_seed_lookahead
     assert result[target_epoch % epochs_per_historical_vector] == index_root

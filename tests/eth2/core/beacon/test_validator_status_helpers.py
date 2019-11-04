@@ -67,7 +67,7 @@ def test_compute_exit_queue_epoch(
 
     if is_delayed_exit_epoch_the_maximum_exit_queue_epoch:
         expected_candidate_exit_queue_epoch = compute_activation_exit_epoch(
-            state.current_epoch(config.SLOTS_PER_EPOCH), config.ACTIVATION_EXIT_DELAY
+            state.current_epoch(config.SLOTS_PER_EPOCH), config.MAX_SEED_LOOKAHEAD
         )
         for index, validator in enumerate(state.validators):
             if validator.exit_epoch == FAR_FUTURE_EPOCH:

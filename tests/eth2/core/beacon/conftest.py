@@ -136,8 +136,8 @@ def min_seed_lookahead():
 
 
 @pytest.fixture
-def activation_exit_delay():
-    return SERENITY_CONFIG.ACTIVATION_EXIT_DELAY
+def max_seed_lookahead():
+    return SERENITY_CONFIG.MAX_SEED_LOOKAHEAD
 
 
 @pytest.fixture
@@ -276,7 +276,7 @@ def config(
     min_attestation_inclusion_delay,
     slots_per_epoch,
     min_seed_lookahead,
-    activation_exit_delay,
+    max_seed_lookahead,
     slots_per_eth1_voting_period,
     slots_per_historical_root,
     min_validator_withdrawability_delay,
@@ -324,7 +324,7 @@ def config(
         MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
         SLOTS_PER_EPOCH=slots_per_epoch,
         MIN_SEED_LOOKAHEAD=min_seed_lookahead,
-        ACTIVATION_EXIT_DELAY=activation_exit_delay,
+        MAX_SEED_LOOKAHEAD=max_seed_lookahead,
         SLOTS_PER_ETH1_VOTING_PERIOD=slots_per_eth1_voting_period,
         SLOTS_PER_HISTORICAL_ROOT=slots_per_historical_root,
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,

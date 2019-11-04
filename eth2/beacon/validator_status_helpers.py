@@ -33,7 +33,7 @@ def _compute_exit_queue_epoch(
         exit_epochs
         + (
             compute_activation_exit_epoch(
-                state.current_epoch(slots_per_epoch), config.ACTIVATION_EXIT_DELAY
+                state.current_epoch(slots_per_epoch), config.MAX_SEED_LOOKAHEAD
             ),
         )
     )

@@ -29,7 +29,7 @@ SERENITY_CONFIG = Eth2Config(
     MIN_ATTESTATION_INCLUSION_DELAY=2 ** 0,  # (= 1) slots
     SLOTS_PER_EPOCH=2 ** 6,  # (= 64) slots
     MIN_SEED_LOOKAHEAD=2 ** 0,  # (= 1) epochs
-    ACTIVATION_EXIT_DELAY=2 ** 2,  # (= 4) epochs
+    MAX_SEED_LOOKAHEAD=2 ** 2,  # (= 4) epochs
     SLOTS_PER_ETH1_VOTING_PERIOD=2 ** 10,  # (= 16) epochs
     SLOTS_PER_HISTORICAL_ROOT=2 ** 13,  # (= 8,192) slots
     MIN_VALIDATOR_WITHDRAWABILITY_DELAY=2 ** 8,  # (= 256) epochs

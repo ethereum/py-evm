@@ -528,7 +528,7 @@ def _update_validator_activation_epoch(
         return validator.copy(
             activation_epoch=compute_activation_exit_epoch(
                 state.current_epoch(config.SLOTS_PER_EPOCH),
-                config.ACTIVATION_EXIT_DELAY,
+                config.MAX_SEED_LOOKAHEAD,
             )
         )
     else:
@@ -542,7 +542,7 @@ def process_registry_updates(state: BeaconState, config: Eth2Config) -> BeaconSt
     )
 
     activation_exit_epoch = compute_activation_exit_epoch(
-        state.finalized_checkpoint.epoch, config.ACTIVATION_EXIT_DELAY
+        state.finalized_checkpoint.epoch, config.MAX_SEED_LOOKAHEAD
     )
     activation_queue = sorted(
         (
@@ -636,10 +636,10 @@ def _compute_next_active_index_roots(
 ) -> Tuple[Hash32, ...]:
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     index_root_position = (
-        next_epoch + config.ACTIVATION_EXIT_DELAY
+        next_epoch + config.MAX_SEED_LOOKAHEAD
     ) % config.EPOCHS_PER_HISTORICAL_VECTOR
     validator_indices_for_new_active_index_root = get_active_validator_indices(
-        state.validators, Epoch(next_epoch + config.ACTIVATION_EXIT_DELAY)
+        state.validators, Epoch(next_epoch + config.MAX_SEED_LOOKAHEAD)
     )
     new_active_index_root = ssz.get_hash_tree_root(
         validator_indices_for_new_active_index_root,

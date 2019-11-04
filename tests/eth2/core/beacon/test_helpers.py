@@ -184,7 +184,7 @@ def test_get_seed(
     committee_config,
     slots_per_epoch,
     min_seed_lookahead,
-    activation_exit_delay,
+    max_seed_lookahead,
     epochs_per_historical_vector,
 ):
     def mock_get_randao_mix(state, epoch, epochs_per_historical_vector):

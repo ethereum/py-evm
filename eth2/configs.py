@@ -29,7 +29,7 @@ Eth2Config = NamedTuple(
         ("MIN_ATTESTATION_INCLUSION_DELAY", int),
         ("SLOTS_PER_EPOCH", int),
         ("MIN_SEED_LOOKAHEAD", int),
-        ("ACTIVATION_EXIT_DELAY", int),
+        ("MAX_SEED_LOOKAHEAD", int),
         ("SLOTS_PER_ETH1_VOTING_PERIOD", int),
         ("SLOTS_PER_HISTORICAL_ROOT", int),
         ("MIN_VALIDATOR_WITHDRAWABILITY_DELAY", int),
@@ -72,7 +72,7 @@ class CommitteeConfig:
 
         # For seed
         self.MIN_SEED_LOOKAHEAD = config.MIN_SEED_LOOKAHEAD
-        self.ACTIVATION_EXIT_DELAY = config.ACTIVATION_EXIT_DELAY
+        self.MAX_SEED_LOOKAHEAD = config.MAX_SEED_LOOKAHEAD
         self.EPOCHS_PER_HISTORICAL_VECTOR = config.EPOCHS_PER_HISTORICAL_VECTOR
         self.EPOCHS_PER_HISTORICAL_VECTOR = config.EPOCHS_PER_HISTORICAL_VECTOR
 

@@ -88,12 +88,12 @@ def get_indexed_attestation(
     )
 
 
-def compute_activation_exit_epoch(epoch: Epoch, activation_exit_delay: int) -> Epoch:
+def compute_activation_exit_epoch(epoch: Epoch, max_seed_lookahead: int) -> Epoch:
     """
     An entry or exit triggered in the ``epoch`` given by the input takes effect at
     the epoch given by the output.
     """
-    return Epoch(epoch + 1 + activation_exit_delay)
+    return Epoch(epoch + 1 + max_seed_lookahead)
 
 
 def get_validator_churn_limit(state: BeaconState, config: Eth2Config) -> int:

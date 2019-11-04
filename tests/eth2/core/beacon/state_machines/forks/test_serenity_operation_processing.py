@@ -256,7 +256,7 @@ def test_process_attestations(
         "validator_count",
         "slots_per_epoch",
         "target_committee_size",
-        "activation_exit_delay",
+        "max_seed_lookahead",
     ),
     [(40, 2, 2, 2)],
 )
