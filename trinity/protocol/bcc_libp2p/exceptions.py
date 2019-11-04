@@ -22,17 +22,25 @@ class InteractionFailure(BaseLibp2pError):
     pass
 
 
-class ValidationError(BaseLibp2pError):
-    pass
-
-
 class RequestFailure(BaseLibp2pError):
     pass
 
 
-class ResponseFailure(BaseLibp2pError):
+class PeerRespondedAnError(BaseLibp2pError):
     pass
 
 
-class IrrelevantNetwork(ValidationError):
+class IrrelevantNetwork(BaseLibp2pError):
+    pass
+
+
+class IShouldRespondAnError(BaseLibp2pError):
+    pass
+
+
+class InvalidRequest(IShouldRespondAnError):
+    pass
+
+
+class ServerError(IShouldRespondAnError):
     pass

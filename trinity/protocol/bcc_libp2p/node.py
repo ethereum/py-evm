@@ -109,7 +109,7 @@ from .exceptions import (
     RequestFailure,
     WriteMessageFailure,
     InteractionFailure,
-    ResponseFailure,
+    PeerRespondedAnError,
     IrrelevantNetwork,
 )
 from .messages import (
@@ -480,7 +480,7 @@ class Node(BaseService):
             # Try respond with INVALID_REQUEST
             await self.disconnect_peer(peer_id)
             raise InteractionFailure() from error
-        except ResponseFailure as error:
+        except PeerRespondedAnError as error:
             await stream.reset()
             await self.disconnect_peer(peer_id)
             raise InteractionFailure() from error

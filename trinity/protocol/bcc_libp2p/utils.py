@@ -72,7 +72,7 @@ from .configs import (
 from .exceptions import (
     IrrelevantNetwork,
     ReadMessageFailure,
-    ResponseFailure,
+    PeerRespondedAnError,
     WriteMessageFailure,
 )
 from .messages import (
@@ -390,7 +390,7 @@ async def read_resp(
     else:
         msg_bytes = await _read_varint_prefixed_bytes(stream, timeout=RESP_TIMEOUT)
         msg = msg_bytes.decode("utf-8")
-        raise ResponseFailure(msg)
+        raise PeerRespondedAnError(msg)
 
 
 async def write_resp(
