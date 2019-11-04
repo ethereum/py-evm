@@ -358,12 +358,6 @@ def test_get_attestation_deltas(
 
     rewards_received, penalties_received = get_attestation_deltas(state, config)
 
-    # everyone attested, no penalties
-    assert sum(penalties_received) == 0
-    the_reward = rewards_received[0]
-    # everyone performed the same, equal rewards
-    assert sum(rewards_received) // len(rewards_received) == the_reward
-
 
 @pytest.mark.parametrize(
     (
