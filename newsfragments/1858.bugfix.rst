@@ -1,0 +1,5 @@
+Update the upstream tests to `v7.0.0 beta.1 <https://github.com/ethereum/tests/releases/tag/v7.0.0-beta.1>`_
+and address the two arising disagreements on what accounts should be collected for state trie clearing (as per
+`EIP-161 <https://eips.ethereum.org/EIPS/eip-161>`_) if a nested call frame had an error.
+Also, set Istanbul block for mainnet to 9069000, as per `EIP-1679 <https://eips.ethereum.org/EIPS/eip-1679#activation>`_;
+it was previously set to a placeholder value.
