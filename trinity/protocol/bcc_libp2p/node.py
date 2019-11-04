@@ -111,6 +111,7 @@ from .exceptions import (
     InteractionFailure,
     PeerRespondedAnError,
     IrrelevantNetwork,
+    UnhandshakedPeer,
 )
 from .messages import (
     Goodbye,
@@ -480,7 +481,7 @@ class Node(BaseService):
             # Try respond with INVALID_REQUEST
             await self.disconnect_peer(peer_id)
             raise InteractionFailure() from error
-        except PeerRespondedAnError as error:
+        except (PeerRespondedAnError, UnhandshakedPeer) as error:
             await stream.reset()
             await self.disconnect_peer(peer_id)
             raise InteractionFailure() from error
@@ -584,15 +585,13 @@ class Node(BaseService):
             await interaction.try_write_request(goodbye)
             await self.disconnect_peer(peer_id)
 
+    def _check_peer_handshaked(self, peer_id: ID) -> None:
+        if peer_id not in self.handshaked_peers:
+            raise UnhandshakedPeer(peer_id)
+
     async def _handle_beacon_blocks(self, stream: INetStream) -> None:
         peer_id = stream.mplex_conn.peer_id
-        if peer_id not in self.handshaked_peers:
-            self.logger.info(
-                "Processing beacon blocks request failed: not handshaked with peer=%s yet",
-                peer_id,
-            )
-            await stream.reset()
-            return
+        self._check_peer_handshaked(peer_id)
 
         self.logger.debug("Waiting for beacon blocks request from the other side")
         try:

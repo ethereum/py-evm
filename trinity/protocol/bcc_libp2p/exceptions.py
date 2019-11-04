@@ -44,3 +44,7 @@ class InvalidRequest(IShouldRespondAnError):
 
 class ServerError(IShouldRespondAnError):
     pass
+
+
+class UnhandshakedPeer(BaseLibp2pError):
+    pass
