@@ -31,9 +31,9 @@ from eth.constants import (
 )
 from eth.rlp.headers import BlockHeader
 from eth.tools.factories.keys import PublicKeyFactory
+from eth.tools.factories.transaction import new_transaction
 from eth.vm.forks.petersburg import PetersburgVM
 
-from tests.core.helpers import new_transaction
 
 ALICE_PK = keys.PrivateKey(
     decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
