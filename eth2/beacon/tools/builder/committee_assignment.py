@@ -3,7 +3,6 @@ from typing import NamedTuple, Tuple
 from eth_utils import ValidationError
 
 from eth2.beacon.committee_helpers import (
-    get_beacon_proposer_index,
     get_committee_count,
     get_crosslink_committee,
     get_start_shard,
@@ -67,12 +66,3 @@ def get_committee_assignment(
                 return CommitteeAssignment(committee, Shard(shard), Slot(slot))
 
     raise NoCommitteeAssignment
-
-
-def is_proposer(
-    state: BeaconState, validator_index: ValidatorIndex, config: CommitteeConfig
-) -> bool:
-    """
-    Return if the validator is proposer of `state.slot`.
-    """
-    return get_beacon_proposer_index(state, CommitteeConfig(config)) == validator_index

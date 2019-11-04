@@ -16,6 +16,15 @@ from eth2.beacon.typing import FromBlockParams, Slot, ValidatorIndex
 from eth2.configs import CommitteeConfig, Eth2Config
 
 
+def is_proposer(
+    state: BeaconState, validator_index: ValidatorIndex, config: Eth2Config
+) -> bool:
+    """
+    Return if the validator is proposer of `state.slot`.
+    """
+    return get_beacon_proposer_index(state, CommitteeConfig(config)) == validator_index
+
+
 def _generate_randao_reveal(
     privkey: int, slot: Slot, state: BeaconState, config: Eth2Config
 ) -> BLSSignature:

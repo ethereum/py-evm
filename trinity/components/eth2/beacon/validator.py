@@ -114,7 +114,7 @@ class Validator(BaseService):
             self.latest_attested_epoch[validator_index] = Epoch(-1)
             self.this_epoch_assignment[validator_index] = (
                 Epoch(-1),
-                CommitteeAssignment((), Shard(-1), Slot(-1), False),
+                CommitteeAssignment((), Shard(-1), Slot(-1)),
             )
         self.get_ready_attestations: GetReadyAttestationsFn = get_ready_attestations_fn
 

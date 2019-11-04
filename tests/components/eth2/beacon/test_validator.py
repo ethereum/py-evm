@@ -23,6 +23,7 @@ from eth2.beacon.helpers import (
 from eth2.beacon.exceptions import (
     NoCommitteeAssignment,
 )
+from eth2.beacon.helpers import compute_start_slot_of_epoch
 from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
 from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
     XIAO_LONG_BAO_CONFIG,
@@ -34,9 +35,7 @@ from eth2.beacon.tools.factories import (
 )
 from eth2.beacon.tools.builder.proposer import (
     _get_proposer_index,
-)
-from eth2.beacon.tools.builder.committee_assignment import (
-    get_committee_assignment,
+    is_proposer,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,
@@ -104,17 +103,14 @@ async def get_linked_validators(event_loop, event_bus) -> Tuple[Validator, Valid
 
 def _get_slot_with_validator_selected(candidate_indices, state, config):
     epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
+    epoch_start_slot = compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
 
     for index in candidate_indices:
         try:
-            committee, shard, slot, is_proposer = get_committee_assignment(
-                state,
-                config,
-                epoch,
-                index,
-            )
-            if is_proposer and slot != 0:
-                return slot, index
+            for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
+                state = state.copy(slot=slot)
+                if is_proposer(state, index, config):
+                    return slot, index
         except NoCommitteeAssignment:
             continue
     raise Exception(
