@@ -53,6 +53,7 @@ def initialize_beacon_state_from_eth1(
         latest_block_header=BeaconBlockHeader(
             body_root=BeaconBlockBody().hash_tree_root
         ),
+        randao_mixes=(eth1_block_hash,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
         config=config,
     )
 
