@@ -382,15 +382,7 @@ def get_attestation_deltas(
             rewards,
             index,
             lambda balance, delta: balance + delta,
-            (
-                max_attester_reward
-                * (
-                    config.SLOTS_PER_EPOCH
-                    + config.MIN_ATTESTATION_INCLUSION_DELAY
-                    - attestation.inclusion_delay
-                )
-                // config.SLOTS_PER_EPOCH
-            ),
+            (max_attester_reward // attestation.inclusion_delay),
         )
 
     finality_delay = previous_epoch - state.finalized_checkpoint.epoch
