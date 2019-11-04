@@ -138,6 +138,7 @@ from .utils import (
     compare_chain_tip_and_finalized_epoch,
     validate_hello,
     get_requested_beacon_blocks,
+    get_recent_beacon_blocks,
 )
 from async_generator import asynccontextmanager
 
@@ -502,6 +503,32 @@ class Node(BaseService):
             )
             raise HandshakeFailure from error
 
+    @asynccontextmanager
+    async def post_handshake_handler_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
+        try:
+            async with self.new_interaction(stream) as interaction:
+                peer_id = interaction.peer_id
+                yield interaction
+        except WriteMessageFailure as error:
+            self.logger.log("WriteMessageFailure %s", error)
+            return
+        except ReadMessageFailure as error:
+            self.logger.log("ReadMessageFailure %s", error)
+            return
+        except UnhandshakedPeer as error:
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
+            self.logger.log("Disconnected peer  %s", error)
+            return
+
+    @asynccontextmanager
+    async def my_request_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
+        try:
+            async with self.new_interaction(stream) as interaction:
+                yield interaction
+        except (MessageIOFailure, UnhandshakedPeer, PeerRespondedAnError) as error:
+            raise RequestFailure(str(error)) from error
+
     # TODO: Handle the reputation of peers. Deduct their scores and even disconnect when they
     #   behave.
 
@@ -586,26 +613,11 @@ class Node(BaseService):
             raise UnhandshakedPeer(peer_id)
 
     async def _handle_beacon_blocks(self, stream: INetStream) -> None:
-        try:
-            await self.__handle_beacon_blocks(stream)
-        except WriteMessageFailure as error:
-            self.logger.log("WriteMessageFailure %s", error)
-            return
-        except ReadMessageFailure as error:
-            self.logger.log("ReadMessageFailure %s", error)
-            return
-        except UnhandshakedPeer as error:
-            await stream.reset()
-            await self.disconnect_peer(peer_id)
-            self.logger.log("Disconnected peer  %s", error)
-            return
-
-    async def __handle_beacon_blocks(self, stream: INetStream) -> None:
         # TODO: Should it be a successful response if peer is requesting
         # blocks on a fork we don't have data for?
 
         self.logger.debug("Waiting for beacon blocks request from the other side")
-        async with self.new_interaction(stream) as interaction:
+        async with self.post_handshake_handler_interaction(stream) as interaction:
             peer_id = interaction.peer_id
             self._check_peer_handshaked(peer_id)
 
@@ -617,7 +629,7 @@ class Node(BaseService):
                 )
             except InvalidRequest as error:
                 error_message = str(error)[:128]
-                await interaction.write_error_response(error_message, ResponseCode.InvalidRequest)
+                await interaction.write_error_response(error_message, ResponseCode.INVALID_REQUEST)
             else:
                 beacon_blocks_response = BeaconBlocksResponse(blocks=requested_beacon_blocks)
                 await interaction.write_response(beacon_blocks_response)
@@ -632,133 +644,37 @@ class Node(BaseService):
                                     start_slot: Slot,
                                     count: int,
                                     step: int) -> Tuple[BaseBeaconBlock, ...]:
-        beacon_blocks_request = BeaconBlocksRequest(
-            head_block_root=head_block_root,
-            start_slot=start_slot,
-            count=count,
-            step=step,
-        )
-        try:
-            return await self._request_beacon_blocks(
-                peer_id=peer_id,
-                beacon_blocks_request=beacon_blocks_request,
-            )
-        except (MessageIOFailure, UnhandshakedPeer) as error:
-            raise RequestFailure(str(error)) from error
-
-    async def _request_beacon_blocks(
-        self,
-        peer_id: ID,
-        beacon_blocks_request: BeaconBlocksRequest) -> Tuple[BaseBeaconBlock, ...]:
-
-        self._check_peer_handshaked(peer_id)
         stream = await self.new_stream(peer_id, REQ_RESP_BEACON_BLOCKS_SSZ)
-        async with self.new_interaction(stream) as interaction:
-            await interaction.write_request(beacon_blocks_request)
+        async with self.my_request_interaction(stream) as interaction:
+            self._check_peer_handshaked(peer_id)
+            request = BeaconBlocksRequest(
+                head_block_root=head_block_root,
+                start_slot=start_slot,
+                count=count,
+                step=step,
+            )
+            await interaction.write_request(request)
             beacon_blocks_response = await interaction.read_response(BeaconBlocksResponse)
             return beacon_blocks_response.blocks
 
     async def _handle_recent_beacon_blocks(self, stream: INetStream) -> None:
-        peer_id = stream.mplex_conn.peer_id
-        if peer_id not in self.handshaked_peers:
-            self.logger.info(
-                "Processing recent beacon blocks request failed: not handshaked with peer=%s yet",
-                peer_id,
-            )
-            await stream.reset()
-            return
+        async with self.post_handshake_handler_interaction(stream) as interaction:
+            peer_id = interaction.peer_id
+            self._check_peer_handshaked(peer_id)
+            request = await interaction.read_request(RecentBeaconBlocksRequest)
+            recent_beacon_blocks = get_recent_beacon_blocks(self.chain, request)
+            response = RecentBeaconBlocksResponse(blocks=recent_beacon_blocks)
 
-        self.logger.debug("Waiting for recent beacon blocks request from the other side")
-        try:
-            recent_beacon_blocks_request = await read_req(stream, RecentBeaconBlocksRequest)
-
-        except ReadMessageFailure:
-            return
-        self.logger.debug(
-            "Received the recent beacon blocks request message %s",
-            recent_beacon_blocks_request,
-        )
-
-        recent_beacon_blocks = []
-        for block_root in recent_beacon_blocks_request.block_roots:
-            try:
-                block = self.chain.get_block_by_root(block_root)
-            except (BlockNotFound, ValidationError):
-                pass
-            else:
-                recent_beacon_blocks.append(block)
-
-        recent_beacon_blocks_response = RecentBeaconBlocksResponse(blocks=recent_beacon_blocks)
-        self.logger.debug("Sending recent beacon blocks response %s", recent_beacon_blocks_response)
-        try:
-            await write_resp(stream, recent_beacon_blocks_response, ResponseCode.SUCCESS)
-        except WriteMessageFailure:
-            self.logger.info(
-                "Processing recent beacon blocks request failed: failed to write message %s",
-                recent_beacon_blocks_response,
-            )
-            return
-
-        self.logger.debug(
-            "Processing recent beacon blocks request from %s is finished",
-            peer_id,
-        )
-        await stream.close()
+            await interaction.write_response(response)
 
     async def request_recent_beacon_blocks(
             self,
             peer_id: ID,
             block_roots: Sequence[SigningRoot]) -> Tuple[BaseBeaconBlock, ...]:
-        if peer_id not in self.handshaked_peers:
-            error_msg = f"not handshaked with peer={peer_id} yet"
-            self.logger.info("Request recent beacon block failed: %s", error_msg)
-            raise RequestFailure(error_msg)
-
-        recent_beacon_blocks_request = RecentBeaconBlocksRequest(block_roots=block_roots)
-
-        self.logger.debug(
-            "Opening new stream to peer=%s with protocols=%s",
-            peer_id,
-            [REQ_RESP_RECENT_BEACON_BLOCKS_SSZ],
-        )
-        stream = await self.host.new_stream(peer_id, [REQ_RESP_RECENT_BEACON_BLOCKS_SSZ])
-        self.logger.debug("Sending recent beacon blocks request %s", recent_beacon_blocks_request)
-        try:
-            await write_req(stream, recent_beacon_blocks_request)
-        except WriteMessageFailure:
-            error_msg = f"fail to write request={recent_beacon_blocks_request}"
-            self.logger.info("Request recent beacon blocks failed: %s", error_msg)
-            raise RequestFailure(error_msg)
-
-        self.logger.debug("Waiting for recent beacon blocks response")
-        try:
-            resp_code, recent_beacon_blocks_response = await read_resp(
-                stream,
-                RecentBeaconBlocksResponse,
-            )
-        except ReadMessageFailure:
-            self.logger.info("Request recent beacon blocks failed: fail to read the response")
-            raise RequestFailure("fail to read the response")
-
-        self.logger.debug(
-            "Received recent beacon blocks response %s, resp_code=%s",
-            recent_beacon_blocks_response,
-            resp_code,
-        )
-
-        if resp_code != ResponseCode.SUCCESS:
-            error_msg = (
-                "resp_code != ResponseCode.SUCCESS, "
-                f"resp_code={resp_code}, error_msg={recent_beacon_blocks_response}"
-            )
-            self.logger.info("Request recent beacon blocks failed: %s", error_msg)
-            await stream.reset()
-            raise RequestFailure(error_msg)
-
-        await stream.close()
-
-        recent_beacon_blocks_response = cast(
-            RecentBeaconBlocksResponse,
-            recent_beacon_blocks_response,
-        )
-        return recent_beacon_blocks_response.blocks
+        stream = await self.new_stream(peer_id, REQ_RESP_RECENT_BEACON_BLOCKS_SSZ)
+        async with self.my_request_interaction(stream) as interaction:
+            self._check_peer_handshaked(peer_id)
+            request = RecentBeaconBlocksRequest(block_roots=block_roots)
+            await interaction.write_request(request)
+            response = await interaction.read_response(RecentBeaconBlocksResponse)
+            return response.blocks

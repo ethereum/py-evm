@@ -79,6 +79,7 @@ from .exceptions import (
 from .messages import (
     BeaconBlocksRequest,
     HelloRequest,
+    RecentBeaconBlocksRequest,
 )
 from eth.exceptions import (
     BlockNotFound,
@@ -306,6 +307,16 @@ def get_requested_beacon_blocks(
     except ValidationError as val_error:
         raise InvalidRequest(str(val_error))
 
+@to_tuple
+def get_recent_beacon_blocks(chain: BaseBeaconChain, request: RecentBeaconBlocksRequest):
+    for block_root in request.block_roots:
+        try:
+            block = chain.get_block_by_hash_tree_root(block_root)
+        except (BlockNotFound, ValidationError):
+            pass
+        else:
+            yield block
+
 
 # TODO: Refactor: Probably move these [de]serialization functions to `Node` as methods,
 #   expose the hard-coded to parameters, and pass the timeout from the methods?
@@ -343,12 +354,7 @@ class Interaction:
         await write_resp(self.stream, message, ResponseCode.SUCCESS)
 
     async def write_error_response(self, error_message: str, code: ResponseCode) -> None:
-        self.logger.debug(
-            "Respond %s to %s  %s",
-            type(message).__name__,
-            self.peer_id,
-            to_formatted_dict(message),
-        )
+        self.logger.debug("Respond %s to %s  %s", str(code), self.peer_id, error_message)
         await write_resp(self.stream, error_message, code)
 
     async def read_request(self, message_type: Type[MsgType]) -> MsgType:
