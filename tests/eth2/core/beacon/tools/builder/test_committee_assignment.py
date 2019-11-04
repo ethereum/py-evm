@@ -29,11 +29,9 @@ def test_get_committee_assignment(
     validator_count,
     state_epoch,
     epoch,
-    fixture_sm_class,
 ):
     state_slot = compute_start_slot_of_epoch(state_epoch, slots_per_epoch)
     state = genesis_state.copy(slot=state_slot)
-    proposer_count = 0
     shard_validator_count = [0 for _ in range(shard_count)]
     slots = []
 
@@ -43,13 +41,10 @@ def test_get_committee_assignment(
         assignment = get_committee_assignment(state, config, epoch, validator_index)
         assert assignment.slot >= epoch_start_slot
         assert assignment.slot < epoch_start_slot + slots_per_epoch
-        if assignment.is_proposer:
-            proposer_count += 1
 
         shard_validator_count[assignment.shard] += 1
         slots.append(assignment.slot)
 
-    assert proposer_count == slots_per_epoch
     assert sum(shard_validator_count) == validator_count
 
 

@@ -19,12 +19,7 @@ from eth2.configs import CommitteeConfig, Eth2Config
 
 CommitteeAssignment = NamedTuple(
     "CommitteeAssignment",
-    (
-        ("committee", Tuple[ValidatorIndex, ...]),
-        ("shard", Shard),
-        ("slot", Slot),
-        ("is_proposer", bool),
-    ),
+    (("committee", Tuple[ValidatorIndex, ...]), ("shard", Shard), ("slot", Slot)),
 )
 
 
@@ -40,8 +35,6 @@ def get_committee_assignment(
     ``CommitteeAssignment.committee`` is the tuple array of validators in the committee
     ``CommitteeAssignment.shard`` is the shard to which the committee is assigned
     ``CommitteeAssignment.slot`` is the slot at which the committee is assigned
-    ``CommitteeAssignment.is_proposer`` is a bool signalling if the validator is expected to
-        propose a beacon block at the assigned slot.
     """
     next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
     if epoch > next_epoch:
@@ -71,11 +64,15 @@ def get_committee_assignment(
                 state, epoch, shard, CommitteeConfig(config)
             )
             if validator_index in committee:
-                is_proposer = validator_index == get_beacon_proposer_index(
-                    state.copy(slot=slot), CommitteeConfig(config)
-                )
-                return CommitteeAssignment(
-                    committee, Shard(shard), Slot(slot), is_proposer
-                )
+                return CommitteeAssignment(committee, Shard(shard), Slot(slot))
 
     raise NoCommitteeAssignment
+
+
+def is_proposer(
+    state: BeaconState, validator_index: ValidatorIndex, config: CommitteeConfig
+) -> bool:
+    """
+    Return if the validator is proposer of `state.slot`.
+    """
+    return get_beacon_proposer_index(state, CommitteeConfig(config)) == validator_index
