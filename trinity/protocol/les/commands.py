@@ -193,6 +193,7 @@ class GetBlockBodies(BaseCommand[GetBlockBodiesPayload]):
 
 BLOCK_BODIES_STRUCTURE = sedes.List((
     sedes.big_endian_int,
+    sedes.big_endian_int,
     sedes.CountableList(BlockBody),
 ))
 

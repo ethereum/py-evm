@@ -115,6 +115,7 @@ class BlockBodiesPayloadFactory(factory.Factory):
         model = BlockBodiesPayload
 
     request_id = factory.Sequence(lambda n: n)
+    buffer_value = 0
     bodies = factory.LazyFunction(lambda: tuple(BlockBodyFactory.create_batch(2)))
 
 

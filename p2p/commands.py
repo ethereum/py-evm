@@ -17,6 +17,7 @@ from p2p.abc import (
     SerializationCodecAPI,
     TCommand,
 )
+from p2p.constants import RLPX_HEADER_DATA
 from p2p.message import Message
 from p2p.exceptions import MalformedMessage
 from p2p.typing import TCommandPayload
@@ -27,12 +28,13 @@ from p2p.typing import TCommandPayload
 #
 class NoneSerializationCodec(SerializationCodecAPI[None]):
     def encode(self, payload: None) -> bytes:
-        return b''
+        return b'\xc0'
 
     def decode(self, data: bytes) -> None:
-        if len(data) != 0:
-            raise MalformedMessage("Should be empty")
-        return None
+        if data == b'\xc0':
+            return None
+        else:
+            raise MalformedMessage(f"Should be empty. Got {len(data)} bytes: {data.hex()}")
 
 
 class RLPCodec(SerializationCodecAPI[TCommandPayload]):
@@ -82,7 +84,6 @@ class NoCompressionCodec(CompressionCodecAPI):
         return data
 
 
-HEADER_DATA = b'\xc2\x80\x80'  # rlp.encode([0, 0])
 ZERO_16 = b'\x00' * 16
 
 
@@ -112,7 +113,7 @@ class BaseCommand(CommandAPI[TCommandPayload]):
             raise ValueError("Frame size has to fit in a 3-byte integer")
 
         # Frame-size is a 3-bit integer
-        header = struct.pack('>I', frame_size)[1:] + HEADER_DATA
+        header = struct.pack('>I', frame_size)[1:] + RLPX_HEADER_DATA
         body = cmd_id_data + payload_data
 
         return Message(header, body)
@@ -124,5 +125,11 @@ class BaseCommand(CommandAPI[TCommandPayload]):
         else:
             payload_data = message.body[1:]
 
-        payload = cls.serialization_codec.decode(payload_data)
+        try:
+            payload = cls.serialization_codec.decode(payload_data)
+        except rlp.exceptions.DeserializationError as err:
+            raise rlp.exceptions.DeserializationError(
+                f"DeserializationError for {cls}",
+                err.serial,
+            ) from err
         return cls(payload)

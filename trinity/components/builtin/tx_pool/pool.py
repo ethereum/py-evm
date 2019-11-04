@@ -134,7 +134,11 @@ class TxPool(BaseService):
                 for receiving_peer in await self._peer_pool.get_peers():
                     filtered_tx = self._filter_tx_for_peer(receiving_peer, batch)
                     if len(filtered_tx) == 0:
-                        self.logger.info('TXNS filtered down to ZERO')
+                        self.logger.debug2(
+                            '%d TXNS filtered down to ZERO for peer: %s',
+                            len(batch),
+                            receiving_peer,
+                        )
                         continue
 
                     self.logger.debug2(

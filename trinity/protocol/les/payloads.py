@@ -138,6 +138,7 @@ class GetBlockBodiesPayload(NamedTuple):
 
 class BlockBodiesPayload(NamedTuple):
     request_id: int
+    buffer_value: int
     bodies: Tuple[BlockBody, ...]
 
 

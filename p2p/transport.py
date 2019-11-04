@@ -1,7 +1,9 @@
 import asyncio
+import functools
 import hmac
 import secrets
 import struct
+from typing import ByteString, Tuple
 
 import sha3
 
@@ -53,6 +55,12 @@ from p2p.transport_state import TransportState
 
 
 HEADER_DATA_SEDES = rlp.sedes.List((rlp.sedes.big_endian_int, rlp.sedes.big_endian_int))
+
+
+@functools.lru_cache(256)
+def _decode_header_data(data: ByteString) -> Tuple[int, int]:
+    header_data = rlp.decode(data, sedes=HEADER_DATA_SEDES, strict=False)
+    return header_data
 
 
 class Transport(TransportAPI):
@@ -302,9 +310,12 @@ class Transport(TransportAPI):
         # Reset status back to IDLE
         self.read_state = TransportState.IDLE
 
-        # TODO: this can be optimized since the `header_data` will almost always be the same value.
         # Decode the header data and re-encode to recover the unpadded header size.
-        header_data = rlp.decode(padded_header[3:], sedes=HEADER_DATA_SEDES, strict=False)
+        try:
+            header_data = _decode_header_data(padded_header[3:])
+        except rlp.exceptions.DeserializationError as err:
+            raise MalformedMessage from err
+
         header = padded_header[:3] + rlp.encode(header_data)
 
         return Message(header, body)
