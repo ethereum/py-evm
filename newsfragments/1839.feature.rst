@@ -1,0 +1,1 @@
+Add Istanbul block number to chain configuration for Mainnet and Goerli
