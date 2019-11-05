@@ -9,14 +9,9 @@ from trinity.protocol.bcc_libp2p.configs import GoodbyeReasonCode, ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import HandshakeFailure, RequestFailure
 from trinity.protocol.bcc_libp2p.messages import HelloRequest
 from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
-from trinity.protocol.bcc_libp2p.utils import (
-    get_blocks_from_canonical_chain_by_slot,
-    get_blocks_from_fork_chain_by_root,
-    read_req,
-    write_resp,
-)
+from trinity.protocol.bcc_libp2p.utils import read_req, write_resp
 from trinity.tools.async_method import wait_until_true
-from trinity.tools.bcc_factories import ConnectionPairFactory, NodeFactory
+from trinity.tools.bcc_factories import ConnectionPairFactory
 
 
 @pytest.mark.asyncio
@@ -106,51 +101,6 @@ async def test_request_beacon_blocks_fail():
             )
 
 
-@pytest.mark.parametrize(
-    "db_block_slots, slot_of_requested_blocks, expected_block_slots",
-    (
-        (range(5), [0, 2, 4], [0, 2, 4]),
-        ([1, 3, 5], [0, 2, 4], []),
-        ([2, 4], range(5), [2, 4]),
-    ),
-)
-@pytest.mark.asyncio
-async def test_get_blocks_from_canonical_chain_by_slot(
-    monkeypatch, db_block_slots, slot_of_requested_blocks, expected_block_slots
-):
-    node = NodeFactory()
-
-    # Mock up block database
-    mock_slot_to_block_db = {
-        slot: BeaconBlock(
-            slot=slot,
-            parent_root=ZERO_HASH32,
-            state_root=ZERO_HASH32,
-            signature=EMPTY_SIGNATURE,
-            body=BeaconBlockBody(),
-        )
-        for slot in db_block_slots
-    }
-
-    def get_canonical_block_by_slot(slot):
-        if slot in mock_slot_to_block_db:
-            return mock_slot_to_block_db[slot]
-        else:
-            raise BlockNotFound
-
-    monkeypatch.setattr(
-        node.chain, "get_canonical_block_by_slot", get_canonical_block_by_slot
-    )
-
-    result_blocks = get_blocks_from_canonical_chain_by_slot(
-        chain=node.chain, slot_of_requested_blocks=slot_of_requested_blocks
-    )
-
-    expected_blocks = [mock_slot_to_block_db[slot] for slot in expected_block_slots]
-    assert len(result_blocks) == len(expected_blocks)
-    assert set(result_blocks) == set(expected_blocks)
-
-
 @pytest.mark.asyncio
 async def test_request_beacon_blocks_invalid_request(monkeypatch):
     async with ConnectionPairFactory() as (alice, bob):
@@ -221,64 +171,6 @@ async def test_request_beacon_blocks_invalid_request(monkeypatch):
                 count=count,
                 step=step,
             )
-
-
-@pytest.mark.parametrize(
-    "fork_chain_block_slots, slot_of_requested_blocks, expected_block_slots",
-    (
-        (range(10), [1, 4], [1, 4]),
-        ([0, 2, 3, 7, 8], list(range(1, 9, 2)), [3, 7]),
-        ([0, 2, 5], list(range(1, 6)), [2, 5]),
-        ([0, 4, 5], [2, 3], []),
-    ),
-)
-@pytest.mark.asyncio
-async def test_get_blocks_from_fork_chain_by_root(
-    monkeypatch, fork_chain_block_slots, slot_of_requested_blocks, expected_block_slots
-):
-    node = NodeFactory()
-
-    mock_block = BeaconBlock(
-        slot=0,
-        parent_root=ZERO_HASH32,
-        state_root=ZERO_HASH32,
-        signature=EMPTY_SIGNATURE,
-        body=BeaconBlockBody(),
-    )
-
-    # Mock up fork chain block database
-    fork_chain_blocks = []
-    for slot in fork_chain_block_slots:
-        if len(fork_chain_blocks) == 0:
-            fork_chain_blocks.append(mock_block.copy(slot=slot))
-        else:
-            fork_chain_blocks.append(
-                mock_block.copy(
-                    slot=slot, parent_root=fork_chain_blocks[-1].signing_root
-                )
-            )
-    mock_root_to_block_db = {block.signing_root: block for block in fork_chain_blocks}
-
-    def get_block_by_root(root):
-        if root in mock_root_to_block_db:
-            return mock_root_to_block_db[root]
-        else:
-            raise BlockNotFound
-
-    monkeypatch.setattr(node.chain, "get_block_by_root", get_block_by_root)
-
-    requested_blocks = get_blocks_from_fork_chain_by_root(
-        chain=node.chain,
-        start_slot=slot_of_requested_blocks[0],
-        peer_head_block=fork_chain_blocks[-1],
-        slot_of_requested_blocks=slot_of_requested_blocks,
-    )
-
-    expected_blocks = [
-        block for block in fork_chain_blocks if block.slot in expected_block_slots
-    ]
-    assert len(requested_blocks) == len(expected_blocks)
-    assert set(requested_blocks) == set(expected_blocks)
 
 
 @pytest.mark.asyncio
