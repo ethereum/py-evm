@@ -12,6 +12,7 @@ ALLOWED_EXTENSIONS = {
     '.performance.rst',
     '.doc.rst',
     '.removal.rst',
+    '.internal.rst',
     '.misc.rst',
 }
 
