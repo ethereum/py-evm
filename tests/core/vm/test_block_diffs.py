@@ -6,8 +6,9 @@ from eth_hash.auto import keccak
 
 from eth.constants import BLANK_ROOT_HASH
 from eth.db.atomic import AtomicDB
+from eth.db.chain import ChainDB
 from eth.db.block_diff import BlockDiff
-from eth.db.account import AccountDB
+from eth.db.account import AccountDB, TurboAccountDB
 from eth.db.storage import StorageLookup
 
 ACCOUNT = b'\xaa' * 20
@@ -23,12 +24,14 @@ TODO: Some tests remain to be written:
 
 @pytest.fixture
 def base_db():
-    return AtomicDB()
+    db = AtomicDB()
+    ChainDB.upgrade_to_turbo_schema(db)
+    return db
 
 
 @pytest.fixture
 def account_db(base_db):
-    return AccountDB(base_db)
+    return TurboAccountDB(base_db)
 
 
 # Some basic tests that BlockDiff works as expected and can round-trip data to the database
@@ -62,7 +65,8 @@ def test_can_persist_changed_account(base_db):
 
 
 def save_block_diff(account_db, block_hash):
-    diff = account_db.persist_returning_block_diff()
+    parent_state_root = account_db._root_hash_at_last_persist
+    diff = account_db.persist_returning_block_diff(parent_state_root)
     diff.write_to(account_db._raw_store_db, block_hash)
 
 
@@ -114,6 +118,7 @@ def test_persists_state_root(account_db):
     assert new_account.storage_root == expected_root
 
 
+@pytest.mark.skip('persist() should not be allowed if you will save a block diff')
 def test_two_storage_changes(account_db):
     account_db.set_storage(ACCOUNT, 1, 10)
     account_db.persist()
@@ -148,6 +153,7 @@ def test_account_and_storage_change(account_db):
     assert diff.get_slot_change(ACCOUNT, 1) == (0, 10)
 
 
+@pytest.mark.skip('persist() should not be allowed if you will save a block diff')
 def test_delete_account(account_db):
     account_db.set_balance(ACCOUNT, 100)
     account_db.persist()

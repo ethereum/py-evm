@@ -23,6 +23,7 @@ from eth.tools.builder.chain import (
     import_blocks,
     mine_block,
     mine_blocks,
+    upgrade_to_turbo,
 )
 from eth.tools.builder.chain.builders import (
     NoChainSealValidationMixin,
@@ -34,6 +35,7 @@ MINING_CHAIN_PARAMS = (
     frontier_at(0),
     disable_pow_check,
     genesis(),
+    upgrade_to_turbo,
 )
 
 

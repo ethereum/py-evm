@@ -47,6 +47,7 @@ from eth.db.chain import (
 from eth.db.header import (
     HeaderDB,
 )
+from eth.db.schema import Schemas
 
 from eth.estimators import (
     get_gas_estimator,
@@ -402,7 +403,10 @@ class Chain(BaseChain):
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
 
         pre_genesis_header = BlockHeader(difficulty=0, block_number=-1, gas_limit=0)
-        state = genesis_vm_class.build_state(base_db, pre_genesis_header)
+        state = genesis_vm_class.build_state(
+            base_db, pre_genesis_header,
+            expected_schema=Schemas.DEFAULT,
+        )
 
         if genesis_state is None:
             genesis_state = {}

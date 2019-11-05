@@ -21,6 +21,7 @@ from eth.tools.builder.chain import (
     petersburg_at,
     spurious_dragon_at,
     tangerine_whistle_at,
+    upgrade_to_turbo,
 )
 from eth.vm.forks import (
     FrontierVM,
@@ -113,6 +114,7 @@ def test_chain_builder_enable_pow_mining():
         frontier_at(0),
         enable_pow_mining(),
         genesis(),
+        upgrade_to_turbo,
     )
     block = chain.mine_block()
     check_pow(
@@ -129,6 +131,7 @@ def test_chain_builder_without_any_mining_config():
         MiningChain,
         frontier_at(0),
         genesis(),
+        upgrade_to_turbo,
     )
     with pytest.raises(ValidationError, match='mix hash mismatch'):
         chain.mine_block()
@@ -140,6 +143,7 @@ def test_chain_builder_disable_pow_check():
         frontier_at(0),
         disable_pow_check(),
         genesis(),
+        upgrade_to_turbo,
     )
     block = chain.mine_block()
     with pytest.raises(ValidationError, match='mix hash mismatch'):

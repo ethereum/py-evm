@@ -7,6 +7,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.db.chain import ChainDB
 from eth.rlp.headers import (
     BlockHeader,
 )
@@ -272,6 +273,9 @@ def fixture(fixture_data):
 def test_blockchain_fixtures(fixture_data, fixture):
     try:
         chain = new_chain_from_fixture(fixture)
+
+        db = chain.chaindb.db
+        ChainDB.upgrade_to_turbo_schema(db)
     except ValueError as e:
         raise AssertionError("could not load chain for {}".format((fixture_data,))) from e
 

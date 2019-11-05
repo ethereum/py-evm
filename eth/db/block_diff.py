@@ -7,6 +7,7 @@ from typing import (
     Tuple,
 )
 
+from eth_hash.auto import keccak
 from eth_typing import (
     Address,
     Hash32,
@@ -93,12 +94,12 @@ class BlockDiff:
         return rlp.decode(encoded, sedes=Account)
 
     @classmethod
-    def from_db(cls, db: BaseDB, block_hash: Hash32) -> 'BlockDiff':
+    def from_db(cls, db: BaseDB, state_root: Hash32) -> 'BlockDiff':
         """
-        KeyError is thrown if a diff was not saved for the provided {block_hash}
+        KeyError is thrown if a diff was not saved for the provided {state_root}
         """
 
-        encoded_diff = db[SchemaTurbo.make_block_diff_lookup_key(block_hash)]
+        encoded_diff = db[SchemaTurbo.make_block_diff_lookup_key(state_root)]
         diff = rlp.decode(encoded_diff)
 
         accounts, storage_items = diff
@@ -114,7 +115,7 @@ class BlockDiff:
 
         return block_diff
 
-    def write_to(self, db: BaseDB, block_hash: Hash32) -> None:
+    def write_to(self, db: BaseDB, state_root: Hash32) -> None:
 
         # TODO: this should probably verify that the state roots have all been added
 
@@ -131,11 +132,11 @@ class BlockDiff:
         ]
 
         encoded_diff = rlp.encode(diff)
-        db[SchemaTurbo.make_block_diff_lookup_key(block_hash)] = encoded_diff
+        db[SchemaTurbo.make_block_diff_lookup_key(state_root)] = encoded_diff
 
     @classmethod
-    def apply_to(cls, db: BaseDB,
-                 parent_hash: Hash32, block_hash: Hash32, forward: bool = True) -> None:
+    def apply_to(cls, db: BaseDB, parent_state_root: Hash32,
+                 state_root: Hash32, forward: bool = True) -> None:
         """
         Looks up the BlockDif for the given hash and applies it to the databae
         """
@@ -145,12 +146,12 @@ class BlockDiff:
 
         # 1. Verify the database is in the correct state
         if forward:
-            assert db[SchemaTurbo.current_state_lookup_key] == parent_hash
+            assert db[SchemaTurbo.current_state_root_key] == parent_state_root
         else:
-            assert db[SchemaTurbo.current_state_lookup_key] == block_hash
+            assert db[SchemaTurbo.current_state_root_key] == state_root
 
         # 2. Lookup the diff (throws KeyError if it does not exist)
-        diff = cls.from_db(db, block_hash)
+        diff = cls.from_db(db, state_root)
 
         # Sadly, AtomicDB.atomic_batch() databases are not themselves atomic, so the rest
         # of this method cannot be wrapped in an atomic_batch context manager.
@@ -163,13 +164,15 @@ class BlockDiff:
             key = SchemaTurbo.make_account_state_lookup_key(keccak(address))
 
             if forward:
-                assert db[key] == old_value
+                if old_value != b'':
+                    assert db[key] == old_value
                 db[key] = new_value
             else:
-                assert db[key] == new_value
+                if new_value != b'':
+                    assert db[key] == new_value
                 db[key] = old_value
 
         if forward:
-            db[SchemaTurbo.current_state_lookup_key] = block_hash
+            db[SchemaTurbo.current_state_root_key] = state_root
         else:
-            db[SchemaTurbo.current_state_lookup_key] = parent_hash
+            db[SchemaTurbo.current_state_root_key] = parent_state_root

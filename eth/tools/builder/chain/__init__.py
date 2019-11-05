@@ -15,6 +15,7 @@ from .builders import (  # noqa: F401
     mine_block,
     mine_blocks,
     name,
+    upgrade_to_turbo,
 )
 from .builders import (  # noqa: F401
     byzantium_at,
@@ -95,6 +96,8 @@ class API:
 
     chain_split = staticmethod(chain_split)
     at_block_number = staticmethod(at_block_number)
+
+    upgrade_to_turbo = staticmethod(upgrade_to_turbo)
 
 
 api = API()

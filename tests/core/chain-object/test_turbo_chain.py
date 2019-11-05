@@ -7,6 +7,7 @@ from eth_utils.toolz import (
     assoc,
 )
 
+from eth.chains.base import MiningChain
 from eth.db.block_diff import BlockDiff
 from eth.tools._utils.vyper import (
     compile_vyper_lll,
@@ -63,7 +64,7 @@ def test_import_block_saves_block_diff(chain, funded_address, funded_address_pri
     imported_block, _, _ = chain.import_block(new_block)
 
     imported_header = imported_block.header
-    imported_block_hash = imported_header.hash
+    imported_block_state_root = imported_header.state_root
 
     # sanity check, did the transaction go through?
     assert len(imported_block.transactions) == 1
@@ -72,7 +73,7 @@ def test_import_block_saves_block_diff(chain, funded_address, funded_address_pri
 
     # the actual test, did we write out all the changes which happened?
     base_db = chain.chaindb.db
-    diff = BlockDiff.from_db(base_db, imported_block_hash)
+    diff = BlockDiff.from_db(base_db, imported_block_state_root)
     assert len(diff.get_changed_accounts()) == 3
     assert CONTRACT_ADDRESS in diff.get_changed_accounts()
     assert imported_header.coinbase in diff.get_changed_accounts()
@@ -98,3 +99,66 @@ def test_import_block_saves_block_diff(chain, funded_address, funded_address_pri
     new_contract_nonce = diff.get_decoded_account(CONTRACT_ADDRESS, new=True).nonce
     assert old_contract_nonce == 0
     assert new_contract_nonce == 0
+
+
+def test_import_multiple_txns_saves_complete_block_diff(chain, funded_address, funded_address_private_key):
+    """
+    MiningChain builds a new VM each time a method (such as apply_transaction) is called.
+
+    block diffs are created by AccountDB, and there isn't a good way of tracking changes
+    over multiple instance of AccountDB. This means that block diffs created by the later
+    VM instances will be incomplete, they'll miss any accounts which changed in previous
+    VM instances.
+
+    It turns out that this isn't actually a problem, because the VM which builds the block
+    diff is created during `chain.import_block`, it re-runs every transaction and then
+    saves the block diff.
+
+    Keeping this test because that's kind of an inefficient implementation detail and
+    might change. Once it changes this test will start failing. I think the right fix is
+    a refactor to MiningChain. It ought to keep around a single pending VM and apply all
+    transactions to that VM. This way the AccountDB will have seen all changes, so it can
+    emit an accurate block diff. This refactor can also be expected to improve test
+    performance.
+    """
+    if not isinstance(chain, MiningChain):
+        pytest.skip('this test checks that MiningChain works properly')
+
+    FIRST_ADDRESS = b'\x10' * 20
+    SECOND_ADDRESS = b'\x20' * 20
+
+    # 1. Make a txn which changes one account
+    first_txn = new_transaction(
+        chain.get_vm(),
+        funded_address,
+        FIRST_ADDRESS,
+        data=b'',
+        private_key=funded_address_private_key,
+        amount=1000,
+    )
+    chain.apply_transaction(first_txn)
+
+    # 2. Make a txn which changes a second account
+    second_txn = new_transaction(
+        chain.get_vm(),
+        funded_address,
+        SECOND_ADDRESS,
+        data=b'',
+        private_key=funded_address_private_key,
+        amount=1000,
+    )
+    new_block, _receipt, _computation = chain.apply_transaction(second_txn)
+    mined_block, _, _ = chain.import_block(new_block)
+
+    # did the transactions go through?
+    assert mined_block.transactions == (first_txn, second_txn)
+
+    # what does the block diff say?
+    base_db = chain.chaindb.db
+    diff = BlockDiff.from_db(base_db, mined_block.header.state_root)
+    assert diff.get_changed_accounts() == {
+        funded_address,
+        FIRST_ADDRESS,
+        SECOND_ADDRESS,
+        mined_block.header.coinbase,
+    }

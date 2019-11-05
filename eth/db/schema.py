@@ -64,16 +64,16 @@ class SchemaTurbo(SchemaV1):
     current_schema_lookup_key: bytes = b'current-schema'
     _block_diff_prefix = b'block-diff'
 
-    # TODO: this naming is terrible, what should the name be?
-    current_state_lookup_key: bytes = b'current-turbo-state'
+    current_state_root_key: bytes = b'current-turbo-state'
 
     @classmethod
-    def make_block_diff_lookup_key(cls, block_hash: Hash32) -> bytes:
-        return cls._block_diff_prefix + b':' + block_hash
+    def make_block_diff_lookup_key(cls, state_root: Hash32) -> bytes:
+        # TODO: look at all callers, they should be using a state root!
+        return cls._block_diff_prefix + b':' + state_root
 
     @classmethod
     def make_account_state_lookup_key(cls, address_hash: Hash32) -> bytes:
-        return cls.current_state_lookup_key + b':' + address_hash
+        return cls.current_state_root_key + b':' + address_hash
 
 
 def get_schema(db: BaseDB) -> Schemas:

@@ -41,6 +41,7 @@ from eth.db.backends.base import (
 from eth.db.backends.memory import (
     MemoryDB,
 )
+from eth.db.chain import ChainDB
 from eth.rlp.blocks import (
     BaseBlock,
 )
@@ -513,3 +514,9 @@ def at_block_number(block_number: BlockNumber, chain: MiningChain) -> MiningChai
     db = chain.chaindb.db
     chain_at_block = type(chain)(db, chain.create_header_from_parent(at_block.header))
     return chain_at_block
+
+
+def upgrade_to_turbo(chain: BaseChain) -> BaseChain:
+    db = chain.chaindb.db
+    ChainDB.upgrade_to_turbo_schema(db)
+    return chain

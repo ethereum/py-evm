@@ -24,9 +24,11 @@ from eth_utils import (
 from eth_hash.auto import keccak
 
 from eth.constants import (
+    BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
 )
 from eth.exceptions import (
+    CanonicalHeadNotFound,
     HeaderNotFound,
     ReceiptNotFound,
     TransactionNotFound,
@@ -37,7 +39,8 @@ from eth.db.backends.base import (
     BaseAtomicDB,
     BaseDB,
 )
-from eth.db.schema import SchemaV1
+from eth.db import schema
+from eth.db.trie import iterate_leaves
 from eth.rlp.headers import (
     BlockHeader,
 )
@@ -212,7 +215,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         for h in new_canonical_headers:
             cls._add_block_number_to_hash_lookup(db, h)
 
-        db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
+        db.set(schema.SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
 
         return new_canonical_headers, tuple(old_canonical_headers)
 
@@ -292,10 +295,12 @@ class ChainDB(HeaderDB, BaseChainDB):
         #  \- E - F - G (E, F, G is old_canonical_headers)
 
         for old_header in reversed(old_canonical_headers):
-            BlockDiff.apply_to(db, old_header.parent_hash, old_header.hash)
+            parent = cls._get_block_header_by_hash(db, old_header.parent_hash)
+            BlockDiff.apply_to(db, parent.state_root, old_header.state_root, forward=False)
 
         for new_header in new_canonical_headers:
-            BlockDiff.apply_to(db, new_header.parent_hash, new_header.hash)
+            parent = cls._get_block_header_by_hash(db, new_header.parent_hash)
+            BlockDiff.apply_to(db, parent.state_root, new_header.state_root)
 
     #
     # Transaction API
@@ -403,7 +408,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         Raises TransactionNotFound if the transaction_hash is not found in the
         canonical chain.
         """
-        key = SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash)
+        key = schema.SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash)
         try:
             encoded_key = self.db[key]
         except KeyError:
@@ -465,7 +470,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         Removes the transaction specified by the given hash from the canonical
         chain.
         """
-        db.delete(SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash))
+        db.delete(schema.SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash))
 
     @staticmethod
     def _add_transaction_to_canonical_chain(db: BaseDB,
@@ -481,7 +486,7 @@ class ChainDB(HeaderDB, BaseChainDB):
         """
         transaction_key = TransactionKey(block_header.block_number, index)
         db.set(
-            SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash),
+            schema.SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),
         )
 
@@ -507,3 +512,35 @@ class ChainDB(HeaderDB, BaseChainDB):
         with self.db.atomic_batch() as db:
             for key, value in trie_data_dict.items():
                 db[key] = value
+
+    #
+    # Migration API
+    #
+    @classmethod
+    def upgrade_to_turbo_schema(cls, db: BaseDB) -> None:
+        # Takes a database and upgrades it to the new schema
+
+        # TODO: For a large database this might take a while. Make it interruptable?
+        #       If you keep track of the last account to be imported you can quickly
+        #       resume.
+
+        schema.ensure_schema(db, schema.Schemas.DEFAULT)
+
+        # 1. Find the canonical head
+        try:
+            canonical_header: BlockHeader = cls._get_canonical_head(db)
+        except CanonicalHeadNotFound:
+            db[schema.SchemaTurbo.current_state_root_key] = BLANK_ROOT_HASH
+            schema.set_schema(db, schema.Schemas.TURBO)
+            return
+
+        # 2. Iterate over the account trie as of that head; insert all accounts into the db
+        canonical_state_root = canonical_header.state_root
+        for full_path, account_rlp in iterate_leaves(db, canonical_header.state_root):
+            db[schema.SchemaTurbo.make_account_state_lookup_key(full_path)] = account_rlp
+
+        # 3. Set the correct current_state_root_key
+        db[schema.SchemaTurbo.current_state_root_key] = canonical_header.state_root
+
+        # 4. We're done!
+        schema.set_schema(db, schema.Schemas.TURBO)

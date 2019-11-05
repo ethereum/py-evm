@@ -9,6 +9,7 @@ from eth.chains.base import Chain
 from eth.tools.builder.chain import (
     frontier_at,
     genesis,
+    upgrade_to_turbo,
 )
 
 
@@ -54,7 +55,8 @@ def test_chain_builder_initialize_chain_with_state_simple(chain_class):
         chain_class,
         genesis(
             state=((ADDRESS_A, 'balance', 1),),
-        )
+        ),
+        upgrade_to_turbo,
     )
 
     header = chain.get_canonical_head()
@@ -71,7 +73,8 @@ def test_chain_builder_initialize_chain_with_state_multiple(chain_class):
         chain_class,
         genesis(
             state=((ADDRESS_A, 'balance', 1), (ADDRESS_B, 'balance', 2)),
-        )
+        ),
+        upgrade_to_turbo,
     )
 
     header = chain.get_canonical_head()
@@ -89,7 +92,8 @@ def test_chain_builder_initialize_chain_with_params(chain_class):
         chain_class,
         genesis(
             params={'difficulty': 12345},
-        )
+        ),
+        upgrade_to_turbo,
     )
 
     header = chain.get_canonical_head()
@@ -104,7 +108,8 @@ def test_chain_builder_initialize_chain_with_params_and_state(chain_class):
         genesis(
             params={'difficulty': 12345},
             state=((ADDRESS_A, 'balance', 1),),
-        )
+        ),
+        upgrade_to_turbo,
     )
 
     header = chain.get_canonical_head()

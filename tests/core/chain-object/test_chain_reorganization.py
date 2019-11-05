@@ -26,6 +26,7 @@ def base_chain(request):
 def chain(base_chain):
     chain = api.build(
         base_chain,
+        api.upgrade_to_turbo,
         api.mine_blocks(3),
     )
     assert chain.get_canonical_head().block_number == 3

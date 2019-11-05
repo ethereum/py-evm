@@ -10,10 +10,18 @@ from eth.db.atomic import AtomicDB
 from eth.db.backends.memory import MemoryDB
 from eth.db.account import (
     AccountDB,
+    TurboAccountDB,
 )
+from eth.db.schema import (
+    set_schema,
+    Schemas,
+    SchemaTurbo,
+)
+
 
 from eth.constants import (
     EMPTY_SHA3,
+    BLANK_ROOT_HASH,
 )
 
 
@@ -32,8 +40,18 @@ def account_db(base_db):
     return AccountDB(base_db)
 
 
+def turbo_account_db():
+    base_db = MemoryDB()
+
+    set_schema(base_db, Schemas.TURBO)
+    base_db[SchemaTurbo.current_state_root_key] = BLANK_ROOT_HASH
+
+    return TurboAccountDB(base_db)
+
+
 @pytest.mark.parametrize("state", [
     AccountDB(MemoryDB()),
+    turbo_account_db(),
 ])
 def test_balance(state):
     assert state.get_balance(ADDRESS) == 0
@@ -52,6 +70,7 @@ def test_balance(state):
 
 @pytest.mark.parametrize("state", [
     AccountDB(MemoryDB()),
+    turbo_account_db(),
 ])
 def test_nonce(state):
     assert state.get_nonce(ADDRESS) == 0
@@ -76,6 +95,7 @@ def test_nonce(state):
 
 @pytest.mark.parametrize("state", [
     AccountDB(MemoryDB()),
+    turbo_account_db(),
 ])
 def test_code(state):
     assert state.get_code(ADDRESS) == b''
@@ -96,6 +116,7 @@ def test_code(state):
 
 @pytest.mark.parametrize("state", [
     AccountDB(MemoryDB()),
+    turbo_account_db(),
 ])
 def test_accounts(state):
     assert not state.account_exists(ADDRESS)

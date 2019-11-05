@@ -17,6 +17,7 @@ from eth.chains.base import (
     MiningChain,
 )
 from eth.db.atomic import AtomicDB
+from eth.db.chain import ChainDB
 from eth.rlp.headers import BlockHeader
 from eth.vm.forks import (
     FrontierVM,
@@ -144,6 +145,10 @@ def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
         chain_id=1337,
     )
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
+
+    db = chain.chaindb.db
+    ChainDB.upgrade_to_turbo_schema(db)
+
     return chain
 
 
@@ -227,6 +232,10 @@ def chain_without_block_validation(
         'timestamp': 1501851927,
     }
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
+
+    db = chain.chaindb.db
+    ChainDB.upgrade_to_turbo_schema(db)
+
     return chain
 
 

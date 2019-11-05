@@ -45,11 +45,12 @@ class BaseHeaderDB(ABC):
     db: BaseAtomicDB = None
 
     def __init__(self, db: BaseAtomicDB,
-                 expected_schema: Schemas = Schemas.DEFAULT) -> None:
+                 # expected_schema: Schemas = Schemas.DEFAULT) -> None:
+                 expected_schema: Schemas = Schemas.TURBO) -> None:
         self.db = db
         self.schema = expected_schema
 
-        ensure_schema(db, expected_schema)
+        # ensure_schema(db, expected_schema)
 
     #
     # Canonical Chain API

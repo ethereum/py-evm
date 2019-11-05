@@ -40,6 +40,7 @@ from eth.db.backends.base import (
 )
 from eth.db.trie import make_trie_root_and_nodes
 from eth.db.chain import BaseChainDB
+from eth.db.schema import Schemas
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -429,7 +430,8 @@ class VM(BaseVM):
     def build_state(cls,
                     db: BaseAtomicDB,
                     header: BlockHeader,
-                    previous_hashes: Iterable[Hash32] = ()
+                    previous_hashes: Iterable[Hash32] = (),
+                    expected_schema: Schemas = Schemas.TURBO,
                     ) -> BaseState:
         """
         You probably want `VM().state` instead of this.
@@ -439,7 +441,9 @@ class VM(BaseVM):
         """
 
         execution_context = header.create_execution_context(previous_hashes)
-        return cls.get_state_class()(db, execution_context, header.state_root)
+        return cls.get_state_class()(
+            db, execution_context, header.state_root, expected_schema
+        )
 
     #
     # Logging
@@ -679,12 +683,14 @@ class VM(BaseVM):
 
         # TODO: only do this if we're in turbo mode
         # TODO: will we always know the hash here?
-        block_diff = self.state.persist_returning_block_diff()
+        parent_hash = block.header.parent_hash
+        parent_header = self.chaindb.get_block_header_by_hash(parent_hash)
+        block_diff = self.state.persist_returning_block_diff(parent_header.state_root)
 
         result = block.copy(header=block.header.copy(state_root=self.state.state_root))
 
         basedb = self.chaindb.db
-        block_diff.write_to(basedb, result.hash)
+        block_diff.write_to(basedb, result.header.state_root)
         return result
 
     def pack_block(self, block: BaseBlock, *args: Any, **kwargs: Any) -> BaseBlock:

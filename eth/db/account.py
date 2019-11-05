@@ -55,6 +55,11 @@ from eth.db.diff import (
 from eth.db.journal import (
     JournalDB,
 )
+from eth.db.schema import (
+    Schemas,
+    SchemaTurbo,
+    ensure_schema,
+)
 from eth.db.storage import (
     AccountStorageDB,
     StorageLookup,
@@ -579,7 +584,7 @@ class AccountDB(BaseAccountDB):
             self._batchdb.commit_to(write_batch, apply_deletes=False)
         self._root_hash_at_last_persist = new_root_hash
 
-    def persist_returning_block_diff(self) -> BlockDiff:
+    def persist_returning_block_diff(self, parent_state_root: Hash32) -> BlockDiff:
         """
         Persists, including a diff which can be used to unwind/replay the changes this block makes.
         """
@@ -593,7 +598,7 @@ class AccountDB(BaseAccountDB):
         # state as it was at the beginning of the block.
 
         old_trie = CacheDB(HashTrie(HexaryTrie(
-            self._raw_store_db, self._root_hash_at_last_persist, prune=False
+            self._raw_store_db, parent_state_root, prune=False
         )))
 
         for deleted_address in self._deleted_accounts:
@@ -645,7 +650,7 @@ class AccountDB(BaseAccountDB):
 
         old_account_values: Dict[Address, bytes] = dict()
         for address, _ in dirty_stores:
-            old_account_values[address] = self._get_encoded_account(address, from_journal=False)
+            old_account_values[address] = self._get_encoded_account_from_turbodb(address)
 
         # 3. Persist!
         self.persist()
@@ -653,11 +658,22 @@ class AccountDB(BaseAccountDB):
         # 4. Grab the new storage roots
         for address, _store in dirty_stores:
             old_account_value = old_account_values[address]
-            new_account_value = self._get_encoded_account(address, from_journal=False)
+            new_account_value = self._get_encoded_account(address, from_journal=True)
             block_diff.set_account_changed(address, old_account_value, new_account_value)
 
         # 5. return the block diff
         return block_diff
+
+    def _get_encoded_account_from_turbodb(self, address: Address) -> bytes:
+        db = self._raw_store_db
+        ensure_schema(db, Schemas.TURBO)
+
+        key = SchemaTurbo.make_account_state_lookup_key(keccak(address))
+        try:
+            return db[key]
+        except KeyError:
+            # TODO: figure out why/whether this is the right thing to return
+            return b''
 
     def _changed_accounts(self) -> DBDiff:
         """
@@ -764,3 +780,51 @@ class AccountDB(BaseAccountDB):
                     self._root_hash_at_last_persist,
                     exc.requested_key,
                 ) from exc
+
+
+class TurboAccountDB(AccountDB):
+    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.TurboAccountDB'))
+
+    def __init__(self, db: BaseAtomicDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
+
+        # TODO: This method can't check whether we're in the right schema, because
+        # from_genesis creates a state w an empty db?
+
+        # === this is the real code
+
+        # TurboAccountDB requires that we're using the new schema
+        # ensure_schema(db, Schemas.TURBO)
+
+        # TODO: this check is too strict, if the state root does not match this should
+        # look up the block diffs required to construct the requested state and build a
+        # view of it.
+        # assert db[SchemaTurbo.current_state_root_key] == state_root
+
+        # === end real code
+
+        # TODO: Either this should use header.hash, or block_diff should use state_root
+#        if SchemaTurbo.current_schema_lookup_key in db:
+#            assert db[SchemaTurbo.current_schema_lookup_key] == Schemas.TURBO
+#        else:
+#            db[SchemaTurbo.current_schema_lookup_key] = Schemas.TURBO
+#            db[SchemaTurbo.current_state_root_key] = BLANK_ROOT_HASH
+#
+#        assert db[SchemaTurbo.current_state_root_key] == state_root
+
+        # === end code just for testing
+
+        super().__init__(db, state_root)
+
+    def _get_encoded_account(self, address: Address, from_journal: bool=True) -> bytes:
+        if from_journal:
+            # TODO: is this definitely the right thing to do?
+            return super()._get_encoded_account(address, from_journal=True)
+
+        new_result = self._get_encoded_account_from_turbodb(address)
+
+        # TODO: remove this once enough tests have been run to ensure this class works
+        # TODO: raise a better error message here
+        old_result = super()._get_encoded_account(address, from_journal)
+        assert old_result == result
+
+        return result

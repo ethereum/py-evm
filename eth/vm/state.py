@@ -25,6 +25,8 @@ from eth.constants import (
 )
 from eth.db.account import (
     BaseAccountDB,
+    AccountDB,
+    TurboAccountDB,
 )
 from eth.db.block_diff import BlockDiff
 from eth.db.backends.base import (
@@ -89,12 +91,23 @@ class BaseState(Configurable, ABC):
             db: BaseAtomicDB,
             execution_context: ExecutionContext,
             state_root: bytes,
-            expected_schema: Schemas = Schemas.DEFAULT) -> None:
+            # expected_schema: Schemas = Schemas.DEFAULT) -> None:
+            expected_schema: Schemas = Schemas.TURBO) -> None:
         self._db = db
         self.execution_context = execution_context
-        self._account_db = self.get_account_db_class()(db, state_root)
 
-        ensure_schema(db, expected_schema)
+        # TODO: Instead of calling ensure_schema, pick our account_db_class based on
+        #       expected_schema?
+
+        # TODO: somehow integrate with self.get_account_db_class()
+        if expected_schema == Schemas.TURBO:
+            self._account_db = TurboAccountDB(db, state_root)
+        elif expected_schema == Schemas.DEFAULT:
+            self._account_db = AccountDB(db, state_root)
+        else:
+            raise NotImplementedError()
+
+        # ensure_schema(db, expected_schema)
 
     #
     # Logging
@@ -254,11 +267,11 @@ class BaseState(Configurable, ABC):
     def persist(self) -> None:
         self._account_db.persist()
 
-    def persist_returning_block_diff(self) -> BlockDiff:
+    def persist_returning_block_diff(self, parent_state_root: Hash32) -> BlockDiff:
         """
         Persists all changes and also saves a record of them to the database.
         """
-        return self._account_db.persist_returning_block_diff()
+        return self._account_db.persist_returning_block_diff(parent_state_root)
 
     #
     # Access self.prev_hashes (Read-only)
