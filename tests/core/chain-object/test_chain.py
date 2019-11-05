@@ -59,11 +59,11 @@ def test_import_block(chain, tx):
     if hasattr(chain, 'apply_transaction'):
         # working on a Mining chain which can directly apply transactions
         new_block, _, computation = chain.apply_transaction(tx)
-        assert computation.is_success
+        computation.raise_if_error()
     else:
         # working on a non-mining chain, so we have to build the block to apply manually
         new_block, receipts, computations = chain.build_block_with_transactions([tx])
-        assert computations[0].is_success
+        computations[0].raise_if_error()
 
     block, _, _ = chain.import_block(new_block)
 

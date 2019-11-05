@@ -153,7 +153,7 @@ class BaseDOSContractBenchmark(BaseBenchmark):
         block, receipt, computation = chain.apply_transaction(tx)
         self.deployed_contract_address = computation.msg.storage_address
 
-        assert computation.is_success
+        computation.raise_if_error()
 
         # Interact with the deployed contract by calling the totalSupply() API ?????
         self.dos_contract = self.w3.eth.contract(
@@ -176,7 +176,7 @@ class BaseDOSContractBenchmark(BaseBenchmark):
 
         block, receipt, computation = chain.apply_transaction(tx2)
 
-        assert computation.is_success
+        computation.raise_if_error()
 
     def create_empty_contract(self, chain: MiningChain) -> None:
         w3_tx3 = self.dos_contract.functions.createEmptyContract().buildTransaction(W3_TX_DEFAULTS)
@@ -193,7 +193,7 @@ class BaseDOSContractBenchmark(BaseBenchmark):
 
         block, receipt, computation = chain.apply_transaction(tx3)
 
-        assert computation.is_success
+        computation.raise_if_error()
 
     def sstore_uint64_revert(self, chain: MiningChain) -> None:
         w3_tx4 = self.dos_contract.functions.storageEntropyRevert().buildTransaction(W3_TX_DEFAULTS)
