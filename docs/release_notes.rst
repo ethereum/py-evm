@@ -3,6 +3,50 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.8 (2019-11-05)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- *Partly* implement Clique consensus according to EIP 225. The implementation doesn't yet cover
+  a mode of operation that would allow to operate as a signer and create blocks. It does however,
+  allow syncing a chain (e.g. Görli) by following the ruleset that is defined in EIP-225. (`#1855 <https://github.com/ethereum/py-evm/issues/1855>`__)
+- Set Istanbul block number for mainnet to 9069000, and for Görli to 1561651, as per
+  `EIP-1679 <https://eips.ethereum.org/EIPS/eip-1679#activation>`_. (`#1858 <https://github.com/ethereum/py-evm/issues/1858>`__)
+- Make the *max length validation* of the `extra_data` field configurable. The reason for that is that
+  different consensus engines such as Clique repurpose this field using different max length limits. (`#1864 <https://github.com/ethereum/py-evm/issues/1864>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Resolve version conflict regarding `pluggy` dependency that came up during installation. (`#1860 <https://github.com/ethereum/py-evm/issues/1860>`__)
+- Fix issue where Py-EVM crashes when `0` is used as a value for `seal_check_random_sample_rate`.
+  Previously, this would lead to a DivideByZero error, whereas now it is recognized as not performing
+  any seal check. This is also symmetric to the current *opposite* behavior of passing `1` to check
+  every single header instead of taking samples. (`#1862 <https://github.com/ethereum/py-evm/issues/1862>`__)
+- Improve usability of error message by including hex values of affected hashes. (`#1863 <https://github.com/ethereum/py-evm/issues/1863>`__)
+- Gas estimation bugfix: storage values are now correctly reset to original value if the transaction
+  includes a self-destruct, when running estimation iterations. Previously, estimation iterations
+  would produce undefined results, if the transaction included a self-destruct. (`#1865 <https://github.com/ethereum/py-evm/issues/1865>`__)
+
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Use new `blake2b-py library <https://github.com/davesque/blake2b-py>`_ for 560x speedup of
+  Blake2 F compression function. (`#1836 <https://github.com/ethereum/py-evm/issues/1836>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Update upstream test fixtures to `v7.0.0 beta.1 <https://github.com/ethereum/tests/releases/tag/v7.0.0-beta.1>`_
+  and address the two arising disagreements on what accounts should be collected for state trie clearing (as per
+  `EIP-161 <https://eips.ethereum.org/EIPS/eip-161>`_) if a nested call frame had an error. (`#1858 <https://github.com/ethereum/py-evm/issues/1858>`__)
+
+
 py-evm 0.3.0-alpha.7 (2019-09-19)
 ---------------------------------
 

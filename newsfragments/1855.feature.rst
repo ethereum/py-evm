@@ -1,4 +1,0 @@
-*Partly* implement Clique consensus according to EIP 225. The implementation doesn't yet cover
-a mode of operation that would allow to operate as a signer and create blocks. It does however,
-allow syncing a chain (e.g. Görli) by following the ruleset that is defined in EIP-225.
-

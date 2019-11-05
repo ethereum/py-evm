@@ -1,2 +1,0 @@
-Make the *max length validation* of the `extra_data` field configurable. The reason for that is that
-different consensus engines such as Clique repurpose this field using different max length limits.
