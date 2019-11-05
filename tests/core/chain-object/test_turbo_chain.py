@@ -6,9 +6,15 @@ import pytest
 from eth_utils.toolz import (
     assoc,
 )
+from eth_hash.auto import keccak
+
+import rlp
+
+from eth.rlp.accounts import Account
 
 from eth.chains.base import MiningChain
 from eth.db.block_diff import BlockDiff
+from eth.db.schema import SchemaTurbo
 from eth.tools._utils.vyper import (
     compile_vyper_lll,
 )
@@ -101,6 +107,22 @@ def test_import_block_saves_block_diff(chain, funded_address, funded_address_pri
     assert new_contract_nonce == 0
 
 
+# TODO: This belongs somewhere in the actual code, not in the tests. What kind of
+# interface would make interacting with the turbodb easier?
+def read_account_from_db(base_db, address):
+    key = SchemaTurbo.make_account_state_lookup_key(keccak(address))
+
+    try:
+        account_rlp = base_db[key]
+    except KeyError:
+        return Account()
+
+    if account_rlp == b'':
+        return Account()
+
+    return rlp.decode(account_rlp, sedes=Account)
+
+
 def test_import_multiple_txns_saves_complete_block_diff(chain, funded_address, funded_address_private_key):
     """
     MiningChain builds a new VM each time a method (such as apply_transaction) is called.
@@ -162,3 +184,66 @@ def test_import_multiple_txns_saves_complete_block_diff(chain, funded_address, f
         SECOND_ADDRESS,
         mined_block.header.coinbase,
     }
+
+    first_account = read_account_from_db(base_db, FIRST_ADDRESS)
+    assert first_account.balance == 1000
+
+
+def test_block_reorgs(chain, funded_address, funded_address_private_key):
+    """
+    A1 - B1
+       \ B2 - C2
+    """
+    base_db = chain.chaindb.db
+
+    A1_ADDRESS = b'\x10' * 20
+    B1_ADDRESS = b'\x20' * 20
+    B2_ADDRESS = b'\x30' * 20
+    C2_ADDRESS = b'\x40' * 20
+
+    def make_transaction_to(destination_address, amount, parent_header=None):
+        return new_transaction(
+            chain.get_vm(parent_header),
+            funded_address,
+            destination_address,
+            data=b'',
+            private_key=funded_address_private_key,
+            amount=amount,
+        )
+
+    # The account starts out empty
+    assert read_account_from_db(base_db, A1_ADDRESS).balance == 0
+
+    # After we import A1 the address has some wei
+    A1_transaction = make_transaction_to(A1_ADDRESS, 1000)
+    new_A1, _, _ = chain.build_block_with_transactions([A1_transaction])
+    imported_A1, _, _ = chain.import_block(new_A1)
+    assert read_account_from_db(base_db, A1_ADDRESS).balance == 1000
+    assert read_account_from_db(base_db, funded_address).nonce == 1
+
+    # After we import B1 the second address also has some wei
+    B1_transaction = make_transaction_to(B1_ADDRESS, 1000)
+    new_B1, _, _ = chain.build_block_with_transactions([B1_transaction])
+    imported_B1, _, _ = chain.import_block(new_B1)
+    assert read_account_from_db(base_db, A1_ADDRESS).balance == 1000
+    assert read_account_from_db(base_db, B1_ADDRESS).balance == 1000
+    assert read_account_from_db(base_db, funded_address).nonce == 2
+
+    # Import a competing block. No asserts because it's not clear which one should win
+    B2_transaction = make_transaction_to(B2_ADDRESS, 1000, imported_A1.header)
+    new_B2, _, _ = chain.build_block_with_transactions(
+        [B2_transaction], parent_header=imported_A1.header
+    )
+    imported_B2, _, _ = chain.import_block(new_B2)
+
+    # Importing C2 causes a re-org which should reshuffle some state around
+    C2_transaction = make_transaction_to(C2_ADDRESS, 1000, imported_B2.header)
+    new_C2, _, _ = chain.build_block_with_transactions(
+        [C2_transaction], parent_header=imported_B2.header
+    )
+    imported_C2, _, _ = chain.import_block(new_C2)
+    assert read_account_from_db(base_db, A1_ADDRESS).balance == 1000
+    assert read_account_from_db(base_db, B1_ADDRESS).balance == 0
+    assert read_account_from_db(base_db, B2_ADDRESS).balance == 1000
+    assert read_account_from_db(base_db, C2_ADDRESS).balance == 1000
+    assert read_account_from_db(base_db, funded_address).nonce == 3

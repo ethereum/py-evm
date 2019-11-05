@@ -584,7 +584,11 @@ class Chain(BaseChain):
         :param parent_header: parent of the new block -- or canonical head if ``None``
         :return: (new block, receipts, computations)
         """
-        base_header = self.ensure_header(parent_header)
+        if parent_header is None:
+            base_header = self.ensure_header()
+        else:
+            base_header = self.create_header_from_parent(parent_header)
+
         vm = self.get_vm(base_header)
 
         new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
