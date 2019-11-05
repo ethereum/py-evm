@@ -342,7 +342,7 @@ class Validator(BaseService):
             sorted_attesting_validators,
             key=itemgetter(1),
         )
-        for committee_index, group in attesting_validators_groups:
+        for _, group in attesting_validators_groups:
             # Get the validator_index -> privkey map of the attesting validators
             attesting_validator_privkeys = {
                 attesting_data[0]: self.validator_privkeys[attesting_data[0]]
