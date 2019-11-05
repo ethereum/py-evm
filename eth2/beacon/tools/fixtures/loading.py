@@ -9,7 +9,17 @@ from eth2.configs import Eth2Config
 
 
 def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
-    filtered_keys = ("DOMAIN_", "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS")
+    filtered_keys = (
+        "DOMAIN_",
+        "MAX_EPOCHS_PER_CROSSLINK",
+        "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS",
+        "EPOCHS_PER_CUSTODY_PERIOD",
+        "CUSTODY_PERIOD_TO_RANDAO_PADDING",
+        "SHARD_SLOTS_PER_BEACON_SLOT",
+        "EPOCHS_PER_SHARD_PERIOD",
+        "PHASE_1_FORK_EPOCH",
+        "PHASE_1_FORK_SLOT",
+    )
 
     return Eth2Config(
         **assoc(
