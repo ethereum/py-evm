@@ -30,7 +30,7 @@ def test_building_block_incrementally_with_single_transaction(
         private_key=funded_address_private_key,
     )
     _, _, computation = chain.apply_transaction(tx)
-    assert computation.is_success
+    computation.raise_if_error()
 
     # test that the *latest* block hasn't changed
     assert chain.get_canonical_head().hash == head_hash
@@ -57,7 +57,7 @@ def test_building_block_incrementally_with_multiple_transactions(
         )
         txns.append(tx)
         _, _, computation = chain.apply_transaction(tx)
-        assert computation.is_success
+        computation.raise_if_error()
 
         # test that the pending block has the expected number of transactions
         vm = chain.get_vm()

@@ -167,7 +167,7 @@ def test_chaindb_get_receipt_by_index(
                 private_key=funded_address_private_key,
             )
             new_block, tx_receipt, computation = chain.apply_transaction(tx)
-            assert computation.is_success
+            computation.raise_if_error()
 
             if (block_number + 1) == REQUIRED_BLOCK_NUMBER and tx_index == REQUIRED_RECEIPT_INDEX:
                 actual_receipt = tx_receipt
