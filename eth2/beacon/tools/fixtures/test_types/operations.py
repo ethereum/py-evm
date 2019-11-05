@@ -12,7 +12,6 @@ from eth2.beacon.state_machines.forks.serenity.operation_processing import (
     process_attester_slashings,
     process_deposits,
     process_proposer_slashings,
-    process_transfers,
     process_voluntary_exits,
 )
 from eth2.beacon.tools.fixtures.conditions import validate_state
@@ -24,14 +23,13 @@ from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.configs import Eth2Config
 
 from . import TestType
 
 Operation = Union[
-    ProposerSlashing, AttesterSlashing, Attestation, Deposit, VoluntaryExit, Transfer
+    ProposerSlashing, AttesterSlashing, Attestation, Deposit, VoluntaryExit
 ]
 OperationOrBlockHeader = Union[Operation, BeaconBlock]
 
@@ -69,11 +67,7 @@ class OperationHandler(
     def _update_config_if_needed(cls, config: Eth2Config) -> Eth2Config:
         """
         Some ad-hoc work arounds...
-
-        - Increase the count of allowed Transfer operations, even though we start with 0.
         """
-        if cls.name == "transfer":
-            return config._replace(MAX_TRANSFERS=1)
         return config
 
     @classmethod
@@ -152,13 +146,6 @@ class ProposerSlashingHandler(OperationHandler):
     expected_exceptions = (IndexError,)
 
 
-class TransferHandler(OperationHandler):
-    name = "transfer"
-    operation_type = Transfer
-    processor = staticmethod(process_transfers)
-    expected_exceptions = (IndexError,)
-
-
 class VoluntaryExitHandler(OperationHandler):
     name = "voluntary_exit"
     operation_type = VoluntaryExit
@@ -172,7 +159,6 @@ OperationsHandlerType = Tuple[
     Type[BlockHeaderHandler],
     Type[DepositHandler],
     Type[ProposerSlashingHandler],
-    Type[TransferHandler],
     Type[VoluntaryExitHandler],
 ]
 
@@ -186,6 +172,5 @@ class OperationsTestType(TestType[OperationsHandlerType]):
         BlockHeaderHandler,
         DepositHandler,
         ProposerSlashingHandler,
-        TransferHandler,
         VoluntaryExitHandler,
     )

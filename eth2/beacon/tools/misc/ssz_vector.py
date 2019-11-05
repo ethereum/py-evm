@@ -23,7 +23,6 @@ def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:
             "attestations": config.MAX_ATTESTATIONS,
             "deposits": config.MAX_DEPOSITS,
             "voluntary_exits": config.MAX_VOLUNTARY_EXITS,
-            "transfers": config.MAX_TRANSFERS,
         },
         BeaconState: {
             "block_roots": config.SLOTS_PER_HISTORICAL_ROOT,

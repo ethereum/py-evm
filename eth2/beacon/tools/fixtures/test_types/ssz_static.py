@@ -23,7 +23,6 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.configs import Eth2Config
@@ -229,11 +228,6 @@ class ProposerSlashingHandler(SSZHandler):
     object_type = ProposerSlashing
 
 
-class TransferHandler(SSZHandler):
-    name = "Transfer"
-    object_type = Transfer
-
-
 class ValidatorHandler(SSZHandler):
     name = "Validator"
     object_type = Validator
@@ -262,7 +256,6 @@ SSZStaticHandlerType = Tuple[
     Type[IndexedAttestationHandler],
     Type[PendingAttestationHandler],
     Type[ProposerSlashingHandler],
-    Type[TransferHandler],
     Type[ValidatorHandler],
     Type[VoluntaryExitHandler],
 ]
@@ -289,7 +282,6 @@ class SSZStaticTestType(TestType[SSZStaticHandlerType]):
         IndexedAttestationHandler,
         PendingAttestationHandler,
         ProposerSlashingHandler,
-        TransferHandler,
         ValidatorHandler,
         VoluntaryExitHandler,
     )

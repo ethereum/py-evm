@@ -52,7 +52,6 @@ Eth2Config = NamedTuple(
         ("MAX_ATTESTATIONS", int),
         ("MAX_DEPOSITS", int),
         ("MAX_VOLUNTARY_EXITS", int),
-        ("MAX_TRANSFERS", int),
         # Deposit contract
         ("DEPOSIT_CONTRACT_ADDRESS", bytes),
     ),

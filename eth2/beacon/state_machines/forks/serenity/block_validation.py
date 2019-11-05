@@ -5,7 +5,6 @@ from eth_utils import ValidationError, encode_hex
 import ssz
 
 from eth2._utils.bls import bls
-from eth2._utils.hash import hash_eth2
 from eth2.beacon.attestation_helpers import (
     is_slashable_attestation_data,
     validate_indexed_attestation,
@@ -27,7 +26,6 @@ from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.beacon.typing import CommitteeIndex, Epoch, SigningRoot, Slot
@@ -49,19 +47,6 @@ def validate_correct_number_of_deposits(
             f" in block (encode_hex(block_root));"
             f" expected {expected_deposit_count} based on"
             f" the state {encode_hex(state.hash_tree_root)}"
-        )
-
-
-def validate_unique_transfers(
-    state: BeaconState, block: BaseBeaconBlock, config: Eth2Config
-) -> None:
-    body = block.body
-    transfer_count_in_block = len(body.transfers)
-    unique_transfer_count = len(set(body.transfers))
-
-    if transfer_count_in_block != unique_transfer_count:
-        raise ValidationError(
-            f"Found duplicate transfers in the block {encode_hex(block.hash_tree_root)}"
         )
 
 
@@ -494,120 +479,3 @@ def validate_voluntary_exit(
     _validate_voluntary_exit_signature(
         state, voluntary_exit, validator, slots_per_epoch
     )
-
-
-def _validate_amount_and_fee_magnitude(state: BeaconState, transfer: Transfer) -> None:
-    threshold = state.balances[transfer.sender]
-    max_amount = max(transfer.amount + transfer.fee, transfer.amount, transfer.fee)
-    if threshold < max_amount:
-        raise ValidationError(
-            f"Transfer amount (transfer.amount) or fee (transfer.fee) was over the allowable"
-            f" threshold {threshold}."
-        )
-
-
-def _validate_transfer_slot(state_slot: Slot, transfer_slot: Slot) -> None:
-    if state_slot != transfer_slot:
-        raise ValidationError(
-            f"Transfer is only valid in the specified slot {transfer_slot} but the state is at"
-            f" {state_slot}."
-        )
-
-
-def _validate_sender_eligibility(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    sender = state.validators[transfer.sender]
-    sender_balance = state.balances[transfer.sender]
-
-    eligible_for_activation = sender.activation_eligibility_epoch != FAR_FUTURE_EPOCH
-    is_withdrawable = current_epoch >= sender.withdrawable_epoch
-    is_transfer_total_allowed = (
-        transfer.amount + transfer.fee + config.MAX_EFFECTIVE_BALANCE <= sender_balance
-    )
-
-    if (not eligible_for_activation) or is_withdrawable or is_transfer_total_allowed:
-        return
-
-    if eligible_for_activation:
-        raise ValidationError(
-            f"Sender in transfer {transfer} is eligible for activation."
-        )
-
-    if not is_withdrawable:
-        raise ValidationError(f"Sender in transfer {transfer} is not withdrawable.")
-
-    if not is_transfer_total_allowed:
-        raise ValidationError(
-            f"Sender does not have sufficient funds in transfer {transfer}."
-        )
-
-
-def _validate_sender_pubkey(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    sender = state.validators[transfer.sender]
-    expected_withdrawal_credentials = (
-        config.BLS_WITHDRAWAL_PREFIX.to_bytes(1, byteorder="little")
-        + hash_eth2(transfer.pubkey)[1:]
-    )
-    are_withdrawal_credentials_valid = (
-        sender.withdrawal_credentials == expected_withdrawal_credentials
-    )
-
-    if not are_withdrawal_credentials_valid:
-        raise ValidationError(
-            f"Pubkey in transfer {transfer} does not match the withdrawal credentials"
-            f" {expected_withdrawal_credentials} for validator {sender}."
-        )
-
-
-def _validate_transfer_signature(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    domain = get_domain(state, SignatureDomain.DOMAIN_TRANSFER, config.SLOTS_PER_EPOCH)
-    try:
-        bls.validate(
-            pubkey=transfer.pubkey,
-            message_hash=transfer.signing_root,
-            signature=transfer.signature,
-            domain=domain,
-        )
-    except SignatureError as error:
-        raise ValidationError(f"Invalid signature for transfer {transfer}", error)
-
-
-def _validate_transfer_does_not_result_in_dust(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    resulting_sender_balance = max(
-        0, state.balances[transfer.sender] - (transfer.amount + transfer.fee)
-    )
-    resulting_sender_balance_is_dust = (
-        0 < resulting_sender_balance < config.MIN_DEPOSIT_AMOUNT
-    )
-    if resulting_sender_balance_is_dust:
-        raise ValidationError(
-            f"Effect of transfer {transfer} results in dust balance for sender."
-        )
-
-    resulting_recipient_balance = state.balances[transfer.recipient] + transfer.amount
-    resulting_recipient_balance_is_dust = (
-        0 < resulting_recipient_balance < config.MIN_DEPOSIT_AMOUNT
-    )
-    if resulting_recipient_balance_is_dust:
-        raise ValidationError(
-            f"Effect of transfer {transfer} results in dust balance for recipient."
-        )
-
-
-def validate_transfer(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    _validate_amount_and_fee_magnitude(state, transfer)
-    _validate_transfer_slot(state.slot, transfer.slot)
-    _validate_sender_eligibility(state, transfer, config)
-    _validate_sender_pubkey(state, transfer, config)
-    _validate_transfer_signature(state, transfer, config)
-    _validate_transfer_does_not_result_in_dust(state, transfer, config)

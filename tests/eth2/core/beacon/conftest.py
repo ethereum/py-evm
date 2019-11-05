@@ -235,11 +235,6 @@ def max_voluntary_exits():
 
 
 @pytest.fixture
-def max_transfers():
-    return SERENITY_CONFIG.MAX_TRANSFERS
-
-
-@pytest.fixture
 def deposit_contract_tree_depth():
     return DEPOSIT_CONTRACT_TREE_DEPTH
 
@@ -290,7 +285,6 @@ def config(
     max_attestations,
     max_deposits,
     max_voluntary_exits,
-    max_transfers,
     deposit_contract_address,
 ):
     # adding some config validity conditions here
@@ -336,7 +330,6 @@ def config(
         MAX_ATTESTATIONS=max_attestations,
         MAX_DEPOSITS=max_deposits,
         MAX_VOLUNTARY_EXITS=max_voluntary_exits,
-        MAX_TRANSFERS=max_transfers,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
     )
 
@@ -503,19 +496,6 @@ def sample_voluntary_exit_params(sample_signature):
 
 
 @pytest.fixture
-def sample_transfer_params():
-    return {
-        "sender": 10,
-        "recipient": 12,
-        "amount": 10 * 10 ** 9,
-        "fee": 5 * 10 ** 9,
-        "slot": 5,
-        "pubkey": b"\x67" * 48,
-        "signature": b"\x43" * 96,
-    }
-
-
-@pytest.fixture
 def sample_beacon_block_body_params(sample_signature, sample_eth1_data_params):
     return {
         "randao_reveal": sample_signature,
@@ -526,7 +506,6 @@ def sample_beacon_block_body_params(sample_signature, sample_eth1_data_params):
         "attestations": (),
         "deposits": (),
         "voluntary_exits": (),
-        "transfers": (),
     }
 
 
