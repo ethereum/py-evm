@@ -1,0 +1,2 @@
+Set Istanbul block number for mainnet to 9069000, and for Görli to 1561651, as per
+`EIP-1679 <https://eips.ethereum.org/EIPS/eip-1679#activation>`_.
