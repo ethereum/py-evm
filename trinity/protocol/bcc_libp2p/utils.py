@@ -59,7 +59,6 @@ from ssz.tools import (
 )
 
 from .configs import (
-    MAX_CHUNK_SIZE,
     REQ_RESP_ENCODE_POSTFIX,
     REQ_RESP_PROTOCOL_PREFIX,
     REQ_RESP_VERSION,
