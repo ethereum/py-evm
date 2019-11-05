@@ -33,6 +33,11 @@ name = "Deprecations and Removals"
 showcontent = true
 
 [[tool.towncrier.type]]
+directory = "internal"
+name = "Internal Changes - for Contributors"
+showcontent = true
+
+[[tool.towncrier.type]]
 directory = "misc"
 name = "Miscellaneous internal changes"
 showcontent = false

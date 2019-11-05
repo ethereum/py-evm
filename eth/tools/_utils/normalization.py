@@ -374,8 +374,17 @@ def normalize_account_state(account_state: FixtureAccountState) -> AccountState:
     }
 
 
+def normalize_post_state(postate: FixtureAccountState) -> AccountState:
+    # poststate might not be present in some fixtures
+    # https://github.com/ethereum/tests/issues/637#issuecomment-534072897
+    if postate is None:
+        return {}
+    else:
+        return normalize_account_state(postate)
+
+
 @to_dict
-def normalize_post_state(post_state: Dict[str, Any]) -> Iterable[Tuple[str, bytes]]:
+def normalize_post_state_hash(post_state: Dict[str, Any]) -> Iterable[Tuple[str, bytes]]:
     yield 'hash', decode_hex(post_state['hash'])
     if 'logs' in post_state:
         yield 'logs', decode_hex(post_state['logs'])
@@ -391,7 +400,7 @@ def normalize_statetest_fixture(fixture: Dict[str, Any],
     normalized_fixture = {
         'env': normalize_environment(fixture['env']),
         'pre': normalize_account_state(fixture['pre']),
-        'post': normalize_post_state(post_state),
+        'post': normalize_post_state_hash(post_state),
         'transaction': normalize_unsigned_transaction(
             fixture['transaction'],
             post_state['indexes'],
@@ -538,7 +547,7 @@ def normalize_blockchain_fixtures(fixture: Dict[str, Any]) -> Dict[str, Any]:
         'genesisBlockHeader': normalize_block_header(fixture['genesisBlockHeader']),
         'lastblockhash': decode_hex(fixture['lastblockhash']),
         'pre': normalize_account_state(fixture['pre']),
-        'postState': normalize_account_state(fixture['postState']),
+        'postState': normalize_post_state(fixture.get('postState')),
         'network': fixture['network'],
     }
 

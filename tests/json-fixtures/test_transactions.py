@@ -102,7 +102,7 @@ def fixture_transaction_class(fixture_data):
         return ByzantiumTransaction
     elif fork_name == ForkName.Constantinople:
         return ConstantinopleTransaction
-    elif fork_name == "Petersburg":
+    elif fork_name == ForkName.ConstantinopleFix:
         return PetersburgTransaction
     elif fork_name == ForkName.Istanbul:
         return IstanbulTransaction

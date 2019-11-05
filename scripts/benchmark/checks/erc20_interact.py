@@ -149,7 +149,8 @@ class BaseERC20Benchmark(BaseBenchmark):
         # Keep track of deployed contract address
         self.deployed_contract_address = computation.msg.storage_address
 
-        assert computation.is_success
+        computation.raise_if_error()
+
         # Keep track of simple_token object
         self.simple_token = self.w3.eth.contract(
             address=Web3.toChecksumAddress(encode_hex(self.deployed_contract_address)),
@@ -174,7 +175,8 @@ class BaseERC20Benchmark(BaseBenchmark):
 
         block, receipt, computation = chain.apply_transaction(tx)
 
-        assert computation.is_success
+        computation.raise_if_error()
+
         assert to_int(computation.output) == 1
 
     def _erc_approve(self, addr2: str, chain: MiningChain) -> None:
@@ -195,7 +197,8 @@ class BaseERC20Benchmark(BaseBenchmark):
 
         block, receipt, computation = chain.apply_transaction(tx)
 
-        assert computation.is_success
+        computation.raise_if_error()
+
         assert to_int(computation.output) == 1
 
     def _erc_transfer_from(self, addr1: str, addr2: str, chain: MiningChain) -> None:
@@ -218,7 +221,8 @@ class BaseERC20Benchmark(BaseBenchmark):
 
         block, receipt, computation = chain.apply_transaction(tx)
 
-        assert computation.is_success
+        computation.raise_if_error()
+
         assert to_int(computation.output) == 1
 
 

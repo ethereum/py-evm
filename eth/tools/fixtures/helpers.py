@@ -45,6 +45,7 @@ from eth.vm.forks import (
     FrontierVM,
     HomesteadVM as BaseHomesteadVM,
     SpuriousDragonVM,
+    IstanbulVM,
 )
 
 
@@ -121,6 +122,10 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
         return (
             (0, PetersburgVM),
         )
+    elif network == 'Istanbul':
+        return (
+            (0, IstanbulVM),
+        )
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
@@ -146,10 +151,10 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
             (0, SpuriousDragonVM),
             (5, ByzantiumVM),
         )
-    elif network == 'ByzantiumToConstantinopleAt5':
+    elif network == 'ByzantiumToConstantinopleFixAt5':
         return (
             (0, ByzantiumVM),
-            (5, ConstantinopleVM),
+            (5, PetersburgVM),
         )
     else:
         raise ValueError(f"Network {network} does not match any known VM rules")

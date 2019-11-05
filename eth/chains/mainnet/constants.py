@@ -42,3 +42,8 @@ BYZANTIUM_MAINNET_BLOCK = BlockNumber(4370000)
 # Petersburg Block
 #
 PETERSBURG_MAINNET_BLOCK = BlockNumber(7280000)
+
+#
+# Istanbul Block
+#
+ISTANBUL_MAINNET_BLOCK = BlockNumber(9069000)
