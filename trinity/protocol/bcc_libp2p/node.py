@@ -177,9 +177,11 @@ class Peer:
     async def request_beacon_blocks(
         self, start_slot: Slot, count: int, step: int = 1
     ) -> Tuple[BaseBeaconBlock, ...]:
+        head_block_signing_root = self.node.chain.chaindb.get_block_signing_root_by_hash_tree_root(
+            self.head_root)
         return await self.node.request_beacon_blocks(
             self._id,
-            head_block_root=self.head_root,
+            head_block_root=head_block_signing_root,
             start_slot=start_slot,
             count=count,
             step=step,
