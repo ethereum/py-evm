@@ -473,11 +473,7 @@ class Node(BaseService):
             async with self.new_interaction(stream) as interaction:
                 peer_id = interaction.peer_id
                 yield interaction
-        except WriteMessageFailure as error:
-            await self.disconnect_peer(peer_id)
-            raise HandshakeFailure() from error
-        except ReadMessageFailure as error:
-            # Try respond with INVALID_REQUEST
+        except MessageIOFailure as error:
             await self.disconnect_peer(peer_id)
             raise HandshakeFailure() from error
         except PeerRespondedAnError as error:

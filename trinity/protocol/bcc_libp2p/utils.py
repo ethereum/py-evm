@@ -31,7 +31,6 @@ from eth_keys import (
     datatypes,
 )
 from eth_utils import (
-    ExtendedDebugLogger,
     ValidationError,
     get_extended_debug_logger,
     to_tuple,
@@ -328,11 +327,10 @@ def get_recent_beacon_blocks(
 
 class Interaction:
     stream: INetStream
-    logger: ExtendedDebugLogger
+    logger = get_extended_debug_logger("trinity.protocol.bcc_libp2p.Interaction")
 
     def __init__(self, stream: INetStream):
         self.stream = stream
-        self.logger = get_extended_debug_logger("trinity.protocol.bcc_libp2p.Interaction")
 
     async def write_request(self, message: MsgType) -> None:
         self.logger.debug(
