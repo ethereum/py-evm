@@ -59,18 +59,3 @@ def registration_contract(w3, tester, contract_json):
         address=tx_receipt.contractAddress, abi=contract_abi
     )
     return registration_deployed
-
-
-@pytest.fixture
-async def eth1_monitor(
-    w3, registration_contract, blocks_delayed_to_query_logs, polling_period
-):
-    m = Eth1Monitor(
-        w3,
-        registration_contract.address,
-        registration_contract.abi,
-        blocks_delayed_to_query_logs,
-        polling_period,
-    )
-    async with background_service(m):
-        yield m

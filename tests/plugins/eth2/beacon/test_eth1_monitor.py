@@ -5,22 +5,16 @@ import eth_utils
 from trio.testing import wait_all_tasks_blocked
 
 from eth2.beacon.types.deposit_data import DepositData
-from eth2._utils.merkle.sparse import calc_merkle_tree_from_leaves, get_root
-from eth2._utils.merkle.common import get_merkle_proof, verify_merkle_branch
-from eth2._utils.hash import hash_eth2
 from eth2.beacon.constants import DEPOSIT_CONTRACT_TREE_DEPTH
+from eth_utils import ValidationError
 
-from trinity.plugins.eth2.beacon.eth1_monitor import (
-    Eth1Monitor,
-    _make_deposit_tree_and_root,
-)
-
-from p2p.trio_service import background_service
+from trinity.plugins.eth2.beacon.eth1_monitor import _make_deposit_tree_and_root
 
 import random
 
 from .constants import MIN_DEPOSIT_AMOUNT, FULL_DEPOSIT_AMOUNT
 from .factories import Eth1MonitorFactory
+from trinity.plugins.eth2.beacon.exceptions import Eth1BlockNotFound
 
 
 SAMPLE_PUBKEY = b"\x11" * 48
@@ -106,9 +100,8 @@ async def test_eth1_monitor_get_deposit(
         with pytest.raises(ValueError):
             m._get_deposit(deposit_count=1, deposit_index=2)
         deposit_count = 3
-        list_deposit_amount = [
-            deposit(w3, registration_contract) for _ in range(deposit_count)
-        ]
+        for _ in range(deposit_count):
+            deposit(w3, registration_contract)
         #          `blocks_delayed_to_query_logs`
         #            |-----------------|
         # [x] -> [x] -> [x] -> [ ] -> [ ]
@@ -151,6 +144,8 @@ async def test_eth1_monitor_get_deposit(
             m._get_deposit(deposit_count=1, deposit_index=1)
 
 
+# TODO: Use `clock.autojump.threshold` in trio testing.
+# Ref: https://trio.readthedocs.io/en/stable/reference-testing.html#trio.testing.MockClock.autojump_threshold  # noqa: E501
 @pytest.mark.trio
 async def test_eth1_monitor_get_eth1_data(
     w3, registration_contract, tester, blocks_delayed_to_query_logs, polling_period
@@ -158,7 +153,96 @@ async def test_eth1_monitor_get_eth1_data(
     async with Eth1MonitorFactory(
         w3, registration_contract, blocks_delayed_to_query_logs, polling_period
     ) as m:
-        # Test: `distance` where no block is at.
+        tester.mine_blocks(blocks_delayed_to_query_logs)
+        # Sleep for a while to wait for mined blocks parsed.
+        await trio.sleep(polling_period)
+        await wait_all_tasks_blocked()
+        cur_block_number = w3.eth.blockNumber
+        cur_block_timestamp = w3.eth.getBlock(cur_block_number)["timestamp"]
+        # Test: `ValueError` is raised when `distance` where no block is at.
+        distance_too_far = cur_block_number + 1
+        timestamp_safe = cur_block_timestamp + 1
         with pytest.raises(ValueError):
-            m._get_eth1_data(1)
-        # TODO: More tests
+            m._get_eth1_data(distance_too_far, timestamp_safe)
+        # Test: `Eth1BlockNotFound` when there is no block whose timestamp < `timestamp`.
+        distance_safe = cur_block_number
+        timestamp_genesis = w3.eth.getBlock(0)["timestamp"]
+        timestamp_invalid = timestamp_genesis - 1
+        with pytest.raises(Eth1BlockNotFound):
+            m._get_eth1_data(distance_safe, timestamp_invalid)
+
+        #            `blocks_delayed_to_query_logs`  _latest block
+        #                   |-----------------|     /
+        # [x] -> [x] -> [ ] -> [ ] -> [ ] -> [ ]
+        #  b0     b1     b2     b3     b4     b5
+
+        # Test: `deposit` and mine blocks. Queries with `timestamp` after
+        #   `blocks_delayed_to_query_logs` blocks should get the result including the deposit.
+        deposit(w3, registration_contract)
+        deposit(w3, registration_contract)
+        tester.mine_blocks(blocks_delayed_to_query_logs + 1)
+        await trio.sleep(polling_period)
+        await wait_all_tasks_blocked()
+        # `2` is automined blocks by `deposit`,
+        # and `blocks_delayed_to_query_logs + 1` are mined later.
+        number_recent_blocks = 2 + blocks_delayed_to_query_logs + 1
+        current_height = w3.eth.blockNumber
+        block_numbers = [
+            current_height - i for i in reversed(range(number_recent_blocks))
+        ]
+
+        def assert_get_eth1_data(
+            block_number,
+            distance,
+            deposit_count,
+            expected_block_number_at_distance=None,
+        ):
+            block = w3.eth.getBlock(block_number)
+            eth1_data = m._get_eth1_data(
+                distance=distance, eth1_voting_period_start_timestamp=block["timestamp"]
+            )
+            assert eth1_data.deposit_count == deposit_count
+            if expected_block_number_at_distance is None:
+                block_at_distance = w3.eth.getBlock(block_number - distance)
+            else:
+                block_at_distance = w3.eth.getBlock(expected_block_number_at_distance)
+            assert eth1_data.block_hash == block_at_distance["hash"]
+
+        def assert_get_eth1_data_raises(block_number, distance):
+            block = w3.eth.getBlock(block_number)
+            # `ValidationError` is raised due to `deposit_count == 0` because
+            #   `eth1_voting_period_start_timestamp` is earlier than `deposit_included_block`.
+            with pytest.raises(ValidationError):
+                m._get_eth1_data(
+                    distance=distance,
+                    eth1_voting_period_start_timestamp=block["timestamp"],
+                )
+
+        # Assert b0
+        assert_get_eth1_data(block_numbers[0], 0, 1)
+        assert_get_eth1_data_raises(block_numbers[0], 1)
+
+        # Assert b1
+        assert_get_eth1_data(block_numbers[1], 0, 2)
+        assert_get_eth1_data(block_numbers[1], 1, 1)
+        assert_get_eth1_data_raises(block_numbers[1], 2)
+
+        # Assert b2
+        assert_get_eth1_data(block_numbers[2], 0, 2)
+        assert_get_eth1_data(block_numbers[2], 1, 2)
+        assert_get_eth1_data(block_numbers[2], 2, 1)
+        assert_get_eth1_data_raises(block_numbers[2], 3)
+
+        # Assert b3, b4, b5.
+        # Since these blocks are still within `blocks_delayed_to_query_logs`,
+        # queries with their timestamps should get the result of the latest block after
+        # `blocks_delayed_to_query_logs` blocks.
+        assert_get_eth1_data(
+            block_numbers[3], 0, 2, expected_block_number_at_distance=block_numbers[2]
+        )
+        assert_get_eth1_data(
+            block_numbers[4], 0, 2, expected_block_number_at_distance=block_numbers[2]
+        )
+        assert_get_eth1_data(
+            block_numbers[5], 0, 2, expected_block_number_at_distance=block_numbers[2]
+        )
