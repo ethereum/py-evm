@@ -1,7 +1,11 @@
 import asyncio
 import logging
+from types import (
+    TracebackType,
+)
 from typing import (
     Iterable,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -60,9 +64,9 @@ from ssz.tools import (
 
 from .configs import (
     REQ_RESP_ENCODE_POSTFIX,
+    REQ_RESP_MAX_SIZE,
     REQ_RESP_PROTOCOL_PREFIX,
     REQ_RESP_VERSION,
-    REQ_RESP_MAX_SIZE,
     RESP_TIMEOUT,
     TTFB_TIMEOUT,
     ResponseCode,
@@ -330,6 +334,18 @@ class Interaction:
 
     def __init__(self, stream: INetStream):
         self.stream = stream
+
+    async def __aenter__(self) -> "Interaction":
+        self.logger.debug("New %s interaction with %s", self.stream.get_protocol(), self.peer_id)
+        return self
+
+    async def __aexit__(self,
+                        exc_type: Optional[Type[BaseException]],
+                        exc_value: Optional[BaseException],
+                        traceback: Optional[TracebackType],
+                        ) -> None:
+        await self.stream.close()
+        self.logger.debug("End %s interaction with %s", self.stream.get_protocol(), self.peer_id)
 
     async def write_request(self, message: MsgType) -> None:
         self.logger.debug(

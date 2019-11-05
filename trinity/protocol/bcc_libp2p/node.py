@@ -452,25 +452,12 @@ class Node(BaseService):
     #
 
     async def new_stream(self, peer_id: ID, protocol: TProtocol) -> INetStream:
-        self.logger.debug(
-            "Opening new stream to peer=%s with protocol=%s",
-            peer_id,
-            protocol,
-        )
         return await self.host.new_stream(peer_id, [protocol])
-
-    @asynccontextmanager
-    async def new_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
-        interaction = Interaction(stream)
-        try:
-            yield interaction
-        finally:
-            await stream.close()
 
     @asynccontextmanager
     async def new_handshake_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
         try:
-            async with self.new_interaction(stream) as interaction:
+            async with Interaction(stream) as interaction:
                 peer_id = interaction.peer_id
                 yield interaction
         except MessageIOFailure as error:
@@ -493,7 +480,7 @@ class Node(BaseService):
         stream: INetStream
     ) -> AsyncIterator[Interaction]:
         try:
-            async with self.new_interaction(stream) as interaction:
+            async with Interaction(stream) as interaction:
                 peer_id = interaction.peer_id
                 yield interaction
         except WriteMessageFailure as error:
@@ -511,7 +498,7 @@ class Node(BaseService):
     @asynccontextmanager
     async def my_request_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
         try:
-            async with self.new_interaction(stream) as interaction:
+            async with Interaction(stream) as interaction:
                 yield interaction
         except (MessageIOFailure, UnhandshakedPeer, PeerRespondedAnError) as error:
             raise RequestFailure(str(error)) from error
@@ -579,7 +566,7 @@ class Node(BaseService):
             compare_chain_tip_and_finalized_epoch(self.chain, hello_other_side)
 
     async def _handle_goodbye(self, stream: INetStream) -> None:
-        async with self.new_interaction(stream) as interaction:
+        async with Interaction(stream) as interaction:
             peer_id = interaction.peer_id
             try:
                 await interaction.read_request(Goodbye)
@@ -589,7 +576,7 @@ class Node(BaseService):
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
         stream = await self.new_stream(peer_id, REQ_RESP_GOODBYE_SSZ)
-        async with self.new_interaction(stream) as interaction:
+        async with Interaction(stream) as interaction:
             goodbye = Goodbye(reason)
             try:
                 await interaction.write_request(goodbye)
@@ -621,10 +608,6 @@ class Node(BaseService):
             else:
                 beacon_blocks_response = BeaconBlocksResponse(blocks=requested_beacon_blocks)
                 await interaction.write_response(beacon_blocks_response)
-                self.logger.debug(
-                    "Processing beacon blocks request from %s is finished",
-                    peer_id,
-                )
 
     async def request_beacon_blocks(self,
                                     peer_id: ID,
