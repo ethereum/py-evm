@@ -143,8 +143,8 @@ class ProofRequestFactory(factory.Factory):
         model = ProofRequest
 
     block_hash = factory.SubFactory(BlockHashFactory)
-    account_key = factory.SubFactory(AddressFactory)
-    key = None
+    storage_key = None
+    state_key = factory.SubFactory(AddressFactory)
     from_level = 0
 
 
@@ -172,7 +172,7 @@ class ContractCodeRequestFactory(factory.Factory):
         model = ContractCodeRequest
 
     block_hash = factory.SubFactory(BlockHashFactory)
-    key = factory.SubFactory(AddressFactory)
+    account = factory.SubFactory(AddressFactory)
 
 
 class GetContractCodesPayloadFactory(factory.Factory):
@@ -198,4 +198,4 @@ class ProofsPayloadV2Factory(factory.Factory):
 
     request_id = factory.Sequence(lambda n: n)
     buffer_value = 0
-    proofs = factory.LazyFunction(lambda: tuple((secrets.token_bytes(50) for _ in range(2))))
+    proof = factory.LazyFunction(lambda: tuple((secrets.token_bytes(50) for _ in range(2))))

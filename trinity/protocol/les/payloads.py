@@ -7,7 +7,7 @@ from typing import (
     Tuple,
 )
 
-from eth_typing import Address, BlockNumber, Hash32
+from eth_typing import BlockNumber, Hash32
 from eth_utils import to_tuple
 from mypy_extensions import TypedDict
 
@@ -155,8 +155,8 @@ class ReceiptsPayload(NamedTuple):
 
 class ProofRequest(NamedTuple):
     block_hash: Hash32
-    account_key: Address
-    key: Optional[bytes]
+    storage_key: Optional[Hash32]
+    state_key: Hash32
     from_level: int
 
 
@@ -173,7 +173,7 @@ class ProofsPayloadV1(NamedTuple):
 
 class ContractCodeRequest(NamedTuple):
     block_hash: Hash32
-    key: Hash32
+    account: Hash32
 
 
 class GetContractCodesPayload(NamedTuple):
@@ -190,4 +190,4 @@ class ContractCodesPayload(NamedTuple):
 class ProofsPayloadV2(NamedTuple):
     request_id: int
     buffer_value: int
-    proofs: Tuple[bytes, ...]
+    proof: Tuple[bytes, ...]

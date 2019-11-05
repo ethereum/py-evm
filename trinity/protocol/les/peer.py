@@ -140,10 +140,13 @@ class LESPeerFactory(BaseChainPeerFactory):
             flow_control_bl=None,
             flow_control_mcr=None,
             flow_control_mrr=None,
-            announce_type=None,
         )
-        v1_handshake_params = StatusPayload(version=1, **handshake_params_kwargs)
-        v2_handshake_params = StatusPayload(version=2, **handshake_params_kwargs)
+        v1_handshake_params = StatusPayload(
+            version=1,
+            announce_type=None,
+            **handshake_params_kwargs,
+        )
+        v2_handshake_params = StatusPayload(version=2, announce_type=2, **handshake_params_kwargs)
 
         return (
             LESV1Handshaker(handshake_params=v1_handshake_params),

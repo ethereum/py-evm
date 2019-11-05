@@ -12,7 +12,7 @@ from typing import (
 from cached_property import cached_property
 
 from eth.abc import BlockHeaderAPI
-from eth_typing import Address, BlockNumber, Hash32
+from eth_typing import BlockNumber, Hash32
 from eth_utils import ValidationError
 
 from p2p.abc import ConnectionAPI
@@ -225,13 +225,13 @@ class BaseLESAPI(Application, Generic[TLESProtocol]):
 
     def send_get_proof(self,
                        block_hash: Hash32,
-                       account_key: Address,
-                       key: Optional[bytes],
+                       state_key: Hash32,
+                       storage_key: Optional[Hash32],
                        from_level: int) -> int:
         proof_request = ProofRequest(
             block_hash=block_hash,
-            account_key=account_key,
-            key=key,
+            storage_key=storage_key,
+            state_key=state_key,
             from_level=from_level
         )
         return self.send_get_proofs(proof_request)
@@ -244,8 +244,8 @@ class BaseLESAPI(Application, Generic[TLESProtocol]):
         self.protocol.send(self.protocol.get_proofs_command_type(payload))
         return payload.request_id
 
-    def send_get_contract_code(self, block_hash: Hash32, key: Hash32) -> int:
-        request = ContractCodeRequest(block_hash=block_hash, key=key)
+    def send_get_contract_code(self, block_hash: Hash32, account: Hash32) -> int:
+        request = ContractCodeRequest(block_hash=block_hash, account=account)
         return self.send_get_contract_codes(request)
 
     def send_get_contract_codes(self, *code_requests: ContractCodeRequest) -> int:

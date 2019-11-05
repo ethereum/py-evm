@@ -1,13 +1,13 @@
 from typing import (
     Any,
+    ClassVar,
     Dict,
     Iterable,
-    Optional,
-    Sequence,
     Tuple,
+    Union,
 )
 
-from eth_typing import Address, Hash32
+from eth_typing import Hash32
 from eth_utils import (
     to_tuple,
     ValidationError,
@@ -62,13 +62,14 @@ STATUS_V1_ITEM_SEDES = {
     'genesisHash': hash_sedes,
     'serveHeaders': None,
     'serveChainSince': sedes.big_endian_int,
+    'serveRecentChain': sedes.big_endian_int,
     'serveStateSince': sedes.big_endian_int,
+    'serveRecentState': sedes.big_endian_int,
     'txRelay': None,
     'flowControl/BL': sedes.big_endian_int,
     'flowControl/MRC': sedes.CountableList(
         sedes.List([sedes.big_endian_int, sedes.big_endian_int, sedes.big_endian_int])),
     'flowControl/MRR': sedes.big_endian_int,
-    # 'announceType': sedes.big_endian_int,
 }
 
 
@@ -76,7 +77,7 @@ STATUS_STRUCTURE = sedes.CountableList(sedes.List([sedes.text, sedes.raw]))
 
 
 class StatusSerializationCodec(SerializationCodecAPI[StatusPayload]):
-    item_sedes: Dict[str, Any]
+    item_sedes: ClassVar[Dict[str, Any]]
 
     @to_tuple
     def _encode_items(self, *items: Tuple[str, Any]) -> Iterable[Tuple[str, bytes]]:
@@ -246,17 +247,17 @@ GET_PROOFS_V1_STRUCTURE = sedes.List((
 ))
 
 
-GetProofsV1Raw = Tuple[int, Sequence[Tuple[Hash32, Address, Optional[bytes], int]]]
+GetProofsV1Raw = Tuple[int, Tuple[Tuple[Hash32, Union[bytes, Hash32], Hash32, int], ...]]
 
 
 def normalize_get_proofs_payload(payload: GetProofsPayload) -> GetProofsV1Raw:
     proof_requests = tuple(
         (
             block_hash,
-            account_key,
-            b'' if key is None else key,
+            b'' if storage_key is None else storage_key,
+            state_key,
             from_level,
-        ) for (block_hash, account_key, key, from_level) in payload.proofs
+        ) for (block_hash, storage_key, state_key, from_level) in payload.proofs
     )
     return (payload.request_id, proof_requests)
 
@@ -266,10 +267,10 @@ def denormalize_get_proofs_payload(raw_payload: GetProofsV1Raw) -> GetProofsPayl
     proof_requests = tuple(
         ProofRequest(
             block_hash,
-            account_key,
-            None if key == b'' else key,
+            Hash32(None if storage_key == b'' else storage_key),
+            state_key,
             from_level,
-        ) for (block_hash, account_key, key, from_level) in raw_proof_requests
+        ) for (block_hash, storage_key, state_key, from_level) in raw_proof_requests
     )
     return GetProofsPayload(request_id, proof_requests)
 
@@ -347,7 +348,9 @@ STATUS_V2_ITEM_SEDES = {
     'genesisHash': sedes.binary,
     'serveHeaders': None,
     'serveChainSince': sedes.big_endian_int,
+    # 'serveRecentChain': sedes.big_endian_int,  # not added till v3
     'serveStateSince': sedes.big_endian_int,
+    # 'serveRecentState': sedes.big_endian_int,  # not added till v3
     'txRelay': None,
     'flowControl/BL': sedes.big_endian_int,
     'flowControl/MRC': sedes.CountableList(
@@ -374,7 +377,7 @@ class GetProofsV2(GetProofsV1):
 PROOFS_V2_STRUCTURE = sedes.List((
     sedes.big_endian_int,
     sedes.big_endian_int,
-    sedes.CountableList(sedes.binary),
+    sedes.CountableList(sedes.raw),
 ))
 
 

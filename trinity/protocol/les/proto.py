@@ -61,4 +61,4 @@ class LESProtocolV2(BaseLESProtocol):
     command_length = 21
 
     status_command_type = StatusV2
-    get_proofs_command_type = GetProofsV1
+    get_proofs_command_type = GetProofsV2

@@ -10,12 +10,13 @@ from typing import (
     Any,
     Callable,
     cast,
-    Dict,
     List,
     FrozenSet,
     Optional,
+    Tuple,
     Type,
 )
+import weakref
 
 from async_lru import alru_cache
 
@@ -67,6 +68,7 @@ from p2p.service import (
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.les.peer import LESPeer, LESPeerPool
+from trinity.protocol.les.commands import ProofsV1, ProofsV2
 from trinity.rlp.block_body import BlockBody
 
 
@@ -96,6 +98,7 @@ class BaseLightPeerChain(ABC):
 class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     reply_timeout = REPLY_TIMEOUT
     headerdb: BaseAsyncHeaderDB = None
+    _pending_replies: "weakref.WeakValueDictionary[int, asyncio.Future[CommandAPI[Any]]]"
 
     def __init__(
             self,
@@ -106,7 +109,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         BaseService.__init__(self, token)
         self.headerdb = headerdb
         self.peer_pool = peer_pool
-        self._pending_replies: Dict[int, Callable[[CommandAPI[Any]], None]] = {}
+        self._pending_replies = weakref.WeakValueDictionary()
 
     # TODO: be more specific about what messages we want.
     subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset({BaseCommand})
@@ -119,30 +122,20 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         with self.subscribe(self.peer_pool):
             while self.is_operational:
                 peer, cmd = await self.wait(self.msg_queue.get())
-                request_id = getattr(cmd, 'request_id', None)
+                request_id = getattr(cmd.payload, 'request_id', None)
                 # request_id can be None here because not all LES messages include one. For
                 # instance, the Announce msg doesn't.
                 if request_id is not None and request_id in self._pending_replies:
-                    # This is a reply we're waiting for, so we consume it by passing it to the
-                    # registered callback.
-                    callback = self._pending_replies.pop(request_id)
-                    callback(cmd)
+                    # This is the reply we are waiting for.  We avoid creating
+                    # a local reference to the stored future to ensure that the
+                    # weakref dictionary can clean up the entry.
+                    self._pending_replies.pop(request_id).set_result(cmd)
 
-    async def _wait_for_reply(self, request_id: int) -> Dict[str, Any]:
-        reply = None
-        got_reply = asyncio.Event()
+    async def _wait_for_reply(self, request_id: int) -> CommandAPI[Any]:
+        fut: 'asyncio.Future[CommandAPI[Any]]' = asyncio.Future()
 
-        def callback(value: CommandAPI[Any]) -> None:
-            nonlocal reply
-            reply = value
-            got_reply.set()
-
-        self._pending_replies[request_id] = callback
-        await self.wait(got_reply.wait(), timeout=self.reply_timeout)
-        # we need to cast here because mypy knows this should actually be of type
-        # `protocol._DecodedMsgType`. However, we know the type should be restricted
-        # to `Dict[str, Any]` and this is what all callsites expect
-        return cast(Dict[str, Any], reply)
+        self._pending_replies[request_id] = fut
+        return await self.wait(fut, timeout=self.reply_timeout)
 
     @alru_cache(maxsize=1024, cache_exceptions=False)
     @service_timeout(COMPLETION_TIMEOUT)
@@ -165,10 +158,10 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching block %s from %s", encode_hex(block_hash), peer)
         request_id = peer.les_api.send_get_block_bodies([block_hash])
-        reply = await self._wait_for_reply(request_id)
-        if not reply['bodies']:
+        block_bodies = await self._wait_for_reply(request_id)
+        if not block_bodies.payload.bodies:
             raise BlockNotFound(f"Peer {peer} has no block with hash {block_hash}")
-        return reply['bodies'][0]
+        return block_bodies.payload.bodies[0]
 
     # TODO add a get_receipts() method to BaseChain API, and dispatch to this, as needed
 
@@ -178,10 +171,10 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         peer = cast(LESPeer, self.peer_pool.highest_td_peer)
         self.logger.debug("Fetching %s receipts from %s", encode_hex(block_hash), peer)
         request_id = peer.les_api.send_get_receipts((block_hash,))
-        reply = await self._wait_for_reply(request_id)
-        if not reply['receipts']:
+        receipts = await self._wait_for_reply(request_id)
+        if not receipts.payload.receipts:
             raise BlockNotFound(f"No block with hash {block_hash} found")
-        return reply['receipts'][0]
+        return receipts.payload.receipts[0]
 
     # TODO implement AccountDB exceptions that provide the info needed to
     # request accounts and code (and storage?)
@@ -198,11 +191,11 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             block_hash: Hash32,
             address: ETHAddress,
             peer: LESPeer) -> Account:
-        key = keccak(address)
-        proof = await self._get_proof(peer, block_hash, account_key=None, key=key)
+        state_key = keccak(address)
+        proof = await self._get_proof(peer, block_hash, state_key=state_key, storage_key=None)
         header = await self._get_block_header_by_hash(block_hash, peer)
         try:
-            rlp_account = HexaryTrie.get_from_proof(header.state_root, key, proof)
+            rlp_account = HexaryTrie.get_from_proof(header.state_root, state_key, proof)
         except BadTrieProof as exc:
             raise BadLESResponse(
                 f"Peer {peer} returned an invalid proof for account {encode_hex(address)} "
@@ -251,12 +244,12 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         """
         # request contract code
         request_id = peer.les_api.send_get_contract_code(block_hash, keccak(address))
-        reply = await self._wait_for_reply(request_id)
+        contract_codes = await self._wait_for_reply(request_id)
 
-        if not reply['codes']:
+        if not contract_codes.payload.codes:
             bytecode = b''
         else:
-            bytecode = reply['codes'][0]
+            bytecode = contract_codes.payload.codes[0]
 
         # validate bytecode against a proven account
         if code_hash == keccak(bytecode):
@@ -354,12 +347,20 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
     async def _get_proof(self,
                          peer: LESPeer,
                          block_hash: Hash32,
-                         account_key: Optional[ETHAddress],
-                         key: bytes,
-                         from_level: int = 0) -> List[bytes]:
-        request_id = peer.les_api.send_get_proof(block_hash, account_key, key, from_level)
-        reply = await self._wait_for_reply(request_id)
-        return reply['proof']
+                         state_key: Hash32,
+                         storage_key: Optional[Hash32],
+                         from_level: int = 0) -> Tuple[bytes, ...]:
+        request_id = peer.les_api.send_get_proof(block_hash, state_key, storage_key, from_level)
+        proofs = await self._wait_for_reply(request_id)
+        if isinstance(proofs, ProofsV1):
+            if proofs.payload.proofs:
+                return proofs.payload.proofs[0]
+            else:
+                return ()
+        elif isinstance(proofs, ProofsV2):
+            return proofs.payload.proof
+        else:
+            raise Exception("Unreachable")
 
     async def _retry_on_bad_response(self, make_request_to_peer: Callable[[LESPeer], Any]) -> Any:
         """
