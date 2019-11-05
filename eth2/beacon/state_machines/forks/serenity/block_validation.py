@@ -389,14 +389,13 @@ def validate_attestation(
     Raise ``ValidationError`` if it's invalid.
     """
     _validate_attestation_data(state, attestation.data, config)
+    _validate_aggregation_bits(state, attestation, CommitteeConfig(config))
     validate_indexed_attestation(
         state,
         get_indexed_attestation(state, attestation, CommitteeConfig(config)),
         config.MAX_VALIDATORS_PER_COMMITTEE,
         config.SLOTS_PER_EPOCH,
     )
-    _validate_aggregation_bits(state, attestation, CommitteeConfig(config))
-
 
 #
 # Voluntary Exit validation
