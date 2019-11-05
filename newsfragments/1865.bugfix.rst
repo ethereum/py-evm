@@ -1,1 +1,3 @@
-Fix for storage reads, after a revert, after a self-destruct. They were incorrectly returning 0.
+Gas estimation bugfix: storage values are now correctly reset to original value if the transaction
+includes a self-destruct, when running estimation iterations. Previously, estimation iterations
+would produce undefined results, if the transaction included a self-destruct.
