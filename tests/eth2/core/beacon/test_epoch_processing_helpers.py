@@ -269,4 +269,4 @@ def test_get_unslashed_attesting_indices(genesis_state, config):
 
 
 def test_get_base_reward(genesis_state, config):
-    assert get_base_reward(genesis_state, 0, config) == 724077
+    assert get_base_reward(genesis_state, 0, config) == 905097

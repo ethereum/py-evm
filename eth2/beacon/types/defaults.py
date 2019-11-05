@@ -10,7 +10,6 @@ from eth2.beacon.typing import (  # noqa: F401
     default_epoch,
     default_gwei,
     default_second,
-    default_shard,
     default_slot,
     default_timestamp,
     default_validator_index,

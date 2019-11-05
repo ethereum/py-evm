@@ -10,8 +10,9 @@ from eth_utils.toolz import pipe
 from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2._utils.bls import Domain, bls
 from eth2.beacon.committee_helpers import (
-    get_beacon_committee,
     get_committee_count_at_slot,
+    iterate_committees_at_epoch,
+    iterate_committees_at_slot,
 )
 from eth2.beacon.constants import ZERO_SIGNING_ROOT
 from eth2.beacon.helpers import (
@@ -98,34 +99,24 @@ def _mk_some_pending_attestations_with_some_participation_in_epoch(
     block_root = get_block_root(
         state, epoch, config.SLOTS_PER_EPOCH, config.SLOTS_PER_HISTORICAL_ROOT
     )
-    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
+    for committee, committee_index, slot in iterate_committees_at_epoch(
+        state, epoch, CommitteeConfig(config)
+    ):
+        if not committee:
+            continue
 
-    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
-        committee_count_at_slot = get_committee_count_at_slot(
-            state,
-            Slot(slot),
-            config.MAX_COMMITTEES_PER_SLOT,
-            config.SLOTS_PER_EPOCH,
-            config.TARGET_COMMITTEE_SIZE,
+        committee_size = len(committee)
+        participants_count = math.ceil(participation_ratio * committee_size)
+        if not participants_count:
+            return tuple()
+
+        yield mk_pending_attestation_from_committee(
+            committee_size,
+            target_epoch=epoch,
+            target_root=block_root,
+            slot=Slot(slot),
+            committee_index=committee_index,
         )
-        for committee_index in range(committee_count_at_slot):
-            beacon_committee = get_beacon_committee(
-                state, slot, committee_index, CommitteeConfig(config)
-            )
-            if not beacon_committee:
-                continue
-            committee_size = len(beacon_committee)
-            participants_count = math.ceil(participation_ratio * committee_size)
-            if not participants_count:
-                return tuple()
-
-            yield mk_pending_attestation_from_committee(
-                committee_size,
-                target_epoch=epoch,
-                target_root=block_root,
-                slot=Slot(slot),
-                committee_index=CommitteeIndex(committee_index),
-            )
 
 
 def mk_all_pending_attestations_with_some_participation_in_epoch(
@@ -324,14 +315,16 @@ def create_mock_slashable_attestation(
         ),
         config.SLOTS_PER_HISTORICAL_ROOT,
     )
-    committee_count_at_slot = get_committee_count_at_slot(
+
+    committees_per_slot = get_committee_count_at_slot(
         state,
         Slot(attestation_slot),
         config.MAX_COMMITTEES_PER_SLOT,
         config.SLOTS_PER_EPOCH,
         config.TARGET_COMMITTEE_SIZE,
     )
-    assert committee_count_at_slot > 0
+    # Use the first committee
+    assert committees_per_slot > 0
     committee_index = CommitteeIndex(0)
 
     attestation_data = AttestationData(
@@ -531,35 +524,6 @@ def _create_mock_signed_attestation(
     )
 
 
-# # TODO(ralexstokes) merge in w/ ``get_committee_assignment``
-# def get_beacon_committee_count_at_slot(
-#     state: BeaconState, slot: Slot, config: Eth2Config
-# ) -> Tuple[Tuple[Tuple[ValidatorIndex, ...], Shard], ...]:
-#     epoch = compute_epoch_at_slot(slot, config.SLOTS_PER_EPOCH)
-#     committee_count_at_slot = get_committee_count_at_slot(
-#         state,
-#         slot,
-#         config.MAX_COMMITTEES_PER_SLOT,
-#         config.SLOTS_PER_EPOCH,
-#         config.TARGET_COMMITTEE_SIZE,
-#     )
-
-#     results = []
-#     offset = committee_count_at_slot * (slot % config.SLOTS_PER_EPOCH)
-#     slot_start_shard = Shard(
-#         (get_start_shard(state, epoch, CommitteeConfig(config)) + offset)
-#         % config.MAX_COMMITTEES_PER_SLOT
-#     )
-#     for i in range(committee_count_at_slot):
-#         shard = (slot_start_shard + i) % config.MAX_COMMITTEES_PER_SLOT
-#         committee = get_beacon_committee(
-#             state, epoch, shard, CommitteeConfig(config)
-#         )
-#         results.append((committee, Shard(shard)))
-
-#     return tuple(results)
-
-
 def create_signed_attestation_at_slot(
     state: BeaconState,
     config: Eth2Config,
@@ -618,7 +582,7 @@ def create_mock_signed_attestations_at_slot(
     """
     Create the mocking attestations of the given ``attestation_slot`` slot with ``keymap``.
     """
-    committee_count_at_slot = get_committee_count_at_slot(
+    committees_per_slot = get_committee_count_at_slot(
         state,
         attestation_slot,
         config.MAX_COMMITTEES_PER_SLOT,
@@ -630,11 +594,9 @@ def create_mock_signed_attestations_at_slot(
     target_root = _get_target_root(state, config, beacon_block_root)
     target_epoch = compute_epoch_at_slot(state.slot, config.SLOTS_PER_EPOCH)
 
-    for committee_index in range(committee_count_at_slot):
-        committee = get_beacon_committee(
-            state, attestation_slot, committee_index, CommitteeConfig(config)
-        )
-
+    for committee, committee_index, _ in iterate_committees_at_slot(
+        state, attestation_slot, committees_per_slot, CommitteeConfig(config)
+    ):
         attestation_data = AttestationData(
             slot=attestation_slot,
             index=CommitteeIndex(committee_index),

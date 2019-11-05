@@ -4,7 +4,6 @@ from eth_typing import Hash32
 
 Slot = NewType("Slot", int)  # uint64
 Epoch = NewType("Epoch", int)  # uint64
-Shard = NewType("Shard", int)  # uint64
 
 
 class Bitfield(Tuple[bool, ...]):
@@ -45,7 +44,6 @@ class FromBlockParams(NamedTuple):
 # defaults to emulate "zero types"
 default_slot = Slot(0)
 default_epoch = Epoch(0)
-default_shard = Shard(0)
 default_committee_index = CommitteeIndex(0)
 default_validator_index = ValidatorIndex(0)
 default_gwei = Gwei(0)

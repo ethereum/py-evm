@@ -275,17 +275,17 @@ def _validate_eligible_committee_index(
     slots_per_epoch: int,
     target_committee_size: int,
 ) -> None:
-    committee_count = get_committee_count_at_slot(
+    committees_per_slot = get_committee_count_at_slot(
         state,
         attestation_slot,
         max_committees_per_slot,
         slots_per_epoch,
         target_committee_size,
     )
-    if committee_index >= committee_count:
+    if committee_index >= committees_per_slot:
         raise ValidationError(
-            f"Attestation with committee index {committee_index} must be"
-            f" less than the calculated committee count {committee_count}"
+            f"Attestation with committee index ({committee_index}) must be"
+            f" less than the calculated committee per slot ({committees_per_slot})"
             f" of slot {attestation_slot}"
         )
 
@@ -396,6 +396,7 @@ def validate_attestation(
         config.MAX_VALIDATORS_PER_COMMITTEE,
         config.SLOTS_PER_EPOCH,
     )
+
 
 #
 # Voluntary Exit validation

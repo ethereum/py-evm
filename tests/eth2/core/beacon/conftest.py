@@ -287,9 +287,6 @@ def config(
     max_voluntary_exits,
     deposit_contract_address,
 ):
-    # adding some config validity conditions here
-    # abstract out into the config object?
-
     return Eth2Config(
         MAX_COMMITTEES_PER_SLOT=max_committees_per_slot,
         TARGET_COMMITTEE_SIZE=target_committee_size,

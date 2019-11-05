@@ -2,12 +2,16 @@ import random
 
 import pytest
 
+from eth2._utils.hash import hash_eth2
 from eth2.beacon.committee_helpers import (
+    MAX_RANDOM_BYTE,
     compute_proposer_index,
     get_beacon_committee,
     get_beacon_proposer_index,
     get_committee_count_at_slot,
 )
+from eth2.beacon.helpers import get_seed, signature_domain_to_domain_type
+from eth2.beacon.signature_domain import SignatureDomain
 from eth2.configs import CommitteeConfig
 
 
@@ -20,14 +24,14 @@ from eth2.configs import CommitteeConfig
         "expected_committee_count"
     ),
     [
-        # MAX_COMMITTEES_PER_SLOT // SLOTS_PER_EPOCH
-        (1000, 20, 10, 50, 40),
+        # MAX_COMMITTEES_PER_SLOT
+        (1000, 20, 10, 4, 4),
         # active_validator_count // SLOTS_PER_EPOCH // TARGET_COMMITTEE_SIZE
-        (500, 20, 10, 100, 40),
+        (500, 20, 10, 100, 500 // 20 // 10),
         # 1
-        (20, 10, 3, 10, 10),
+        (20, 10, 3, 10, 1),
         # 1
-        (40, 5, 10, 5, 5),
+        (40, 5, 10, 5, 1),
     ],
 )
 def test_get_committee_count_at_slot(
@@ -39,7 +43,7 @@ def test_get_committee_count_at_slot(
     genesis_state,
 ):
     state = genesis_state
-    assert expected_committee_count // slots_per_epoch == get_committee_count_at_slot(
+    assert expected_committee_count == get_committee_count_at_slot(
         state,
         state.slot,
         max_committees_per_slot=max_committees_per_slot,
@@ -58,7 +62,7 @@ def test_compute_proposer_index(genesis_validators, config):
     # NOTE: validators supplied to ``compute_proposer_index``
     # should at a minimum have 17 ETH as ``effective_balance``.
     # Using 1 ETH should maintain the same spirit of the test and
-    # ensure we can know the likely candidate ahead of time.
+    # ensure we can know the candidate ahead of time.
     one_eth_in_gwei = 1 * 10 ** 9
     for index, validator in enumerate(genesis_validators):
         if index == proposer_index:
@@ -78,29 +82,38 @@ def test_compute_proposer_index(genesis_validators, config):
     )
 
 
-def _invalidate_all_but_proposer(proposer_index, index, validator):
-    if proposer_index == index:
-        return validator
-    else:
-        return validator.copy(effective_balance=-1)
-
-
 @pytest.mark.parametrize(("validator_count,"), [(1000)])
 def test_get_beacon_proposer_index(genesis_state, config):
+    # TODO(hwwhww) find a way to normalize validator effective balance distribution.
     state = genesis_state
-    some_validator_index = random.sample(range(len(state.validators)), 1)[0]
+    validators = tuple(
+        [
+            state.validators[index].copy(effective_balance=config.MAX_EFFECTIVE_BALANCE)
+            for index in range(len(state.validators))
+        ]
+    )
+    for slot in range(0, config.SLOTS_PER_EPOCH):
+        state = state.copy(slot=slot, validators=validators)
+        committee_config = CommitteeConfig(config)
+        proposer_index = get_beacon_proposer_index(state, committee_config)
+        assert proposer_index
 
-    state = state.copy(
-        validators=tuple(
-            _invalidate_all_but_proposer(some_validator_index, index, validator)
-            for index, validator in enumerate(state.validators)
+        current_epoch = state.current_epoch(committee_config.SLOTS_PER_EPOCH)
+        domain_type = signature_domain_to_domain_type(
+            SignatureDomain.DOMAIN_BEACON_PROPOSER
         )
-    )
-
-    assert (
-        get_beacon_proposer_index(state, CommitteeConfig(config))
-        == some_validator_index
-    )
+        seed = hash_eth2(
+            get_seed(state, current_epoch, domain_type, committee_config)
+            + state.slot.to_bytes(8, "little")
+        )
+        random_byte = hash_eth2(seed + (proposer_index // 32).to_bytes(8, "little"))[
+            proposer_index % 32
+        ]
+        # Verify if proposer_index matches the condition.
+        assert (
+            state.validators[proposer_index].effective_balance * MAX_RANDOM_BYTE
+            >= config.MAX_EFFECTIVE_BALANCE * random_byte
+        )
 
 
 @pytest.mark.parametrize(("validator_count,"), [(1000)])

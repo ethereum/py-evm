@@ -64,19 +64,11 @@ class OperationHandler(
         return bool(test_case_parts.get("post", None))
 
     @classmethod
-    def _update_config_if_needed(cls, config: Eth2Config) -> Eth2Config:
-        """
-        Some ad-hoc work arounds...
-        """
-        return config
-
-    @classmethod
     def run_with(
         cls,
         inputs: Tuple[BeaconState, OperationOrBlockHeader],
         config: Optional[Eth2Config],
     ) -> BeaconState:
-        config = cls._update_config_if_needed(config)
         state, operation = inputs
         # NOTE: we do not have an easy way to evaluate a single operation on the state
         # So, we wrap it in a beacon block. The following statement lets us rely on

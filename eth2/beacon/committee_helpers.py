@@ -1,13 +1,14 @@
-from typing import Iterable, Sequence
+import logging
+from typing import Iterable, Sequence, Tuple
 
 from eth_typing import Hash32
 from eth_utils import ValidationError, to_tuple
 
 from eth2._utils.hash import hash_eth2
 from eth2.beacon.constants import MAX_INDEX_COUNT, MAX_RANDOM_BYTE
-from eth2.beacon.exceptions import ImprobableToReach
 from eth2.beacon.helpers import (
     compute_epoch_at_slot,
+    compute_start_slot_at_epoch,
     get_active_validator_indices,
     get_seed,
     signature_domain_to_domain_type,
@@ -15,8 +16,10 @@ from eth2.beacon.helpers import (
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
-from eth2.beacon.typing import CommitteeIndex, Gwei, Slot, ValidatorIndex
+from eth2.beacon.typing import CommitteeIndex, Epoch, Gwei, Slot, ValidatorIndex
 from eth2.configs import CommitteeConfig
+
+logger = logging.getLogger("eth2.beacon.committee_helpers")
 
 
 def get_committee_count_at_slot(
@@ -27,6 +30,18 @@ def get_committee_count_at_slot(
     target_committee_size: int,
 ) -> int:
     epoch = compute_epoch_at_slot(slot, slots_per_epoch)
+    return get_committee_count_per_slot_at_epoch(
+        state, epoch, max_committees_per_slot, slots_per_epoch, target_committee_size
+    )
+
+
+def get_committee_count_per_slot_at_epoch(
+    state: BeaconState,
+    epoch: Epoch,
+    max_committees_per_slot: int,
+    slots_per_epoch: int,
+    target_committee_size: int,
+) -> int:
     active_validator_indices = get_active_validator_indices(state.validators, epoch)
     return max(
         1,
@@ -35,9 +50,6 @@ def get_committee_count_at_slot(
             len(active_validator_indices) // slots_per_epoch // target_committee_size,
         ),
     )
-
-
-MAX_ROUNDS = 100
 
 
 def compute_proposer_index(
@@ -49,21 +61,6 @@ def compute_proposer_index(
 ) -> ValidatorIndex:
     """
     Return from ``indices`` a random index sampled by effective balance.
-
-    Loop through the validators in the committee one by one.
-    A validator with higher balance would be chosen as the proposer more likely.
-    It is expected to end in just 1 or 2 rounds.
-    More than `MAX_ROUNDS` rounds is rare and could consider as a bug.
-
-    Detail:
-    The ``indices`` passed in here should consist 'active' validators.
-    An active validator has a balance of at least 17 Ether and at most 32 Ether.
-    This function choose a number between 0 and 1, which is represented by
-    `random_byte / MAX_RANDOM_BYTE`. The probability of a validator chosen as
-    a proposer is `effective_balance/max_effective_balance`.
-    The worst/easiest possible scenario for the loop to reach more rounds is when every
-    validator has 17 Ether and has the 17/32 probability of being chosen.
-    This requires 1 out of (17/32)^100 chance to reach 100 rounds.
     """
     if len(indices) == 0:
         raise ValidationError("There is no any active validator.")
@@ -82,11 +79,14 @@ def compute_proposer_index(
         effective_balance = validators[candidate_index].effective_balance
         if effective_balance * MAX_RANDOM_BYTE >= max_effective_balance * random_byte:
             return ValidatorIndex(candidate_index)
+
+        # Log the warning message in case it happends.
+        if i % len(indices) == 0 and i > 0:
+            logger.warning(
+                "Tried over %d times in compute_proposer_index while loop.", i
+            )
+
         i += 1
-    else:
-        raise ImprobableToReach(
-            f"Search for a proposer failed after {MAX_ROUNDS} rounds."
-        )
 
 
 def get_beacon_proposer_index(
@@ -159,6 +159,7 @@ def compute_shuffled_index(
     return new_index
 
 
+@to_tuple
 def _compute_committee(
     indices: Sequence[ValidatorIndex],
     seed: Hash32,
@@ -175,10 +176,9 @@ def _compute_committee(
         yield indices[shuffled_index]
 
 
-@to_tuple
 def get_beacon_committee(
     state: BeaconState, slot: Slot, index: CommitteeIndex, config: CommitteeConfig
-) -> Iterable[ValidatorIndex]:
+) -> Tuple[ValidatorIndex, ...]:
     epoch = compute_epoch_at_slot(slot, config.SLOTS_PER_EPOCH)
     committees_per_slot = get_committee_count_at_slot(
         state,
@@ -201,3 +201,36 @@ def get_beacon_committee(
         count=committees_per_slot * config.SLOTS_PER_EPOCH,
         shuffle_round_count=config.SHUFFLE_ROUND_COUNT,
     )
+
+
+def iterate_committees_at_epoch(
+    state: BeaconState, epoch: Epoch, config: CommitteeConfig
+) -> Iterable[Tuple[Tuple[ValidatorIndex, ...], CommitteeIndex, Slot]]:
+    """
+    Iterate ``committee``, ``committee_index``, ``slot`` of the given ``epoch``.
+    """
+    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
+    committees_per_slot = get_committee_count_per_slot_at_epoch(
+        state,
+        epoch,
+        config.MAX_COMMITTEES_PER_SLOT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
+    )
+    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
+        yield from iterate_committees_at_slot(
+            state, Slot(slot), committees_per_slot, config
+        )
+
+
+def iterate_committees_at_slot(
+    state: BeaconState, slot: Slot, committees_per_slot: int, config: CommitteeConfig
+) -> Iterable[Tuple[Tuple[ValidatorIndex, ...], CommitteeIndex, Slot]]:
+    """
+    Iterate ``committee``, ``committee_index``, ``slot`` of the given ``slot``.
+    """
+    for committee_index in range(committees_per_slot):
+        committee = get_beacon_committee(
+            state, slot, CommitteeIndex(committee_index), config
+        )
+        yield committee, CommitteeIndex(committee_index), slot

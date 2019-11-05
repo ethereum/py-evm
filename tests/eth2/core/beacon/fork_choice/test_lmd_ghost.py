@@ -14,8 +14,10 @@ import pytest
 
 from eth2._utils import bitfield
 from eth2.beacon.committee_helpers import (
-    get_beacon_committee,
     get_committee_count_at_slot,
+    get_committee_count_per_slot_at_epoch,
+    iterate_committees_at_epoch,
+    iterate_committees_at_slot,
 )
 from eth2.beacon.epoch_processing_helpers import get_attesting_indices
 from eth2.beacon.fork_choice.lmd_ghost import (
@@ -29,43 +31,30 @@ from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.configs import CommitteeConfig
 
 
 # TODO(ralexstokes) merge this and next into tools/builder
 @to_dict
 def _mk_attestation_inputs_in_epoch(epoch, state, config):
-    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
+    for committee, committee_index, slot in iterate_committees_at_epoch(
+        state, epoch, config
+    ):
+        if not committee:
+            # empty committee this slot
+            continue
 
-    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
-        committee_count_at_slot = get_committee_count_at_slot(
-            state,
-            slot,
-            config.MAX_COMMITTEES_PER_SLOT,
-            config.SLOTS_PER_EPOCH,
-            config.TARGET_COMMITTEE_SIZE,
+        attestation_data = AttestationData(
+            slot=slot, index=committee_index, target=Checkpoint(epoch=epoch)
         )
-
-        for committee_index in range(committee_count_at_slot):
-            committee = get_beacon_committee(
-                state, slot, committee_index, CommitteeConfig(config)
-            )
-            if not committee:
-                # empty committee this slot
-                continue
-
-            attestation_data = AttestationData(
-                slot=slot, index=committee_index, target=Checkpoint(epoch=epoch)
-            )
-            committee_size = len(committee)
-            aggregation_bits = bitfield.get_empty_bitfield(committee_size)
-            for index in range(committee_size):
-                aggregation_bits = bitfield.set_voted(aggregation_bits, index)
-                for index in committee:
-                    yield (
-                        index,
-                        (attestation_data.slot, (aggregation_bits, attestation_data)),
-                    )
+        committee_size = len(committee)
+        aggregation_bits = bitfield.get_empty_bitfield(committee_size)
+        for index in range(committee_size):
+            aggregation_bits = bitfield.set_voted(aggregation_bits, index)
+            for index in committee:
+                yield (
+                    index,
+                    (attestation_data.slot, (aggregation_bits, attestation_data)),
+                )
 
 
 def _mk_attestations_for_epoch_by_count(
@@ -101,34 +90,23 @@ def _find_collision(state, config, validator_index, epoch):
     Given a target epoch, make the attestation expected for the
     validator w/ the given ``validator_index``.
     """
-    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
-
-    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
-        committee_count_at_slot = get_committee_count_at_slot(
-            state,
-            slot,
-            config.MAX_COMMITTEES_PER_SLOT,
-            config.SLOTS_PER_EPOCH,
-            config.TARGET_COMMITTEE_SIZE,
-        )
-        for committee_index in range(committee_count_at_slot):
-            committee = get_beacon_committee(
-                state, slot, committee_index, CommitteeConfig(config)
+    for committee, committee_index, slot in iterate_committees_at_epoch(
+        state, epoch, config
+    ):
+        if validator_index in committee:
+            # TODO(ralexstokes) refactor w/ tools/builder
+            attestation_data = AttestationData(
+                slot=slot, index=committee_index, target=Checkpoint(epoch=epoch)
             )
-            if validator_index in committee:
-                # TODO(ralexstokes) refactor w/ tools/builder
-                attestation_data = AttestationData(
-                    slot=slot, index=committee_index, target=Checkpoint(epoch=epoch)
-                )
-                committee_count = len(committee)
-                aggregation_bits = bitfield.get_empty_bitfield(committee_count)
-                for i in range(committee_count):
-                    aggregation_bits = bitfield.set_voted(aggregation_bits, i)
+            committee_count = len(committee)
+            aggregation_bits = bitfield.get_empty_bitfield(committee_count)
+            for i in range(committee_count):
+                aggregation_bits = bitfield.set_voted(aggregation_bits, i)
 
-                return {
-                    index: (slot, (aggregation_bits, attestation_data))
-                    for index in committee
-                }
+            return {
+                index: (slot, (aggregation_bits, attestation_data))
+                for index in committee
+            }
     else:
         raise Exception("should have found a duplicate validator")
 
@@ -158,18 +136,16 @@ def _introduce_collisions(all_attestations_by_index, state, config):
 
 
 def _get_committee_count(state, epoch, config):
-    committee_count = 0
-    epoch_start_slot = compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
-    for slot in range(epoch_start_slot, epoch_start_slot + config.SLOTS_PER_EPOCH):
-        committee_count_at_slot = get_committee_count_at_slot(
+    return (
+        get_committee_count_per_slot_at_epoch(
             state,
-            slot,
+            epoch,
             config.MAX_COMMITTEES_PER_SLOT,
             config.SLOTS_PER_EPOCH,
             config.TARGET_COMMITTEE_SIZE,
         )
-        committee_count += committee_count_at_slot
-    return committee_count
+        * config.SLOTS_PER_EPOCH
+    )
 
 
 @pytest.mark.parametrize(
@@ -352,7 +328,7 @@ def _iter_block_tree_by_block(tree):
 
 
 def _get_committees(state, target_slot, config, sampling_fraction):
-    committee_count_at_slot = get_committee_count_at_slot(
+    committees_per_slot = get_committee_count_at_slot(
         state,
         target_slot,
         config.MAX_COMMITTEES_PER_SLOT,
@@ -360,13 +336,13 @@ def _get_committees(state, target_slot, config, sampling_fraction):
         config.TARGET_COMMITTEE_SIZE,
     )
     committees_at_slot = ()
-    for index in range(committee_count_at_slot):
-        committees_at_slot += (
-            get_beacon_committee(state, target_slot, index, CommitteeConfig(config)),
-        )
+    for committee, _, _ in iterate_committees_at_slot(
+        state, target_slot, committees_per_slot, config
+    ):
+        committees_at_slot += (committee,)
     return tuple(
         random.sample(
-            committees_at_slot, int((sampling_fraction * committee_count_at_slot))
+            committees_at_slot, int((sampling_fraction * committees_per_slot))
         )
     )
 

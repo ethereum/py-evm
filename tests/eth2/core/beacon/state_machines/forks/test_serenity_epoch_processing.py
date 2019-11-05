@@ -2,9 +2,8 @@ import pytest
 
 from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2.beacon.committee_helpers import (
-    get_beacon_committee,
     get_beacon_proposer_index,
-    get_committee_count_at_slot,
+    iterate_committees_at_epoch,
 )
 from eth2.beacon.constants import (
     FAR_FUTURE_EPOCH,
@@ -187,10 +186,27 @@ def test_process_justification_and_finalization(
 
 
 # TODO better testing on attestation deltas
-@pytest.mark.parametrize(("validator_count,"), [(10)])
+@pytest.mark.parametrize(
+    (
+        "validator_count",
+        "slots_per_epoch",
+        "min_epochs_to_inactivity_penalty",
+        "target_committee_size",
+    ),
+    [(100, 8, 4, 10)],
+)
 @pytest.mark.parametrize(
     ("finalized_epoch", "current_slot"),
-    [(4, 384), (3, 512)],  # epochs_since_finality <= 4  # epochs_since_finality > 4
+    [
+        (
+            4,
+            (4 + 1 + 4) * 8,
+        ),  # epochs_since_finality <= min_epochs_to_inactivity_penalty
+        (
+            4,
+            (4 + 1 + 5) * 8,
+        ),  # epochs_since_finality > min_epochs_to_inactivity_penalty
+    ],
 )
 def test_get_attestation_deltas(
     genesis_state,
@@ -205,31 +221,22 @@ def test_get_attestation_deltas(
     sample_pending_attestation_record_params,
     sample_attestation_data_params,
 ):
+
     state = genesis_state.copy(
         slot=current_slot, finalized_checkpoint=Checkpoint(epoch=finalized_epoch)
     )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
+    has_inactivity_penalty = (
+        previous_epoch - finalized_epoch > config.MIN_EPOCHS_TO_INACTIVITY_PENALTY
+    )
 
     indices_to_check = set()
 
-    prev_epoch_start_slot = compute_start_slot_at_epoch(previous_epoch, slots_per_epoch)
     prev_epoch_attestations = tuple()
-    for slot in range(prev_epoch_start_slot, prev_epoch_start_slot + slots_per_epoch):
-        committee_count = get_committee_count_at_slot(
-            state,
-            slot,
-            config.MAX_COMMITTEES_PER_SLOT,
-            config.SLOTS_PER_EPOCH,
-            config.TARGET_COMMITTEE_SIZE,
-        )
 
-        if committee_count <= 0:
-            continue
-
-        committee_index = 0
-        committee = get_beacon_committee(
-            state, slot, committee_index, CommitteeConfig(config)
-        )
+    for committee, committee_index, slot in iterate_committees_at_epoch(
+        state, previous_epoch, config
+    ):
         participants_bitfield = get_empty_bitfield(len(committee))
         for i, index in enumerate(committee):
             indices_to_check.add(index)
@@ -262,6 +269,11 @@ def test_get_attestation_deltas(
     state = state.copy(previous_epoch_attestations=prev_epoch_attestations)
 
     rewards_received, penalties_received = get_attestation_deltas(state, config)
+    if has_inactivity_penalty:
+        assert sum(penalties_received) > 0
+    else:
+        assert sum(penalties_received) == 0
+    assert all(reward > 0 for reward in rewards_received)
 
 
 @pytest.mark.parametrize(
