@@ -13,6 +13,7 @@ from eth_utils import (
 from .constants import (
     MAINNET_CHAIN_ID,
     BYZANTIUM_MAINNET_BLOCK,
+    ISTANBUL_MAINNET_BLOCK,
     PETERSBURG_MAINNET_BLOCK,
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     HOMESTEAD_MAINNET_BLOCK,
@@ -34,6 +35,7 @@ from eth.vm.forks import (
     ByzantiumVM,
     FrontierVM,
     HomesteadVM,
+    IstanbulVM,
     PetersburgVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
@@ -80,6 +82,7 @@ MAINNET_FORK_BLOCKS = (
     SPURIOUS_DRAGON_MAINNET_BLOCK,
     BYZANTIUM_MAINNET_BLOCK,
     PETERSBURG_MAINNET_BLOCK,
+    ISTANBUL_MAINNET_BLOCK,
 )
 MAINNET_VMS = (
     FrontierVM,
@@ -88,6 +91,7 @@ MAINNET_VMS = (
     SpuriousDragonVM,
     ByzantiumVM,
     PetersburgVM,
+    IstanbulVM,
 )
 
 MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
