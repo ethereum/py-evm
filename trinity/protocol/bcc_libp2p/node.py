@@ -581,14 +581,20 @@ class Node(BaseService):
     async def _handle_goodbye(self, stream: INetStream) -> None:
         async with self.new_interaction(stream) as interaction:
             peer_id = interaction.peer_id
-            await interaction.try_read_request(Goodbye)
+            try:
+                await interaction.read_request(Goodbye)
+            except ReadMessageFailure:
+                pass
             await self.disconnect_peer(peer_id)
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
         stream = await self.new_stream(peer_id, REQ_RESP_GOODBYE_SSZ)
         async with self.new_interaction(stream) as interaction:
             goodbye = Goodbye(reason)
-            await interaction.try_write_request(goodbye)
+            try:
+                await interaction.write_request(goodbye)
+            except WriteMessageFailure:
+                pass
             await self.disconnect_peer(peer_id)
 
     def _check_peer_handshaked(self, peer_id: ID) -> None:
