@@ -9,3 +9,5 @@ GOERLI_CHAIN_ID = 5
 # Petersburg
 #
 PETERSBURG_GOERLI_BLOCK = BlockNumber(0)
+
+ISTANBUL_GOERLI_BLOCK = BlockNumber(1561651)
