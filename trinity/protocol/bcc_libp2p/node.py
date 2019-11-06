@@ -177,16 +177,18 @@ class Peer:
     async def request_beacon_blocks(
         self, start_slot: Slot, count: int, step: int = 1
     ) -> Tuple[BaseBeaconBlock, ...]:
+        head_block_signing_root = self.node.chain.chaindb.get_block_signing_root_by_hash_tree_root(
+            self.head_root)
         return await self.node.request_beacon_blocks(
             self._id,
-            head_block_root=self.head_root,
+            head_block_root=head_block_signing_root,
             start_slot=start_slot,
             count=count,
             step=step,
         )
 
     async def request_recent_beacon_blocks(
-        self, block_roots: Sequence[HashTreeRoot]
+        self, block_roots: Sequence[SigningRoot]
     ) -> Tuple[BaseBeaconBlock, ...]:
         return await self.node.request_recent_beacon_blocks(self._id, block_roots)
 
@@ -884,7 +886,7 @@ class Node(BaseService):
         )
 
         try:
-            requested_head_block = self.chain.get_block_by_hash_tree_root(
+            requested_head_block = self.chain.get_block_by_root(
                 beacon_blocks_request.head_block_root
             )
         except (BlockNotFound, ValidationError) as error:
@@ -971,7 +973,7 @@ class Node(BaseService):
 
     async def request_beacon_blocks(self,
                                     peer_id: ID,
-                                    head_block_root: HashTreeRoot,
+                                    head_block_root: SigningRoot,
                                     start_slot: Slot,
                                     count: int,
                                     step: int) -> Tuple[BaseBeaconBlock, ...]:
@@ -1075,7 +1077,7 @@ class Node(BaseService):
         recent_beacon_blocks = []
         for block_root in recent_beacon_blocks_request.block_roots:
             try:
-                block = self.chain.get_block_by_hash_tree_root(block_root)
+                block = self.chain.get_block_by_root(block_root)
             except (BlockNotFound, ValidationError):
                 pass
             else:
@@ -1109,7 +1111,7 @@ class Node(BaseService):
     async def request_recent_beacon_blocks(
             self,
             peer_id: ID,
-            block_roots: Sequence[HashTreeRoot]) -> Tuple[BaseBeaconBlock, ...]:
+            block_roots: Sequence[SigningRoot]) -> Tuple[BaseBeaconBlock, ...]:
         if peer_id not in self.handshaked_peers:
             error_msg = f"not handshaked with peer={peer_id} yet"
             self.logger.info("Request recent beacon block failed: %s", error_msg)
