@@ -481,7 +481,6 @@ class Node(BaseService):
     ) -> AsyncIterator[Interaction]:
         try:
             async with Interaction(stream) as interaction:
-                peer_id = interaction.peer_id
                 yield interaction
         except WriteMessageFailure as error:
             self.logger.debug("WriteMessageFailure %s", error)
@@ -489,10 +488,8 @@ class Node(BaseService):
         except ReadMessageFailure as error:
             self.logger.debug("ReadMessageFailure %s", error)
             return
-        except UnhandshakedPeer as error:
+        except UnhandshakedPeer:
             await stream.reset()
-            await self.disconnect_peer(peer_id)
-            self.logger.debug("Disconnected peer  %s", error)
             return
 
     @asynccontextmanager
