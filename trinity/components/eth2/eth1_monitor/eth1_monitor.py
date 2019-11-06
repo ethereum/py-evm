@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from collections import OrderedDict
 from typing import Any, NamedTuple, List, Dict, Tuple, Sequence
 
@@ -19,18 +20,16 @@ from eth_utils import ValidationError
 
 from .exceptions import InvalidEth1Log, Eth1Forked, Eth1BlockNotFound
 
-import asyncio
+from lahja import (
+    BaseEvent,
+    TrioEndpoint,
+    ConnectionConfig,
+    BroadcastConfig,
+    EndpointAPI,
+)
 
-asyncio.Queue.put
 
-
-# https://github.com/ethereum/eth2.0-specs/blob/61f2a0662ebcfb4c097360cc1835c5f01872705c/configs/mainnet.yaml#L65  # noqa: E501
-SLOTS_PER_ETH1_VOTING_PERIOD = 1024
-
-
-# https://github.com/ethereum/eth2.0-specs/blob/dev/deposit_contract/contracts/validator_registration.v.py#L10-L16  # noqa: E501
-class DepositEvent(NamedTuple):
-    pass
+ETH1_MONITOR_LAHJA_CONFIG = ConnectionConfig.from_name("eth1_monitor")
 
 
 # TODO: Refactoring
@@ -59,12 +58,14 @@ def _make_deposit_proof(
 
 class Eth1Monitor(Service):
     _w3: web3.Web3
+    # FIXME: Change to `LogHandler`
     _log_filter: Any  # FIXME: change to the correct type.
     # TODO: Change to broadcast with lahja: Others can request and get the response.
     _deposit_data: List[DepositData]
+    # Sorted
     _block_number_to_hash: Dict[int, Hash32]
     _block_hash_to_accumulated_deposit_count: Dict[Hash32, int]
-    _block_timestamp_to_number: Dict[Timestamp, int]
+    _block_timestamp_to_number: "OrderedDict[Timestamp, int]"
     _highest_log_block_number: int
 
     def __init__(
@@ -73,7 +74,8 @@ class Eth1Monitor(Service):
         contract_address: bytes,
         contract_abi: str,
         blocks_delayed_to_query_logs: int,
-        polling_period: float = 0.01,
+        polling_period: int,
+        event_bus: EndpointAPI,
     ) -> None:
         self._w3 = w3
         self._deposit_contract = w3.eth.contract(
@@ -85,12 +87,14 @@ class Eth1Monitor(Service):
         self._deposit_data = []
         self._block_number_to_hash = {}
         self._block_hash_to_accumulated_deposit_count = {}
-        # Probably it's more efficient to use priority queue.
         self._block_timestamp_to_number = OrderedDict()
         self._highest_log_block_number = 0
+        self._event_bus = event_bus
 
     async def run(self) -> None:
         self.manager.run_daemon_task(self._handle_new_logs)
+        self.manager.run_daemon_task(self._handle_get_deposit)
+        self.manager.run_daemon_task(self._handle_get_eth1_data)
         await self.manager.wait_stopped()
 
     def _get_logs(self, from_block: int, to_block: int):
@@ -271,3 +275,49 @@ class Eth1Monitor(Service):
             deposit_count=accumulated_deposit_count,
             block_hash=target_block_hash,
         )
+
+    async def _handle_get_deposit(self) -> None:
+        print("!@# _handle_get_deposit")
+        async for req in self._event_bus.stream(GetDepositRequest):
+            print(f"!@# _handle_get_deposit: req={req}")
+            deposit = self._get_deposit(req.deposit_count, req.deposit_index)
+            print(f"!@# _handle_get_deposit: get deposit={deposit}")
+            await self._event_bus.broadcast(
+                GetDepositResponse(deposit), req.broadcast_config()
+            )
+            print(f"!@# _handle_get_deposit: finish broadcasting")
+
+    async def _handle_get_eth1_data(self) -> None:
+        async for req in self._event_bus.stream(GetEth1DataRequest):
+            eth1_data = self._get_eth1_data(
+                req.distance, req.eth1_voting_period_start_timestamp
+            )
+            await self._event_bus.broadcast(
+                GetEth1DataResponse(eth1_data), req.broadcast_config()
+            )
+
+
+class BaseEth1MonitorEvent(BaseEvent):
+    pass
+
+
+@dataclass
+class GetEth1DataRequest(BaseEth1MonitorEvent):
+    distance: int
+    eth1_voting_period_start_timestamp: Timestamp
+
+
+@dataclass
+class GetEth1DataResponse(BaseEth1MonitorEvent):
+    eth1_data: Eth1Data
+
+
+@dataclass
+class GetDepositRequest(BaseEth1MonitorEvent):
+    deposit_count: int
+    deposit_index: int
+
+
+@dataclass
+class GetDepositResponse(BaseEth1MonitorEvent):
+    deposit: Deposit

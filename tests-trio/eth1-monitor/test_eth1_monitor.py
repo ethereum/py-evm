@@ -6,16 +6,34 @@ from trio.testing import wait_all_tasks_blocked
 
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.constants import DEPOSIT_CONTRACT_TREE_DEPTH
+from eth2._utils.merkle.common import verify_merkle_branch
 from eth_utils import ValidationError
 
-from trinity.plugins.eth2.beacon.eth1_monitor import _make_deposit_tree_and_root
+from trinity.components.eth2.eth1_monitor.eth1_monitor import (
+    _make_deposit_tree_and_root,
+    GetEth1DataRequest,
+    GetEth1DataResponse,
+    GetDepositRequest,
+    GetDepositResponse,
+    Eth1Monitor,
+)
+from lahja.trio.endpoint import TrioEndpoint
+
+
+from p2p.trio_service import background_service
+
+from async_generator import asynccontextmanager
 
 import random
 
-from .constants import MIN_DEPOSIT_AMOUNT, FULL_DEPOSIT_AMOUNT
-from .factories import Eth1MonitorFactory
-from trinity.plugins.eth2.beacon.exceptions import Eth1BlockNotFound
 
+from trinity.components.eth2.eth1_monitor.exceptions import Eth1BlockNotFound
+
+from lahja import BroadcastConfig
+
+
+MIN_DEPOSIT_AMOUNT = 1000000000  # Gwei
+FULL_DEPOSIT_AMOUNT = 32000000000  # Gwei
 
 SAMPLE_PUBKEY = b"\x11" * 48
 SAMPLE_WITHDRAWAL_CREDENTIALS = b"\x22" * 32
@@ -49,18 +67,50 @@ def deposit(w3, registration_contract) -> int:
     return amount
 
 
+@asynccontextmanager
+async def Eth1MonitorFactory(
+    w3, registration_contract, blocks_delayed_to_query_logs, polling_period, event_bus
+):
+    m = Eth1Monitor(
+        w3,
+        registration_contract.address,
+        registration_contract.abi,
+        blocks_delayed_to_query_logs,
+        polling_period,
+        event_bus,
+    )
+    async with background_service(m):
+        yield m
+
+
+# Ref: https://github.com/ethereum/lahja/blob/f0b7ead13298de82c02ed92cfb2d32a8bc00b42a/tests/core/trio/conftest.py  # noqa E501
+@asynccontextmanager
+async def EventbusFactory():
+    async with TrioEndpoint("endpoint-for-testing").run() as client:
+        yield client
+
+
 def test_deploy(w3, registration_contract):
     pass
 
 
 @pytest.mark.trio
 async def test_eth1_monitor_deposit_logs_handling(
-    w3, registration_contract, tester, blocks_delayed_to_query_logs, polling_period
+    w3,
+    registration_contract,
+    tester,
+    blocks_delayed_to_query_logs,
+    polling_period,
+    endpoint_server,
 ):
     amount_0 = deposit(w3, registration_contract)
     amount_1 = deposit(w3, registration_contract)
     async with Eth1MonitorFactory(
-        w3, registration_contract, blocks_delayed_to_query_logs, polling_period
+        w3,
+        registration_contract,
+        blocks_delayed_to_query_logs,
+        polling_period,
+        endpoint_server,
     ) as m:
         # Test: previous logs can still be queried after `Eth1Monitor` is run.
         await wait_all_tasks_blocked()
@@ -91,10 +141,19 @@ async def test_eth1_monitor_deposit_logs_handling(
 
 @pytest.mark.trio
 async def test_eth1_monitor_get_deposit(
-    w3, registration_contract, tester, blocks_delayed_to_query_logs, polling_period
+    w3,
+    registration_contract,
+    tester,
+    blocks_delayed_to_query_logs,
+    polling_period,
+    endpoint_server,
 ):
     async with Eth1MonitorFactory(
-        w3, registration_contract, blocks_delayed_to_query_logs, polling_period
+        w3,
+        registration_contract,
+        blocks_delayed_to_query_logs,
+        polling_period,
+        endpoint_server,
     ) as m:
         # Test: No deposit data available.
         with pytest.raises(ValueError):
@@ -148,10 +207,19 @@ async def test_eth1_monitor_get_deposit(
 # Ref: https://trio.readthedocs.io/en/stable/reference-testing.html#trio.testing.MockClock.autojump_threshold  # noqa: E501
 @pytest.mark.trio
 async def test_eth1_monitor_get_eth1_data(
-    w3, registration_contract, tester, blocks_delayed_to_query_logs, polling_period
+    w3,
+    registration_contract,
+    tester,
+    blocks_delayed_to_query_logs,
+    polling_period,
+    endpoint_server,
 ):
     async with Eth1MonitorFactory(
-        w3, registration_contract, blocks_delayed_to_query_logs, polling_period
+        w3,
+        registration_contract,
+        blocks_delayed_to_query_logs,
+        polling_period,
+        endpoint_server,
     ) as m:
         tester.mine_blocks(blocks_delayed_to_query_logs)
         # Sleep for a while to wait for mined blocks parsed.
@@ -246,3 +314,47 @@ async def test_eth1_monitor_get_eth1_data(
         assert_get_eth1_data(
             block_numbers[5], 0, 2, expected_block_number_at_distance=block_numbers[2]
         )
+
+
+# @pytest.mark.trio
+# async def test_eth1_monitor_haha(
+#     w3,
+#     registration_contract,
+#     tester,
+#     blocks_delayed_to_query_logs,
+#     polling_period,
+#     endpoint_server,
+#     endpoint_client,
+# ):
+#     # async with EventbusFactory() as event_bus:
+#     async with Eth1MonitorFactory(
+#         w3,
+#         registration_contract,
+#         blocks_delayed_to_query_logs,
+#         polling_period,
+#         endpoint_server,
+#     ) as m:
+#         deposit(w3, registration_contract)
+#         tester.mine_blocks(blocks_delayed_to_query_logs)
+#         await trio.sleep(polling_period)
+#         await wait_all_tasks_blocked()
+
+#         broadcast_config = BroadcastConfig(internal=True)
+
+#         async def stream_response():
+#             print("!@# stream_response")
+#             await endpoint_client.wait_until_any_endpoint_subscribed_to(
+#                 GetDepositRequest
+#             )
+#             print("!@# someone is subscribed to `GetDepositRequest`")
+#             resp = await endpoint_client.request(
+#                 GetDepositRequest(deposit_count=1, deposit_index=0), broadcast_config
+#             )
+#             print(f"!@# stream_response={resp}")
+
+#         await stream_response()
+#     # nursery.start_soon(
+#     #     event_bus.broadcast,
+#     #     GetDepositRequest(deposit_count=1, deposit_index=0),
+#     #     broadcast_config,
+#     # )

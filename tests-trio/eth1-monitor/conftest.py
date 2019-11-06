@@ -7,10 +7,12 @@ from eth_tester import EthereumTester, PyEVMBackend
 from web3 import Web3
 from web3.providers.eth_tester import EthereumTesterProvider
 
-from trinity.plugins.eth2.beacon.eth1_monitor import Eth1Monitor
 from p2p.trio_service import background_service
 
 from async_generator import asynccontextmanager
+
+from lahja.trio.endpoint import TrioEndpoint
+
 
 # Ref: https://github.com/ethereum/eth2.0-specs/blob/dev/deposit_contract/tests/contracts/conftest.py  # noqa: E501
 
@@ -59,3 +61,65 @@ def registration_contract(w3, tester, contract_json):
         address=tx_receipt.contractAddress, abi=contract_abi
     )
     return registration_deployed
+
+
+# # Ref: https://github.com/ethereum/lahja/blob/f0b7ead13298de82c02ed92cfb2d32a8bc00b42a/tests/core/trio/conftest.py  # noqa E501
+# @pytest.fixture
+# async def endpoint(nursery):
+#     async with TrioEndpoint("endpoint-for-testing").run() as client:
+#         yield client
+
+
+# @pytest_trio.trio_fixture
+# @pytest.fixture
+# async def eth1_monitor(
+#     w3, registration_contract, blocks_delayed_to_query_logs, polling_period
+# ):
+#     async with Eth1MonitorFactory(
+#         w3, registration_contract, blocks_delayed_to_query_logs, polling_period, None
+#     ) as m:
+#         yield m
+
+
+import uuid
+
+import trio
+
+from lahja import ConnectionConfig
+
+# import pytest_trio
+import tempfile
+from pathlib import Path
+
+
+@pytest.fixture
+def ipc_base_path():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield Path(temp_dir)
+
+
+def generate_unique_name() -> str:
+    # We use unique names to avoid clashing of IPC pipes
+    return str(uuid.uuid4())
+
+
+@pytest.fixture
+def endpoint_server_config(ipc_base_path):
+    config = ConnectionConfig.from_name(generate_unique_name(), base_path=ipc_base_path)
+    return config
+
+
+@pytest.fixture
+async def endpoint_server(endpoint_server_config):
+    async with TrioEndpoint.serve(endpoint_server_config) as endpoint:
+        yield endpoint
+
+
+@pytest.fixture
+async def endpoint_client(endpoint_server_config, endpoint_server):
+    async with TrioEndpoint("client-for-testing").run() as client:
+        await client.connect_to_endpoints(endpoint_server_config)
+        while not endpoint_server.is_connected_to("client-for-testing"):
+            await trio.sleep(0)
+        print("!@# `endpoint_client` is connected to server")
+        yield client
