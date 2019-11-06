@@ -289,7 +289,7 @@ def get_requested_beacon_blocks(
     request: BeaconBlocksRequest
 ) -> Tuple[BaseBeaconBlock, ...]:
     try:
-        requested_head = chain.get_block_by_hash_tree_root(
+        requested_head = chain.get_block_by_root(
             request.head_block_root
         )
     except (BlockNotFound, ValidationError) as error:
@@ -318,7 +318,7 @@ def get_recent_beacon_blocks(
 ) -> Iterable[BaseBeaconBlock]:
     for block_root in request.block_roots:
         try:
-            block = chain.get_block_by_hash_tree_root(block_root)
+            block = chain.get_block_by_root(block_root)
         except (BlockNotFound, ValidationError):
             pass
         else:
