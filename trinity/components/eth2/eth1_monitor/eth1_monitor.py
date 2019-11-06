@@ -1,6 +1,5 @@
-from dataclasses import dataclass
 from collections import OrderedDict
-from typing import Any, NamedTuple, List, Dict, Tuple, Sequence
+from typing import Any, AsyncGenerator, List, Dict, Tuple, Sequence
 
 import trio
 
@@ -17,22 +16,21 @@ from eth_typing import Hash32
 from eth2._utils.hash import hash_eth2
 from eth2.beacon.typing import Timestamp
 from eth_utils import ValidationError
+from eth2.beacon.typing import Gwei
+
+from lahja import EndpointAPI
+
 
 from .exceptions import InvalidEth1Log, Eth1Forked, Eth1BlockNotFound
-
-from lahja import (
-    BaseEvent,
-    TrioEndpoint,
-    ConnectionConfig,
-    BroadcastConfig,
-    EndpointAPI,
+from .events import (
+    GetDepositResponse,
+    GetDepositRequest,
+    GetEth1DataRequest,
+    GetEth1DataResponse,
 )
 
 
-ETH1_MONITOR_LAHJA_CONFIG = ConnectionConfig.from_name("eth1_monitor")
-
-
-# TODO: Refactoring
+Log = Dict[Any, Any]
 
 
 def _make_deposit_tree_and_root(
@@ -50,7 +48,7 @@ def _make_deposit_proof(
     list_deposit_data: Sequence[DepositData], deposit_index: int
 ) -> Tuple[Hash32, ...]:
     tree, root = _make_deposit_tree_and_root(list_deposit_data)
-    length_mix_in = len(list_deposit_data).to_bytes(32, byteorder="little")
+    length_mix_in = Hash32(len(list_deposit_data).to_bytes(32, byteorder="little"))
     merkle_proof = get_merkle_proof(tree, deposit_index)
     merkle_proof_with_mix_in = merkle_proof + (length_mix_in,)
     return merkle_proof_with_mix_in
@@ -60,7 +58,6 @@ class Eth1Monitor(Service):
     _w3: web3.Web3
     # FIXME: Change to `LogHandler`
     _log_filter: Any  # FIXME: change to the correct type.
-    # TODO: Change to broadcast with lahja: Others can request and get the response.
     _deposit_data: List[DepositData]
     # Sorted
     _block_number_to_hash: Dict[int, Hash32]
@@ -97,7 +94,7 @@ class Eth1Monitor(Service):
         self.manager.run_daemon_task(self._handle_get_eth1_data)
         await self.manager.wait_stopped()
 
-    def _get_logs(self, from_block: int, to_block: int):
+    def _get_logs(self, from_block: int, to_block: int) -> Sequence[Log]:
         # NOTE: web3 v4 does not support `events.Event.getLogs`.
         # We should change the install-and-uninstall pattern to it after we update to v5.
         log_filter = self._deposit_contract.events.DepositEvent.createFilter(
@@ -107,7 +104,7 @@ class Eth1Monitor(Service):
         self._w3.eth.uninstallFilter(log_filter.filter_id)
         return logs
 
-    async def _new_logs(self) -> None:
+    async def _new_logs(self) -> AsyncGenerator[Tuple[Log, Hash32], None]:
         while True:
             for block_hash in self._get_new_blocks():
                 block_number = self._w3.eth.getBlock(block_hash)["number"]
@@ -128,8 +125,7 @@ class Eth1Monitor(Service):
                     yield log, lookback_block["hash"]
             await trio.sleep(self._polling_period)
 
-    def _get_new_blocks(self) -> None:
-        # TODO: Replace filter with local states(blockhashs).
+    def _get_new_blocks(self) -> Sequence[Hash32]:
         return self._block_filter.get_new_entries()
 
     def _handle_block_data(
@@ -165,8 +161,6 @@ class Eth1Monitor(Service):
         # Check timestamp
         if len(self._block_timestamp_to_number) != 0:
             latest_timestamp = next(reversed(self._block_timestamp_to_number))
-            # TODO: Confirm if the later eth1 blocks should be later than the previous ones.
-            #   Raises if its invalid.
             if timestamp < latest_timestamp:
                 raise Eth1Forked(
                     "Later blocks with earlier timestamp: "
@@ -192,7 +186,7 @@ class Eth1Monitor(Service):
             DepositData(
                 pubkey=log_args["pubkey"],
                 withdrawal_credentials=log_args["withdrawal_credentials"],
-                amount=int.from_bytes(log_args["amount"], "little"),
+                amount=Gwei(int.from_bytes(log_args["amount"], "little")),
                 signature=log_args["signature"],
             )
         )
@@ -223,7 +217,7 @@ class Eth1Monitor(Service):
 
     def _get_closest_eth1_voting_period_start_block(
         self, target_timestamp: Timestamp
-    ) -> Hash32:
+    ) -> int:
         """
         Find the timestamp in `self._block_timestamp_to_number` which is the largest timestamp
         smaller than `target_timestamp`.
@@ -277,15 +271,11 @@ class Eth1Monitor(Service):
         )
 
     async def _handle_get_deposit(self) -> None:
-        print("!@# _handle_get_deposit")
         async for req in self._event_bus.stream(GetDepositRequest):
-            print(f"!@# _handle_get_deposit: req={req}")
             deposit = self._get_deposit(req.deposit_count, req.deposit_index)
-            print(f"!@# _handle_get_deposit: get deposit={deposit}")
             await self._event_bus.broadcast(
-                GetDepositResponse(deposit), req.broadcast_config()
+                GetDepositResponse.from_data(deposit), req.broadcast_config()
             )
-            print(f"!@# _handle_get_deposit: finish broadcasting")
 
     async def _handle_get_eth1_data(self) -> None:
         async for req in self._event_bus.stream(GetEth1DataRequest):
@@ -293,31 +283,5 @@ class Eth1Monitor(Service):
                 req.distance, req.eth1_voting_period_start_timestamp
             )
             await self._event_bus.broadcast(
-                GetEth1DataResponse(eth1_data), req.broadcast_config()
+                GetEth1DataResponse.from_data(eth1_data), req.broadcast_config()
             )
-
-
-class BaseEth1MonitorEvent(BaseEvent):
-    pass
-
-
-@dataclass
-class GetEth1DataRequest(BaseEth1MonitorEvent):
-    distance: int
-    eth1_voting_period_start_timestamp: Timestamp
-
-
-@dataclass
-class GetEth1DataResponse(BaseEth1MonitorEvent):
-    eth1_data: Eth1Data
-
-
-@dataclass
-class GetDepositRequest(BaseEth1MonitorEvent):
-    deposit_count: int
-    deposit_index: int
-
-
-@dataclass
-class GetDepositResponse(BaseEth1MonitorEvent):
-    deposit: Deposit

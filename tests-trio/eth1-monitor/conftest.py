@@ -1,17 +1,34 @@
+import functools
 import json
+import tempfile
+from pathlib import Path
+import random
+import uuid
+
 
 import pytest
+import trio
+import ssz
+import eth_utils
 
 from eth_tester import EthereumTester, PyEVMBackend
 
 from web3 import Web3
 from web3.providers.eth_tester import EthereumTesterProvider
-
-from p2p.trio_service import background_service
-
-from async_generator import asynccontextmanager
-
 from lahja.trio.endpoint import TrioEndpoint
+from lahja import ConnectionConfig
+
+from eth2.beacon.types.deposit_data import DepositData
+from p2p.trio_service import background_service
+from trinity.components.eth2.eth1_monitor.eth1_monitor import Eth1Monitor
+
+
+MIN_DEPOSIT_AMOUNT = 1000000000  # Gwei
+FULL_DEPOSIT_AMOUNT = 32000000000  # Gwei
+
+SAMPLE_PUBKEY = b"\x11" * 48
+SAMPLE_WITHDRAWAL_CREDENTIALS = b"\x22" * 32
+SAMPLE_VALID_SIGNATURE = b"\x33" * 96
 
 
 # Ref: https://github.com/ethereum/eth2.0-specs/blob/dev/deposit_contract/tests/contracts/conftest.py  # noqa: E501
@@ -63,33 +80,61 @@ def registration_contract(w3, tester, contract_json):
     return registration_deployed
 
 
-# # Ref: https://github.com/ethereum/lahja/blob/f0b7ead13298de82c02ed92cfb2d32a8bc00b42a/tests/core/trio/conftest.py  # noqa E501
-# @pytest.fixture
-# async def endpoint(nursery):
-#     async with TrioEndpoint("endpoint-for-testing").run() as client:
-#         yield client
+@pytest.fixture
+def func_do_deposit(w3, registration_contract):
+    return functools.partial(
+        deposit, w3=w3, registration_contract=registration_contract
+    )
 
 
-# @pytest_trio.trio_fixture
-# @pytest.fixture
-# async def eth1_monitor(
-#     w3, registration_contract, blocks_delayed_to_query_logs, polling_period
-# ):
-#     async with Eth1MonitorFactory(
-#         w3, registration_contract, blocks_delayed_to_query_logs, polling_period, None
-#     ) as m:
-#         yield m
+@pytest.fixture
+async def eth1_monitor(
+    w3,
+    registration_contract,
+    blocks_delayed_to_query_logs,
+    polling_period,
+    endpoint_server,
+):
+    m = Eth1Monitor(
+        w3,
+        registration_contract.address,
+        registration_contract.abi,
+        blocks_delayed_to_query_logs,
+        polling_period,
+        endpoint_server,
+    )
+    async with background_service(m):
+        yield m
 
 
-import uuid
+def get_random_valid_deposit_amount() -> int:
+    return random.randint(MIN_DEPOSIT_AMOUNT, FULL_DEPOSIT_AMOUNT)
 
-import trio
 
-from lahja import ConnectionConfig
+def deposit(w3, registration_contract) -> int:
+    amount = get_random_valid_deposit_amount()
+    deposit_input = (
+        SAMPLE_PUBKEY,
+        SAMPLE_WITHDRAWAL_CREDENTIALS,
+        SAMPLE_VALID_SIGNATURE,
+        ssz.get_hash_tree_root(
+            DepositData(
+                pubkey=SAMPLE_PUBKEY,
+                withdrawal_credentials=SAMPLE_WITHDRAWAL_CREDENTIALS,
+                amount=amount,
+                signature=SAMPLE_VALID_SIGNATURE,
+            )
+        ),
+    )
+    tx_hash = registration_contract.functions.deposit(*deposit_input).transact(
+        {"value": amount * eth_utils.denoms.gwei}
+    )
+    tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
+    assert tx_receipt["status"]
+    return amount
 
-# import pytest_trio
-import tempfile
-from pathlib import Path
+
+# Fixtures below are copied from https://github.com/ethereum/lahja/blob/f0b7ead13298de82c02ed92cfb2d32a8bc00b42a/tests/core/trio/conftest.py  # noqa: E501
 
 
 @pytest.fixture
@@ -121,5 +166,4 @@ async def endpoint_client(endpoint_server_config, endpoint_server):
         await client.connect_to_endpoints(endpoint_server_config)
         while not endpoint_server.is_connected_to("client-for-testing"):
             await trio.sleep(0)
-        print("!@# `endpoint_client` is connected to server")
         yield client
