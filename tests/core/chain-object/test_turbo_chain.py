@@ -189,10 +189,12 @@ def test_import_multiple_txns_saves_complete_block_diff(chain, funded_address, f
     assert first_account.balance == 1000
 
 
-def test_block_reorgs(chain, funded_address, funded_address_private_key):
+def test_block_reorgs_disjoin_state(chain, funded_address, funded_address_private_key):
     """
     A1 - B1
        \ B2 - C2
+
+    Each block manipulates a different part of the state.
     """
     base_db = chain.chaindb.db
 
@@ -247,3 +249,75 @@ def test_block_reorgs(chain, funded_address, funded_address_private_key):
     assert read_account_from_db(base_db, B2_ADDRESS).balance == 1000
     assert read_account_from_db(base_db, C2_ADDRESS).balance == 1000
     assert read_account_from_db(base_db, funded_address).nonce == 3
+
+
+def test_block_reorgs_same_account(chain, funded_address, funded_address_private_key):
+    """
+    A1 - B1
+       \ B2 - C2
+
+    Each block touches the same part of the state. In order for this test to pass the
+    TurboDB must be able to read states which are not the canonical chain tip.
+    """
+    base_db = chain.chaindb.db
+
+    ADDRESS = b'\x10' * 20
+
+    def make_transaction_to(destination_address, amount, parent_header=None):
+        return new_transaction(
+            chain.get_vm(parent_header),
+            funded_address,
+            destination_address,
+            data=b'',
+            private_key=funded_address_private_key,
+            amount=amount,
+        )
+
+    assert read_account_from_db(base_db, ADDRESS).balance == 0
+
+    A1_transaction = make_transaction_to(ADDRESS, 1000)
+    new_A1, _, _ = chain.build_block_with_transactions([A1_transaction])
+    imported_A1, _, _ = chain.import_block(new_A1)
+    assert read_account_from_db(base_db, ADDRESS).balance == 1000
+    assert read_account_from_db(base_db, funded_address).nonce == 1
+
+    diff = BlockDiff.from_db(base_db, imported_A1.header.state_root)
+    assert diff.get_decoded_account(ADDRESS, new=False).balance == 0
+    assert diff.get_decoded_account(ADDRESS, new=True).balance == 1000
+
+    B1_transaction = make_transaction_to(ADDRESS, 2000)
+    new_B1, _, _ = chain.build_block_with_transactions([B1_transaction])
+    imported_B1, _, _ = chain.import_block(new_B1)
+    assert read_account_from_db(base_db, ADDRESS).balance == 3000
+    assert read_account_from_db(base_db, funded_address).nonce == 2
+
+    diff = BlockDiff.from_db(base_db, imported_B1.header.state_root)
+    assert diff.get_decoded_account(ADDRESS, new=False).balance == 1000
+    assert diff.get_decoded_account(ADDRESS, new=True).balance == 3000
+
+    B2_transaction = make_transaction_to(ADDRESS, 3000, imported_A1.header)
+    new_B2, _, _ = chain.build_block_with_transactions(
+        [B2_transaction], parent_header=imported_A1.header
+    )
+    imported_B2, _, _ = chain.import_block(new_B2)
+    assert read_account_from_db(base_db, funded_address).nonce == 2
+
+    diff = BlockDiff.from_db(base_db, imported_B2.header.state_root)
+    assert diff.get_decoded_account(ADDRESS, new=False).balance == 1000
+    assert diff.get_decoded_account(ADDRESS, new=True).balance == 4000
+
+    # the update has not happened yet, B1 is still canonical
+    assert base_db[SchemaTurbo.current_state_root_key] == imported_B1.header.state_root
+    assert read_account_from_db(base_db, ADDRESS).balance == 3000
+
+    C2_transaction = make_transaction_to(ADDRESS, 4000, imported_B2.header)
+    new_C2, _, _ = chain.build_block_with_transactions(
+        [C2_transaction], parent_header=imported_B2.header
+    )
+    imported_C2, _, _ = chain.import_block(new_C2)
+    assert read_account_from_db(base_db, ADDRESS).balance == 8000
+    assert read_account_from_db(base_db, funded_address).nonce == 3
+
+    diff = BlockDiff.from_db(base_db, imported_C2.header.state_root)
+    assert diff.get_decoded_account(ADDRESS, new=False).balance == 4000
+    assert diff.get_decoded_account(ADDRESS, new=True).balance == 8000

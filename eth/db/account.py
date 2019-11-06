@@ -648,16 +648,16 @@ class AccountDB(BaseAccountDB):
 
                 block_diff.set_storage_changed(address, slot, old_value_bytes, new_value)
 
-        old_account_values: Dict[Address, bytes] = dict()
-        for address, _ in dirty_stores:
-            old_account_values[address] = self._get_encoded_account_from_turbodb(address)
-
         # 3. Persist!
         self.persist()
 
         # 4. Grab the new storage roots
         for address, _store in dirty_stores:
-            old_account_value = old_account_values[address]
+            # TODO: This reads from old_trie, but it can't do that in a future where only
+            #       the TurboDB is available. Check that the turbodb gives the same
+            #       result, by calling _get_encoded_account_from_turbodb, or something
+            #       like it, 
+            old_account_value = old_trie[address]
             new_account_value = self._get_encoded_account(address, from_journal=True)
             block_diff.set_account_changed(address, old_account_value, new_account_value)
 
@@ -812,6 +812,9 @@ class TurboAccountDB(AccountDB):
 #        assert db[SchemaTurbo.current_state_root_key] == state_root
 
         # === end code just for testing
+
+#        if db[SchemaTurbo.current_state_root_key] != state_root:
+#            print('Provided state root does not match db, errors are expected')
 
         super().__init__(db, state_root)
 
