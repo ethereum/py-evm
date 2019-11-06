@@ -4,7 +4,7 @@ from eth.chains.base import (
 )
 from eth.constants import GENESIS_BLOCK_NUMBER
 from eth.vm.forks.byzantium import ByzantiumVM
-from eth.vm.forks.petersburg import PetersburgVM
+from eth.vm.forks.istanbul import IstanbulVM
 
 from trinity.chains.coro import AsyncChainMixin
 from trinity.chains.full import FullChain
@@ -27,7 +27,7 @@ class LatestTestChain(FullChain):
     A test chain that uses the most recent mainnet VM from block 0.
     That means the VM will explicitly change when a new network upgrade is locked in.
     """
-    vm_configuration = ((GENESIS_BLOCK_NUMBER, PetersburgVM),)
+    vm_configuration = ((GENESIS_BLOCK_NUMBER, IstanbulVM),)
     network_id = 999
 
 

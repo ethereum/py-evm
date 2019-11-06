@@ -173,11 +173,8 @@ ALL_VMS = (
     ByzantiumVM,
     ConstantinopleVM,
     PetersburgVM,
+    IstanbulVM,
 )
-ALL_VMS_BY_FORK = {
-    vm_class.fork: vm_class
-    for vm_class in ALL_VMS
-}
 
 
 @to_tuple

@@ -77,6 +77,11 @@
           "type": "string",
           "pattern": "^0x([0-9a-fA-F])+$"
         },
+        "istanbulForkBlock": {
+          "title": "Block number for the Istanbul fork",
+          "type": "string",
+          "pattern": "^0x([0-9a-fA-F])+$"
+        },
         "chainId": {
           "title": "The EIP155 chain ID",
           "type": "string",
