@@ -523,13 +523,12 @@ class Node(BaseService):
         )
 
     def _add_peer_from_hello(self, peer_id: ID, hello_other_side: HelloRequest) -> None:
-        if peer_id not in self.handshaked_peers:
-            peer = Peer.from_hello_request(self, peer_id, hello_other_side)
-            self.handshaked_peers.add(peer)
-            self.logger.debug(
-                "Handshake from %s is finished. Added to the `handshake_peers`",
-                peer_id,
-            )
+        peer = Peer.from_hello_request(self, peer_id, hello_other_side)
+        self.handshaked_peers.add(peer)
+        self.logger.debug(
+            "Handshake from %s is finished. Added to the `handshake_peers`",
+            peer_id,
+        )
 
     async def _handle_hello(self, stream: INetStream) -> None:
         # TODO: Find out when we should respond the `ResponseCode`
