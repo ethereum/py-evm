@@ -1,13 +1,17 @@
 from typing import Iterable, Tuple
 
+import rlp
+
 from eth_hash.auto import keccak
 from eth_typing import Address, Hash32
 from eth_utils import to_tuple
 
 from eth.db.backends.base import BaseDB
+from eth.db.block_diff import BlockDiff
 from eth.db.header import HeaderDB
 from eth.db.schema import Schemas, SchemaTurbo, ensure_schema
 
+from eth.rlp.accounts import Account
 from eth.rlp.headers import BlockHeader
 
 
@@ -91,7 +95,9 @@ class TurboDatabase:
         most recent state is used.
         """
         self.db = db
-        ensure_schema(db, Schemas.TURBO)
+        base_db = db.db
+
+        ensure_schema(base_db, Schemas.TURBO)
 
         self.reverse_diffs = ()
         self.forward_diffs = ()
@@ -99,32 +105,67 @@ class TurboDatabase:
         if header is None:
             return
 
-        if db[SchemaTurbo.current_state_root_key] == header.state_root:
+        if base_db[SchemaTurbo.current_state_root_key] == header.state_root:
             return
 
         # we've been asked to return some state which is not the current state
 
         # first, double-check that the turbodb hasn't gotten out of sync:
         current_header = db.get_canonical_head()
-        assert db[SchemaTurbo.current_state_root_key] == current_header.state_root
+        assert base_db[SchemaTurbo.current_state_root_key] == current_header.state_root
 
         # next, we need to lookup the series of block diffs to get to {header}
-        reverse_headers, forward_headers = find_header_path(current_header, header)
+        reverse_headers, forward_headers = find_header_path(db, current_header, header)
 
         # TODO: throw a better exception when the block diff is not found
-        base_db = db.db
-        self.reverse_diffs = (
-            BlockDiff.from_db(base_db, header.hash)
+        self.reverse_diffs = tuple(
+            BlockDiff.from_db(base_db, header.state_root)
             for header in reverse_headers
         )
-        self.forward_diffs = (
-            BlockDiff.from_db(base_db, header.hash)
+        self.forward_diffs = tuple(
+            BlockDiff.from_db(base_db, header.state_root)
             for header in forward_headers
         )
 
+    def get_encoded_account(self, address: Address) -> bytes:
+        for diff in reversed(self.forward_diffs):
+            if address in diff.get_changed_accounts():
+                return diff.get_account(address, new=True)
+
+        for diff in self.reverse_diffs:
+            if address in diff.get_changed_accounts():
+                return diff.get_account(address, new=False)
+
+        # The account was apparently never changed, return the current value
+        return self._get_encoded_account(self.db.db, address)
+
+    def get_account(self, address: Address) -> Account:
+        # TODO: merge this with _get_account
+        try:
+            account_rlp = self.get_encoded_account(address)
+
+            if account_rlp == b'':
+                return Account()
+
+            return rlp.decode(account_rlp, sedes=Account)
+        except KeyError:
+            return Account()
+
     @staticmethod
-    def get_encoded_account(db: BaseDB, address: Address) -> bytes:
+    def _get_encoded_account(db: BaseDB, address: Address) -> bytes:
         ensure_schema(db, Schemas.TURBO)
 
         key = SchemaTurbo.make_account_state_lookup_key(keccak(address))
         return db[key]
+
+    @classmethod
+    def _get_account(cls, db: BaseDB, address: Address) -> Account:
+        try:
+            account_rlp = cls._get_encoded_account(db, address)
+
+            if account_rlp == b'':
+                return Account()
+
+            return rlp.decode(account_rlp, sedes=Account)
+        except KeyError:
+            return Account()
