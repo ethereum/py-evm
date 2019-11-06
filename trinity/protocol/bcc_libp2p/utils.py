@@ -503,7 +503,7 @@ async def _write_stream(stream: INetStream, data: bytes) -> None:
 async def _read_stream(stream: INetStream, len_payload: int, timeout: float) -> bytes:
     try:
         return await asyncio.wait_for(stream.read(len_payload), timeout)
-    except asyncio.TimeoutError as error:
+    except asyncio.TimeoutError:
         raise ReadMessageFailure("Timeout")
     except StreamEOF as error:
         await stream.close()
