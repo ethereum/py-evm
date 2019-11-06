@@ -515,7 +515,7 @@ async def _read_stream(stream: INetStream, len_payload: int, timeout: float) -> 
 async def _decode_uvarint_from_stream(stream: INetStream, timeout: float) -> None:
     try:
         return await asyncio.wait_for(decode_uvarint_from_stream(stream), timeout)
-    except asyncio.TimeoutError as error:
+    except asyncio.TimeoutError:
         raise ReadMessageFailure("Timeout")
     except StreamEOF as error:
         await stream.close()
