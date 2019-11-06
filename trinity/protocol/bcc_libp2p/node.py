@@ -5,28 +5,20 @@ import operator
 import traceback
 import random
 from typing import (
+    AsyncIterator,
     Dict,
-    Iterable,
     Optional,
     Sequence,
     Tuple,
-    cast,
 )
 
 from cancel_token import (
     CancelToken,
 )
 
-from eth_utils import ValidationError, encode_hex, to_tuple
+from eth_utils import encode_hex
 from eth_utils.toolz import first
 
-from eth.exceptions import (
-    BlockNotFound,
-)
-
-from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
-)
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
@@ -41,9 +33,6 @@ from eth2.beacon.typing import (
     Slot,
     Version,
     SigningRoot,
-)
-from eth2.beacon.constants import (
-    ZERO_SIGNING_ROOT,
 )
 
 from libp2p import (
@@ -82,7 +71,6 @@ from libp2p.pubsub.gossipsub import (
 )
 from libp2p.security.base_transport import BaseSecureTransport
 from libp2p.stream_muxer.abc import IMuxedConn
-from libp2p.network.stream.exceptions import StreamEOF, StreamReset
 from libp2p.stream_muxer.mplex.mplex import MPLEX_PROTOCOL_ID, Mplex
 
 from multiaddr import (
@@ -91,7 +79,6 @@ from multiaddr import (
 )
 
 import ssz
-from ssz.tools import to_formatted_dict
 
 from p2p.service import (
     BaseService,
@@ -114,6 +101,11 @@ from .exceptions import (
     ReadMessageFailure,
     RequestFailure,
     WriteMessageFailure,
+    PeerRespondedAnError,
+    IrrelevantNetwork,
+    UnhandshakedPeer,
+    InvalidRequest,
+    MessageIOFailure,
 )
 from .messages import (
     Goodbye,
@@ -130,11 +122,13 @@ from .topic_validators import (
 from .utils import (
     make_rpc_v1_ssz_protocol_id,
     make_tcp_ip_maddr,
-    read_req,
-    read_resp,
-    write_req,
-    write_resp,
+    Interaction,
+    compare_chain_tip_and_finalized_epoch,
+    validate_hello,
+    get_requested_beacon_blocks,
+    get_recent_beacon_blocks,
 )
+from async_generator import asynccontextmanager
 
 
 logger = logging.getLogger('trinity.protocol.bcc_libp2p')
@@ -457,9 +451,54 @@ class Node(BaseService):
     # RPC Handlers
     #
 
-    # TODO: Add a wrapper or decorator to handle the exceptions in handlers,
-    #   to close the streams safely. Probably starting from: if the function
-    #   returns successfully, then close the stream. Otherwise, reset the stream.
+    async def new_stream(self, peer_id: ID, protocol: TProtocol) -> INetStream:
+        return await self.host.new_stream(peer_id, [protocol])
+
+    @asynccontextmanager
+    async def new_handshake_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
+        try:
+            async with Interaction(stream) as interaction:
+                peer_id = interaction.peer_id
+                yield interaction
+        except MessageIOFailure as error:
+            await self.disconnect_peer(peer_id)
+            raise HandshakeFailure() from error
+        except PeerRespondedAnError as error:
+            await stream.reset()
+            await self.disconnect_peer(peer_id)
+            raise HandshakeFailure() from error
+        except IrrelevantNetwork as error:
+            await stream.reset()
+            asyncio.ensure_future(
+                self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
+            )
+            raise HandshakeFailure from error
+
+    @asynccontextmanager
+    async def post_handshake_handler_interaction(
+        self,
+        stream: INetStream
+    ) -> AsyncIterator[Interaction]:
+        try:
+            async with Interaction(stream) as interaction:
+                yield interaction
+        except WriteMessageFailure as error:
+            self.logger.debug("WriteMessageFailure %s", error)
+            return
+        except ReadMessageFailure as error:
+            self.logger.debug("ReadMessageFailure %s", error)
+            return
+        except UnhandshakedPeer:
+            await stream.reset()
+            return
+
+    @asynccontextmanager
+    async def my_request_interaction(self, stream: INetStream) -> AsyncIterator[Interaction]:
+        try:
+            async with Interaction(stream) as interaction:
+                yield interaction
+        except (MessageIOFailure, UnhandshakedPeer, PeerRespondedAnError) as error:
+            raise RequestFailure(str(error)) from error
 
     # TODO: Handle the reputation of peers. Deduct their scores and even disconnect when they
     #   behave.
@@ -467,44 +506,6 @@ class Node(BaseService):
     # TODO: Register notifee to the `Network` to
     #   - Record peers' joining time.
     #   - Disconnect peers when they fail to join in a certain amount of time.
-
-    async def _validate_hello_req(self, hello_other_side: HelloRequest) -> None:
-        state_machine = self.chain.get_state_machine()
-        state = self.chain.get_head_state()
-        config = state_machine.config
-        if hello_other_side.fork_version != state.fork.current_version:
-            raise ValidationError(
-                "`fork_version` mismatches: "
-                f"hello_other_side.fork_version={hello_other_side.fork_version}, "
-                f"state.fork.current_version={state.fork.current_version}"
-            )
-
-        # Can not validate the checkpoint with `finalized_epoch` higher than ours
-        if hello_other_side.finalized_epoch > state.finalized_checkpoint.epoch:
-            return
-
-        # Get the finalized root at `hello_other_side.finalized_epoch`
-        # Edge case where nothing is finalized yet
-        if (
-            hello_other_side.finalized_epoch == 0 and
-            hello_other_side.finalized_root == ZERO_SIGNING_ROOT
-        ):
-            return
-
-        finalized_epoch_start_slot = compute_start_slot_of_epoch(
-            hello_other_side.finalized_epoch,
-            config.SLOTS_PER_EPOCH,
-        )
-        finalized_root = self.chain.get_canonical_block_root(
-            finalized_epoch_start_slot)
-
-        if hello_other_side.finalized_root != finalized_root:
-            raise ValidationError(
-                "`finalized_root` mismatches: "
-                f"hello_other_side.finalized_root={hello_other_side.finalized_root}, "
-                f"hello_other_side.finalized_epoch={hello_other_side.finalized_epoch}, "
-                f"our `finalized_root` at the same `finalized_epoch`={finalized_root}"
-            )
 
     def _make_hello_packet(self) -> HelloRequest:
         state = self.chain.get_head_state()
@@ -518,455 +519,91 @@ class Node(BaseService):
             head_slot=head.slot,
         )
 
-    def _compare_chain_tip_and_finalized_epoch(self,
-                                               peer_finalized_epoch: Epoch,
-                                               peer_head_slot: Slot) -> None:
-        checkpoint = self.chain.get_head_state().finalized_checkpoint
-        head_block = self.chain.get_canonical_head()
-        peer_has_higher_finalized_epoch = peer_finalized_epoch > checkpoint.epoch
-        peer_has_equal_finalized_epoch = peer_finalized_epoch == checkpoint.epoch
-        peer_has_higher_head_slot = peer_head_slot > head_block.slot
-        if (
-            peer_has_higher_finalized_epoch or
-            (peer_has_equal_finalized_epoch and peer_has_higher_head_slot)
-        ):
-            # TODO: kickoff syncing process with this peer
-            self.logger.debug("Peer's chain is ahead of us, start syncing with the peer.")
-            pass
+    def _add_peer_from_hello(self, peer_id: ID, hello_other_side: HelloRequest) -> None:
+        peer = Peer.from_hello_request(self, peer_id, hello_other_side)
+        self.handshaked_peers.add(peer)
+        self.logger.debug(
+            "Handshake from %s is finished. Added to the `handshake_peers`",
+            peer_id,
+        )
 
     async def _handle_hello(self, stream: INetStream) -> None:
         # TODO: Find out when we should respond the `ResponseCode`
         #   other than `ResponseCode.SUCCESS`.
 
-        peer_id = stream.mplex_conn.peer_id
+        async with self.new_handshake_interaction(stream) as interaction:
+            peer_id = interaction.peer_id
+            hello_other_side = await interaction.read_request(HelloRequest)
+            self.logger.info("Received HELLO from %s  %s", str(peer_id), hello_other_side)
+            await validate_hello(self.chain, hello_other_side)
 
-        self.logger.debug("Waiting for hello from the other side")
-        try:
-            hello_other_side = await read_req(stream, HelloRequest)
-            has_error = False
-        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, ReadMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                await self.disconnect_peer(peer_id)
-                return
-        self.logger.debug("Received the hello message %s", to_formatted_dict(hello_other_side))
+            hello_mine = self._make_hello_packet()
+            await interaction.write_response(hello_mine)
 
-        try:
-            await self._validate_hello_req(hello_other_side)
-        except ValidationError as error:
-            self.logger.info(
-                "Handshake failed: hello message %s is invalid: %s",
-                to_formatted_dict(hello_other_side),
-                str(error)
-            )
-            await stream.reset()
-            await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
-            await self.disconnect_peer(peer_id)
-            return
+            self._add_peer_from_hello(peer_id, hello_other_side)
 
-        hello_mine = self._make_hello_packet()
-
-        self.logger.debug("Sending our hello message %s", to_formatted_dict(hello_mine))
-        try:
-            await write_resp(stream, hello_mine, ResponseCode.SUCCESS)
-            has_error = False
-        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, WriteMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                self.logger.info(
-                    "Handshake failed: failed to write message %s",
-                    hello_mine,
-                )
-                await self.disconnect_peer(peer_id)
-                return
-
-        if peer_id not in self.handshaked_peers:
-            peer = Peer.from_hello_request(self, peer_id, hello_other_side)
-            self.handshaked_peers.add(peer)
-            self.logger.debug(
-                "Handshake from %s is finished. Added to the `handshake_peers`",
-                peer_id,
-            )
-
-        # Check if we are behind the peer
-        self._compare_chain_tip_and_finalized_epoch(
-            hello_other_side.finalized_epoch,
-            hello_other_side.head_slot,
-        )
-
-        await stream.close()
+            # Check if we are behind the peer
+            compare_chain_tip_and_finalized_epoch(self.chain, hello_other_side)
 
     async def say_hello(self, peer_id: ID) -> None:
         self.logger.info("Say hello to %s", str(peer_id))
-        hello_mine = self._make_hello_packet()
 
-        self.logger.debug(
-            "Opening new stream to peer=%s with protocols=%s",
-            peer_id,
-            [REQ_RESP_HELLO_SSZ],
-        )
-        stream = await self.host.new_stream(peer_id, [REQ_RESP_HELLO_SSZ])
-        self.logger.debug("Sending our hello message %s", to_formatted_dict(hello_mine))
-        try:
-            await write_req(stream, hello_mine)
-            has_error = False
-        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, WriteMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                await self.disconnect_peer(peer_id)
-                error_msg = f"fail to write request={hello_mine}"
-                self.logger.info("Handshake failed: %s", error_msg)
-                raise HandshakeFailure(error_msg)
+        stream = await self.new_stream(peer_id, REQ_RESP_HELLO_SSZ)
+        async with self.new_handshake_interaction(stream) as interaction:
+            hello_mine = self._make_hello_packet()
+            await interaction.write_request(hello_mine)
+            hello_other_side = await interaction.read_response(HelloRequest)
 
-        self.logger.debug("Waiting for hello from the other side")
-        try:
-            resp_code, response = await read_resp(stream, HelloRequest)
-            has_error = False
-        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, ReadMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                await self.disconnect_peer(peer_id)
-                self.logger.info("Handshake failed: fail to read the response")
-                raise HandshakeFailure("fail to read the response")
+            await validate_hello(self.chain, hello_other_side)
 
-        self.logger.debug(
-            "Received the hello message %s, resp_code=%s",
-            response,
-            resp_code,
-        )
+            self._add_peer_from_hello(peer_id, hello_other_side)
 
-        # TODO: Handle the case when `resp_code` is not success.
-        if resp_code != ResponseCode.SUCCESS:
-            # TODO: Do something according to the `ResponseCode`
-            error_msg = (
-                "resp_code != ResponseCode.SUCCESS, "
-                f"resp_code={resp_code}, error_msg={response}"
-            )
-            self.logger.info("Handshake failed: %s", error_msg)
-            await stream.reset()
-            await self.disconnect_peer(peer_id)
-            raise HandshakeFailure(error_msg)
-
-        hello_other_side = cast(HelloRequest, response)
-        try:
-            await self._validate_hello_req(hello_other_side)
-        except ValidationError as error:
-            error_msg = (
-                f"hello message {to_formatted_dict(hello_other_side)} is invalid: {str(error)}"
-            )
-            self.logger.info(
-                "Handshake failed: %s. Disconnecting %s",
-                error_msg,
-                peer_id,
-            )
-            await stream.reset()
-            await self.say_goodbye(peer_id, GoodbyeReasonCode.IRRELEVANT_NETWORK)
-            await self.disconnect_peer(peer_id)
-            raise HandshakeFailure(error_msg) from error
-
-        if peer_id not in self.handshaked_peers:
-            peer = Peer.from_hello_request(self, peer_id, hello_other_side)
-            self.handshaked_peers.add(peer)
-            self.logger.debug(
-                "Handshake to peer=%s is finished. Added to the `handshake_peers`",
-                peer_id,
-            )
-
-        # Check if we are behind the peer
-        self._compare_chain_tip_and_finalized_epoch(
-            hello_other_side.finalized_epoch,
-            hello_other_side.head_slot,
-        )
-
-        await stream.close()
+            # Check if we are behind the peer
+            compare_chain_tip_and_finalized_epoch(self.chain, hello_other_side)
 
     async def _handle_goodbye(self, stream: INetStream) -> None:
-        peer_id = stream.mplex_conn.peer_id
-        self.logger.debug("Waiting for goodbye from %s", peer_id)
-        try:
-            goodbye = await read_req(stream, Goodbye)
-            has_error = False
-        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, ReadMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-
-        self.logger.debug("Received the goodbye message %s", to_formatted_dict(goodbye))
-
-        if not has_error:
-            await stream.close()
-        await self.disconnect_peer(peer_id)
+        async with Interaction(stream) as interaction:
+            peer_id = interaction.peer_id
+            try:
+                await interaction.read_request(Goodbye)
+            except ReadMessageFailure:
+                pass
+            await self.disconnect_peer(peer_id)
 
     async def say_goodbye(self, peer_id: ID, reason: GoodbyeReasonCode) -> None:
-        goodbye = Goodbye(reason)
-        self.logger.debug(
-            "Opening new stream to peer=%s with protocols=%s",
-            peer_id,
-            [REQ_RESP_GOODBYE_SSZ],
-        )
-        stream = await self.host.new_stream(peer_id, [REQ_RESP_GOODBYE_SSZ])
-        self.logger.debug("Sending our goodbye message %s", goodbye)
-        try:
-            await write_req(stream, goodbye)
-            has_error = False
-        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, WriteMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-
-        if not has_error:
-            await stream.close()
-        await self.disconnect_peer(peer_id)
-
-    @to_tuple
-    def _get_blocks_from_canonical_chain_by_slot(
-        self,
-        slot_of_requested_blocks: Sequence[Slot],
-    ) -> Iterable[BaseBeaconBlock]:
-        # If peer's head block is on our canonical chain,
-        # start getting the requested blocks by slots.
-        for slot in slot_of_requested_blocks:
+        stream = await self.new_stream(peer_id, REQ_RESP_GOODBYE_SSZ)
+        async with Interaction(stream) as interaction:
+            goodbye = Goodbye(reason)
             try:
-                block = self.chain.get_canonical_block_by_slot(slot)
-            except BlockNotFound:
+                await interaction.write_request(goodbye)
+            except WriteMessageFailure:
                 pass
-            else:
-                yield block
+            await self.disconnect_peer(peer_id)
 
-    @to_tuple
-    def _get_blocks_from_fork_chain_by_root(
-        self,
-        start_slot: Slot,
-        peer_head_block: BaseBeaconBlock,
-        slot_of_requested_blocks: Sequence[Slot],
-    ) -> Iterable[BaseBeaconBlock]:
-        # Peer's head block is on a fork chain,
-        # start getting the requested blocks by
-        # traversing the history from the head.
-
-        # `slot_of_requested_blocks` starts with earliest slot
-        # and end with most recent slot, so we start traversing
-        # from the most recent slot.
-        cur_index = len(slot_of_requested_blocks) - 1
-        block = peer_head_block
-        if block.slot == slot_of_requested_blocks[cur_index]:
-            yield block
-            cur_index -= 1
-        while block.slot > start_slot and cur_index >= 0:
-            try:
-                block = self.chain.get_block_by_root(block.parent_root)
-            except (BlockNotFound, ValidationError):
-                # This should not happen as we only persist block if its
-                # ancestors are also in the database.
-                break
-            else:
-                while block.slot < slot_of_requested_blocks[cur_index]:
-                    if cur_index > 0:
-                        cur_index -= 1
-                    else:
-                        break
-                if block.slot == slot_of_requested_blocks[cur_index]:
-                    yield block
-
-    def _validate_start_slot(self, start_slot: Slot) -> None:
-        config = self.chain.get_state_machine().config
-        state = self.chain.get_head_state()
-        finalized_epoch_start_slot = compute_start_slot_of_epoch(
-            epoch=state.finalized_checkpoint.epoch,
-            slots_per_epoch=config.SLOTS_PER_EPOCH,
-        )
-        if start_slot < finalized_epoch_start_slot:
-            raise ValidationError(
-                f"`start_slot`({start_slot}) lower than our"
-                f" latest finalized slot({finalized_epoch_start_slot})"
-            )
-
-    def _get_requested_beacon_blocks(
-        self,
-        beacon_blocks_request: BeaconBlocksRequest,
-        requested_head_block: BaseBeaconBlock,
-    ) -> Tuple[BaseBeaconBlock, ...]:
-        slot_of_requested_blocks = tuple(
-            beacon_blocks_request.start_slot + i * beacon_blocks_request.step
-            for i in range(beacon_blocks_request.count)
-        )
-        self.logger.info("slot_of_requested_blocks: %s", slot_of_requested_blocks)
-        slot_of_requested_blocks = tuple(
-            filter(lambda slot: slot <= requested_head_block.slot, slot_of_requested_blocks)
-        )
-
-        if len(slot_of_requested_blocks) == 0:
-            return tuple()
-
-        # We have the peer's head block in our database,
-        # next check if the head block is on our canonical chain.
-        try:
-            canonical_block_at_slot = self.chain.get_canonical_block_by_slot(
-                requested_head_block.slot
-            )
-            block_match = canonical_block_at_slot == requested_head_block
-        except BlockNotFound:
-            self.logger.debug(
-                (
-                    "The requested head block is not on our canonical chain  "
-                    "requested_head_block: %s"
-                ),
-                requested_head_block,
-            )
-            block_match = False
-        finally:
-            if block_match:
-                # Peer's head block is on our canonical chain
-                return self._get_blocks_from_canonical_chain_by_slot(
-                    slot_of_requested_blocks
-                )
-            else:
-                # Peer's head block is not on our canonical chain
-                # Validate `start_slot` is greater than our latest finalized slot
-                self._validate_start_slot(beacon_blocks_request.start_slot)
-                return self._get_blocks_from_fork_chain_by_root(
-                    beacon_blocks_request.start_slot,
-                    requested_head_block,
-                    slot_of_requested_blocks,
-                )
+    def _check_peer_handshaked(self, peer_id: ID) -> None:
+        if peer_id not in self.handshaked_peers:
+            raise UnhandshakedPeer(peer_id)
 
     async def _handle_beacon_blocks(self, stream: INetStream) -> None:
-        peer_id = stream.mplex_conn.peer_id
-        if peer_id not in self.handshaked_peers:
-            self.logger.info(
-                "Processing beacon blocks request failed: not handshaked with peer=%s yet",
-                peer_id,
-            )
-            await stream.reset()
-            return
-
-        self.logger.debug("Waiting for beacon blocks request from the other side")
-        try:
-            beacon_blocks_request = await read_req(stream, BeaconBlocksRequest)
-            has_error = False
-        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, ReadMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                return
-        self.logger.debug(
-            "Received the beacon blocks request message %s",
-            to_formatted_dict(beacon_blocks_request)
-        )
-
-        try:
-            requested_head_block = self.chain.get_block_by_root(
-                beacon_blocks_request.head_block_root
-            )
-        except (BlockNotFound, ValidationError) as error:
-            self.logger.info("Sending empty blocks, reason: %s", error)
-            # We don't have the chain data peer is requesting
-            requested_beacon_blocks: Tuple[BaseBeaconBlock, ...] = tuple()
-        else:
-            # Check if slot of specified head block is greater than specified start slot
-            if requested_head_block.slot < beacon_blocks_request.start_slot:
-                reason = (
-                    f"Invalid request: head block slot({requested_head_block.slot})"
-                    f" lower than `start_slot`({beacon_blocks_request.start_slot})"
-                )
-                try:
-                    await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
-                    has_error = False
-                except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-                    has_error = True
-                    if isinstance(error, WriteMessageFailure):
-                        await stream.reset()
-                    elif isinstance(error, StreamEOF):
-                        await stream.close()
-                finally:
-                    if has_error:
-                        self.logger.info(
-                            "Processing beacon blocks request failed: failed to write message %s",
-                            reason,
-                        )
-                        return
-                await stream.close()
-                return
-            else:
-                try:
-                    requested_beacon_blocks = self._get_requested_beacon_blocks(
-                        beacon_blocks_request, requested_head_block
-                    )
-                except ValidationError as val_error:
-                    reason = "Invalid request: " + str(val_error)
-                    try:
-                        await write_resp(stream, reason, ResponseCode.INVALID_REQUEST)
-                        has_error = False
-                    except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-                        has_error = True
-                        if isinstance(error, WriteMessageFailure):
-                            await stream.reset()
-                        elif isinstance(error, StreamEOF):
-                            await stream.close()
-                    finally:
-                        if has_error:
-                            self.logger.info(
-                                "Processing beacon blocks request failed: "
-                                "failed to write message %s",
-                                reason,
-                            )
-                            return
-                    await stream.close()
-                    return
         # TODO: Should it be a successful response if peer is requesting
         # blocks on a fork we don't have data for?
-        beacon_blocks_response = BeaconBlocksResponse(blocks=requested_beacon_blocks)
-        self.logger.debug("Sending beacon blocks response %s", beacon_blocks_response)
-        try:
-            await write_resp(stream, beacon_blocks_response, ResponseCode.SUCCESS)
-            has_error = False
-        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, WriteMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                self.logger.info(
-                    "Processing beacon blocks request failed: failed to write message %s",
-                    beacon_blocks_response,
-                )
-                return
 
-        self.logger.debug(
-            "Processing beacon blocks request from %s is finished",
-            peer_id,
-        )
-        await stream.close()
+        async with self.post_handshake_handler_interaction(stream) as interaction:
+            peer_id = interaction.peer_id
+            self._check_peer_handshaked(peer_id)
+
+            beacon_blocks_request = await interaction.read_request(BeaconBlocksRequest)
+            try:
+                requested_beacon_blocks = get_requested_beacon_blocks(
+                    self.chain,
+                    beacon_blocks_request,
+                )
+            except InvalidRequest as error:
+                error_message = str(error)[:128]
+                await interaction.write_error_response(error_message, ResponseCode.INVALID_REQUEST)
+            else:
+                beacon_blocks_response = BeaconBlocksResponse(blocks=requested_beacon_blocks)
+                await interaction.write_response(beacon_blocks_response)
 
     async def request_beacon_blocks(self,
                                     peer_id: ID,
@@ -974,207 +611,37 @@ class Node(BaseService):
                                     start_slot: Slot,
                                     count: int,
                                     step: int) -> Tuple[BaseBeaconBlock, ...]:
-        if peer_id not in self.handshaked_peers:
-            error_msg = f"not handshaked with peer={peer_id} yet"
-            self.logger.info("Request beacon block failed: %s", error_msg)
-            raise RequestFailure(error_msg)
-
-        beacon_blocks_request = BeaconBlocksRequest(
-            head_block_root=head_block_root,
-            start_slot=start_slot,
-            count=count,
-            step=step,
-        )
-
-        self.logger.debug(
-            "Opening new stream to peer=%s with protocols=%s",
-            peer_id,
-            [REQ_RESP_BEACON_BLOCKS_SSZ],
-        )
-        stream = await self.host.new_stream(peer_id, [REQ_RESP_BEACON_BLOCKS_SSZ])
-        self.logger.debug("Sending beacon blocks request %s", beacon_blocks_request)
-        try:
-            await write_req(stream, beacon_blocks_request)
-            has_error = False
-        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, WriteMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                error_msg = f"fail to write request={beacon_blocks_request}"
-                self.logger.info("Request beacon blocks failed: %s", error_msg)
-                raise RequestFailure(error_msg)
-
-        self.logger.debug("Waiting for beacon blocks response")
-        try:
-            resp_code, beacon_blocks_response = await read_resp(stream, BeaconBlocksResponse)
-            has_error = False
-        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, ReadMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                self.logger.info("Request beacon blocks failed: fail to read the response")
-                raise RequestFailure("fail to read the response")
-
-        self.logger.debug(
-            "Received beacon blocks response %s, resp_code=%s",
-            beacon_blocks_response,
-            resp_code,
-        )
-
-        if resp_code != ResponseCode.SUCCESS:
-            error_msg = (
-                "resp_code != ResponseCode.SUCCESS, "
-                f"resp_code={resp_code}, error_msg={beacon_blocks_response}"
+        stream = await self.new_stream(peer_id, REQ_RESP_BEACON_BLOCKS_SSZ)
+        async with self.my_request_interaction(stream) as interaction:
+            self._check_peer_handshaked(peer_id)
+            request = BeaconBlocksRequest(
+                head_block_root=head_block_root,
+                start_slot=start_slot,
+                count=count,
+                step=step,
             )
-            self.logger.info("Request beacon blocks failed: %s", error_msg)
-            await stream.reset()
-            raise RequestFailure(error_msg)
-
-        await stream.close()
-
-        beacon_blocks_response = cast(BeaconBlocksResponse, beacon_blocks_response)
-        return beacon_blocks_response.blocks
+            await interaction.write_request(request)
+            beacon_blocks_response = await interaction.read_response(BeaconBlocksResponse)
+            return beacon_blocks_response.blocks
 
     async def _handle_recent_beacon_blocks(self, stream: INetStream) -> None:
-        peer_id = stream.mplex_conn.peer_id
-        if peer_id not in self.handshaked_peers:
-            self.logger.info(
-                "Processing recent beacon blocks request failed: not handshaked with peer=%s yet",
-                peer_id,
-            )
-            await stream.reset()
-            return
+        async with self.post_handshake_handler_interaction(stream) as interaction:
+            peer_id = interaction.peer_id
+            self._check_peer_handshaked(peer_id)
+            request = await interaction.read_request(RecentBeaconBlocksRequest)
+            recent_beacon_blocks = get_recent_beacon_blocks(self.chain, request)
+            response = RecentBeaconBlocksResponse(blocks=recent_beacon_blocks)
 
-        self.logger.debug("Waiting for recent beacon blocks request from the other side")
-        try:
-            recent_beacon_blocks_request = await read_req(stream, RecentBeaconBlocksRequest)
-            has_error = False
-        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, ReadMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                return
-        self.logger.debug(
-            "Received the recent beacon blocks request message %s",
-            recent_beacon_blocks_request,
-        )
-
-        recent_beacon_blocks = []
-        for block_root in recent_beacon_blocks_request.block_roots:
-            try:
-                block = self.chain.get_block_by_root(block_root)
-            except (BlockNotFound, ValidationError):
-                pass
-            else:
-                recent_beacon_blocks.append(block)
-
-        recent_beacon_blocks_response = RecentBeaconBlocksResponse(blocks=recent_beacon_blocks)
-        self.logger.debug("Sending recent beacon blocks response %s", recent_beacon_blocks_response)
-        try:
-            await write_resp(stream, recent_beacon_blocks_response, ResponseCode.SUCCESS)
-            has_error = False
-        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, WriteMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                self.logger.info(
-                    "Processing recent beacon blocks request failed: failed to write message %s",
-                    recent_beacon_blocks_response,
-                )
-                return
-
-        self.logger.debug(
-            "Processing recent beacon blocks request from %s is finished",
-            peer_id,
-        )
-        await stream.close()
+            await interaction.write_response(response)
 
     async def request_recent_beacon_blocks(
             self,
             peer_id: ID,
             block_roots: Sequence[SigningRoot]) -> Tuple[BaseBeaconBlock, ...]:
-        if peer_id not in self.handshaked_peers:
-            error_msg = f"not handshaked with peer={peer_id} yet"
-            self.logger.info("Request recent beacon block failed: %s", error_msg)
-            raise RequestFailure(error_msg)
-
-        recent_beacon_blocks_request = RecentBeaconBlocksRequest(block_roots=block_roots)
-
-        self.logger.debug(
-            "Opening new stream to peer=%s with protocols=%s",
-            peer_id,
-            [REQ_RESP_RECENT_BEACON_BLOCKS_SSZ],
-        )
-        stream = await self.host.new_stream(peer_id, [REQ_RESP_RECENT_BEACON_BLOCKS_SSZ])
-        self.logger.debug("Sending recent beacon blocks request %s", recent_beacon_blocks_request)
-        try:
-            await write_req(stream, recent_beacon_blocks_request)
-            has_error = False
-        except (WriteMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, WriteMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                error_msg = f"fail to write request={recent_beacon_blocks_request}"
-                self.logger.info("Request recent beacon blocks failed: %s", error_msg)
-                raise RequestFailure(error_msg)
-
-        self.logger.debug("Waiting for recent beacon blocks response")
-        try:
-            resp_code, recent_beacon_blocks_response = await read_resp(
-                stream,
-                RecentBeaconBlocksResponse,
-            )
-            has_error = False
-        except (ReadMessageFailure, StreamEOF, StreamReset) as error:
-            has_error = True
-            if isinstance(error, ReadMessageFailure):
-                await stream.reset()
-            elif isinstance(error, StreamEOF):
-                await stream.close()
-        finally:
-            if has_error:
-                self.logger.info("Request recent beacon blocks failed: fail to read the response")
-                raise RequestFailure("fail to read the response")
-
-        self.logger.debug(
-            "Received recent beacon blocks response %s, resp_code=%s",
-            recent_beacon_blocks_response,
-            resp_code,
-        )
-
-        if resp_code != ResponseCode.SUCCESS:
-            error_msg = (
-                "resp_code != ResponseCode.SUCCESS, "
-                f"resp_code={resp_code}, error_msg={recent_beacon_blocks_response}"
-            )
-            self.logger.info("Request recent beacon blocks failed: %s", error_msg)
-            await stream.reset()
-            raise RequestFailure(error_msg)
-
-        await stream.close()
-
-        recent_beacon_blocks_response = cast(
-            RecentBeaconBlocksResponse,
-            recent_beacon_blocks_response,
-        )
-        return recent_beacon_blocks_response.blocks
+        stream = await self.new_stream(peer_id, REQ_RESP_RECENT_BEACON_BLOCKS_SSZ)
+        async with self.my_request_interaction(stream) as interaction:
+            self._check_peer_handshaked(peer_id)
+            request = RecentBeaconBlocksRequest(block_roots=block_roots)
+            await interaction.write_request(request)
+            response = await interaction.read_response(RecentBeaconBlocksResponse)
+            return response.blocks

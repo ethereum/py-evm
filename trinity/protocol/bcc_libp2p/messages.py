@@ -19,6 +19,7 @@ from eth2.beacon.typing import (
 from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.typing import SigningRoot, Slot, Epoch
 from eth2.beacon.constants import ZERO_SIGNING_ROOT
+from .configs import GoodbyeReasonCode
 
 
 class HelloRequest(ssz.Serializable):
@@ -53,7 +54,7 @@ class Goodbye(ssz.Serializable):
     ]
 
     def __init__(self, reason: int) -> None:
-        super().__init__(reason)
+        super().__init__(GoodbyeReasonCode(reason))
 
 
 class BeaconBlocksRequest(ssz.Serializable):
