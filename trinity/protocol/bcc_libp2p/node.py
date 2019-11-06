@@ -39,7 +39,6 @@ from eth2.beacon.types.blocks import (
 from eth2.beacon.typing import (
     Epoch,
     Slot,
-    HashTreeRoot,
     Version,
     SigningRoot,
 )
@@ -157,7 +156,7 @@ class Peer:
     fork_version: Version  # noqa: E701
     finalized_root: SigningRoot
     finalized_epoch: Epoch
-    head_root: HashTreeRoot
+    head_root: SigningRoot
     head_slot: Slot
 
     @classmethod
@@ -177,11 +176,9 @@ class Peer:
     async def request_beacon_blocks(
         self, start_slot: Slot, count: int, step: int = 1
     ) -> Tuple[BaseBeaconBlock, ...]:
-        head_block_signing_root = self.node.chain.chaindb.get_block_signing_root_by_hash_tree_root(
-            self.head_root)
         return await self.node.request_beacon_blocks(
             self._id,
-            head_block_root=head_block_signing_root,
+            head_block_root=self.head_root,
             start_slot=start_slot,
             count=count,
             step=step,
@@ -517,7 +514,7 @@ class Node(BaseService):
             fork_version=state.fork.current_version,
             finalized_root=finalized_checkpoint.root,
             finalized_epoch=finalized_checkpoint.epoch,
-            head_root=head.hash_tree_root,
+            head_root=head.signing_root,
             head_slot=head.slot,
         )
 

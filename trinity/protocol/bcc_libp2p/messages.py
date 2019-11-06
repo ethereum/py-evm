@@ -17,11 +17,8 @@ from eth2.beacon.typing import (
     default_version,
 )
 from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.typing import SigningRoot, HashTreeRoot, Slot, Epoch
-from eth2.beacon.constants import (
-    ZERO_HASH_TREE_ROOT,
-    ZERO_SIGNING_ROOT,
-)
+from eth2.beacon.typing import SigningRoot, Slot, Epoch
+from eth2.beacon.constants import ZERO_SIGNING_ROOT
 
 
 class HelloRequest(ssz.Serializable):
@@ -38,7 +35,7 @@ class HelloRequest(ssz.Serializable):
         fork_version: Version = default_version,
         finalized_root: SigningRoot = ZERO_SIGNING_ROOT,
         finalized_epoch: Epoch = default_epoch,
-        head_root: HashTreeRoot = ZERO_HASH_TREE_ROOT,
+        head_root: SigningRoot = ZERO_SIGNING_ROOT,
         head_slot: Slot = default_slot,
     ) -> None:
         super().__init__(
