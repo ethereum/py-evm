@@ -14,6 +14,7 @@ from eth_utils.toolz import (
 
 from eth_utils import (
     add_0x_prefix,
+    encode_hex,
     is_address,
     is_hex,
     is_integer,
@@ -25,6 +26,9 @@ from eth_utils.curried import (
     apply_formatter_if,
 )
 
+from eth.constants import (
+    EMPTY_UNCLE_HASH,
+)
 from eth.chains.mainnet import (
     MainnetChain,
 )
@@ -330,6 +334,10 @@ def is_by_hash(at_block):
         raise ValueError("Unrecognized 'at_block' value: %r" % at_block)
 
 
+def has_uncles(block_fixture):
+    return block_fixture['blockHeader']['uncleHash'] != encode_hex(EMPTY_UNCLE_HASH)
+
+
 async def validate_transaction_count(rpc, block_fixture, at_block):
     if is_by_hash(at_block):
         rpc_method = 'eth_getBlockTransactionCountByHash'
@@ -398,11 +406,14 @@ async def validate_uncle_count(rpc, block_fixture, at_block):
     else:
         rpc_method = 'eth_getUncleCountByBlockNumber'
 
-    num_uncles = len(block_fixture['uncleHeaders'])
+    num_uncles = len(block_fixture['uncleHeaders']) if has_uncles(block_fixture) else 0
     await assert_rpc_result(rpc, rpc_method, [at_block], hex(num_uncles))
 
 
 async def validate_uncle_headers(rpc, block_fixture, at_block):
+    if not has_uncles(block_fixture):
+        return
+
     if is_by_hash(at_block):
         rpc_method = 'eth_getUncleByBlockHashAndIndex'
     else:
@@ -466,6 +477,10 @@ async def test_rpc_against_fixtures(event_bus, chain_fixture, fixture_data):
             if get_in(['blockHeader', 'hash'], block_fixture) == chain_fixture['lastblockhash']:
                 await validate_last_block(rpc, block_fixture)
 
-    await validate_accounts(rpc, chain_fixture['postState'])
+    # Fixtures do not include the `postState` field when its size would be past a certain limit.
+    # https://github.com/ethereum/tests/issues/637#issuecomment-534072897
+    if chain_fixture.get('postState', None):
+        await validate_accounts(rpc, chain_fixture['postState'])
+
     await validate_accounts(rpc, chain_fixture['pre'], 'earliest')
     await validate_accounts(rpc, chain_fixture['pre'], 0)
