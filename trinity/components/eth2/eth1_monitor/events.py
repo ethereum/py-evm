@@ -51,4 +51,3 @@ class GetEth1DataRequest(BaseRequestResponseEvent[GetEth1DataResponse]):
     @staticmethod
     def expected_response_type() -> Type[GetEth1DataResponse]:
         return GetEth1DataResponse
-
