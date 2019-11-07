@@ -1,12 +1,15 @@
 from collections import OrderedDict
-from typing import Any, AsyncGenerator, List, Dict, Sequence, Tuple
+from typing import Any, AsyncGenerator, List, Dict, NamedTuple, Sequence, Tuple
 
 from eth_typing import Hash32
 from eth_utils import ValidationError
 
 from lahja import EndpointAPI
 import trio
-import web3
+from web3 import Web3
+from web3.utils.events import get_event_data
+
+from eth_utils import encode_hex, event_abi_to_log_topic
 
 from eth2.beacon.typing import Timestamp
 from eth2.beacon.typing import Gwei
@@ -33,6 +36,27 @@ from .events import (
 Log = Dict[Any, Any]
 
 
+class Eth1Block(NamedTuple):
+    block_hash: Hash32
+    parent_hash: Hash32
+    number: int
+    timestamp: int
+
+
+class DepositLog(NamedTuple):
+    pass
+
+
+def _w3_get_latest_block(w3: Web3, *args: Any, **kwargs: Any) -> Eth1Block:
+    block_dict = w3.eth.getBlock(*args, **kwargs)
+    return Eth1Block(
+        block_hash=block_dict["hash"],
+        number=int(block_dict["number"]),
+        parent_hash=block_dict["parentHash"],
+        timestamp=int(block_dict["timestamp"]),
+    )
+
+
 def _make_deposit_tree_and_root(
     list_deposit_data: Sequence[DepositData]
 ) -> Tuple[MerkleTree, Hash32]:
@@ -55,19 +79,17 @@ def _make_deposit_proof(
 
 
 class Eth1Monitor(Service):
-    _w3: web3.Web3
-    # FIXME: Change to `LogHandler`
-    _log_filter: Any  # FIXME: change to the correct type.
+    _w3: Web3
+
     _deposit_data: List[DepositData]
     # Sorted
     _block_number_to_hash: Dict[int, Hash32]
     _block_hash_to_accumulated_deposit_count: Dict[Hash32, int]
     _block_timestamp_to_number: "OrderedDict[Timestamp, int]"
-    _highest_log_block_number: int
 
     def __init__(
         self,
-        w3: web3.Web3,
+        w3: Web3,
         contract_address: bytes,
         contract_abi: str,
         blocks_delayed_to_query_logs: int,
@@ -78,14 +100,12 @@ class Eth1Monitor(Service):
         self._deposit_contract = w3.eth.contract(
             address=contract_address, abi=contract_abi
         )
-        self._block_filter = self._w3.eth.filter("latest")
         self._blocks_delayed_to_query_logs = blocks_delayed_to_query_logs
         self._polling_period = polling_period
         self._deposit_data = []
         self._block_number_to_hash = {}
         self._block_hash_to_accumulated_deposit_count = {}
         self._block_timestamp_to_number = OrderedDict()
-        self._highest_log_block_number = 0
         self._event_bus = event_bus
 
     async def run(self) -> None:
@@ -95,92 +115,84 @@ class Eth1Monitor(Service):
         await self.manager.wait_stopped()
 
     def _get_logs(self, from_block: int, to_block: int) -> Sequence[Log]:
+        # NOTE: Another way, create and uninstall a filter.
+        # log_filter = self._deposit_contract.events.DepositEvent.createFilter(
+        #     fromBlock=from_block, toBlock=to_block
+        # )
+        # logs = log_filter.get_new_entries()
+        # self._w3.eth.uninstallFilter(log_filter.filter_id)
+
         # NOTE: web3 v4 does not support `events.Event.getLogs`.
         # We should change the install-and-uninstall pattern to it after we update to v5.
-        log_filter = self._deposit_contract.events.DepositEvent.createFilter(
-            fromBlock=from_block, toBlock=to_block
+        event = self._deposit_contract.events.DepositEvent
+        event_abi = event._get_event_abi()
+        logs = self._w3.eth.getLogs(
+            {
+                "fromBlock": from_block,
+                "toBlock": to_block,
+                "address": self._deposit_contract.address,
+                "topics": [encode_hex(event_abi_to_log_topic(event_abi))],
+            }
         )
-        logs = log_filter.get_new_entries()
-        self._w3.eth.uninstallFilter(log_filter.filter_id)
-        return logs
+        parsed_logs = tuple(get_event_data(event_abi, log) for log in logs)
+        return parsed_logs
 
-    async def _new_logs(self) -> AsyncGenerator[Tuple[Log, Hash32], None]:
+    async def _new_blocks(self) -> AsyncGenerator[Eth1Block, None]:
+        highest_processed_delayed_block_number = 0
         while True:
-            for block_hash in self._get_new_blocks():
-                block_number = self._w3.eth.getBlock(block_hash)["number"]
-                lookback_block_number = (
-                    block_number - self._blocks_delayed_to_query_logs
-                )
-                if lookback_block_number < 0:
-                    continue
-                lookback_block = self._w3.eth.getBlock(lookback_block_number)
-                self._handle_block_data(
-                    lookback_block_number,
-                    lookback_block["hash"],
-                    lookback_block["parentHash"],
-                    lookback_block["timestamp"],
-                )
-                logs = self._get_logs(lookback_block_number, lookback_block_number)
-                for log in logs:
-                    yield log, lookback_block["hash"]
+            block = _w3_get_latest_block(self._w3, "latest")
+            target_delayed_block_number = (
+                block.number - self._blocks_delayed_to_query_logs
+            )
+            if target_delayed_block_number > highest_processed_delayed_block_number:
+                # From `highest_processed_delayed_block_number` to `target_delayed_block_number`
+                for block_number in range(
+                    highest_processed_delayed_block_number + 1,
+                    target_delayed_block_number + 1,
+                ):
+                    block = _w3_get_latest_block(self._w3, block_number)
+                    self._handle_block_data(block)
+                    yield block
+                highest_processed_delayed_block_number = target_delayed_block_number
             await trio.sleep(self._polling_period)
 
-    def _get_new_blocks(self) -> Sequence[Hash32]:
-        return self._block_filter.get_new_entries()
-
-    def _handle_block_data(
-        self,
-        block_number: int,
-        block_hash: Hash32,
-        parent_block_hash: Hash32,
-        timestamp: Timestamp,
-    ) -> None:
+    def _handle_block_data(self, block: Eth1Block) -> None:
         """
         Put block's data in proper data structures.
         """
         # If we already process a block at `block_number` with different hash,
         # there must have been a fork happening.
-        if (block_number in self._block_number_to_hash) and (
-            self._block_number_to_hash[block_number] != block_hash
+        if (block.number in self._block_number_to_hash) and (
+            self._block_number_to_hash[block.number] != block.block_hash
         ):
             raise Eth1Forked(
-                f"received block {block_hash}, but at the same height"
-                f"we already got block {self._block_number_to_hash[block_number]} before"
+                f"received block {block.block_hash}, but at the same height"
+                f"we already got block {self._block_number_to_hash[block.number]} before"
             )
-        if block_hash in self._block_hash_to_accumulated_deposit_count:
+        if block.block_hash in self._block_hash_to_accumulated_deposit_count:
             raise Eth1Forked(
-                f"The entry of block {block_hash} has been created before."
+                f"The entry of block {block.block_hash} has been created before."
                 "This indicates there might have been a fork."
             )
-        if parent_block_hash not in self._block_hash_to_accumulated_deposit_count:
-            self._block_hash_to_accumulated_deposit_count[block_hash] = 0
+        if block.parent_hash not in self._block_hash_to_accumulated_deposit_count:
+            self._block_hash_to_accumulated_deposit_count[block.block_hash] = 0
         else:
             self._block_hash_to_accumulated_deposit_count[
-                block_hash
-            ] = self._block_hash_to_accumulated_deposit_count[parent_block_hash]
+                block.block_hash
+            ] = self._block_hash_to_accumulated_deposit_count[block.parent_hash]
         # Check timestamp
         if len(self._block_timestamp_to_number) != 0:
             latest_timestamp = next(reversed(self._block_timestamp_to_number))
-            if timestamp < latest_timestamp:
+            if block.timestamp < latest_timestamp:
                 raise Eth1Forked(
                     "Later blocks with earlier timestamp: "
-                    f"latest_timestamp={latest_timestamp}, timestamp={timestamp}"
+                    f"latest_timestamp={latest_timestamp}, timestamp={block.timestamp}"
                 )
-        self._block_timestamp_to_number[timestamp] = block_number
-        self._block_number_to_hash[block_number] = block_hash
+        self._block_timestamp_to_number[block.timestamp] = block.number
+        self._block_number_to_hash[block.number] = block.block_hash
 
-    def _process_log(self, log: Log, block_hash: Hash32) -> None:
-        if log["blockHash"] != block_hash:
-            raise InvalidEth1Log(
-                "`block_hash` of the log does not correspond to the queried block: "
-                f"block_hash={block_hash}, log['blockHash']={log['blockHash']}"
-            )
-        block_number = log["blockNumber"]
-        if block_number < self._highest_log_block_number:
-            raise InvalidEth1Log(
-                f"Received a log from a non-head block. There must have been an re-org. log={log}"
-            )
-        self._block_hash_to_accumulated_deposit_count[block_hash] += 1
+    def _process_log(self, log: Log) -> None:
+        self._block_hash_to_accumulated_deposit_count[log["blockHash"]] += 1
         log_args = log["args"]
         self._deposit_data.append(
             DepositData(
@@ -190,12 +202,12 @@ class Eth1Monitor(Service):
                 signature=log_args["signature"],
             )
         )
-        if block_number > self._highest_log_block_number:
-            self._highest_log_block_number = block_number
 
     async def _handle_new_logs(self) -> None:
-        async for log, block_hash in self._new_logs():
-            self._process_log(log, block_hash)
+        async for block in self._new_blocks():
+            logs = self._get_logs(block.number, block.number)
+            for log in logs:
+                self._process_log(log)
 
     def _get_deposit(self, deposit_count: int, deposit_index: int) -> Deposit:
         if deposit_index >= deposit_count:
