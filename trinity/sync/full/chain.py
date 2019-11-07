@@ -487,8 +487,8 @@ class FastChainSyncer(BaseService):
 
 
 class BlockPersistPrereqs(enum.Enum):
-    StoreBlockBodies = enum.auto()
-    StoreReceipts = enum.auto()
+    STORE_BLOCK_BODIES = enum.auto()
+    STORE_RECEIPTS = enum.auto()
 
 
 class ChainSyncStats(NamedTuple):
@@ -764,7 +764,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             completed_headers: Sequence[BlockHeaderAPI]) -> None:
         super()._mark_body_download_complete(batch_id, completed_headers)
         self._block_persist_tracker.finish_prereq(
-            BlockPersistPrereqs.StoreBlockBodies,
+            BlockPersistPrereqs.STORE_BLOCK_BODIES,
             completed_headers,
         )
 
@@ -784,7 +784,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
             completed_headers = await peer.wait(self._process_receipts(peer, headers))
 
             self._block_persist_tracker.finish_prereq(
-                BlockPersistPrereqs.StoreReceipts,
+                BlockPersistPrereqs.STORE_RECEIPTS,
                 completed_headers,
             )
         except BaseP2PError as exc:
@@ -855,7 +855,7 @@ class FastChainBodySyncer(BaseBodyChainSyncer):
                 peer,
                 err,
             )
-            await peer.disconnect(DisconnectReason.bad_protocol)
+            await peer.disconnect(DisconnectReason.BAD_PROTOCOL)
             return trivial_headers
 
         # process all of the returned receipts, storing their trie data
@@ -967,7 +967,7 @@ class RegularChainSyncer(BaseService):
 
 
 class BlockImportPrereqs(enum.Enum):
-    StoreBlockBodies = enum.auto()
+    STORE_BLOCK_BODIES = enum.auto()
 
 
 class RegularChainBodySyncer(BaseBodyChainSyncer):
@@ -1056,7 +1056,7 @@ class RegularChainBodySyncer(BaseBodyChainSyncer):
             completed_headers: Sequence[BlockHeaderAPI]) -> None:
         super()._mark_body_download_complete(batch_id, completed_headers)
         self._block_import_tracker.finish_prereq(
-            BlockImportPrereqs.StoreBlockBodies,
+            BlockImportPrereqs.STORE_BLOCK_BODIES,
             completed_headers,
         )
 

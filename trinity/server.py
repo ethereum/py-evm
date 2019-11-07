@@ -178,10 +178,10 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         peer = factory.create_peer(connection)
 
         if self.peer_pool.is_full:
-            await peer.disconnect(DisconnectReason.too_many_peers)
+            await peer.disconnect(DisconnectReason.TOO_MANY_PEERS)
             return
         elif not self.peer_pool.is_valid_connection_candidate(peer.remote):
-            await peer.disconnect(DisconnectReason.useless_peer)
+            await peer.disconnect(DisconnectReason.USELESS_PEER)
             return
 
         total_peers = len(self.peer_pool)
@@ -193,7 +193,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
         ))
         if total_peers > 1 and inbound_peer_count / total_peers > DIAL_IN_OUT_RATIO:
             # make sure to have at least 1/4 outbound connections
-            await peer.disconnect(DisconnectReason.too_many_peers)
+            await peer.disconnect(DisconnectReason.TOO_MANY_PEERS)
             return
 
         await self.peer_pool.start_peer(peer)

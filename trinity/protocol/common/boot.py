@@ -27,7 +27,7 @@ class DAOCheckBootManager(BasePeerBootManager):
             await self.ensure_same_side_on_dao_fork()
         except DAOForkCheckFailure as err:
             self.logger.debug("DAO fork check with %s failed: %s", self.peer, err)
-            self.peer.disconnect_nowait(DisconnectReason.useless_peer)
+            self.peer.disconnect_nowait(DisconnectReason.USELESS_PEER)
 
     async def ensure_same_side_on_dao_fork(self) -> None:
         """Ensure we're on the same side of the DAO fork as the given peer.

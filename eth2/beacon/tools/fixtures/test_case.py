@@ -10,17 +10,17 @@ from .test_handler import Input, Output, TestHandler
 
 
 class BLSSetting(Enum):
-    Optional = 0
-    Enabled = 1
-    Disabled = 2
+    OPTIONAL = 0
+    ENABLED = 1
+    DISABLED = 2
 
 
 def _select_bls_backend(bls_setting: BLSSetting) -> None:
-    if bls_setting == BLSSetting.Disabled:
+    if bls_setting == BLSSetting.DISABLED:
         bls.use_noop_backend()
-    elif bls_setting == BLSSetting.Enabled:
+    elif bls_setting == BLSSetting.ENABLED:
         bls.use(MilagroBackend)
-    elif bls_setting == BLSSetting.Optional:
+    elif bls_setting == BLSSetting.OPTIONAL:
         # do not verify BLS to save time
         bls.use_noop_backend()
 

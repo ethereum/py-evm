@@ -57,9 +57,9 @@ async def test_p2p_api_pongs_when_pinged(bob, alice):
 async def test_p2p_api_triggers_cancellation_on_disconnect(bob, alice):
     async with P2PAPI().as_behavior().apply(alice):
         p2p_api = alice.get_logic('p2p', P2PAPI)
-        bob.get_base_protocol().send_disconnect(DisconnectReason.client_quitting)
+        bob.get_base_protocol().send_disconnect(DisconnectReason.CLIENT_QUITTING)
         await asyncio.wait_for(alice.events.cancelled.wait(), timeout=1)
-        assert p2p_api.remote_disconnect_reason is DisconnectReason.client_quitting
+        assert p2p_api.remote_disconnect_reason is DisconnectReason.CLIENT_QUITTING
         assert p2p_api.local_disconnect_reason is None
 
 
@@ -70,13 +70,13 @@ async def test_p2p_api_disconnect_fn(bob, alice):
             alice_p2p_api = alice.get_logic('p2p', P2PAPI)
             bob_p2p_api = bob.get_logic('p2p', P2PAPI)
 
-            await alice_p2p_api.disconnect(DisconnectReason.client_quitting)
+            await alice_p2p_api.disconnect(DisconnectReason.CLIENT_QUITTING)
             await asyncio.wait_for(bob.events.cancelled.wait(), timeout=1)
 
             assert alice_p2p_api.remote_disconnect_reason is None
-            assert alice_p2p_api.local_disconnect_reason is DisconnectReason.client_quitting
+            assert alice_p2p_api.local_disconnect_reason is DisconnectReason.CLIENT_QUITTING
 
-            assert bob_p2p_api.remote_disconnect_reason is DisconnectReason.client_quitting
+            assert bob_p2p_api.remote_disconnect_reason is DisconnectReason.CLIENT_QUITTING
             assert bob_p2p_api.local_disconnect_reason is None
 
 
@@ -87,11 +87,11 @@ async def test_p2p_api_disconnect_fn_nowait(bob, alice):
             alice_p2p_api = alice.get_logic('p2p', P2PAPI)
             bob_p2p_api = bob.get_logic('p2p', P2PAPI)
 
-            alice_p2p_api.disconnect_nowait(DisconnectReason.client_quitting)
+            alice_p2p_api.disconnect_nowait(DisconnectReason.CLIENT_QUITTING)
             await asyncio.wait_for(bob.events.cancelled.wait(), timeout=1)
 
             assert alice_p2p_api.remote_disconnect_reason is None
-            assert alice_p2p_api.local_disconnect_reason is DisconnectReason.client_quitting
+            assert alice_p2p_api.local_disconnect_reason is DisconnectReason.CLIENT_QUITTING
 
-            assert bob_p2p_api.remote_disconnect_reason is DisconnectReason.client_quitting
+            assert bob_p2p_api.remote_disconnect_reason is DisconnectReason.CLIENT_QUITTING
             assert bob_p2p_api.local_disconnect_reason is None

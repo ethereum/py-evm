@@ -271,7 +271,7 @@ class BasePeer(BaseService):
         On completion of this method, the peer will be disconnected
         and not in the peer pool anymore.
         """
-        if reason is DisconnectReason.bad_protocol:
+        if reason is DisconnectReason.BAD_PROTOCOL:
             self.connection_tracker.record_blacklist(
                 self.remote,
                 timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
@@ -289,7 +289,7 @@ class BasePeer(BaseService):
         await self.events.finished.wait()
 
     def disconnect_nowait(self, reason: DisconnectReason) -> None:
-        if reason is DisconnectReason.bad_protocol:
+        if reason is DisconnectReason.BAD_PROTOCOL:
             self.connection_tracker.record_blacklist(
                 self.remote,
                 timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,

@@ -160,14 +160,14 @@ class PeerHeaderSyncer(BaseService):
                 break
             except asyncio.TimeoutError:
                 self.logger.warning("Timeout waiting for header batch from %s, aborting sync", peer)
-                await peer.disconnect(DisconnectReason.timeout)
+                await peer.disconnect(DisconnectReason.TIMEOUT)
                 break
             except ValidationError as err:
                 self.logger.warning(
                     "Invalid header response sent by peer %s disconnecting: %s",
                     peer, err,
                 )
-                await peer.disconnect(DisconnectReason.useless_peer)
+                await peer.disconnect(DisconnectReason.USELESS_PEER)
                 break
 
             if not new_headers:
@@ -185,7 +185,7 @@ class PeerHeaderSyncer(BaseService):
                         request_parent,
                         head_td,
                     )
-                    await peer.disconnect(DisconnectReason.subprotocol_error)
+                    await peer.disconnect(DisconnectReason.SUBPROTOCOL_ERROR)
                 else:
                     self.logger.info("Got no new headers from %s, aborting sync", peer)
                 break
@@ -228,7 +228,7 @@ class PeerHeaderSyncer(BaseService):
                 )
             except ValidationError as e:
                 self.logger.warning("Received invalid headers from %s, disconnecting: %s", peer, e)
-                await peer.disconnect(DisconnectReason.subprotocol_error)
+                await peer.disconnect(DisconnectReason.SUBPROTOCOL_ERROR)
                 break
 
             for header in new_headers:

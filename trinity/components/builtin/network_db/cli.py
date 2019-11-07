@@ -4,9 +4,9 @@ from typing import Any
 
 
 class TrackingBackend(enum.Enum):
-    sqlite3 = 'sqlite3'
-    memory = 'memory'
-    do_not_track = 'do-not-track'
+    SQLITE3 = 'sqlite3'
+    MEMORY = 'memory'
+    DO_NOT_TRACK = 'do-not-track'
 
 
 class NormalizeTrackingBackend(argparse.Action):

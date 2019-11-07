@@ -381,7 +381,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
                 return await make_request_to_peer(peer)
             except BadLESResponse as exc:
                 self.logger.warning("Disconnecting from peer, because: %s", exc)
-                await peer.disconnect(DisconnectReason.subprotocol_error)
+                await peer.disconnect(DisconnectReason.SUBPROTOCOL_ERROR)
                 # reattempt after removing this peer from our pool
 
         raise asyncio.TimeoutError(

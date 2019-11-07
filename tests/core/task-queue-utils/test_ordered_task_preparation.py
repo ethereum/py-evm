@@ -36,12 +36,12 @@ class NoPrerequisites(Enum):
 
 
 class OnePrereq(Enum):
-    one = auto()
+    ONE = auto()
 
 
 class TwoPrereqs(Enum):
-    Prereq1 = auto()
-    Prereq2 = auto()
+    PREREQ1 = auto()
+    PREREQ2 = auto()
 
 
 async def assert_nothing_ready(otp):
@@ -58,8 +58,8 @@ async def test_simplest_path():
     ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
     ti.set_finished_dependency(3)
     ti.register_tasks((4, ))
-    ti.finish_prereq(TwoPrereqs.Prereq1, (4, ))
-    ti.finish_prereq(TwoPrereqs.Prereq2, (4, ))
+    ti.finish_prereq(TwoPrereqs.PREREQ1, (4, ))
+    ti.finish_prereq(TwoPrereqs.PREREQ2, (4, ))
     ready = await wait(ti.ready_tasks())
     assert ready == (4, )
 
@@ -69,7 +69,7 @@ async def test_cannot_finish_before_prepare():
     ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
     ti.set_finished_dependency(3)
     with pytest.raises(ValidationError):
-        ti.finish_prereq(TwoPrereqs.Prereq1, (4, ))
+        ti.finish_prereq(TwoPrereqs.PREREQ1, (4, ))
 
 
 @pytest.mark.asyncio
@@ -77,8 +77,8 @@ async def test_two_steps_simultaneous_complete():
     ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: x - 1)
     ti.set_finished_dependency(3)
     ti.register_tasks((4, 5))
-    ti.finish_prereq(OnePrereq.one, (4, ))
-    ti.finish_prereq(OnePrereq.one, (5, ))
+    ti.finish_prereq(OnePrereq.ONE, (4, ))
+    ti.finish_prereq(OnePrereq.ONE, (5, ))
 
     completed = await wait(ti.ready_tasks())
     assert completed == (4, 5)
@@ -90,13 +90,13 @@ async def test_pruning():
     ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: (x % 10) - 1, max_depth=2)
     ti.set_finished_dependency(3)
     ti.register_tasks((4, 5, 6, 7, 8))
-    ti.finish_prereq(OnePrereq.one, (4, 5, 6))
+    ti.finish_prereq(OnePrereq.ONE, (4, 5, 6))
 
     # trigger pruning by requesting the ready tasks through 6, then "finishing" them
     # by requesting the next batch of ready tasks (7)
     completed = await wait(ti.ready_tasks())
     assert completed == (4, 5, 6)
-    ti.finish_prereq(OnePrereq.one, (7, ))
+    ti.finish_prereq(OnePrereq.ONE, (7, ))
     completed = await wait(ti.ready_tasks())
     assert completed == (7, )
 
@@ -113,7 +113,7 @@ async def test_pruning():
 
     # test the same concept, but after pruning tasks that weren't the starting tasks
     # trigger pruning from the head at 7 by completing the one *after* 7
-    ti.finish_prereq(OnePrereq.one, (8, ))
+    ti.finish_prereq(OnePrereq.ONE, (8, ))
     completed = await wait(ti.ready_tasks())
     assert completed == (8, )
 
@@ -155,9 +155,9 @@ def test_finish_same_task_twice():
     ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
     ti.set_finished_dependency(1)
     ti.register_tasks((2, ))
-    ti.finish_prereq(TwoPrereqs.Prereq1, (2,))
+    ti.finish_prereq(TwoPrereqs.PREREQ1, (2,))
     with pytest.raises(ValidationError):
-        ti.finish_prereq(TwoPrereqs.Prereq1, (2,))
+        ti.finish_prereq(TwoPrereqs.PREREQ1, (2,))
 
 
 @pytest.mark.asyncio
@@ -173,10 +173,10 @@ async def test_finish_different_entry_at_same_step():
     ti.register_tasks((3, 4))
 
     # depends on 2
-    ti.finish_prereq(OnePrereq.one, (3,))
+    ti.finish_prereq(OnePrereq.ONE, (3,))
 
     # also depends on 2
-    ti.finish_prereq(OnePrereq.one, (4,))
+    ti.finish_prereq(OnePrereq.ONE, (4,))
 
     completed = await wait(ti.ready_tasks())
     assert completed == (3, 4)
@@ -193,10 +193,10 @@ async def test_return_original_entry():
     ti.register_tasks((3, 4))
 
     # translates to id 0
-    ti.finish_prereq(OnePrereq.one, (3,))
+    ti.finish_prereq(OnePrereq.ONE, (3,))
 
     # translates to id 1
-    ti.finish_prereq(OnePrereq.one, (4,))
+    ti.finish_prereq(OnePrereq.ONE, (4,))
 
     entries = await wait(ti.ready_tasks())
 
@@ -214,20 +214,20 @@ def test_finish_with_unrecognized_task():
 def test_finish_before_setting_start_val():
     ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
     with pytest.raises(ValidationError):
-        ti.finish_prereq(TwoPrereqs.Prereq1, (2,))
+        ti.finish_prereq(TwoPrereqs.PREREQ1, (2,))
 
 
 def test_finish_too_early():
     ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
     ti.set_finished_dependency(3)
     with pytest.raises(ValidationError):
-        ti.finish_prereq(TwoPrereqs.Prereq1, (3,))
+        ti.finish_prereq(TwoPrereqs.PREREQ1, (3,))
 
 
 def test_empty_completion():
     ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
     with pytest.raises(ValidationError):
-        ti.finish_prereq(TwoPrereqs.Prereq1, tuple())
+        ti.finish_prereq(TwoPrereqs.PREREQ1, tuple())
 
 
 def test_reregister_duplicates():
@@ -275,12 +275,12 @@ async def test_register_out_of_order():
     ti = OrderedTaskPreparation(OnePrereq, identity, lambda x: x - 1, accept_dangling_tasks=True)
     ti.set_finished_dependency(1)
     ti.register_tasks((4, 5))
-    ti.finish_prereq(OnePrereq.one, (4, 5))
+    ti.finish_prereq(OnePrereq.ONE, (4, 5))
 
     await assert_nothing_ready(ti)
 
     ti.register_tasks((2, 3))
-    ti.finish_prereq(OnePrereq.one, (2, 3))
+    ti.finish_prereq(OnePrereq.ONE, (2, 3))
     finished = await wait(ti.ready_tasks())
     assert finished == (2, 3, 4, 5)
 
@@ -313,8 +313,8 @@ async def test_finished_dependency_midstream():
     ti = OrderedTaskPreparation(TwoPrereqs, identity, lambda x: x - 1)
     ti.set_finished_dependency(3)
     ti.register_tasks((4, ))
-    ti.finish_prereq(TwoPrereqs.Prereq1, (4, ))
-    ti.finish_prereq(TwoPrereqs.Prereq2, (4, ))
+    ti.finish_prereq(TwoPrereqs.PREREQ1, (4, ))
+    ti.finish_prereq(TwoPrereqs.PREREQ2, (4, ))
     ready = await wait(ti.ready_tasks())
     assert ready == (4, )
 
@@ -324,8 +324,8 @@ async def test_finished_dependency_midstream():
 
     ti.set_finished_dependency(5)
     ti.register_tasks((6, ))
-    ti.finish_prereq(TwoPrereqs.Prereq1, (6, ))
-    ti.finish_prereq(TwoPrereqs.Prereq2, (6, ))
+    ti.finish_prereq(TwoPrereqs.PREREQ1, (6, ))
+    ti.finish_prereq(TwoPrereqs.PREREQ2, (6, ))
     ready = await wait(ti.ready_tasks())
     assert ready == (6, )
 
@@ -457,7 +457,7 @@ async def test_forked_pruning_dangling():
         Task(2, 0, 0),
         Task(2, 1, 0),
     ))
-    ti.finish_prereq(OnePrereq.one, (
+    ti.finish_prereq(OnePrereq.ONE, (
         Task(2, 0, 0),
         Task(2, 1, 0),
     ))
@@ -466,7 +466,7 @@ async def test_forked_pruning_dangling():
         Task(3, 0, 0),
         Task(3, 1, 1),
     ))
-    ti.finish_prereq(OnePrereq.one, (
+    ti.finish_prereq(OnePrereq.ONE, (
         Task(3, 0, 0),
         Task(3, 1, 1),
     ))
@@ -475,7 +475,7 @@ async def test_forked_pruning_dangling():
         Task(4, 0, 0),
         Task(4, 1, 1),
     ))
-    ti.finish_prereq(OnePrereq.one, (
+    ti.finish_prereq(OnePrereq.ONE, (
         Task(4, 0, 0),
         Task(4, 1, 1),
     ))
@@ -488,7 +488,7 @@ async def test_forked_pruning_dangling():
         Task(9, 0, 0),
         Task(10, 0, 0),
     ))
-    ti.finish_prereq(OnePrereq.one, (
+    ti.finish_prereq(OnePrereq.ONE, (
         Task(5, 0, 0),
         Task(6, 0, 0),
         Task(7, 0, 0),
@@ -500,7 +500,7 @@ async def test_forked_pruning_dangling():
     ti.register_tasks((
         Task(5, 1, 1),
     ))
-    ti.finish_prereq(OnePrereq.one, (
+    ti.finish_prereq(OnePrereq.ONE, (
         Task(5, 1, 1),
     ))
 
@@ -511,7 +511,7 @@ async def test_forked_pruning_dangling():
     # nothing is ready, because the prereq on the first task is incomplete
     await assert_nothing_ready(ti)
 
-    ti.finish_prereq(OnePrereq.one, (
+    ti.finish_prereq(OnePrereq.ONE, (
         Task(1, 0, 0),
     ))
 
@@ -531,7 +531,7 @@ async def test_forked_pruning_dangling():
         Task(8, 1, 1),
         Task(9, 1, 1),
     ))
-    ti.finish_prereq(OnePrereq.one, (
+    ti.finish_prereq(OnePrereq.ONE, (
         Task(11, 0, 0),
         Task(12, 0, 0),
         Task(13, 0, 0),
