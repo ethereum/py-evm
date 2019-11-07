@@ -98,7 +98,7 @@ class PeerFactory(factory.Factory):
         model = Peer
     _id = factory.Sequence(lambda n: ID(f'peer{n}'))
     node = factory.SubFactory(NodeFactory)
-    fork_version = None
+    head_fork_version = None
     finalized_root = ZERO_HASH32
     finalized_epoch = 0
     head_root = ZERO_HASH32
@@ -110,7 +110,7 @@ async def ConnectionPairFactory(
     alice_chaindb: AsyncBeaconChainDB = None,
     bob_chaindb: AsyncBeaconChainDB = None,
     cancel_token: CancelToken = None,
-    say_hello: bool = True,
+    handshake: bool = True,
 ) -> AsyncIterator[Tuple[Node, Node]]:
     if cancel_token is None:
         cancel_token = CancelTokenFactory()
@@ -133,8 +133,8 @@ async def ConnectionPairFactory(
             )
         )
         await asyncio.sleep(0.01)
-        if say_hello:
-            await alice.say_hello(bob.peer_id)
+        if handshake:
+            await alice.request_status(bob.peer_id)
             await asyncio.sleep(0.01)
         yield alice, bob
 

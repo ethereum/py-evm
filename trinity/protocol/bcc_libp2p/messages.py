@@ -16,15 +16,14 @@ from eth2.beacon.typing import (
     default_slot,
     default_version,
 )
-from eth2.beacon.types.blocks import BeaconBlock
 from eth2.beacon.typing import SigningRoot, Slot, Epoch
 from eth2.beacon.constants import ZERO_SIGNING_ROOT
 from .configs import GoodbyeReasonCode
 
 
-class HelloRequest(ssz.Serializable):
+class Status(ssz.Serializable):
     fields = [
-        ('fork_version', bytes4),
+        ('head_fork_version', bytes4),
         ('finalized_root', bytes32),
         ('finalized_epoch', uint64),
         ('head_root', bytes32),
@@ -33,14 +32,14 @@ class HelloRequest(ssz.Serializable):
 
     def __init__(
         self,
-        fork_version: Version = default_version,
+        head_fork_version: Version = default_version,
         finalized_root: SigningRoot = ZERO_SIGNING_ROOT,
         finalized_epoch: Epoch = default_epoch,
         head_root: SigningRoot = ZERO_SIGNING_ROOT,
         head_slot: Slot = default_slot,
     ) -> None:
         super().__init__(
-            fork_version,
+            head_fork_version,
             finalized_root,
             finalized_epoch,
             head_root,
@@ -57,7 +56,7 @@ class Goodbye(ssz.Serializable):
         super().__init__(GoodbyeReasonCode(reason))
 
 
-class BeaconBlocksRequest(ssz.Serializable):
+class BeaconBlocksByRangeRequest(ssz.Serializable):
     fields = [
         ('head_block_root', bytes32),
         ('start_slot', uint64),
@@ -80,28 +79,10 @@ class BeaconBlocksRequest(ssz.Serializable):
         )
 
 
-class BeaconBlocksResponse(ssz.Serializable):
-    fields = [
-        ('blocks', List(BeaconBlock, 1)),
-    ]
-
-    def __init__(self, blocks: Sequence[BeaconBlock]) -> None:
-        super().__init__(blocks)
-
-
-class RecentBeaconBlocksRequest(ssz.Serializable):
+class BeaconBlocksByRootRequest(ssz.Serializable):
     fields = [
         ('block_roots', List(bytes32, 1)),
     ]
 
     def __init__(self, block_roots: Sequence[SigningRoot]) -> None:
         super().__init__(block_roots)
-
-
-class RecentBeaconBlocksResponse(ssz.Serializable):
-    fields = [
-        ('blocks', List(BeaconBlock, 1)),
-    ]
-
-    def __init__(self, blocks: Sequence[BeaconBlock]) -> None:
-        super().__init__(blocks)

@@ -5,71 +5,66 @@ import pytest
 
 from eth2.beacon.constants import EMPTY_SIGNATURE
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
+from trinity.protocol.bcc_libp2p import node
 from trinity.protocol.bcc_libp2p.configs import GoodbyeReasonCode, ResponseCode
 from trinity.protocol.bcc_libp2p.exceptions import HandshakeFailure, RequestFailure
-from trinity.protocol.bcc_libp2p.messages import HelloRequest
-from trinity.protocol.bcc_libp2p.node import REQ_RESP_HELLO_SSZ
+from trinity.protocol.bcc_libp2p.messages import Status
+from trinity.protocol.bcc_libp2p.node import REQ_RESP_STATUS_SSZ
 from trinity.protocol.bcc_libp2p.utils import read_req, write_resp
 from trinity.tools.async_method import wait_until_true
 from trinity.tools.bcc_factories import ConnectionPairFactory
 
 
 @pytest.mark.asyncio
-async def test_hello_success():
-    async with ConnectionPairFactory(say_hello=False) as (alice, bob):
-        await alice.say_hello(bob.peer_id)
+async def test_handshake_success():
+    async with ConnectionPairFactory(handshake=False) as (alice, bob):
+        await alice.request_status(bob.peer_id)
         assert bob.peer_id in alice.handshaked_peers
         assert alice.peer_id in bob.handshaked_peers
 
 
 @pytest.mark.asyncio
-async def test_hello_failure_invalid_hello_packet(monkeypatch, mock_timeout):
-    async with ConnectionPairFactory(say_hello=False) as (alice, bob):
+async def test_handshake_failure_invalid_status_packet(monkeypatch, mock_timeout):
+    async with ConnectionPairFactory(handshake=False) as (alice, bob):
 
-        def _make_hello_packet_with_wrong_fork_version():
-            return HelloRequest(
-                fork_version=b"\x12\x34\x56\x78"  # version different from another node.
+        def status_with_wrong_fork_version(chain):
+            return Status(
+                head_fork_version=b"\x12\x34\x56\x78"  # version different from another node.
             )
 
-        monkeypatch.setattr(
-            alice, "_make_hello_packet", _make_hello_packet_with_wrong_fork_version
-        )
-        # Test: Handshake fails when sending invalid hello packet.
+        monkeypatch.setattr(node, "get_my_status", status_with_wrong_fork_version)
         with pytest.raises(HandshakeFailure):
-            await alice.say_hello(bob.peer_id)
+            await alice.request_status(bob.peer_id)
         assert alice.peer_id not in bob.handshaked_peers
         assert bob.peer_id not in alice.handshaked_peers
 
-        def _make_hello_packet_with_wrong_checkpoint():
-            return HelloRequest(
+        def status_with_wrong_checkpoint(chain):
+            return Status(
                 finalized_root=b"\x78"
                 * 32  # finalized root different from another node.
             )
 
-        monkeypatch.setattr(
-            alice, "_make_hello_packet", _make_hello_packet_with_wrong_checkpoint
-        )
-        # Test: Handshake fails when sending invalid hello packet.
+        monkeypatch.setattr(node, "get_my_status", status_with_wrong_checkpoint)
         with pytest.raises(HandshakeFailure):
-            await alice.say_hello(bob.peer_id)
+            await alice.request_status(bob.peer_id)
         assert alice.peer_id not in bob.handshaked_peers
         assert bob.peer_id not in alice.handshaked_peers
 
 
 @pytest.mark.asyncio
-async def test_hello_failure_failure_response():
-    async with ConnectionPairFactory(say_hello=False) as (alice, bob):
+async def test_handshake_failure_response():
+    async with ConnectionPairFactory(handshake=False) as (alice, bob):
 
-        async def fake_handle_hello(stream):
-            await read_req(stream, HelloRequest)
+        async def fake_handle_status(stream):
+            await read_req(stream, Status)
             # The overridden `resp_code` can be anything other than `ResponseCode.SUCCESS`
             await write_resp(stream, "error msg", ResponseCode.INVALID_REQUEST)
 
         # Mock the handler.
-        bob.host.set_stream_handler(REQ_RESP_HELLO_SSZ, fake_handle_hello)
+        bob.host.set_stream_handler(REQ_RESP_STATUS_SSZ, fake_handle_status)
         # Test: Handshake fails when the response is not success.
         with pytest.raises(HandshakeFailure):
-            await alice.say_hello(bob.peer_id)
+            await alice.request_status(bob.peer_id)
         assert alice.peer_id not in bob.handshaked_peers
 
 
@@ -82,11 +77,11 @@ async def test_goodbye():
 
 
 @pytest.mark.asyncio
-async def test_request_beacon_blocks_fail():
-    async with ConnectionPairFactory(say_hello=False) as (alice, bob):
+async def test_request_beacon_blocks_before_handshake():
+    async with ConnectionPairFactory(handshake=False) as (alice, bob):
         # Test: Can not request beacon block before handshake
         with pytest.raises(RequestFailure):
-            await alice.request_beacon_blocks(
+            await alice.request_beacon_blocks_by_range(
                 peer_id=bob.peer_id,
                 head_block_root=ZERO_HASH32,
                 start_slot=0,
@@ -94,15 +89,15 @@ async def test_request_beacon_blocks_fail():
                 step=1,
             )
 
-        # Test: Can not request recent beacon block before handshake
+        # Test: Can not request beacon block by root before handshake
         with pytest.raises(RequestFailure):
-            await alice.request_recent_beacon_blocks(
+            await alice.request_beacon_blocks_by_root(
                 peer_id=bob.peer_id, block_roots=[b"\x12" * 32]
             )
 
 
 @pytest.mark.asyncio
-async def test_request_beacon_blocks_invalid_request(monkeypatch):
+async def test_request_beacon_blocks_by_range_invalid_request(monkeypatch):
     async with ConnectionPairFactory() as (alice, bob):
 
         head_slot = 1
@@ -126,7 +121,7 @@ async def test_request_beacon_blocks_invalid_request(monkeypatch):
         count = 1
         step = 1
         with pytest.raises(RequestFailure):
-            await alice.request_beacon_blocks(
+            await alice.request_beacon_blocks_by_range(
                 peer_id=bob.peer_id,
                 head_block_root=request_head_block_root,
                 start_slot=start_slot,
@@ -164,7 +159,7 @@ async def test_request_beacon_blocks_invalid_request(monkeypatch):
         monkeypatch.setattr(bob.chain, "get_head_state", get_head_state)
 
         with pytest.raises(RequestFailure):
-            await alice.request_beacon_blocks(
+            await alice.request_beacon_blocks_by_range(
                 peer_id=bob.peer_id,
                 head_block_root=request_head_block_root,
                 start_slot=start_slot,
@@ -174,7 +169,7 @@ async def test_request_beacon_blocks_invalid_request(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_request_beacon_blocks_on_nonexist_chain(monkeypatch):
+async def test_request_beacon_blocks_by_range_on_nonexist_chain(monkeypatch):
     async with ConnectionPairFactory() as (alice, bob):
 
         request_head_block_root = b"\x56" * 32
@@ -187,7 +182,7 @@ async def test_request_beacon_blocks_on_nonexist_chain(monkeypatch):
         start_slot = 0
         count = 5
         step = 1
-        requested_blocks = await alice.request_beacon_blocks(
+        requested_blocks = await alice.request_beacon_blocks_by_range(
             peer_id=bob.peer_id,
             head_block_root=request_head_block_root,
             start_slot=start_slot,
@@ -199,7 +194,7 @@ async def test_request_beacon_blocks_on_nonexist_chain(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_request_recent_beacon_blocks(monkeypatch):
+async def test_request_beacon_blocks_by_root(monkeypatch):
     async with ConnectionPairFactory() as (alice, bob):
 
         # Mock up block database
@@ -229,7 +224,7 @@ async def test_request_recent_beacon_blocks(monkeypatch):
             b"\x23" * 32,  # Unknown block root
             blocks[3].signing_root,
         ]
-        requested_blocks = await alice.request_recent_beacon_blocks(
+        requested_blocks = await alice.request_beacon_blocks_by_root(
             peer_id=bob.peer_id, block_roots=requesting_block_roots
         )
 

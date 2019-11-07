@@ -4,6 +4,7 @@ from types import (
     TracebackType,
 )
 from typing import (
+    AsyncIterator,
     Iterable,
     Optional,
     Sequence,
@@ -58,15 +59,18 @@ from multiaddr import (
 )
 import multihash
 import ssz
+from ssz.sedes.serializable import (
+    BaseSerializable,
+)
 from ssz.tools import (
     to_formatted_dict,
 )
 
 from .configs import (
     REQ_RESP_ENCODE_POSTFIX,
-    REQ_RESP_MAX_SIZE,
     REQ_RESP_PROTOCOL_PREFIX,
     REQ_RESP_VERSION,
+    MAX_CHUNK_SIZE,
     RESP_TIMEOUT,
     TTFB_TIMEOUT,
     ResponseCode,
@@ -80,12 +84,12 @@ from .exceptions import (
     WriteMessageFailure,
 )
 from .messages import (
-    BeaconBlocksRequest,
-    HelloRequest,
-    RecentBeaconBlocksRequest,
+    BeaconBlocksByRangeRequest,
+    Status,
+    BeaconBlocksByRootRequest,
 )
 
-MsgType = TypeVar("MsgType", bound=ssz.Serializable)
+MsgType = TypeVar("MsgType", bound=BaseSerializable)
 
 logger = logging.getLogger('trinity.protocol.bcc_libp2p')
 
@@ -108,55 +112,67 @@ def make_rpc_v1_ssz_protocol_id(message_name: str) -> str:
     return make_rpc_protocol_id(message_name, REQ_RESP_VERSION, REQ_RESP_ENCODE_POSTFIX)
 
 
-async def validate_hello(chain: BaseBeaconChain, hello_other_side: HelloRequest) -> None:
+def get_my_status(chain: BaseBeaconChain) -> Status:
+    state = chain.get_head_state()
+    head = chain.get_canonical_head()
+    finalized_checkpoint = state.finalized_checkpoint
+    return Status(
+        head_fork_version=state.fork.current_version,
+        finalized_root=finalized_checkpoint.root,
+        finalized_epoch=finalized_checkpoint.epoch,
+        head_root=head.signing_root,
+        head_slot=head.slot,
+    )
+
+
+async def validate_peer_status(chain: BaseBeaconChain, peer_status: Status) -> None:
     state_machine = chain.get_state_machine()
     state = chain.get_head_state()
     config = state_machine.config
-    if hello_other_side.fork_version != state.fork.current_version:
+    if peer_status.head_fork_version != state.fork.current_version:
         raise IrrelevantNetwork(
             "`fork_version` mismatches: "
-            f"hello_other_side.fork_version={hello_other_side.fork_version}, "
+            f"peer_status.head_fork_version={peer_status.head_fork_version}, "
             f"state.fork.current_version={state.fork.current_version}"
         )
 
     # Can not validate the checkpoint with `finalized_epoch` higher than ours
-    if hello_other_side.finalized_epoch > state.finalized_checkpoint.epoch:
+    if peer_status.finalized_epoch > state.finalized_checkpoint.epoch:
         return
 
-    # Get the finalized root at `hello_other_side.finalized_epoch`
     # Edge case where nothing is finalized yet
     if (
-        hello_other_side.finalized_epoch == 0 and
-        hello_other_side.finalized_root == ZERO_SIGNING_ROOT
+        peer_status.finalized_epoch == 0 and
+        peer_status.finalized_root == ZERO_SIGNING_ROOT
     ):
         return
 
     finalized_epoch_start_slot = compute_start_slot_of_epoch(
-        hello_other_side.finalized_epoch,
+        peer_status.finalized_epoch,
         config.SLOTS_PER_EPOCH,
     )
     finalized_root = chain.get_canonical_block_root(
         finalized_epoch_start_slot)
 
-    if hello_other_side.finalized_root != finalized_root:
+    if peer_status.finalized_root != finalized_root:
         raise IrrelevantNetwork(
             "`finalized_root` mismatches: "
-            f"hello_other_side.finalized_root={hello_other_side.finalized_root}, "
-            f"hello_other_side.finalized_epoch={hello_other_side.finalized_epoch}, "
+            f"peer_status.finalized_root={peer_status.finalized_root}, "
+            f"peer_status.finalized_epoch={peer_status.finalized_epoch}, "
             f"our `finalized_root` at the same `finalized_epoch`={finalized_root}"
         )
 
 
 def compare_chain_tip_and_finalized_epoch(
     chain: BaseBeaconChain,
-    hello_other_side: HelloRequest,
+    peer_status: Status,
 )-> None:
     checkpoint = chain.get_head_state().finalized_checkpoint
     head_block = chain.get_canonical_head()
 
-    peer_has_higher_finalized_epoch = hello_other_side.finalized_epoch > checkpoint.epoch
-    peer_has_equal_finalized_epoch = hello_other_side.finalized_epoch == checkpoint.epoch
-    peer_has_higher_head_slot = hello_other_side.head_slot > head_block.slot
+    peer_has_higher_finalized_epoch = peer_status.finalized_epoch > checkpoint.epoch
+    peer_has_equal_finalized_epoch = peer_status.finalized_epoch == checkpoint.epoch
+    peer_has_higher_head_slot = peer_status.head_slot > head_block.slot
     if (
         peer_has_higher_finalized_epoch or
         (peer_has_equal_finalized_epoch and peer_has_higher_head_slot)
@@ -234,7 +250,7 @@ def get_blocks_from_fork_chain_by_root(
 
 def _get_requested_beacon_blocks(
     chain: BaseBeaconChain,
-    beacon_blocks_request: BeaconBlocksRequest,
+    beacon_blocks_request: BeaconBlocksByRangeRequest,
     requested_head_block: BaseBeaconBlock,
 ) -> Tuple[BaseBeaconBlock, ...]:
     slot_of_requested_blocks = tuple(
@@ -286,7 +302,7 @@ def _get_requested_beacon_blocks(
 
 def get_requested_beacon_blocks(
     chain: BaseBeaconChain,
-    request: BeaconBlocksRequest
+    request: BeaconBlocksByRangeRequest
 ) -> Tuple[BaseBeaconBlock, ...]:
     try:
         requested_head = chain.get_block_by_root(
@@ -312,9 +328,9 @@ def get_requested_beacon_blocks(
 
 
 @to_tuple
-def get_recent_beacon_blocks(
+def get_beacon_blocks_by_root(
     chain: BaseBeaconChain,
-    request: RecentBeaconBlocksRequest,
+    request: BeaconBlocksByRootRequest,
 ) -> Iterable[BaseBeaconBlock]:
     for block_root in request.block_roots:
         try:
@@ -336,7 +352,7 @@ class Interaction:
         self.stream = stream
 
     async def __aenter__(self) -> "Interaction":
-        self.logger.debug("New %s interaction with %s", self.stream.get_protocol(), self.peer_id)
+        self.debug("Started")
         return self
 
     async def __aexit__(self,
@@ -345,54 +361,61 @@ class Interaction:
                         traceback: Optional[TracebackType],
                         ) -> None:
         await self.stream.close()
-        self.logger.debug("End %s interaction with %s", self.stream.get_protocol(), self.peer_id)
+        self.debug("Ended")
 
     async def write_request(self, message: MsgType) -> None:
-        self.logger.debug(
-            "Request %s to %s  %s",
-            type(message).__name__,
-            self.peer_id,
-            to_formatted_dict(message),
-        )
+        self.debug(f"Request {type(message).__name__}  {to_formatted_dict(message)}")
         await write_req(self.stream, message)
 
     async def write_response(self, message: MsgType) -> None:
-        self.logger.debug(
-            "Respond %s to %s  %s",
-            type(message).__name__,
-            self.peer_id,
-            to_formatted_dict(message),
-        )
+        self.debug(f"Respond {type(message).__name__}  {to_formatted_dict(message)}")
         await write_resp(self.stream, message, ResponseCode.SUCCESS)
 
+    async def write_chunk_response(self, messages: Sequence[MsgType]) -> None:
+        self.debug(f"Respond {len(messages)} chunks")
+        for message in messages:
+            await write_resp(self.stream, message, ResponseCode.SUCCESS)
+
     async def write_error_response(self, error_message: str, code: ResponseCode) -> None:
-        self.logger.debug("Respond %s to %s  %s", str(code), self.peer_id, error_message)
+        self.debug(f"Respond {str(code)}  {error_message}")
         await write_resp(self.stream, error_message, code)
 
     async def read_request(self, message_type: Type[MsgType]) -> MsgType:
-        self.logger.debug("Waiting %s from %s", message_type.__name__, self.peer_id)
+        self.debug(f"Waiting {message_type.__name__}")
         request = await read_req(self.stream, message_type)
-        self.logger.debug(
-            "Received request %s from %s  %s",
-            message_type.__name__,
-            self.peer_id,
-            to_formatted_dict(request),
-        )
+        self.debug(f"Received request {message_type.__name__}  {to_formatted_dict(request)}")
         return request
 
     async def read_response(self, message_type: Type[MsgType]) -> MsgType:
         response = await read_resp(self.stream, message_type)
-        self.logger.debug(
-            "Received response %s from %s  %s",
-            message_type.__name__,
-            self.peer_id,
-            to_formatted_dict(response),
+        self.debug(
+            f"Received response {message_type.__name__}  {to_formatted_dict(response)}"
         )
         return response
+
+    async def read_chunk_response(
+        self,
+        message_type: Type[MsgType],
+        count: int,
+    ) -> AsyncIterator[MsgType]:
+        for i in range(count):
+            try:
+                yield await read_resp(self.stream, message_type)
+            except ReadMessageFailure:
+                self.debug(f"Received {str(i)} {message_type.__name__} chunks")
+                break
 
     @property
     def peer_id(self) -> ID:
         return self.stream.mplex_conn.peer_id
+
+    def debug(self, message: str) -> None:
+        self.logger.debug(
+            "Interaction %s    with %s    %s",
+            self.stream.get_protocol().split("/")[4],
+            str(self.peer_id)[:15],
+            message,
+        )
 
 
 async def read_req(
@@ -466,13 +489,13 @@ async def write_resp(
     except OverflowError as error:
         raise WriteMessageFailure(f"resp_code={resp_code} is not valid") from error
     msg_bytes: bytes
-    # MsgType: `msg` is of type `ssz.Serializable` if response code is success.
+    # MsgType: `msg` is of type `BaseSerializable` if response code is success.
     if resp_code == ResponseCode.SUCCESS:
-        if isinstance(msg, ssz.Serializable):
+        if isinstance(msg, BaseSerializable):
             msg_bytes = _serialize_ssz_msg(msg)
         else:
             raise WriteMessageFailure(
-                "type of `msg` should be `ssz.Serializable` if response code is SUCCESS, "
+                "type of `msg` should be `BaseSerializable` if response code is SUCCESS, "
                 f"type(msg)={type(msg)}"
             )
     # error msg is of type `str` if response code is not SUCCESS.
@@ -529,9 +552,9 @@ async def _read_varint_prefixed_bytes(
     timeout: float = None,
 ) -> bytes:
     len_payload = await _decode_uvarint_from_stream(stream, timeout)
-    if len_payload > REQ_RESP_MAX_SIZE:
+    if len_payload > MAX_CHUNK_SIZE:
         raise ReadMessageFailure(
-            f"size_of_payload={len_payload} is larger than maximum={REQ_RESP_MAX_SIZE}"
+            f"size_of_payload={len_payload} is larger than maximum={MAX_CHUNK_SIZE}"
         )
     payload = await _read_stream(stream, len_payload, timeout)
     if len(payload) != len_payload:

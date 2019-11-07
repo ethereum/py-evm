@@ -354,7 +354,7 @@ async def test_bcc_receive_server_handle_orphan_block_loop(
     peer_1_called_event = asyncio.Event()
     peer_2_called_event = asyncio.Event()
 
-    async def request_recent_beacon_blocks(peer_id, block_roots):
+    async def request_beacon_blocks_by_root(peer_id, block_roots):
         requested_blocks = []
         db = {}
         if peer_id == peer1._id:
@@ -374,8 +374,8 @@ async def test_bcc_receive_server_handle_orphan_block_loop(
             receive_server.p2p_node.handshaked_peers.add(peer)
         m.setattr(
             receive_server.p2p_node,
-            "request_recent_beacon_blocks",
-            request_recent_beacon_blocks,
+            "request_beacon_blocks_by_root",
+            request_beacon_blocks_by_root,
         )
 
         for orphan_block in (blocks[4],) + fork_blocks:

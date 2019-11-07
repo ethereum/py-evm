@@ -232,7 +232,7 @@ class BCCReceiveServer(BaseService):
             for peer in self.p2p_node.handshaked_peers.peers.values():
                 if len(parent_roots) == 0:
                     break
-                blocks = await peer.request_recent_beacon_blocks(
+                blocks = await peer.request_beacon_blocks_by_root(
                     tuple(parent_roots)
                 )
                 for block in blocks:

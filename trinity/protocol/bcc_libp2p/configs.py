@@ -12,10 +12,10 @@ from typing import (
 #
 
 # TODO: TBD
-# The max size of uncompressed req/resp messages that clients will allow.
-REQ_RESP_MAX_SIZE = 2 ** 32 - 1  # 4 GiB
 # The max size of uncompressed gossip messages.
 GOSSIP_MAX_SIZE = 2 ** 20  # 1 MiB
+# The maximum allowed size of uncompressed req/resp chunked responses.
+MAX_CHUNK_SIZE = 2**20  # 1 MiB
 # TODO: TBD
 # The number of shard subnets used in the gossipsub protocol.
 SHARD_SUBNET_COUNT = None
@@ -23,9 +23,6 @@ SHARD_SUBNET_COUNT = None
 TTFB_TIMEOUT = 5  # seconds
 # Maximum time for complete response transfer.
 RESP_TIMEOUT = 10  # seconds
-# Maximum number of items in a SSZ List type
-# FIXME: Update this value onec settled in the spec
-SSZ_MAX_LIST_SIZE = 10
 
 #
 # Gossip domain
@@ -93,7 +90,7 @@ class GoodbyeReasonCode(enum.IntEnum):
 REQ_RESP_VERSION = "1"
 REQ_RESP_ENCODE_POSTFIX = "ssz"
 REQ_RESP_ENCODE_COMPRESS_POSTFIX = "ssz_snappy"
-REQ_RESP_HELLO = "hello"
+REQ_RESP_STATUS = "status"
 REQ_RESP_GOODBYE = "goodbye"
-REQ_RESP_BEACON_BLOCKS = "beacon_blocks"
-REQ_RESP_RECENT_BEACON_BLOCKS = "recent_beacon_blocks"
+REQ_RESP_BEACON_BLOCKS_BY_RANGE = "beacon_blocks_by_range"
+REQ_RESP_BEACON_BLOCKS_BY_ROOT = "beacon_blocks_by_root"

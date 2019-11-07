@@ -185,7 +185,7 @@ class BeaconChainSyncer(BaseService):
                 "Requesting blocks from %s starting at #%d", self.sync_peer, slot
             )
             try:
-                batch = await self.sync_peer.request_beacon_blocks(
+                batch = await self.sync_peer.request_beacon_blocks_by_range(
                     slot, MAX_BLOCKS_PER_REQUEST
                 )
             except RequestFailure as error:

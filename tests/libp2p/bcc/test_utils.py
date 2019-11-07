@@ -13,7 +13,7 @@ from trinity.protocol.bcc_libp2p.exceptions import (
     ServerErrorSaidPeer,
     WriteMessageFailure,
 )
-from trinity.protocol.bcc_libp2p.messages import HelloRequest
+from trinity.protocol.bcc_libp2p.messages import Status
 from trinity.protocol.bcc_libp2p.utils import (
     get_blocks_from_canonical_chain_by_slot,
     get_blocks_from_fork_chain_by_root,
@@ -26,7 +26,7 @@ from trinity.protocol.bcc_libp2p.utils import (
 from trinity.tools.bcc_factories import BeaconBlockFactory
 
 # Wrong type of `fork_version`, which should be `bytes4`.
-invalid_ssz_msg = HelloRequest(fork_version="1")
+invalid_ssz_msg = Status(head_fork_version="1")
 
 
 def test_peer_id_from_pubkey():
@@ -67,7 +67,7 @@ class FakeNetStream:
         return len(data)
 
 
-@pytest.mark.parametrize("msg", (HelloRequest(),))
+@pytest.mark.parametrize("msg", (Status(),))
 @pytest.mark.asyncio
 async def test_read_write_req_msg(msg):
     s = FakeNetStream()
@@ -76,7 +76,7 @@ async def test_read_write_req_msg(msg):
     assert msg_read == msg
 
 
-@pytest.mark.parametrize("msg", (HelloRequest(),))
+@pytest.mark.parametrize("msg", (Status(),))
 @pytest.mark.asyncio
 async def test_read_write_resp_msg(msg):
     s = FakeNetStream()
@@ -98,7 +98,7 @@ async def test_read_write_resp_msg_error_resp_code(resp_code, error_cls, error_m
     s = FakeNetStream()
     await write_resp(s, error_msg, resp_code)
     with pytest.raises(error_cls, match=error_msg):
-        await read_resp(s, HelloRequest)
+        await read_resp(s, Status)
 
 
 @pytest.mark.asyncio
@@ -106,11 +106,11 @@ async def test_read_req_failure(mock_timeout):
     s = FakeNetStream()
     # Test: Raise `ReadMessageFailure` if the time is out.
     with pytest.raises(ReadMessageFailure):
-        await read_req(s, HelloRequest)
+        await read_req(s, Status)
 
     await s.write(b"\x03123")
     with pytest.raises(ReadMessageFailure):
-        await read_req(s, HelloRequest)
+        await read_req(s, Status)
 
 
 @pytest.mark.asyncio
@@ -127,7 +127,7 @@ async def test_read_resp_failure(monkeypatch, mock_timeout):
     s = FakeNetStream()
     # Test: Raise `ReadMessageFailure` if the time is out.
     with pytest.raises(ReadMessageFailure):
-        await read_resp(s, HelloRequest)
+        await read_resp(s, Status)
 
     # Test: Raise `ReadMessageFailure` if `read` returns `b""`.
 
@@ -136,7 +136,7 @@ async def test_read_resp_failure(monkeypatch, mock_timeout):
 
     monkeypatch.setattr(s, "read", _fake_read)
     with pytest.raises(ReadMessageFailure):
-        await read_resp(s, HelloRequest)
+        await read_resp(s, Status)
 
 
 @pytest.mark.parametrize(
@@ -152,7 +152,7 @@ async def test_read_resp_failure_invalid_resp_code(msg_bytes):
     s = FakeNetStream()
     await s.write(msg_bytes)
     with pytest.raises(ReadMessageFailure):
-        await read_resp(s, HelloRequest)
+        await read_resp(s, Status)
 
 
 @pytest.mark.asyncio
@@ -166,7 +166,7 @@ async def test_write_resp_failure():
     # Test: Raise `WriteMessageFailure` if `resp_code` is not SUCCESS,
     #   but `msg` is not `str`.
     with pytest.raises(WriteMessageFailure):
-        await write_resp(s, HelloRequest(), ResponseCode.INVALID_REQUEST)
+        await write_resp(s, Status(), ResponseCode.INVALID_REQUEST)
 
     # Test: Raise `WriteMessageFailure` if `ssz.SerializationError` is thrown.
     with pytest.raises(WriteMessageFailure):
