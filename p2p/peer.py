@@ -267,15 +267,11 @@ class BasePeer(BaseService):
             subscriber.add_msg(subscriber_msg)
 
     async def disconnect(self, reason: DisconnectReason) -> None:
-<<<<<<< HEAD
         """
         On completion of this method, the peer will be disconnected
         and not in the peer pool anymore.
         """
-        if reason is DisconnectReason.bad_protocol:
-=======
         if reason is DisconnectReason.BAD_PROTOCOL:
->>>>>>> ad9112e9... tests failing, seems unrelated
             self.connection_tracker.record_blacklist(
                 self.remote,
                 timeout_seconds=BLACKLIST_SECONDS_BAD_PROTOCOL,
