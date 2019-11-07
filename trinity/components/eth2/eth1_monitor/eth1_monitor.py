@@ -1,24 +1,23 @@
 from collections import OrderedDict
-from typing import Any, AsyncGenerator, List, Dict, Tuple, Sequence
+from typing import Any, AsyncGenerator, List, Dict, Sequence, Tuple
 
+from eth_typing import Hash32
+from eth_utils import ValidationError
+
+from lahja import EndpointAPI
 import trio
-
 import web3
 
-from p2p.trio_service import Service
-
+from eth2.beacon.typing import Timestamp
+from eth2.beacon.typing import Gwei
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2._utils.merkle.sparse import calc_merkle_tree_from_leaves, get_root
 from eth2._utils.merkle.common import MerkleTree, get_merkle_proof
-from eth_typing import Hash32
 from eth2._utils.hash import hash_eth2
-from eth2.beacon.typing import Timestamp
-from eth_utils import ValidationError
-from eth2.beacon.typing import Gwei
 
-from lahja import EndpointAPI
+from p2p.trio_service import Service
 
 
 from .exceptions import InvalidEth1Log, Eth1Forked, Eth1BlockNotFound
@@ -30,6 +29,7 @@ from .events import (
 )
 
 
+# TODO: Is there a better typing for `Log`?
 Log = Dict[Any, Any]
 
 
@@ -169,7 +169,7 @@ class Eth1Monitor(Service):
         self._block_timestamp_to_number[timestamp] = block_number
         self._block_number_to_hash[block_number] = block_hash
 
-    def _process_log(self, log: Dict[Any, Any], block_hash: Hash32) -> None:
+    def _process_log(self, log: Log, block_hash: Hash32) -> None:
         if log["blockHash"] != block_hash:
             raise InvalidEth1Log(
                 "`block_hash` of the log does not correspond to the queried block: "
