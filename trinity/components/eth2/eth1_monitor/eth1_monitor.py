@@ -3,7 +3,6 @@ from collections import OrderedDict
 from typing import Any, AsyncGenerator, List, Dict, NamedTuple, Sequence, Tuple
 
 from eth_typing import BLSPubkey, BLSSignature, Hash32
-from eth_utils import ValidationError
 
 from eth_utils import encode_hex, event_abi_to_log_topic
 from lahja import EndpointAPI
@@ -22,7 +21,7 @@ from eth2._utils.hash import hash_eth2
 
 from p2p.trio_service import Service
 
-from .exceptions import Eth1Forked, Eth1BlockNotFound
+from .exceptions import Eth1BlockNotFound, Eth1MonitorValidationError
 from .events import (
     GetDepositResponse,
     GetDepositRequest,
@@ -33,7 +32,6 @@ from .events import (
 
 class Eth1Block(NamedTuple):
     block_hash: Hash32
-    parent_hash: Hash32
     number: int
     timestamp: Timestamp
 
@@ -62,7 +60,6 @@ def _w3_get_latest_block(w3: Web3, *args: Any, **kwargs: Any) -> Eth1Block:
     return Eth1Block(
         block_hash=Hash32(block_dict["hash"]),
         number=int(block_dict["number"]),
-        parent_hash=Hash32(block_dict["parentHash"]),
         timestamp=Timestamp(block_dict["timestamp"]),
     )
 
@@ -108,9 +105,9 @@ class Eth1Monitor(Service):
     _deposit_data: List[DepositData]
     # Mapping from `block.number` to `block.block_hash` of the received delayed blocks.
     _block_number_to_hash: Dict[int, Hash32]
-    # Mapping from `block.block_hash` to the accumulated `deposit_count` before this
+    # Mapping from `block.number` to the accumulated `deposit_count` before this
     # block(including itself).
-    _block_hash_to_accumulated_deposit_count: Dict[Hash32, int]
+    _block_number_to_accumulated_deposit_count: Dict[int, int]
     # Mapping from `block.timestamp` to `block.number`.
     _block_timestamp_to_number: "OrderedDict[Timestamp, int]"
 
@@ -135,7 +132,7 @@ class Eth1Monitor(Service):
 
         self._deposit_data = []
         self._block_number_to_hash = {}
-        self._block_hash_to_accumulated_deposit_count = {}
+        self._block_number_to_accumulated_deposit_count = {}
         self._block_timestamp_to_number = OrderedDict()
 
     async def run(self) -> None:
@@ -152,7 +149,7 @@ class Eth1Monitor(Service):
             self._handle_block_data(block)
             logs = self._get_logs_from_block(block.number)
             for log in logs:
-                self._process_log(log)
+                self._process_log(log, block.number)
 
     async def _handle_get_deposit(self) -> None:
         """
@@ -199,32 +196,26 @@ class Eth1Monitor(Service):
         Validate the block with information we already have, and put it
         in the proper data structures.
         """
-        # If we already process a block at `block_number` with different hash,
-        # there must have been a fork happening.
-        if (block.number in self._block_number_to_hash) and (
-            self._block_number_to_hash[block.number] != block.block_hash
-        ):
-            raise Eth1Forked(
-                f"Received block {block.block_hash}, but at the same height "
-                f"we already got block {self._block_number_to_hash[block.number]} before"
+        # Sanity check
+        if block.number in self._block_number_to_accumulated_deposit_count:
+            raise Eth1MonitorValidationError(
+                f"Already received block #{block.number} before"
             )
-        if block.block_hash in self._block_hash_to_accumulated_deposit_count:
-            raise Eth1Forked(
-                f"The entry of block {block.block_hash} has been created before. "
-                "This indicates there might have been a fork"
-            )
-        # Accumulate the block's deposit count with its parent's.
-        if block.parent_hash not in self._block_hash_to_accumulated_deposit_count:
-            self._block_hash_to_accumulated_deposit_count[block.block_hash] = 0
+
+        # Initialize the block's `deposit_count` with the one of its parent.
+        parent_block_number = block.number - 1
+        if parent_block_number not in self._block_number_to_accumulated_deposit_count:
+            self._block_number_to_accumulated_deposit_count[block.number] = 0
         else:
-            self._block_hash_to_accumulated_deposit_count[
-                block.block_hash
-            ] = self._block_hash_to_accumulated_deposit_count[block.parent_hash]
+            self._block_number_to_accumulated_deposit_count[
+                block.number
+            ] = self._block_number_to_accumulated_deposit_count[parent_block_number]
         # Check timestamp.
         if len(self._block_timestamp_to_number) != 0:
             latest_timestamp = next(reversed(self._block_timestamp_to_number))
+            # Sanity check.
             if block.timestamp < latest_timestamp:
-                raise Eth1Forked(
+                raise Eth1MonitorValidationError(
                     "Later blocks with earlier timestamp: "
                     f"latest_timestamp={latest_timestamp}, timestamp={block.timestamp}"
                 )
@@ -253,12 +244,12 @@ class Eth1Monitor(Service):
         )
         return parsed_logs
 
-    def _process_log(self, log: DepositLog) -> None:
+    def _process_log(self, log: DepositLog, block_number: int) -> None:
         """
         Simply store the deposit data from the log, and increase the corresponding block's
         `deposit_count`.
         """
-        self._block_hash_to_accumulated_deposit_count[log.block_hash] += 1
+        self._block_number_to_accumulated_deposit_count[block_number] += 1
         self._deposit_data.append(
             DepositData(
                 pubkey=log.pubkey,
@@ -338,18 +329,19 @@ class Eth1Monitor(Service):
                 f"`distance`={distance}, ",
                 f"eth1_voting_period_start_block_number={eth1_voting_period_start_block_number}",
             )
-        target_block_hash = self._block_number_to_hash[target_block_number]
         # `Eth1Data.deposit_count`: get the `deposit_count` corresponding to the block.
-        accumulated_deposit_count = self._block_hash_to_accumulated_deposit_count[
-            target_block_hash
+        accumulated_deposit_count = self._block_number_to_accumulated_deposit_count[
+            target_block_number
         ]
         if accumulated_deposit_count == 0:
-            raise ValidationError("failed to make `Eth1Data`: `deposit_count = 0`")
+            raise Eth1MonitorValidationError(
+                f"failed to make `Eth1Data`: `deposit_count = 0` at block #{target_block_number}"
+            )
         _, deposit_root = _make_deposit_tree_and_root(
             self._deposit_data[:accumulated_deposit_count]
         )
         return Eth1Data(
             deposit_root=deposit_root,
             deposit_count=accumulated_deposit_count,
-            block_hash=target_block_hash,
+            block_hash=self._block_number_to_hash[target_block_number],
         )
