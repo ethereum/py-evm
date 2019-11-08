@@ -74,6 +74,9 @@ from eth.vm.interrupt import (
 from eth.rlp.accounts import (
     Account,
 )
+from eth.rlp.headers import (
+    BlockHeader,
+)
 from eth.validation import (
     validate_is_bytes,
     validate_uint256,
@@ -221,7 +224,7 @@ class AccountDB(BaseAccountDB):
 
     logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.AccountDB'))
 
-    def __init__(self, db: BaseAtomicDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
+    def __init__(self, db: BaseAtomicDB, header: BlockHeader = None) -> None:
         r"""
         Internal implementation details (subject to rapid change):
         Database entries go through several pipes, like so...
@@ -259,6 +262,12 @@ class AccountDB(BaseAccountDB):
         AccountDB synchronizes the snapshot/revert/persist of both of the
         journals.
         """
+
+        if header:
+            state_root = header.state_root
+        else:
+            state_root = BLANK_ROOT_HASH
+
         self._raw_store_db = db
         self._batchdb = BatchDB(db)
         self._batchtrie = BatchDB(db, read_through_deletes=True)
@@ -785,7 +794,7 @@ class AccountDB(BaseAccountDB):
 class TurboAccountDB(AccountDB):
     logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.TurboAccountDB'))
 
-    def __init__(self, db: BaseAtomicDB, state_root: Hash32=BLANK_ROOT_HASH) -> None:
+    def __init__(self, db: BaseAtomicDB, header: BlockHeader = None) -> None:
 
         # TODO: This method can't check whether we're in the right schema, because
         # from_genesis creates a state w an empty db?
@@ -816,7 +825,7 @@ class TurboAccountDB(AccountDB):
 #        if db[SchemaTurbo.current_state_root_key] != state_root:
 #            print('Provided state root does not match db, errors are expected')
 
-        super().__init__(db, state_root)
+        super().__init__(db, header)
 
     def _get_encoded_account(self, address: Address, from_journal: bool=True) -> bytes:
         if from_journal:

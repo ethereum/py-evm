@@ -442,7 +442,7 @@ class VM(BaseVM):
 
         execution_context = header.create_execution_context(previous_hashes)
         return cls.get_state_class()(
-            db, execution_context, header.state_root, expected_schema
+            db, execution_context, header, expected_schema
         )
 
     #

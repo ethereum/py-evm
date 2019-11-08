@@ -34,6 +34,7 @@ from eth.db.backends.base import (
 )
 from eth.db.schema import ensure_schema, Schemas
 from eth.exceptions import StateRootNotFound
+from eth.rlp.headers import BlockHeader
 from eth.tools.logging import (
     ExtendedDebugLogger,
 )
@@ -90,7 +91,7 @@ class BaseState(Configurable, ABC):
             self,
             db: BaseAtomicDB,
             execution_context: ExecutionContext,
-            state_root: bytes,
+            header: BlockHeader,
             # expected_schema: Schemas = Schemas.DEFAULT) -> None:
             expected_schema: Schemas = Schemas.TURBO) -> None:
         self._db = db
@@ -101,9 +102,9 @@ class BaseState(Configurable, ABC):
 
         # TODO: somehow integrate with self.get_account_db_class()
         if expected_schema == Schemas.TURBO:
-            self._account_db = TurboAccountDB(db, state_root)
+            self._account_db = TurboAccountDB(db, header)
         elif expected_schema == Schemas.DEFAULT:
-            self._account_db = AccountDB(db, state_root)
+            self._account_db = AccountDB(db, header)
         else:
             raise NotImplementedError()
 
