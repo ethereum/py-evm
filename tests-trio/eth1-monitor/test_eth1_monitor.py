@@ -26,8 +26,9 @@ async def test_logs_handling(
     w3,
     registration_contract,
     tester,
-    blocks_delayed_to_query_logs,
+    num_blocks_confirmed,
     polling_period,
+    start_block_number,
     endpoint_server,
     func_do_deposit,
 ):
@@ -37,19 +38,19 @@ async def test_logs_handling(
         w3,
         registration_contract.address,
         registration_contract.abi,
-        blocks_delayed_to_query_logs,
+        num_blocks_confirmed,
         polling_period,
+        start_block_number,
         endpoint_server,
     )
     async with background_service(m):
         # Test: previous logs can still be queried after `Eth1Monitor` is run.
         await wait_all_tasks_blocked()
         assert len(m._deposit_data) == 0
-        assert len(m._block_number_to_hash) == 0
-        #       `blocks_delayed_to_query_logs`
+        #       `num_blocks_confirmed`
         #            |-----------------|
         # [x] -> [x] -> [ ] -> [ ] -> [ ]
-        tester.mine_blocks(blocks_delayed_to_query_logs - 1)
+        tester.mine_blocks(num_blocks_confirmed - 1)
         await trio.sleep(polling_period)
         await wait_all_tasks_blocked()
         assert len(m._deposit_data) == 1 and m._deposit_data[0].amount == amount_0
@@ -58,12 +59,12 @@ async def test_logs_handling(
         await wait_all_tasks_blocked()
         assert len(m._deposit_data) == 2 and m._deposit_data[1].amount == amount_1
         # Test: a new log can be queried after the transaction is included in a block
-        #   and `blocks_delayed_to_query_logs` blocks are mined.
-        #   `blocks_delayed_to_query_logs`
+        #   and `num_blocks_confirmed` blocks are mined.
+        #   `num_blocks_confirmed`
         #     |-----------------|
         # [x] -> [ ] -> [ ] -> [ ]
         amount_2 = func_do_deposit()
-        tester.mine_blocks(blocks_delayed_to_query_logs)
+        tester.mine_blocks(num_blocks_confirmed)
         await trio.sleep(polling_period)
         await wait_all_tasks_blocked()
         assert len(m._deposit_data) == 3 and m._deposit_data[2].amount == amount_2
@@ -74,7 +75,7 @@ async def test_get_deposit(
     w3,
     registration_contract,
     tester,
-    blocks_delayed_to_query_logs,
+    num_blocks_confirmed,
     polling_period,
     eth1_monitor,
     func_do_deposit,
@@ -85,10 +86,10 @@ async def test_get_deposit(
     deposit_count = 3
     for _ in range(deposit_count):
         func_do_deposit()
-    #          `blocks_delayed_to_query_logs`
+    #          `num_blocks_confirmed`
     #            |-----------------|
     # [x] -> [x] -> [x] -> [ ] -> [ ]
-    tester.mine_blocks(blocks_delayed_to_query_logs - 1)
+    tester.mine_blocks(num_blocks_confirmed - 1)
     await trio.sleep(polling_period)
     await wait_all_tasks_blocked()
     # Test: The last deposit hasn't been put in `Eth1Monitor._deposit_data`.
@@ -134,12 +135,12 @@ async def test_get_eth1_data(
     w3,
     tester,
     registration_contract,
-    blocks_delayed_to_query_logs,
+    num_blocks_confirmed,
     polling_period,
     eth1_monitor,
     func_do_deposit,
 ):
-    tester.mine_blocks(blocks_delayed_to_query_logs)
+    tester.mine_blocks(num_blocks_confirmed)
     # Sleep for a while to wait for mined blocks parsed.
     await trio.sleep(polling_period)
     await wait_all_tasks_blocked()
@@ -157,21 +158,21 @@ async def test_get_eth1_data(
     with pytest.raises(Eth1BlockNotFound):
         eth1_monitor._get_eth1_data(distance_safe, timestamp_invalid)
 
-    #            `blocks_delayed_to_query_logs`  _latest block
+    #            `num_blocks_confirmed`  _latest block
     #                   |-----------------|     /
     # [x] -> [x] -> [ ] -> [ ] -> [ ] -> [ ]
     #  b0     b1     b2     b3     b4     b5
 
     # Test: `deposit` and mine blocks. Queries with `timestamp` after
-    #   `blocks_delayed_to_query_logs` blocks should get the result including the deposit.
+    #   `num_blocks_confirmed` blocks should get the result including the deposit.
     func_do_deposit()
     func_do_deposit()
-    tester.mine_blocks(blocks_delayed_to_query_logs + 1)
+    tester.mine_blocks(num_blocks_confirmed + 1)
     await trio.sleep(polling_period)
     await wait_all_tasks_blocked()
     # `2` is automined blocks by `deposit`,
-    # and `blocks_delayed_to_query_logs + 1` are mined later.
-    number_recent_blocks = 2 + blocks_delayed_to_query_logs + 1
+    # and `num_blocks_confirmed + 1` are mined later.
+    number_recent_blocks = 2 + num_blocks_confirmed + 1
     current_height = w3.eth.blockNumber
     block_numbers = [current_height - i for i in reversed(range(number_recent_blocks))]
 
@@ -214,9 +215,9 @@ async def test_get_eth1_data(
     assert_get_eth1_data_raises(block_numbers[2], 3)
 
     # Assert b3, b4, b5.
-    # Since these blocks are still within `blocks_delayed_to_query_logs`,
+    # Since these blocks are still within `num_blocks_confirmed`,
     # queries with their timestamps should get the result of the latest block after
-    # `blocks_delayed_to_query_logs` blocks.
+    # `num_blocks_confirmed` blocks.
     assert_get_eth1_data(
         block_numbers[3], 0, 2, expected_block_number_at_distance=block_numbers[2]
     )
@@ -233,7 +234,7 @@ async def test_ipc(
     w3,
     registration_contract,
     tester,
-    blocks_delayed_to_query_logs,
+    num_blocks_confirmed,
     polling_period,
     endpoint_server,
     endpoint_client,
@@ -241,7 +242,7 @@ async def test_ipc(
     func_do_deposit,
 ):
     func_do_deposit()
-    tester.mine_blocks(blocks_delayed_to_query_logs)
+    tester.mine_blocks(num_blocks_confirmed)
     await trio.sleep(polling_period)
     await wait_all_tasks_blocked()
 

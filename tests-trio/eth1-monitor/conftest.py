@@ -57,13 +57,18 @@ def w3(tester):
 
 
 @pytest.fixture
-def blocks_delayed_to_query_logs():
+def num_blocks_confirmed():
     return 3
 
 
 @pytest.fixture
 def polling_period():
     return 0.01
+
+
+@pytest.fixture
+def start_block_number():
+    return 0
 
 
 @pytest.fixture
@@ -91,16 +96,18 @@ def func_do_deposit(w3, registration_contract):
 async def eth1_monitor(
     w3,
     registration_contract,
-    blocks_delayed_to_query_logs,
+    num_blocks_confirmed,
     polling_period,
+    start_block_number,
     endpoint_server,
 ):
     m = Eth1Monitor(
         w3,
         registration_contract.address,
         registration_contract.abi,
-        blocks_delayed_to_query_logs,
+        num_blocks_confirmed,
         polling_period,
+        start_block_number,
         endpoint_server,
     )
     async with background_service(m):
