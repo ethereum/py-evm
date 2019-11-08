@@ -1,3 +1,4 @@
+import bisect
 from collections import OrderedDict
 from typing import Any, AsyncGenerator, List, Dict, NamedTuple, Sequence, Tuple
 
@@ -289,25 +290,25 @@ class Eth1Monitor(Service):
             data=self._deposit_data[deposit_index],
         )
 
-    def _get_closest_eth1_voting_period_start_block(
-        self, target_timestamp: Timestamp
-    ) -> int:
+    def _get_closest_eth1_voting_period_start_block(self, timestamp: Timestamp) -> int:
         """
         Find the timestamp in `self._block_timestamp_to_number` which is the largest timestamp
-        smaller than `target_timestamp`.
+        smaller than `timestamp`.
         Assume `self._block_timestamp_to_number` is in ascending order, the most naive way to find
         the timestamp is to traverse from the tail of `self._block_timestamp_to_number`.
         """
-        # TODO: Change to binary search.
-        for timestamp, block_number in reversed(
-            self._block_timestamp_to_number.items()
-        ):
-            if target_timestamp >= timestamp:
-                return block_number
-        raise Eth1BlockNotFound(
-            "Failed to find the closest eth1 voting period start block to "
-            f"timestamp {target_timestamp}"
-        )
+        # Binary search for the right-most timestamp smaller than `timestamp`.
+        all_timestamps = tuple(self._block_timestamp_to_number.keys())
+        target_timestamp_index = bisect.bisect_right(all_timestamps, timestamp)
+        # Though `index < 0` should never happen, check it for safety.
+        if target_timestamp_index <= 0:
+            raise Eth1BlockNotFound(
+                "Failed to find the closest eth1 voting period start block to "
+                f"timestamp {timestamp}"
+            )
+        else:
+            target_key = all_timestamps[target_timestamp_index - 1]
+            return self._block_timestamp_to_number[target_key]
 
     def _get_eth1_data(
         self, distance: int, eth1_voting_period_start_timestamp: Timestamp
