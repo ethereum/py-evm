@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 from eth_utils import ValidationError
@@ -16,8 +14,11 @@ from eth.rlp.headers import BlockHeader
 from eth.vm.forks.homestead import HomesteadVM
 
 from trinity.config import (
-    MAINNET_EIP1085_PATH,
-    ROPSTEN_EIP1085_PATH,
+    _load_preconfigured_genesis_config,
+)
+from trinity.constants import (
+    MAINNET_NETWORK_ID,
+    ROPSTEN_NETWORK_ID,
 )
 from trinity._utils.eip1085 import (
     validate_raw_eip1085_genesis_config,
@@ -27,9 +28,7 @@ from trinity._utils.eip1085 import (
 
 @pytest.fixture
 def mainnet_genesis_config():
-    with MAINNET_EIP1085_PATH.open() as mainnet_eip1085_file:
-        mainnet_genesis_config = json.load(mainnet_eip1085_file)
-    return mainnet_genesis_config
+    return _load_preconfigured_genesis_config(MAINNET_NETWORK_ID)
 
 
 def test_mainnet_eip1085_validity(mainnet_genesis_config):
@@ -133,9 +132,7 @@ def test_mainnet_eip1085_rejects_etc_homestead_header(mainnet_genesis_config):
 
 @pytest.fixture
 def ropsten_genesis_config():
-    with ROPSTEN_EIP1085_PATH.open() as ropsten_eip1085_file:
-        ropsten_genesis_config = json.load(ropsten_eip1085_file)
-    return ropsten_genesis_config
+    return _load_preconfigured_genesis_config(ROPSTEN_NETWORK_ID)
 
 
 def test_ropsten_eip1085_validity(ropsten_genesis_config):

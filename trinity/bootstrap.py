@@ -31,14 +31,13 @@ from trinity.config import (
     BaseAppConfig,
     TrinityConfig,
 )
-from trinity.constants import (
-    MAINNET_NETWORK_ID,
-    ROPSTEN_NETWORK_ID,
-)
 from trinity.event_bus import ComponentManagerService
 from trinity.extensibility import (
     BaseComponent,
     TrinityBootInfo,
+)
+from trinity.network_configurations import (
+    PRECONFIGURED_NETWORKS,
 )
 from trinity._utils.ipc import (
     kill_process_gracefully,
@@ -57,9 +56,6 @@ from trinity._utils.version import (
     construct_trinity_client_identifier,
     is_prerelease,
 )
-
-
-PRECONFIGURED_NETWORKS = {MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID}
 
 
 TRINITY_HEADER = "\n".join((

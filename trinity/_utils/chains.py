@@ -27,16 +27,11 @@ from p2p.constants import DEFAULT_MAX_PEERS
 from p2p.kademlia import Node as KademliaNode
 
 from trinity.constants import (
-    MAINNET_NETWORK_ID,
-    ROPSTEN_NETWORK_ID,
     SYNC_LIGHT,
 )
-
-
-DEFAULT_DATA_DIRS = {
-    ROPSTEN_NETWORK_ID: 'ropsten',
-    MAINNET_NETWORK_ID: 'mainnet',
-}
+from trinity.network_configurations import (
+    PRECONFIGURED_NETWORKS,
+)
 
 
 #
@@ -58,7 +53,9 @@ def get_data_dir_for_network_id(network_id: int, trinity_root_dir: Path) -> Path
     id.  If the network id is unknown, raises a KeyError.
     """
     try:
-        return get_local_data_dir(DEFAULT_DATA_DIRS[network_id], trinity_root_dir)
+        return get_local_data_dir(
+            PRECONFIGURED_NETWORKS[network_id].data_dir_name, trinity_root_dir
+        )
     except KeyError:
         raise KeyError(f"Unknown network id: `{network_id}`")
 

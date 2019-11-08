@@ -61,10 +61,6 @@ from eth2.beacon.typing import (
 from eth2.configs import (
     Eth2GenesisConfig,
 )
-from p2p.constants import (
-    MAINNET_BOOTNODES,
-    ROPSTEN_BOOTNODES,
-)
 from p2p.kademlia import (
     Node as KademliaNode,
 )
@@ -94,9 +90,7 @@ from trinity.constants import (
     IPC_DIR,
     LOG_DIR,
     LOG_FILE,
-    MAINNET_NETWORK_ID,
     PID_DIR,
-    ROPSTEN_NETWORK_ID,
     SYNC_LIGHT,
 )
 from trinity.components.eth2.beacon.utils import (
@@ -106,6 +100,9 @@ from trinity.components.eth2.beacon.utils import (
 from trinity.components.eth2.constants import (
     VALIDATOR_KEY_DIR,
     GENESIS_FILE,
+)
+from trinity.network_configurations import (
+    PRECONFIGURED_NETWORKS
 )
 
 
@@ -119,31 +116,27 @@ if TYPE_CHECKING:
 
 DATABASE_DIR_NAME = 'chain'
 
-MAINNET_EIP1085_PATH = ASSETS_DIR / 'eip1085' / 'mainnet.json'
-ROPSTEN_EIP1085_PATH = ASSETS_DIR / 'eip1085' / 'ropsten.json'
 
-
-PRECONFIGURED_NETWORKS = {MAINNET_NETWORK_ID, ROPSTEN_NETWORK_ID}
+def _get_assets_path(network_id: int) -> Path:
+    if network_id not in PRECONFIGURED_NETWORKS:
+        raise TypeError(f"Unknown or unsupported `network_id`: {network_id}")
+    else:
+        return ASSETS_DIR / 'eip1085' / PRECONFIGURED_NETWORKS[network_id].eip1085_filename
 
 
 def _load_preconfigured_genesis_config(network_id: int) -> Dict[str, Any]:
-    if network_id == MAINNET_NETWORK_ID:
-        with MAINNET_EIP1085_PATH.open('r') as mainnet_genesis_file:
-            return json.load(mainnet_genesis_file)
-    elif network_id == ROPSTEN_NETWORK_ID:
-        with ROPSTEN_EIP1085_PATH.open('r') as ropsten_genesis_file:
-            return json.load(ropsten_genesis_file)
-    else:
+    if network_id not in PRECONFIGURED_NETWORKS:
         raise TypeError(f"Unknown or unsupported `network_id`: {network_id}")
+    else:
+        with _get_assets_path(network_id).open('r') as genesis_file:
+            return json.load(genesis_file)
 
 
 def _get_preconfigured_chain_name(network_id: int) -> str:
-    if network_id == MAINNET_NETWORK_ID:
-        return 'MainnetChain'
-    elif network_id == ROPSTEN_NETWORK_ID:
-        return 'RopstenChain'
-    else:
+    if network_id not in PRECONFIGURED_NETWORKS:
         raise TypeError(f"Unknown or unsupported `network_id`: {network_id}")
+    else:
+        return PRECONFIGURED_NETWORKS[network_id].chain_name
 
 
 class Eth1ChainConfig:
@@ -310,13 +303,10 @@ class TrinityConfig:
             self.preferred_nodes = preferred_nodes
 
         if bootstrap_nodes is None:
-            if self.network_id == MAINNET_NETWORK_ID:
+            if self.network_id in PRECONFIGURED_NETWORKS:
+                bootnodes = PRECONFIGURED_NETWORKS[self.network_id].bootnodes
                 self.bootstrap_nodes = tuple(
-                    KademliaNode.from_uri(enode) for enode in MAINNET_BOOTNODES
-                )
-            elif self.network_id == ROPSTEN_NETWORK_ID:
-                self.bootstrap_nodes = tuple(
-                    KademliaNode.from_uri(enode) for enode in ROPSTEN_BOOTNODES
+                    KademliaNode.from_uri(enode) for enode in bootnodes
                 )
             else:
                 self.bootstrap_nodes = tuple()
