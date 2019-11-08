@@ -103,6 +103,7 @@ class Eth1Monitor(Service):
 
     _event_bus: EndpointAPI
 
+    # TODO: Store deposit data in DB?
     # Deposit data parsed from the logs we received. The order is from the oldest to the latest.
     _deposit_data: List[DepositData]
     # Mapping from `block.number` to `block.block_hash` of the received delayed blocks.
@@ -307,7 +308,11 @@ class Eth1Monitor(Service):
                 f"timestamp {timestamp}"
             )
         else:
-            target_key = all_timestamps[target_timestamp_index - 1]
+            # `bisect.bisect_right` returns the index we should insert `timestamp` into
+            # `all_timestamps`, to make `all_timestamps` still in order. The element we are
+            # looking for is actually `index - 1`
+            index = target_timestamp_index - 1
+            target_key = all_timestamps[index]
             return self._block_timestamp_to_number[target_key]
 
     def _get_eth1_data(
