@@ -6,9 +6,9 @@ from eth2.configs import Eth2Config
 
 SERENITY_CONFIG = Eth2Config(
     # Misc
-    SHARD_COUNT=2 ** 10,  # (= 1,024) shards
+    MAX_COMMITTEES_PER_SLOT=2 ** 6,  # (= 64) committees
     TARGET_COMMITTEE_SIZE=2 ** 7,  # (= 128) validators
-    MAX_VALIDATORS_PER_COMMITTEE=2 ** 12,  # (= 4,096) validators
+    MAX_VALIDATORS_PER_COMMITTEE=2 ** 11,  # (= 2,048) validators
     MIN_PER_EPOCH_CHURN_LIMIT=2 ** 2,
     CHURN_LIMIT_QUOTIENT=2 ** 16,
     SHUFFLE_ROUND_COUNT=90,
@@ -25,16 +25,15 @@ SERENITY_CONFIG = Eth2Config(
     GENESIS_EPOCH=Epoch(0),
     BLS_WITHDRAWAL_PREFIX=0,
     # Time parameters
-    SECONDS_PER_SLOT=Second(6),  # seconds
+    SECONDS_PER_SLOT=Second(12),  # seconds
     MIN_ATTESTATION_INCLUSION_DELAY=2 ** 0,  # (= 1) slots
-    SLOTS_PER_EPOCH=2 ** 6,  # (= 64) slots
+    SLOTS_PER_EPOCH=2 ** 5,  # (= 32) slots
     MIN_SEED_LOOKAHEAD=2 ** 0,  # (= 1) epochs
-    ACTIVATION_EXIT_DELAY=2 ** 2,  # (= 4) epochs
+    MAX_SEED_LOOKAHEAD=2 ** 2,  # (= 4) epochs
     SLOTS_PER_ETH1_VOTING_PERIOD=2 ** 10,  # (= 16) epochs
     SLOTS_PER_HISTORICAL_ROOT=2 ** 13,  # (= 8,192) slots
     MIN_VALIDATOR_WITHDRAWABILITY_DELAY=2 ** 8,  # (= 256) epochs
     PERSISTENT_COMMITTEE_PERIOD=2 ** 11,  # (= 2,048) epochs
-    MAX_EPOCHS_PER_CROSSLINK=2 ** 6,
     MIN_EPOCHS_TO_INACTIVITY_PENALTY=2 ** 2,
     # State list lengths
     EPOCHS_PER_HISTORICAL_VECTOR=2 ** 16,
@@ -53,7 +52,6 @@ SERENITY_CONFIG = Eth2Config(
     MAX_ATTESTATIONS=2 ** 7,  # (= 128)
     MAX_DEPOSITS=2 ** 4,  # (= 16)
     MAX_VOLUNTARY_EXITS=2 ** 4,  # (= 16)
-    MAX_TRANSFERS=0,
     # Deposit contract
     DEPOSIT_CONTRACT_ADDRESS=decode_hex(
         "0x1234567890123456789012345678901234567890"

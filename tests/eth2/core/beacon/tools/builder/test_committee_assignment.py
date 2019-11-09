@@ -1,7 +1,7 @@
 import pytest
 
 from eth2.beacon.exceptions import NoCommitteeAssignment
-from eth2.beacon.helpers import compute_start_slot_of_epoch
+from eth2.beacon.helpers import compute_start_slot_at_epoch
 from eth2.beacon.tools.builder.committee_assignment import get_committee_assignment
 
 
@@ -10,7 +10,7 @@ from eth2.beacon.tools.builder.committee_assignment import get_committee_assignm
         "validator_count,"
         "slots_per_epoch,"
         "target_committee_size,"
-        "shard_count,"
+        "max_committees_per_slot,"
         "state_epoch,"
         "epoch,"
     ),
@@ -24,37 +24,37 @@ from eth2.beacon.tools.builder.committee_assignment import get_committee_assignm
 def test_get_committee_assignment(
     genesis_state,
     slots_per_epoch,
-    shard_count,
+    max_committees_per_slot,
     config,
     validator_count,
     state_epoch,
     epoch,
-    fixture_sm_class,
 ):
-    state_slot = compute_start_slot_of_epoch(state_epoch, slots_per_epoch)
+    state_slot = compute_start_slot_at_epoch(state_epoch, slots_per_epoch)
     state = genesis_state.copy(slot=state_slot)
-    proposer_count = 0
-    shard_validator_count = [0 for _ in range(shard_count)]
+    committee_validator_count = [0 for _ in range(max_committees_per_slot)]
     slots = []
 
-    epoch_start_slot = compute_start_slot_of_epoch(epoch, slots_per_epoch)
+    epoch_start_slot = compute_start_slot_at_epoch(epoch, slots_per_epoch)
 
     for validator_index in range(validator_count):
         assignment = get_committee_assignment(state, config, epoch, validator_index)
         assert assignment.slot >= epoch_start_slot
         assert assignment.slot < epoch_start_slot + slots_per_epoch
-        if assignment.is_proposer:
-            proposer_count += 1
 
-        shard_validator_count[assignment.shard] += 1
+        committee_validator_count[assignment.committee_index] += 1
         slots.append(assignment.slot)
 
-    assert proposer_count == slots_per_epoch
-    assert sum(shard_validator_count) == validator_count
+    assert sum(committee_validator_count) == validator_count
 
 
 @pytest.mark.parametrize(
-    ("validator_count," "slots_per_epoch," "target_committee_size," "shard_count,"),
+    (
+        "validator_count,"
+        "slots_per_epoch,"
+        "target_committee_size,"
+        "max_committees_per_slot,"
+    ),
     [(40, 16, 1, 16)],
 )
 def test_get_committee_assignment_no_assignment(

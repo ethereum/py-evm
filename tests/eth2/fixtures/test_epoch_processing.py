@@ -16,18 +16,6 @@ def pytest_generate_tests(metafunc):
     {
         "config_types": (Minimal,),
         "test_types": {
-            EpochProcessingTestType: lambda handler: handler.name == "crosslinks"
-        },
-    }
-)
-def test_crosslinks(test_case):
-    test_case.execute()
-
-
-@pytest_from_eth2_fixture(
-    {
-        "config_types": (Minimal,),
-        "test_types": {
             EpochProcessingTestType: lambda handler: handler.name
             == "justification_and_finalization"
         },

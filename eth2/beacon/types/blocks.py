@@ -22,7 +22,6 @@ from .defaults import default_slot, default_tuple
 from .deposits import Deposit
 from .eth1_data import Eth1Data, default_eth1_data
 from .proposer_slashings import ProposerSlashing
-from .transfers import Transfer
 from .voluntary_exits import VoluntaryExit
 
 if TYPE_CHECKING:
@@ -40,7 +39,6 @@ class BeaconBlockBody(ssz.Serializable):
         ("attestations", List(Attestation, 1)),
         ("deposits", List(Deposit, 1)),
         ("voluntary_exits", List(VoluntaryExit, 1)),
-        ("transfers", List(Transfer, 1)),
     ]
 
     def __init__(
@@ -54,7 +52,6 @@ class BeaconBlockBody(ssz.Serializable):
         attestations: Sequence[Attestation] = default_tuple,
         deposits: Sequence[Deposit] = default_tuple,
         voluntary_exits: Sequence[VoluntaryExit] = default_tuple,
-        transfers: Sequence[Transfer] = default_tuple,
     ) -> None:
         super().__init__(
             randao_reveal=randao_reveal,
@@ -65,7 +62,6 @@ class BeaconBlockBody(ssz.Serializable):
             attestations=attestations,
             deposits=deposits,
             voluntary_exits=voluntary_exits,
-            transfers=transfers,
         )
 
     @property
@@ -81,7 +77,6 @@ class BeaconBlockBody(ssz.Serializable):
             f" attestations={self.attestations},"
             f" deposits={self.deposits},"
             f" voluntary_exits={self.voluntary_exits},"
-            f" transfers={self.transfers}"
         )
 
     def __repr__(self) -> str:
@@ -176,7 +171,6 @@ class BeaconBlock(BaseBeaconBlock):
             attestations=block.body.attestations,
             deposits=block.body.deposits,
             voluntary_exits=block.body.voluntary_exits,
-            transfers=block.body.transfer,
         )
 
         return cls(

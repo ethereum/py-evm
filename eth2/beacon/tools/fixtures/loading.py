@@ -4,12 +4,22 @@ from typing import Any, Dict
 from eth_utils.toolz import assoc, keyfilter
 from ruamel.yaml import YAML
 
-from eth2.beacon.helpers import compute_epoch_of_slot
+from eth2.beacon.helpers import compute_epoch_at_slot
 from eth2.configs import Eth2Config
 
 
 def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
-    filtered_keys = ("DOMAIN_", "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS")
+    filtered_keys = (
+        "DOMAIN_",
+        "MAX_EPOCHS_PER_CROSSLINK",
+        "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS",
+        "EPOCHS_PER_CUSTODY_PERIOD",
+        "CUSTODY_PERIOD_TO_RANDAO_PADDING",
+        "SHARD_SLOTS_PER_BEACON_SLOT",
+        "EPOCHS_PER_SHARD_PERIOD",
+        "PHASE_1_FORK_EPOCH",
+        "PHASE_1_FORK_SLOT",
+    )
 
     return Eth2Config(
         **assoc(
@@ -17,7 +27,7 @@ def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
                 lambda name: all(key not in name for key in filtered_keys), dict_config
             ),
             "GENESIS_EPOCH",
-            compute_epoch_of_slot(
+            compute_epoch_at_slot(
                 dict_config["GENESIS_SLOT"], dict_config["SLOTS_PER_EPOCH"]
             ),
         )

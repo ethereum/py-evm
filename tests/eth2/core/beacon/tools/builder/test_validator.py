@@ -18,7 +18,7 @@ def test_aggregate_votes(votes_count, random, privkeys, pubkeys):
     bit_count = 10
     pre_bitfield = get_empty_bitfield(bit_count)
     pre_sigs = ()
-    domain = compute_domain(SignatureDomain.DOMAIN_ATTESTATION)
+    domain = compute_domain(SignatureDomain.DOMAIN_BEACON_ATTESTER)
 
     random_votes = random.sample(range(bit_count), votes_count)
     message_hash = b"\x12" * 32

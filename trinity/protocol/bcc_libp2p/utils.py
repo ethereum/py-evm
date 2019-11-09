@@ -21,7 +21,7 @@ from eth2.beacon.constants import (
     ZERO_SIGNING_ROOT,
 )
 from eth2.beacon.helpers import (
-    compute_start_slot_of_epoch,
+    compute_start_slot_at_epoch,
 )
 from eth2.beacon.types.blocks import (
     BaseBeaconBlock,
@@ -147,7 +147,7 @@ async def validate_peer_status(chain: BaseBeaconChain, peer_status: Status) -> N
     ):
         return
 
-    finalized_epoch_start_slot = compute_start_slot_of_epoch(
+    finalized_epoch_start_slot = compute_start_slot_at_epoch(
         peer_status.finalized_epoch,
         config.SLOTS_PER_EPOCH,
     )
@@ -185,7 +185,7 @@ def compare_chain_tip_and_finalized_epoch(
 def validate_start_slot(chain: BaseBeaconChain, start_slot: Slot) -> None:
     config = chain.get_state_machine().config
     state = chain.get_head_state()
-    finalized_epoch_start_slot = compute_start_slot_of_epoch(
+    finalized_epoch_start_slot = compute_start_slot_at_epoch(
         epoch=state.finalized_checkpoint.epoch,
         slots_per_epoch=config.SLOTS_PER_EPOCH,
     )

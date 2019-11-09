@@ -7,12 +7,14 @@ from eth2.beacon.constants import FAR_FUTURE_EPOCH, GWEI_PER_ETH
 from eth2.beacon.helpers import (
     _get_fork_version,
     _get_seed,
-    compute_start_slot_of_epoch,
+    compute_start_slot_at_epoch,
     get_active_validator_indices,
     get_block_root_at_slot,
     get_domain,
     get_total_balance,
+    signature_domain_to_domain_type,
 )
+from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
@@ -184,7 +186,7 @@ def test_get_seed(
     committee_config,
     slots_per_epoch,
     min_seed_lookahead,
-    activation_exit_delay,
+    max_seed_lookahead,
     epochs_per_historical_vector,
 ):
     def mock_get_randao_mix(state, epoch, epochs_per_historical_vector):
@@ -194,40 +196,30 @@ def test_get_seed(
             + epochs_per_historical_vector.to_bytes(32, byteorder="little")
         )
 
-    def mock_get_active_index_root(state, epoch, epochs_per_historical_vector):
-        return hash_eth2(
-            state.hash_tree_root
-            + epoch.to_bytes(32, byteorder="little")
-            + slots_per_epoch.to_bytes(32, byteorder="little")
-            + epochs_per_historical_vector.to_bytes(32, byteorder="little")
-        )
-
     state = genesis_state
     epoch = 1
     state = state.copy(
-        slot=compute_start_slot_of_epoch(epoch, committee_config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_at_epoch(epoch, committee_config.SLOTS_PER_EPOCH)
     )
 
     epoch_as_bytes = epoch.to_bytes(32, "little")
-
+    domain_type = signature_domain_to_domain_type(
+        SignatureDomain.DOMAIN_BEACON_PROPOSER
+    )
     seed = _get_seed(
         state=state,
         epoch=epoch,
+        domain_type=domain_type,
         randao_provider=mock_get_randao_mix,
-        active_index_root_provider=mock_get_active_index_root,
         epoch_provider=lambda *_: epoch_as_bytes,
         committee_config=committee_config,
     )
     assert seed == hash_eth2(
-        mock_get_randao_mix(
+        domain_type
+        + epoch_as_bytes
+        + mock_get_randao_mix(
             state=state,
             epoch=(epoch + epochs_per_historical_vector - min_seed_lookahead - 1),
             epochs_per_historical_vector=epochs_per_historical_vector,
         )
-        + mock_get_active_index_root(
-            state=state,
-            epoch=epoch,
-            epochs_per_historical_vector=epochs_per_historical_vector,
-        )
-        + epoch_as_bytes
     )

@@ -1,9 +1,6 @@
 from typing import Sequence
 
-from eth2.beacon.genesis import (
-    initialize_beacon_state_from_eth1,
-    state_with_validator_digests,
-)
+from eth2.beacon.genesis import initialize_beacon_state_from_eth1
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.states import BeaconState
 from eth2.beacon.types.validators import Validator
@@ -78,4 +75,4 @@ def create_mock_genesis_state_from_validators(
         balances=genesis_balances,
     )
 
-    return state_with_validator_digests(state_with_validators, config)
+    return state_with_validators

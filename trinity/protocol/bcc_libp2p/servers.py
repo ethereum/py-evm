@@ -28,9 +28,6 @@ from libp2p.pubsub.pb import rpc_pb2
 
 from p2p.service import BaseService
 
-from eth2.beacon.attestation_helpers import (
-    get_attestation_data_slot,
-)
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
@@ -358,11 +355,9 @@ class BCCReceiveServer(BaseService):
         config = self.chain.get_state_machine().config
         state = self.chain.get_head_state()
         for attestation in self.attestation_pool.get_all():
-            data = attestation.data
-            attestation_slot = get_attestation_data_slot(state, data, config)
             try:
                 validate_attestation_slot(
-                    attestation_slot,
+                    attestation.data.slot,
                     state.slot,
                     config.SLOTS_PER_EPOCH,
                     config.MIN_ATTESTATION_INCLUSION_DELAY,

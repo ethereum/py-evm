@@ -3,10 +3,9 @@ from typing import Dict, Iterable, Optional, Sequence, Tuple, Type, Union
 from eth_utils import to_tuple
 from eth_utils.toolz import curry, first, mapcat, merge, merge_with, second, valmap
 
-from eth2.beacon.attestation_helpers import get_attestation_data_slot
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.epoch_processing_helpers import get_attesting_indices
-from eth2.beacon.helpers import compute_epoch_of_slot, get_active_validator_indices
+from eth2.beacon.helpers import compute_epoch_at_slot, get_active_validator_indices
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation
@@ -51,7 +50,7 @@ class Store:
         self, state: BeaconState, attestation: AttestationLike
     ) -> Iterable[PreIndex]:
         attestation_data = attestation.data
-        slot = get_attestation_data_slot(state, attestation_data, self._config)
+        slot = attestation_data.slot
 
         return (
             {index: (slot, attestation_data)}
@@ -160,7 +159,7 @@ def _find_latest_attestation_target(
 def _find_latest_attestation_targets(
     state: BeaconState, store: Store, config: Eth2Config
 ) -> Iterable[AttestationTarget]:
-    epoch = compute_epoch_of_slot(state.slot, config.SLOTS_PER_EPOCH)
+    epoch = compute_epoch_at_slot(state.slot, config.SLOTS_PER_EPOCH)
     active_validators = get_active_validator_indices(state.validators, epoch)
     return filter(
         second, map(_find_latest_attestation_target(store), active_validators)

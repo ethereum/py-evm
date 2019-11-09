@@ -71,7 +71,7 @@ def _get_indices_and_signatures(validator_count, state, config, message_hash, pr
     indices.sort()
 
     privkeys = [privkeys[i] for i in indices]
-    signature_domain = SignatureDomain.DOMAIN_ATTESTATION
+    signature_domain = SignatureDomain.DOMAIN_BEACON_ATTESTER
     domain = get_domain(
         state=state,
         signature_domain=signature_domain,

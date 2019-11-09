@@ -2,7 +2,7 @@ from eth_utils import ValidationError
 import pytest
 
 from eth2._utils.bls import bls
-from eth2.beacon.helpers import compute_start_slot_of_epoch, get_domain
+from eth2.beacon.helpers import compute_start_slot_at_epoch, get_domain
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_block_slot,
@@ -36,7 +36,7 @@ def test_validate_block_slot(
 
 
 @pytest.mark.parametrize(
-    "slots_per_epoch, shard_count,"
+    "slots_per_epoch, max_committees_per_slot,"
     "proposer_privkey, proposer_pubkey, is_valid_signature",
     (
         (5, 5, 56, bls.privtopub(56), True),
@@ -47,7 +47,7 @@ def test_validate_block_slot(
 )
 def test_validate_proposer_signature(
     slots_per_epoch,
-    shard_count,
+    max_committees_per_slot,
     proposer_privkey,
     proposer_pubkey,
     is_valid_signature,
@@ -108,7 +108,7 @@ def test_randao_reveal_validation(
     config,
 ):
     state = genesis_state.copy(
-        slot=compute_start_slot_of_epoch(epoch, config.SLOTS_PER_EPOCH)
+        slot=compute_start_slot_at_epoch(epoch, config.SLOTS_PER_EPOCH)
     )
     message_hash = epoch.to_bytes(32, byteorder="little")
     slots_per_epoch = config.SLOTS_PER_EPOCH

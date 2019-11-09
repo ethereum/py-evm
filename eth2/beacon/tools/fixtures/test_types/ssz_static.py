@@ -15,8 +15,6 @@ from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.block_headers import BeaconBlockHeader
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.beacon.types.compact_committees import CompactCommittee
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
@@ -25,7 +23,6 @@ from eth2.beacon.types.historical_batch import HistoricalBatch
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
 from eth2.configs import Eth2Config
@@ -191,16 +188,6 @@ class CheckpointHandler(SSZHandler):
     object_type = Checkpoint
 
 
-class CompactCommitteeHandler(SSZHandler):
-    name = "CompactCommittee"
-    object_type = CompactCommittee
-
-
-class CrosslinkHandler(SSZHandler):
-    name = "Crosslink"
-    object_type = Crosslink
-
-
 class DepositHandler(SSZHandler):
     name = "Deposit"
     object_type = Deposit
@@ -241,11 +228,6 @@ class ProposerSlashingHandler(SSZHandler):
     object_type = ProposerSlashing
 
 
-class TransferHandler(SSZHandler):
-    name = "Transfer"
-    object_type = Transfer
-
-
 class ValidatorHandler(SSZHandler):
     name = "Validator"
     object_type = Validator
@@ -266,8 +248,6 @@ SSZStaticHandlerType = Tuple[
     Type[BeaconBlockHeaderHandler],
     Type[BeaconStateHandler],
     Type[CheckpointHandler],
-    Type[CompactCommitteeHandler],
-    Type[CrosslinkHandler],
     Type[DepositHandler],
     Type[DepositDataHandler],
     Type[Eth1DataHandler],
@@ -276,7 +256,6 @@ SSZStaticHandlerType = Tuple[
     Type[IndexedAttestationHandler],
     Type[PendingAttestationHandler],
     Type[ProposerSlashingHandler],
-    Type[TransferHandler],
     Type[ValidatorHandler],
     Type[VoluntaryExitHandler],
 ]
@@ -295,8 +274,6 @@ class SSZStaticTestType(TestType[SSZStaticHandlerType]):
         BeaconBlockHeaderHandler,
         BeaconStateHandler,
         CheckpointHandler,
-        CompactCommitteeHandler,
-        CrosslinkHandler,
         DepositHandler,
         DepositDataHandler,
         Eth1DataHandler,
@@ -305,7 +282,6 @@ class SSZStaticTestType(TestType[SSZStaticHandlerType]):
         IndexedAttestationHandler,
         PendingAttestationHandler,
         ProposerSlashingHandler,
-        TransferHandler,
         ValidatorHandler,
         VoluntaryExitHandler,
     )

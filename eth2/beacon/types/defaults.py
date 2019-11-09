@@ -6,10 +6,10 @@ from typing import TYPE_CHECKING, Tuple, TypeVar
 from eth2.beacon.constants import EMPTY_PUBKEY
 from eth2.beacon.typing import (  # noqa: F401
     default_bitfield,
+    default_committee_index,
     default_epoch,
     default_gwei,
     default_second,
-    default_shard,
     default_slot,
     default_timestamp,
     default_validator_index,

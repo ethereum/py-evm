@@ -10,7 +10,6 @@ from eth2.beacon.genesis import (
 from eth2.beacon.tools.builder.initializer import create_mock_deposits_and_root
 from eth2.beacon.types.block_headers import BeaconBlockHeader
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
 from eth2.beacon.typing import Gwei
@@ -33,7 +32,7 @@ def test_get_genesis_beacon_state(
     pubkeys,
     genesis_epoch,
     genesis_slot,
-    shard_count,
+    max_committees_per_slot,
     slots_per_historical_root,
     epochs_per_slashings_vector,
     epochs_per_historical_vector,
@@ -50,9 +49,10 @@ def test_get_genesis_beacon_state(
         block_hash=ZERO_HASH32,
     )
     eth1_timestamp = 10
+    eth1_block_hash = genesis_eth1_data.block_hash
 
     state = initialize_beacon_state_from_eth1(
-        eth1_block_hash=genesis_eth1_data.block_hash,
+        eth1_block_hash=eth1_block_hash,
         eth1_timestamp=eth1_timestamp,
         deposits=genesis_deposits,
         config=config,
@@ -83,10 +83,8 @@ def test_get_genesis_beacon_state(
     assert len(state.balances) == validator_count
 
     # Shuffling
-    assert state.start_shard == 0
     assert len(state.randao_mixes) == epochs_per_historical_vector
-    assert state.randao_mixes == (ZERO_HASH32,) * epochs_per_historical_vector
-    assert len(state.active_index_roots) == epochs_per_historical_vector
+    assert state.randao_mixes == (eth1_block_hash,) * epochs_per_historical_vector
 
     # Slashings
     assert len(state.slashings) == epochs_per_slashings_vector
@@ -95,12 +93,6 @@ def test_get_genesis_beacon_state(
     # Attestations
     assert len(state.previous_epoch_attestations) == 0
     assert len(state.current_epoch_attestations) == 0
-
-    # Crosslinks
-    assert len(state.current_crosslinks) == shard_count
-    assert state.current_crosslinks == (Crosslink(),) * shard_count
-    assert len(state.previous_crosslinks) == shard_count
-    assert state.previous_crosslinks == (Crosslink(),) * shard_count
 
     # Justification
     assert state.previous_justified_checkpoint.epoch == genesis_epoch

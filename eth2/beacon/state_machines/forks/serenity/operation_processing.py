@@ -2,10 +2,8 @@ from typing import Tuple
 
 from eth_utils import ValidationError
 
-from eth2.beacon.attestation_helpers import get_attestation_data_slot
 from eth2.beacon.committee_helpers import get_beacon_proposer_index
 from eth2.beacon.deposit_helpers import process_deposit
-from eth2.beacon.epoch_processing_helpers import decrease_balance, increase_balance
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.pending_attestations import PendingAttestation
 from eth2.beacon.types.states import BeaconState
@@ -21,8 +19,6 @@ from .block_validation import (
     validate_correct_number_of_deposits,
     validate_proposer_slashing,
     validate_some_slashing,
-    validate_transfer,
-    validate_unique_transfers,
     validate_voluntary_exit,
 )
 
@@ -103,13 +99,11 @@ def process_attestations(
     new_previous_epoch_attestations: Tuple[PendingAttestation, ...] = tuple()
     for attestation in block.body.attestations:
         validate_attestation(state, attestation, config)
-
-        attestation_slot = get_attestation_data_slot(state, attestation.data, config)
         proposer_index = get_beacon_proposer_index(state, CommitteeConfig(config))
         pending_attestation = PendingAttestation(
             aggregation_bits=attestation.aggregation_bits,
             data=attestation.data,
-            inclusion_delay=state.slot - attestation_slot,
+            inclusion_delay=state.slot - attestation.data.slot,
             proposer_index=proposer_index,
         )
 
@@ -166,40 +160,15 @@ def process_voluntary_exits(
     return state
 
 
-def process_transfers(
-    state: BeaconState, block: BaseBeaconBlock, config: Eth2Config
-) -> BeaconState:
-    if len(block.body.transfers) > config.MAX_TRANSFERS:
-        raise ValidationError(
-            f"The block ({block}) has too many transfers:\n"
-            f"\tFound {len(block.body.transfers)} transfers, "
-            f"maximum: {config.MAX_TRANSFERS}"
-        )
-
-    for transfer in block.body.transfers:
-        validate_transfer(state, transfer, config)
-        state = decrease_balance(state, transfer.sender, transfer.amount + transfer.fee)
-        state = increase_balance(state, transfer.recipient, transfer.amount)
-        state = increase_balance(
-            state,
-            get_beacon_proposer_index(state, CommitteeConfig(config)),
-            transfer.fee,
-        )
-
-    return state
-
-
 def process_operations(
     state: BeaconState, block: BaseBeaconBlock, config: Eth2Config
 ) -> BeaconState:
     validate_correct_number_of_deposits(state, block, config)
-    validate_unique_transfers(state, block, config)
 
     state = process_proposer_slashings(state, block, config)
     state = process_attester_slashings(state, block, config)
     state = process_attestations(state, block, config)
     state = process_deposits(state, block, config)
     state = process_voluntary_exits(state, block, config)
-    state = process_transfers(state, block, config)
 
     return state

@@ -22,7 +22,7 @@ def valid_chain(beacon_chain_with_block_validation):
 
 
 @pytest.mark.parametrize(
-    ("validator_count,slots_per_epoch,target_committee_size,shard_count"),
+    ("validator_count,slots_per_epoch,target_committee_size,max_committees_per_slot"),
     [(100, 20, 10, 20)],
 )
 def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
@@ -57,7 +57,12 @@ def test_canonical_chain(valid_chain, genesis_slot, fork_choice_scoring):
 
 
 @pytest.mark.parametrize(
-    ("validator_count," "slots_per_epoch," "target_committee_size," "shard_count,"),
+    (
+        "validator_count,"
+        "slots_per_epoch,"
+        "target_committee_size,"
+        "max_committees_per_slot,"
+    ),
     [(100, 16, 10, 16)],
 )
 def test_get_state_by_slot(valid_chain, genesis_block, genesis_state, config, keymap):
@@ -98,7 +103,7 @@ def test_get_state_by_slot(valid_chain, genesis_block, genesis_state, config, ke
 
 @pytest.mark.long
 @pytest.mark.parametrize(
-    ("validator_count,slots_per_epoch,target_committee_size,shard_count"),
+    ("validator_count,slots_per_epoch,target_committee_size,max_committees_per_slot"),
     [(100, 16, 10, 16)],
 )
 def test_import_blocks(valid_chain, genesis_block, genesis_state, config, keymap):
@@ -156,7 +161,7 @@ def test_from_genesis(base_db, genesis_block, genesis_state, fixture_sm_class, c
         "validator_count,"
         "slots_per_epoch,"
         "target_committee_size,"
-        "shard_count,"
+        "max_committees_per_slot,"
         "min_attestation_inclusion_delay,"
     ),
     [(100, 16, 10, 16, 0)],

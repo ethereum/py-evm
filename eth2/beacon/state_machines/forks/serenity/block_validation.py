@@ -1,38 +1,34 @@
 from typing import Iterable, Sequence, Tuple, cast  # noqa: F401
 
-from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey, BLSSignature, Hash32
 from eth_utils import ValidationError, encode_hex
 import ssz
 
 from eth2._utils.bls import bls
-from eth2._utils.hash import hash_eth2
 from eth2.beacon.attestation_helpers import (
-    get_attestation_data_slot,
     is_slashable_attestation_data,
     validate_indexed_attestation,
 )
 from eth2.beacon.committee_helpers import (
+    get_beacon_committee,
     get_beacon_proposer_index,
-    get_crosslink_committee,
+    get_committee_count_at_slot,
 )
 from eth2.beacon.constants import FAR_FUTURE_EPOCH
 from eth2.beacon.epoch_processing_helpers import get_indexed_attestation
 from eth2.beacon.exceptions import SignatureError
-from eth2.beacon.helpers import compute_epoch_of_slot, get_domain
+from eth2.beacon.helpers import compute_epoch_at_slot, get_domain
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.proposer_slashings import ProposerSlashing
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.types.transfers import Transfer
 from eth2.beacon.types.validators import Validator
 from eth2.beacon.types.voluntary_exits import VoluntaryExit
-from eth2.beacon.typing import Epoch, Shard, SigningRoot, Slot
+from eth2.beacon.typing import CommitteeIndex, Epoch, SigningRoot, Slot
 from eth2.configs import CommitteeConfig, Eth2Config
 
 
@@ -51,19 +47,6 @@ def validate_correct_number_of_deposits(
             f" in block (encode_hex(block_root));"
             f" expected {expected_deposit_count} based on"
             f" the state {encode_hex(state.hash_tree_root)}"
-        )
-
-
-def validate_unique_transfers(
-    state: BeaconState, block: BaseBeaconBlock, config: Eth2Config
-) -> None:
-    body = block.body
-    transfer_count_in_block = len(body.transfers)
-    unique_transfer_count = len(set(body.transfers))
-
-    if transfer_count_in_block != unique_transfer_count:
-        raise ValidationError(
-            f"Found duplicate transfers in the block {encode_hex(block.hash_tree_root)}"
         )
 
 
@@ -184,8 +167,8 @@ def validate_proposer_slashing(
 def validate_proposer_slashing_epoch(
     proposer_slashing: ProposerSlashing, slots_per_epoch: int
 ) -> None:
-    epoch_1 = compute_epoch_of_slot(proposer_slashing.header_1.slot, slots_per_epoch)
-    epoch_2 = compute_epoch_of_slot(proposer_slashing.header_2.slot, slots_per_epoch)
+    epoch_1 = compute_epoch_at_slot(proposer_slashing.header_1.slot, slots_per_epoch)
+    epoch_2 = compute_epoch_at_slot(proposer_slashing.header_2.slot, slots_per_epoch)
 
     if epoch_1 != epoch_2:
         raise ValidationError(
@@ -229,7 +212,7 @@ def validate_block_header_signature(
                 state,
                 SignatureDomain.DOMAIN_BEACON_PROPOSER,
                 slots_per_epoch,
-                compute_epoch_of_slot(header.slot, slots_per_epoch),
+                compute_epoch_at_slot(header.slot, slots_per_epoch),
             ),
         )
     except SignatureError as error:
@@ -284,10 +267,26 @@ def validate_some_slashing(
 #
 # Attestation validation
 #
-def _validate_eligible_shard_number(shard: Shard, shard_count: int) -> None:
-    if shard >= shard_count:
+def _validate_eligible_committee_index(
+    state: BeaconState,
+    attestation_slot: Slot,
+    committee_index: CommitteeIndex,
+    max_committees_per_slot: int,
+    slots_per_epoch: int,
+    target_committee_size: int,
+) -> None:
+    committees_per_slot = get_committee_count_at_slot(
+        state,
+        attestation_slot,
+        max_committees_per_slot,
+        slots_per_epoch,
+        target_committee_size,
+    )
+    if committee_index >= committees_per_slot:
         raise ValidationError(
-            f"Attestation with shard {shard} must be less than the total shard count {shard_count}"
+            f"Attestation with committee index ({committee_index}) must be"
+            f" less than the calculated committee per slot ({committees_per_slot})"
+            f" of slot {attestation_slot}"
         )
 
 
@@ -331,42 +330,6 @@ def _validate_checkpoint(
         )
 
 
-def _validate_crosslink(
-    crosslink: Crosslink,
-    target_epoch: Epoch,
-    parent_crosslink: Crosslink,
-    max_epochs_per_crosslink: int,
-) -> None:
-    if crosslink.start_epoch != parent_crosslink.end_epoch:
-        raise ValidationError(
-            f"Crosslink with start_epoch {crosslink.start_epoch} did not match the parent"
-            f" crosslink's end epoch {parent_crosslink.end_epoch}."
-        )
-
-    expected_end_epoch = min(
-        target_epoch, parent_crosslink.end_epoch + max_epochs_per_crosslink
-    )
-    if crosslink.end_epoch != expected_end_epoch:
-        raise ValidationError(
-            f"The crosslink did not have the expected end epoch {expected_end_epoch}."
-            f" The end epoch was {crosslink.end_epoch} and the expected was the minimum of"
-            f" the target epoch {target_epoch} or the parent's end epoch plus the"
-            f" max_epochs_per_crosslink {parent_crosslink.end_epoch + max_epochs_per_crosslink}."
-        )
-
-    if crosslink.parent_root != parent_crosslink.hash_tree_root:
-        raise ValidationError(
-            f"The parent root of the crosslink {crosslink.parent_root} did not match the root of"
-            f" the expected parent's crosslink {parent_crosslink.hash_tree_root}."
-        )
-
-    if crosslink.data_root != ZERO_HASH32:
-        raise ValidationError(
-            f"The data root for this crosslink should be the zero hash."
-            f" Instead it was {crosslink.data_root}"
-        )
-
-
 def _validate_attestation_data(
     state: BeaconState, data: AttestationData, config: Eth2Config
 ) -> None:
@@ -374,16 +337,22 @@ def _validate_attestation_data(
     current_epoch = state.current_epoch(slots_per_epoch)
     previous_epoch = state.previous_epoch(slots_per_epoch, config.GENESIS_EPOCH)
 
-    attestation_slot = get_attestation_data_slot(state, data, config)
+    attestation_slot = data.slot
 
     if data.target.epoch == current_epoch:
         expected_checkpoint = state.current_justified_checkpoint
-        parent_crosslink = state.current_crosslinks[data.crosslink.shard]
     else:
         expected_checkpoint = state.previous_justified_checkpoint
-        parent_crosslink = state.previous_crosslinks[data.crosslink.shard]
 
-    _validate_eligible_shard_number(data.crosslink.shard, config.SHARD_COUNT)
+    _validate_eligible_committee_index(
+        state,
+        attestation_slot,
+        data.index,
+        config.MAX_COMMITTEES_PER_SLOT,
+        config.SLOTS_PER_EPOCH,
+        config.TARGET_COMMITTEE_SIZE,
+    )
+
     _validate_eligible_target_epoch(data.target.epoch, current_epoch, previous_epoch)
     validate_attestation_slot(
         attestation_slot,
@@ -392,21 +361,13 @@ def _validate_attestation_data(
         config.MIN_ATTESTATION_INCLUSION_DELAY,
     )
     _validate_checkpoint(data.source, expected_checkpoint)
-    _validate_crosslink(
-        data.crosslink,
-        data.target.epoch,
-        parent_crosslink,
-        config.MAX_EPOCHS_PER_CROSSLINK,
-    )
 
 
 def _validate_aggregation_bits(
     state: BeaconState, attestation: Attestation, config: CommitteeConfig
 ) -> None:
     data = attestation.data
-    committee = get_crosslink_committee(
-        state, data.target.epoch, data.crosslink.shard, config
-    )
+    committee = get_beacon_committee(state, data.slot, data.index, config)
     if not (
         len(attestation.aggregation_bits)
         == len(attestation.custody_bits)
@@ -428,13 +389,13 @@ def validate_attestation(
     Raise ``ValidationError`` if it's invalid.
     """
     _validate_attestation_data(state, attestation.data, config)
+    _validate_aggregation_bits(state, attestation, CommitteeConfig(config))
     validate_indexed_attestation(
         state,
         get_indexed_attestation(state, attestation, CommitteeConfig(config)),
         config.MAX_VALIDATORS_PER_COMMITTEE,
         config.SLOTS_PER_EPOCH,
     )
-    _validate_aggregation_bits(state, attestation, CommitteeConfig(config))
 
 
 #
@@ -518,120 +479,3 @@ def validate_voluntary_exit(
     _validate_voluntary_exit_signature(
         state, voluntary_exit, validator, slots_per_epoch
     )
-
-
-def _validate_amount_and_fee_magnitude(state: BeaconState, transfer: Transfer) -> None:
-    threshold = state.balances[transfer.sender]
-    max_amount = max(transfer.amount + transfer.fee, transfer.amount, transfer.fee)
-    if threshold < max_amount:
-        raise ValidationError(
-            f"Transfer amount (transfer.amount) or fee (transfer.fee) was over the allowable"
-            f" threshold {threshold}."
-        )
-
-
-def _validate_transfer_slot(state_slot: Slot, transfer_slot: Slot) -> None:
-    if state_slot != transfer_slot:
-        raise ValidationError(
-            f"Transfer is only valid in the specified slot {transfer_slot} but the state is at"
-            f" {state_slot}."
-        )
-
-
-def _validate_sender_eligibility(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
-    sender = state.validators[transfer.sender]
-    sender_balance = state.balances[transfer.sender]
-
-    eligible_for_activation = sender.activation_eligibility_epoch != FAR_FUTURE_EPOCH
-    is_withdrawable = current_epoch >= sender.withdrawable_epoch
-    is_transfer_total_allowed = (
-        transfer.amount + transfer.fee + config.MAX_EFFECTIVE_BALANCE <= sender_balance
-    )
-
-    if (not eligible_for_activation) or is_withdrawable or is_transfer_total_allowed:
-        return
-
-    if eligible_for_activation:
-        raise ValidationError(
-            f"Sender in transfer {transfer} is eligible for activation."
-        )
-
-    if not is_withdrawable:
-        raise ValidationError(f"Sender in transfer {transfer} is not withdrawable.")
-
-    if not is_transfer_total_allowed:
-        raise ValidationError(
-            f"Sender does not have sufficient funds in transfer {transfer}."
-        )
-
-
-def _validate_sender_pubkey(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    sender = state.validators[transfer.sender]
-    expected_withdrawal_credentials = (
-        config.BLS_WITHDRAWAL_PREFIX.to_bytes(1, byteorder="little")
-        + hash_eth2(transfer.pubkey)[1:]
-    )
-    are_withdrawal_credentials_valid = (
-        sender.withdrawal_credentials == expected_withdrawal_credentials
-    )
-
-    if not are_withdrawal_credentials_valid:
-        raise ValidationError(
-            f"Pubkey in transfer {transfer} does not match the withdrawal credentials"
-            f" {expected_withdrawal_credentials} for validator {sender}."
-        )
-
-
-def _validate_transfer_signature(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    domain = get_domain(state, SignatureDomain.DOMAIN_TRANSFER, config.SLOTS_PER_EPOCH)
-    try:
-        bls.validate(
-            pubkey=transfer.pubkey,
-            message_hash=transfer.signing_root,
-            signature=transfer.signature,
-            domain=domain,
-        )
-    except SignatureError as error:
-        raise ValidationError(f"Invalid signature for transfer {transfer}", error)
-
-
-def _validate_transfer_does_not_result_in_dust(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    resulting_sender_balance = max(
-        0, state.balances[transfer.sender] - (transfer.amount + transfer.fee)
-    )
-    resulting_sender_balance_is_dust = (
-        0 < resulting_sender_balance < config.MIN_DEPOSIT_AMOUNT
-    )
-    if resulting_sender_balance_is_dust:
-        raise ValidationError(
-            f"Effect of transfer {transfer} results in dust balance for sender."
-        )
-
-    resulting_recipient_balance = state.balances[transfer.recipient] + transfer.amount
-    resulting_recipient_balance_is_dust = (
-        0 < resulting_recipient_balance < config.MIN_DEPOSIT_AMOUNT
-    )
-    if resulting_recipient_balance_is_dust:
-        raise ValidationError(
-            f"Effect of transfer {transfer} results in dust balance for recipient."
-        )
-
-
-def validate_transfer(
-    state: BeaconState, transfer: Transfer, config: Eth2Config
-) -> None:
-    _validate_amount_and_fee_magnitude(state, transfer)
-    _validate_transfer_slot(state.slot, transfer.slot)
-    _validate_sender_eligibility(state, transfer, config)
-    _validate_sender_pubkey(state, transfer, config)
-    _validate_transfer_signature(state, transfer, config)
-    _validate_transfer_does_not_result_in_dust(state, transfer, config)

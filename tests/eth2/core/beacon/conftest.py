@@ -22,7 +22,6 @@ from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody, BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
-from eth2.beacon.types.crosslinks import Crosslink
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
 from eth2.beacon.types.forks import Fork
@@ -41,8 +40,8 @@ def override_ssz_lengths(config):
 # Config
 #
 @pytest.fixture
-def shard_count():
-    return SERENITY_CONFIG.SHARD_COUNT
+def max_committees_per_slot():
+    return SERENITY_CONFIG.MAX_COMMITTEES_PER_SLOT
 
 
 @pytest.fixture
@@ -136,8 +135,8 @@ def min_seed_lookahead():
 
 
 @pytest.fixture
-def activation_exit_delay():
-    return SERENITY_CONFIG.ACTIVATION_EXIT_DELAY
+def max_seed_lookahead():
+    return SERENITY_CONFIG.MAX_SEED_LOOKAHEAD
 
 
 @pytest.fixture
@@ -158,11 +157,6 @@ def min_validator_withdrawability_delay():
 @pytest.fixture
 def persistent_committee_period():
     return SERENITY_CONFIG.PERSISTENT_COMMITTEE_PERIOD
-
-
-@pytest.fixture
-def max_epochs_per_crosslink():
-    return SERENITY_CONFIG.MAX_EPOCHS_PER_CROSSLINK
 
 
 @pytest.fixture
@@ -241,11 +235,6 @@ def max_voluntary_exits():
 
 
 @pytest.fixture
-def max_transfers():
-    return SERENITY_CONFIG.MAX_TRANSFERS
-
-
-@pytest.fixture
 def deposit_contract_tree_depth():
     return DEPOSIT_CONTRACT_TREE_DEPTH
 
@@ -257,7 +246,7 @@ def deposit_contract_address():
 
 @pytest.fixture
 def config(
-    shard_count,
+    max_committees_per_slot,
     target_committee_size,
     max_validators_per_committee,
     min_per_epoch_churn_limit,
@@ -276,12 +265,11 @@ def config(
     min_attestation_inclusion_delay,
     slots_per_epoch,
     min_seed_lookahead,
-    activation_exit_delay,
+    max_seed_lookahead,
     slots_per_eth1_voting_period,
     slots_per_historical_root,
     min_validator_withdrawability_delay,
     persistent_committee_period,
-    max_epochs_per_crosslink,
     min_epochs_to_inactivity_penalty,
     epochs_per_historical_vector,
     epochs_per_slashings_vector,
@@ -297,15 +285,10 @@ def config(
     max_attestations,
     max_deposits,
     max_voluntary_exits,
-    max_transfers,
     deposit_contract_address,
 ):
-    # adding some config validity conditions here
-    # abstract out into the config object?
-    assert shard_count >= slots_per_epoch
-
     return Eth2Config(
-        SHARD_COUNT=shard_count,
+        MAX_COMMITTEES_PER_SLOT=max_committees_per_slot,
         TARGET_COMMITTEE_SIZE=target_committee_size,
         MAX_VALIDATORS_PER_COMMITTEE=max_validators_per_committee,
         MIN_PER_EPOCH_CHURN_LIMIT=min_per_epoch_churn_limit,
@@ -324,12 +307,11 @@ def config(
         MIN_ATTESTATION_INCLUSION_DELAY=min_attestation_inclusion_delay,
         SLOTS_PER_EPOCH=slots_per_epoch,
         MIN_SEED_LOOKAHEAD=min_seed_lookahead,
-        ACTIVATION_EXIT_DELAY=activation_exit_delay,
+        MAX_SEED_LOOKAHEAD=max_seed_lookahead,
         SLOTS_PER_ETH1_VOTING_PERIOD=slots_per_eth1_voting_period,
         SLOTS_PER_HISTORICAL_ROOT=slots_per_historical_root,
         MIN_VALIDATOR_WITHDRAWABILITY_DELAY=min_validator_withdrawability_delay,
         PERSISTENT_COMMITTEE_PERIOD=persistent_committee_period,
-        MAX_EPOCHS_PER_CROSSLINK=max_epochs_per_crosslink,
         MIN_EPOCHS_TO_INACTIVITY_PENALTY=min_epochs_to_inactivity_penalty,
         EPOCHS_PER_HISTORICAL_VECTOR=epochs_per_historical_vector,
         EPOCHS_PER_SLASHINGS_VECTOR=epochs_per_slashings_vector,
@@ -345,7 +327,6 @@ def config(
         MAX_ATTESTATIONS=max_attestations,
         MAX_DEPOSITS=max_deposits,
         MAX_VOLUNTARY_EXITS=max_voluntary_exits,
-        MAX_TRANSFERS=max_transfers,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
     )
 
@@ -392,23 +373,13 @@ def sample_validator_record_params():
 
 
 @pytest.fixture
-def sample_crosslink_record_params():
+def sample_attestation_data_params():
     return {
-        "shard": 0,
-        "parent_root": b"\x34" * 32,
-        "start_epoch": 0,
-        "end_epoch": 1,
-        "data_root": b"\x43" * 32,
-    }
-
-
-@pytest.fixture
-def sample_attestation_data_params(sample_crosslink_record_params):
-    return {
+        "slot": 5,
+        "index": 1,
         "beacon_block_root": b"\x11" * 32,
         "source": Checkpoint(epoch=11, root=b"\x22" * 32),
         "target": Checkpoint(epoch=12, root=b"\x33" * 32),
-        "crosslink": Crosslink(**sample_crosslink_record_params),
     }
 
 
@@ -522,19 +493,6 @@ def sample_voluntary_exit_params(sample_signature):
 
 
 @pytest.fixture
-def sample_transfer_params():
-    return {
-        "sender": 10,
-        "recipient": 12,
-        "amount": 10 * 10 ** 9,
-        "fee": 5 * 10 ** 9,
-        "slot": 5,
-        "pubkey": b"\x67" * 48,
-        "signature": b"\x43" * 96,
-    }
-
-
-@pytest.fixture
 def sample_beacon_block_body_params(sample_signature, sample_eth1_data_params):
     return {
         "randao_reveal": sample_signature,
@@ -545,7 +503,6 @@ def sample_beacon_block_body_params(sample_signature, sample_eth1_data_params):
         "attestations": (),
         "deposits": (),
         "voluntary_exits": (),
-        "transfers": (),
     }
 
 
@@ -570,7 +527,6 @@ def sample_beacon_state_params(
     sample_fork_params,
     sample_eth1_data_params,
     sample_block_header_params,
-    sample_crosslink_record_params,
 ):
     return {
         # Versioning
@@ -590,23 +546,12 @@ def sample_beacon_state_params(
         "validators": (),
         "balances": (),
         # Shuffling
-        "start_shard": 1,
         "randao_mixes": (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
-        "active_index_roots": (ZERO_HASH32,) * config.EPOCHS_PER_HISTORICAL_VECTOR,
-        "compact_committees_roots": (ZERO_HASH32,)
-        * config.EPOCHS_PER_HISTORICAL_VECTOR,
         # Slashings
         "slashings": (0,) * config.EPOCHS_PER_SLASHINGS_VECTOR,
         # Attestations
         "previous_epoch_attestations": (),
         "current_epoch_attestations": (),
-        # Crosslinks
-        "previous_crosslinks": (
-            (Crosslink(**sample_crosslink_record_params),) * config.SHARD_COUNT
-        ),
-        "current_crosslinks": (
-            (Crosslink(**sample_crosslink_record_params),) * config.SHARD_COUNT
-        ),
         # Justification
         "justification_bits": (False,) * JUSTIFICATION_BITS_LENGTH,
         "previous_justified_checkpoint": Checkpoint(epoch=0, root=b"\x99" * 32),
