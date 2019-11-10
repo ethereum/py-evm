@@ -394,8 +394,7 @@ def sample_attestation_data_and_custody_bit_params(sample_attestation_data_param
 @pytest.fixture
 def sample_indexed_attestation_params(sample_signature, sample_attestation_data_params):
     return {
-        "custody_bit_0_indices": (10, 11, 12, 15, 28),
-        "custody_bit_1_indices": tuple(),
+        "attesting_indices": (10, 11, 12, 15, 28),
         "data": AttestationData(**sample_attestation_data_params),
         "signature": sample_signature,
     }
@@ -474,7 +473,6 @@ def sample_attestation_params(sample_signature, sample_attestation_data_params):
     return {
         "aggregation_bits": (True,) * 16,
         "data": AttestationData(**sample_attestation_data_params),
-        "custody_bits": (False,) * 16,
         "signature": sample_signature,
     }
 

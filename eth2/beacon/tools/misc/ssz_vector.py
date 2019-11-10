@@ -13,10 +13,7 @@ from eth2.configs import Eth2Config
 
 def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:
     return {
-        Attestation: {
-            "aggregation_bits": config.MAX_VALIDATORS_PER_COMMITTEE,
-            "custody_bits": config.MAX_VALIDATORS_PER_COMMITTEE,
-        },
+        Attestation: {"aggregation_bits": config.MAX_VALIDATORS_PER_COMMITTEE},
         BeaconBlockBody: {
             "proposer_slashings": config.MAX_PROPOSER_SLASHINGS,
             "attester_slashings": config.MAX_ATTESTER_SLASHINGS,
