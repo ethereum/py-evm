@@ -39,10 +39,7 @@ def _mk_overrides(config: Eth2Config) -> Dict[ssz.Serializable, Dict[str, int]]:
             "block_roots": config.SLOTS_PER_HISTORICAL_ROOT,
             "state_roots": config.SLOTS_PER_HISTORICAL_ROOT,
         },
-        IndexedAttestation: {
-            "custody_bit_0_indices": config.MAX_VALIDATORS_PER_COMMITTEE,
-            "custody_bit_1_indices": config.MAX_VALIDATORS_PER_COMMITTEE,
-        },
+        IndexedAttestation: {"attesting_indices": config.MAX_VALIDATORS_PER_COMMITTEE},
         PendingAttestation: {"aggregation_bits": config.MAX_VALIDATORS_PER_COMMITTEE},
     }
 

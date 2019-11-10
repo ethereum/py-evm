@@ -368,15 +368,10 @@ def _validate_aggregation_bits(
 ) -> None:
     data = attestation.data
     committee = get_beacon_committee(state, data.slot, data.index, config)
-    if not (
-        len(attestation.aggregation_bits)
-        == len(attestation.custody_bits)
-        == len(committee)
-    ):
+    if not (len(attestation.aggregation_bits) == len(committee)):
         raise ValidationError(
             f"The attestation bit lengths not match:"
             f"\tlen(attestation.aggregation_bits)={len(attestation.aggregation_bits)}\n"
-            f"\tlen(attestation.custody_bits)={len(attestation.custody_bits)}"
             f"\tlen(committee)={len(committee)}"
         )
 

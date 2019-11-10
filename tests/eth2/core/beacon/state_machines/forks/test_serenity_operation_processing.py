@@ -160,7 +160,7 @@ def test_process_attester_slashings(
             slot=state.slot, body=block_body
         )
 
-        attester_index = valid_attester_slashing.attestation_1.custody_bit_0_indices[0]
+        attester_index = valid_attester_slashing.attestation_1.attesting_indices[0]
 
         new_state = process_attester_slashings(state, block, config)
         # Check if slashed

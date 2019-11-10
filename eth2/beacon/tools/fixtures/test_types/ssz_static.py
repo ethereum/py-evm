@@ -7,9 +7,6 @@ from ssz.tools import from_formatted_dict
 from eth2.beacon.tools.fixtures.test_handler import TestHandler
 from eth2.beacon.tools.fixtures.test_part import TestPart
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.attestation_data_and_custody_bits import (
-    AttestationDataAndCustodyBit,
-)
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.block_headers import BeaconBlockHeader
@@ -153,11 +150,6 @@ class AttestationDataHandler(SSZHandler):
     object_type = AttestationData
 
 
-class AttestationDataAndCustodyBitHandler(SSZHandler):
-    name = "AttestationDataAndCustodyBit"
-    object_type = AttestationDataAndCustodyBit
-
-
 class AttesterSlashingHandler(SSZHandler):
     name = "AttesterSlashing"
     object_type = AttesterSlashing
@@ -241,7 +233,6 @@ class VoluntaryExitHandler(SSZHandler):
 SSZStaticHandlerType = Tuple[
     Type[AttestationHandler],
     Type[AttestationDataHandler],
-    Type[AttestationDataAndCustodyBitHandler],
     Type[AttesterSlashingHandler],
     Type[BeaconBlockHandler],
     Type[BeaconBlockBodyHandler],
@@ -267,7 +258,6 @@ class SSZStaticTestType(TestType[SSZStaticHandlerType]):
     handlers = (
         AttestationHandler,
         AttestationDataHandler,
-        AttestationDataAndCustodyBitHandler,
         AttesterSlashingHandler,
         BeaconBlockHandler,
         BeaconBlockBodyHandler,
