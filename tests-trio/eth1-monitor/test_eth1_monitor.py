@@ -216,7 +216,7 @@ async def test_get_eth1_data(
 
     # Assert b3, b4, b5.
     # Since these blocks are still within `num_blocks_confirmed`,
-    # queries with their timestamps should get the result of the latest block after
+    # queries with `distance == 0` will return eth1_data at b2.
     # `num_blocks_confirmed` blocks.
     assert_get_eth1_data(
         block_numbers[3], 0, 2, expected_block_number_at_distance=block_numbers[2]
