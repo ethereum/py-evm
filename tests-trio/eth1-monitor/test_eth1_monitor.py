@@ -146,7 +146,7 @@ async def test_get_eth1_data(
     await wait_all_tasks_blocked()
     cur_block_number = w3.eth.blockNumber
     cur_block_timestamp = w3.eth.getBlock(cur_block_number)["timestamp"]
-    # Test: `ValueError` is raised when `distance` where no block is at.
+    # Test: `ValueError` is raised if no block exist at given `distance`.
     distance_too_far = cur_block_number + 1
     timestamp_safe = cur_block_timestamp + 1
     with pytest.raises(ValueError):
