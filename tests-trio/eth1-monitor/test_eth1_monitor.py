@@ -17,10 +17,6 @@ from trinity.components.eth2.eth1_monitor.eth1_monitor import (
 from trinity.components.eth2.eth1_monitor.exceptions import Eth1BlockNotFound
 
 
-def test_deploy(w3, registration_contract):
-    pass
-
-
 @pytest.mark.trio
 async def test_logs_handling(
     w3,
@@ -47,22 +43,29 @@ async def test_logs_handling(
         # Test: logs emitted prior to starting `Eth1Monitor` can still be queried.
         await wait_all_tasks_blocked()
         assert len(m._deposit_data) == 0
-        #       `num_blocks_confirmed`
-        #            |-----------------|
-        # [x] -> [x] -> [ ] -> [ ] -> [ ]
+
         tester.mine_blocks(num_blocks_confirmed - 1)
+        # Test: only single deposit is processed.
+        #      `num_blocks_confirmed`
+        #       |-----------------|
+        # [x] -> [x] -> [ ] -> [ ]
         await trio.sleep(polling_period)
         await wait_all_tasks_blocked()
         assert len(m._deposit_data) == 1 and m._deposit_data[0].amount == amount_0
+
         tester.mine_blocks(1)
+        # Test: both deposits are processed.
+        #             `num_blocks_confirmed`
+        #              |-----------------|
+        # [x] -> [x] -> [ ] -> [ ] -> [ ]
         await trio.sleep(polling_period)
         await wait_all_tasks_blocked()
         assert len(m._deposit_data) == 2 and m._deposit_data[1].amount == amount_1
         # Test: a new log can be queried after the transaction is included in a block
         #   and `num_blocks_confirmed` blocks are mined.
-        #   `num_blocks_confirmed`
-        #     |-----------------|
-        # [x] -> [ ] -> [ ] -> [ ]
+        #                                         `num_blocks_confirmed`
+        #                                          |-----------------|
+        # [x] -> [x] -> [ ] -> [ ] -> [ ] -> [x] -> [ ] -> [ ] -> [ ]
         amount_2 = func_do_deposit()
         tester.mine_blocks(num_blocks_confirmed)
         await trio.sleep(polling_period)
@@ -83,11 +86,11 @@ async def test_get_deposit(
     # Test: No deposit data available.
     with pytest.raises(ValueError):
         eth1_monitor._get_deposit(deposit_count=1, deposit_index=2)
-    deposit_count = 3
-    for _ in range(deposit_count):
+    num_deposits = 3
+    for _ in range(num_deposits):
         func_do_deposit()
-    #          `num_blocks_confirmed`
-    #            |-----------------|
+    #             `num_blocks_confirmed`
+    #              |-----------------|
     # [x] -> [x] -> [x] -> [ ] -> [ ]
     tester.mine_blocks(num_blocks_confirmed - 1)
     await trio.sleep(polling_period)
@@ -96,10 +99,10 @@ async def test_get_deposit(
     #   Thus, it fails when we query with `deposit_count>=deposit_count` or
     #   `deposit_index>=deposit_count-1`.
     with pytest.raises(ValueError):
-        eth1_monitor._get_deposit(deposit_count=deposit_count, deposit_index=0)
+        eth1_monitor._get_deposit(deposit_count=num_deposits, deposit_index=0)
     with pytest.raises(ValueError):
         eth1_monitor._get_deposit(
-            deposit_count=deposit_count - 1, deposit_index=deposit_count - 1
+            deposit_count=num_deposits - 1, deposit_index=num_deposits - 1
         )
 
     def verify_deposit(deposit_count, deposit_index, eth1_monitor) -> bool:
@@ -117,15 +120,10 @@ async def test_get_deposit(
             root,
         )
 
-    for _deposit_count in (deposit_count - 1, deposit_count - 2):
+    for count in (num_deposits - 1, num_deposits - 2):
         assert verify_deposit(
-            deposit_count=_deposit_count,
-            deposit_index=deposit_count - 3,
-            eth1_monitor=eth1_monitor,
+            deposit_count=count, deposit_index=0, eth1_monitor=eth1_monitor
         )
-    # Test: `deposit_index` should be less than `deposit_count`
-    with pytest.raises(ValueError):
-        eth1_monitor._get_deposit(deposit_count=1, deposit_index=1)
 
 
 # TODO: Use `clock.autojump.threshold` in trio testing.
@@ -146,11 +144,11 @@ async def test_get_eth1_data(
     await wait_all_tasks_blocked()
     cur_block_number = w3.eth.blockNumber
     cur_block_timestamp = w3.eth.getBlock(cur_block_number)["timestamp"]
-    # Test: `ValueError` is raised if no block exist at given `distance`.
-    distance_too_far = cur_block_number + 1
+    # Test: `ValueError` is raised when `distance` where no block is at.
+    distance_invalid = cur_block_number + 1
     timestamp_safe = cur_block_timestamp + 1
     with pytest.raises(ValueError):
-        eth1_monitor._get_eth1_data(distance_too_far, timestamp_safe)
+        eth1_monitor._get_eth1_data(distance_invalid, timestamp_safe)
     # Test: `Eth1BlockNotFound` when there is no block whose timestamp < `timestamp`.
     distance_safe = cur_block_number
     timestamp_genesis = w3.eth.getBlock(0)["timestamp"]
@@ -158,9 +156,9 @@ async def test_get_eth1_data(
     with pytest.raises(Eth1BlockNotFound):
         eth1_monitor._get_eth1_data(distance_safe, timestamp_invalid)
 
-    #            `num_blocks_confirmed`  _latest block
-    #                   |-----------------|     /
-    # [x] -> [x] -> [ ] -> [ ] -> [ ] -> [ ]
+    #                    `num_blocks_confirmed`
+    #                     |-----------------|
+    # [x] -> [x] -> [ ] -> [ ] -> [ ] -> [ ]  <- latest block
     #  b0     b1     b2     b3     b4     b5
 
     # Test: `deposit` and mine blocks. Queries with `timestamp` after
@@ -174,7 +172,9 @@ async def test_get_eth1_data(
     # and `num_blocks_confirmed + 1` are mined later.
     number_recent_blocks = 2 + num_blocks_confirmed + 1
     current_height = w3.eth.blockNumber
-    block_numbers = [current_height - i for i in reversed(range(number_recent_blocks))]
+    block_numbers = list(
+        range(current_height - number_recent_blocks + 1, current_height + 1)
+    )
 
     def assert_get_eth1_data(
         block_number, distance, deposit_count, expected_block_number_at_distance=None
@@ -192,8 +192,9 @@ async def test_get_eth1_data(
 
     def assert_get_eth1_data_raises(block_number, distance):
         block = w3.eth.getBlock(block_number)
-        # `ValidationError` is raised due to `deposit_count == 0` because
-        #   `eth1_voting_period_start_timestamp` is earlier than `deposit_included_block`.
+        # Assert `ValidationError` is raised due to `deposit_count == 0`, if
+        # `eth1_voting_period_start_timestamp` is earlier than the timestamps of all blocks
+        # which contain deposits.
         with pytest.raises(ValidationError):
             eth1_monitor._get_eth1_data(
                 distance=distance, eth1_voting_period_start_timestamp=block["timestamp"]

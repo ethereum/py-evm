@@ -310,7 +310,7 @@ class Eth1Monitor(Service):
         self, distance: int, eth1_voting_period_start_timestamp: Timestamp
     ) -> Eth1Data:
         """
-        Return `Eth1Data` at `distance` related to the eth1 block earlier and closest to the
+        Return `Eth1Data` at `distance` relative to the eth1 block earlier and closest to the
         timestamp `eth1_voting_period_start_timestamp`.
         Ref: https://github.com/ethereum/eth2.0-specs/blob/61f2a0662ebcfb4c097360cc1835c5f01872705c/specs/validator/0_beacon-chain-validator.md#eth1-data  # noqa: E501
 
