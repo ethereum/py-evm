@@ -44,7 +44,7 @@ async def test_logs_handling(
         endpoint_server,
     )
     async with background_service(m):
-        # Test: previous logs can still be queried after `Eth1Monitor` is run.
+        # Test: logs emitted prior to starting `Eth1Monitor` can still be queried.
         await wait_all_tasks_blocked()
         assert len(m._deposit_data) == 0
         #       `num_blocks_confirmed`
