@@ -20,7 +20,7 @@ from trinity.components.eth2.eth1_monitor.exceptions import Eth1BlockNotFound
 @pytest.mark.trio
 async def test_logs_handling(
     w3,
-    registration_contract,
+    deposit_event,
     tester,
     num_blocks_confirmed,
     polling_period,
@@ -32,8 +32,8 @@ async def test_logs_handling(
     amount_1 = func_do_deposit()
     m = Eth1Monitor(
         w3,
-        registration_contract.address,
-        registration_contract.abi,
+        deposit_event.address,
+        deposit_event.event_abi,
         num_blocks_confirmed,
         polling_period,
         start_block_number,
@@ -75,13 +75,7 @@ async def test_logs_handling(
 
 @pytest.mark.trio
 async def test_get_deposit(
-    w3,
-    registration_contract,
-    tester,
-    num_blocks_confirmed,
-    polling_period,
-    eth1_monitor,
-    func_do_deposit,
+    w3, tester, num_blocks_confirmed, polling_period, eth1_monitor, func_do_deposit
 ):
     # Test: No deposit data available.
     with pytest.raises(ValueError):
@@ -130,13 +124,7 @@ async def test_get_deposit(
 # Ref: https://trio.readthedocs.io/en/stable/reference-testing.html#trio.testing.MockClock.autojump_threshold  # noqa: E501
 @pytest.mark.trio
 async def test_get_eth1_data(
-    w3,
-    tester,
-    registration_contract,
-    num_blocks_confirmed,
-    polling_period,
-    eth1_monitor,
-    func_do_deposit,
+    w3, tester, num_blocks_confirmed, polling_period, eth1_monitor, func_do_deposit
 ):
     tester.mine_blocks(num_blocks_confirmed)
     # Sleep for a while to wait for mined blocks parsed.
@@ -233,7 +221,6 @@ async def test_get_eth1_data(
 @pytest.mark.trio
 async def test_ipc(
     w3,
-    registration_contract,
     tester,
     num_blocks_confirmed,
     polling_period,

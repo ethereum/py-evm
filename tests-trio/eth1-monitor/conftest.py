@@ -1,6 +1,7 @@
 import functools
 import json
 import tempfile
+from typing import NamedTuple
 from pathlib import Path
 import random
 import uuid
@@ -10,6 +11,7 @@ import pytest
 import trio
 import ssz
 import eth_utils
+from eth_utils import encode_hex, event_abi_to_log_topic
 
 from eth_tester import EthereumTester, PyEVMBackend
 
@@ -33,6 +35,11 @@ SAMPLE_VALID_SIGNATURE = b"\x33" * 96
 
 
 # Ref: https://github.com/ethereum/eth2.0-specs/blob/dev/deposit_contract/tests/contracts/conftest.py  # noqa: E501
+
+
+class DepositEvent(NamedTuple):
+    address: bytes
+    event_abi: str
 
 
 @pytest.fixture("session")
@@ -72,7 +79,7 @@ def start_block_number():
 
 
 @pytest.fixture
-def registration_contract(w3, tester, contract_json):
+def deposit_contract(w3, tester, contract_json):
     contract_bytecode = contract_json["bytecode"]
     contract_abi = contract_json["abi"]
     registration = w3.eth.contract(abi=contract_abi, bytecode=contract_bytecode)
@@ -86,16 +93,24 @@ def registration_contract(w3, tester, contract_json):
 
 
 @pytest.fixture
-def func_do_deposit(w3, registration_contract):
+def deposit_event(deposit_contract):
+    return DepositEvent(
+        address=deposit_contract.address,
+        event_abi=deposit_contract.events.DepositEvent._get_event_abi(),
+    )
+
+
+@pytest.fixture
+def func_do_deposit(w3, deposit_contract):
     return functools.partial(
-        deposit, w3=w3, registration_contract=registration_contract
+        deposit, w3=w3, deposit_contract=deposit_contract
     )
 
 
 @pytest.fixture
 async def eth1_monitor(
     w3,
-    registration_contract,
+    deposit_event,
     num_blocks_confirmed,
     polling_period,
     start_block_number,
@@ -103,8 +118,8 @@ async def eth1_monitor(
 ):
     m = Eth1Monitor(
         w3,
-        registration_contract.address,
-        registration_contract.abi,
+        deposit_event.address,
+        deposit_event.event_abi,
         num_blocks_confirmed,
         polling_period,
         start_block_number,
@@ -118,7 +133,7 @@ def get_random_valid_deposit_amount() -> int:
     return random.randint(MIN_DEPOSIT_AMOUNT, FULL_DEPOSIT_AMOUNT)
 
 
-def deposit(w3, registration_contract) -> int:
+def deposit(w3, deposit_contract) -> int:
     amount = get_random_valid_deposit_amount()
     deposit_input = (
         SAMPLE_PUBKEY,
@@ -133,7 +148,7 @@ def deposit(w3, registration_contract) -> int:
             )
         ),
     )
-    tx_hash = registration_contract.functions.deposit(*deposit_input).transact(
+    tx_hash = deposit_contract.functions.deposit(*deposit_input).transact(
         {"value": amount * eth_utils.denoms.gwei}
     )
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)

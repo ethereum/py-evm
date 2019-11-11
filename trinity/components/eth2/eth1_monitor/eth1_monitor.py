@@ -88,6 +88,9 @@ def _make_deposit_proof(
 class Eth1Monitor(Service):
     _w3: Web3
 
+    _deposit_contract_address: bytes
+    _deposit_event_abi: Dict[str, Any]
+    _deposit_event_topic: str
     # Number of blocks we wait to consider a block is "confirmed". This is used to avoid
     # mainchain forks.
     # We always get a `block` and parse the logs from it, where
@@ -114,16 +117,18 @@ class Eth1Monitor(Service):
     def __init__(
         self,
         w3: Web3,
-        contract_address: bytes,
-        contract_abi: str,
+        deposit_contract_address: bytes,
+        deposit_event_abi: Dict[str, Any],
         num_blocks_confirmed: int,
         polling_period: float,
         start_block_number: int,
         event_bus: EndpointAPI,
     ) -> None:
         self._w3 = w3
-        self._deposit_contract = w3.eth.contract(
-            address=contract_address, abi=contract_abi
+        self._deposit_contract_address = deposit_contract_address
+        self._deposit_event_abi = deposit_event_abi
+        self._deposit_event_topic = encode_hex(
+            event_abi_to_log_topic(self._deposit_event_abi)
         )
         self._num_blocks_confirmed = num_blocks_confirmed
         self._polling_period = polling_period
@@ -210,6 +215,10 @@ class Eth1Monitor(Service):
             self._block_number_to_accumulated_deposit_count[
                 block.number
             ] = self._block_number_to_accumulated_deposit_count[parent_block_number]
+        self._block_number_to_accumulated_deposit_count[
+            block.number
+        ] = self._block_number_to_accumulated_deposit_count.get(parent_block_number, 0)
+
         # Check timestamp.
         if len(self._block_timestamp_to_number) != 0:
             latest_timestamp = next(reversed(self._block_timestamp_to_number))
@@ -226,20 +235,20 @@ class Eth1Monitor(Service):
         """
         Get the logs inside the block with number `block_number`.
         """
-        # NOTE: web3 v4 does not support `events.Event.getLogs`.
+        # NOTE: web3 v4 does not support `contract.events.Event.getLogs`.
         # After upgrading to v5, we can change to use the function.
-        event = self._deposit_contract.events.DepositEvent
-        event_abi = event._get_event_abi()
         logs = self._w3.eth.getLogs(
             {
                 "fromBlock": block_number,
                 "toBlock": block_number,
-                "address": self._deposit_contract.address,
-                "topics": [encode_hex(event_abi_to_log_topic(event_abi))],
+                "address": self._deposit_contract_address,
+                "topics": [self._deposit_event_topic],
             }
         )
         parsed_logs = tuple(
-            DepositLog.from_contract_log_dict(get_event_data(event_abi, log))
+            DepositLog.from_contract_log_dict(
+                get_event_data(self._deposit_event_abi, log)
+            )
             for log in logs
         )
         return parsed_logs
