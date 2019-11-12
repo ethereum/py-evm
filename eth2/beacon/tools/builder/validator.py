@@ -26,9 +26,6 @@ from eth2.beacon.helpers import (
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.state_machines.base import BaseBeaconStateMachine
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.attestation_data_and_custody_bits import (
-    AttestationDataAndCustodyBit,
-)
 from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.attester_slashings import AttesterSlashing
 from eth2.beacon.types.blocks import BeaconBlockHeader
@@ -340,7 +337,7 @@ def create_mock_slashable_attestation(
         ),
     )
 
-    message_hash = _get_mock_message(attestation_data)
+    message_hash = attestation_data.hash_tree_root
     attesting_indices = _get_mock_attesting_indices(committee, num_voted_attesters=1)
 
     signature = sign_transaction(
@@ -354,10 +351,7 @@ def create_mock_slashable_attestation(
     validator_indices = tuple(committee[i] for i in attesting_indices)
 
     return IndexedAttestation(
-        custody_bit_0_indices=validator_indices,
-        custody_bit_1_indices=tuple(),
-        data=attestation_data,
-        signature=signature,
+        attesting_indices=validator_indices, data=attestation_data, signature=signature
     )
 
 
@@ -437,17 +431,6 @@ def _get_target_root(
         )
 
 
-def _get_mock_message(attestation_data: AttestationData) -> Hash32:
-    """
-    Get ``message_hash`` of ``attestation_data``.
-    """
-    message_hash = AttestationDataAndCustodyBit(
-        data=attestation_data, custody_bit=False
-    ).hash_tree_root
-
-    return message_hash
-
-
 def _get_mock_attesting_indices(
     committee: Sequence[ValidatorIndex], num_voted_attesters: int
 ) -> Tuple[CommitteeValidatorIndex, ...]:
@@ -479,7 +462,7 @@ def _create_mock_signed_attestation(
     """
     Create a mocking attestation of the given ``attestation_data`` slot with ``keymap``.
     """
-    message_hash = _get_mock_message(attestation_data)
+    message_hash = attestation_data.hash_tree_root
 
     if is_for_simulation:
         simulation_attesting_indices = _get_mock_attesting_indices(
@@ -519,7 +502,6 @@ def _create_mock_signed_attestation(
     return Attestation(
         aggregation_bits=aggregation_bits,
         data=attestation_data,
-        custody_bits=Bitfield((False,) * len(aggregation_bits)),
         signature=aggregate_signature,
     )
 

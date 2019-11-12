@@ -5,9 +5,6 @@ from eth2.beacon.exceptions import SignatureError
 from eth2.beacon.helpers import get_domain
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.attestation_data_and_custody_bits import (
-    AttestationDataAndCustodyBit,
-)
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.states import BeaconState
 
@@ -15,32 +12,21 @@ from eth2.beacon.types.states import BeaconState
 def validate_indexed_attestation_aggregate_signature(
     state: BeaconState, indexed_attestation: IndexedAttestation, slots_per_epoch: int
 ) -> None:
-    bit_0_indices = indexed_attestation.custody_bit_0_indices
-    bit_1_indices = indexed_attestation.custody_bit_1_indices
-
-    pubkeys = (
-        bls.aggregate_pubkeys(tuple(state.validators[i].pubkey for i in bit_0_indices)),
-        bls.aggregate_pubkeys(tuple(state.validators[i].pubkey for i in bit_1_indices)),
+    attesting_indices = indexed_attestation.attesting_indices
+    pubkey = bls.aggregate_pubkeys(
+        tuple(state.validators[i].pubkey for i in attesting_indices)
     )
 
-    message_hashes = (
-        AttestationDataAndCustodyBit(
-            data=indexed_attestation.data, custody_bit=False
-        ).hash_tree_root,
-        AttestationDataAndCustodyBit(
-            data=indexed_attestation.data, custody_bit=True
-        ).hash_tree_root,
-    )
-
+    message_hash = indexed_attestation.data.hash_tree_root
     domain = get_domain(
         state,
         SignatureDomain.DOMAIN_BEACON_ATTESTER,
         slots_per_epoch,
         indexed_attestation.data.target.epoch,
     )
-    bls.validate_multiple(
-        pubkeys=pubkeys,
-        message_hashes=message_hashes,
+    bls.validate(
+        pubkey=pubkey,
+        message_hash=message_hash,
         signature=indexed_attestation.signature,
         domain=domain,
     )
@@ -55,36 +41,17 @@ def validate_indexed_attestation(
     """
     Derived from spec: `is_valid_indexed_attestation`.
     """
-    bit_0_indices = indexed_attestation.custody_bit_0_indices
-    bit_1_indices = indexed_attestation.custody_bit_1_indices
+    attesting_indices = indexed_attestation.attesting_indices
 
-    if len(bit_1_indices) != 0:
-        raise ValidationError(
-            f"Expected no custody bit 1 validators (cf. {bit_1_indices})."
-        )
-
-    if len(bit_0_indices) + len(bit_1_indices) > max_validators_per_committee:
+    if len(attesting_indices) > max_validators_per_committee:
         raise ValidationError(
             f"Require no more than {max_validators_per_committee} validators per attestation,"
-            f" but have {len(bit_0_indices)} 0-bit validators"
-            f" and {len(bit_1_indices)} 1-bit validators."
+            f" but have {len(attesting_indices)} validators."
         )
 
-    intersection = set(bit_0_indices).intersection(bit_1_indices)
-    if len(intersection) != 0:
+    if attesting_indices != tuple(sorted(attesting_indices)):
         raise ValidationError(
-            f"Index sets by custody bits must be disjoint but have the following"
-            f" indices in common: {intersection}."
-        )
-
-    if bit_0_indices != tuple(sorted(bit_0_indices)):
-        raise ValidationError(
-            f"Indices should be sorted; the 0-bit indices are not: {bit_0_indices}."
-        )
-
-    if bit_1_indices != tuple(sorted(bit_1_indices)):
-        raise ValidationError(
-            f"Indices should be sorted; the 1-bit indices are not: {bit_1_indices}."
+            f"Indices should be sorted; the attesting indices are not: {attesting_indices}."
         )
 
     try:

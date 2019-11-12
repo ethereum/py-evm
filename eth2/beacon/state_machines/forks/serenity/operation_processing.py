@@ -64,17 +64,12 @@ def process_attester_slashings(
         slashed_any = False
         attestation_1 = attester_slashing.attestation_1
         attestation_2 = attester_slashing.attestation_2
-        attesting_indices_1 = (
-            attestation_1.custody_bit_0_indices + attestation_1.custody_bit_1_indices
+        sorted_attesting_indices = sorted(
+            set(attestation_1.attesting_indices).intersection(
+                attestation_2.attesting_indices
+            )
         )
-        attesting_indices_2 = (
-            attestation_2.custody_bit_0_indices + attestation_2.custody_bit_1_indices
-        )
-
-        eligible_indices = sorted(
-            set(attesting_indices_1).intersection(attesting_indices_2)
-        )
-        for index in eligible_indices:
+        for index in sorted_attesting_indices:
             validator = state.validators[index]
             if validator.is_slashable(current_epoch):
                 state = slash_validator(state, index, config)

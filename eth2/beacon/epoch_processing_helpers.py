@@ -1,6 +1,6 @@
 from typing import Iterable, Sequence, Set, Tuple
 
-from eth_utils import ValidationError, to_tuple
+from eth_utils import to_tuple
 
 from eth2._utils.bitfield import Bitfield, has_voted
 from eth2._utils.numeric import integer_squareroot
@@ -65,20 +65,9 @@ def get_indexed_attestation(
     attesting_indices = get_attesting_indices(
         state, attestation.data, attestation.aggregation_bits, config
     )
-    custody_bit_1_indices = get_attesting_indices(
-        state, attestation.data, attestation.custody_bits, config
-    )
-    if not custody_bit_1_indices.issubset(attesting_indices):
-        raise ValidationError(
-            f"Attestation {attestation} has custody bit 1 indices ({custody_bit_1_indices})"
-            f" that are not a subset of the attestation's attesting indices ({attesting_indices})"
-            f" diff: {custody_bit_1_indices.difference(attesting_indices)}"
-        )
-    custody_bit_0_indices = attesting_indices.difference(custody_bit_1_indices)
 
     return IndexedAttestation(
-        custody_bit_0_indices=sorted(custody_bit_0_indices),
-        custody_bit_1_indices=sorted(custody_bit_1_indices),
+        attesting_indices=sorted(attesting_indices),
         data=attestation.data,
         signature=attestation.signature,
     )

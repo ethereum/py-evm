@@ -11,6 +11,9 @@ from eth2.configs import Eth2Config
 def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
     filtered_keys = (
         "DOMAIN_",
+        # TODO: Fork choice rule
+        "SAFE_SLOTS_TO_UPDATE_JUSTIFIED",
+        # Phase 1
         "MAX_EPOCHS_PER_CROSSLINK",
         "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS",
         "EPOCHS_PER_CUSTODY_PERIOD",

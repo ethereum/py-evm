@@ -14,9 +14,6 @@ from eth2.beacon.attestation_helpers import (
 from eth2.beacon.helpers import get_domain
 from eth2.beacon.signature_domain import SignatureDomain
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.attestation_data_and_custody_bits import (
-    AttestationDataAndCustodyBit,
-)
 from eth2.beacon.types.attestations import IndexedAttestation
 from eth2.beacon.types.forks import Fork
 
@@ -38,13 +35,13 @@ def test_verify_indexed_attestation_signature(
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
-    message_hashes = _create_indexed_attestation_messages(
+    message_hash = _create_indexed_attestation_messages(
         sample_indexed_attestation_params
     )
 
     valid_params = _correct_indexed_attestation_params(
         validator_count,
-        message_hashes,
+        message_hash,
         sample_indexed_attestation_params,
         privkeys,
         state,
@@ -97,20 +94,15 @@ def _run_verify_indexed_vote(
 
 
 def _correct_indexed_attestation_params(
-    validator_count, message_hashes, params, privkeys, state, config
+    validator_count, message_hash, params, privkeys, state, config
 ):
     valid_params = copy.deepcopy(params)
 
-    (custody_bit_0_indices, signatures) = _get_indices_and_signatures(
-        validator_count,
-        state,
-        config,
-        message_hashes[0],  # custody bit is False
-        privkeys,
+    (attesting_indices, signatures) = _get_indices_and_signatures(
+        validator_count, state, config, message_hash, privkeys
     )
 
-    valid_params["custody_bit_0_indices"] = custody_bit_0_indices
-    valid_params["custody_bit_1_indices"] = tuple()
+    valid_params["attesting_indices"] = attesting_indices
 
     signature = bls.aggregate_signatures(signatures)
 
@@ -119,22 +111,18 @@ def _correct_indexed_attestation_params(
     return valid_params
 
 
-def _corrupt_custody_bit_1_indices_not_empty(params):
-    return assoc(params, "custody_bit_1_indices", [2])
+def _corrupt_attesting_indices(params):
+    corrupt_attesting_indices = (
+        params["attesting_indices"][1],
+        params["attesting_indices"][0],
+    ) + tuple(params["attesting_indices"][2:])
+
+    return assoc(params, "attesting_indices", corrupt_attesting_indices)
 
 
-def _corrupt_custody_bit_0_indices(params):
-    corrupt_custody_bit_0_indices = (
-        params["custody_bit_0_indices"][1],
-        params["custody_bit_0_indices"][0],
-    ) + tuple(params["custody_bit_0_indices"][2:])
-
-    return assoc(params, "custody_bit_0_indices", corrupt_custody_bit_0_indices)
-
-
-def _corrupt_custody_bit_0_indices_max(max_validators_per_committee, params):
-    corrupt_custody_bit_0_indices = [i for i in range(max_validators_per_committee + 1)]
-    return assoc(params, "custody_bit_0_indices", corrupt_custody_bit_0_indices)
+def _corrupt_attesting_indices_max(max_validators_per_committee, params):
+    corrupt_attesting_indices = [i for i in range(max_validators_per_committee + 1)]
+    return assoc(params, "attesting_indices", corrupt_attesting_indices)
 
 
 def _corrupt_signature(slots_per_epoch, params, fork):
@@ -143,11 +131,7 @@ def _corrupt_signature(slots_per_epoch, params, fork):
 
 def _create_indexed_attestation_messages(params):
     attestation = IndexedAttestation(**params)
-    data = attestation.data
-    return (
-        AttestationDataAndCustodyBit(data=data, custody_bit=False).hash_tree_root,
-        AttestationDataAndCustodyBit(data=data, custody_bit=True).hash_tree_root,
-    )
+    return attestation.data.hash_tree_root
 
 
 @pytest.mark.parametrize(("validator_count",), [(40,)])
@@ -155,9 +139,8 @@ def _create_indexed_attestation_messages(params):
     ("param_mapper", "should_succeed", "needs_fork", "is_testing_max_length"),
     [
         (lambda params: params, True, False, False),
-        (_corrupt_custody_bit_1_indices_not_empty, False, False, False),
-        (_corrupt_custody_bit_0_indices, False, False, False),
-        (_corrupt_custody_bit_0_indices_max, False, False, True),
+        (_corrupt_attesting_indices, False, False, False),
+        (_corrupt_attesting_indices_max, False, False, True),
         (_corrupt_signature, False, True, False),
     ],
 )
@@ -182,13 +165,13 @@ def test_validate_indexed_attestation(
 
     # NOTE: we can do this before "correcting" the params as they
     # touch disjoint subsets of the provided params
-    message_hashes = _create_indexed_attestation_messages(
+    message_hash = _create_indexed_attestation_messages(
         sample_indexed_attestation_params
     )
 
     params = _correct_indexed_attestation_params(
         validator_count,
-        message_hashes,
+        message_hash,
         sample_indexed_attestation_params,
         privkeys,
         state,
@@ -230,13 +213,13 @@ def test_verify_indexed_attestation_after_fork(
 
     state = genesis_state.copy(slot=20, fork=Fork(**past_fork_params))
 
-    message_hashes = _create_indexed_attestation_messages(
+    message_hash = _create_indexed_attestation_messages(
         sample_indexed_attestation_params
     )
 
     valid_params = _correct_indexed_attestation_params(
         validator_count,
-        message_hashes,
+        message_hash,
         sample_indexed_attestation_params,
         privkeys,
         state,
