@@ -56,7 +56,7 @@ class DepositLog(NamedTuple):
         )
 
 
-def _w3_get_latest_block(w3: Web3, *args: Any, **kwargs: Any) -> Eth1Block:
+def _w3_get_block(w3: Web3, *args: Any, **kwargs: Any) -> Eth1Block:
     block_dict = w3.eth.getBlock(*args, **kwargs)
     return Eth1Block(
         block_hash=Hash32(block_dict["hash"]),
@@ -86,8 +86,6 @@ class Eth1Monitor(Service):
     # TODO: Store deposit data in DB?
     # Deposit data parsed from the logs we received. The order is from the oldest to the latest.
     _deposit_data: List[DepositData]
-    # Mapping from `block.number` to `block.block_hash` of the received delayed blocks.
-    _block_number_to_hash: Dict[BlockNumber, Hash32]
     # Mapping from `block.number` to the accumulated `deposit_count` before this
     # block(including itself).
     _block_number_to_accumulated_deposit_count: Dict[BlockNumber, int]
@@ -117,7 +115,6 @@ class Eth1Monitor(Service):
         self._event_bus = event_bus
 
         self._deposit_data = []
-        self._block_number_to_hash = {}
         self._block_number_to_accumulated_deposit_count = {}
         self._block_timestamp_to_number = OrderedDict()
 
@@ -166,14 +163,14 @@ class Eth1Monitor(Service):
         """
         highest_processed_block_number = self._start_block_number - 1
         while True:
-            block = _w3_get_latest_block(self._w3, "latest")
+            block = _w3_get_block(self._w3, "latest")
             target_block_number = block.number - self._num_blocks_confirmed
             if target_block_number > highest_processed_block_number:
                 # From `highest_processed_block_number` to `target_block_number`
                 for block_number in range(
                     highest_processed_block_number + 1, target_block_number + 1
                 ):
-                    yield _w3_get_latest_block(self._w3, block_number)
+                    yield _w3_get_block(self._w3, block_number)
                 highest_processed_block_number = target_block_number
             await trio.sleep(self._polling_period)
 
@@ -210,7 +207,6 @@ class Eth1Monitor(Service):
                     f"latest_timestamp={latest_timestamp}, timestamp={block.timestamp}"
                 )
         self._block_timestamp_to_number[block.timestamp] = block.number
-        self._block_number_to_hash[block.number] = block.block_hash
 
     def _get_logs_from_block(self, block_number: BlockNumber) -> Tuple[DepositLog, ...]:
         """
@@ -323,6 +319,7 @@ class Eth1Monitor(Service):
                 f"`distance`={distance}, ",
                 f"eth1_voting_period_start_block_number={eth1_voting_period_start_block_number}",
             )
+        block_hash = _w3_get_block(self._w3, target_block_number).block_hash
         # `Eth1Data.deposit_count`: get the `deposit_count` corresponding to the block.
         accumulated_deposit_count = self._block_number_to_accumulated_deposit_count[
             target_block_number
@@ -337,5 +334,5 @@ class Eth1Monitor(Service):
         return Eth1Data(
             deposit_root=deposit_root,
             deposit_count=accumulated_deposit_count,
-            block_hash=self._block_number_to_hash[target_block_number],
+            block_hash=block_hash,
         )
