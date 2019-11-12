@@ -1,11 +1,8 @@
-from typing import Dict, Sequence, Tuple, Type, cast
+from typing import Dict, Sequence, Tuple, Type
 
 from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey, Hash32
 
-from eth2._utils.hash import hash_eth2
-from eth2._utils.merkle.common import get_merkle_proof
-from eth2._utils.merkle.sparse import calc_merkle_tree_from_leaves, get_root
 from eth2.beacon.constants import ZERO_TIMESTAMP
 from eth2.beacon.genesis import get_genesis_block, initialize_beacon_state_from_eth1
 from eth2.beacon.tools.builder.validator import create_mock_deposit_data
