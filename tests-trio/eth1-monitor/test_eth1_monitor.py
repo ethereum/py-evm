@@ -9,7 +9,7 @@ from eth2.beacon.constants import DEPOSIT_CONTRACT_TREE_DEPTH
 from eth2._utils.merkle.common import verify_merkle_branch
 from p2p.trio_service import background_service
 from trinity.components.eth2.eth1_monitor.eth1_monitor import (
-    _make_deposit_tree_and_root,
+    make_deposit_tree_and_root,
     GetEth1DataRequest,
     GetDepositRequest,
     Eth1Monitor,
@@ -31,13 +31,13 @@ async def test_logs_handling(
     amount_0 = func_do_deposit()
     amount_1 = func_do_deposit()
     m = Eth1Monitor(
-        w3,
-        deposit_event.address,
-        deposit_event.event_abi,
-        num_blocks_confirmed,
-        polling_period,
-        start_block_number,
-        endpoint_server,
+        w3=w3,
+        deposit_contract_address=deposit_event.address,
+        deposit_event_abi=deposit_event.event_abi,
+        num_blocks_confirmed=num_blocks_confirmed,
+        polling_period=polling_period,
+        start_block_number=start_block_number,
+        event_bus=endpoint_server,
     )
     async with background_service(m):
         # Test: logs emitted prior to starting `Eth1Monitor` can still be queried.
@@ -103,9 +103,7 @@ async def test_get_deposit(
         deposit = eth1_monitor._get_deposit(
             deposit_count=deposit_count, deposit_index=deposit_index
         )
-        _, root = _make_deposit_tree_and_root(
-            eth1_monitor._deposit_data[:deposit_count]
-        )
+        _, root = make_deposit_tree_and_root(eth1_monitor._deposit_data[:deposit_count])
         return verify_merkle_branch(
             deposit.data.hash_tree_root,
             deposit.proof,

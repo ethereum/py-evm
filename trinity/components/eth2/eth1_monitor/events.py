@@ -4,6 +4,8 @@ import ssz
 
 from lahja import BaseEvent, BaseRequestResponseEvent
 
+from eth_typing import BlockNumber
+
 from eth2.beacon.typing import Timestamp
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
@@ -45,7 +47,7 @@ class GetEth1DataResponse(SSZSerializableEvent[Eth1Data]):
 
 @dataclass
 class GetEth1DataRequest(BaseRequestResponseEvent[GetEth1DataResponse]):
-    distance: int
+    distance: BlockNumber
     eth1_voting_period_start_timestamp: Timestamp
 
     @staticmethod

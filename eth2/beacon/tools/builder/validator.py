@@ -9,6 +9,9 @@ from eth_utils.toolz import pipe
 
 from eth2._utils.bitfield import get_empty_bitfield, set_voted
 from eth2._utils.bls import Domain, bls
+from eth2._utils.hash import hash_eth2
+from eth2._utils.merkle.common import MerkleTree, get_merkle_proof
+from eth2._utils.merkle.sparse import calc_merkle_tree_from_leaves, get_root
 from eth2.beacon.committee_helpers import (
     get_committee_count_at_slot,
     iterate_committees_at_epoch,
@@ -647,3 +650,26 @@ def create_mock_deposit_data(
     )
     signature = sign_proof_of_possession(deposit_data=data, privkey=privkey)
     return data.copy(signature=signature)
+
+
+def make_deposit_tree_and_root(
+    list_deposit_data: Sequence[DepositData]
+) -> Tuple[MerkleTree, Hash32]:
+    deposit_data_leaves = [data.hash_tree_root for data in list_deposit_data]
+    length_mix_in = len(list_deposit_data).to_bytes(32, byteorder="little")
+    tree = calc_merkle_tree_from_leaves(deposit_data_leaves)
+    tree_root = get_root(tree)
+    tree_root_with_mix_in = hash_eth2(tree_root + length_mix_in)
+    return tree, tree_root_with_mix_in
+
+
+def make_deposit_proof(
+    list_deposit_data: Sequence[DepositData],
+    deposit_tree: MerkleTree,
+    deposit_tree_root: Hash32,
+    deposit_index: int,
+) -> Tuple[Hash32, ...]:
+    length_mix_in = Hash32(len(list_deposit_data).to_bytes(32, byteorder="little"))
+    merkle_proof = get_merkle_proof(deposit_tree, deposit_index)
+    merkle_proof_with_mix_in = merkle_proof + (length_mix_in,)
+    return merkle_proof_with_mix_in

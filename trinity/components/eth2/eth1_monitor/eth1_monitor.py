@@ -2,7 +2,7 @@ import bisect
 from collections import OrderedDict
 from typing import Any, AsyncGenerator, List, Dict, NamedTuple, Sequence, Tuple
 
-from eth_typing import BLSPubkey, BLSSignature, Hash32
+from eth_typing import Address, BLSPubkey, BLSSignature, BlockNumber, Hash32
 
 from eth_utils import encode_hex, event_abi_to_log_topic
 from lahja import EndpointAPI
@@ -15,9 +15,10 @@ from eth2.beacon.typing import Gwei
 from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.deposit_data import DepositData
 from eth2.beacon.types.eth1_data import Eth1Data
-from eth2._utils.merkle.sparse import calc_merkle_tree_from_leaves, get_root
-from eth2._utils.merkle.common import MerkleTree, get_merkle_proof
-from eth2._utils.hash import hash_eth2
+from eth2.beacon.tools.builder.validator import (
+    make_deposit_proof,
+    make_deposit_tree_and_root,
+)
 
 from p2p.trio_service import Service
 
@@ -32,7 +33,7 @@ from .events import (
 
 class Eth1Block(NamedTuple):
     block_hash: Hash32
-    number: int
+    number: BlockNumber
     timestamp: Timestamp
 
 
@@ -59,47 +60,26 @@ def _w3_get_latest_block(w3: Web3, *args: Any, **kwargs: Any) -> Eth1Block:
     block_dict = w3.eth.getBlock(*args, **kwargs)
     return Eth1Block(
         block_hash=Hash32(block_dict["hash"]),
-        number=int(block_dict["number"]),
+        number=BlockNumber(block_dict["number"]),
         timestamp=Timestamp(block_dict["timestamp"]),
     )
-
-
-def _make_deposit_tree_and_root(
-    list_deposit_data: Sequence[DepositData]
-) -> Tuple[MerkleTree, Hash32]:
-    deposit_data_leaves = [data.hash_tree_root for data in list_deposit_data]
-    length_mix_in = len(list_deposit_data).to_bytes(32, byteorder="little")
-    tree = calc_merkle_tree_from_leaves(deposit_data_leaves)
-    tree_root = get_root(tree)
-    tree_root_with_mix_in = hash_eth2(tree_root + length_mix_in)
-    return tree, tree_root_with_mix_in
-
-
-def _make_deposit_proof(
-    list_deposit_data: Sequence[DepositData], deposit_index: int
-) -> Tuple[Hash32, ...]:
-    tree, root = _make_deposit_tree_and_root(list_deposit_data)
-    length_mix_in = Hash32(len(list_deposit_data).to_bytes(32, byteorder="little"))
-    merkle_proof = get_merkle_proof(tree, deposit_index)
-    merkle_proof_with_mix_in = merkle_proof + (length_mix_in,)
-    return merkle_proof_with_mix_in
 
 
 class Eth1Monitor(Service):
     _w3: Web3
 
-    _deposit_contract_address: bytes
+    _deposit_contract_address: Address
     _deposit_event_abi: Dict[str, Any]
     _deposit_event_topic: str
     # Number of blocks we wait to consider a block is "confirmed". This is used to avoid
     # mainchain forks.
     # We always get a `block` and parse the logs from it, where
     # `block.number <= latest_block.number - _num_blocks_confirmed`.
-    _num_blocks_confirmed: int
+    _num_blocks_confirmed: BlockNumber
     # Time period that we poll latest blocks from web3.
     _polling_period: float
     # Block number that we start to parse the log from.
-    _start_block_number: int
+    _start_block_number: BlockNumber
 
     _event_bus: EndpointAPI
 
@@ -107,21 +87,22 @@ class Eth1Monitor(Service):
     # Deposit data parsed from the logs we received. The order is from the oldest to the latest.
     _deposit_data: List[DepositData]
     # Mapping from `block.number` to `block.block_hash` of the received delayed blocks.
-    _block_number_to_hash: Dict[int, Hash32]
+    _block_number_to_hash: Dict[BlockNumber, Hash32]
     # Mapping from `block.number` to the accumulated `deposit_count` before this
     # block(including itself).
-    _block_number_to_accumulated_deposit_count: Dict[int, int]
+    _block_number_to_accumulated_deposit_count: Dict[BlockNumber, int]
     # Mapping from `block.timestamp` to `block.number`.
-    _block_timestamp_to_number: "OrderedDict[Timestamp, int]"
+    _block_timestamp_to_number: "OrderedDict[Timestamp, BlockNumber]"
 
     def __init__(
         self,
+        *,
         w3: Web3,
-        deposit_contract_address: bytes,
+        deposit_contract_address: Address,
         deposit_event_abi: Dict[str, Any],
-        num_blocks_confirmed: int,
+        num_blocks_confirmed: BlockNumber,
         polling_period: float,
-        start_block_number: int,
+        start_block_number: BlockNumber,
         event_bus: EndpointAPI,
     ) -> None:
         self._w3 = w3
@@ -208,7 +189,7 @@ class Eth1Monitor(Service):
             )
 
         # Initialize the block's `deposit_count` with the one of its parent.
-        parent_block_number = block.number - 1
+        parent_block_number = BlockNumber(block.number - 1)
         if parent_block_number not in self._block_number_to_accumulated_deposit_count:
             self._block_number_to_accumulated_deposit_count[block.number] = 0
         else:
@@ -231,7 +212,7 @@ class Eth1Monitor(Service):
         self._block_timestamp_to_number[block.timestamp] = block.number
         self._block_number_to_hash[block.number] = block.block_hash
 
-    def _get_logs_from_block(self, block_number: int) -> Tuple[DepositLog, ...]:
+    def _get_logs_from_block(self, block_number: BlockNumber) -> Tuple[DepositLog, ...]:
         """
         Get the logs inside the block with number `block_number`.
         """
@@ -253,7 +234,7 @@ class Eth1Monitor(Service):
         )
         return parsed_logs
 
-    def _process_log(self, log: DepositLog, block_number: int) -> None:
+    def _process_log(self, log: DepositLog, block_number: BlockNumber) -> None:
         """
         Simply store the deposit data from the log, and increase the corresponding block's
         `deposit_count`.
@@ -284,14 +265,16 @@ class Eth1Monitor(Service):
             raise ValueError(f"invalid `deposit_count`: deposit_count={deposit_count}")
         if deposit_index < 0 or deposit_index >= len_deposit_data:
             raise ValueError(f"invalid `deposit_index`: deposit_index={deposit_index}")
+        deposit_data_at_count = self._deposit_data[:deposit_count]
+        tree, root = make_deposit_tree_and_root(deposit_data_at_count)
         return Deposit(
-            proof=_make_deposit_proof(
-                self._deposit_data[:deposit_count], deposit_index
-            ),
+            proof=make_deposit_proof(deposit_data_at_count, tree, root, deposit_index),
             data=self._deposit_data[deposit_index],
         )
 
-    def _get_closest_eth1_voting_period_start_block(self, timestamp: Timestamp) -> int:
+    def _get_closest_eth1_voting_period_start_block(
+        self, timestamp: Timestamp
+    ) -> BlockNumber:
         """
         Find the timestamp in `self._block_timestamp_to_number` which is the largest timestamp
         smaller than `timestamp`.
@@ -316,7 +299,7 @@ class Eth1Monitor(Service):
             return self._block_timestamp_to_number[target_key]
 
     def _get_eth1_data(
-        self, distance: int, eth1_voting_period_start_timestamp: Timestamp
+        self, distance: BlockNumber, eth1_voting_period_start_timestamp: Timestamp
     ) -> Eth1Data:
         """
         Return `Eth1Data` at `distance` relative to the eth1 block earlier and closest to the
@@ -331,7 +314,9 @@ class Eth1Monitor(Service):
         eth1_voting_period_start_block_number = self._get_closest_eth1_voting_period_start_block(
             eth1_voting_period_start_timestamp
         )
-        target_block_number = eth1_voting_period_start_block_number - distance
+        target_block_number = BlockNumber(
+            eth1_voting_period_start_block_number - distance
+        )
         if target_block_number < 0:
             raise ValueError(
                 f"`distance` is larger than `eth1_voting_period_start_block_number`: "
@@ -346,7 +331,7 @@ class Eth1Monitor(Service):
             raise Eth1MonitorValidationError(
                 f"failed to make `Eth1Data`: `deposit_count = 0` at block #{target_block_number}"
             )
-        _, deposit_root = _make_deposit_tree_and_root(
+        _, deposit_root = make_deposit_tree_and_root(
             self._deposit_data[:accumulated_deposit_count]
         )
         return Eth1Data(

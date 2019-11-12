@@ -11,7 +11,6 @@ import pytest
 import trio
 import ssz
 import eth_utils
-from eth_utils import encode_hex, event_abi_to_log_topic
 
 from eth_tester import EthereumTester, PyEVMBackend
 
@@ -102,9 +101,7 @@ def deposit_event(deposit_contract):
 
 @pytest.fixture
 def func_do_deposit(w3, deposit_contract):
-    return functools.partial(
-        deposit, w3=w3, deposit_contract=deposit_contract
-    )
+    return functools.partial(deposit, w3=w3, deposit_contract=deposit_contract)
 
 
 @pytest.fixture
@@ -117,13 +114,13 @@ async def eth1_monitor(
     endpoint_server,
 ):
     m = Eth1Monitor(
-        w3,
-        deposit_event.address,
-        deposit_event.event_abi,
-        num_blocks_confirmed,
-        polling_period,
-        start_block_number,
-        endpoint_server,
+        w3=w3,
+        deposit_contract_address=deposit_event.address,
+        deposit_event_abi=deposit_event.event_abi,
+        num_blocks_confirmed=num_blocks_confirmed,
+        polling_period=polling_period,
+        start_block_number=start_block_number,
+        event_bus=endpoint_server,
     )
     async with background_service(m):
         yield m
