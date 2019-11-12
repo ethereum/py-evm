@@ -2,6 +2,10 @@ from typing import (
     Type
 )
 
+from eth_utils import (
+    encode_hex,
+)
+
 from eth._utils.datatypes import (
     Configurable,
 )
@@ -29,4 +33,4 @@ class BaseBlock(Configurable, BlockAPI):
         return f'<{self.__class__.__name__}(#{str(self)})>'
 
     def __str__(self) -> str:
-        return f"Block #{self.number}"
+        return f'<{self.__class__.__name__} #{self.number} {encode_hex(self.hash)[2:10]}>'

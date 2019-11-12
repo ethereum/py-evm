@@ -1,0 +1,3 @@
+Improve the string representation of blocks to be more information rich and in line with
+that of e.g. `BlockHeader`. Where previously a block would be printed as `Block #2` it
+is now printed as `<FrontierBlock #2 b495a1d7>`.
