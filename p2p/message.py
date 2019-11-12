@@ -9,10 +9,8 @@ class Message(MessageAPI):
     def __init__(self, header: bytes, body: bytes):
         self.header = header
         self.body = body
-
-    @property
-    def command_id(self) -> int:
-        return rlp.decode(self.body[:1], sedes=rlp.sedes.big_endian_int)
+        self.command_id = rlp.decode(self.body[:1], sedes=rlp.sedes.big_endian_int)
+        self.encoded_payload = self.body[1:]
 
     def __eq__(self, other: Any) -> bool:
         if type(other) is not type(self):

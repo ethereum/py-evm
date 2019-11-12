@@ -165,14 +165,10 @@ class CompressionCodecAPI(ABC):
 class MessageAPI(ABC):
     header: bytes
     body: bytes
-
-    @property
-    @abstractmethod
-    def command_id(self) -> int:
-        """
-        This is the combined `command_id_offset + protocol_command_id`
-        """
-        ...
+    # This is the combined `command_id_offset + protocol_command_id`
+    command_id: int
+    # This is the `body` with the first byte stripped off
+    encoded_payload: bytes
 
 
 class CommandAPI(ABC, Generic[TCommandPayload]):

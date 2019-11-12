@@ -1,4 +1,3 @@
-import struct
 from typing import (
     Any,
     Callable,
@@ -84,9 +83,6 @@ class NoCompressionCodec(CompressionCodecAPI):
         return data
 
 
-ZERO_16 = b'\x00' * 16
-
-
 class BaseCommand(CommandAPI[TCommandPayload]):
     protocol_command_id: ClassVar[int]
 
@@ -113,7 +109,7 @@ class BaseCommand(CommandAPI[TCommandPayload]):
             raise ValueError("Frame size has to fit in a 3-byte integer")
 
         # Frame-size is a 3-bit integer
-        header = struct.pack('>I', frame_size)[1:] + RLPX_HEADER_DATA
+        header = frame_size.to_bytes(3, 'big') + RLPX_HEADER_DATA
         body = cmd_id_data + payload_data
 
         return Message(header, body)
@@ -121,9 +117,9 @@ class BaseCommand(CommandAPI[TCommandPayload]):
     @classmethod
     def decode(cls: Type[TCommand], message: MessageAPI, snappy_support: bool) -> TCommand:
         if snappy_support:
-            payload_data = cls.compression_codec.decompress(message.body[1:])
+            payload_data = cls.compression_codec.decompress(message.encoded_payload)
         else:
-            payload_data = message.body[1:]
+            payload_data = message.encoded_payload
 
         try:
             payload = cls.serialization_codec.decode(payload_data)

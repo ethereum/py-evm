@@ -86,7 +86,6 @@ async def stream_transport_messages(transport: TransportAPI,
         command_type = msg_proto.get_command_type_for_command_id(command_id)
         cmd = command_type.decode(msg, msg_proto.snappy_support)
 
-        logger.debug('got %s from %s', cmd.__class__.__name__, transport.session)
         yield msg_proto, cmd
 
         # yield to the event loop for a moment to allow `transport.is_closing`

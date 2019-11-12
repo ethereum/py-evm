@@ -175,22 +175,19 @@ class BasePeerRequestHandler(CancellableMixin):
         if isinstance(query.block_number_or_hash, bytes):
             header = await self.wait(
                 self.db.coro_get_block_header_by_hash(Hash32(query.block_number_or_hash)))
-            return sequence_builder(
-                start_number=header.block_number,
-                max_length=query.max_headers,
-                skip=query.skip,
-                reverse=query.reverse,
-            )
+            start_number = header.block_number
         elif isinstance(query.block_number_or_hash, int):
-            return sequence_builder(
-                start_number=query.block_number_or_hash,
-                max_length=query.max_headers,
-                skip=query.skip,
-                reverse=query.reverse,
-            )
+            start_number = query.block_number_or_hash
         else:
             actual_type = type(query.block_number_or_hash)
             raise TypeError(f"Invariant: unexpected type for 'block_number_or_hash': {actual_type}")
+
+        return sequence_builder(
+            start_number=start_number,
+            max_length=query.max_headers,
+            skip=query.skip,
+            reverse=query.reverse,
+        )
 
     async def _generate_available_headers(
             self, block_numbers: Tuple[BlockNumber, ...]) -> AsyncIterator[BlockHeader]:

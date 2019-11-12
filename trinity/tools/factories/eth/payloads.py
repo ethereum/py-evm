@@ -8,8 +8,6 @@ except ImportError:
 
 from typing import Any
 
-from eth_typing import BlockNumber
-
 from eth.abc import HeaderDatabaseAPI
 from eth.constants import GENESIS_BLOCK_NUMBER
 
@@ -41,8 +39,7 @@ class StatusPayloadFactory(factory.Factory):
     def from_headerdb(cls, headerdb: HeaderDatabaseAPI, **kwargs: Any) -> StatusPayload:
         head = headerdb.get_canonical_head()
         head_score = headerdb.get_score(head.hash)
-        # TODO: https://github.com/ethereum/py-evm/issues/1847
-        genesis = headerdb.get_canonical_block_header_by_number(BlockNumber(GENESIS_BLOCK_NUMBER))
+        genesis = headerdb.get_canonical_block_header_by_number(GENESIS_BLOCK_NUMBER)
         return cls(
             head_hash=head.hash,
             genesis_hash=genesis.hash,

@@ -54,7 +54,6 @@ class BaseProtocol(ProtocolAPI):
         return self.command_type_by_id[command_id]
 
     def send(self, command: CommandAPI[Any]) -> None:
-        self.logger.debug("sending %s to %s", command.__class__.__name__, self.transport.session)
         message = command.encode(self.command_id_by_type[type(command)], self.snappy_support)
         self.transport.send(message)
 

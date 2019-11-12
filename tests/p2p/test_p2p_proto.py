@@ -26,33 +26,22 @@ from p2p.tools.factories import (
     ) + tuple(itertools.product(
         (Disconnect,),
         DisconnectReason,
-    )),
+    )) + (
+        (Hello, HelloPayloadFactory()),
+    ),
 )
 @pytest.mark.parametrize(
     'snappy_support',
     (True, False),
 )
-def test_disconnect_ping_and_pong_command_round_trips(command_type, payload, snappy_support):
+def test_p2p_command_encode_and_decode_round_trips(command_type, payload, snappy_support):
     cmd = command_type(payload)
     message = cmd.encode(command_type.protocol_command_id, snappy_support=snappy_support)
+    # the reason the command ID's match here is because the base `p2p` protocol
+    # uses an offset of 0
     assert message.command_id == command_type.protocol_command_id
     result = command_type.decode(message, snappy_support=snappy_support)
     assert isinstance(result, command_type)
-    assert result.payload == payload
-
-
-@pytest.mark.parametrize(
-    'snappy_support',
-    (True, False),
-)
-def test_hello_command_round_trip(snappy_support):
-    payload = HelloPayloadFactory()
-
-    cmd = Hello(payload)
-    message = cmd.encode(Hello.protocol_command_id, snappy_support=snappy_support)
-    assert message.command_id == Hello.protocol_command_id
-    result = Hello.decode(message, snappy_support=snappy_support)
-    assert isinstance(result, Hello)
     assert result.payload == payload
 
 

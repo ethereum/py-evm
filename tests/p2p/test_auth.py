@@ -334,7 +334,7 @@ def test_eip8_hello():
         "fda1cff674c90c9a197539fe3dfb53086ace64f83ed7c6eabec741f7f381cc803e52ab2cd55d5569"
         "bce4347107a310dfd5f88a010cd2ffd1005ca406f1842877c883666f6f836261720304"
     )
-    msg = Message(b'', b'\x00' + payload_body)
+    msg = Message(b'', b'\x80' + payload_body)
 
     cmd = Hello.decode(msg, snappy_support=False)
     assert cmd.payload.capabilities == (('eth', 61), ('mork', 22))
