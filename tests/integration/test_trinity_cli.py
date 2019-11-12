@@ -1,5 +1,7 @@
+import pathlib
 import signal
 import sys
+import tempfile
 import time
 
 import pexpect
@@ -350,3 +352,58 @@ async def test_shutdown_does_not_throw_errors(command, unused_tcp_port):
                     yield line
 
     await scan_for_errors(run_then_shutdown_and_yield_output())
+
+
+@pytest.mark.parametrize(
+    'block_number, info, success',
+    (
+        (0, "Successfully exported Block #0", True),
+        (1, "Block number 1 does not exist in the database", False),
+    )
+)
+@pytest.mark.asyncio
+async def test_block_export(block_number, info, success):
+
+    with tempfile.TemporaryDirectory() as export_path:
+
+        export_file = pathlib.Path(export_path) / 'export.rlp'
+
+        assert not export_file.exists()
+
+        command = ('trinity', 'export', str(export_file), str(block_number))
+        async with AsyncProcessRunner.run(command, timeout_sec=40) as runner:
+            assert await contains_all(runner.stderr, {info})
+
+        file_exists_after_export = export_file.exists()
+        assert file_exists_after_export if success else not file_exists_after_export
+
+
+@pytest.mark.parametrize(
+    'file, info, success',
+    (
+        # We can not import block 2 into a fresh db (need to import block 1 first)
+        ('block_2.rlp', {'Import failed'}, False),
+        ('block_1.rlp', {'Successfully imported Block #1'}, True),
+        (
+            # Two blocks in this file
+            'block_1_2.rlp',
+            {
+                'Successfully imported Block #1',
+                'Successfully imported Block #2',
+            },
+            True
+        ),
+    )
+)
+@pytest.mark.asyncio
+async def test_block_import(file, info, success):
+
+    fixtures_path = pathlib.Path(__file__).parent / 'fixtures' / 'mainnet_blocks'
+
+    import_file = fixtures_path / file
+
+    assert import_file.exists()
+
+    command = ('trinity', 'import', str(import_file),)
+    async with AsyncProcessRunner.run(command, timeout_sec=40) as runner:
+        assert await contains_all(runner.stderr, info)

@@ -26,6 +26,10 @@ from trinity.components.builtin.ethstats.component import (
 from trinity.components.builtin.fix_unclean_shutdown.component import (
     FixUncleanShutdownComponent
 )
+from trinity.components.builtin.import_export.component import (
+    ExportBlockComponent,
+    ImportBlockComponent,
+)
 from trinity.components.builtin.json_rpc.component import (
     JsonRpcServerComponent,
 )
@@ -74,6 +78,8 @@ ETH1_NODE_COMPONENTS: Tuple[Type[BaseComponent], ...] = (
     BeamChainPreviewComponent2,
     BeamChainPreviewComponent3,
     EthstatsComponent,
+    ExportBlockComponent,
+    ImportBlockComponent,
     RequestServerComponent,
     SyncerComponent,
     TxComponent,
