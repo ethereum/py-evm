@@ -14,7 +14,10 @@ from trinity.components.eth2.eth1_monitor.eth1_monitor import (
     GetDepositRequest,
     Eth1Monitor,
 )
-from trinity.components.eth2.eth1_monitor.exceptions import Eth1BlockNotFound
+from trinity.components.eth2.eth1_monitor.exceptions import (
+    Eth1BlockNotFound,
+    Eth1MonitorValidationError,
+)
 
 
 @pytest.mark.trio
@@ -78,7 +81,7 @@ async def test_get_deposit(
     w3, tester, num_blocks_confirmed, polling_period, eth1_monitor, func_do_deposit
 ):
     # Test: No deposit data available.
-    with pytest.raises(ValueError):
+    with pytest.raises(Eth1MonitorValidationError):
         eth1_monitor._get_deposit(deposit_count=1, deposit_index=2)
     num_deposits = 3
     for _ in range(num_deposits):
@@ -92,9 +95,9 @@ async def test_get_deposit(
     # Test: The last deposit hasn't been put in `Eth1Monitor._deposit_data`.
     #   Thus, it fails when we query with `deposit_count>=deposit_count` or
     #   `deposit_index>=deposit_count-1`.
-    with pytest.raises(ValueError):
+    with pytest.raises(Eth1MonitorValidationError):
         eth1_monitor._get_deposit(deposit_count=num_deposits, deposit_index=0)
-    with pytest.raises(ValueError):
+    with pytest.raises(Eth1MonitorValidationError):
         eth1_monitor._get_deposit(
             deposit_count=num_deposits - 1, deposit_index=num_deposits - 1
         )
@@ -130,10 +133,10 @@ async def test_get_eth1_data(
     await wait_all_tasks_blocked()
     cur_block_number = w3.eth.blockNumber
     cur_block_timestamp = w3.eth.getBlock(cur_block_number)["timestamp"]
-    # Test: `ValueError` is raised when `distance` where no block is at.
+    # Test: `Eth1MonitorValidationError` is raised when `distance` where no block is at.
     distance_invalid = cur_block_number + 1
     timestamp_safe = cur_block_timestamp + 1
-    with pytest.raises(ValueError):
+    with pytest.raises(Eth1MonitorValidationError):
         eth1_monitor._get_eth1_data(distance_invalid, timestamp_safe)
     # Test: `Eth1BlockNotFound` when there is no block whose timestamp < `timestamp`.
     distance_safe = cur_block_number
@@ -241,17 +244,30 @@ async def test_ipc(
 
     # Result from IPC should be the same as the direct call with the same args.
 
-    # Test:  `get_deposit`
+    # Test: `get_deposit`
+    # Succeeds
     get_deposit_kwargs = {"deposit_count": 1, "deposit_index": 0}
     assert eth1_monitor._get_deposit(**get_deposit_kwargs) == (
         await request(GetDepositRequest, **get_deposit_kwargs)
     )
+    # Fails
+    get_deposit_fails_kwargs = {"deposit_count": 0, "deposit_index": 0}
+    with pytest.raises(Eth1MonitorValidationError):
+        await request(GetDepositRequest, **get_deposit_fails_kwargs)
 
-    # Test:  `get_eth1_data`
+    # Test: `get_eth1_data`
     get_eth1_data_kwargs = {
         "distance": 0,
         "eth1_voting_period_start_timestamp": w3.eth.getBlock("latest")["timestamp"],
     }
+    # Succeeds
     assert eth1_monitor._get_eth1_data(**get_eth1_data_kwargs) == (
         await request(GetEth1DataRequest, **get_eth1_data_kwargs)
     )
+    # Fails
+    get_eth1_data_kwargs_fails = {
+        "distance": 1,
+        "eth1_voting_period_start_timestamp": w3.eth.getBlock("latest")["timestamp"],
+    }
+    with pytest.raises(Eth1MonitorValidationError):
+        await request(GetEth1DataRequest, **get_eth1_data_kwargs_fails)

@@ -1,11 +1,24 @@
 import bisect
 from collections import OrderedDict
-from typing import Any, AsyncGenerator, List, Dict, NamedTuple, Sequence, Tuple
+from typing import (
+    Any,
+    AsyncGenerator,
+    Callable,
+    Generic,
+    List,
+    Dict,
+    NamedTuple,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from eth_typing import Address, BLSPubkey, BLSSignature, BlockNumber, Hash32
 
 from eth_utils import encode_hex, event_abi_to_log_topic
-from lahja import EndpointAPI
+from lahja import BaseRequestResponseEvent, EndpointAPI
 import trio
 from web3 import Web3
 from web3.utils.events import get_event_data
@@ -28,7 +41,11 @@ from .events import (
     GetDepositRequest,
     GetEth1DataRequest,
     GetEth1DataResponse,
+    SSZSerializableEvent,
 )
+
+
+TRequest = TypeVar("TRequest", bound=Union[GetDepositRequest, GetEth1DataRequest])
 
 
 class Eth1Block(NamedTuple):
@@ -120,8 +137,12 @@ class Eth1Monitor(Service):
 
     async def run(self) -> None:
         self.manager.run_daemon_task(self._handle_new_logs)
-        self.manager.run_daemon_task(self._handle_get_deposit)
-        self.manager.run_daemon_task(self._handle_get_eth1_data)
+        self.manager.run_daemon_task(
+            self._run_handle_request, *(GetDepositRequest, self._handle_get_deposit)
+        )
+        self.manager.run_daemon_task(
+            self._run_handle_request, *(GetEth1DataRequest, self._handle_get_eth1_data)
+        )
         await self.manager.wait_stopped()
 
     async def _handle_new_logs(self) -> None:
@@ -134,27 +155,34 @@ class Eth1Monitor(Service):
             for log in logs:
                 self._process_log(log, block.number)
 
-    async def _handle_get_deposit(self) -> None:
+    async def _run_handle_request(
+        self, event_type: Type[TRequest], event_handler: Callable[[TRequest], Any]
+    ) -> None:
+        async for req in self._event_bus.stream(event_type):
+            try:
+                resp = event_handler(req)
+            except Exception as e:
+                await self._event_bus.broadcast(
+                    req.expected_response_type()(None, None, e), req.broadcast_config()
+                )
+            else:
+                await self._event_bus.broadcast(resp, req.broadcast_config())
+
+    def _handle_get_deposit(self, req: GetDepositRequest) -> GetDepositResponse:
         """
         Handle requests for `get_deposit` from the event bus.
         """
-        async for req in self._event_bus.stream(GetDepositRequest):
-            deposit = self._get_deposit(req.deposit_count, req.deposit_index)
-            await self._event_bus.broadcast(
-                GetDepositResponse.from_data(deposit), req.broadcast_config()
-            )
+        deposit = self._get_deposit(req.deposit_count, req.deposit_index)
+        return GetDepositResponse.from_data(deposit)
 
-    async def _handle_get_eth1_data(self) -> None:
+    def _handle_get_eth1_data(self, req: GetEth1DataRequest) -> GetEth1DataResponse:
         """
         Handle requests for `get_eth1_data` from the event bus.
         """
-        async for req in self._event_bus.stream(GetEth1DataRequest):
-            eth1_data = self._get_eth1_data(
-                req.distance, req.eth1_voting_period_start_timestamp
-            )
-            await self._event_bus.broadcast(
-                GetEth1DataResponse.from_data(eth1_data), req.broadcast_config()
-            )
+        eth1_data = self._get_eth1_data(
+            req.distance, req.eth1_voting_period_start_timestamp
+        )
+        return GetEth1DataResponse.from_data(eth1_data)
 
     async def _new_blocks(self) -> AsyncGenerator[Eth1Block, None]:
         """
@@ -252,15 +280,19 @@ class Eth1Monitor(Service):
         the corresponding merkle tree made from deposit data of size `deposit_count`.
         """
         if deposit_index >= deposit_count:
-            raise ValueError(
+            raise Eth1MonitorValidationError(
                 "`deposit_index` should be smaller than `deposit_count`: "
                 f"deposit_index={deposit_index}, deposit_count={deposit_count}"
             )
         len_deposit_data = len(self._deposit_data)
         if deposit_count <= 0 or deposit_count > len_deposit_data:
-            raise ValueError(f"invalid `deposit_count`: deposit_count={deposit_count}")
+            raise Eth1MonitorValidationError(
+                f"invalid `deposit_count`: deposit_count={deposit_count}"
+            )
         if deposit_index < 0 or deposit_index >= len_deposit_data:
-            raise ValueError(f"invalid `deposit_index`: deposit_index={deposit_index}")
+            raise Eth1MonitorValidationError(
+                f"invalid `deposit_index`: deposit_index={deposit_index}"
+            )
         deposit_data_at_count = self._deposit_data[:deposit_count]
         tree, root = make_deposit_tree_and_root(deposit_data_at_count)
         return Deposit(
@@ -314,7 +346,7 @@ class Eth1Monitor(Service):
             eth1_voting_period_start_block_number - distance
         )
         if target_block_number < 0:
-            raise ValueError(
+            raise Eth1MonitorValidationError(
                 f"`distance` is larger than `eth1_voting_period_start_block_number`: "
                 f"`distance`={distance}, ",
                 f"eth1_voting_period_start_block_number={eth1_voting_period_start_block_number}",

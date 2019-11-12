@@ -11,19 +11,24 @@ from eth2.beacon.types.deposits import Deposit
 from eth2.beacon.types.eth1_data import Eth1Data
 
 
-TData = TypeVar("TData")
+TData = TypeVar("TData", Deposit, Eth1Data)
 
 
 @dataclass
 class SSZSerializableEvent(BaseEvent, Generic[TData]):
+    TSSZEvent = TypeVar("TSSZEvent", bound="SSZSerializableEvent[TData]")
+
     sedes: Type[TData]
     data_bytes: bytes
+    error: Exception = None
 
     @classmethod
-    def from_data(cls, data: TData) -> "SSZSerializableEvent[TData]":
+    def from_data(cls: Type[TSSZEvent], data: TData) -> TSSZEvent:
         return cls(sedes=cls.sedes, data_bytes=ssz.encode(data))
 
     def to_data(self) -> TData:
+        if self.error is not None:
+            raise self.error
         return ssz.decode(self.data_bytes, self.sedes)
 
 
