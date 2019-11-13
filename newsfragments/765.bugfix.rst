@@ -1,1 +1,0 @@
-Fix JSON-RPC eth_syncing endpoint that was accidentally removed in v0.1.0-alpha.23

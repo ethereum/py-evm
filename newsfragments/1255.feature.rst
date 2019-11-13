@@ -1,2 +1,0 @@
-Upgrade to Py-EVM ``0.3.0a8`` adding the planned Istanbul block for mainnet. See all the
-`other changes in the latest py-evm <https://py-evm.readthedocs.io/en/latest/release_notes.html#py-evm-0-3-0-alpha-8-2019-11-05>`_

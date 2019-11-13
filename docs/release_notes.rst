@@ -5,6 +5,29 @@ Trinity is moving fast. Read up on all the latest improvements.
 
 .. towncrier release notes start
 
+Trinity 0.1.0-alpha.30 (2019-11-13)
+-----------------------------------
+
+Features
+~~~~~~~~
+
+- Upgrade to Py-EVM ``0.3.0a8`` adding the planned Istanbul block for mainnet. See all the
+  `other changes in the latest py-evm <https://py-evm.readthedocs.io/en/latest/release_notes.html#py-evm-0-3-0-alpha-8-2019-11-05>`_ (`#1255 <https://github.com/ethereum/trinity/issues/1255>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Fix JSON-RPC eth_syncing endpoint that was accidentally removed in v0.1.0-alpha.23 (`#765 <https://github.com/ethereum/trinity/issues/765>`__)
+
+
+Internal Changes - for Trinity Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Refactor handling and code organization of pre-configured networks to make it easier to
+  add support for new networks. (`#1260 <https://github.com/ethereum/trinity/issues/1260>`__)
+
+
 Trinity 0.1.0-alpha.29 (2019-09-30)
 -----------------------------------
 

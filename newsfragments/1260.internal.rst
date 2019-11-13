@@ -1,2 +1,0 @@
-Refactor handling and code organization of pre-configured networks to make it easier to
-add support for new networks.
