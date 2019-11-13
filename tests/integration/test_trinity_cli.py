@@ -37,6 +37,13 @@ MAINNET_GENESIS_HASH = '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c
 #         assert await contains_all(runner.stdout, {'bytes from'})
 
 
+def amend_command_for_unused_port(command, unused_tcp_port):
+    # use a random port each time, in case a previous run went awry and left behind a
+    # trinity instance
+    command += (f'--port={unused_tcp_port}',)
+    return command
+
+
 @pytest.mark.parametrize(
     'command',
     (
@@ -45,7 +52,8 @@ MAINNET_GENESIS_HASH = '0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c
     )
 )
 @pytest.mark.asyncio
-async def test_expected_logs_for_full_mode(command):
+async def test_expected_logs_for_full_mode(command, unused_tcp_port):
+    command = amend_command_for_unused_port(command, unused_tcp_port)
     # Since this short-circuits on success, we can set the timeout high.
     # We only hit the timeout if the test fails.
     async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
@@ -66,7 +74,8 @@ async def test_expected_logs_for_full_mode(command):
     )
 )
 @pytest.mark.asyncio
-async def test_expected_logs_for_full_mode_with_txpool_disabled(command):
+async def test_expected_logs_for_full_mode_with_txpool_disabled(command, unused_tcp_port):
+    command = amend_command_for_unused_port(command, unused_tcp_port)
     # Since this short-circuits on sucess, we can set the timeout high.
     # We only hit the timeout if the test fails.
     async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
@@ -87,7 +96,8 @@ async def test_expected_logs_for_full_mode_with_txpool_disabled(command):
     )
 )
 @pytest.mark.asyncio
-async def test_expected_logs_with_disabled_txpool(command):
+async def test_expected_logs_with_disabled_txpool(command, unused_tcp_port):
+    command = amend_command_for_unused_port(command, unused_tcp_port)
     # Since this short-circuits on success, we can set the timeout high.
     # We only hit the timeout if the test fails.
     async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
@@ -144,9 +154,7 @@ async def test_web3_commands_via_attached_console(command,
         for fragment
         in command
     )
-    # use a random port each time, in case a previous run went awry and left behind a
-    # trinity instance
-    command += (f'--port={str(unused_tcp_port)}',)
+    command = amend_command_for_unused_port(command, unused_tcp_port)
     attach_cmd = list(command[1:] + ('attach',))
 
     async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
@@ -193,7 +201,8 @@ async def test_web3_commands_via_attached_console(command,
     )
 )
 @pytest.mark.asyncio
-async def test_does_not_throw_errors_on_short_run(command):
+async def test_does_not_throw_errors_on_short_run(command, unused_tcp_port):
+    command = amend_command_for_unused_port(command, unused_tcp_port)
     # This is our last line of defence. This test basically observes the first
     # 20 seconds of the Trinity boot process and fails if Trinity logs any exceptions
     await run_command_and_detect_errors(command, 20)
@@ -257,7 +266,10 @@ async def test_logger_configuration(command,
                                     expected_stderr_logs,
                                     unexpected_stderr_logs,
                                     expected_file_logs,
-                                    unexpected_file_logs):
+                                    unexpected_file_logs,
+                                    unused_tcp_port):
+
+    command = amend_command_for_unused_port(command, unused_tcp_port)
 
     def contains_substring(iterable, substring):
         return any(substring in x for x in iterable)
@@ -310,7 +322,9 @@ async def test_logger_configuration(command,
 # Once we get Trinity to shutdown cleanly, we should remove the xfail so that the test ensures
 # ongoing clean exits.
 @pytest.mark.xfail
-async def test_shutdown_does_not_throw_errors(command):
+async def test_shutdown_does_not_throw_errors(command, unused_tcp_port):
+
+    command = amend_command_for_unused_port(command, unused_tcp_port)
 
     async def run_then_shutdown_and_yield_output():
         # This test spins up Trinity, waits until it has started syncing, sends a SIGINT and then
