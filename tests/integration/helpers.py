@@ -26,12 +26,14 @@ async def scan_for_errors(async_iterable):
     )
 
     lines_since_error = 0
+    last_error = None
     async for line in async_iterable:
 
         # We detect errors by some string at the beginning of the Traceback and keep
         # counting lines from there to be able to read and report more valuable info
         if any(trigger in line for trigger in error_trigger) and lines_since_error == 0:
             lines_since_error = 1
+            last_error = line
         elif lines_since_error > 0:
             lines_since_error += 1
 
@@ -39,5 +41,5 @@ async def scan_for_errors(async_iterable):
         if lines_since_error >= 100:
             break
 
-    if lines_since_error > 0:
-        raise Exception("Exception during Trinity boot detected")
+    if last_error is not None:
+        raise Exception(f"Exception during Trinity boot detected: {last_error}")
