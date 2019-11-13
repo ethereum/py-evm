@@ -81,7 +81,7 @@ class NetworkDBComponent(AsyncioIsolatedComponent):
         tracking_parser.add_argument(
             '--disable-networkdb-component',
             help=(
-                "Disables the builtin 'Networkt Database' component. "
+                "Disables the builtin 'Network Database' component. "
                 "**WARNING**: disabling this API without a proper replacement "
                 "will cause your trinity node to crash."
             ),
