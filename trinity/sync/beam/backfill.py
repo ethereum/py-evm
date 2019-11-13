@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 import asyncio
 from collections import Counter
 import typing
@@ -19,45 +18,22 @@ import rlp
 
 from p2p.abc import CommandAPI
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
-from p2p.exchange import PerformanceAPI
 from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
 
-from trinity.protocol.eth.commands import (
-    NodeData,
-)
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.sync.beam.constants import (
     GAP_BETWEEN_TESTS,
-    NON_IDEAL_RESPONSE_PENALTY,
 )
-from trinity.sync.common.peers import WaitingPeers
+
+from .queen import (
+    QueenTrackerMixin,
+)
 
 REQUEST_SIZE = 16
 
 
-def _get_items_per_second(tracker: PerformanceAPI) -> float:
-    return -1 * tracker.items_per_second_ema.value
-
-
-def _peer_sort_key(peer: ETHPeer) -> float:
-    return _get_items_per_second(peer.eth_api.get_node_data.tracker)
-
-
-class QueenTrackerAPI(ABC):
-    """
-    Keep track of the single best peer
-    """
-    @abstractmethod
-    async def get_queen_peer(self) -> ETHPeer:
-        ...
-
-    @abstractmethod
-    def penalize_queen(self, peer: ETHPeer) -> None:
-        ...
-
-
-class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
+class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
     """
     Use a very simple strategy to fill in state in the background.
 
@@ -92,7 +68,11 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
         if token is None:
             token = peer_pool.cancel_token
 
-        super().__init__(token=token)
+        # Init the superclasses
+        BaseService.__init__(self, token=token)
+        PeerSubscriber.__init__(self)
+        QueenTrackerMixin.__init__(self)
+
         self._db = db
 
         # Pending nodes to download
@@ -100,47 +80,10 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
 
         self._peer_pool = peer_pool
         self._available_peers = asyncio.Event()
-        # The best peer gets skipped for backfill, because we prefer to use it for
-        #   urgent beam sync nodes
-        self._queen_peer: ETHPeer = None
-
-        self._waiting_peers = WaitingPeers[ETHPeer](NodeData, sort_key=_get_items_per_second)
 
         self._is_missing: Set[Hash32] = set()
 
         self._num_requests_by_peer = Counter()
-
-    def _update_queen(self, peer: ETHPeer) -> None:
-        if self._queen_peer is None:
-            self._queen_peer = peer
-        elif peer == self._queen_peer:
-            # nothing to do, peer is already the queen
-            pass
-        elif _peer_sort_key(peer) < _peer_sort_key(self._queen_peer):
-            self._waiting_peers.put_nowait(self._queen_peer)
-            self._queen_peer = peer
-        else:
-            # nothing to do, peer is slower than the queen
-            pass
-
-    async def get_queen_peer(self) -> ETHPeer:
-        while self._queen_peer is None:
-            peer = await self._waiting_peers.get_fastest()
-            self._update_queen(peer)
-
-        return self._queen_peer
-
-    def penalize_queen(self, peer: ETHPeer) -> None:
-        if peer == self._queen_peer:
-            self._queen_peer = None
-
-            delay = NON_IDEAL_RESPONSE_PENALTY
-            self.logger.debug(
-                "Penalizing %s for %.2fs, for minor infraction",
-                peer,
-                delay,
-            )
-            self.call_later(delay, self._waiting_peers.put_nowait, peer)
 
     async def _run(self) -> None:
         self.run_daemon_task(self._periodically_report_progress())
@@ -162,8 +105,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerAPI):
                     self._queen_peer = None
                 continue
 
-            old_queen = self._queen_peer
-            self._update_queen(peer)
+            old_queen = self._update_queen(peer)
             if peer == self._queen_peer:
                 self.logger.debug("Switching queen peer from %s to %s", old_queen, peer)
                 continue
