@@ -6,8 +6,9 @@ from eth_utils import (
 )
 
 from trinity.components.builtin.syncer.cli import (
-    parse_checkpoint_uri
+    parse_checkpoint_uri,
 )
+from trinity.constants import MAINNET_NETWORK_ID
 
 
 @pytest.mark.parametrize(
@@ -29,7 +30,7 @@ from trinity.components.builtin.syncer.cli import (
 )
 def test_parse_checkpoint(uri, expected):
     block_hash, block_number, block_score = expected
-    checkpoint = parse_checkpoint_uri(uri)
+    checkpoint = parse_checkpoint_uri(uri, MAINNET_NETWORK_ID)
     assert encode_hex(checkpoint.block_hash) == block_hash
     assert checkpoint.score == block_score
 
@@ -48,4 +49,4 @@ def test_parse_checkpoint(uri, expected):
 )
 def test_throws_validation_error(uri):
     with pytest.raises(ValidationError):
-        parse_checkpoint_uri(uri)
+        parse_checkpoint_uri(uri, MAINNET_NETWORK_ID)

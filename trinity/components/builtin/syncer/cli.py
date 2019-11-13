@@ -23,6 +23,7 @@ from trinity.sync.common.checkpoint import Checkpoint
 from .etherscan_api import (
     get_block_by_number,
     get_latest_block,
+    Network,
 )
 
 
@@ -34,7 +35,7 @@ def remove_non_digits(value: str) -> str:
     return re.sub(r"\D", "", value)
 
 
-def parse_checkpoint_uri(uri: str) -> Checkpoint:
+def parse_checkpoint_uri(uri: str, network_id: int) -> Checkpoint:
     try:
         parsed = urllib.parse.urlparse(uri)
     except ValueError as e:
@@ -44,7 +45,7 @@ def parse_checkpoint_uri(uri: str) -> Checkpoint:
     if path.startswith('/byhash'):
         return parse_byhash_uri(parsed)
     elif path == '/byetherscan/latest':
-        return parse_byetherscan_uri(parsed)
+        return parse_byetherscan_uri(parsed, network_id)
     else:
         raise ValidationError("Not a valid checkpoint URI")
 
@@ -52,11 +53,19 @@ def parse_checkpoint_uri(uri: str) -> Checkpoint:
 BLOCKS_FROM_TIP = 50
 
 
-def parse_byetherscan_uri(parsed: urllib.parse.ParseResult) -> Checkpoint:
+def parse_byetherscan_uri(parsed: urllib.parse.ParseResult, network_id: int) -> Checkpoint:
 
-    latest_block_number = get_latest_block()
+    try:
+        network = Network(network_id)
+    except ValueError:
+        raise ValidationError(
+            f"Can not resolve checkpoint through Etherscan API"
+            f"for network {network_id}. Network not supported"
+        )
+
+    latest_block_number = get_latest_block(network)
     checkpoint_block_number = latest_block_number - BLOCKS_FROM_TIP
-    checkpoint_block_response = get_block_by_number(checkpoint_block_number)
+    checkpoint_block_response = get_block_by_number(checkpoint_block_number, network)
     checkpoint_score = to_int(hexstr=checkpoint_block_response['totalDifficulty'])
     checkpoint_hash = checkpoint_block_response['hash']
 
@@ -108,7 +117,7 @@ class NormalizeCheckpointURI(argparse.Action):
                  option_string: str=None) -> None:
 
         try:
-            parsed = parse_checkpoint_uri(value)
+            parsed = parse_checkpoint_uri(value, namespace.network_id)
         except ValidationError as exc:
             raise argparse.ArgumentError(self, str(exc))
         setattr(namespace, self.dest, parsed)

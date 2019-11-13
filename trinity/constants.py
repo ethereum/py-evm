@@ -41,7 +41,7 @@ TO_NETWORKING_BROADCAST_CONFIG = BroadcastConfig(filter_endpoint=NETWORKING_EVEN
 # Network IDs: https://ethereum.stackexchange.com/questions/17051/how-to-select-a-network-id-or-is-there-a-list-of-network-ids/17101#17101  # noqa: E501
 MAINNET_NETWORK_ID = 1
 ROPSTEN_NETWORK_ID = 3
-
+GOERLI_NETWORK_ID = 5
 
 # Default preferred enodes
 DEFAULT_PREFERRED_NODES: Dict[int, Tuple[Node, ...]] = {
