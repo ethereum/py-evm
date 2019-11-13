@@ -215,12 +215,6 @@ class Eth1Monitor(Service):
 
         # Initialize the block's `deposit_count` with the one of its parent.
         parent_block_number = BlockNumber(block.number - 1)
-        if parent_block_number not in self._block_number_to_accumulated_deposit_count:
-            self._block_number_to_accumulated_deposit_count[block.number] = 0
-        else:
-            self._block_number_to_accumulated_deposit_count[
-                block.number
-            ] = self._block_number_to_accumulated_deposit_count[parent_block_number]
         self._block_number_to_accumulated_deposit_count[
             block.number
         ] = self._block_number_to_accumulated_deposit_count.get(parent_block_number, 0)
