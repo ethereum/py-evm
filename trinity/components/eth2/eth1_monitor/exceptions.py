@@ -17,3 +17,11 @@ class DepositDataCorrupted(Eth1MonitorError):
     """
     `DepositData` which we have locally is not consistent with the deposit tree on chain.
     """
+
+
+class DepositDataDBError(Eth1MonitorError):
+    pass
+
+
+class DepositDataNotFound(DepositDataDBError):
+    pass
