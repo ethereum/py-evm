@@ -2,6 +2,9 @@ from typing import Dict, Sequence, Tuple, Type, cast
 
 from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey, Hash32
+from py_ecc.optimized_bls12_381.optimized_curve import (
+    curve_order as BLS12_381_CURVE_ORDER,
+)
 
 from eth2._utils.hash import hash_eth2
 from eth2._utils.merkle.common import get_merkle_proof
@@ -18,6 +21,15 @@ from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import Timestamp
 from eth2.beacon.validator_status_helpers import activate_validator
 from eth2.configs import Eth2Config
+
+
+def generate_privkey_from_index(index: int) -> int:
+    return (
+        int.from_bytes(
+            hash_eth2(index.to_bytes(length=32, byteorder="little")), byteorder="little"
+        )
+        % BLS12_381_CURVE_ORDER
+    )
 
 
 def create_mock_deposits_and_root(

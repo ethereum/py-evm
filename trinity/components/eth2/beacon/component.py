@@ -135,7 +135,7 @@ class BeaconNodeComponent(AsyncioIsolatedComponent):
             try:
                 validator_index = cast(ValidatorIndex, registry_pubkeys.index(pubkey))
             except ValueError:
-                self.logger.error(f'Could not find key {pubkey.hex()} in genesis state')
+                self.logger.error(f'Could not find pubkey {pubkey.hex()} in genesis state')
                 raise
             validator_privkeys[validator_index] = validator_keymap[pubkey]
 
