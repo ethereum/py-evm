@@ -7,7 +7,6 @@ from ruamel.yaml import YAML
 from eth2._utils.bls import bls
 from eth2.beacon.tools.builder.initializer import generate_privkey_from_index
 
-
 KEY_DIR = Path("eth2/beacon/scripts/quickstart_state")
 
 
