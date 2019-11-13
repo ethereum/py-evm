@@ -15,6 +15,7 @@ from trinity.components.eth2.eth1_monitor.eth1_monitor import (
     Eth1Monitor,
 )
 from trinity.components.eth2.eth1_monitor.exceptions import (
+    DepositDataCorrupted,
     Eth1BlockNotFound,
     Eth1MonitorValidationError,
 )
@@ -23,7 +24,7 @@ from trinity.components.eth2.eth1_monitor.exceptions import (
 @pytest.mark.trio
 async def test_logs_handling(
     w3,
-    deposit_event,
+    deposit_contract,
     tester,
     num_blocks_confirmed,
     polling_period,
@@ -35,8 +36,8 @@ async def test_logs_handling(
     amount_1 = func_do_deposit()
     m = Eth1Monitor(
         w3=w3,
-        deposit_contract_address=deposit_event.address,
-        deposit_event_abi=deposit_event.event_abi,
+        deposit_contract_address=deposit_contract.address,
+        deposit_contract_abi=deposit_contract.abi,
         num_blocks_confirmed=num_blocks_confirmed,
         polling_period=polling_period,
         start_block_number=start_block_number,
@@ -125,7 +126,13 @@ async def test_get_deposit(
 # Ref: https://trio.readthedocs.io/en/stable/reference-testing.html#trio.testing.MockClock.autojump_threshold  # noqa: E501
 @pytest.mark.trio
 async def test_get_eth1_data(
-    w3, tester, num_blocks_confirmed, polling_period, eth1_monitor, func_do_deposit
+    w3,
+    tester,
+    num_blocks_confirmed,
+    polling_period,
+    eth1_monitor,
+    func_do_deposit,
+    monkeypatch,
 ):
     tester.mine_blocks(num_blocks_confirmed)
     # Sleep for a while to wait for mined blocks parsed.
@@ -217,6 +224,19 @@ async def test_get_eth1_data(
     assert_get_eth1_data(
         block_numbers[5], 0, 2, expected_block_number_at_distance=block_numbers[2]
     )
+
+    # Test: `DepositDataCorrupted` is raised when the calculated `deposit_root` from
+    #   `deposit_data` mismatches the one got from the deposit contract.
+    mismatched_deposit_data = eth1_monitor._deposit_data[1:]
+    with monkeypatch.context() as m_context:
+        m_context.setattr(eth1_monitor, "_deposit_data", mismatched_deposit_data)
+        with pytest.raises(DepositDataCorrupted):
+            eth1_monitor._get_eth1_data(
+                distance=0,
+                eth1_voting_period_start_timestamp=w3.eth.getBlock(current_height)[
+                    "timestamp"
+                ],
+            )
 
 
 @pytest.mark.trio

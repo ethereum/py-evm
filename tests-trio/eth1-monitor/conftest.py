@@ -1,7 +1,6 @@
 import functools
 import json
 import tempfile
-from typing import NamedTuple
 from pathlib import Path
 import random
 import uuid
@@ -34,11 +33,6 @@ SAMPLE_VALID_SIGNATURE = b"\x33" * 96
 
 
 # Ref: https://github.com/ethereum/eth2.0-specs/blob/dev/deposit_contract/tests/contracts/conftest.py  # noqa: E501
-
-
-class DepositEvent(NamedTuple):
-    address: bytes
-    event_abi: str
 
 
 @pytest.fixture("session")
@@ -92,14 +86,6 @@ def deposit_contract(w3, tester, contract_json):
 
 
 @pytest.fixture
-def deposit_event(deposit_contract):
-    return DepositEvent(
-        address=deposit_contract.address,
-        event_abi=deposit_contract.events.DepositEvent._get_event_abi(),
-    )
-
-
-@pytest.fixture
 def func_do_deposit(w3, deposit_contract):
     return functools.partial(deposit, w3=w3, deposit_contract=deposit_contract)
 
@@ -107,7 +93,7 @@ def func_do_deposit(w3, deposit_contract):
 @pytest.fixture
 async def eth1_monitor(
     w3,
-    deposit_event,
+    deposit_contract,
     num_blocks_confirmed,
     polling_period,
     start_block_number,
@@ -115,8 +101,8 @@ async def eth1_monitor(
 ):
     m = Eth1Monitor(
         w3=w3,
-        deposit_contract_address=deposit_event.address,
-        deposit_event_abi=deposit_event.event_abi,
+        deposit_contract_address=deposit_contract.address,
+        deposit_contract_abi=deposit_contract.abi,
         num_blocks_confirmed=num_blocks_confirmed,
         polling_period=polling_period,
         start_block_number=start_block_number,
