@@ -103,7 +103,7 @@ def main_entry(trinity_boot: BootFn,
     args = parser.parse_args()
 
     if not args.genesis and args.network_id not in PRECONFIGURED_NETWORKS:
-        raise NotImplementedError(
+        parser.error(
             f"Unsupported network id: {args.network_id}. To use a network besides "
             "mainnet or ropsten, you must supply a genesis file with a flag, like "
             "`--genesis path/to/genesis.json`, also you must specify a data "

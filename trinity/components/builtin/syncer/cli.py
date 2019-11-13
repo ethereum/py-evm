@@ -106,5 +106,9 @@ class NormalizeCheckpointURI(argparse.Action):
                  namespace: argparse.Namespace,
                  value: Any,
                  option_string: str=None) -> None:
-        parsed = parse_checkpoint_uri(value)
+
+        try:
+            parsed = parse_checkpoint_uri(value)
+        except ValidationError as exc:
+            raise argparse.ArgumentError(self, str(exc))
         setattr(namespace, self.dest, parsed)
