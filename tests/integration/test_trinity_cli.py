@@ -154,6 +154,9 @@ async def test_web3_commands_via_attached_console(command,
         for fragment
         in command
     )
+    # The test mostly fails because the JSON-RPC requests time out. We slim down
+    # services to make the application less busy and improve the overall answer rate.
+    command += ('--sync-mode=none', '--disable-discovery', '--disable-upnp')
     command = amend_command_for_unused_port(command, unused_tcp_port)
     attach_cmd = list(command[1:] + ('attach',))
 
