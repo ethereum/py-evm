@@ -1,6 +1,9 @@
 from pathlib import Path
 import time
 
+from eth_utils import decode_hex
+import ssz
+
 from eth2._utils.hash import hash_eth2
 from eth2.beacon.genesis import initialize_beacon_state_from_eth1
 from eth2.beacon.tools.builder.initializer import create_mock_deposits_and_root
@@ -8,12 +11,15 @@ from eth2.beacon.tools.fixtures.config_types import Minimal
 from eth2.beacon.tools.fixtures.loading import load_config_at_path, load_yaml_at
 from eth2.beacon.tools.misc.ssz_vector import override_lengths
 
-ROOT_DIR = Path("eth2/beacon/scripts")
+KEY_DIR = Path("eth2/beacon/scripts/quickstart_state")
 KEY_SET_FILE = Path("keygen_16_validators.yaml")
+
+RESOURCE_DIR = Path("resources")
+GENESIS_FILE = Path("genesis.ssz")
 
 
 def _load_config(config):
-    config_file_name = ROOT_DIR / Path(f"config_{config.name}.yaml")
+    config_file_name = KEY_DIR / Path(f"config_{config.name}.yaml")
     return load_config_at_path(config_file_name)
 
 
@@ -22,15 +28,15 @@ def _main():
     config = _load_config(config_type)
     override_lengths(config)
 
-    key_set = load_yaml_at(ROOT_DIR / KEY_SET_FILE)
+    key_set = load_yaml_at(KEY_DIR / KEY_SET_FILE)
 
     pubkeys = ()
     privkeys = ()
     withdrawal_credentials = ()
     keymap = {}
     for key_pair in key_set:
-        pubkey = key_pair["pubkey"].to_bytes(48, byteorder="big")
-        privkey = key_pair["privkey"]
+        pubkey = decode_hex(key_pair["pubkey"])
+        privkey = int.from_bytes(decode_hex(key_pair["privkey"]), "big")
         withdrawal_credential = (
             config.BLS_WITHDRAWAL_PREFIX.to_bytes(1, byteorder="big")
             + hash_eth2(pubkey)[1:]
@@ -59,6 +65,12 @@ def _main():
     print(f"creating genesis at time {genesis_time}")
     genesis_state = state.copy(genesis_time=genesis_time)
     print(genesis_state.hash_tree_root.hex())
+
+    genesis_file_path = RESOURCE_DIR / GENESIS_FILE
+    output_file = open(genesis_file_path, "wb")
+    output_file.write(ssz.encode(genesis_state))
+    output_file.close()
+    print(f"genesis is saved in {genesis_file_path}")
 
 
 if __name__ == "__main__":

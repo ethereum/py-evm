@@ -4,7 +4,7 @@ import eth_utils.toolz as toolz
 import pytest
 
 from eth2._utils.bls import bls
-from eth2._utils.hash import hash_eth2
+from eth2.beacon.tools.builder.initializer import generate_privkey_from_index
 
 
 def _serialize_bls_pubkeys(key):
@@ -101,10 +101,7 @@ class BLSKeyCache:
             self.backing_cache_writer(self._serialize())
 
     def _get_privkey_for(self, index):
-        # Want privkey an intger slightly less than the curve order
-        privkey = (
-            int.from_bytes(hash_eth2(index.to_bytes(32, "little")), "little") % 2 ** 254
-        )
+        privkey = generate_privkey_from_index(index)
         self.all_privkeys_by_index[index] = privkey
         return privkey
 

@@ -23,7 +23,7 @@ common: &common
         when: on_fail
     - restore_cache:
         keys:
-          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml" }}
     - run:
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
@@ -41,7 +41,7 @@ common: &common
           - ~/.local
           - ./eggs
           - .pytest_cache/v/eth2/bls/key-cache
-        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml" }}
 
 geth_steps: &geth_steps
   working_directory: ~/repo
@@ -89,7 +89,7 @@ eth2_fixtures: &eth2_fixtures
         when: on_fail
     - restore_cache:
         keys:
-          - cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./.circleci/get_eth2_fixtures.sh" }}
+          - cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./.circleci/get_eth2_fixtures.sh" }}-{{ checksum "./eth2/beacon/scripts/quickstart_state/keygen_16_validators.yaml" }}
     - run:
         name: install libsnappy-dev
         command: sudo apt install -y libsnappy-dev
@@ -111,7 +111,7 @@ eth2_fixtures: &eth2_fixtures
           - ./eggs
           - .pytest_cache/v/eth2/bls/key-cache
           - ./eth2-fixtures
-        key: cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./.circleci/get_eth2_fixtures.sh" }}
+        key: cache-v3-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "./.circleci/get_eth2_fixtures.sh" }}-{{ checksum "./.circleci/build_geth.sh" }}
 jobs:
   py36-lint:
     <<: *common
