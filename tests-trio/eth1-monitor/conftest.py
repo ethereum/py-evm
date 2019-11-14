@@ -2,7 +2,6 @@ import functools
 import json
 import tempfile
 from pathlib import Path
-import random
 import uuid
 
 
@@ -18,18 +17,13 @@ from web3.providers.eth_tester import EthereumTesterProvider
 from lahja.trio.endpoint import TrioEndpoint
 from lahja import ConnectionConfig
 
-from eth2.beacon.types.deposit_data import DepositData
 from p2p.trio_service import background_service
-from trinity.components.eth2.eth1_monitor.eth1_monitor import Eth1Monitor
 from trinity.components.eth2.eth1_monitor.configs import deposit_contract_json
-
-
-MIN_DEPOSIT_AMOUNT = 1000000000  # Gwei
-FULL_DEPOSIT_AMOUNT = 32000000000  # Gwei
-
-SAMPLE_PUBKEY = b"\x11" * 48
-SAMPLE_WITHDRAWAL_CREDENTIALS = b"\x22" * 32
-SAMPLE_VALID_SIGNATURE = b"\x33" * 96
+from trinity.components.eth2.eth1_monitor.eth1_monitor import Eth1Monitor
+from trinity.components.eth2.eth1_monitor.factories import (
+    DepositDataDBFactory,
+    DepositDataFactory,
+)
 
 
 # Ref: https://github.com/ethereum/eth2.0-specs/blob/dev/deposit_contract/tests/contracts/conftest.py  # noqa: E501
@@ -107,36 +101,26 @@ async def eth1_monitor(
         polling_period=polling_period,
         start_block_number=start_block_number,
         event_bus=endpoint_server,
+        db=DepositDataDBFactory(),
     )
     async with background_service(m):
         yield m
 
 
-def get_random_valid_deposit_amount() -> int:
-    return random.randint(MIN_DEPOSIT_AMOUNT, FULL_DEPOSIT_AMOUNT)
-
-
 def deposit(w3, deposit_contract) -> int:
-    amount = get_random_valid_deposit_amount()
+    deposit_data = DepositDataFactory()
     deposit_input = (
-        SAMPLE_PUBKEY,
-        SAMPLE_WITHDRAWAL_CREDENTIALS,
-        SAMPLE_VALID_SIGNATURE,
-        ssz.get_hash_tree_root(
-            DepositData(
-                pubkey=SAMPLE_PUBKEY,
-                withdrawal_credentials=SAMPLE_WITHDRAWAL_CREDENTIALS,
-                amount=amount,
-                signature=SAMPLE_VALID_SIGNATURE,
-            )
-        ),
+        deposit_data.pubkey,
+        deposit_data.withdrawal_credentials,
+        deposit_data.signature,
+        ssz.get_hash_tree_root(deposit_data),
     )
     tx_hash = deposit_contract.functions.deposit(*deposit_input).transact(
-        {"value": amount * eth_utils.denoms.gwei}
+        {"value": deposit_data.amount * eth_utils.denoms.gwei}
     )
     tx_receipt = w3.eth.waitForTransactionReceipt(tx_hash)
     assert tx_receipt["status"]
-    return amount
+    return deposit_data.amount
 
 
 # Fixtures below are copied from https://github.com/ethereum/lahja/blob/f0b7ead13298de82c02ed92cfb2d32a8bc00b42a/tests/core/trio/conftest.py  # noqa: E501

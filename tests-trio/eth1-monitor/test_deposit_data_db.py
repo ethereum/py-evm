@@ -31,6 +31,16 @@ def test_deposit_data_db():
     for i, data in enumerate(sequence_deposit_data):
         assert db.get_deposit_data(i) == data
 
+    # Test: Range access
+    for i, _ in enumerate(sequence_deposit_data):
+        assert sequence_deposit_data[i:] == db.get_deposit_data_range(
+            i, db.deposit_count
+        )
+        upper_index = i + 1
+        assert sequence_deposit_data[0:upper_index] == db.get_deposit_data_range(
+            0, upper_index
+        )
+
     # Test: Data is persisted in `DepositDataDB.db`, and can be retrieved when
     #   a new `DepositDataDB` instance takes the same `AtomicDB`.
     new_db: DepositDataDB = DepositDataDBFactory(db=db.db)

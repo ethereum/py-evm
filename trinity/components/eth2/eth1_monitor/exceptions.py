@@ -19,9 +19,13 @@ class DepositDataCorrupted(Eth1MonitorError):
     """
 
 
-class DepositDataDBError(Eth1MonitorError):
-    pass
+class DepositDataDBError(Exception):
+    ...
 
 
 class DepositDataNotFound(DepositDataDBError):
-    pass
+    ...
+
+
+class DepositDataDBValidationError(ValidationError, DepositDataDBError):
+    ...

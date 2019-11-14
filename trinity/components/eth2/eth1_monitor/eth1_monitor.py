@@ -33,16 +33,17 @@ from eth2.beacon.tools.builder.validator import (
 
 from p2p.trio_service import Service
 
-from .exceptions import (
-    DepositDataCorrupted,
-    Eth1BlockNotFound,
-    Eth1MonitorValidationError,
-)
+from .db import BaseDepositDataDB
 from .events import (
     GetDepositResponse,
     GetDepositRequest,
     GetEth1DataRequest,
     GetEth1DataResponse,
+)
+from .exceptions import (
+    DepositDataCorrupted,
+    Eth1BlockNotFound,
+    Eth1MonitorValidationError,
 )
 
 
@@ -103,9 +104,8 @@ class Eth1Monitor(Service):
 
     _event_bus: EndpointAPI
 
-    # TODO: Store deposit data in DB?
-    # Deposit data parsed from the logs we received. The order is from the oldest to the latest.
-    _deposit_data: List[DepositData]
+    # DB storing `DepositData` we have received so far.
+    _db: BaseDepositDataDB
     # Mapping from `block.timestamp` to `block.number`.
     _block_timestamp_to_number: "OrderedDict[Timestamp, BlockNumber]"
 
@@ -119,6 +119,7 @@ class Eth1Monitor(Service):
         polling_period: float,
         start_block_number: BlockNumber,
         event_bus: EndpointAPI,
+        db: BaseDepositDataDB,
     ) -> None:
         self._w3 = w3
         self._deposit_contract = self._w3.eth.contract(
@@ -134,9 +135,13 @@ class Eth1Monitor(Service):
         self._polling_period = polling_period
         self._start_block_number = start_block_number
         self._event_bus = event_bus
+        self._db = db
 
-        self._deposit_data = []
         self._block_timestamp_to_number = OrderedDict()
+
+    @property
+    def total_deposit_count(self) -> int:
+        return self._db.deposit_count
 
     async def run(self) -> None:
         self.manager.run_daemon_task(self._handle_new_logs)
@@ -208,9 +213,10 @@ class Eth1Monitor(Service):
             raise Eth1MonitorValidationError(
                 f"failed to make `Eth1Data`: `deposit_count = 0` at block #{target_block_number}"
             )
-        _, deposit_root = make_deposit_tree_and_root(
-            self._deposit_data[:accumulated_deposit_count]
+        deposit_data_at_count = self._db.get_deposit_data_range(
+            0, accumulated_deposit_count
         )
+        _, deposit_root = make_deposit_tree_and_root(deposit_data_at_count)
         contract_deposit_root = self._get_deposit_root_from_contract(
             target_block_number
         )
@@ -236,7 +242,7 @@ class Eth1Monitor(Service):
                 "`deposit_index` should be smaller than `deposit_count`: "
                 f"deposit_index={deposit_index}, deposit_count={deposit_count}"
             )
-        len_deposit_data = len(self._deposit_data)
+        len_deposit_data = self._db.deposit_count
         if deposit_count <= 0 or deposit_count > len_deposit_data:
             raise Eth1MonitorValidationError(
                 f"invalid `deposit_count`: deposit_count={deposit_count}"
@@ -245,11 +251,11 @@ class Eth1Monitor(Service):
             raise Eth1MonitorValidationError(
                 f"invalid `deposit_index`: deposit_index={deposit_index}"
             )
-        deposit_data_at_count = self._deposit_data[:deposit_count]
+        deposit_data_at_count = self._db.get_deposit_data_range(0, deposit_count)
         tree, root = make_deposit_tree_and_root(deposit_data_at_count)
         return Deposit(
             proof=make_deposit_proof(deposit_data_at_count, tree, root, deposit_index),
-            data=self._deposit_data[deposit_index],
+            data=self._db.get_deposit_data(deposit_index),
         )
 
     async def _run_handle_request(
@@ -326,7 +332,7 @@ class Eth1Monitor(Service):
         Simply store the deposit data from the log, and increase the corresponding block's
         `deposit_count`.
         """
-        self._deposit_data.append(
+        self._db.add_deposit_data(
             DepositData(
                 pubkey=log.pubkey,
                 withdrawal_credentials=log.withdrawal_credentials,
