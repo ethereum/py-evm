@@ -10,7 +10,7 @@ class Eth1MonitorValidationError(ValidationError, Eth1MonitorError):
 
 
 class Eth1BlockNotFound(Eth1MonitorError):
-    pass
+    ...
 
 
 class DepositDataCorrupted(Eth1MonitorError):
