@@ -401,6 +401,10 @@ class AsyncioServiceAPI(ABC):
         ...
 
     @abstractmethod
+    def call_later(self, delay: float, callback: 'Callable[..., None]', *args: Any) -> None:
+        ...
+
+    @abstractmethod
     async def wait(self,
                    awaitable: Awaitable[TReturn],
                    token: CancelToken = None,

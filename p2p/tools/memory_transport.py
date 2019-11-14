@@ -1,13 +1,13 @@
 import asyncio
-import logging
 import struct
 from typing import Tuple
 
 from cached_property import cached_property
-
-from eth_keys import datatypes
-
 from cancel_token import CancelToken
+from eth_keys import datatypes
+from eth_utils import (
+    get_extended_debug_logger,
+)
 
 from p2p._utils import get_devp2p_cmd_id
 from p2p.abc import NodeAPI, TransportAPI
@@ -25,7 +25,7 @@ CONNECTION_LOST_ERRORS = (
 
 
 class MemoryTransport(TransportAPI):
-    logger = logging.getLogger('p2p.tools.memory_transport.MemoryTransport')
+    logger = get_extended_debug_logger('p2p.tools.memory_transport.MemoryTransport')
     read_state = TransportState.IDLE
 
     def __init__(self,
@@ -64,7 +64,7 @@ class MemoryTransport(TransportAPI):
         return self._private_key.public_key
 
     async def read(self, n: int, token: CancelToken) -> bytes:
-        self.logger.debug("Waiting for %s bytes from %s", n, self.remote)
+        self.logger.debug2("Waiting for %s bytes from %s", n, self.remote)
         try:
             return await token.cancellable_wait(
                 self._reader.readexactly(n),
