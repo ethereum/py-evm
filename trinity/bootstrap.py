@@ -1,14 +1,12 @@
 import asyncio
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser
 import argcomplete
 import logging
 import multiprocessing
 import os
 import signal
 from typing import (
-    Any,
     Callable,
-    Dict,
     Iterable,
     Sequence,
     Tuple,
@@ -23,6 +21,7 @@ from trinity.initialization import (
     initialize_data_dir,
     is_data_dir_initialized,
 )
+from trinity.boot_info import BootInfo
 from trinity.cli_parser import (
     parser,
     subparser,
@@ -34,7 +33,6 @@ from trinity.config import (
 from trinity.event_bus import ComponentManagerService
 from trinity.extensibility import (
     BaseComponent,
-    TrinityBootInfo,
 )
 from trinity.network_configurations import (
     PRECONFIGURED_NETWORKS,
@@ -45,9 +43,10 @@ from trinity._utils.ipc import (
 )
 from trinity._utils.logging import (
     enable_warnings_by_default,
-    setup_log_levels,
-    setup_trinity_stderr_logging,
-    setup_trinity_file_and_queue_logging,
+    set_logger_levels,
+    setup_file_logging,
+    setup_stderr_logging,
+    IPCListener,
 )
 from trinity._utils.shutdown import (
     exit_with_services,
@@ -82,19 +81,17 @@ TRINITY_AMBIGIOUS_FILESYSTEM_INFO = (
 )
 
 
-BootFn = Callable[[
-    Namespace,
-    TrinityConfig,
-    Dict[str, Any],
-    logging.handlers.QueueListener,
-    logging.Logger
-], Tuple[multiprocessing.Process, ...]]
+BootFn = Callable[[BootInfo], Tuple[multiprocessing.Process, ...]]
 
 
 def main_entry(trinity_boot: BootFn,
                app_identifier: str,
                components: Tuple[Type[BaseComponent], ...],
                sub_configs: Sequence[Type[BaseAppConfig]]) -> None:
+    if is_prerelease():
+        # this modifies the asyncio logger, but will be overridden by any custom settings below
+        enable_warnings_by_default()
+
     for component_type in components:
         component_type.configure_parser(parser, subparser)
 
@@ -134,17 +131,6 @@ def main_entry(trinity_boot: BootFn,
             """
         )
 
-    if is_prerelease():
-        # this modifies the asyncio logger, but will be overridden by any custom settings below
-        enable_warnings_by_default()
-
-    stderr_logger, handler_stream = setup_trinity_stderr_logging(
-        args.stderr_log_level or common_log_level
-    )
-
-    if args.log_levels:
-        setup_log_levels(args.log_levels)
-
     try:
         trinity_config = TrinityConfig.from_parser_args(args, app_identifier, sub_configs)
     except AmbigiousFileSystem:
@@ -167,28 +153,45 @@ def main_entry(trinity_boot: BootFn,
                 "inside the XDG_TRINITY_ROOT path"
             )
 
-    file_logger, log_queue, listener = setup_trinity_file_and_queue_logging(
-        stderr_logger,
-        handler_stream,
-        trinity_config.logfile_path,
-        args.file_log_level or common_log_level,
-    )
+    # +---------------+
+    # | LOGGING SETUP |
+    # +---------------+
 
+    # Setup logging to stderr
+    stderr_logger_level = (
+        args.stderr_log_level
+        if args.stderr_log_level is not None
+        else (common_log_level if common_log_level is not None else logging.INFO)
+    )
+    handler_stderr = setup_stderr_logging(stderr_logger_level)
+
+    # Setup file based logging
+    file_logger_level = (
+        args.file_log_level
+        if args.file_log_level is not None
+        else (common_log_level if common_log_level is not None else logging.DEBUG)
+    )
+    handler_file = setup_file_logging(trinity_config.logfile_path, file_logger_level)
+
+    # Set the individual logger levels that have been specified.
+    logger_levels = {} if args.log_levels is None else args.log_levels
+    set_logger_levels(logger_levels)
+
+    # get the root logger and set it to the level of the stderr logger.
+    logger = logging.getLogger()
+    logger.setLevel(stderr_logger_level)
+
+    # This prints out the ASCII "trinity" header in the terminal
     display_launch_logs(trinity_config)
 
-    # compute the minimum configured log level across all configured loggers.
-    min_configured_log_level = min(
-        stderr_logger.level,
-        file_logger.level,
-        *(args.log_levels or {}).values()
-    )
+    # Setup the log listener which child processes relay their logs through
+    log_listener = IPCListener(handler_stderr, handler_file)
 
-    extra_kwargs = {
-        'log_queue': log_queue,
-        'log_level': min_configured_log_level,
-        'log_levels': args.log_levels if args.log_levels else {},
-        'profile': args.profile,
-    }
+    # Determine what logging level child processes should use.
+    child_process_log_level = min(
+        stderr_logger_level,
+        file_logger_level,
+    )
 
     # Components can provide a subcommand with a `func` which does then control
     # the entire process from here.
@@ -199,43 +202,45 @@ def main_entry(trinity_boot: BootFn,
     if hasattr(args, 'munge_func'):
         args.munge_func(args, trinity_config)
 
-    processes = trinity_boot(
-        args,
-        trinity_config,
-        extra_kwargs,
-        listener,
-        stderr_logger,
-    )
-
-    def kill_trinity_with_reason(reason: str) -> None:
-        kill_trinity_gracefully(
-            trinity_config,
-            stderr_logger,
-            processes,
-            component_manager_service,
-            reason=reason
+    with log_listener.run(trinity_config.logging_ipc_path):
+        boot_info = BootInfo(
+            args=args,
+            trinity_config=trinity_config,
+            child_process_log_level=child_process_log_level,
+            logger_levels=logger_levels,
+            profile=bool(args.profile),
         )
 
-    boot_info = TrinityBootInfo(args, trinity_config, extra_kwargs)
-    component_manager_service = ComponentManagerService(
-        boot_info,
-        components,
-        kill_trinity_with_reason
-    )
+        processes = trinity_boot(boot_info)
 
-    try:
-        loop = asyncio.get_event_loop()
-        asyncio.ensure_future(exit_with_services(component_manager_service))
-        asyncio.ensure_future(component_manager_service.run())
-        loop.add_signal_handler(signal.SIGTERM, lambda: kill_trinity_with_reason("SIGTERM"))
-        loop.run_forever()
-        loop.close()
-    except KeyboardInterrupt:
-        kill_trinity_with_reason("CTRL+C / Keyboard Interrupt")
-    finally:
-        if trinity_config.trinity_tmp_root_dir:
-            import shutil
-            shutil.rmtree(trinity_config.trinity_root_dir)
+        def kill_trinity_with_reason(reason: str) -> None:
+            kill_trinity_gracefully(
+                trinity_config,
+                logger,
+                processes,
+                component_manager_service,
+                reason=reason
+            )
+
+        component_manager_service = ComponentManagerService(
+            boot_info,
+            components,
+            kill_trinity_with_reason
+        )
+
+        try:
+            loop = asyncio.get_event_loop()
+            asyncio.ensure_future(exit_with_services(component_manager_service))
+            asyncio.ensure_future(component_manager_service.run())
+            loop.add_signal_handler(signal.SIGTERM, lambda: kill_trinity_with_reason("SIGTERM"))
+            loop.run_forever()
+            loop.close()
+        except KeyboardInterrupt:
+            kill_trinity_with_reason("CTRL+C / Keyboard Interrupt")
+        finally:
+            if trinity_config.trinity_tmp_root_dir:
+                import shutil
+                shutil.rmtree(trinity_config.trinity_root_dir)
 
 
 def display_launch_logs(trinity_config: TrinityConfig) -> None:

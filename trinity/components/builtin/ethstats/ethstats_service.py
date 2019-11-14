@@ -27,9 +27,7 @@ from trinity._utils.version import (
     construct_trinity_client_identifier,
 )
 
-from trinity.extensibility.component import (
-    TrinityBootInfo,
-)
+from trinity.boot_info import BootInfo
 from trinity.components.builtin.ethstats.ethstats_client import (
     EthstatsClient,
     EthstatsMessage,
@@ -44,7 +42,7 @@ from trinity.protocol.common.events import (
 class EthstatsService(BaseService):
     def __init__(
         self,
-        boot_info: TrinityBootInfo,
+        boot_info: BootInfo,
         event_bus: EndpointAPI,
         server_url: str,
         server_secret: str,

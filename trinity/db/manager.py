@@ -21,31 +21,8 @@ from eth.abc import (
 from eth.db.backends.base import BaseDB, BaseAtomicDB
 from eth.db.diff import DBDiffTracker, DBDiff, DiffMissingError
 
-from trinity._utils.ipc import (
-    wait_for_ipc,
-)
-
-
-class BufferedSocket:
-    def __init__(self, sock: socket.socket) -> None:
-        self._socket = sock
-        self._buffer = bytearray()
-        self.sendall = sock.sendall
-        self.close = sock.close
-        self.shutdown = sock.shutdown
-
-    def read_exactly(self, num_bytes: int) -> bytes:
-        while len(self._buffer) < num_bytes:
-
-            data = self._socket.recv(4096)
-
-            if data == b"":
-                raise OSError("Connection closed")
-
-            self._buffer.extend(data)
-        payload = self._buffer[:num_bytes]
-        self._buffer = self._buffer[num_bytes:]
-        return bytes(payload)
+from trinity._utils.ipc import wait_for_ipc
+from trinity._utils.socket import BufferedSocket, IPCSocketServer
 
 
 @enum.unique
@@ -152,7 +129,7 @@ SUCCESS = Result.SUCCESS
 FAIL = Result.FAIL
 
 
-class DBManager:
+class DBManager(IPCSocketServer):
     """
     Implements an interface for serving the BaseAtomicDB API over a socket.
     """
@@ -162,142 +139,42 @@ class DBManager:
         """
         The AtomicDatabaseAPI that this wraps must be threadsafe.
         """
-        self._started = threading.Event()
-        self._stopped = threading.Event()
+        super().__init__()
         self.db = db
 
-    @property
-    def is_started(self) -> bool:
-        return self._started.is_set()
+    def serve_conn(self, sock: BufferedSocket) -> None:
+        while self.is_running:
+            try:
+                operation_byte = sock.read_exactly(1)
+            except OSError as err:
+                self.logger.debug("%s: closing client connection: %s", self, err)
+                break
+            except Exception:
+                self.logger.exception("Error reading operation flag")
+                break
 
-    @property
-    def is_running(self) -> bool:
-        return self.is_started and not self.is_stopped
+            try:
+                operation = Operation(operation_byte)
+            except TypeError:
+                self.logger.error("Unrecognized database operation: %s", operation_byte.hex())
+                break
 
-    @property
-    def is_stopped(self) -> bool:
-        return self._stopped.is_set()
-
-    def wait_started(self) -> None:
-        self._started.wait()
-
-    def wait_stopped(self) -> None:
-        self._stopped.wait()
-
-    def start(self, ipc_path: pathlib.Path) -> None:
-        threading.Thread(
-            name=f"serve:{ipc_path}",
-            target=self.serve,
-            args=(ipc_path,),
-            daemon=False,
-        ).start()
-        self.wait_started()
-
-    def stop(self) -> None:
-        self._stopped.set()
-
-    def _close_socket_on_stop(self, sock: socket.socket) -> None:
-        # This function runs in the background waiting for the `stop` Event to
-        # be set at which point it closes the socket, causing the server to
-        # shutdown.  This allows the server threads to be cleanly closed on
-        # demand.
-        self.wait_stopped()
-
-        try:
-            sock.shutdown(socket.SHUT_RD)
-        except OSError as e:
-            # on mac OS this can result in the following error:
-            # OSError: [Errno 57] Socket is not connected
-            if e.errno != errno.ENOTCONN:
+            try:
+                if operation is GET:
+                    self.handle_GET(sock)
+                elif operation is SET:
+                    self.handle_SET(sock)
+                elif operation is DELETE:
+                    self.handle_DELETE(sock)
+                elif operation is EXISTS:
+                    self.handle_EXISTS(sock)
+                elif operation is ATOMIC_BATCH:
+                    self.handle_ATOMIC_BATCH(sock)
+                else:
+                    self.logger.error("Got unhandled operation %s", operation)
+            except Exception as err:
+                self.logger.exception("Unhandled error during operation %s: %s", operation, err)
                 raise
-
-        sock.close()
-
-    @contextlib.contextmanager
-    def run(self, ipc_path: pathlib.Path) -> Iterator['DBManager']:
-        self.start(ipc_path)
-        try:
-            yield self
-        finally:
-            self.stop()
-
-            if ipc_path.exists():
-                ipc_path.unlink()
-
-    def serve(self, ipc_path: pathlib.Path) -> None:
-        self.logger.debug("Starting database server over IPC socket: %s", ipc_path)
-
-        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
-            # background task to close the socket.
-            threading.Thread(
-                name="_close_socket_on_stop",
-                target=self._close_socket_on_stop,
-                args=(sock,),
-                daemon=False,
-            ).start()
-
-            # These options help fix an issue with the socket reporting itself
-            # already being used since it accepts many client connection.
-            # https://stackoverflow.com/questions/6380057/python-binding-socket-address-already-in-use
-            sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(str(ipc_path))
-            sock.listen(1)
-
-            self._started.set()
-
-            while self.is_running:
-                try:
-                    conn, addr = sock.accept()
-                except (ConnectionAbortedError, OSError) as err:
-                    self.logger.debug("Server stopping: %s", err)
-                    self._stopped.set()
-                    break
-                self.logger.debug('Server accepted connection: %r', addr)
-                threading.Thread(
-                    name="_serve_conn",
-                    target=self._serve_conn,
-                    args=(conn,),
-                    daemon=False,
-                ).start()
-
-    def _serve_conn(self, raw_socket: socket.socket) -> None:
-        self.logger.debug("%s: starting client handler for %s", self, raw_socket)
-
-        with raw_socket:
-            sock = BufferedSocket(raw_socket)
-
-            while self.is_running:
-                try:
-                    operation_byte = sock.read_exactly(1)
-                except OSError:
-                    self.logger.debug("%s: closing client connection: %s", self, raw_socket)
-                    break
-                except Exception:
-                    self.logger.exception("Error reading operation flag")
-                    break
-
-                try:
-                    operation = Operation(operation_byte)
-                except TypeError:
-                    self.logger.error("Unrecognized database operation: %s", operation_byte.hex())
-                    break
-
-                try:
-                    if operation is GET:
-                        self.handle_GET(sock)
-                    elif operation is SET:
-                        self.handle_SET(sock)
-                    elif operation is DELETE:
-                        self.handle_DELETE(sock)
-                    elif operation is EXISTS:
-                        self.handle_EXISTS(sock)
-                    elif operation is ATOMIC_BATCH:
-                        self.handle_ATOMIC_BATCH(sock)
-                    else:
-                        self.logger.error("Got unhandled operation %s", operation)
-                except Exception:
-                    self.logger.exception("Unhandled error during operation: %s", operation)
-                    raise
 
     def handle_GET(self, sock: BufferedSocket) -> None:
         key_size_data = sock.read_exactly(LEN_BYTES)

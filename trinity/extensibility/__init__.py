@@ -11,7 +11,6 @@ from trinity.extensibility.component import (  # noqa: F401
     BaseMainProcessComponent,
     BaseComponent,
     ComponentStatus,
-    TrinityBootInfo,
 )
 from trinity.extensibility.component_manager import (  # noqa: F401
     ComponentManager,

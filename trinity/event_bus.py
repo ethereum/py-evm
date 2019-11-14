@@ -13,6 +13,7 @@ from cancel_token import CancelToken
 
 from p2p.service import BaseService
 
+from trinity.boot_info import BootInfo
 from trinity.config import TrinityConfig
 from trinity.constants import (
     MAIN_EVENTBUS_ENDPOINT,
@@ -25,7 +26,6 @@ from trinity.events import (
 from trinity.extensibility import (
     BaseComponent,
     ComponentManager,
-    TrinityBootInfo,
 )
 
 
@@ -33,12 +33,12 @@ class ComponentManagerService(BaseService):
     _endpoint: EndpointAPI
 
     def __init__(self,
-                 trinity_boot_info: TrinityBootInfo,
+                 boot_info: BootInfo,
                  components: Sequence[Type[BaseComponent]],
                  kill_trinity_fn: Callable[[str], Any],
                  cancel_token: CancelToken = None,
                  loop: asyncio.AbstractEventLoop = None) -> None:
-        self._boot_info = trinity_boot_info
+        self._boot_info = boot_info
         self._components = components
         self._kill_trinity_fn = kill_trinity_fn
         super().__init__(cancel_token, loop)

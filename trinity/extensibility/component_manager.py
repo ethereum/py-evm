@@ -7,10 +7,10 @@ from typing import (
 
 from lahja import EndpointAPI
 
+from trinity.boot_info import BootInfo
 from trinity.extensibility.component import (
     BaseIsolatedComponent,
     BaseComponent,
-    TrinityBootInfo,
 )
 from trinity._utils.ipc import (
     kill_processes_gracefully,
@@ -55,7 +55,7 @@ class ComponentManager:
         """
         return self._endpoint
 
-    def prepare(self, boot_info: TrinityBootInfo) -> None:
+    def prepare(self, boot_info: BootInfo) -> None:
         """
         Create all components and call :meth:`~trinity.extensibility.component.BaseComponent.ready`
         on each of them.

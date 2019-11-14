@@ -1,12 +1,9 @@
 from argparse import (
     ArgumentParser,
-    Namespace,
 )
 import logging
 import multiprocessing
 from typing import (
-    Any,
-    Dict,
     Tuple,
     Type,
 )
@@ -21,8 +18,8 @@ from eth2.beacon.types.blocks import BeaconBlock
 from trinity.bootstrap import (
     main_entry,
 )
+from trinity.boot_info import BootInfo
 from trinity.config import (
-    TrinityConfig,
     BeaconAppConfig
 )
 from trinity.constants import (
@@ -37,18 +34,13 @@ from trinity.initialization import (
 from trinity.components.registry import (
     get_components_for_beacon_client,
 )
+from trinity._utils.logging import setup_child_process_logging
 from trinity._utils.ipc import (
     wait_for_ipc,
     kill_process_gracefully,
 )
-from trinity._utils.logging import (
-    with_queued_logging,
-)
 from trinity._utils.mp import (
     ctx,
-)
-from trinity._utils.profiling import (
-    setup_cprofiler,
 )
 
 
@@ -61,14 +53,10 @@ def main_beacon() -> None:
     )
 
 
-def trinity_boot(args: Namespace,
-                 trinity_config: TrinityConfig,
-                 extra_kwargs: Dict[str, Any],
-                 listener: logging.handlers.QueueListener,
-                 logger: logging.Logger) -> Tuple[multiprocessing.Process, ...]:
-    # start the listener thread to handle logs produced by other processes in
-    # the local logger.
-    listener.start()
+def trinity_boot(boot_info: BootInfo) -> Tuple[multiprocessing.Process, ...]:
+    logger = logging.getLogger('trinity')
+
+    trinity_config = boot_info.trinity_config
 
     ensure_beacon_dirs(trinity_config.get_app_config(BeaconAppConfig))
 
@@ -80,7 +68,6 @@ def trinity_boot(args: Namespace,
             trinity_config,
             LevelDB,
         ),
-        kwargs=extra_kwargs,
     )
 
     # start the processes
@@ -98,9 +85,10 @@ def trinity_boot(args: Namespace,
     return (database_server_process,)
 
 
-@setup_cprofiler('profile_db_process')
-@with_queued_logging
-def run_database_process(trinity_config: TrinityConfig, db_class: Type[LevelDB]) -> None:
+def run_database_process(boot_info: BootInfo, db_class: Type[LevelDB]) -> None:
+    setup_child_process_logging(boot_info)
+    trinity_config = boot_info.trinity_config
+
     with trinity_config.process_id_file('database'):
         app_config = trinity_config.get_app_config(BeaconAppConfig)
         chain_config = app_config.get_chain_config()
