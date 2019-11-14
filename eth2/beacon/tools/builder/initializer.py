@@ -1,4 +1,4 @@
-from typing import Dict, Sequence, Tuple, Type, cast
+from typing import Dict, Sequence, Tuple, Type
 
 from eth.constants import ZERO_HASH32
 from eth_typing import BLSPubkey, Hash32
@@ -6,9 +6,6 @@ from py_ecc.optimized_bls12_381.optimized_curve import (
     curve_order as BLS12_381_CURVE_ORDER,
 )
 
-from eth2._utils.hash import hash_eth2
-from eth2._utils.merkle.common import get_merkle_proof
-from eth2._utils.merkle.sparse import calc_merkle_tree_from_leaves, get_root
 from eth2.beacon.constants import ZERO_TIMESTAMP
 from eth2.beacon.genesis import get_genesis_block, initialize_beacon_state_from_eth1
 from eth2.beacon.tools.builder.validator import create_mock_deposit_data
@@ -21,6 +18,8 @@ from eth2.beacon.types.validators import Validator
 from eth2.beacon.typing import Timestamp
 from eth2.beacon.validator_status_helpers import activate_validator
 from eth2.configs import Eth2Config
+
+from .validator import make_deposit_proof, make_deposit_tree_and_root
 
 
 def generate_privkey_from_index(index: int) -> int:
@@ -58,7 +57,6 @@ def create_mock_deposits_and_root(
         leaves = tuple()
 
     deposit_datas = tuple()  # type: Tuple[DepositData, ...]
-    deposit_data_leaves = cast(Tuple[Hash32, ...], leaves)  # type: Tuple[Hash32, ...]
     for key, credentials in zip(pubkeys, withdrawal_credentials):
         privkey = keymap[key]
         deposit_data = create_mock_deposit_data(
@@ -67,24 +65,19 @@ def create_mock_deposits_and_root(
             privkey=privkey,
             withdrawal_credentials=credentials,
         )
-        item = deposit_data.hash_tree_root
-        deposit_data_leaves += (item,)
         deposit_datas += (deposit_data,)
 
     deposits: Tuple[Deposit, ...] = tuple()
     for index, data in enumerate(deposit_datas):
-        length_mix_in = Hash32((index + 1).to_bytes(32, byteorder="little"))
-        tree = calc_merkle_tree_from_leaves(deposit_data_leaves[: index + 1])
+        deposit_datas_at_count = deposit_datas[: index + 1]
+        tree, root = make_deposit_tree_and_root(deposit_datas_at_count)
+        proof = make_deposit_proof(deposit_datas_at_count, tree, root, index)
 
-        deposit = Deposit(
-            proof=(get_merkle_proof(tree, item_index=index) + (length_mix_in,)),
-            data=data,
-        )
+        deposit = Deposit(proof=proof, data=data)
         deposits += (deposit,)
 
-    if len(deposit_data_leaves) > 0:
-        tree_root = get_root(tree)
-        return deposits, hash_eth2(tree_root + length_mix_in)
+    if len(deposit_datas) > 0:
+        return deposits, root
     else:
         return tuple(), ZERO_HASH32
 
