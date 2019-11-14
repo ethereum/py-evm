@@ -6,6 +6,7 @@ from py_ecc.optimized_bls12_381.optimized_curve import (
     curve_order as BLS12_381_CURVE_ORDER,
 )
 
+from eth2._utils.hash import hash_eth2
 from eth2.beacon.constants import ZERO_TIMESTAMP
 from eth2.beacon.genesis import get_genesis_block, initialize_beacon_state_from_eth1
 from eth2.beacon.tools.builder.validator import create_mock_deposit_data
