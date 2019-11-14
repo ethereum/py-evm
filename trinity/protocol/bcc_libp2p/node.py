@@ -314,6 +314,7 @@ class Node(BaseService):
         self._register_rpc_handlers()
         # TODO: Register notifees
         await self.host.get_network().listen(self.listen_maddr)
+        self.logger.warning("Node listening: %s", self.listen_maddr_with_peer_id)
         await self.connect_preferred_nodes()
         # TODO: Connect bootstrap nodes?
 
@@ -340,18 +341,24 @@ class Node(BaseService):
         """
         Dial the peer ``peer_id`` through the IPv4 protocol
         """
-        await self.host.connect(
-            PeerInfo(
-                peer_id=peer_id,
-                addrs=[make_tcp_ip_maddr(ip, port)],
+        try:
+            maddr = make_tcp_ip_maddr(ip, port)
+            self.logger.debug("Dialing peer_id %s maddr %s", peer_id, maddr)
+            await self.host.connect(
+                PeerInfo(
+                    peer_id=peer_id,
+                    addrs=[maddr],
+                )
             )
-        )
+        except Exception as e:
+            raise ConnectionRefusedError() from e
+
         try:
             # TODO: set a time limit on completing handshake
             await self.request_status(peer_id)
         except HandshakeFailure as e:
             self.logger.info("HandshakeFailure: %s", str(e))
-            # TODO: handle it
+            raise ConnectionRefusedError() from e
 
     async def dial_peer_with_retries(self, ip: str, port: int, peer_id: ID) -> None:
         """
@@ -364,8 +371,8 @@ class Node(BaseService):
                 await self.dial_peer(ip, port, peer_id)
                 return
             except ConnectionRefusedError:
-                logger.debug(
-                    "could not connect to peer %s at %s:%d;"
+                self.logger.debug(
+                    "Could not connect to peer %s at %s:%d;"
                     " retrying attempt %d of %d...",
                     peer_id,
                     ip,
@@ -382,7 +389,7 @@ class Node(BaseService):
         """
         try:
             ip = maddr.value_for_protocol(protocols.P_IP4)
-            port = maddr.value_for_protocol(protocols.P_TCP)
+            port = int(maddr.value_for_protocol(protocols.P_TCP))
             peer_id = ID.from_base58(maddr.value_for_protocol(protocols.P_P2P))
             await self.dial_peer_with_retries(ip=ip, port=port, peer_id=peer_id)
         except Exception:

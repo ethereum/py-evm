@@ -117,8 +117,6 @@ class BeaconNodeComponent(AsyncioIsolatedComponent):
             chain=chain,
         )
 
-        self.logger.warning(f'Node listening: {libp2p_node.listen_maddr_with_peer_id}')
-
         receive_server = BCCReceiveServer(
             chain=chain,
             p2p_node=libp2p_node,
