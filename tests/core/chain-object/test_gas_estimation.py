@@ -23,28 +23,22 @@ def chain(chain_without_block_validation):
     'should_sign_tx', (True, False),
 )
 @pytest.mark.parametrize(
-    'data, gas_estimator, to, on_pending, expected',
+    'data, gas_estimator, to, expected',
     (
-        (b'', None, ADDR_1010, True, 21000),
-        (b'', None, ADDR_1010, False, 21000),
-        (b'\xff' * 10, None, ADDR_1010, True, 21680),
-        (b'\xff' * 10, None, ADDR_1010, False, 21680),
+        (b'', None, ADDR_1010, 21000),
+        (b'\xff' * 10, None, ADDR_1010, 21680),
         # sha3 precompile
-        (b'\xff' * 32, None, ADDRESS_2, True, 35333),
-        (b'\xff' * 32, None, ADDRESS_2, False, 35345),
-        (b'\xff' * 320, None, ADDRESS_2, True, 54840),
+        (b'\xff' * 32, None, ADDRESS_2, 35345),
+        (b'\xff' * 320, None, ADDRESS_2, 54852),
         # 1000_tolerance binary search
-        (b'\xff' * 32, binary_gas_search_1000_tolerance, ADDRESS_2, True, 23935),
+        (b'\xff' * 32, binary_gas_search_1000_tolerance, ADDRESS_2, 23936),
     ),
     ids=[
-        'simple default pending',
         'simple default',
-        '10 bytes default pending',
         '10 bytes default',
-        'sha3 precompile 32 bytes default pending',
         'sha3 precompile 32 bytes default',
-        'sha3 precompile 320 bytes default pending',
-        'sha3 precompile 32 bytes 1000_tolerance binary pending',
+        'sha3 precompile 320 bytes default',
+        'sha3 precompile 32 bytes 1000_tolerance binary',
     ],
 )
 def test_estimate_gas(
@@ -52,7 +46,6 @@ def test_estimate_gas(
         data,
         gas_estimator,
         to,
-        on_pending,
         expected,
         funded_address,
         funded_address_private_key,
@@ -77,15 +70,10 @@ def test_estimate_gas(
     else:
         tx = new_transaction(**tx_params)
 
-    if on_pending:
-        # estimate on *pending* block
-        pending_header = chain.create_header_from_parent(chain.get_canonical_head())
-        assert chain.estimate_gas(tx, pending_header) == expected
-    else:
-        # estimates on top of *latest* block
-        assert chain.estimate_gas(tx) == expected
-        # these are long, so now that we know the exact numbers let's skip the repeat test
-        # assert chain.estimate_gas(tx, chain.get_canonical_head()) == expected
+    # estimates on top of *latest* block
+    assert chain.estimate_gas(tx) == expected
+    # these are long, so now that we know the exact numbers let's skip the repeat test
+    # assert chain.estimate_gas(tx, chain.get_canonical_head()) == expected
 
 
 def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_address):
@@ -125,4 +113,4 @@ def test_estimate_gas_on_full_block(chain, funded_address_private_key, funded_ad
     # build a transaction to estimate gas for
     next_pending_tx = mk_estimation_txn(chain, from_, from_key, data=garbage_data * 2)
 
-    assert chain.estimate_gas(next_pending_tx, chain.header) == 722760
+    assert chain.estimate_gas(next_pending_tx) == 722760

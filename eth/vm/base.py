@@ -997,12 +997,16 @@ class VM(BaseVM):
 
     @contextlib.contextmanager
     def state_in_temp_block(self) -> Iterator[BaseState]:
-        header = self.get_header()
-        temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
-        prev_hashes = itertools.chain((header.hash,), self.previous_hashes)
+        snapshot = self.state.snapshot()
+        yield self.state
+        self.state.revert(snapshot)
 
-        state = self.build_state(self.chaindb.db, temp_block.header, prev_hashes)
+        # header = self.get_header()
+        # temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
+        # prev_hashes = itertools.chain((header.hash,), self.previous_hashes)
 
-        snapshot = state.snapshot()
-        yield state
-        state.revert(snapshot)
+        # state = self.build_state(self.chaindb.db, temp_block.header, prev_hashes)
+
+        # snapshot = state.snapshot()
+        # yield state
+        # state.revert(snapshot)

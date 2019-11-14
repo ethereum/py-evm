@@ -52,6 +52,9 @@ from eth.db.cache import (
 from eth.db.diff import (
     DBDiff,
 )
+from eth.db.header import (
+    HeaderDB,
+)
 from eth.db.journal import (
     JournalDB,
 )
@@ -59,11 +62,13 @@ from eth.db.schema import (
     Schemas,
     SchemaTurbo,
     ensure_schema,
+    get_schema,
 )
 from eth.db.storage import (
     AccountStorageDB,
     StorageLookup,
 )
+from eth.db.turbo import TurboDatabase
 from eth.db.typing import (
     JournalDBCheckpoint,
 )
@@ -666,7 +671,9 @@ class AccountDB(BaseAccountDB):
             #       the TurboDB is available. Check that the turbodb gives the same
             #       result, by calling _get_encoded_account_from_turbodb, or something
             #       like it, 
+            # old_value_by_turbo = self._get_encoded_account_from_turbodb(address)
             old_account_value = old_trie[address]
+            # assert old_value_by_turbo == old_account_value
             new_account_value = self._get_encoded_account(address, from_journal=True)
             block_diff.set_account_changed(address, old_account_value, new_account_value)
 
@@ -824,6 +831,11 @@ class TurboAccountDB(AccountDB):
 
 #        if db[SchemaTurbo.current_state_root_key] != state_root:
 #            print('Provided state root does not match db, errors are expected')
+
+        self.turbodb = None
+        if get_schema(db) == Schemas.TURBO:
+            headerdb = HeaderDB(db)
+            self.turbodb = TurboDatabase(headerdb, header)
 
         super().__init__(db, header)
 

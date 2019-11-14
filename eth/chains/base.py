@@ -688,8 +688,6 @@ class Chain(BaseChain):
         Returns an estimation of the amount of gas the given transaction will
         use if executed on top of the block specified by the given header.
         """
-        if at_header is None:
-            at_header = self.get_canonical_head()
         with self.get_vm(at_header).state_in_temp_block() as state:
             return self.gas_estimator(state, transaction)
 
@@ -877,10 +875,12 @@ def _extract_uncle_hashes(blocks: Iterable[BaseBlock]) -> Iterable[Hash32]:
 
 class MiningChain(Chain):
     header: BlockHeader = None
+    vm: BaseVM = None
 
     def __init__(self, base_db: BaseAtomicDB, header: BlockHeader=None) -> None:
         super().__init__(base_db)
         self.header = self.ensure_header(header)
+        self.vm = super().get_vm(self.header)
 
     def apply_transaction(self,
                           transaction: BaseTransaction
@@ -891,22 +891,28 @@ class MiningChain(Chain):
         WARNING: Receipt and Transaction trie generation is computationally
         heavy and incurs significant performance overhead.
         """
-        vm = self.get_vm(self.header)
-        base_block = vm.get_block()
+        base_block = self.vm.get_block()
 
-        receipt, computation = vm.apply_transaction(base_block.header, transaction)
-        header_with_receipt = vm.add_receipt_to_header(base_block.header, receipt)
+        receipt, computation = self.vm.apply_transaction(base_block.header, transaction)
+        header_with_receipt = self.vm.add_receipt_to_header(base_block.header, receipt)
 
         # since we are building the block locally, we have to persist all the incremental state
-        vm.state.persist()
-        new_header = header_with_receipt.copy(state_root=vm.state.state_root)
+        self.vm.state.persist()
+        new_header = header_with_receipt.copy(state_root=self.vm.state.state_root)
 
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )
 
-        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
+        new_block = self.vm.set_block_transactions(
+            base_block, new_header, transactions, receipts
+        )
 
         self.header = new_block.header
+
+        new_vm_class = self.get_vm_class_for_block_number(self.header.block_number)
+        new_vm = new_vm_class(header=self.header, chaindb=self.vm.chaindb)
+        new_vm._state = self.vm._state
+        self.vm = new_vm
 
         return new_block, receipt, computation
 
@@ -918,6 +924,8 @@ class MiningChain(Chain):
             block, perform_validation)
 
         self.header = self.ensure_header()
+        self.vm = super().get_vm(self.header)
+
         return imported_block, new_canonical_blocks, old_canonical_blocks
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BaseBlock:
@@ -925,16 +933,17 @@ class MiningChain(Chain):
         Mines the current block. Proxies to the current Virtual Machine.
         See VM. :meth:`~eth.vm.base.VM.mine_block`
         """
-        mined_block = self.get_vm(self.header).mine_block(*args, **kwargs)
+        mined_block = self.vm.mine_block(*args, **kwargs)
 
         self.validate_block(mined_block)
 
         self.chaindb.persist_block(mined_block)
         self.header = self.create_header_from_parent(mined_block.header)
+        self.vm = super().get_vm(self.header)
         return mined_block
 
     def get_vm(self, at_header: BlockHeader=None) -> 'BaseVM':
         if at_header is None:
-            at_header = self.header
+            return self.vm
 
         return super().get_vm(at_header)

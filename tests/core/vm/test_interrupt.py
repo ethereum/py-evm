@@ -104,8 +104,9 @@ def test_bytecode_missing_interrupt(chain, bytecode, bytecode_hash, address_with
 
 def test_account_missing_interrupt(chain, balance, address_with_balance, address_with_balance_hash):
     # confirm test setup
-    retrieved_balance = chain.get_vm().state.get_balance(address_with_balance)
-    assert retrieved_balance == balance
+    # commented out because checking the balance causes it to be cached
+    # retrieved_balance = chain.get_vm().state.get_balance(address_with_balance)
+    # assert retrieved_balance == balance
     expected_state_root = chain.get_vm().state.state_root
 
     # manually remove trie node with account from database
@@ -125,8 +126,9 @@ def test_account_missing_interrupt(chain, balance, address_with_balance, address
 def test_storage_missing_interrupt(chain, address_with_storage, address_with_storage_hash):
     # confirm test setup
     test_slot = 42
-    retrieved_storage_value = chain.get_vm().state.get_storage(address_with_storage, test_slot)
-    assert retrieved_storage_value == test_slot
+    # commented out because checking the balance causes it to be cached
+    # retrieved_storage_value = chain.get_vm().state.get_storage(address_with_storage, test_slot)
+    # assert retrieved_storage_value == test_slot
     expected_storage_root = chain.get_vm().state._account_db._get_storage_root(address_with_storage)
     expected_slot_hash = keccak(int_to_big_endian(test_slot).rjust(32, b'\0'))
 
