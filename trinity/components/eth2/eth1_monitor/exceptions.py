@@ -6,7 +6,7 @@ class Eth1MonitorError(Exception):
 
 
 class Eth1MonitorValidationError(ValidationError, Eth1MonitorError):
-    pass
+    ...
 
 
 class Eth1BlockNotFound(Eth1MonitorError):
