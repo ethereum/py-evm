@@ -87,7 +87,7 @@ async def test_eth_peer_get_block_bodies_round_trip_with_empty_response(eth_peer
     headers, bodies, transactions_roots, trie_data_dicts, uncles_hashes = zip(*headers_bundle)
 
     async def send_block_bodies():
-        remote.sub_proto.send_block_bodies([])
+        remote.eth_api.send_block_bodies([])
         await asyncio.sleep(0)
 
     get_bodies_task = asyncio.ensure_future(peer.eth_api.get_block_bodies(headers))
@@ -106,7 +106,7 @@ async def test_eth_peer_get_block_bodies_round_trip_with_full_response(eth_peer_
     headers, bodies, transactions_roots, trie_data_dicts, uncles_hashes = zip(*headers_bundle)
 
     async def send_block_bodies():
-        remote.sub_proto.send_block_bodies(bodies)
+        remote.eth_api.send_block_bodies(bodies)
         await asyncio.sleep(0)
 
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
@@ -129,7 +129,7 @@ async def test_eth_peer_get_block_bodies_round_trip_with_partial_response(eth_pe
     headers, bodies, transactions_roots, trie_data_dicts, uncles_hashes = zip(*headers_bundle)
 
     async def send_block_bodies():
-        remote.sub_proto.send_block_bodies(bodies[1:])
+        remote.eth_api.send_block_bodies(bodies[1:])
         await asyncio.sleep(0)
 
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
@@ -152,11 +152,11 @@ async def test_eth_peer_get_block_bodies_round_trip_with_noise(eth_peer_and_remo
     headers, bodies, transactions_roots, trie_data_dicts, uncles_hashes = zip(*headers_bundle)
 
     async def send_block_bodies():
-        remote.sub_proto.send_node_data((b'', b'arst'))
+        remote.eth_api.send_node_data((b'', b'arst'))
         await asyncio.sleep(0)
-        remote.sub_proto.send_block_bodies(bodies)
+        remote.eth_api.send_block_bodies(bodies)
         await asyncio.sleep(0)
-        remote.sub_proto.send_node_data((b'', b'arst'))
+        remote.eth_api.send_node_data((b'', b'arst'))
         await asyncio.sleep(0)
 
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))
@@ -182,9 +182,9 @@ async def test_eth_peer_get_block_bodies_round_trip_no_match_invalid_response(et
     _, wrong_bodies, _, _, _ = zip(*wrong_headers_bundle)
 
     async def send_block_bodies():
-        remote.sub_proto.send_block_bodies(wrong_bodies)
+        remote.eth_api.send_block_bodies(wrong_bodies)
         await asyncio.sleep(0)
-        remote.sub_proto.send_block_bodies(bodies)
+        remote.eth_api.send_block_bodies(bodies)
         await asyncio.sleep(0)
 
     transactions_bundles = tuple(zip(transactions_roots, trie_data_dicts))

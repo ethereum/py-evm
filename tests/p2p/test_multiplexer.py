@@ -5,63 +5,52 @@ import pytest
 from eth_utils import ValidationError
 
 from p2p.exceptions import UnknownProtocol
-from p2p.protocol import Command, Protocol
+from p2p.commands import BaseCommand, NoneSerializationCodec
+from p2p.protocol import BaseProtocol
 from p2p.p2p_proto import Ping, Pong, P2PProtocolV5
 
 from p2p.tools.factories import MultiplexerPairFactory
 
 
-class CommandA(Command):
-    _cmd_id = 0
-    structure = ()
+class CommandA(BaseCommand):
+    protocol_command_id = 0
+    serialization_codec = NoneSerializationCodec()
 
 
-class CommandB(Command):
-    _cmd_id = 1
-    structure = ()
+class CommandB(BaseCommand):
+    protocol_command_id = 1
+    serialization_codec = NoneSerializationCodec()
 
 
-class SecondProtocol(Protocol):
+class SecondProtocol(BaseProtocol):
     name = 'second'
     version = 1
-    _commands = (CommandA, CommandB)
-    cmd_length = 2
-
-    def send_cmd(self, cmd_type) -> None:
-        header, body = self.cmd_by_type[cmd_type].encode({})
-        self.transport.send(header, body)
+    commands = (CommandA, CommandB)
+    command_length = 2
 
 
-class CommandC(Command):
-    _cmd_id = 0
-    structure = ()
+class CommandC(BaseCommand):
+    protocol_command_id = 0
+    serialization_codec = NoneSerializationCodec()
 
 
-class CommandD(Command):
-    _cmd_id = 1
-    structure = ()
+class CommandD(BaseCommand):
+    protocol_command_id = 1
+    serialization_codec = NoneSerializationCodec()
 
 
-class ThirdProtocol(Protocol):
+class ThirdProtocol(BaseProtocol):
     name = 'third'
     version = 1
-    _commands = (CommandC, CommandD)
-    cmd_length = 2
-
-    def send_cmd(self, cmd_type) -> None:
-        header, body = self.cmd_by_type[cmd_type].encode({})
-        self.transport.send(header, body)
+    commands = (CommandC, CommandD)
+    command_length = 2
 
 
-class UnsupportedProtocol(Protocol):
+class UnsupportedProtocol(BaseProtocol):
     name = 'unknown'
     version = 1
-    _commands = (CommandC, CommandD)
-    cmd_length = 2
-
-    def send_cmd(self, cmd_type) -> None:
-        header, body = self.cmd_by_type[cmd_type].encode({})
-        self.transport.send(header, body)
+    commands = (CommandC, CommandD)
+    command_length = 2
 
 
 @pytest.mark.asyncio
@@ -107,12 +96,12 @@ async def test_multiplexer_only_p2p_protocol():
             alice_p2p_protocol = alice_multiplexer.get_protocol_by_type(P2PProtocolV5)
             bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocolV5)
 
-            alice_p2p_protocol.send_ping()
-            cmd, _ = await asyncio.wait_for(bob_stream.asend(None), timeout=0.1)
+            alice_p2p_protocol.send(Ping(None))
+            cmd = await asyncio.wait_for(bob_stream.asend(None), timeout=0.1)
             assert isinstance(cmd, Ping)
 
-            bob_p2p_protocol.send_pong()
-            cmd, _ = await asyncio.wait_for(alice_stream.asend(None), timeout=0.1)
+            bob_p2p_protocol.send(Pong(None))
+            cmd = await asyncio.wait_for(alice_stream.asend(None), timeout=0.1)
 
 
 @pytest.mark.asyncio
@@ -134,23 +123,23 @@ async def test_multiplexer_p2p_and_paragon_protocol():
             bob_p2p_protocol = bob_multiplexer.get_protocol_by_type(P2PProtocolV5)
             bob_second_protocol = bob_multiplexer.get_protocol_by_type(SecondProtocol)
 
-            alice_second_protocol.send_cmd(CommandA)
-            alice_p2p_protocol.send_ping()
-            alice_second_protocol.send_cmd(CommandB)
-            cmd, _ = await asyncio.wait_for(bob_p2p_stream.asend(None), timeout=0.1)
+            alice_second_protocol.send(CommandA(None))
+            alice_p2p_protocol.send(Ping(None))
+            alice_second_protocol.send(CommandB(None))
+            cmd = await asyncio.wait_for(bob_p2p_stream.asend(None), timeout=0.1)
             assert isinstance(cmd, Ping)
 
-            bob_second_protocol.send_cmd(CommandA)
-            bob_p2p_protocol.send_pong()
-            bob_second_protocol.send_cmd(CommandB)
+            bob_second_protocol.send(CommandA(None))
+            bob_p2p_protocol.send(Pong(None))
+            bob_second_protocol.send(CommandB(None))
 
-            cmd, _ = await asyncio.wait_for(alice_p2p_stream.asend(None), timeout=0.1)
+            cmd = await asyncio.wait_for(alice_p2p_stream.asend(None), timeout=0.1)
             assert isinstance(cmd, Pong)
 
-            cmd_1, _ = await asyncio.wait_for(bob_second_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_2, _ = await asyncio.wait_for(bob_second_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_3, _ = await asyncio.wait_for(alice_second_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_4, _ = await asyncio.wait_for(alice_second_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_1 = await asyncio.wait_for(bob_second_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_2 = await asyncio.wait_for(bob_second_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_3 = await asyncio.wait_for(alice_second_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_4 = await asyncio.wait_for(alice_second_stream.asend(None), timeout=0.1)  # noqa: E501
 
             assert isinstance(cmd_1, CommandA)
             assert isinstance(cmd_2, CommandB)
@@ -181,30 +170,30 @@ async def test_multiplexer_p2p_and_two_more_protocols():
             bob_second_protocol = bob_multiplexer.get_protocol_by_type(SecondProtocol)
             bob_third_protocol = bob_multiplexer.get_protocol_by_type(ThirdProtocol)
 
-            alice_second_protocol.send_cmd(CommandA)
-            alice_third_protocol.send_cmd(CommandC)
-            alice_p2p_protocol.send_ping()
-            alice_second_protocol.send_cmd(CommandB)
-            alice_third_protocol.send_cmd(CommandD)
-            cmd, _ = await asyncio.wait_for(bob_p2p_stream.asend(None), timeout=0.1)
+            alice_second_protocol.send(CommandA(None))
+            alice_third_protocol.send(CommandC(None))
+            alice_p2p_protocol.send(Ping(None))
+            alice_second_protocol.send(CommandB(None))
+            alice_third_protocol.send(CommandD(None))
+            cmd = await asyncio.wait_for(bob_p2p_stream.asend(None), timeout=0.1)
             assert isinstance(cmd, Ping)
 
-            bob_second_protocol.send_cmd(CommandA)
-            bob_third_protocol.send_cmd(CommandC)
-            bob_p2p_protocol.send_pong()
-            bob_second_protocol.send_cmd(CommandB)
-            bob_third_protocol.send_cmd(CommandD)
-            cmd, _ = await asyncio.wait_for(alice_p2p_stream.asend(None), timeout=0.1)
+            bob_second_protocol.send(CommandA(None))
+            bob_third_protocol.send(CommandC(None))
+            bob_p2p_protocol.send(Pong(None))
+            bob_second_protocol.send(CommandB(None))
+            bob_third_protocol.send(CommandD(None))
+            cmd = await asyncio.wait_for(alice_p2p_stream.asend(None), timeout=0.1)
             assert isinstance(cmd, Pong)
 
-            cmd_1, _ = await asyncio.wait_for(bob_third_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_2, _ = await asyncio.wait_for(bob_third_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_3, _ = await asyncio.wait_for(bob_second_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_4, _ = await asyncio.wait_for(bob_second_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_5, _ = await asyncio.wait_for(alice_third_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_6, _ = await asyncio.wait_for(alice_third_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_7, _ = await asyncio.wait_for(alice_second_stream.asend(None), timeout=0.1)  # noqa: E501
-            cmd_8, _ = await asyncio.wait_for(alice_second_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_1 = await asyncio.wait_for(bob_third_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_2 = await asyncio.wait_for(bob_third_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_3 = await asyncio.wait_for(bob_second_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_4 = await asyncio.wait_for(bob_second_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_5 = await asyncio.wait_for(alice_third_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_6 = await asyncio.wait_for(alice_third_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_7 = await asyncio.wait_for(alice_second_stream.asend(None), timeout=0.1)  # noqa: E501
+            cmd_8 = await asyncio.wait_for(alice_second_stream.asend(None), timeout=0.1)  # noqa: E501
 
             assert isinstance(cmd_1, CommandC)
             assert isinstance(cmd_2, CommandD)
@@ -216,11 +205,11 @@ async def test_multiplexer_p2p_and_two_more_protocols():
             assert isinstance(cmd_8, CommandB)
 
 
-class SharedProtocol(Protocol):
+class SharedProtocol(BaseProtocol):
     name = 'shared'
     version = 1
-    _commands = (CommandB, CommandC)
-    cmd_length = 2
+    commands = (CommandB, CommandC)
+    command_length = 2
 
 
 @pytest.mark.asyncio

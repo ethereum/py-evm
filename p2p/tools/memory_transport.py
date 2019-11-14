@@ -9,9 +9,9 @@ from eth_utils import (
     get_extended_debug_logger,
 )
 
-from p2p._utils import get_devp2p_cmd_id
-from p2p.abc import NodeAPI, TransportAPI
+from p2p.abc import MessageAPI, NodeAPI, TransportAPI
 from p2p.exceptions import PeerConnectionLost
+from p2p.message import Message
 from p2p.session import Session
 from p2p.tools.asyncio_streams import get_directly_connected_streams
 from p2p.transport_state import TransportState
@@ -75,27 +75,33 @@ class MemoryTransport(TransportAPI):
     def write(self, data: bytes) -> None:
         self._writer.write(data)
 
-    async def recv(self, token: CancelToken) -> bytes:
+    async def recv(self, token: CancelToken) -> MessageAPI:
         self.read_state = TransportState.HEADER
         try:
-            encoded_size = await self.read(3, token)
+            encoded_sizes = await self.read(8, token)
         except asyncio.CancelledError:
             self.read_state = TransportState.IDLE
             raise
-        (size,) = struct.unpack(b'>I', b'\x00' + encoded_size)
+        header_size, body_size = struct.unpack('>II', encoded_sizes)
         self.read_state = TransportState.BODY
-        data = await self.read(size, token)
+        header = await self.read(header_size, token)
+        body = await self.read(body_size, token)
         self.read_state = TransportState.IDLE
-        return data
+        return Message(header, body)
 
-    def send(self, header: bytes, body: bytes) -> None:
-        (size,) = struct.unpack(b'>I', b'\x00' + header[:3])
+    def send(self, message: MessageAPI) -> None:
+        header_size = len(message.header)
+        body_size = len(message.body)
+
+        encoded_sizes = struct.pack('>II', header_size, body_size)
+
         if self.is_closing:
-            cmd_id = get_devp2p_cmd_id(body)
             self.logger.error(
-                "Attempted to send msg with cmd id %d to disconnected peer %s", cmd_id, self)
+                f"Attempted to send msg with cmd id {message.command_id} to "
+                f"disconnected peer {self.remote}"
+            )
             return
-        self.write(header[:3] + body[:size])
+        self.write(encoded_sizes + message.header + message.body)
 
     def close(self) -> None:
         """Close this peer's reader/writer streams.

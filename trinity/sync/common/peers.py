@@ -1,6 +1,7 @@
 from asyncio import PriorityQueue
 import collections
 from typing import (
+    Any,
     Callable,
     Generic,
     Sequence,
@@ -39,11 +40,11 @@ class WaitingPeers(Generic[TChainPeer]):
     prefer the peer with the best throughput for the given command.
     """
     _waiting_peers: 'PriorityQueue[SortableTask[TChainPeer]]'
-    _response_command_type: Tuple[Type[CommandAPI], ...]
+    _response_command_type: Tuple[Type[CommandAPI[Any]], ...]
 
     def __init__(
             self,
-            response_command_type: Union[Type[CommandAPI], Sequence[Type[CommandAPI]]],
+            response_command_type: Union[Type[CommandAPI[Any]], Sequence[Type[CommandAPI[Any]]]],
             sort_key: Callable[[PerformanceAPI], float]=_items_per_second) -> None:
         """
         :param sort_key: how should we sort the peers to get the fastest? low score means top-ranked

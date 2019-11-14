@@ -54,7 +54,7 @@ deps = {
         "async-timeout>=3.0.1,<4",
         "hypothesis>=4.24.3,<5",
         "pexpect>=4.6, <5",
-        "factory-boy==2.11.1",
+        "factory-boy==2.12.0",
         # pinned to <3.7 until async fixtures work again
         # https://github.com/pytest-dev/pytest-asyncio/issues/89
         "pytest>=3.6,<3.7",

@@ -18,7 +18,7 @@ class RequestIDMonitor(PeerSubscriber):
 
     async def next_request_id(self):
         msg = await self.msg_queue.get()
-        return msg.payload['request_id']
+        return msg.command.payload.request_id
 
 
 @to_tuple
@@ -53,7 +53,7 @@ async def test_eth_get_headers_empty_stats():
 async def test_eth_get_headers_stats():
     async with ETHPeerPairFactory() as (peer, remote):
         async def send_headers():
-            remote.sub_proto.send_block_headers(mk_header_chain(1))
+            remote.eth_api.send_block_headers(mk_header_chain(1))
 
         for idx in range(1, 5):
             get_headers_task = asyncio.ensure_future(
@@ -85,7 +85,7 @@ async def test_les_get_headers_stats():
                 )
                 request_id = await request_id_monitor.next_request_id()
 
-            remote.sub_proto.send_block_headers(mk_header_chain(1), 0, request_id)
+            remote.les_api.send_block_headers(mk_header_chain(1), 0, request_id)
 
             await get_headers_task
 

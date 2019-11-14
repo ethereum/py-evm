@@ -9,10 +9,10 @@ from p2p.stats.stddev import StandardDeviation
 
 from .abc import PerformanceTrackerAPI
 from .constants import ROUND_TRIP_TIMEOUT
-from .typing import TRequest, TResult
+from .typing import TRequestCommand, TResult
 
 
-class BasePerformanceTracker(PerformanceTrackerAPI[TRequest, TResult]):
+class BasePerformanceTracker(PerformanceTrackerAPI[TRequestCommand, TResult]):
     logger = get_extended_debug_logger('trinity.protocol.common.trackers.PerformanceTracker')
 
     def __init__(self) -> None:
@@ -67,7 +67,7 @@ class BasePerformanceTracker(PerformanceTrackerAPI[TRequest, TResult]):
         )
 
     @abstractmethod
-    def _get_request_size(self, request: TRequest) -> Optional[int]:
+    def _get_request_size(self, request: TRequestCommand) -> Optional[int]:
         """
         The request size represents the number of *things* that were requested,
         not taking into account the sizes of individual items.
@@ -106,7 +106,7 @@ class BasePerformanceTracker(PerformanceTrackerAPI[TRequest, TResult]):
 
     def record_response(self,
                         elapsed: float,
-                        request: TRequest,
+                        request: TRequestCommand,
                         result: TResult) -> None:
         self.total_msgs += 1
 

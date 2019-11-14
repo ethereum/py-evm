@@ -3,8 +3,10 @@ from .commands import (  # noqa: F401
     GetSum,
     Sum,
 )
-from .proto import (  # noqa: F401
-    ParagonProtocol,
+from .payloads import (  # noqa: F401
+    BroadcastDataPayload,
+    GetSumPayload,
+    SumPayload,
 )
 from .peer import (  # noqa: F401
     ParagonHandshaker,
@@ -13,4 +15,7 @@ from .peer import (  # noqa: F401
     ParagonPeer,
     ParagonPeerFactory,
     ParagonPeerPool,
+)
+from .proto import (  # noqa: F401
+    ParagonProtocol,
 )

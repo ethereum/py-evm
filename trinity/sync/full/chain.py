@@ -8,6 +8,7 @@ from functools import (
 from operator import attrgetter
 import time
 from typing import (
+    Any,
     AsyncIterator,
     Awaitable,
     Callable,
@@ -114,7 +115,7 @@ class BaseBodyChainSyncer(BaseService, PeerSubscriber):
     "If no peers are available for downloading the chain data, retry after this many seconds"
 
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset()
 
     # This is a rather arbitrary value, but when the sync is operating normally we never see
     # the msg queue grow past a few hundred items, so this should be a reasonable limit for

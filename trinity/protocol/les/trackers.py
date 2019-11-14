@@ -9,26 +9,26 @@ from p2p.exchange import BasePerformanceTracker
 
 from trinity._utils.headers import sequence_builder
 
-from .requests import (
-    GetBlockHeadersRequest,
+from .commands import (
+    GetBlockHeaders,
 )
 
 
 BaseGetBlockHeadersTracker = BasePerformanceTracker[
-    GetBlockHeadersRequest,
+    GetBlockHeaders,
     Tuple[BlockHeaderAPI, ...],
 ]
 
 
 class GetBlockHeadersTracker(BaseGetBlockHeadersTracker):
-    def _get_request_size(self, request: GetBlockHeadersRequest) -> Optional[int]:
-        payload = request.command_payload['query']
-        if isinstance(payload['block_number_or_hash'], int):
+    def _get_request_size(self, request: GetBlockHeaders) -> Optional[int]:
+        payload = request.payload.query
+        if isinstance(payload.block_number_or_hash, int):
             return len(sequence_builder(
-                start_number=payload['block_number_or_hash'],
-                max_length=payload['max_headers'],
-                skip=payload['skip'],
-                reverse=payload['reverse'],
+                start_number=payload.block_number_or_hash,
+                max_length=payload.max_headers,
+                skip=payload.skip,
+                reverse=payload.reverse,
             ))
         else:
             return None

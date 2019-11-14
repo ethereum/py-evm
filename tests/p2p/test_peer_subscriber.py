@@ -5,9 +5,12 @@ import pytest
 from eth_utils import get_extended_debug_logger
 
 from p2p.peer import PeerSubscriber
-from p2p.protocol import Command
+from p2p.commands import BaseCommand
 
-from p2p.tools.paragon import GetSum
+from p2p.tools.paragon import (
+    GetSum, GetSumPayload,
+    BroadcastData, BroadcastDataPayload,
+)
 from p2p.tools.factories import ParagonPeerPairFactory
 
 
@@ -23,7 +26,7 @@ class GetSumSubscriber(PeerSubscriber):
 class AllSubscriber(PeerSubscriber):
     logger = logger
     msg_queue_maxsize = 10
-    subscription_msg_types = {Command}
+    subscription_msg_types = {BaseCommand}
 
 
 @pytest.mark.asyncio
@@ -35,11 +38,11 @@ async def test_peer_subscriber_filters_messages(request, event_loop):
         peer.add_subscriber(get_sum_subscriber)
         peer.add_subscriber(all_subscriber)
 
-        remote.sub_proto.send_broadcast_data(b'value-a')
-        remote.sub_proto.send_broadcast_data(b'value-b')
-        remote.sub_proto.send_get_sum(7, 8)
-        remote.sub_proto.send_get_sum(1234, 4321)
-        remote.sub_proto.send_broadcast_data(b'value-b')
+        remote.sub_proto.send(BroadcastData(BroadcastDataPayload(b'value-a')))
+        remote.sub_proto.send(BroadcastData(BroadcastDataPayload(b'value-b')))
+        remote.sub_proto.send(GetSum(GetSumPayload(7, 8)))
+        remote.sub_proto.send(GetSum(GetSumPayload(1234, 4321)))
+        remote.sub_proto.send(BroadcastData(BroadcastDataPayload(b'value-b')))
 
         # Should only be able to get two messages from the `get_sum` subscriber
         for _ in range(2):

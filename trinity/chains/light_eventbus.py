@@ -21,18 +21,19 @@ from eth.rlp.receipts import (
 from trinity.constants import (
     TO_NETWORKING_BROADCAST_CONFIG,
 )
+from trinity.protocol.les.events import (
+    GetBlockHeaderByHashRequest,
+    GetBlockBodyByHashRequest,
+    GetContractCodeRequest,
+    GetAccountRequest,
+    GetReceiptsRequest,
+
+)
 from trinity.rlp.block_body import BlockBody
 from trinity.sync.light.service import (
     BaseLightPeerChain,
 )
 
-from trinity.protocol.les.events import (
-    GetAccountRequest,
-    GetBlockBodyByHashRequest,
-    GetBlockHeaderByHashRequest,
-    GetContractCodeRequest,
-    GetReceiptsRequest,
-)
 from trinity._utils.errors import (
     pass_or_raise,
 )

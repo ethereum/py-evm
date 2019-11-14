@@ -31,7 +31,6 @@ from p2p.peer import (
 )
 from p2p.peer_pool import BasePeerPool
 from p2p.service import BaseService
-from p2p.typing import Payload
 
 from .events import (
     ConnectToNodeCommand,
@@ -64,7 +63,7 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
 
     msg_queue_maxsize: int = 2000
 
-    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset({})
+    subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset({})
 
     def __init__(self,
                  event_bus: EndpointAPI,
@@ -112,8 +111,7 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
     @abstractmethod
     async def handle_native_peer_message(self,
                                          session: SessionAPI,
-                                         cmd: CommandAPI,
-                                         msg: Payload) -> None:
+                                         cmd: CommandAPI[Any]) -> None:
         """
         Process every native peer message. Subclasses should overwrite this to forward specific
         peer messages on the event bus. The handler is called for every message that is defined in
@@ -222,8 +220,8 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
     async def handle_native_peer_messages(self) -> None:
         with self.subscribe(self.peer_pool):
             while self.is_operational:
-                peer, cmd, msg = await self.wait(self.msg_queue.get())
-                await self.handle_native_peer_message(peer.session, cmd, msg)
+                peer, cmd = await self.wait(self.msg_queue.get())
+                await self.handle_native_peer_message(peer.session, cmd)
 
     def register_peer(self, peer: BasePeer) -> None:
         self.logger.debug2("Broadcasting PeerJoinedEvent for %s", peer)
@@ -238,8 +236,7 @@ class DefaultPeerPoolEventServer(PeerPoolEventServer[BasePeer]):
 
     async def handle_native_peer_message(self,
                                          session: SessionAPI,
-                                         cmd: CommandAPI,
-                                         msg: Payload) -> None:
+                                         cmd: CommandAPI[Any]) -> None:
         pass
 
 

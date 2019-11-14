@@ -46,7 +46,8 @@ from trinity.constants import TO_NETWORKING_BROADCAST_CONFIG
 from trinity.protocol.common.abc import ChainInfoAPI, HeadInfoAPI
 from trinity.protocol.common.api import ChainInfo, HeadInfo
 from trinity.protocol.eth.api import ETHAPI
-from trinity.protocol.les.api import LESAPI
+from trinity.protocol.les.api import LESV1API, LESV2API
+from trinity.protocol.les.proto import LESProtocolV1, LESProtocolV2
 
 from trinity.components.builtin.network_db.connection.tracker import ConnectionTrackerClient
 from trinity.components.builtin.network_db.eth1_peer_db.tracker import (
@@ -67,11 +68,16 @@ class BaseChainPeer(BasePeer):
     context: ChainContext
 
     @cached_property
-    def chain_api(self) -> Union[ETHAPI, LESAPI]:
+    def chain_api(self) -> Union[ETHAPI, LESV1API, LESV2API]:
         if self.connection.has_logic(ETHAPI.name):
             return self.connection.get_logic(ETHAPI.name, ETHAPI)
-        elif self.connection.has_logic(LESAPI.name):
-            return self.connection.get_logic(LESAPI.name, LESAPI)
+        elif self.connection.has_logic(LESV1API.name):
+            if self.connection.has_protocol(LESProtocolV2):
+                return self.connection.get_logic(LESV2API.name, LESV2API)
+            elif self.connection.has_protocol(LESProtocolV1):
+                return self.connection.get_logic(LESV1API.name, LESV1API)
+            else:
+                raise Exception("Should be unreachable")
         else:
             raise Exception("Should be unreachable")
 

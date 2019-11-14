@@ -1,19 +1,19 @@
 import pytest
 
 from p2p.constants import P2P_PROTOCOL_COMMAND_LENGTH
-from p2p.protocol import Protocol, get_cmd_offsets
+from p2p.protocol import BaseProtocol, get_cmd_offsets
 
 
-class With2(Protocol):
-    cmd_length = 2
+class With2(BaseProtocol):
+    command_length = 2
 
 
-class With5(Protocol):
-    cmd_length = 5
+class With5(BaseProtocol):
+    command_length = 5
 
 
-class With7(Protocol):
-    cmd_length = 7
+class With7(BaseProtocol):
+    command_length = 7
 
 
 BASE_OFFSET = P2P_PROTOCOL_COMMAND_LENGTH

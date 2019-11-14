@@ -132,7 +132,7 @@ async def test_command_handler_logic():
     async with ConnectionPairFactory() as (alice, bob):
         ping_handler = HandlePing()
         async with ping_handler.as_behavior().apply(alice):
-            bob.get_base_protocol().send_ping()
+            bob.get_base_protocol().send(Ping(None))
             await asyncio.wait_for(got_ping.wait(), timeout=2)
 
 

@@ -2,6 +2,7 @@ import asyncio
 import collections
 import functools
 from typing import (
+    Any,
     DefaultDict,
     Dict,
     Sequence,
@@ -17,16 +18,15 @@ from eth_keys import keys
 
 from p2p.abc import (
     CommandAPI,
-    CommandHandlerFn,
     ConnectionAPI,
-    SubscriptionAPI,
+    HandlerFn,
     HandshakeReceiptAPI,
     LogicAPI,
     MultiplexerAPI,
     NodeAPI,
     ProtocolAPI,
-    ProtocolHandlerFn,
     SessionAPI,
+    SubscriptionAPI,
     THandshakeReceipt,
     TLogic,
     TProtocol,
@@ -43,18 +43,18 @@ from p2p.exceptions import (
 )
 from p2p.subscription import Subscription
 from p2p.service import BaseService
-from p2p.p2p_proto import BaseP2PProtocol, DevP2PReceipt
+from p2p.p2p_proto import BaseP2PProtocol, DevP2PReceipt, Disconnect
 from p2p.typing import Capabilities
 
 
 class Connection(ConnectionAPI, BaseService):
     _protocol_handlers: DefaultDict[
         Type[ProtocolAPI],
-        Set[ProtocolHandlerFn]
+        Set[HandlerFn]
     ]
     _command_handlers: DefaultDict[
-        Type[CommandAPI],
-        Set[CommandHandlerFn]
+        Type[CommandAPI[Any]],
+        Set[HandlerFn]
     ]
     _logics: Dict[str, LogicAPI]
 
@@ -117,7 +117,7 @@ class Connection(ConnectionAPI, BaseService):
                 self.remote,
                 err,
             )
-            self.get_base_protocol().send_disconnect(DisconnectReason.BAD_PROTOCOL)
+            self.get_base_protocol().send(Disconnect(DisconnectReason.BAD_PROTOCOL))
             pass
 
     async def _cleanup(self) -> None:
@@ -141,7 +141,7 @@ class Connection(ConnectionAPI, BaseService):
 
         # we don't need to use wait_iter here because the multiplexer does it
         # for us.
-        async for cmd, msg in self._multiplexer.stream_protocol_messages(protocol):
+        async for cmd in self._multiplexer.stream_protocol_messages(protocol):
             self.logger.debug2('Handling command: %s', type(cmd))
             # local copy to prevent multation while iterating
             protocol_handlers = set(self._protocol_handlers[type(protocol)])
@@ -152,7 +152,7 @@ class Connection(ConnectionAPI, BaseService):
                     protocol,
                     type(cmd),
                 )
-                self.run_task(proto_handler_fn(self, cmd, msg))
+                self.run_task(proto_handler_fn(self, cmd))
             command_handlers = set(self._command_handlers[type(cmd)])
             for cmd_handler_fn in command_handlers:
                 self.logger.debug2(
@@ -161,11 +161,11 @@ class Connection(ConnectionAPI, BaseService):
                     protocol,
                     type(cmd),
                 )
-                self.run_task(cmd_handler_fn(self, msg))
+                self.run_task(cmd_handler_fn(self, cmd))
 
     def add_protocol_handler(self,
                              protocol_class: Type[ProtocolAPI],
-                             handler_fn: ProtocolHandlerFn,
+                             handler_fn: HandlerFn,
                              ) -> SubscriptionAPI:
         if not self._multiplexer.has_protocol(protocol_class):
             raise UnknownProtocol(
@@ -180,8 +180,8 @@ class Connection(ConnectionAPI, BaseService):
         return Subscription(cancel_fn)
 
     def add_command_handler(self,
-                            command_type: Type[CommandAPI],
-                            handler_fn: CommandHandlerFn,
+                            command_type: Type[CommandAPI[Any]],
+                            handler_fn: HandlerFn,
                             ) -> SubscriptionAPI:
         for protocol in self._multiplexer.get_protocols():
             if protocol.supports_command(command_type):
@@ -254,7 +254,7 @@ class Connection(ConnectionAPI, BaseService):
     def get_protocol_by_type(self, protocol_type: Type[TProtocol]) -> TProtocol:
         return self._multiplexer.get_protocol_by_type(protocol_type)
 
-    def get_protocol_for_command_type(self, command_type: Type[CommandAPI]) -> ProtocolAPI:
+    def get_protocol_for_command_type(self, command_type: Type[CommandAPI[Any]]) -> ProtocolAPI:
         return self._multiplexer.get_protocol_for_command_type(command_type)
 
     def get_receipt_by_type(self, receipt_type: Type[THandshakeReceipt]) -> THandshakeReceipt:

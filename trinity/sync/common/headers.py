@@ -4,6 +4,7 @@ from concurrent.futures import CancelledError
 from operator import attrgetter, itemgetter
 from random import randrange
 from typing import (
+    Any,
     AsyncIterator,
     Callable,
     FrozenSet,
@@ -555,7 +556,7 @@ HeaderStitcher = OrderedTaskPreparation[BlockHeader, Hash32, NoPrerequisites]
 
 class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
     # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset()
     msg_queue_maxsize = 2000
 
     _filler_header_tasks: TaskQueue[Tuple[BlockHeader, int, TChainPeer]]

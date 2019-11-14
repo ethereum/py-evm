@@ -92,7 +92,7 @@ class BaseEth1PeerTracker(BasePeerBackend, PeerSubscriber):
     logger = get_extended_debug_logger('trinity.protocol.common.connection.PeerTracker')
 
     msg_queue_maxsize = 100
-    subscription_msg_types: FrozenSet[Type[CommandAPI]] = frozenset()
+    subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset()
 
     def register_peer(self, peer: BasePeer) -> None:
         # prevent circular import

@@ -1,6 +1,4 @@
 from typing import (
-    Any,
-    Dict,
     Tuple,
     TypeVar,
 )
@@ -15,11 +13,16 @@ from trinity._utils.les import (
     gen_request_id,
 )
 
+from .commands import (
+    BlockHeaders,
+    GetBlockHeaders,
+)
 from .normalizers import (
     BlockHeadersNormalizer,
 )
-from .requests import (
-    GetBlockHeadersRequest,
+from .payloads import (
+    BlockHeadersQuery,
+    GetBlockHeadersPayload,
 )
 from .trackers import (
     GetBlockHeadersTracker,
@@ -33,16 +36,18 @@ TResult = TypeVar('TResult')
 
 
 BaseGetBlockHeadersExchange = BaseExchange[
-    Dict[str, Any],
-    Dict[str, Any],
+    GetBlockHeaders,
+    BlockHeaders,
     Tuple[BlockHeaderAPI, ...],
 ]
 
 
 class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
     _normalizer = BlockHeadersNormalizer()
-    request_class = GetBlockHeadersRequest
     tracker_class = GetBlockHeadersTracker
+
+    _request_command_type = GetBlockHeaders
+    _response_command_type = BlockHeaders
 
     async def __call__(  # type: ignore
             self,
@@ -55,8 +60,17 @@ class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
         original_request_args = (block_number_or_hash, max_headers, skip, reverse)
         validator = GetBlockHeadersValidator(*original_request_args)
 
-        command_args = original_request_args + (gen_request_id(),)
-        request = self.request_class(*command_args)
+        query = BlockHeadersQuery(
+            block_number_or_hash=block_number_or_hash,
+            max_headers=max_headers,
+            skip=skip,
+            reverse=reverse,
+        )
+        payload = GetBlockHeadersPayload(
+            request_id=gen_request_id(),
+            query=query,
+        )
+        request = GetBlockHeaders(payload)
 
         return tuple(await self.get_result(
             request,

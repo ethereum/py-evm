@@ -11,12 +11,25 @@ from eth.tools.builder.chain import (
     mine_block,
 )
 
+from trinity._utils.assertions import assert_type_equality
 from trinity.db.eth1.header import AsyncHeaderDB
 from trinity.protocol.eth.api import ETHAPI
-from trinity.protocol.eth.commands import NewBlock
+from trinity.protocol.eth.commands import (
+    GetBlockHeaders,
+    GetNodeData,
+    NewBlock,
+    Status,
+)
 from trinity.protocol.eth.handshaker import ETHHandshakeReceipt
-from trinity.protocol.eth.proto import ETHProtocol
+
+from trinity.tools.factories.common import (
+    BlockHeadersQueryFactory,
+)
+from trinity.tools.factories.eth import (
+    StatusPayloadFactory,
+)
 from trinity.tools.factories import (
+    BlockHashFactory,
     ChainContextFactory,
     ETHPeerPairFactory,
 )
@@ -104,28 +117,82 @@ async def test_eth_api_head_info_updates_with_newblock(alice, bob, bob_chain):
     alice.connection.add_command_handler(NewBlock, _handle_new_block)
 
     bob_genesis = bob_chain.headerdb.get_canonical_block_header_by_number(0)
-    eth_api = alice.connection.get_logic(ETHAPI.name, ETHAPI)
 
-    assert eth_api.head_info.head_hash == bob_genesis.hash
-    assert eth_api.head_info.head_td == bob_genesis.difficulty
-    assert not hasattr(eth_api.head_info, 'head_number')
+    bob_eth_api = bob.connection.get_logic(ETHAPI.name, ETHAPI)
+    alice_eth_api = alice.connection.get_logic(ETHAPI.name, ETHAPI)
 
-    eth_proto = bob.connection.get_protocol_by_type(ETHProtocol)
+    assert alice_eth_api.head_info.head_hash == bob_genesis.hash
+    assert alice_eth_api.head_info.head_td == bob_genesis.difficulty
+    assert not hasattr(alice_eth_api.head_info, 'head_number')
+
     head = bob_chain.get_canonical_head()
     assert head.block_number == 2
     head_block = bob_chain.get_block_by_header(head)
     total_difficulty = bob_chain.headerdb.get_score(head.hash)
-    eth_proto.send_new_block(
-        head,
-        head_block.transactions,
-        head_block.uncles,
+
+    bob_eth_api.send_new_block(
+        head_block,
         total_difficulty,
     )
 
     await asyncio.wait_for(got_new_block.wait(), timeout=1)
 
-    assert alice.connection.has_logic(ETHAPI.name)
+    assert alice_eth_api.head_info.head_hash == head.parent_hash
+    assert alice_eth_api.head_info.head_td == bob_chain.headerdb.get_score(head.parent_hash)
+    assert alice_eth_api.head_info.head_number == 1
 
-    assert eth_api.head_info.head_hash == head.parent_hash
-    assert eth_api.head_info.head_td == bob_chain.headerdb.get_score(head.parent_hash)
-    assert eth_api.head_info.head_number == 1
+
+@pytest.mark.asyncio
+async def test_eth_api_send_status(alice, bob):
+    payload = StatusPayloadFactory()
+
+    command_fut = asyncio.Future()
+
+    async def _handle_cmd(connection, cmd):
+        command_fut.set_result(cmd)
+
+    bob.connection.add_command_handler(Status, _handle_cmd)
+    alice.eth_api.send_status(payload)
+
+    result = await asyncio.wait_for(command_fut, timeout=1)
+    assert isinstance(result, Status)
+    assert_type_equality(payload, result.payload)
+
+
+@pytest.mark.asyncio
+async def test_eth_api_send_get_node_data(alice, bob):
+    payload = tuple(BlockHashFactory.create_batch(5))
+
+    command_fut = asyncio.Future()
+
+    async def _handle_cmd(connection, cmd):
+        command_fut.set_result(cmd)
+
+    bob.connection.add_command_handler(GetNodeData, _handle_cmd)
+    alice.eth_api.send_get_node_data(payload)
+
+    result = await asyncio.wait_for(command_fut, timeout=1)
+    assert isinstance(result, GetNodeData)
+    assert_type_equality(payload, result.payload)
+
+
+@pytest.mark.asyncio
+async def test_eth_api_send_get_block_headers(alice, bob):
+    payload = BlockHeadersQueryFactory()
+
+    command_fut = asyncio.Future()
+
+    async def _handle_cmd(connection, cmd):
+        command_fut.set_result(cmd)
+
+    bob.connection.add_command_handler(GetBlockHeaders, _handle_cmd)
+    alice.eth_api.send_get_block_headers(
+        block_number_or_hash=payload.block_number_or_hash,
+        max_headers=payload.block_number_or_hash,
+        skip=payload.skip,
+        reverse=payload.reverse,
+    )
+
+    result = await asyncio.wait_for(command_fut, timeout=1)
+    assert isinstance(result, GetBlockHeaders)
+    assert_type_equality(payload, result.payload)

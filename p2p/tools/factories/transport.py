@@ -44,9 +44,6 @@ async def TransportPairFactory(*,
 
     initiator = auth.HandshakeInitiator(bob_remote, alice_private_key, use_eip8, token)
 
-    f_alice: 'asyncio.Future[TransportAPI]' = asyncio.Future()
-    handshake_finished = asyncio.Event()
-
     bob_peername = (bob_remote.address.ip, bob_remote.address.udp_port, bob_remote.address.tcp_port)
     alice_peername = (alice_remote.address.ip, alice_remote.address.udp_port, alice_remote.address.tcp_port)  # noqa: E501
 
@@ -58,7 +55,7 @@ async def TransportPairFactory(*,
         alice_extra_info={'peername': alice_peername},
     )
 
-    async def establish_transport() -> None:
+    async def establish_transport() -> TransportAPI:
         aes_secret, mac_secret, egress_mac, ingress_mac = await auth._handshake(
             initiator, alice_reader, alice_writer, token)
 
@@ -73,20 +70,18 @@ async def TransportPairFactory(*,
             ingress_mac=ingress_mac,
         )
 
-        f_alice.set_result(transport)
-        handshake_finished.set()
+        return transport
 
-    asyncio.ensure_future(establish_transport())
-
-    bob_transport = await asyncio.wait_for(Transport.receive_connection(
-        reader=bob_reader,
-        writer=bob_writer,
-        private_key=bob_private_key,
-        token=token,
+    alice_transport, bob_transport = await asyncio.wait_for(asyncio.gather(
+        establish_transport(),
+        Transport.receive_connection(
+            reader=bob_reader,
+            writer=bob_writer,
+            private_key=bob_private_key,
+            token=token,
+        ),
     ), timeout=1)
 
-    await asyncio.wait_for(handshake_finished.wait(), timeout=0.1)
-    alice_transport = await asyncio.wait_for(f_alice, timeout=0.1)
     return alice_transport, bob_transport
 
 

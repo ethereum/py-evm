@@ -1,6 +1,4 @@
 from typing import (
-    Any,
-    Dict,
     Sequence,
     Tuple,
 )
@@ -13,27 +11,32 @@ from eth.abc import BlockHeaderAPI
 
 from p2p.exchange import (
     BaseExchange,
-    NoopNormalizer,
     noop_payload_validator,
+)
+from trinity.protocol.common.payloads import (
+    BlockHeadersQuery,
 )
 from trinity.protocol.common.typing import (
     BlockBodyBundles,
     NodeDataBundles,
-    ReceiptsByBlock,
     ReceiptsBundles,
 )
-from trinity.rlp.block_body import BlockBody
 
+from .commands import (
+    BlockBodies,
+    BlockHeaders,
+    GetBlockBodies,
+    GetBlockHeaders,
+    GetNodeData,
+    GetReceipts,
+    NodeData,
+    Receipts,
+)
 from .normalizers import (
+    BlockHeadersNormalizer,
     GetBlockBodiesNormalizer,
     GetNodeDataNormalizer,
     ReceiptsNormalizer,
-)
-from .requests import (
-    GetBlockBodiesRequest,
-    GetBlockHeadersRequest,
-    GetNodeDataRequest,
-    GetReceiptsRequest,
 )
 from .trackers import (
     GetBlockHeadersTracker,
@@ -49,16 +52,18 @@ from .validators import (
 )
 
 BaseGetBlockHeadersExchange = BaseExchange[
-    Dict[str, Any],
-    Sequence[BlockHeaderAPI],
+    GetBlockHeaders,
+    BlockHeaders,
     Tuple[BlockHeaderAPI, ...],
 ]
 
 
 class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
-    _normalizer = NoopNormalizer[Sequence[BlockHeaderAPI], Tuple[BlockHeaderAPI, ...]]()
-    request_class = GetBlockHeadersRequest
+    _normalizer = BlockHeadersNormalizer()
     tracker_class = GetBlockHeadersTracker
+
+    _request_command_type = GetBlockHeaders
+    _response_command_type = BlockHeaders
 
     async def __call__(  # type: ignore
             self,
@@ -70,7 +75,7 @@ class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
 
         original_request_args = (block_number_or_hash, max_headers, skip, reverse)
         validator = GetBlockHeadersValidator(*original_request_args)
-        request = self.request_class(*original_request_args)
+        request = GetBlockHeaders(BlockHeadersQuery(*original_request_args))
 
         return await self.get_result(
             request,
@@ -81,19 +86,21 @@ class GetBlockHeadersExchange(BaseGetBlockHeadersExchange):
         )
 
 
-BaseNodeDataExchange = BaseExchange[Sequence[Hash32], Sequence[bytes], NodeDataBundles]
+BaseNodeDataExchange = BaseExchange[GetNodeData, NodeData, NodeDataBundles]
 
 
 class GetNodeDataExchange(BaseNodeDataExchange):
     _normalizer = GetNodeDataNormalizer()
-    request_class = GetNodeDataRequest
     tracker_class = GetNodeDataTracker
+
+    _request_command_type = GetNodeData
+    _response_command_type = NodeData
 
     async def __call__(self,  # type: ignore
                        node_hashes: Sequence[Hash32],
                        timeout: float = None) -> NodeDataBundles:
         validator = GetNodeDataValidator(node_hashes)
-        request = self.request_class(node_hashes)
+        request = GetNodeData(tuple(node_hashes))
         return await self.get_result(
             request,
             self._normalizer,
@@ -103,10 +110,12 @@ class GetNodeDataExchange(BaseNodeDataExchange):
         )
 
 
-class GetReceiptsExchange(BaseExchange[Sequence[Hash32], ReceiptsByBlock, ReceiptsBundles]):
+class GetReceiptsExchange(BaseExchange[GetReceipts, Receipts, ReceiptsBundles]):
     _normalizer = ReceiptsNormalizer()
-    request_class = GetReceiptsRequest
     tracker_class = GetReceiptsTracker
+
+    _request_command_type = GetReceipts
+    _response_command_type = Receipts
 
     async def __call__(self,  # type: ignore
                        headers: Sequence[BlockHeaderAPI],
@@ -114,7 +123,7 @@ class GetReceiptsExchange(BaseExchange[Sequence[Hash32], ReceiptsByBlock, Receip
         validator = ReceiptsValidator(headers)
 
         block_hashes = tuple(header.hash for header in headers)
-        request = self.request_class(block_hashes)
+        request = GetReceipts(block_hashes)
 
         return await self.get_result(
             request,
@@ -126,16 +135,18 @@ class GetReceiptsExchange(BaseExchange[Sequence[Hash32], ReceiptsByBlock, Receip
 
 
 BaseGetBlockBodiesExchange = BaseExchange[
-    Sequence[Hash32],
-    Sequence[BlockBody],
+    GetBlockBodies,
+    BlockBodies,
     BlockBodyBundles,
 ]
 
 
 class GetBlockBodiesExchange(BaseGetBlockBodiesExchange):
     _normalizer = GetBlockBodiesNormalizer()
-    request_class = GetBlockBodiesRequest
     tracker_class = GetBlockBodiesTracker
+
+    _request_command_type = GetBlockBodies
+    _response_command_type = BlockBodies
 
     async def __call__(self,  # type: ignore
                        headers: Sequence[BlockHeaderAPI],
@@ -143,7 +154,7 @@ class GetBlockBodiesExchange(BaseGetBlockBodiesExchange):
         validator = GetBlockBodiesValidator(headers)
 
         block_hashes = tuple(header.hash for header in headers)
-        request = self.request_class(block_hashes)
+        request = GetBlockBodies(block_hashes)
 
         return await self.get_result(
             request,

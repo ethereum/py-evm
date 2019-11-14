@@ -2,6 +2,7 @@ from dataclasses import (
     dataclass,
 )
 from typing import (
+    Any,
     Tuple,
     Type,
 )
@@ -13,7 +14,6 @@ from lahja import (
 
 from p2p.abc import CommandAPI, NodeAPI, SessionAPI
 from p2p.disconnect import DisconnectReason
-from p2p.typing import Payload
 
 
 @dataclass
@@ -89,5 +89,4 @@ class PeerPoolMessageEvent(BaseEvent):
     the event bus.
     """
     session: SessionAPI
-    cmd: CommandAPI
-    msg: Payload
+    command: CommandAPI[Any]

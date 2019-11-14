@@ -51,7 +51,7 @@ async def test_eth_peer_get_node_data_round_trip(eth_peer_and_remote, node_keys,
     node_data = tuple(zip(node_keys, nodes))
 
     async def send_node_data():
-        remote.sub_proto.send_node_data(nodes)
+        remote.eth_api.send_node_data(nodes)
 
     request = asyncio.ensure_future(peer.eth_api.get_node_data(node_keys))
     asyncio.ensure_future(send_node_data())
@@ -69,9 +69,9 @@ async def test_eth_peer_get_headers_round_trip_partial_response(eth_peer_and_rem
     node_data = tuple(zip(node_keys, nodes))
 
     async def send_responses():
-        remote.sub_proto.send_transactions([])
+        remote.eth_api.send_transactions([])
         await asyncio.sleep(0)
-        remote.sub_proto.send_node_data(nodes[:10])
+        remote.eth_api.send_node_data(nodes[:10])
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_responses())
@@ -89,9 +89,9 @@ async def test_eth_peer_get_headers_round_trip_with_noise(eth_peer_and_remote):
     node_data = tuple(zip(node_keys, nodes))
 
     async def send_responses():
-        remote.sub_proto.send_transactions([])
+        remote.eth_api.send_transactions([])
         await asyncio.sleep(0)
-        remote.sub_proto.send_node_data(nodes)
+        remote.eth_api.send_node_data(nodes)
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_responses())
@@ -111,11 +111,11 @@ async def test_eth_peer_get_headers_round_trip_does_not_match_invalid_response(e
     wrong_nodes = tuple(set(mk_node() for _ in range(32)).difference(nodes))
 
     async def send_responses():
-        remote.sub_proto.send_node_data(wrong_nodes)
+        remote.eth_api.send_node_data(wrong_nodes)
         await asyncio.sleep(0)
-        remote.sub_proto.send_transactions([])
+        remote.eth_api.send_transactions([])
         await asyncio.sleep(0)
-        remote.sub_proto.send_node_data(nodes)
+        remote.eth_api.send_node_data(nodes)
         await asyncio.sleep(0)
 
     asyncio.ensure_future(send_responses())

@@ -1,9 +1,5 @@
 from typing import (
     Any,
-    Dict,
-    Sequence,
-    Union,
-    cast,
 )
 
 from cancel_token import (
@@ -11,10 +7,6 @@ from cancel_token import (
 )
 from eth.exceptions import (
     HeaderNotFound,
-)
-from eth_typing import (
-    BlockIdentifier,
-    Hash32,
 )
 from eth_utils import (
     to_hex,
@@ -28,7 +20,6 @@ from trie.exceptions import (
 )
 
 from p2p.abc import CommandAPI, SessionAPI
-from p2p.typing import Payload
 
 from trinity.db.eth1.chain import BaseAsyncChainDB
 from trinity.protocol.common.servers import (
@@ -36,14 +27,14 @@ from trinity.protocol.common.servers import (
     BasePeerRequestHandler,
 )
 from trinity.protocol.eth import commands
-from trinity.protocol.eth.peer import (
-    ETHProxyPeer,
-)
 from trinity.protocol.eth.events import (
     GetBlockHeadersEvent,
     GetBlockBodiesEvent,
     GetNodeDataEvent,
     GetReceiptsEvent,
+)
+from trinity.protocol.eth.peer import (
+    ETHProxyPeer,
 )
 
 from eth.rlp.receipts import Receipt
@@ -54,8 +45,14 @@ from trinity.protocol.eth.constants import (
     MAX_RECEIPTS_FETCH,
     MAX_STATE_FETCH,
 )
-from trinity.protocol.eth.requests import HeaderRequest as ETHHeaderRequest
 from trinity.rlp.block_body import BlockBody
+
+from .commands import (
+    GetBlockHeaders,
+    GetNodeData,
+    GetBlockBodies,
+    GetReceipts,
+)
 
 
 class ETHPeerRequestHandler(BasePeerRequestHandler):
@@ -66,24 +63,17 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
     async def handle_get_block_headers(
             self,
             peer: ETHProxyPeer,
-            msg: Dict[str, Any]) -> None:
+            command: GetBlockHeaders) -> None:
+        self.logger.debug("%s requested headers: %s", peer, command.payload)
 
-        query = cast(Dict[Any, Union[bool, int]], msg)
-        self.logger.debug("%s requested headers: %s", peer, query)
-        request = ETHHeaderRequest(
-            cast(BlockIdentifier, query['block_number_or_hash']),
-            query['max_headers'],
-            query['skip'],
-            cast(bool, query['reverse']),
-        )
-
-        headers = await self.lookup_headers(request)
+        headers = await self.lookup_headers(command.payload)
         self.logger.debug2("Replying to %s with %d headers", peer, len(headers))
-        peer.sub_proto.send_block_headers(headers)
+        peer.eth_api.send_block_headers(headers)
 
     async def handle_get_block_bodies(self,
                                       peer: ETHProxyPeer,
-                                      block_hashes: Sequence[Hash32]) -> None:
+                                      command: GetBlockBodies) -> None:
+        block_hashes = command.payload
 
         self.logger.debug2("%s requested bodies for %d blocks", peer, len(block_hashes))
         bodies = []
@@ -117,9 +107,10 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                 continue
             bodies.append(BlockBody(transactions, uncles))
         self.logger.debug2("Replying to %s with %d block bodies", peer, len(bodies))
-        peer.sub_proto.send_block_bodies(bodies)
+        peer.eth_api.send_block_bodies(bodies)
 
-    async def handle_get_receipts(self, peer: ETHProxyPeer, block_hashes: Sequence[Hash32]) -> None:
+    async def handle_get_receipts(self, peer: ETHProxyPeer, command: GetReceipts) -> None:
+        block_hashes = command.payload
 
         self.logger.debug2("%s requested receipts for %d blocks", peer, len(block_hashes))
         receipts = []
@@ -145,9 +136,10 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                 continue
             receipts.append(block_receipts)
         self.logger.debug2("Replying to %s with receipts for %d blocks", peer, len(receipts))
-        peer.sub_proto.send_receipts(receipts)
+        peer.eth_api.send_receipts(receipts)
 
-    async def handle_get_node_data(self, peer: ETHProxyPeer, node_hashes: Sequence[Hash32]) -> None:
+    async def handle_get_node_data(self, peer: ETHProxyPeer, command: GetNodeData) -> None:
+        node_hashes = command.payload
 
         self.logger.debug2("%s requested %d trie nodes", peer, len(node_hashes))
         nodes = []
@@ -162,7 +154,7 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
                 continue
             nodes.append(node)
         self.logger.debug2("Replying to %s with %d trie nodes", peer, len(nodes))
-        peer.sub_proto.send_node_data(tuple(nodes))
+        peer.eth_api.send_node_data(tuple(nodes))
 
 
 class ETHRequestServer(BaseIsolatedRequestServer):
@@ -187,22 +179,18 @@ class ETHRequestServer(BaseIsolatedRequestServer):
 
     async def _handle_msg(self,
                           session: SessionAPI,
-                          cmd: CommandAPI,
-                          msg: Payload) -> None:
+                          cmd: CommandAPI[Any]) -> None:
 
         self.logger.debug2("Peer %s requested %s", session, cmd)
         peer = ETHProxyPeer.from_session(session, self.event_bus, self.broadcast_config)
 
         if isinstance(cmd, commands.GetBlockHeaders):
-            await self._handler.handle_get_block_headers(peer, cast(Dict[str, Any], msg))
+            await self._handler.handle_get_block_headers(peer, cmd)
         elif isinstance(cmd, commands.GetBlockBodies):
-            block_hashes = cast(Sequence[Hash32], msg)
-            await self._handler.handle_get_block_bodies(peer, block_hashes)
+            await self._handler.handle_get_block_bodies(peer, cmd)
         elif isinstance(cmd, commands.GetReceipts):
-            block_hashes = cast(Sequence[Hash32], msg)
-            await self._handler.handle_get_receipts(peer, block_hashes)
+            await self._handler.handle_get_receipts(peer, cmd)
         elif isinstance(cmd, commands.GetNodeData):
-            node_hashes = cast(Sequence[Hash32], msg)
-            await self._handler.handle_get_node_data(peer, node_hashes)
+            await self._handler.handle_get_node_data(peer, cmd)
         else:
             self.logger.debug("%s msg not handled yet, needs to be implemented", cmd)

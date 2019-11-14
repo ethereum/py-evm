@@ -1,5 +1,6 @@
 import asyncio
 from typing import (
+    Any,
     Tuple,
 )
 
@@ -9,17 +10,14 @@ from lahja import EndpointAPI
 
 from eth_typing import BlockNumber
 
+from eth.abc import BlockHeaderAPI
 from eth.constants import GENESIS_BLOCK_NUMBER
-from eth.rlp.headers import BlockHeader
 from lahja import (
     BroadcastConfig,
 )
 
 from p2p.abc import BehaviorAPI, CommandAPI, HandshakerAPI, SessionAPI
 from p2p.exceptions import PeerConnectionLost
-from p2p.protocol import (
-    Payload,
-)
 
 from trinity._utils.decorators import (
     async_suppress_exceptions,
@@ -36,8 +34,8 @@ from trinity.protocol.common.peer_pool_event_bus import (
 )
 from trinity.protocol.common.typing import (
     BlockBodyBundles,
-    NodeDataBundles,
     ReceiptsBundles,
+    NodeDataBundles,
 )
 
 from .api import ETHAPI
@@ -52,23 +50,24 @@ from .commands import (
 )
 from .constants import MAX_HEADERS_FETCH
 from .events import (
-    GetBlockHeadersEvent,
-    GetBlockHeadersRequest,
-    GetBlockBodiesEvent,
-    GetBlockBodiesRequest,
-    GetReceiptsEvent,
-    GetNodeDataEvent,
-    GetNodeDataRequest,
-    GetReceiptsRequest,
-    NewBlockEvent,
-    NewBlockHashesEvent,
-    SendBlockBodiesEvent,
     SendBlockHeadersEvent,
+    SendBlockBodiesEvent,
     SendNodeDataEvent,
     SendReceiptsEvent,
+    GetBlockHeadersRequest,
+    GetReceiptsRequest,
+    GetBlockBodiesRequest,
+    GetNodeDataRequest,
+    GetBlockHeadersEvent,
+    GetBlockBodiesEvent,
+    GetReceiptsEvent,
+    GetNodeDataEvent,
+    NewBlockEvent,
+    NewBlockHashesEvent,
     TransactionsEvent,
 )
-from .proto import ETHProtocol, ProxyETHProtocol, ETHHandshakeParams
+from .payloads import StatusPayload
+from .proto import ETHProtocol
 from .proxy import ProxyETHAPI
 from .handshaker import ETHHandshaker
 
@@ -97,12 +96,9 @@ class ETHProxyPeer(BaseProxyPeer):
     def __init__(self,
                  session: SessionAPI,
                  event_bus: EndpointAPI,
-                 sub_proto: ProxyETHProtocol,
-                 eth_api: ProxyETHAPI):
-
+                 eth_api: ProxyETHAPI) -> None:
         super().__init__(session, event_bus)
 
-        self.sub_proto = sub_proto
         self.eth_api = eth_api
 
     @classmethod
@@ -113,7 +109,6 @@ class ETHProxyPeer(BaseProxyPeer):
         return cls(
             session,
             event_bus,
-            ProxyETHProtocol(session, event_bus, broadcast_config),
             ProxyETHAPI(session, event_bus, broadcast_config)
         )
 
@@ -131,7 +126,7 @@ class ETHPeerFactory(BaseChainPeerFactory):
             headerdb.coro_get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
         )
 
-        handshake_params = ETHHandshakeParams(
+        handshake_params = StatusPayload(
             head_hash=head.hash,
             total_difficulty=total_difficulty,
             genesis_hash=genesis_hash,
@@ -179,33 +174,33 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
     async def handle_block_headers_event(self, event: SendBlockHeadersEvent) -> None:
         await self.try_with_session(
             event.session,
-            lambda peer: peer.sub_proto.send_block_headers(event.headers)
+            lambda peer: peer.sub_proto.send(event.command)
         )
 
     @async_fire_and_forget
     async def handle_block_bodies_event(self, event: SendBlockBodiesEvent) -> None:
         await self.try_with_session(
             event.session,
-            lambda peer: peer.sub_proto.send_block_bodies(event.blocks)
+            lambda peer: peer.sub_proto.send(event.command)
         )
 
     @async_fire_and_forget
     async def handle_node_data_event(self, event: SendNodeDataEvent) -> None:
         await self.try_with_session(
             event.session,
-            lambda peer: peer.sub_proto.send_node_data(event.nodes)
+            lambda peer: peer.sub_proto.send(event.command)
         )
 
     @async_fire_and_forget
     async def handle_receipts_event(self, event: SendReceiptsEvent) -> None:
         await self.try_with_session(
             event.session,
-            lambda peer: peer.sub_proto.send_receipts(event.receipts)
+            lambda peer: peer.sub_proto.send(event.command)
         )
 
     async def handle_get_block_headers_request(
             self,
-            event: GetBlockHeadersRequest) -> Tuple[BlockHeader, ...]:
+            event: GetBlockHeadersRequest) -> Tuple[BlockHeaderAPI, ...]:
         peer = self.get_peer(event.session)
         return await peer.eth_api.get_block_headers(
             event.block_number_or_hash,
@@ -242,23 +237,22 @@ class ETHPeerPoolEventServer(PeerPoolEventServer[ETHPeer]):
 
     async def handle_native_peer_message(self,
                                          session: SessionAPI,
-                                         cmd: CommandAPI,
-                                         msg: Payload) -> None:
+                                         cmd: CommandAPI[Any]) -> None:
 
         if isinstance(cmd, GetBlockHeaders):
-            await self.event_bus.broadcast(GetBlockHeadersEvent(session, cmd, msg))
+            await self.event_bus.broadcast(GetBlockHeadersEvent(session, cmd))
         elif isinstance(cmd, GetBlockBodies):
-            await self.event_bus.broadcast(GetBlockBodiesEvent(session, cmd, msg))
+            await self.event_bus.broadcast(GetBlockBodiesEvent(session, cmd))
         elif isinstance(cmd, GetReceipts):
-            await self.event_bus.broadcast(GetReceiptsEvent(session, cmd, msg))
+            await self.event_bus.broadcast(GetReceiptsEvent(session, cmd))
         elif isinstance(cmd, GetNodeData):
-            await self.event_bus.broadcast(GetNodeDataEvent(session, cmd, msg))
+            await self.event_bus.broadcast(GetNodeDataEvent(session, cmd))
         elif isinstance(cmd, NewBlock):
-            await self.event_bus.broadcast(NewBlockEvent(session, cmd, msg))
+            await self.event_bus.broadcast(NewBlockEvent(session, cmd))
         elif isinstance(cmd, NewBlockHashes):
-            await self.event_bus.broadcast(NewBlockHashesEvent(session, cmd, msg))
+            await self.event_bus.broadcast(NewBlockHashesEvent(session, cmd))
         elif isinstance(cmd, Transactions):
-            await self.event_bus.broadcast(TransactionsEvent(session, cmd, msg))
+            await self.event_bus.broadcast(TransactionsEvent(session, cmd))
         else:
             raise Exception(f"Command {cmd} is not broadcasted")
 

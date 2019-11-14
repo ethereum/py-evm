@@ -14,29 +14,29 @@ from trinity.protocol.common.typing import (
 )
 from trinity._utils.headers import sequence_builder
 
-from .requests import (
-    GetBlockBodiesRequest,
-    GetBlockHeadersRequest,
-    GetNodeDataRequest,
-    GetReceiptsRequest,
+from .commands import (
+    GetBlockBodies,
+    GetBlockHeaders,
+    GetNodeData,
+    GetReceipts,
 )
 
 
 BaseGetBlockHeadersTracker = BasePerformanceTracker[
-    GetBlockHeadersRequest,
+    GetBlockHeaders,
     Tuple[BlockHeaderAPI, ...],
 ]
 
 
 class GetBlockHeadersTracker(BaseGetBlockHeadersTracker):
-    def _get_request_size(self, request: GetBlockHeadersRequest) -> int:
-        payload = request.command_payload
-        if isinstance(payload['block_number_or_hash'], int):
+    def _get_request_size(self, request: GetBlockHeaders) -> int:
+        payload = request.payload
+        if isinstance(payload.block_number_or_hash, int):
             return len(sequence_builder(
-                start_number=payload['block_number_or_hash'],
-                max_length=payload['max_headers'],
-                skip=payload['skip'],
-                reverse=payload['reverse'],
+                start_number=payload.block_number_or_hash,
+                max_length=payload.max_headers,
+                skip=payload.skip,
+                reverse=payload.reverse,
             ))
         else:
             return None
@@ -48,9 +48,9 @@ class GetBlockHeadersTracker(BaseGetBlockHeadersTracker):
         return len(result)
 
 
-class GetBlockBodiesTracker(BasePerformanceTracker[GetBlockBodiesRequest, BlockBodyBundles]):
-    def _get_request_size(self, request: GetBlockBodiesRequest) -> Optional[int]:
-        return len(request.command_payload)
+class GetBlockBodiesTracker(BasePerformanceTracker[GetBlockBodies, BlockBodyBundles]):
+    def _get_request_size(self, request: GetBlockBodies) -> Optional[int]:
+        return len(request.payload)
 
     def _get_result_size(self, result: BlockBodyBundles) -> int:
         return len(result)
@@ -63,9 +63,9 @@ class GetBlockBodiesTracker(BasePerformanceTracker[GetBlockBodiesRequest, BlockB
         )
 
 
-class GetReceiptsTracker(BasePerformanceTracker[GetReceiptsRequest, ReceiptsBundles]):
-    def _get_request_size(self, request: GetReceiptsRequest) -> Optional[int]:
-        return len(request.command_payload)
+class GetReceiptsTracker(BasePerformanceTracker[GetReceipts, ReceiptsBundles]):
+    def _get_request_size(self, request: GetReceipts) -> Optional[int]:
+        return len(request.payload)
 
     def _get_result_size(self, result: ReceiptsBundles) -> int:
         return len(result)
@@ -78,9 +78,9 @@ class GetReceiptsTracker(BasePerformanceTracker[GetReceiptsRequest, ReceiptsBund
         )
 
 
-class GetNodeDataTracker(BasePerformanceTracker[GetNodeDataRequest, NodeDataBundles]):
-    def _get_request_size(self, request: GetNodeDataRequest) -> Optional[int]:
-        return len(request.command_payload)
+class GetNodeDataTracker(BasePerformanceTracker[GetNodeData, NodeDataBundles]):
+    def _get_request_size(self, request: GetNodeData) -> Optional[int]:
+        return len(request.payload)
 
     def _get_result_size(self, result: NodeDataBundles) -> int:
         return len(result)

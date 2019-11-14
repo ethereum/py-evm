@@ -1,8 +1,8 @@
 from typing import Any, TypeVar
 
-from p2p.abc import RequestAPI
+from p2p.abc import CommandAPI
 
 
-TRequest = TypeVar('TRequest', bound=RequestAPI[Any])
-TResponse = TypeVar('TResponse')
+TRequestCommand = TypeVar('TRequestCommand', bound=CommandAPI[Any])
+TResponseCommand = TypeVar('TResponseCommand', bound=CommandAPI[Any])
 TResult = TypeVar('TResult')

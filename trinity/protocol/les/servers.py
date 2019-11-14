@@ -1,8 +1,4 @@
-from typing import (
-    Any,
-    Dict,
-    cast,
-)
+from typing import Any
 
 from cancel_token import CancelToken
 from lahja import (
@@ -11,7 +7,6 @@ from lahja import (
 )
 
 from p2p.abc import CommandAPI, SessionAPI
-from p2p.typing import Payload
 
 from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.common.servers import (
@@ -19,30 +14,21 @@ from trinity.protocol.common.servers import (
     BasePeerRequestHandler,
 )
 from trinity.protocol.les import commands
-from trinity.protocol.les.events import (
-    GetBlockHeadersEvent,
-)
+from trinity.protocol.les.events import GetBlockHeadersEvent
 from trinity.protocol.les.peer import (
     LESProxyPeer,
 )
 
-from trinity.protocol.les.requests import HeaderRequest as LightHeaderRequest
-
 
 class LESPeerRequestHandler(BasePeerRequestHandler):
-    async def handle_get_block_headers(self, peer: LESProxyPeer, msg: Dict[str, Any]) -> None:
+    async def handle_get_block_headers(self,
+                                       peer: LESProxyPeer,
+                                       cmd: commands.GetBlockHeaders) -> None:
 
-        self.logger.debug("Peer %s made header request: %s", peer, msg)
-        request = LightHeaderRequest(
-            msg['query'].block_number_or_hash,
-            msg['query'].max_headers,
-            msg['query'].skip,
-            msg['query'].reverse,
-            msg['request_id'],
-        )
-        headers = await self.lookup_headers(request)
+        self.logger.debug("Peer %s made header request: %s", peer, cmd)
+        headers = await self.lookup_headers(cmd.payload.query)
         self.logger.debug2("Replying to %s with %d headers", peer, len(headers))
-        peer.sub_proto.send_block_headers(headers, buffer_value=0, request_id=request.request_id)
+        peer.les_api.send_block_headers(headers, request_id=cmd.payload.request_id)
 
 
 class LightRequestServer(BaseIsolatedRequestServer):
@@ -67,12 +53,11 @@ class LightRequestServer(BaseIsolatedRequestServer):
 
     async def _handle_msg(self,
                           session: SessionAPI,
-                          cmd: CommandAPI,
-                          msg: Payload) -> None:
+                          cmd: CommandAPI[Any]) -> None:
 
         self.logger.debug2("Peer %s requested %s", session, cmd)
         peer = LESProxyPeer.from_session(session, self.event_bus, self.broadcast_config)
         if isinstance(cmd, commands.GetBlockHeaders):
-            await self._handler.handle_get_block_headers(peer, cast(Dict[str, Any], msg))
+            await self._handler.handle_get_block_headers(peer, cmd)
         else:
             self.logger.debug("%s msg not handled yet, needs to be implemented", cmd)
