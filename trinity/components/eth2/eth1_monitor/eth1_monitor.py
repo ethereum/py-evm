@@ -96,7 +96,7 @@ class Eth1Monitor(Service):
     # mainchain forks.
     # We always get a `block` and parse the logs from it, where
     # `block.number <= latest_block.number - _num_blocks_confirmed`.
-    _num_blocks_confirmed: BlockNumber
+    _num_blocks_confirmed: int
     # Time period that we poll latest blocks from web3.
     _polling_period: float
     # Block number that we start to parse the log from.
@@ -116,7 +116,7 @@ class Eth1Monitor(Service):
         w3: Web3,
         deposit_contract_address: Address,
         deposit_contract_abi: Dict[str, Any],
-        num_blocks_confirmed: BlockNumber,
+        num_blocks_confirmed: int,
         polling_period: float,
         start_block_number: BlockNumber,
         event_bus: EndpointAPI,
@@ -271,10 +271,10 @@ class Eth1Monitor(Service):
         Keep polling latest blocks, and yield the blocks whose number is
         `latest_block.number - self._num_blocks_confirmed`.
         """
-        highest_processed_block_number = self._start_block_number - 1
+        highest_processed_block_number = BlockNumber(self._start_block_number - 1)
         while True:
             block = _w3_get_block(self._w3, "latest")
-            target_block_number = block.number - self._num_blocks_confirmed
+            target_block_number = BlockNumber(block.number - self._num_blocks_confirmed)
             if target_block_number > highest_processed_block_number:
                 # From `highest_processed_block_number` to `target_block_number`
                 for block_number in range(
