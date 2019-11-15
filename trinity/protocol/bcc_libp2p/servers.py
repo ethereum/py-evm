@@ -46,6 +46,7 @@ from eth2.beacon.typing import (
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
 )
+from eth2.beacon.typing import Slot
 
 from trinity.protocol.bcc_libp2p.node import Node
 
@@ -351,14 +352,13 @@ class BCCReceiveServer(BaseService):
         return self._is_block_root_seen(block_root=block.signing_root)
 
     @to_tuple
-    def get_ready_attestations(self) -> Iterable[Attestation]:
+    def get_ready_attestations(self, current_slot: Slot) -> Iterable[Attestation]:
         config = self.chain.get_state_machine().config
-        state = self.chain.get_head_state()
         for attestation in self.attestation_pool.get_all():
             try:
                 validate_attestation_slot(
                     attestation.data.slot,
-                    state.slot,
+                    current_slot,
                     config.SLOTS_PER_EPOCH,
                     config.MIN_ATTESTATION_INCLUSION_DELAY,
                 )

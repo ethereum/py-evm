@@ -421,19 +421,19 @@ async def test_bcc_receive_server_get_ready_attestations(receive_server, monkeyp
     state.slot = (
         attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1
     )
-    ready_attestations = receive_server.get_ready_attestations()
+    ready_attestations = receive_server.get_ready_attestations(state.slot)
     assert len(ready_attestations) == 0
 
     state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
-    ready_attestations = receive_server.get_ready_attestations()
+    ready_attestations = receive_server.get_ready_attestations(state.slot)
     assert set([a1, a2]) == set(ready_attestations)
 
     state.slot = (
         attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1
     )
-    ready_attestations = receive_server.get_ready_attestations()
+    ready_attestations = receive_server.get_ready_attestations(state.slot)
     assert set([a1, a2, a3]) == set(ready_attestations)
 
     state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH + 1
-    ready_attestations = receive_server.get_ready_attestations()
+    ready_attestations = receive_server.get_ready_attestations(state.slot)
     assert set([a3]) == set(ready_attestations)
