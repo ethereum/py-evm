@@ -39,8 +39,8 @@ from eth2.beacon.tools.builder.committee_assignment import (
     CommitteeAssignment,
 )
 from eth2.beacon.tools.builder.proposer import (
-    _get_proposer_index,
     create_block_on_state,
+    get_beacon_proposer_index,
 )
 from eth2.beacon.tools.builder.committee_assignment import (
     get_committee_assignment,
@@ -64,6 +64,7 @@ from eth2.beacon.typing import (
     Slot,
     ValidatorIndex,
 )
+from eth2.configs import CommitteeConfig
 from p2p.service import (
     BaseService,
 )
@@ -194,12 +195,20 @@ class Validator(BaseService):
             state.previous_epoch_attestations,
             state.current_epoch_attestations,
         )
-        proposer_index = _get_proposer_index(
-            state.copy(
-                slot=slot,
-            ),
-            state_machine.config,
+
+        # To see if a validator is assigned to propose during the slot, the beacon state must
+        # be in the epoch in question. At the epoch boundaries, the validator must run an
+        # epoch transition into the epoch to successfully check the proposal assignment of the
+        # first slot.
+        temp_state = state_machine.state_transition.apply_state_transition(
+            state,
+            future_slot=slot,
         )
+        proposer_index = get_beacon_proposer_index(
+            temp_state,
+            CommitteeConfig(state_machine.config),
+        )
+
         # `latest_proposed_epoch` is used to prevent validator from erraneously proposing twice
         # in the same epoch due to service crashing.
         epoch = compute_epoch_at_slot(slot, self.slots_per_epoch)

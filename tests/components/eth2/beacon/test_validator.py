@@ -31,12 +31,13 @@ from eth2.beacon.tools.factories import (
     keymap,
 )
 from eth2.beacon.tools.builder.proposer import (
-    _get_proposer_index,
+    get_beacon_proposer_index,
     is_proposer,
 )
 from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,
 )
+from eth2.configs import CommitteeConfig
 
 from trinity.components.eth2.beacon.validator import (
     Validator,
@@ -359,11 +360,11 @@ async def test_validator_include_ready_attestations(event_loop, event_bus, monke
     monkeypatch.setattr(alice, 'get_ready_attestations', get_ready_attestations_fn)
 
     proposing_slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
-    proposer_index = _get_proposer_index(
+    proposer_index = get_beacon_proposer_index(
         state.copy(
             slot=proposing_slot,
         ),
-        state_machine.config,
+        CommitteeConfig(state_machine.config),
     )
 
     head = alice.chain.get_canonical_head()
