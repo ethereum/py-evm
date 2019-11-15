@@ -36,6 +36,9 @@ class Attestation(ssz.Serializable):
         )
 
 
+default_attestation = Attestation()
+
+
 class IndexedAttestation(ssz.Serializable):
 
     fields = [

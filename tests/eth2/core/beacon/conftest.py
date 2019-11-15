@@ -19,7 +19,7 @@ from eth2.beacon.tools.builder.initializer import create_mock_validator
 from eth2.beacon.tools.builder.state import create_mock_genesis_state_from_validators
 from eth2.beacon.tools.misc.ssz_vector import override_lengths
 from eth2.beacon.types.attestation_data import AttestationData
-from eth2.beacon.types.attestations import IndexedAttestation
+from eth2.beacon.types.attestations import Attestation, IndexedAttestation
 from eth2.beacon.types.blocks import BeaconBlock, BeaconBlockBody, BeaconBlockHeader
 from eth2.beacon.types.checkpoints import Checkpoint
 from eth2.beacon.types.deposit_data import DepositData
@@ -559,6 +559,15 @@ def sample_block(sample_beacon_block_params):
 @pytest.fixture()
 def sample_state(sample_beacon_state_params):
     return BeaconState(**sample_beacon_state_params)
+
+
+@pytest.fixture
+def sample_aggregate_and_proof_params(sample_attestation_params):
+    return {
+        "index": 5,
+        "selection_proof": 1,
+        "aggregate": Attestation(**sample_attestation_params),
+    }
 
 
 #
