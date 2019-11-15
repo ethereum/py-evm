@@ -2,13 +2,10 @@ import asyncio
 from collections import Counter
 import typing
 from typing import (
-    Any,
-    FrozenSet,
     Iterable,
     List,
     Set,
     Tuple,
-    Type,
 )
 
 from cancel_token import CancelToken, OperationCancelled
@@ -16,9 +13,7 @@ from eth.abc import AtomicDatabaseAPI
 from eth_typing import Hash32
 import rlp
 
-from p2p.abc import CommandAPI
 from p2p.exceptions import BaseP2PError, PeerConnectionLost
-from p2p.peer import BasePeer, PeerSubscriber
 from p2p.service import BaseService
 
 from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
@@ -27,13 +22,14 @@ from trinity.sync.beam.constants import (
 )
 
 from .queen import (
-    QueenTrackerMixin,
+    QueeningQueue,
+    QueenTrackerAPI,
 )
 
 REQUEST_SIZE = 16
 
 
-class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
+class BeamStateBackfill(BaseService, QueenTrackerAPI):
     """
     Use a very simple strategy to fill in state in the background.
 
@@ -43,13 +39,6 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
     An intended side-effect is to build & maintain an accurate measurement of
     the round-trip-time that peers take to respond to GetNodeData commands.
     """
-    # We are only interested in peers entering or leaving the pool
-    subscription_msg_types: FrozenSet[Type[CommandAPI[Any]]] = frozenset()
-
-    # This is a rather arbitrary value, but when the sync is operating normally we never see
-    # the msg queue grow past a few hundred items, so this should be a reasonable limit for
-    # now.
-    msg_queue_maxsize: int = 2000
 
     _total_processed_nodes = 0
     _num_added = 0
@@ -68,10 +57,8 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
         if token is None:
             token = peer_pool.cancel_token
 
-        # Init the superclasses
-        BaseService.__init__(self, token=token)
-        PeerSubscriber.__init__(self)
-        QueenTrackerMixin.__init__(self)
+        # Init the superclass
+        super().__init__(token=token)
 
         self._db = db
 
@@ -85,36 +72,27 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
 
         self._num_requests_by_peer = Counter()
 
+        self._queening_queue = QueeningQueue(peer_pool, token=token)
+
+    async def get_queen_peer(self) -> ETHPeer:
+        return await self._queening_queue.get_queen_peer()
+
+    def penalize_queen(self, peer: ETHPeer) -> None:
+        self._queening_queue.penalize_queen(peer)
+
     async def _run(self) -> None:
         self.run_daemon_task(self._periodically_report_progress())
 
-        with self.subscribe(self._peer_pool):
-            await self.wait(self._run_backfill())
+        self.run_daemon(self._queening_queue)
+
+        await self.wait(self._run_backfill())
 
     async def _run_backfill(self) -> None:
         while self.is_operational:
+            peer = await self._queening_queue.pop_fastest_peasant()
 
             # collect node hashes that might be missing
             await self._walk()
-
-            peer = await self._waiting_peers.get_fastest()
-            if not peer.is_operational:
-                # drop any peers that aren't alive anymore
-                self.logger.warning("Dropping %s from backfill as no longer operational", peer)
-                if peer == self._queen_peer:
-                    self._queen_peer = None
-                continue
-
-            old_queen = self._update_queen(peer)
-            if peer == self._queen_peer:
-                self.logger.debug("Switching queen peer from %s to %s", old_queen, peer)
-                continue
-
-            if peer.eth_api.get_node_data.is_requesting:
-                # skip the peer if there's an active request
-                self.logger.debug("Backfill is skipping active peer %s", peer)
-                self.call_later(10, self._waiting_peers.put_nowait, peer)
-                continue
 
             self._node_hashes, on_deck = (
                 self._node_hashes[:-1 * REQUEST_SIZE],
@@ -123,7 +101,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
 
             if len(on_deck) == 0:
                 # Nothing left to request, break and wait for new data to come in
-                self._waiting_peers.put_nowait(peer)
+                self._queening_queue.readd_peasant(peer)
                 self.logger.debug("Backfill is waiting for more hashes to arrive")
                 await self.sleep(2)
                 continue
@@ -136,7 +114,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
             nodes = await peer.eth_api.get_node_data(request_hashes)
         except asyncio.TimeoutError:
             self._node_hashes.extend(request_hashes)
-            self.call_later(GAP_BETWEEN_TESTS * 2, self._waiting_peers.put_nowait, peer)
+            self._queening_queue.readd_peasant(peer, GAP_BETWEEN_TESTS * 2)
         except (PeerConnectionLost, OperationCancelled):
             # Something unhappy, but we don't really care, peer will be gone by next loop
             self._node_hashes.extend(request_hashes)
@@ -144,9 +122,9 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
             self.logger.info("Unexpected err while getting background nodes from %s: %s", peer, exc)
             self.logger.debug("Problem downloading background nodes from peer...", exc_info=True)
             self._node_hashes.extend(request_hashes)
-            self.call_later(GAP_BETWEEN_TESTS * 2, self._waiting_peers.put_nowait, peer)
+            self._queening_queue.readd_peasant(peer, GAP_BETWEEN_TESTS * 2)
         else:
-            self.call_later(GAP_BETWEEN_TESTS, self._waiting_peers.put_nowait, peer)
+            self._queening_queue.readd_peasant(peer, GAP_BETWEEN_TESTS)
             self._insert_results(request_hashes, nodes)
 
     def _insert_results(
@@ -236,16 +214,6 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
         if len(self._node_hashes) < REQUEST_SIZE:
             self._node_hashes.append(root_hash)
 
-    def register_peer(self, peer: BasePeer) -> None:
-        super().register_peer(peer)
-        # when a new peer is added to the pool, add it to the idle peer list
-        self._waiting_peers.put_nowait(peer)  # type: ignore
-
-    def deregister_peer(self, peer: BasePeer) -> None:
-        super().deregister_peer(peer)
-        if self._queen_peer == peer:
-            self._queen_peer = None
-
     async def _periodically_report_progress(self) -> None:
         while self.is_operational:
             await self.sleep(self._report_interval)
@@ -257,7 +225,7 @@ class BeamStateBackfill(BaseService, PeerSubscriber, QueenTrackerMixin):
             msg = "all=%d" % self._total_processed_nodes
             msg += "  new=%d" % self._num_added
             msg += "  missed=%d" % self._num_missed
-            msg += "  queen=%s" % self._queen_peer
+            msg += "  queen=%s" % self._queening_queue.queen
             self.logger.debug("Beam-Backfill: %s", msg)
 
             self._num_added = 0
