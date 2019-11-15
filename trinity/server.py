@@ -152,14 +152,16 @@ class BaseServer(BaseService, Generic[TPeerPool]):
                 writer.close()
                 raise
         except COMMON_RECEIVE_HANDSHAKE_EXCEPTIONS as e:
-            self.logger.debug("Could not complete handshake: %s", e)
+            peername = writer.get_extra_info("peername")
+            self.logger.debug("Could not complete handshake with %s: %s", peername, e)
         except asyncio.CancelledError:
             # This exception should just bubble.
             raise
         except OperationCancelled:
             pass
         except Exception:
-            self.logger.exception("Unexpected error handling handshake")
+            peername = writer.get_extra_info("peername")
+            self.logger.exception("Unexpected error handling handshake with %s", peername)
 
     async def _receive_handshake(
             self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:

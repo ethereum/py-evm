@@ -36,6 +36,7 @@ from eth_utils import (
     ExtendedDebugLogger,
     ValidationError,
     get_extended_debug_logger,
+    humanize_seconds,
 )
 from eth_utils.toolz import (
     groupby,
@@ -77,19 +78,23 @@ class BeamStats:
     # How much time is spent waiting on retrieving nodes?
     data_pause_time = 0.0
 
-    def __str__(self) -> str:
-        node_count = self.num_account_nodes + self.num_bytecodes + self.num_storage_nodes
+    @property
+    def num_nodes(self) -> int:
+        return self.num_account_nodes + self.num_bytecodes + self.num_storage_nodes
 
-        if node_count:
-            avg_rtt = self.data_pause_time / node_count
+    def __str__(self) -> str:
+        if self.num_nodes:
+            avg_rtt = self.data_pause_time / self.num_nodes
         else:
             avg_rtt = 0
+
+        wait_time = humanize_seconds(self.data_pause_time)
 
         return (
             f"BeamStat: accts={self.num_accounts}, "
             f"a_nodes={self.num_account_nodes}, codes={self.num_bytecodes}, "
             f"strg={self.num_storages}, s_nodes={self.num_storage_nodes}, "
-            f"nodes={node_count}, rtt={avg_rtt:.3f}s, wait={self.data_pause_time:.2f}s"
+            f"nodes={self.num_nodes}, rtt={avg_rtt:.3f}s, wait={wait_time}"
         )
 
     def __repr__(self) -> str:
