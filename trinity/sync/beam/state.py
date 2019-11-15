@@ -51,7 +51,7 @@ from trinity.protocol.eth.peer import ETHPeer, ETHPeerPool
 from trinity.protocol.eth import (
     constants as eth_constants,
 )
-from trinity.sync.beam.backfill import (
+from trinity.sync.beam.queen import (
     QueenTrackerAPI,
 )
 from trinity.sync.beam.constants import (
