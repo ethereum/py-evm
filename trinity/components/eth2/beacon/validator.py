@@ -77,7 +77,7 @@ from trinity.components.eth2.beacon.slot_ticker import (
 from trinity.protocol.bcc_libp2p.node import Node
 
 
-GetReadyAttestationsFn = Callable[[], Sequence[Attestation]]
+GetReadyAttestationsFn = Callable[[Slot], Sequence[Attestation]]
 
 
 class Validator(BaseService):
@@ -242,7 +242,7 @@ class Validator(BaseService):
                             state: BeaconState,
                             state_machine: BaseBeaconStateMachine,
                             head_block: BaseBeaconBlock) -> BaseBeaconBlock:
-        ready_attestations = self.get_ready_attestations()
+        ready_attestations = self.get_ready_attestations(slot)
         block = self._make_proposing_block(
             proposer_index=proposer_index,
             slot=slot,
