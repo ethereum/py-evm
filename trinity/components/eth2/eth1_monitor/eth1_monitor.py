@@ -4,11 +4,9 @@ from typing import (
     Any,
     AsyncGenerator,
     Callable,
-    Generic,
     List,
     Dict,
     NamedTuple,
-    Sequence,
     Tuple,
     Type,
     TypeVar,
@@ -18,7 +16,7 @@ from typing import (
 from eth_typing import Address, BLSPubkey, BLSSignature, BlockNumber, Hash32
 
 from eth_utils import encode_hex, event_abi_to_log_topic
-from lahja import BaseRequestResponseEvent, EndpointAPI
+from lahja import EndpointAPI
 import trio
 from web3 import Web3
 from web3.utils.events import get_event_data
@@ -45,7 +43,6 @@ from .events import (
     GetDepositRequest,
     GetEth1DataRequest,
     GetEth1DataResponse,
-    SSZSerializableEvent,
 )
 
 
@@ -61,7 +58,9 @@ class Eth1Block(NamedTuple):
 class DepositLog(NamedTuple):
     block_hash: Hash32
     pubkey: BLSPubkey
-    withdrawal_credentials: Hash32  # flake8: noqa  # This is to avoid the bug https://github.com/PyCQA/pycodestyle/issues/635#issuecomment-411916058
+    # NOTE: The following noqa is to avoid a bug in pycodestyle. We can remove it after upgrading
+    #   `flake8`. Ref: https://github.com/PyCQA/pycodestyle/issues/635#issuecomment-411916058
+    withdrawal_credentials: Hash32  # noqa: E701
     amount: Gwei
     signature: BLSSignature
 
