@@ -1,10 +1,7 @@
 import pytest
 
 from trinity.components.eth2.eth1_monitor.db import DepositDataDB
-from trinity.components.eth2.eth1_monitor.exceptions import (
-    DepositDataNotFound,
-    DepositDataDBValidationError,
-)
+from trinity.components.eth2.eth1_monitor.exceptions import DepositDataDBValidationError
 from trinity.components.eth2.eth1_monitor.factories import (
     DepositDataDBFactory,
     DepositDataFactory,
@@ -17,8 +14,9 @@ def test_deposit_data_db():
     assert db.deposit_count == 0
     assert db.highest_processed_block_number == 0
 
-    # Test: `DepositDataNotFound` is raised when a `DepositData` at the given `index` is not found.
-    with pytest.raises(DepositDataNotFound):
+    # Test: `DepositDataDBValidationError` is raised when a `DepositData` at the given `index`
+    #   is not found.
+    with pytest.raises(DepositDataDBValidationError):
         db.get_deposit_data(0)
 
     # Test: Ensure `add_deposit_data_batch` works and `deposit_count` is updated and saved as well.

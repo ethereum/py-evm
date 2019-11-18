@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 import ssz
 
@@ -10,7 +10,7 @@ from eth.abc import AtomicDatabaseAPI, DatabaseAPI
 
 from eth2.beacon.types.deposit_data import DepositData
 
-from .exceptions import DepositDataNotFound, DepositDataDBValidationError
+from .exceptions import DepositDataDBValidationError
 
 
 class BaseSchema(ABC):
@@ -78,9 +78,23 @@ class DepositDataDB(BaseDepositDataDB):
     _deposit_count: int
     _highest_processed_block_number: BlockNumber
 
-    def __init__(self, db: AtomicDatabaseAPI) -> None:
+    def __init__(
+        self,
+        db: AtomicDatabaseAPI,
+        highest_processed_block_number: Optional[BlockNumber] = None,
+    ) -> None:
         self.db = db
         self._deposit_count = self.get_deposit_count()
+        # If the parameter `highest_processed_block_number` is given, set it in the database.
+        if highest_processed_block_number is not None:
+            if highest_processed_block_number < 0:
+                raise DepositDataDBValidationError(
+                    "`highest_processed_block_number` should be non-negative: "
+                    f"highest_processed_block_number={highest_processed_block_number}"
+                )
+            self._set_highest_processed_block_number(
+                self.db, highest_processed_block_number
+            )
         self._highest_processed_block_number = self.get_highest_processed_block_number()
 
     @property
@@ -111,11 +125,20 @@ class DepositDataDB(BaseDepositDataDB):
         self._highest_processed_block_number = block_number
 
     def get_deposit_data(self, index: int) -> DepositData:
+        if index >= self.deposit_count:
+            raise DepositDataDBValidationError(
+                "`index` should be smaller than `self.deposit_count`: "
+                f"index={index}, self.deposit_count={self.deposit_count}"
+            )
         key = SchemaV1.make_deposit_data_lookup_key(index)
         try:
             raw_bytes = self.db[key]
         except KeyError:
-            raise DepositDataNotFound(f"`DepositData` at index={index} is not found")
+            # Should never enter here. Something strange must have happened.
+            raise Exception(
+                f"`index < self.deposit_count` but failed to find `DepositData` at key {key}: "
+                f"index={index}, self.deposit_count={self.deposit_count}"
+            )
         return ssz.decode(raw_bytes, DepositData)
 
     def get_deposit_data_range(

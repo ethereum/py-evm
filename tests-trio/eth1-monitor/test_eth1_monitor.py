@@ -23,6 +23,7 @@ from trinity.components.eth2.eth1_monitor.factories import (
     DepositDataDBFactory,
     DepositDataFactory,
 )
+from trinity.tools.factories.db import AtomicDBFactory
 
 
 @pytest.mark.trio
@@ -34,6 +35,7 @@ async def test_logs_handling(
     polling_period,
     endpoint_server,
     func_do_deposit,
+    start_block_number,
 ):
     amount_0 = func_do_deposit()
     amount_1 = func_do_deposit()
@@ -43,8 +45,9 @@ async def test_logs_handling(
         deposit_contract_abi=deposit_contract.abi,
         num_blocks_confirmed=num_blocks_confirmed,
         polling_period=polling_period,
+        start_block_number=start_block_number,
         event_bus=endpoint_server,
-        db=DepositDataDBFactory(),
+        base_db=AtomicDBFactory(),
     )
     async with background_service(m):
         # Test: logs emitted prior to starting `Eth1Monitor` can still be queried.

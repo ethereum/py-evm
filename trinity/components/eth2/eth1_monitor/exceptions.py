@@ -23,9 +23,5 @@ class DepositDataDBError(Exception):
     ...
 
 
-class DepositDataNotFound(DepositDataDBError):
-    ...
-
-
 class DepositDataDBValidationError(ValidationError, DepositDataDBError):
     ...

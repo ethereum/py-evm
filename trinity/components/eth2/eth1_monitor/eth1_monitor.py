@@ -21,6 +21,8 @@ import trio
 from web3 import Web3
 from web3.utils.events import get_event_data
 
+from eth.abc import AtomicDatabaseAPI
+
 from eth2.beacon.typing import Timestamp
 from eth2.beacon.typing import Gwei
 from eth2.beacon.types.deposits import Deposit
@@ -33,7 +35,7 @@ from eth2.beacon.tools.builder.validator import (
 
 from p2p.trio_service import Service
 
-from .db import BaseDepositDataDB
+from .db import BaseDepositDataDB, DepositDataDB
 from .events import (
     GetDepositResponse,
     GetDepositRequest,
@@ -115,8 +117,9 @@ class Eth1Monitor(Service):
         deposit_contract_abi: Dict[str, Any],
         num_blocks_confirmed: int,
         polling_period: float,
+        start_block_number: BlockNumber,
         event_bus: EndpointAPI,
-        db: BaseDepositDataDB,
+        base_db: AtomicDatabaseAPI,
     ) -> None:
         self._w3 = w3
         self._deposit_contract = self._w3.eth.contract(
@@ -131,7 +134,9 @@ class Eth1Monitor(Service):
         self._num_blocks_confirmed = num_blocks_confirmed
         self._polling_period = polling_period
         self._event_bus = event_bus
-        self._db = db
+        self._db: BaseDepositDataDB = DepositDataDB(
+            base_db, BlockNumber(start_block_number - 1)
+        )
 
         self._block_timestamp_to_number = OrderedDict()
 
