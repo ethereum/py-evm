@@ -61,11 +61,6 @@ def polling_period():
 
 
 @pytest.fixture
-def start_block_number():
-    return 0
-
-
-@pytest.fixture
 def deposit_contract(w3, tester, contract_json):
     contract_bytecode = contract_json["bytecode"]
     contract_abi = contract_json["abi"]
@@ -86,12 +81,7 @@ def func_do_deposit(w3, deposit_contract):
 
 @pytest.fixture
 async def eth1_monitor(
-    w3,
-    deposit_contract,
-    num_blocks_confirmed,
-    polling_period,
-    start_block_number,
-    endpoint_server,
+    w3, deposit_contract, num_blocks_confirmed, polling_period, endpoint_server
 ):
     m = Eth1Monitor(
         w3=w3,
@@ -99,7 +89,6 @@ async def eth1_monitor(
         deposit_contract_abi=deposit_contract.abi,
         num_blocks_confirmed=num_blocks_confirmed,
         polling_period=polling_period,
-        start_block_number=start_block_number,
         event_bus=endpoint_server,
         db=DepositDataDBFactory(),
     )

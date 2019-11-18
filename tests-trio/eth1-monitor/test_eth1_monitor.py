@@ -32,7 +32,6 @@ async def test_logs_handling(
     tester,
     num_blocks_confirmed,
     polling_period,
-    start_block_number,
     endpoint_server,
     func_do_deposit,
 ):
@@ -44,7 +43,6 @@ async def test_logs_handling(
         deposit_contract_abi=deposit_contract.abi,
         num_blocks_confirmed=num_blocks_confirmed,
         polling_period=polling_period,
-        start_block_number=start_block_number,
         event_bus=endpoint_server,
         db=DepositDataDBFactory(),
     )
@@ -52,6 +50,7 @@ async def test_logs_handling(
         # Test: logs emitted prior to starting `Eth1Monitor` can still be queried.
         await wait_all_tasks_blocked()
         assert m.total_deposit_count == 0
+        assert m.highest_processed_block_number == 0
 
         tester.mine_blocks(num_blocks_confirmed - 1)
         # Test: only single deposit is processed.
@@ -243,8 +242,10 @@ async def test_get_eth1_data(
     with monkeypatch.context() as m_context:
         # Create another `DepositDataDB` with the same number but different `DepositData`s.
         corrupted_deposit_data_db = DepositDataDBFactory()
-        for _ in range(eth1_monitor._db.deposit_count):
-            corrupted_deposit_data_db.add_deposit_data(DepositDataFactory())
+        corrupted_list_deposit_data = [
+            DepositDataFactory() for _ in range(eth1_monitor.total_deposit_count)
+        ]
+        corrupted_deposit_data_db.add_deposit_data_batch(corrupted_list_deposit_data, 1)
         m_context.setattr(eth1_monitor, "_db", corrupted_deposit_data_db)
         with pytest.raises(DepositDataCorrupted):
             eth1_monitor._get_eth1_data(

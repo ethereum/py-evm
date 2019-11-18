@@ -4,9 +4,9 @@ from typing import (
     Any,
     AsyncGenerator,
     Callable,
-    List,
     Dict,
     NamedTuple,
+    Sequence,
     Tuple,
     Type,
     TypeVar,
@@ -99,8 +99,6 @@ class Eth1Monitor(Service):
     _num_blocks_confirmed: int
     # Time period that we poll latest blocks from web3.
     _polling_period: float
-    # Block number that we start to parse the log from.
-    _start_block_number: BlockNumber
 
     _event_bus: EndpointAPI
 
@@ -117,7 +115,6 @@ class Eth1Monitor(Service):
         deposit_contract_abi: Dict[str, Any],
         num_blocks_confirmed: int,
         polling_period: float,
-        start_block_number: BlockNumber,
         event_bus: EndpointAPI,
         db: BaseDepositDataDB,
     ) -> None:
@@ -133,7 +130,6 @@ class Eth1Monitor(Service):
         )
         self._num_blocks_confirmed = num_blocks_confirmed
         self._polling_period = polling_period
-        self._start_block_number = start_block_number
         self._event_bus = event_bus
         self._db = db
 
@@ -142,6 +138,10 @@ class Eth1Monitor(Service):
     @property
     def total_deposit_count(self) -> int:
         return self._db.deposit_count
+
+    @property
+    def highest_processed_block_number(self) -> BlockNumber:
+        return self._db.highest_processed_block_number
 
     async def run(self) -> None:
         self.manager.run_daemon_task(self._handle_new_logs)
@@ -160,8 +160,7 @@ class Eth1Monitor(Service):
         async for block in self._new_blocks():
             self._handle_block_data(block)
             logs = self._get_logs_from_block(block.number)
-            for log in logs:
-                self._process_log(log, block.number)
+            self._process_logs(logs, block.number)
 
     def _handle_get_deposit(self, req: GetDepositRequest) -> GetDepositResponse:
         """
@@ -276,17 +275,16 @@ class Eth1Monitor(Service):
         Keep polling latest blocks, and yield the blocks whose number is
         `latest_block.number - self._num_blocks_confirmed`.
         """
-        highest_processed_block_number = BlockNumber(self._start_block_number - 1)
         while True:
             block = _w3_get_block(self._w3, "latest")
             target_block_number = BlockNumber(block.number - self._num_blocks_confirmed)
-            if target_block_number > highest_processed_block_number:
+            from_block_number = self.highest_processed_block_number
+            if target_block_number > from_block_number:
                 # From `highest_processed_block_number` to `target_block_number`
                 for block_number in range(
-                    highest_processed_block_number + 1, target_block_number + 1
+                    from_block_number + 1, target_block_number + 1
                 ):
                     yield _w3_get_block(self._w3, block_number)
-                highest_processed_block_number = target_block_number
             await trio.sleep(self._polling_period)
 
     def _handle_block_data(self, block: Eth1Block) -> None:
@@ -327,19 +325,23 @@ class Eth1Monitor(Service):
         )
         return parsed_logs
 
-    def _process_log(self, log: DepositLog, block_number: BlockNumber) -> None:
+    def _process_logs(
+        self, logs: Sequence[DepositLog], block_number: BlockNumber
+    ) -> None:
         """
         Simply store the deposit data from the log, and increase the corresponding block's
         `deposit_count`.
         """
-        self._db.add_deposit_data(
+        seq_deposit_data = tuple(
             DepositData(
                 pubkey=log.pubkey,
                 withdrawal_credentials=log.withdrawal_credentials,
                 amount=log.amount,
                 signature=log.signature,
             )
+            for log in logs
         )
+        self._db.add_deposit_data_batch(seq_deposit_data, block_number)
 
     def _get_closest_eth1_voting_period_start_block(
         self, timestamp: Timestamp

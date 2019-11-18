@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 
-from typing import Tuple
+from typing import Sequence, Tuple
 
 import ssz
+
+from eth_typing import BlockNumber
 
 from eth.abc import AtomicDatabaseAPI, DatabaseAPI
 
@@ -19,7 +21,7 @@ class BaseSchema(ABC):
 
     @staticmethod
     @abstractmethod
-    def make_deposit_data_count_lookup_key() -> bytes:
+    def make_deposit_count_lookup_key() -> bytes:
         ...
 
 
@@ -30,8 +32,12 @@ class SchemaV1(BaseSchema):
         return b"v1:deposit_data:" + index_in_str.encode()
 
     @staticmethod
-    def make_deposit_data_count_lookup_key() -> bytes:
+    def make_deposit_count_lookup_key() -> bytes:
         return b"v1:deposit_data:count"
+
+    @staticmethod
+    def make_highest_processed_block_number_lookup_key() -> bytes:
+        return b"v1:deposit_data:highest_processed_block_number"
 
 
 class BaseDepositDataDB(ABC):
@@ -40,8 +46,15 @@ class BaseDepositDataDB(ABC):
     def deposit_count(self) -> int:
         ...
 
+    @property
     @abstractmethod
-    def add_deposit_data(self, deposit_data: DepositData) -> None:
+    def highest_processed_block_number(self) -> BlockNumber:
+        ...
+
+    @abstractmethod
+    def add_deposit_data_batch(
+        self, seq_deposit_data: Sequence[DepositData], block_number: BlockNumber
+    ) -> None:
         ...
 
     @abstractmethod
@@ -63,22 +76,39 @@ class DepositDataDB(BaseDepositDataDB):
     db: AtomicDatabaseAPI
 
     _deposit_count: int
+    _highest_processed_block_number: BlockNumber
 
     def __init__(self, db: AtomicDatabaseAPI) -> None:
         self.db = db
         self._deposit_count = self.get_deposit_count()
+        self._highest_processed_block_number = self.get_highest_processed_block_number()
 
     @property
     def deposit_count(self) -> int:
         return self._deposit_count
 
-    def add_deposit_data(self, deposit_data: DepositData) -> None:
+    @property
+    def highest_processed_block_number(self) -> BlockNumber:
+        return self._highest_processed_block_number
+
+    def add_deposit_data_batch(
+        self, seq_deposit_data: Sequence[DepositData], block_number: BlockNumber
+    ) -> None:
+        if block_number <= self.highest_processed_block_number:
+            raise DepositDataDBValidationError(
+                "`block_number` should be larger than `self.highest_processed_block_number`: "
+                f"`block_number`={block_number}, "
+                f"`self.highest_processed_block_number`={self.highest_processed_block_number}"
+            )
         count = self.deposit_count
-        new_count = count + 1
+        new_count = count + len(seq_deposit_data)
         with self.db.atomic_batch() as db:
-            self._set_deposit_data(db, count, deposit_data)
+            for index, data in enumerate(seq_deposit_data):
+                self._set_deposit_data(db, count + index, data)
             self._set_deposit_count(db, new_count)
+            self._set_highest_processed_block_number(db, block_number)
         self._deposit_count = new_count
+        self._highest_processed_block_number = block_number
 
     def get_deposit_data(self, index: int) -> DepositData:
         key = SchemaV1.make_deposit_data_lookup_key(index)
@@ -112,12 +142,20 @@ class DepositDataDB(BaseDepositDataDB):
         )
 
     def get_deposit_count(self) -> int:
-        key = SchemaV1.make_deposit_data_count_lookup_key()
+        key = SchemaV1.make_deposit_count_lookup_key()
         try:
             raw_bytes = self.db[key]
         except KeyError:
             return 0
-        return ssz.decode(raw_bytes, sedes=ssz.sedes.uint64)
+        return self._deserialize_uint(raw_bytes)
+
+    def get_highest_processed_block_number(self) -> BlockNumber:
+        key = SchemaV1.make_highest_processed_block_number_lookup_key()
+        try:
+            raw_bytes = self.db[key]
+        except KeyError:
+            return BlockNumber(0)
+        return BlockNumber(self._deserialize_uint(raw_bytes))
 
     @staticmethod
     def _set_deposit_data(
@@ -125,8 +163,24 @@ class DepositDataDB(BaseDepositDataDB):
     ) -> None:
         db[SchemaV1.make_deposit_data_lookup_key(index)] = ssz.encode(deposit_data)
 
-    @staticmethod
-    def _set_deposit_count(db: DatabaseAPI, deposit_count: int) -> None:
-        db[SchemaV1.make_deposit_data_count_lookup_key()] = ssz.encode(
-            deposit_count, sedes=ssz.sedes.uint64
+    @classmethod
+    def _set_deposit_count(cls, db: DatabaseAPI, deposit_count: int) -> None:
+        db[SchemaV1.make_deposit_count_lookup_key()] = cls._serialize_uint(
+            deposit_count
         )
+
+    @classmethod
+    def _set_highest_processed_block_number(
+        cls, db: DatabaseAPI, block_number: BlockNumber
+    ) -> None:
+        db[
+            SchemaV1.make_highest_processed_block_number_lookup_key()
+        ] = cls._serialize_uint(block_number)
+
+    @staticmethod
+    def _serialize_uint(item: int) -> bytes:
+        return ssz.encode(item, sedes=ssz.sedes.uint64)
+
+    @staticmethod
+    def _deserialize_uint(item_bytes: bytes) -> int:
+        return ssz.decode(item_bytes, sedes=ssz.sedes.uint64)
