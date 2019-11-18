@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from typing import Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 import ssz
 
@@ -67,9 +67,34 @@ class BaseDepositDataDB(ABC):
     ) -> Tuple[DepositData, ...]:
         ...
 
-    @abstractmethod
-    def get_deposit_count(self) -> int:
-        ...
+
+def _validate_deposit_data_index(index: int, deposit_count: int) -> None:
+    if index >= deposit_count:
+        raise DepositDataDBValidationError(
+            "`index` should be smaller than `self.deposit_count`: "
+            f"index={index}, self.deposit_count={deposit_count}"
+        )
+
+
+def _validate_deposit_data_range_indices(
+    from_index: int, to_index: int, deposit_count: int
+) -> None:
+    if (from_index < 0) or (to_index < 0):
+        raise DepositDataDBValidationError(
+            "both `from_index` and `to_index` should be non-negative: "
+            f"from_index={from_index}, to_index={to_index}"
+        )
+    if from_index >= to_index:
+        raise DepositDataDBValidationError(
+            "`to_index` should be larger than `from_index`: "
+            f"from_index={from_index}, to_index={to_index}"
+        )
+    if (from_index >= deposit_count) or (to_index > deposit_count):
+        raise DepositDataDBValidationError(
+            "either `from_index` or `to_index` is larger or equaled to `self.deposit_count`: "
+            f"from_index={from_index}, to_index={to_index}, "
+            f"self.deposit_count={deposit_count}"
+        )
 
 
 class DepositDataDB(BaseDepositDataDB):
@@ -84,7 +109,7 @@ class DepositDataDB(BaseDepositDataDB):
         highest_processed_block_number: Optional[BlockNumber] = None,
     ) -> None:
         self.db = db
-        self._deposit_count = self.get_deposit_count()
+        self._deposit_count = self._get_deposit_count()
         # If the parameter `highest_processed_block_number` is given, set it in the database.
         if highest_processed_block_number is not None:
             if highest_processed_block_number < 0:
@@ -95,7 +120,9 @@ class DepositDataDB(BaseDepositDataDB):
             self._set_highest_processed_block_number(
                 self.db, highest_processed_block_number
             )
-        self._highest_processed_block_number = self.get_highest_processed_block_number()
+        self._highest_processed_block_number = (
+            self._get_highest_processed_block_number()
+        )
 
     @property
     def deposit_count(self) -> int:
@@ -125,11 +152,7 @@ class DepositDataDB(BaseDepositDataDB):
         self._highest_processed_block_number = block_number
 
     def get_deposit_data(self, index: int) -> DepositData:
-        if index >= self.deposit_count:
-            raise DepositDataDBValidationError(
-                "`index` should be smaller than `self.deposit_count`: "
-                f"index={index}, self.deposit_count={self.deposit_count}"
-            )
+        _validate_deposit_data_index(index, self.deposit_count)
         key = SchemaV1.make_deposit_data_lookup_key(index)
         try:
             raw_bytes = self.db[key]
@@ -144,27 +167,12 @@ class DepositDataDB(BaseDepositDataDB):
     def get_deposit_data_range(
         self, from_index: int, to_index: int
     ) -> Tuple[DepositData, ...]:
-        if (from_index < 0) or (to_index < 0):
-            raise DepositDataDBValidationError(
-                "both `from_index` and `to_index` should be non-negative: "
-                f"from_index={from_index}, to_index={to_index}"
-            )
-        if from_index >= to_index:
-            raise DepositDataDBValidationError(
-                "`to_index` should be larger than `from_index`: "
-                f"from_index={from_index}, to_index={to_index}"
-            )
-        if (from_index >= self.deposit_count) or (to_index > self.deposit_count):
-            raise DepositDataDBValidationError(
-                "either `from_index` or `to_index` is larger or equaled to `self.deposit_count`: "
-                f"from_index={from_index}, to_index={to_index}, "
-                f"self.deposit_count={self.deposit_count}"
-            )
+        _validate_deposit_data_range_indices(from_index, to_index, self.deposit_count)
         return tuple(
             self.get_deposit_data(index) for index in range(from_index, to_index)
         )
 
-    def get_deposit_count(self) -> int:
+    def _get_deposit_count(self) -> int:
         key = SchemaV1.make_deposit_count_lookup_key()
         try:
             raw_bytes = self.db[key]
@@ -172,7 +180,7 @@ class DepositDataDB(BaseDepositDataDB):
             return 0
         return self._deserialize_uint(raw_bytes)
 
-    def get_highest_processed_block_number(self) -> BlockNumber:
+    def _get_highest_processed_block_number(self) -> BlockNumber:
         key = SchemaV1.make_highest_processed_block_number_lookup_key()
         try:
             raw_bytes = self.db[key]
@@ -196,9 +204,8 @@ class DepositDataDB(BaseDepositDataDB):
     def _set_highest_processed_block_number(
         cls, db: DatabaseAPI, block_number: BlockNumber
     ) -> None:
-        db[
-            SchemaV1.make_highest_processed_block_number_lookup_key()
-        ] = cls._serialize_uint(block_number)
+        key = SchemaV1.make_highest_processed_block_number_lookup_key()
+        db[key] = cls._serialize_uint(block_number)
 
     @staticmethod
     def _serialize_uint(item: int) -> bytes:
@@ -207,3 +214,53 @@ class DepositDataDB(BaseDepositDataDB):
     @staticmethod
     def _deserialize_uint(item_bytes: bytes) -> int:
         return ssz.decode(item_bytes, sedes=ssz.sedes.uint64)
+
+
+class ListCachedDepositDataDB(BaseDepositDataDB):
+    _cache_deposit_data: List[DepositData]
+    _db: BaseDepositDataDB
+
+    def __init__(
+        self,
+        db: AtomicDatabaseAPI,
+        highest_processed_block_number: Optional[BlockNumber] = None,
+    ) -> None:
+        self._db: BaseDepositDataDB = DepositDataDB(db, highest_processed_block_number)
+        self._cache_deposit_data = []
+        self._update_cache()
+
+    @property
+    def deposit_count(self) -> int:
+        return self._db.deposit_count
+
+    @property
+    def highest_processed_block_number(self) -> BlockNumber:
+        return self._db.highest_processed_block_number
+
+    def add_deposit_data_batch(
+        self, seq_deposit_data: Sequence[DepositData], block_number: BlockNumber
+    ) -> None:
+        self._db.add_deposit_data_batch(seq_deposit_data, block_number)
+        self._cache_deposit_data.extend(seq_deposit_data)
+
+    def get_deposit_data(self, index: int) -> DepositData:
+        _validate_deposit_data_index(index, self.deposit_count)
+        return self._cache_deposit_data[index]
+
+    def get_deposit_data_range(
+        self, from_index: int, to_index: int
+    ) -> Tuple[DepositData, ...]:
+        _validate_deposit_data_range_indices(from_index, to_index, self.deposit_count)
+        # Use `tuple(range())` instead of slice operator to ensure it is the similar behavior
+        #   as `range`.
+        return tuple(
+            self.get_deposit_data(index) for index in range(from_index, to_index)
+        )
+
+    def _update_cache(self) -> None:
+        if self.deposit_count != 0:
+            self._cache_deposit_data = list(
+                self._db.get_deposit_data_range(0, self.deposit_count)
+            )
+        else:
+            self._cache_deposit_data = []

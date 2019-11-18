@@ -20,8 +20,8 @@ from trinity.components.eth2.eth1_monitor.exceptions import (
     Eth1MonitorValidationError,
 )
 from trinity.components.eth2.eth1_monitor.factories import (
-    DepositDataDBFactory,
     DepositDataFactory,
+    ListCachedDepositDataDBFactory,
 )
 from trinity.tools.factories.db import AtomicDBFactory
 
@@ -244,7 +244,7 @@ async def test_get_eth1_data(
     #   `deposit_data` mismatches the one got from the deposit contract.
     with monkeypatch.context() as m_context:
         # Create another `DepositDataDB` with the same number but different `DepositData`s.
-        corrupted_deposit_data_db = DepositDataDBFactory()
+        corrupted_deposit_data_db = ListCachedDepositDataDBFactory()
         corrupted_list_deposit_data = [
             DepositDataFactory() for _ in range(eth1_monitor.total_deposit_count)
         ]

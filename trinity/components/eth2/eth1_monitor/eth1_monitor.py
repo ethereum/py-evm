@@ -35,7 +35,7 @@ from eth2.beacon.tools.builder.validator import (
 
 from p2p.trio_service import Service
 
-from .db import BaseDepositDataDB, DepositDataDB
+from .db import BaseDepositDataDB, ListCachedDepositDataDB
 from .events import (
     GetDepositResponse,
     GetDepositRequest,
@@ -134,7 +134,7 @@ class Eth1Monitor(Service):
         self._num_blocks_confirmed = num_blocks_confirmed
         self._polling_period = polling_period
         self._event_bus = event_bus
-        self._db: BaseDepositDataDB = DepositDataDB(
+        self._db: BaseDepositDataDB = ListCachedDepositDataDB(
             base_db, BlockNumber(start_block_number - 1)
         )
 
