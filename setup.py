@@ -22,7 +22,7 @@ deps = {
         "pysha3>=1.0.0,<2.0.0",
         "python-snappy>=0.5.3",
         "SQLAlchemy>=1.3.3,<2",
-        'trio==0.11.0,<0.12',
+        'trio==0.13.0,<0.14',
         'trio-typing>=0.2.0,<0.3',
         "upnpclient>=0.0.8,<1",
     ],
