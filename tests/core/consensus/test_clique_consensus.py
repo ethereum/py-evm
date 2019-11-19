@@ -14,7 +14,9 @@ from eth.chains.goerli import (
     GOERLI_GENESIS_HEADER,
 )
 from eth.consensus.clique import (
+    CliqueApplier,
     CliqueConsensus,
+    CliqueConsensusContext,
     NONCE_AUTH,
     NONCE_DROP,
     VoteAction,
@@ -24,6 +26,7 @@ from eth.consensus.clique.constants import (
     SIGNATURE_LENGTH,
 )
 from eth.consensus.clique._utils import (
+    get_block_signer,
     sign_block_header,
 )
 from eth.constants import (
@@ -32,6 +35,7 @@ from eth.constants import (
 from eth.rlp.headers import BlockHeader
 from eth.tools.factories.keys import PublicKeyFactory
 from eth.tools.factories.transaction import new_transaction
+from eth.vm.forks.istanbul import IstanbulVM
 from eth.vm.forks.petersburg import PetersburgVM
 
 
@@ -178,53 +182,60 @@ def alice_nominates_bob_and_ron_then_they_kick_her():
 
 
 def validate_seal_and_get_snapshot(clique, header):
-    clique.validate_seal(header)
+    clique.validate_seal_extension(header, ())
     return clique.get_snapshot(header)
 
 
 @pytest.fixture
-def clique(paragon_chain_with_clique):
-    _, clique = paragon_chain_with_clique
-    return clique
+def paragon_chain(base_db):
 
+    vms = (
+        (0, PetersburgVM,),
+        (2, IstanbulVM,)
+    )
+    clique_vms = CliqueApplier().amend_vm_configuration(vms)
 
-@pytest.fixture
-def paragon_chain(paragon_chain_with_clique):
-    chain, _ = paragon_chain_with_clique
+    chain = MiningChain.configure(
+        vm_configuration=clique_vms,
+        consensus_context_class=CliqueConsensusContext,
+        chain_id=5,
+    ).from_genesis(base_db, PARAGON_GENESIS_PARAMS, PARAGON_GENESIS_STATE)
     return chain
 
 
-@pytest.fixture
-def paragon_chain_with_clique(base_db):
+def get_clique(chain, header=None):
+    if header:
+        vm = chain.get_vm(header)
+    else:
+        vm = chain.get_vm()
 
-    vms = ((0, PetersburgVM,),)
-
-    clique = CliqueConsensus(base_db)
-
-    vms = clique.amend_vm_configuration(vms)
-
-    chain = MiningChain.configure(
-        vm_configuration=vms,
-        chain_id=5,
-    ).from_genesis(base_db, PARAGON_GENESIS_PARAMS, PARAGON_GENESIS_STATE)
-    return chain, clique
+    clique = vm._consensus
+    assert isinstance(clique, CliqueConsensus)
+    return clique
 
 
-def test_can_retrieve_root_snapshot(paragon_chain, clique):
+def test_can_retrieve_root_snapshot(paragon_chain):
     head = paragon_chain.get_canonical_head()
-    snapshot = clique.get_snapshot(head)
+    snapshot = get_clique(paragon_chain, head).get_snapshot(head)
     assert snapshot.get_sorted_signers() == [ALICE]
 
 
-def test_raises_unknown_ancestor_error(paragon_chain, clique):
+def test_raises_unknown_ancestor_error(paragon_chain):
     head = paragon_chain.get_canonical_head()
     next_header = make_next_header(head, ALICE_PK, RON, NONCE_AUTH)
 
+    clique = get_clique(paragon_chain, head)
     with pytest.raises(ValidationError, match='Unknown ancestor'):
         clique.get_snapshot(next_header)
 
 
-def test_import_block(paragon_chain, clique):
+def test_validate_chain_works_across_forks(paragon_chain):
+    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
+
+    paragon_chain.validate_chain_extension((PARAGON_GENESIS_HEADER,) + voting_chain)
+
+
+def test_import_block(paragon_chain):
 
     vm = paragon_chain.get_vm()
     tx = new_transaction(vm, ALICE, BOB, 10, ALICE_PK)
@@ -247,6 +258,8 @@ def test_import_block(paragon_chain, clique):
         transactions=[tx]
     )
 
+    assert get_block_signer(block.header) == ALICE
+
     paragon_chain.import_block(block)
 
     # Alice new balance is old balance - 10 + 21000 tx fee (she's the signer)
@@ -256,20 +269,22 @@ def test_import_block(paragon_chain, clique):
     assert paragon_chain.get_vm().state.get_balance(vm.get_block().header.coinbase) == 0
 
 
-def test_reapplies_headers_without_snapshots(clique):
+def test_reapplies_headers_without_snapshots(paragon_chain):
     voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
 
     # We save the headers but we do not create intermediate snapshots
     # to proof that the SnapshotManager re-applies all needed headers
     # on its own.
     for i in range(5):
-        clique._chain_db.persist_header(voting_chain[i])
+        paragon_chain.chaindb.persist_header(voting_chain[i])
 
+    clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, voting_chain[5])
     assert snapshot.signers == {BOB, RON}
 
 
-def test_can_persist_and_restore_snapshot_from_db(clique):
+def test_can_persist_and_restore_snapshot_from_db(paragon_chain):
+    clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, PARAGON_GENESIS_HEADER)
     clique._snapshot_manager.persist_snapshot(snapshot)
 
@@ -277,8 +292,9 @@ def test_can_persist_and_restore_snapshot_from_db(clique):
     assert snapshot == revived
 
 
-def test_revert_previous_nominate(paragon_chain, clique):
+def test_revert_previous_nominate(paragon_chain):
     head = paragon_chain.get_canonical_head()
+    clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, head)
     assert len(snapshot.tallies) == 0
     alice_votes_bob = make_next_header(head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
@@ -298,8 +314,9 @@ def test_revert_previous_nominate(paragon_chain, clique):
     assert RON not in snapshot.tallies
 
 
-def test_revert_previous_kick(paragon_chain, clique):
+def test_revert_previous_kick(paragon_chain):
     head = paragon_chain.get_canonical_head()
+    clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, head)
     assert len(snapshot.tallies) == 0
     alice_votes_bob = make_next_header(head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
@@ -320,8 +337,9 @@ def test_revert_previous_kick(paragon_chain, clique):
     assert BOB not in snapshot.tallies
 
 
-def test_does_not_count_multiple_kicks(paragon_chain, clique):
+def test_does_not_count_multiple_kicks(paragon_chain):
     head = paragon_chain.get_canonical_head()
+    clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, head)
     assert len(snapshot.tallies) == 0
     alice_votes_bob = make_next_header(head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
@@ -340,8 +358,9 @@ def test_does_not_count_multiple_kicks(paragon_chain, clique):
     assert snapshot.tallies[BOB].votes == 1
 
 
-def test_does_not_count_multiple_nominates(paragon_chain, clique):
+def test_does_not_count_multiple_nominates(paragon_chain):
     head = paragon_chain.get_canonical_head()
+    clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, head)
     assert len(snapshot.tallies) == 0
     alice_votes_bob = make_next_header(head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
@@ -360,7 +379,8 @@ def test_does_not_count_multiple_nominates(paragon_chain, clique):
     assert snapshot.tallies[RON].votes == 1
 
 
-def test_alice_votes_in_bob_and_ron_then_gets_kicked(clique):
+def test_alice_votes_in_bob_and_ron_then_gets_kicked(paragon_chain):
+    clique = get_clique(paragon_chain)
 
     voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
 
@@ -389,7 +409,8 @@ def test_alice_votes_in_bob_and_ron_then_gets_kicked(clique):
     assert ALICE not in snapshot.tallies
 
 
-def test_removes_all_pending_votes_after_nomination(clique):
+def test_removes_all_pending_votes_after_nomination(paragon_chain):
+    clique = get_clique(paragon_chain)
 
     voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
 
@@ -414,7 +435,8 @@ def test_removes_all_pending_votes_after_nomination(clique):
     assert not has_vote_from(ALICE, snapshot.votes)
 
 
-def test_removes_all_pending_votes_after_kick(clique):
+def test_removes_all_pending_votes_after_kick(paragon_chain):
+    clique = get_clique(paragon_chain)
 
     ALICE_FRIEND = PublicKeyFactory().to_canonical_address()
 
