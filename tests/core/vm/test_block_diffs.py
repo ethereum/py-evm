@@ -8,7 +8,7 @@ from eth.constants import BLANK_ROOT_HASH
 from eth.db.atomic import AtomicDB
 from eth.db.chain import ChainDB
 from eth.db.block_diff import BlockDiff
-from eth.db.account import AccountDB, TurboAccountDB
+from eth.db.account import AccountDB
 from eth.db.storage import StorageLookup
 
 ACCOUNT = b'\xaa' * 20
@@ -31,7 +31,7 @@ def base_db():
 
 @pytest.fixture
 def account_db(base_db):
-    return TurboAccountDB(base_db)
+    return AccountDB(base_db)
 
 
 # Some basic tests that BlockDiff works as expected and can round-trip data to the database

@@ -10,7 +10,6 @@ from eth.db.atomic import AtomicDB
 from eth.db.backends.memory import MemoryDB
 from eth.db.account import (
     AccountDB,
-    TurboAccountDB,
 )
 from eth.db.schema import (
     set_schema,
@@ -46,7 +45,7 @@ def turbo_account_db():
     set_schema(base_db, Schemas.TURBO)
     base_db[SchemaTurbo.current_state_root_key] = BLANK_ROOT_HASH
 
-    return TurboAccountDB(base_db)
+    return AccountDB(base_db)
 
 
 @pytest.mark.parametrize("state", [

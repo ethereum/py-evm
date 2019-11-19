@@ -8,7 +8,6 @@ from eth_utils import (
 from eth.constants import CREATE_CONTRACT_ADDRESS
 from eth.db.account import (
     AccountDB,
-    TurboAccountDB,
 )
 from eth.exceptions import (
     ContractCreationCollision,
@@ -189,7 +188,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 class FrontierState(BaseState):
     computation_class = FrontierComputation
     transaction_context_class = FrontierTransactionContext  # Type[BaseTransactionContext]
-    account_db_class = TurboAccountDB  # Type[BaseAccountDB]
+    account_db_class = AccountDB  # Type[BaseAccountDB]
     transaction_executor = FrontierTransactionExecutor  # Type[BaseTransactionExecutor]
 
     validate_transaction = validate_frontier_transaction

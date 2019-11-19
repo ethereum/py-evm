@@ -288,6 +288,11 @@ class AccountDB(BaseAccountDB):
         self._dirty_account_rlps: Set[Address] = set()
         self._deleted_accounts: Set[Address] = set()
 
+        self._turbodb = None
+        if get_schema(db) == Schemas.TURBO:
+            headerdb = HeaderDB(db)
+            self._turbodb = TurboDatabase(headerdb, header)
+
     @property
     def state_root(self) -> Hash32:
         return self._trie.root_hash
@@ -484,6 +489,21 @@ class AccountDB(BaseAccountDB):
     # Internal
     #
     def _get_encoded_account(self, address: Address, from_journal: bool=True) -> bytes:
+        if from_journal:
+            # TODO: This also needs to read from the TurboDB!
+            return self._get_encoded_account_from_trie(address, from_journal=True)
+
+        turbo_result = self._get_encoded_account_from_turbodb(address)
+        trie_result = self._get_encoded_account_from_trie(address, from_journal)
+
+        # TODO: remove this once enough tests have been run to ensure this class works
+        # TODO: raise a better error message here
+        assert trie_result == turbo_result
+
+        return turbo_result
+
+    def _get_encoded_account_from_trie(self, address: Address,
+                                       from_journal: bool=True) -> bytes:
         lookup_trie = self._journaltrie if from_journal else self._trie_cache
 
         try:
@@ -796,30 +816,3 @@ class AccountDB(BaseAccountDB):
                     self._root_hash_at_last_persist,
                     exc.requested_key,
                 ) from exc
-
-
-class TurboAccountDB(AccountDB):
-    logger = cast(ExtendedDebugLogger, logging.getLogger('eth.db.account.TurboAccountDB'))
-
-    def __init__(self, db: BaseAtomicDB, header: BlockHeader = None) -> None:
-
-        self.turbodb = None
-        if get_schema(db) == Schemas.TURBO:
-            headerdb = HeaderDB(db)
-            self.turbodb = TurboDatabase(headerdb, header)
-
-        super().__init__(db, header)
-
-    def _get_encoded_account(self, address: Address, from_journal: bool=True) -> bytes:
-        if from_journal:
-            # TODO: is this definitely the right thing to do?
-            return super()._get_encoded_account(address, from_journal=True)
-
-        new_result = self._get_encoded_account_from_turbodb(address)
-
-        # TODO: remove this once enough tests have been run to ensure this class works
-        # TODO: raise a better error message here
-        old_result = super()._get_encoded_account(address, from_journal)
-        assert old_result == result
-
-        return result

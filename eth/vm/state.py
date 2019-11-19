@@ -26,7 +26,6 @@ from eth.constants import (
 from eth.db.account import (
     BaseAccountDB,
     AccountDB,
-    TurboAccountDB,
 )
 from eth.db.block_diff import BlockDiff
 from eth.db.backends.base import (
@@ -101,12 +100,7 @@ class BaseState(Configurable, ABC):
         #       expected_schema?
 
         # TODO: somehow integrate with self.get_account_db_class()
-        if expected_schema == Schemas.TURBO:
-            self._account_db = TurboAccountDB(db, header)
-        elif expected_schema == Schemas.DEFAULT:
-            self._account_db = AccountDB(db, header)
-        else:
-            raise NotImplementedError()
+        self._account_db = AccountDB(db, header)
 
         # ensure_schema(db, expected_schema)
 
