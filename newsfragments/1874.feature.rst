@@ -1,0 +1,7 @@
+Make handling of different consensus mechanisms more flexible and sound.
+
+Introduce a new property ``consensus_engine_class`` on the ``Chain``. The chain take care
+of instantiating the consensus engine and exposes it as ``consensus_engine``.
+
+Also add ``PowConsensus`` and ``NoProofConsensus`` as engines and refactor ``eth.tools.*`` to
+use these.

@@ -45,8 +45,7 @@ from eth.vm.forks import (
 class MainnetDAOValidatorVM(HomesteadVM):
     """Only on mainnet, TheDAO fork is accompanied by special extra data. Validate those headers"""
 
-    @classmethod
-    def validate_header(cls,
+    def validate_header(self,
                         header: BlockHeaderAPI,
                         previous_header: BlockHeaderAPI,
                         check_seal: bool=True) -> None:
@@ -54,17 +53,17 @@ class MainnetDAOValidatorVM(HomesteadVM):
         super().validate_header(header, previous_header, check_seal)
 
         # The special extra_data is set on the ten headers starting at the fork
-        dao_fork_at = cls.get_dao_fork_block_number()
+        dao_fork_at = self.get_dao_fork_block_number()
         extra_data_block_nums = range(dao_fork_at, dao_fork_at + 10)
 
         if header.block_number in extra_data_block_nums:
-            if cls.support_dao_fork and header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
+            if self.support_dao_fork and header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
                 raise ValidationError(
                     f"Block {header!r} must have extra data "
                     f"{encode_hex(DAO_FORK_MAINNET_EXTRA_DATA)} not "
                     f"{encode_hex(header.extra_data)} when supporting DAO fork"
                 )
-            elif not cls.support_dao_fork and header.extra_data == DAO_FORK_MAINNET_EXTRA_DATA:
+            elif not self.support_dao_fork and header.extra_data == DAO_FORK_MAINNET_EXTRA_DATA:
                 raise ValidationError(
                     f"Block {header!r} must not have extra data "
                     f"{encode_hex(DAO_FORK_MAINNET_EXTRA_DATA)} when declining the DAO fork"

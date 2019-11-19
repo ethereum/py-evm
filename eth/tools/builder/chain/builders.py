@@ -33,11 +33,11 @@ from eth import constants
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockAPI,
-    BlockHeaderAPI,
     ChainAPI,
     MiningChainAPI,
     VirtualMachineAPI,
 )
+from eth.consensus.noproof import NoProofConsensus
 from eth.db.atomic import AtomicDB
 from eth.db.backends.memory import (
     MemoryDB,
@@ -287,33 +287,6 @@ def enable_pow_mining(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     return chain_class.configure(vm_configuration=vm_configuration)
 
 
-class NoChainSealValidationMixin:
-    @classmethod
-    def validate_seal(cls, block: BlockAPI) -> None:
-        pass
-
-
-class NoVMSealValidationMixin:
-    @classmethod
-    def validate_seal(cls, header: BlockHeaderAPI) -> None:
-        pass
-
-
-@to_tuple
-def _mix_in_disable_seal_validation(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
-    for fork_block, vm_class in vm_configuration:
-        if issubclass(vm_class, NoVMSealValidationMixin):
-            # Seal validation already disabled, hence nothing to change
-            vm_class_without_seal_validation = vm_class
-        else:
-            vm_class_without_seal_validation = type(
-                vm_class.__name__,
-                (NoVMSealValidationMixin, vm_class),
-                {},
-            )
-        yield fork_block, vm_class_without_seal_validation
-
-
 @curry
 def disable_pow_check(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
     """
@@ -325,22 +298,8 @@ def disable_pow_check(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
         blocks mined this way will not be importable on any chain that does not
         have proof of work disabled.
     """
-    if not chain_class.vm_configuration:
-        raise ValidationError("Chain class has no vm_configuration")
-
-    if issubclass(chain_class, NoChainSealValidationMixin):
-        # Seal validation already disabled, hence nothing to change
-        chain_class_without_seal_validation = chain_class
-    else:
-        chain_class_without_seal_validation = type(
-            chain_class.__name__,
-            (chain_class, NoChainSealValidationMixin),
-            {},
-        )
-    return chain_class_without_seal_validation.configure(  # type: ignore
-        vm_configuration=_mix_in_disable_seal_validation(
-            chain_class_without_seal_validation.vm_configuration  # type: ignore
-        ),
+    return chain_class.configure(
+        consensus_engine_class=NoProofConsensus
     )
 
 

@@ -199,15 +199,12 @@ def paragon_chain_with_clique(base_db):
 
     vms = ((0, PetersburgVM,),)
 
-    clique = CliqueConsensus(base_db)
-
-    vms = clique.amend_vm_configuration(vms)
-
     chain = MiningChain.configure(
         vm_configuration=vms,
         chain_id=5,
+        consensus_engine_class=CliqueConsensus
     ).from_genesis(base_db, PARAGON_GENESIS_PARAMS, PARAGON_GENESIS_STATE)
-    return chain, clique
+    return chain, chain.consensus_engine
 
 
 def test_can_retrieve_root_snapshot(paragon_chain, clique):
