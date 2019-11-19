@@ -1,10 +1,14 @@
 import logging
-from typing import Sequence, Iterable
+from typing import (
+    Iterable,
+    Sequence,
+)
 
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,
     VirtualMachineAPI,
+    VirtualMachineModifierAPI,
 )
 from eth.db.chain import ChainDB
 
@@ -14,14 +18,12 @@ from eth_typing import (
 )
 from eth_utils import (
     encode_hex,
-    to_tuple,
     ValidationError,
 )
 
 from eth.typing import (
     HeaderParams,
     VMConfiguration,
-    VMFork,
 )
 from eth.vm.chain_context import ChainContext
 from eth.vm.execution_context import (
@@ -65,7 +67,7 @@ def _construct_turn_error_message(expected_difficulty: int,
     )
 
 
-class CliqueConsensus:
+class CliqueConsensus(VirtualMachineModifierAPI):
     """
     This class is the entry point to operate a chain under the rules of Clique consensus which
     is defined in EIP-225: https://eips.ethereum.org/EIPS/eip-225
@@ -85,22 +87,23 @@ class CliqueConsensus:
             self._epoch_length,
         )
 
-    @to_tuple
-    def amend_vm_configuration(self, config: VMConfiguration) -> Iterable[VMFork]:
+    @classmethod
+    def amend_vm_configuration_for_chain_class(cls, config: VMConfiguration) -> None:
         """
         Amend the given ``VMConfiguration`` to operate under the rules of Clique consensus.
         """
         for pair in config:
             block_number, vm = pair
-            vm_class = vm.configure(
-                extra_data_max_bytes=65535,
-                validate_seal=staticmethod(self.validate_seal),
-                create_execution_context=staticmethod(self.create_execution_context),
-                configure_header=configure_header,
-                _assign_block_rewards=lambda _, __: None,
-            )
+            setattr(vm, 'extra_data_max_bytes', 65535)
+            setattr(vm, 'create_execution_context', staticmethod(cls.create_execution_context))
+            setattr(vm, 'configure_header', configure_header)
+            setattr(vm, '_assign_block_rewards', lambda *_: None)
 
-            yield block_number, vm_class
+    def amend_vm_for_chain_instance(self, vm: VirtualMachineAPI) -> None:
+        # `validate_seal` is stateful. We would not want two different instances of GoerliChain
+        # to operate on the same instance of CliqueConsensus. Therefore, this modification needs
+        # to be done for a specic chain instance, not chain class.
+        setattr(vm, 'validate_seal', self.validate_seal)
 
     @staticmethod
     def create_execution_context(header: BlockHeaderAPI,

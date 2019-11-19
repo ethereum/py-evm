@@ -43,6 +43,7 @@ from eth.typing import (
     JournalDBCheckpoint,
     AccountState,
     HeaderParams,
+    VMConfiguration,
 )
 
 
@@ -1638,9 +1639,8 @@ class VirtualMachineAPI(ConfigurableAPI):
     def validate_block(self, block: BlockAPI) -> None:
         ...
 
-    @classmethod
     @abstractmethod
-    def validate_header(cls,
+    def validate_header(self,
                         header: BlockHeaderAPI,
                         parent_header: BlockHeaderAPI,
                         check_seal: bool = True
@@ -1661,9 +1661,8 @@ class VirtualMachineAPI(ConfigurableAPI):
         """
         ...
 
-    @classmethod
     @abstractmethod
-    def validate_seal(cls, header: BlockHeaderAPI) -> None:
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
         ...
 
     @classmethod
@@ -1685,6 +1684,34 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @abstractmethod
     def state_in_temp_block(self) -> ContextManager[StateAPI]:
+        ...
+
+
+class VirtualMachineModifierAPI(ABC):
+    """
+    Amend a set of VMs for a chain. This allows modifying a chain for different consensus schemes.
+    """
+
+    @abstractmethod
+    def __init__(self, base_db: AtomicDatabaseAPI) -> None:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def amend_vm_configuration_for_chain_class(cls, vm_config: VMConfiguration) -> None:
+        """
+        Make amendments to the ``vm_config`` that are independent of any instance state. These
+        changes are applied across all instances of the chain where this
+        ``VirtualMachineModifierAPI`` is applied on.
+        """
+        ...
+
+    @abstractmethod
+    def amend_vm_for_chain_instance(self, vm: VirtualMachineAPI) -> None:
+        """
+        Make amendments to ``vm`` that are only valid for a specific chain instance. This
+        includes any modifications that depend on stateful data.
+        """
         ...
 
 
@@ -1748,6 +1775,8 @@ class ChainAPI(ConfigurableAPI):
     vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
     chain_id: int
     chaindb: ChainDatabaseAPI
+    consensus_engine_class: Type[VirtualMachineModifierAPI]
+    consensus_engine: VirtualMachineModifierAPI
 
     #
     # Helpers
@@ -1923,10 +1952,9 @@ class ChainAPI(ConfigurableAPI):
     def validate_uncles(self, block: BlockAPI) -> None:
         ...
 
-    @classmethod
     @abstractmethod
     def validate_chain(
-            cls,
+            self,
             root: BlockHeaderAPI,
             descendants: Tuple[BlockHeaderAPI, ...],
             seal_check_random_sample_rate: int = 1) -> None:

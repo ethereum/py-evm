@@ -11,6 +11,7 @@ from eth.chains.mainnet import (
     MainnetHomesteadVM,
 )
 from eth.rlp.headers import BlockHeader
+from eth.vm.chain_context import ChainContext
 
 
 class ETC_VM(MainnetHomesteadVM):
@@ -280,11 +281,12 @@ def header_pairs(VM, headers, valid):
     ),
 )
 def test_mainnet_dao_fork_header_validation(VM, header, previous_header, valid):
+    vm = VM(header=previous_header, chaindb=None, chain_context=ChainContext(1))
     if valid:
-        VM.validate_header(header, previous_header, check_seal=True)
+        vm.validate_header(header, previous_header, check_seal=True)
     else:
         try:
-            VM.validate_header(header, previous_header, check_seal=True)
+            vm.validate_header(header, previous_header, check_seal=True)
         except ValidationError:
             pass
         else:

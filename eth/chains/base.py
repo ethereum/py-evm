@@ -45,11 +45,15 @@ from eth.abc import (
     ChainAPI,
     ChainDatabaseAPI,
     VirtualMachineAPI,
+    VirtualMachineModifierAPI,
     ReceiptAPI,
     ComputationAPI,
     StateAPI,
     SignedTransactionAPI,
     UnsignedTransactionAPI,
+)
+from eth.consensus.pow import (
+    PowConsensus,
 )
 from eth.constants import (
     EMPTY_UNCLE_HASH,
@@ -113,6 +117,8 @@ class BaseChain(Configurable, ChainAPI):
     chaindb_class: Type[ChainDatabaseAPI] = None
     vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...] = None
     chain_id: int = None
+    consensus_engine: VirtualMachineModifierAPI = None
+    consensus_engine_class: Type[VirtualMachineModifierAPI] = PowConsensus
 
     @classmethod
     def get_vm_class_for_block_number(cls, block_number: BlockNumber) -> Type[VirtualMachineAPI]:
@@ -136,9 +142,8 @@ class BaseChain(Configurable, ChainAPI):
     #
     # Validation API
     #
-    @classmethod
     def validate_chain(
-            cls,
+            self,
             root: BlockHeaderAPI,
             descendants: Tuple[BlockHeaderAPI, ...],
             seal_check_random_sample_rate: int = 1) -> None:
@@ -168,9 +173,9 @@ class BaseChain(Configurable, ChainAPI):
                     f" but expected {encode_hex(parent.hash)}"
                 )
             should_check_seal = index in indices_to_check_seal
-            vm_class = cls.get_vm_class_for_block_number(child.block_number)
+            vm = self.get_vm(child)
             try:
-                vm_class.validate_header(child, parent, check_seal=should_check_seal)
+                vm.validate_header(child, parent, check_seal=should_check_seal)
             except ValidationError as exc:
                 raise ValidationError(
                     f"{child} is not a valid child of {parent}: {exc}"
@@ -197,10 +202,22 @@ class Chain(BaseChain):
         else:
             validate_vm_configuration(self.vm_configuration)
 
+        if not self.consensus_engine_class:
+            raise ValueError(
+                "The Chain class cannot be instantiated without a `consensus_engine_class`"
+            )
+        else:
+            self.consensus_engine = self.consensus_engine_class(base_db)
+            self.apply_consensus_engine_to_vms(self.consensus_engine)
+
         self.chaindb = self.get_chaindb_class()(base_db)
         self.headerdb = HeaderDB(base_db)
         if self.gas_estimator is None:
             self.gas_estimator = get_gas_estimator()
+
+    @classmethod
+    def apply_consensus_engine_to_vms(cls, consensus_engine: VirtualMachineModifierAPI) -> None:
+        consensus_engine.amend_vm_configuration_for_chain_class(cls.vm_configuration)
 
     #
     # Helpers
@@ -272,7 +289,9 @@ class Chain(BaseChain):
         header = self.ensure_header(at_header)
         vm_class = self.get_vm_class_for_block_number(header.block_number)
         chain_context = ChainContext(self.chain_id)
-        return vm_class(header=header, chaindb=self.chaindb, chain_context=chain_context)
+        vm = vm_class(header=header, chaindb=self.chaindb, chain_context=chain_context)
+        self.consensus_engine.amend_vm_for_chain_instance(vm)
+        return vm
 
     #
     # Header API
@@ -578,9 +597,9 @@ class Chain(BaseChain):
         """
         if block.is_genesis:
             raise ValidationError("Cannot validate genesis block this way")
-        VM_class = self.get_vm_class_for_block_number(BlockNumber(block.number))
+        vm = self.get_vm(block.header)
         parent_header = self.get_block_header_by_hash(block.header.parent_hash)
-        VM_class.validate_header(block.header, parent_header, check_seal=True)
+        vm.validate_header(block.header, parent_header, check_seal=True)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
@@ -588,8 +607,8 @@ class Chain(BaseChain):
         """
         Validate the seal on the given header.
         """
-        VM_class = self.get_vm_class_for_block_number(BlockNumber(header.block_number))
-        VM_class.validate_seal(header)
+        vm = self.get_vm(header)
+        vm.validate_seal(header)
 
     def validate_gaslimit(self, header: BlockHeaderAPI) -> None:
         """

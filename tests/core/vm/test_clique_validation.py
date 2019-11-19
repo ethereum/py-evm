@@ -11,6 +11,7 @@ from eth.consensus.clique import CliqueConsensus
 
 from eth.rlp.headers import BlockHeader
 
+from eth.vm.chain_context import ChainContext
 from eth.vm.forks.petersburg import (
     PetersburgVM,
 )
@@ -51,6 +52,8 @@ def clique(base_db):
 def test_can_validate_header(clique, VM, header, previous_header, valid):
     CliqueVM = VM.configure(
         extra_data_max_bytes=128,
-        validate_seal=lambda header: clique.validate_seal(header),
+        validate_seal=clique.validate_seal,
     )
-    CliqueVM.validate_header(header, previous_header, check_seal=True)
+    chain_context = ChainContext(5)
+    vm = CliqueVM(header=previous_header, chaindb=clique._chain_db, chain_context=chain_context)
+    vm.validate_header(header, previous_header, check_seal=True)

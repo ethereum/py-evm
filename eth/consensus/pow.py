@@ -1,10 +1,10 @@
 from collections import OrderedDict
 from typing import (
-    Tuple
+    Tuple,
 )
 
 from eth_typing import (
-    Hash32
+    Hash32,
 )
 
 from eth_utils import (
@@ -22,6 +22,15 @@ from pyethash import (
 )
 
 
+from eth.abc import (
+    AtomicDatabaseAPI,
+    BlockHeaderAPI,
+    VirtualMachineAPI,
+    VirtualMachineModifierAPI,
+)
+from eth.typing import (
+    VMConfiguration,
+)
 from eth.validation import (
     validate_length,
     validate_lte,
@@ -92,3 +101,34 @@ def mine_pow_nonce(block_number: int, mining_hash: Hash32, difficulty: int) -> T
             return nonce.to_bytes(8, 'big'), mining_output[b'mix digest']
 
     raise Exception("Too many attempts at POW mining, giving up")
+
+
+class PowConsensus(VirtualMachineModifierAPI):
+    """
+    Modify a set of VMs to validate blocks via Proof of Work (POW)
+    """
+
+    def __init__(self, base_db: AtomicDatabaseAPI) -> None:
+        pass
+
+    @classmethod
+    def amend_vm_configuration_for_chain_class(cls, config: VMConfiguration) -> None:
+        """
+        Amend the given ``VMConfiguration`` to operate under the default POW rules.
+        """
+        for pair in config:
+            block_number, vm = pair
+            setattr(vm, 'validate_seal', cls.validate_seal)
+
+    def amend_vm_for_chain_instance(self, vm: VirtualMachineAPI) -> None:
+        # Nothing to do here. In `PoWConsensus` it is safe to overwrite `validate_seal` on the
+        # class level. It is independent of any instance state.
+        pass
+
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
+        """
+        Validate the seal on the given header.
+        """
+        check_pow(
+            header.block_number, header.mining_hash,
+            header.mix_hash, header.nonce, header.difficulty)

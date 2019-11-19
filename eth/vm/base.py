@@ -39,9 +39,6 @@ from eth.abc import (
     UnsignedTransactionAPI,
     VirtualMachineAPI,
 )
-from eth.consensus.pow import (
-    check_pow,
-)
 from eth.constants import (
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
@@ -607,8 +604,7 @@ class VM(Configurable, VirtualMachineAPI):
                 f" - header uncle_hash: {block.header.uncles_hash}"
             )
 
-    @classmethod
-    def validate_header(cls,
+    def validate_header(self,
                         header: BlockHeaderAPI,
                         parent_header: BlockHeaderAPI,
                         check_seal: bool = True) -> None:
@@ -620,7 +616,7 @@ class VM(Configurable, VirtualMachineAPI):
             raise ValidationError("Must have access to parent header to validate current header")
         else:
             validate_length_lte(
-                header.extra_data, cls.extra_data_max_bytes, title="BlockHeader.extra_data")
+                header.extra_data, self.extra_data_max_bytes, title="BlockHeader.extra_data")
 
             validate_gas_limit(header.gas_limit, parent_header.gas_limit)
 
@@ -642,22 +638,20 @@ class VM(Configurable, VirtualMachineAPI):
 
             if check_seal:
                 try:
-                    cls.validate_seal(header)
+                    self.validate_seal(header)
                 except ValidationError:
-                    cls.cls_logger.warning(
+                    self.cls_logger.warning(
                         "Failed to validate header proof of work on header: %r",
                         header.as_dict()
                     )
                     raise
 
-    @classmethod
-    def validate_seal(cls, header: BlockHeaderAPI) -> None:
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
         """
         Validate the seal on the given header.
         """
-        check_pow(
-            header.block_number, header.mining_hash,
-            header.mix_hash, header.nonce, header.difficulty)
+        # This method is always overwritten by the consensus engine that is set on the chain
+        pass
 
     @classmethod
     def validate_uncle(cls, block: BlockAPI, uncle: BlockAPI, uncle_parent: BlockAPI) -> None:
