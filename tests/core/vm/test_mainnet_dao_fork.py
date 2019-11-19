@@ -10,7 +10,9 @@ from eth_utils.toolz import sliding_window
 from eth.chains.mainnet import (
     MainnetHomesteadVM,
 )
+from eth.consensus import ConsensusContext
 from eth.rlp.headers import BlockHeader
+from eth.vm.chain_context import ChainContext
 
 
 class ETC_VM(MainnetHomesteadVM):
@@ -267,6 +269,11 @@ def header_pairs(VM, headers, valid):
         yield VM, pair[1], pair[0], valid
 
 
+class FakeChainDB:
+    def __init__(self, db):
+        self.db = db
+
+
 @pytest.mark.parametrize(
     'VM, header, previous_header, valid',
     header_pairs(MainnetHomesteadVM, ETH_HEADERS_NEAR_FORK, valid=True) + (
@@ -280,11 +287,19 @@ def header_pairs(VM, headers, valid):
     ),
 )
 def test_mainnet_dao_fork_header_validation(VM, header, previous_header, valid):
+    chain_db = FakeChainDB({})
+    consensus_context = ConsensusContext(chain_db.db)
+    vm = VM(
+        header=previous_header,
+        chaindb=chain_db,
+        chain_context=ChainContext(1),
+        consensus_context=consensus_context
+    )
     if valid:
-        VM.validate_header(header, previous_header, check_seal=True)
+        vm.validate_header(header, previous_header, check_seal=True)
     else:
         try:
-            VM.validate_header(header, previous_header, check_seal=True)
+            vm.validate_header(header, previous_header, check_seal=True)
         except ValidationError:
             pass
         else:

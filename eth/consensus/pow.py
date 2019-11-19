@@ -1,10 +1,12 @@
 from collections import OrderedDict
 from typing import (
-    Tuple
+    Iterable,
+    Tuple,
 )
 
 from eth_typing import (
-    Hash32
+    Address,
+    Hash32,
 )
 
 from eth_utils import (
@@ -22,6 +24,11 @@ from pyethash import (
 )
 
 
+from eth.abc import (
+    AtomicDatabaseAPI,
+    BlockHeaderAPI,
+    ConsensusAPI,
+)
 from eth.validation import (
     validate_length,
     validate_lte,
@@ -92,3 +99,33 @@ def mine_pow_nonce(block_number: int, mining_hash: Hash32, difficulty: int) -> T
             return nonce.to_bytes(8, 'big'), mining_output[b'mix digest']
 
     raise Exception("Too many attempts at POW mining, giving up")
+
+
+class PowConsensus(ConsensusAPI):
+    """
+    Modify a set of VMs to validate blocks via Proof of Work (POW)
+    """
+
+    def __init__(self, base_db: AtomicDatabaseAPI) -> None:
+        pass
+
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
+        """
+        Validate the seal on the given header by checking the proof of work.
+        """
+        check_pow(
+            header.block_number, header.mining_hash,
+            header.mix_hash, header.nonce, header.difficulty)
+
+    def validate_seal_extension(self,
+                                header: BlockHeaderAPI,
+                                parents: Iterable[BlockHeaderAPI]) -> None:
+        pass
+
+    @classmethod
+    def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
+        """
+        Return the ``coinbase`` of the passed ``header`` as the receipient for any
+        rewards for the block.
+        """
+        return header.coinbase

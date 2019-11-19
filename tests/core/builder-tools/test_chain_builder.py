@@ -2,11 +2,6 @@ import pytest
 
 from eth_utils import ValidationError
 
-from eth.chains import (
-    MainnetChain,
-    MainnetTesterChain,
-    RopstenChain,
-)
 from eth.chains.base import (
     Chain,
     MiningChain,
@@ -23,9 +18,6 @@ from eth.tools.builder.chain import (
     import_blocks,
     mine_block,
     mine_blocks,
-)
-from eth.tools.builder.chain.builders import (
-    NoChainSealValidationMixin,
 )
 
 
@@ -237,18 +229,3 @@ def test_chain_builder_chain_split(mining_chain):
 
     head_b = chain_b.get_canonical_head()
     assert head_b.block_number == 3
-
-
-@pytest.mark.parametrize(
-    "chain",
-    (
-        MainnetChain,
-        MainnetTesterChain,
-        RopstenChain,
-    )
-)
-def test_disabling_pow_for_already_pow_disabled_chain(chain):
-    pow_disabled_chain = disable_pow_check(chain)
-    assert issubclass(pow_disabled_chain, NoChainSealValidationMixin)
-    again_pow_disabled_chain = disable_pow_check(pow_disabled_chain)
-    assert issubclass(again_pow_disabled_chain, NoChainSealValidationMixin)
