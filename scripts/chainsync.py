@@ -2,44 +2,47 @@
 
 Run with `python -m scripts.chainsync -db <path>`.
 """
+import argparse
 import asyncio
 import logging
+from pathlib import Path
+import signal
 from typing import (
     cast,
     Type,
     Union,
 )
 
+from eth_typing import BlockNumber
+
+from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
+from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
+from eth.db.atomic import AtomicDB
+from eth.db.backends.level import LevelDB
 from eth.exceptions import HeaderNotFound
 
-from trinity.db.eth1.chain import (
-    AsyncChainDB,
-    AsyncHeaderDB,
-)
+from p2p import ecies
+from p2p.constants import DEVP2P_V5
+from p2p.kademlia import Node
+from p2p.service import BaseService
+
+from trinity.constants import DEFAULT_PREFERRED_NODES
+from trinity.db.eth1.chain import AsyncChainDB
+from trinity.db.eth1.header import AsyncHeaderDB
+from trinity.protocol.common.context import ChainContext
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.les.peer import LESPeerPool
 
-from trinity.sync.common.chain import BaseHeaderChainSyncer
 from trinity.sync.full.chain import RegularChainSyncer
 from trinity.sync.light.chain import LightChainSyncer
+from trinity.tools.chain import AsyncMainnetChain, AsyncRopstenChain
+from trinity._utils.chains import load_nodekey
+from trinity._utils.version import construct_trinity_client_identifier
+
+from tests.core.integration_test_helpers import connect_to_peers_loop
 
 
 def _test() -> None:
-    import argparse
-    from pathlib import Path
-    import signal
-    from p2p import ecies
-    from p2p.kademlia import Node
-    from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
-    from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
-    from eth.db.backends.level import LevelDB
-    from tests.core.integration_test_helpers import (
-        AsyncMainnetChain, AsyncRopstenChain,
-        connect_to_peers_loop)
-    from trinity.constants import DEFAULT_PREFERRED_NODES
-    from trinity.protocol.common.context import ChainContext
-    from trinity._utils.chains import load_nodekey
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-db', type=str, required=True)
     parser.add_argument('-light', action="store_true")
@@ -57,10 +60,10 @@ def _test() -> None:
     loop = asyncio.get_event_loop()
 
     base_db = LevelDB(args.db)
-    headerdb = AsyncHeaderDB(base_db)
-    chaindb = AsyncChainDB(base_db)
+    headerdb = AsyncHeaderDB(AtomicDB(base_db))
+    chaindb = AsyncChainDB(AtomicDB(base_db))
     try:
-        genesis = chaindb.get_canonical_block_header_by_number(0)
+        genesis = chaindb.get_canonical_block_header_by_number(BlockNumber(0))
     except HeaderNotFound:
         genesis = ROPSTEN_GENESIS_HEADER
         chaindb.persist_header(genesis)
@@ -69,12 +72,13 @@ def _test() -> None:
     if args.light:
         peer_pool_class = LESPeerPool
 
+    chain_class: Union[Type[AsyncRopstenChain], Type[AsyncMainnetChain]]
     if genesis.hash == ROPSTEN_GENESIS_HEADER.hash:
-        network_id = RopstenChain.network_id
-        vm_config = ROPSTEN_VM_CONFIGURATION  # type: ignore
+        chain_id = RopstenChain.chain_id
+        vm_config = ROPSTEN_VM_CONFIGURATION
         chain_class = AsyncRopstenChain
     elif genesis.hash == MAINNET_GENESIS_HEADER.hash:
-        network_id = MainnetChain.network_id
+        chain_id = MainnetChain.chain_id
         vm_config = MAINNET_VM_CONFIGURATION  # type: ignore
         chain_class = AsyncMainnetChain
     else:
@@ -87,8 +91,11 @@ def _test() -> None:
 
     context = ChainContext(
         headerdb=headerdb,
-        network_id=network_id,
+        network_id=chain_id,
         vm_configuration=vm_config,
+        client_version_string=construct_trinity_client_identifier(),
+        listen_port=30309,
+        p2p_version=DEVP2P_V5,
     )
 
     peer_pool = peer_pool_class(privkey=privkey, context=context)
@@ -96,18 +103,17 @@ def _test() -> None:
     if args.enode:
         nodes = tuple([Node.from_uri(args.enode)])
     else:
-        nodes = DEFAULT_PREFERRED_NODES[network_id]
+        nodes = DEFAULT_PREFERRED_NODES[chain_id]
 
     asyncio.ensure_future(peer_pool.run())
     peer_pool.run_task(connect_to_peers_loop(peer_pool, nodes))
     chain = chain_class(base_db)
-    syncer: BaseHeaderChainSyncer = None
+    syncer: BaseService = None
     if args.light:
         syncer = LightChainSyncer(chain, headerdb, cast(LESPeerPool, peer_pool))
     else:
         syncer = RegularChainSyncer(chain, chaindb, cast(ETHPeerPool, peer_pool))
     syncer.logger.setLevel(log_level)
-    syncer.min_peers_to_sync = 1
 
     sigint_received = asyncio.Event()
     for sig in [signal.SIGINT, signal.SIGTERM]:
