@@ -70,16 +70,20 @@ def find_greatest_common_ancestor(db: HeaderDB, source: BlockHeader,
 
 
 @to_tuple
-def build_header_chain(db: HeaderDB, source: BlockHeader,
-                       dest: BlockHeader) -> Iterable[BlockHeader]:
-    "Assumes dest is an ancestor of source. Will loop infinitely if that's not true!"
-    current_header = source
+def build_header_chain(db: HeaderDB, tail: BlockHeader,
+                       head: BlockHeader) -> Iterable[BlockHeader]:
+    """
+    Returns a chain of headers beginning with {tail} and ending with {head}.
+
+    Will loop forever if {head} is not an ancestor of {tail}.
+    """
+    current_header = tail
 
     while True:
         yield current_header
 
         parent = db.get_block_header_by_hash(current_header.parent_hash)
-        if parent == dest:
+        if parent == head:
             return
         current_header = parent
 
