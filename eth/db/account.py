@@ -803,35 +803,6 @@ class TurboAccountDB(AccountDB):
 
     def __init__(self, db: BaseAtomicDB, header: BlockHeader = None) -> None:
 
-        # TODO: This method can't check whether we're in the right schema, because
-        # from_genesis creates a state w an empty db?
-
-        # === this is the real code
-
-        # TurboAccountDB requires that we're using the new schema
-        # ensure_schema(db, Schemas.TURBO)
-
-        # TODO: this check is too strict, if the state root does not match this should
-        # look up the block diffs required to construct the requested state and build a
-        # view of it.
-        # assert db[SchemaTurbo.current_state_root_key] == state_root
-
-        # === end real code
-
-        # TODO: Either this should use header.hash, or block_diff should use state_root
-#        if SchemaTurbo.current_schema_lookup_key in db:
-#            assert db[SchemaTurbo.current_schema_lookup_key] == Schemas.TURBO
-#        else:
-#            db[SchemaTurbo.current_schema_lookup_key] = Schemas.TURBO
-#            db[SchemaTurbo.current_state_root_key] = BLANK_ROOT_HASH
-#
-#        assert db[SchemaTurbo.current_state_root_key] == state_root
-
-        # === end code just for testing
-
-#        if db[SchemaTurbo.current_state_root_key] != state_root:
-#            print('Provided state root does not match db, errors are expected')
-
         self.turbodb = None
         if get_schema(db) == Schemas.TURBO:
             headerdb = HeaderDB(db)
