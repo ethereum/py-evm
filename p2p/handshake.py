@@ -30,8 +30,10 @@ from p2p.abc import (
 )
 from p2p.connection import Connection
 from p2p.constants import DEVP2P_V5
+from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
     HandshakeFailure,
+    HandshakeFailureTooManyPeers,
     NoMatchingPeerCapabilities,
 )
 from p2p.multiplexer import (
@@ -40,6 +42,7 @@ from p2p.multiplexer import (
 )
 from p2p.p2p_proto import (
     DevP2PReceipt,
+    Disconnect,
     Hello,
     HelloPayload,
     BaseP2PProtocol,
@@ -127,6 +130,10 @@ async def _do_p2p_handshake(transport: TransportAPI,
     # The base `p2p` protocol handshake directly streams the messages as it has
     # strict requirements about receiving the `Hello` message first.
     async for _, cmd in stream_transport_messages(transport, base_protocol, token=token):
+        if isinstance(cmd, Disconnect):
+            if cmd.payload == DisconnectReason.TOO_MANY_PEERS:
+                raise HandshakeFailureTooManyPeers(f"Peer disconnected because it is already full")
+
         if not isinstance(cmd, Hello):
             raise HandshakeFailure(
                 f"First message across the DevP2P connection must be a Hello "
@@ -304,6 +311,7 @@ async def dial_out(remote: NodeAPI,
         token,
     )
 
+    transport.logger.debug2("Initiating p2p handshake with %s", remote)
     try:
         multiplexer, devp2p_receipt, protocol_receipts = await negotiate_protocol_handshakes(
             transport=transport,
@@ -320,6 +328,7 @@ async def dial_out(remote: NodeAPI,
         await asyncio.sleep(0)
         raise
 
+    transport.logger.debug2("Completed p2p handshake with %s", remote)
     connection = Connection(
         multiplexer=multiplexer,
         devp2p_receipt=devp2p_receipt,

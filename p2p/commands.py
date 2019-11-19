@@ -94,6 +94,9 @@ class BaseCommand(CommandAPI[TCommandPayload]):
     def __init__(self, payload: TCommandPayload) -> None:
         self.payload = payload
 
+    def __repr__(self) -> str:
+        return f"{self.__class__}(payload={self.payload})"
+
     def encode(self, cmd_id: int, snappy_support: bool) -> MessageAPI:
         raw_payload_data = self.serialization_codec.encode(self.payload)
 

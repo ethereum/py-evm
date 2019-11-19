@@ -15,11 +15,12 @@ from typing import (
 )
 
 from eth_typing import BlockNumber
+from eth_utils import DEBUG2_LEVEL_NUM
+
 from eth.chains.mainnet import MainnetChain, MAINNET_GENESIS_HEADER, MAINNET_VM_CONFIGURATION
 from eth.chains.ropsten import RopstenChain, ROPSTEN_GENESIS_HEADER, ROPSTEN_VM_CONFIGURATION
 from eth.db.atomic import AtomicDB
 from eth.db.backends.memory import MemoryDB
-from eth_utils import DEBUG2_LEVEL_NUM
 
 from p2p import ecies
 from p2p.constants import DEVP2P_V5
@@ -35,13 +36,18 @@ from tests.core.integration_test_helpers import connect_to_peers_loop
 
 
 def _main() -> None:
-    logging.basicConfig(level=DEBUG2_LEVEL_NUM, format='%(asctime)s %(levelname)s: %(message)s')
-
     parser = argparse.ArgumentParser()
     parser.add_argument('-enode', type=str, help="The enode we should connect to", required=True)
     parser.add_argument('-mainnet', action='store_true')
     parser.add_argument('-light', action='store_true', help="Connect as a light node")
+    parser.add_argument('-debug', action="store_true")
     args = parser.parse_args()
+
+    log_level = logging.INFO
+    if args.debug:
+        log_level = DEBUG2_LEVEL_NUM
+    logging.basicConfig(
+        level=log_level, format='%(asctime)s %(levelname)s: %(message)s', datefmt='%H:%M:%S')
 
     peer_class: Union[Type[ETHPeer], Type[LESPeer]]
     pool_class: Union[Type[ETHPeerPool], Type[LESPeerPool]]

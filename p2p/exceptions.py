@@ -46,9 +46,9 @@ class HandshakeFailure(BaseP2PError):
     pass
 
 
-class TooManyPeersFailure(HandshakeFailure):
+class HandshakeFailureTooManyPeers(HandshakeFailure):
     """
-    The remote disconnected from us because it has too many peers
+    The remote disconnected from us during a handshake because it has too many peers
     """
     pass
 

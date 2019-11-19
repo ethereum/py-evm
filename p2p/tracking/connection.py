@@ -9,7 +9,7 @@ from p2p.abc import NodeAPI
 from p2p.exceptions import (
     BaseP2PError,
     HandshakeFailure,
-    TooManyPeersFailure,
+    HandshakeFailureTooManyPeers,
 )
 
 
@@ -23,7 +23,7 @@ def register_error(exception: Type[BaseP2PError], timeout_seconds: int) -> None:
 
 
 register_error(HandshakeFailure, 10)  # 10 seconds
-register_error(TooManyPeersFailure, 60)  # one minute
+register_error(HandshakeFailureTooManyPeers, 60)  # one minute
 
 
 def get_timeout_for_failure(failure: BaseP2PError) -> int:

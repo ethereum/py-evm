@@ -110,7 +110,7 @@ class Transport(TransportAPI):
                       remote: NodeAPI,
                       private_key: datatypes.PrivateKey,
                       token: CancelToken) -> TransportAPI:
-        """Perform the auth and P2P handshakes with the given remote.
+        """Perform the auth handshake with the given remote.
 
         Return an instance of the given peer_class (must be a subclass of
         BasePeer) connected to that remote in case both handshakes are
@@ -122,6 +122,7 @@ class Transport(TransportAPI):
         handshake or if none of the sub-protocols supported by us is also
         supported by the remote.
         """
+        cls.logger.debug2("Initiating auth handshake with %s", remote)
         try:
             (aes_secret,
              mac_secret,
@@ -133,6 +134,7 @@ class Transport(TransportAPI):
         except (ConnectionRefusedError, OSError) as e:
             raise UnreachablePeer(f"Can't reach {remote!r}") from e
 
+        cls.logger.debug2("Completed auth handshake with %s", remote)
         return cls(
             remote=remote,
             private_key=private_key,
@@ -203,7 +205,7 @@ class Transport(TransportAPI):
         ip, socket, *_ = peername
         remote_address = Address(ip, socket)
 
-        cls.logger.debug("Receiving handshake from %s", remote_address)
+        cls.logger.debug("Receiving auth handshake from %s", remote_address)
 
         initiator_remote = Node(initiator_pubkey, remote_address)
 

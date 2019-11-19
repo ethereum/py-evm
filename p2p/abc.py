@@ -201,6 +201,7 @@ class TransportAPI(ABC):
     session: SessionAPI
     remote: NodeAPI
     read_state: TransportState
+    logger: ExtendedDebugLogger
 
     @property
     @abstractmethod
