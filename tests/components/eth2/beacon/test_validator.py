@@ -45,6 +45,7 @@ from trinity.components.eth2.beacon.validator import (
 from trinity.components.eth2.beacon.slot_ticker import (
     SlotTickEvent,
 )
+from trinity.components.eth2.misc.tick_type import TickType
 
 
 override_lengths(XIAO_LONG_BAO_CONFIG)
@@ -198,6 +199,7 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
 
     event_first_tick_called = asyncio.Event()
     event_second_tick_called = asyncio.Event()
+    event_third_tick_called = asyncio.Event()
 
     async def handle_first_tick(slot):
         event_first_tick_called.set()
@@ -205,8 +207,12 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
     async def handle_second_tick(slot):
         event_second_tick_called.set()
 
+    async def handle_third_tick(slot):
+        event_third_tick_called.set()
+
     monkeypatch.setattr(alice, 'handle_first_tick', handle_first_tick)
     monkeypatch.setattr(alice, 'handle_second_tick', handle_second_tick)
+    monkeypatch.setattr(alice, 'handle_third_tick', handle_third_tick)
 
     # sleep for `event_bus` ready
     await asyncio.sleep(0.01)
@@ -216,7 +222,7 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
         SlotTickEvent(
             slot=1,
             elapsed_time=2,
-            is_second_tick=False,
+            tick_type=TickType.SLOT_START,
         ),
         BroadcastConfig(internal=True),
     )
@@ -225,7 +231,9 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
         timeout=2,
         loop=event_loop,
     )
+    assert event_first_tick_called.is_set()
     assert not event_second_tick_called.is_set()
+    assert not event_third_tick_called.is_set()
     event_first_tick_called.clear()
 
     # Second tick
@@ -233,7 +241,7 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
         SlotTickEvent(
             slot=1,
             elapsed_time=2,
-            is_second_tick=True,
+            tick_type=TickType.SLOT_ONE_THIRD,
         ),
         BroadcastConfig(internal=True),
     )
@@ -243,6 +251,27 @@ async def test_validator_handle_slot_tick(event_loop, event_bus, monkeypatch):
         loop=event_loop,
     )
     assert not event_first_tick_called.is_set()
+    assert event_second_tick_called.is_set()
+    assert not event_third_tick_called.is_set()
+    event_second_tick_called.clear()
+
+    # Third tick
+    await event_bus.broadcast(
+        SlotTickEvent(
+            slot=1,
+            elapsed_time=2,
+            tick_type=TickType.SLOT_TWO_THIRD,
+        ),
+        BroadcastConfig(internal=True),
+    )
+    await asyncio.wait_for(
+        event_third_tick_called.wait(),
+        timeout=2,
+        loop=event_loop,
+    )
+    assert not event_first_tick_called.is_set()
+    assert not event_second_tick_called.is_set()
+    assert event_third_tick_called.is_set()
 
 
 @pytest.mark.asyncio

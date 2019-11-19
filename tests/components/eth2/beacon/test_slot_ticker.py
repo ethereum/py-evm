@@ -19,7 +19,6 @@ async def test_slot_ticker_ticking(event_bus, event_loop):
         event_bus=event_bus,
     )
     asyncio.ensure_future(slot_ticker.run(), loop=event_loop)
-    await slot_ticker.events.started.wait()
     try:
         slot_tick_event = await asyncio.wait_for(
             event_bus.wait_for(SlotTickEvent),
@@ -32,33 +31,47 @@ async def test_slot_ticker_ticking(event_bus, event_loop):
     await slot_ticker.cancel()
 
 
+@pytest.mark.slow
 @pytest.mark.asyncio
-async def test_slot_ticker_second_half_tick(event_bus, event_loop):
+async def test_slot_ticker_all_ticks(event_bus, event_loop):
+    seconds_per_slot = 3
     slot_ticker = SlotTicker(
         genesis_slot=0,
-        genesis_time=int(time.time()) + 1,
-        seconds_per_slot=2,
+        genesis_time=int(time.time()) + seconds_per_slot,
+        seconds_per_slot=seconds_per_slot,
         event_bus=event_bus,
     )
     asyncio.ensure_future(slot_ticker.run(), loop=event_loop)
-    await slot_ticker.events.started.wait()
     try:
         first_slot_event = await asyncio.wait_for(
             event_bus.wait_for(SlotTickEvent),
-            timeout=4,
+            timeout=seconds_per_slot,
             loop=event_loop,
         )
     except asyncio.TimeoutError:
         assert False, "Slot not ticking"
-    assert not first_slot_event.is_second_tick
+    assert first_slot_event.tick_type.is_start
+
     try:
         second_slot_event = await asyncio.wait_for(
             event_bus.wait_for(SlotTickEvent),
-            timeout=4,
+            timeout=seconds_per_slot,
             loop=event_loop,
         )
     except asyncio.TimeoutError:
-        assert False, "No second half tick"
+        assert False, "Should have gotten the second tick"
     assert second_slot_event.slot == first_slot_event.slot
-    assert second_slot_event.is_second_tick
+    assert second_slot_event.tick_type.is_one_third
+
+    try:
+        third_slot_event = await asyncio.wait_for(
+            event_bus.wait_for(SlotTickEvent),
+            timeout=seconds_per_slot,
+            loop=event_loop,
+        )
+    except asyncio.TimeoutError:
+        assert False, "Should have gotten the third tick"
+    assert third_slot_event.slot == first_slot_event.slot
+    assert third_slot_event.tick_type.is_two_third
+
     await slot_ticker.cancel()
