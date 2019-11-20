@@ -24,6 +24,11 @@ class BaseSchema(ABC):
     def make_deposit_count_lookup_key() -> bytes:
         ...
 
+    @staticmethod
+    @abstractmethod
+    def make_highest_processed_block_number_lookup_key() -> bytes:
+        ...
+
 
 class SchemaV1(BaseSchema):
     @staticmethod

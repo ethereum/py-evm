@@ -217,10 +217,10 @@ class Eth1Monitor(Service):
             raise Eth1MonitorValidationError(
                 f"failed to make `Eth1Data`: `deposit_count = 0` at block #{target_block_number}"
             )
-        deposit_data_at_count = self._db.get_deposit_data_range(
+        deposit_data_in_range = self._db.get_deposit_data_range(
             0, accumulated_deposit_count
         )
-        _, deposit_root = make_deposit_tree_and_root(deposit_data_at_count)
+        _, deposit_root = make_deposit_tree_and_root(deposit_data_in_range)
         contract_deposit_root = self._get_deposit_root_from_contract(
             target_block_number
         )
@@ -246,7 +246,7 @@ class Eth1Monitor(Service):
                 "`deposit_index` should be smaller than `deposit_count`: "
                 f"deposit_index={deposit_index}, deposit_count={deposit_count}"
             )
-        len_deposit_data = self._db.deposit_count
+        len_deposit_data = self.total_deposit_count
         if deposit_count <= 0 or deposit_count > len_deposit_data:
             raise Eth1MonitorValidationError(
                 f"invalid `deposit_count`: deposit_count={deposit_count}"
@@ -255,10 +255,10 @@ class Eth1Monitor(Service):
             raise Eth1MonitorValidationError(
                 f"invalid `deposit_index`: deposit_index={deposit_index}"
             )
-        deposit_data_at_count = self._db.get_deposit_data_range(0, deposit_count)
-        tree, root = make_deposit_tree_and_root(deposit_data_at_count)
+        deposit_data_in_range = self._db.get_deposit_data_range(0, deposit_count)
+        tree, root = make_deposit_tree_and_root(deposit_data_in_range)
         return Deposit(
-            proof=make_deposit_proof(deposit_data_at_count, tree, root, deposit_index),
+            proof=make_deposit_proof(deposit_data_in_range, tree, root, deposit_index),
             data=self._db.get_deposit_data(deposit_index),
         )
 
