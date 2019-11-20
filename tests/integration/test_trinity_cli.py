@@ -3,6 +3,7 @@ import signal
 import sys
 import tempfile
 import time
+import os
 
 import pexpect
 import pytest
@@ -304,7 +305,8 @@ async def test_logger_configuration(command,
             if contains_substring(stderr_logs, log):
                 raise AssertionError(f"Log should not contain `{log}` but does")
 
-        log_file_path = TrinityConfig(app_identifier="eth1", network_id=1).logfile_path
+        log_dir = TrinityConfig(app_identifier="eth1", network_id=1).log_dir
+        log_file_path = max(log_dir.glob('*'), key=os.path.getctime)
         with open(log_file_path) as log_file:
             file_content = log_file.read()
 
