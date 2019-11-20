@@ -52,6 +52,8 @@ Eth2Config = NamedTuple(
         ("MAX_ATTESTATIONS", int),
         ("MAX_DEPOSITS", int),
         ("MAX_VOLUNTARY_EXITS", int),
+        # Fork choice
+        ("SAFE_SLOTS_TO_UPDATE_JUSTIFIED", int),
         # Deposit contract
         ("DEPOSIT_CONTRACT_ADDRESS", bytes),
     ),
