@@ -28,8 +28,7 @@ class BaseSchema(ABC):
 class SchemaV1(BaseSchema):
     @staticmethod
     def make_deposit_data_lookup_key(index: int) -> bytes:
-        index_in_str = str(index)
-        return b"v1:deposit_data:" + index_in_str.encode()
+        return b"v1:deposit_data:" + index.to_bytes(8, "big")
 
     @staticmethod
     def make_deposit_count_lookup_key() -> bytes:
