@@ -53,3 +53,12 @@ class MissingForkChoiceScoringFns(BeaconDBException):
     """
 
     pass
+
+
+class MissingForkChoiceContext(BeaconDBException):
+    """
+    Exception raised if the database lacks the state required for the
+    chain's fork choice.
+    """
+
+    pass

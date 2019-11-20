@@ -10,6 +10,7 @@ from eth2.beacon.constants import (
 )
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
+from eth2.beacon.fork_choice.lmd_ghost import Context as LMDGHOSTContext
 from eth2.beacon.genesis import get_genesis_block
 from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
@@ -657,6 +658,14 @@ def chaindb_at_genesis(chaindb, genesis_state, genesis_block, fork_choice_scorin
 @pytest.fixture
 def empty_attestation_pool():
     return AttestationPool()
+
+
+#
+# Fork choice context
+#
+@pytest.fixture
+def genesis_fork_choice_context(genesis_state, genesis_block):
+    return LMDGHOSTContext.from_genesis(genesis_state, genesis_block)
 
 
 #

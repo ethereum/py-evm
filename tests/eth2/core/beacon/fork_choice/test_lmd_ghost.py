@@ -21,9 +21,10 @@ from eth2.beacon.committee_helpers import (
 )
 from eth2.beacon.epoch_processing_helpers import get_attesting_indices
 from eth2.beacon.fork_choice.lmd_ghost import (
+    Context,
+    LatestMessage,
     Store,
-    _balance_for_validator,
-    lmd_ghost_scoring,
+    _effective_balance_for_validator,
     score_block_by_root,
 )
 from eth2.beacon.helpers import compute_epoch_at_slot, compute_start_slot_at_epoch
@@ -35,7 +36,7 @@ from eth2.beacon.types.checkpoints import Checkpoint
 
 # TODO(ralexstokes) merge this and next into tools/builder
 @to_dict
-def _mk_attestation_inputs_in_epoch(epoch, state, config):
+def _mk_attestation_inputs_in_epoch(epoch, root, state, config):
     for committee, committee_index, slot in iterate_committees_at_epoch(
         state, epoch, config
     ):
@@ -44,7 +45,10 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
             continue
 
         attestation_data = AttestationData(
-            slot=slot, index=committee_index, target=Checkpoint(epoch=epoch)
+            slot=slot,
+            index=committee_index,
+            target=Checkpoint(epoch=epoch, root=root),
+            beacon_block_root=root,
         )
         committee_size = len(committee)
         aggregation_bits = bitfield.get_empty_bitfield(committee_size)
@@ -58,11 +62,11 @@ def _mk_attestation_inputs_in_epoch(epoch, state, config):
 
 
 def _mk_attestations_for_epoch_by_count(
-    number_of_committee_samples, epoch, state, config
+    number_of_committee_samples, epoch, root, state, config
 ):
     results = {}
     for _ in range(number_of_committee_samples):
-        sample = _mk_attestation_inputs_in_epoch(epoch, state, config)
+        sample = _mk_attestation_inputs_in_epoch(epoch, root, state, config)
         results = merge(results, sample)
     return results
 
@@ -85,7 +89,7 @@ def _keep_by_latest_slot(values):
     return max(values, key=first)[1][1]
 
 
-def _find_collision(state, config, validator_index, epoch):
+def _find_collision(state, config, validator_index, epoch, root):
     """
     Given a target epoch, make the attestation expected for the
     validator w/ the given ``validator_index``.
@@ -96,7 +100,10 @@ def _find_collision(state, config, validator_index, epoch):
         if validator_index in committee:
             # TODO(ralexstokes) refactor w/ tools/builder
             attestation_data = AttestationData(
-                slot=slot, index=committee_index, target=Checkpoint(epoch=epoch)
+                slot=slot,
+                index=committee_index,
+                target=Checkpoint(epoch=epoch, root=root),
+                beacon_block_root=root,
             )
             committee_count = len(committee)
             aggregation_bits = bitfield.get_empty_bitfield(committee_count)
@@ -111,7 +118,7 @@ def _find_collision(state, config, validator_index, epoch):
         raise Exception("should have found a duplicate validator")
 
 
-def _introduce_collisions(all_attestations_by_index, state, config):
+def _introduce_collisions(all_attestations_by_index, root, state, config):
     """
     Find some attestations for later epochs for the validators
     that are current attesting in each source of attestation.
@@ -129,7 +136,7 @@ def _introduce_collisions(all_attestations_by_index, state, config):
         dst_epoch = src_epoch + 1
 
         collision = _find_collision(
-            state, config, validator_index=src_index, epoch=dst_epoch
+            state, config, validator_index=src_index, epoch=dst_epoch, root=root
         )
         collisions += (merge(dst, collision),)
     return collisions
@@ -148,6 +155,10 @@ def _get_committee_count(state, epoch, config):
     )
 
 
+def _compute_seconds_since_genesis_for_epoch(epoch, config):
+    return epoch * config.SLOTS_PER_EPOCH * config.SECONDS_PER_SLOT
+
+
 @pytest.mark.parametrize(
     ("validator_count",),
     [
@@ -159,7 +170,7 @@ def _get_committee_count(state, epoch, config):
 )
 @pytest.mark.parametrize(("collisions_from_another_epoch",), [(True,), (False,)])
 def test_store_get_latest_attestation(
-    genesis_state, empty_attestation_pool, config, collisions_from_another_epoch
+    genesis_state, genesis_block, config, collisions_from_another_epoch
 ):
     """
     Given some attestations across the various sources, can we
@@ -169,23 +180,27 @@ def test_store_get_latest_attestation(
     state = genesis_state.copy(
         slot=compute_start_slot_at_epoch(some_epoch, config.SLOTS_PER_EPOCH)
     )
+    some_time = (
+        _compute_seconds_since_genesis_for_epoch(some_epoch, config)
+        + state.genesis_time
+    )
     previous_epoch = state.previous_epoch(config.SLOTS_PER_EPOCH, config.GENESIS_EPOCH)
     previous_epoch_committee_count = _get_committee_count(state, previous_epoch, config)
 
     current_epoch = state.current_epoch(config.SLOTS_PER_EPOCH)
     current_epoch_committee_count = _get_committee_count(state, current_epoch, config)
-
-    next_epoch = state.next_epoch(config.SLOTS_PER_EPOCH)
-    next_epoch_committee_count = _get_committee_count(state, next_epoch, config)
-
     number_of_committee_samples = 4
+
     assert number_of_committee_samples <= previous_epoch_committee_count
     assert number_of_committee_samples <= current_epoch_committee_count
-    assert number_of_committee_samples <= next_epoch_committee_count
 
     # prepare samples from previous epoch
     previous_epoch_attestations_by_index = _mk_attestations_for_epoch_by_count(
-        number_of_committee_samples, previous_epoch, state, config
+        number_of_committee_samples,
+        previous_epoch,
+        genesis_block.signing_root,
+        state,
+        config,
     )
     previous_epoch_attestations = _extract_attestations_from_index_keying(
         previous_epoch_attestations_by_index.values()
@@ -193,7 +208,11 @@ def test_store_get_latest_attestation(
 
     # prepare samples from current epoch
     current_epoch_attestations_by_index = _mk_attestations_for_epoch_by_count(
-        number_of_committee_samples, current_epoch, state, config
+        number_of_committee_samples,
+        current_epoch,
+        genesis_block.signing_root,
+        state,
+        config,
     )
     current_epoch_attestations_by_index = keyfilter(
         lambda index: index not in previous_epoch_attestations_by_index,
@@ -203,16 +222,12 @@ def test_store_get_latest_attestation(
         current_epoch_attestations_by_index.values()
     )
 
-    # prepare samples for pool, taking half from the current epoch and half from the next epoch
-    pool_attestations_in_current_epoch_by_index = _mk_attestations_for_epoch_by_count(
-        number_of_committee_samples // 2, current_epoch, state, config
-    )
-    pool_attestations_in_next_epoch_by_index = _mk_attestations_for_epoch_by_count(
-        number_of_committee_samples // 2, next_epoch, state, config
-    )
-    pool_attestations_by_index = merge(
-        pool_attestations_in_current_epoch_by_index,
-        pool_attestations_in_next_epoch_by_index,
+    pool_attestations_by_index = _mk_attestations_for_epoch_by_count(
+        number_of_committee_samples,
+        current_epoch,
+        genesis_block.signing_root,
+        state,
+        config,
     )
     pool_attestations_by_index = keyfilter(
         lambda index: (
@@ -236,7 +251,9 @@ def test_store_get_latest_attestation(
             previous_epoch_attestations_by_index,
             current_epoch_attestations_by_index,
             pool_attestations_by_index,
-        ) = _introduce_collisions(all_attestations_by_index, state, config)
+        ) = _introduce_collisions(
+            all_attestations_by_index, genesis_block.signing_root, state, config
+        )
 
         previous_epoch_attestations = _extract_attestations_from_index_keying(
             previous_epoch_attestations_by_index.values()
@@ -256,26 +273,28 @@ def test_store_get_latest_attestation(
         pool_attestations_by_index,
     )
 
-    # ensure we get the expected results
-    state = state.copy(
-        previous_epoch_attestations=previous_epoch_attestations,
-        current_epoch_attestations=current_epoch_attestations,
-    )
-
-    pool = empty_attestation_pool
-    for attestation in pool_attestations:
-        pool.add(attestation)
-
     chain_db = None  # not relevant for this test
-    store = Store(chain_db, state, pool, BeaconBlock, config)
+    context = Context.from_genesis(genesis_state, genesis_block)
+    context.time = some_time
+    store = Store(chain_db, BeaconBlock, config, context)
+
+    for attestations in (
+        previous_epoch_attestations,
+        current_epoch_attestations,
+        pool_attestations,
+    ):
+        for attestation in attestations:
+            store.on_attestation(attestation, validate_signature=False)
 
     # sanity check
-    assert expected_index.keys() == store._attestation_index.keys()
+    assert expected_index.keys() == store._context.latest_messages.keys()
 
     for validator_index in range(len(state.validators)):
         expected_attestation_data = expected_index.get(validator_index, None)
-        stored_attestation_data = store._get_latest_attestation(validator_index)
-        assert expected_attestation_data == stored_attestation_data
+        target = expected_attestation_data.target
+        expected_message = LatestMessage(epoch=target.epoch, root=target.root)
+        stored_message = store._context.latest_messages.get(validator_index, None)
+        assert expected_message == stored_message
 
 
 def _mk_block(block_params, slot, parent, block_offset):
@@ -417,10 +436,10 @@ def _attach_attestations_to_block_tree_with_committees(block_tree, config):
 
 def _score_block(block, store, state, config):
     return sum(
-        _balance_for_validator(state, validator_index)
-        for validator_index, target in store._get_attestation_targets()
-        if store._get_ancestor(target, block.slot) == block
-    ) + score_block_by_root(block)
+        _effective_balance_for_validator(state, validator_index)
+        for validator_index, target in store._context.latest_messages
+        if store.get_ancestor(target.root, block.slot) == block
+    ) + score_block_by_root(block.signing_root)
 
 
 def _build_score_index_from_decorated_block_tree(block_tree, store, state, config):
@@ -435,57 +454,6 @@ def _iter_attestation_by_validator_index(state, attestation, config):
         state, attestation.data, attestation.aggregation_bits, config
     ):
         yield index
-
-
-class _store:
-    """
-    Mock Store class.
-    """
-
-    def __init__(self, state, root_block, block_tree, attestation_pool, config):
-        self._state = state
-        self._block_tree = block_tree
-        self._attestation_pool = attestation_pool
-        self._config = config
-        self._latest_attestations = self._find_attestation_targets()
-        self._block_index = {
-            block.signing_root: block for block in _iter_block_tree_by_block(block_tree)
-        }
-        self._block_index[root_block.signing_root] = root_block
-        self._blocks_by_parent_root = {
-            block.parent_root: self._block_index[block.parent_root]
-            for block in _iter_block_tree_by_block(block_tree)
-        }
-
-    def _find_attestation_targets(self):
-        result = {}
-        for _, attestation in self._attestation_pool:
-            target_slot = attestation.data.slot
-            for validator_index in _iter_attestation_by_validator_index(
-                self._state, attestation, self._config
-            ):
-                if validator_index in result:
-                    existing = result[validator_index]
-                    existing_slot = existing.data.slot
-                    if existing_slot > target_slot:
-                        continue
-                result[validator_index] = attestation
-        return result
-
-    def _get_attestation_targets(self):
-        for index, target in self._latest_attestations.items():
-            yield (index, self._block_index[target.data.beacon_block_root])
-
-    def _get_parent_block(self, block):
-        return self._blocks_by_parent_root[block.parent_root]
-
-    def _get_ancestor(self, block, slot):
-        if block.slot == slot:
-            return block
-        elif block.slot < slot:
-            return None
-        else:
-            return self._get_ancestor(self._get_parent_block(block), slot)
 
 
 @pytest.mark.parametrize(
@@ -534,6 +502,7 @@ def test_lmd_ghost_fork_choice_scoring(
     forking_descriptor,
     forking_asymmetry,
     genesis_state,
+    genesis_block,
     empty_attestation_pool,
     config,
 ):
@@ -591,7 +560,8 @@ def test_lmd_ghost_fork_choice_scoring(
     for attestation in attestations:
         attestation_pool.add(attestation)
 
-    store = _store(state, root_block, block_tree, attestation_pool, config)
+    context = Context.from_genesis(genesis_state, genesis_block)
+    store = Store(chain_db, BeaconBlock, config, context)
 
     score_index = _build_score_index_from_decorated_block_tree(
         block_tree, store, state, config
@@ -601,11 +571,7 @@ def test_lmd_ghost_fork_choice_scoring(
         # NOTE: we use the ``fork_choice_scoring`` fixture, it doesn't matter for this test
         chain_db.persist_block(block, BeaconBlock, fork_choice_scoring)
 
-    scoring_fn = lmd_ghost_scoring(
-        chain_db, attestation_pool, state, config, BeaconBlock
-    )
-
     for block in _iter_block_tree_by_block(block_tree):
-        score = scoring_fn(block)
+        score = store.scoring(block)
         expected_score = score_index[block.signing_root]
         assert score == expected_score

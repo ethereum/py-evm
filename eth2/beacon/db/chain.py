@@ -16,6 +16,7 @@ from eth2.beacon.db.exceptions import (
     FinalizedHeadNotFound,
     HeadStateSlotNotFound,
     JustifiedHeadNotFound,
+    MissingForkChoiceContext,
     MissingForkChoiceScoringFns,
     StateNotFound,
 )
@@ -152,6 +153,17 @@ class BaseBeaconChainDB(ABC):
 
     @abstractmethod
     def attestation_exists(self, attestation_root: HashTreeRoot) -> bool:
+        pass
+
+    #
+    # Fork choice API
+    #
+    @abstractmethod
+    def get_fork_choice_context_data_for(self, fork: str) -> bytes:
+        pass
+
+    @abstractmethod
+    def persist_fork_choice_context(self, serialized_context: bytes, fork: str) -> None:
         pass
 
     #
@@ -860,6 +872,17 @@ class BeaconChainDB(BaseBeaconChainDB):
             attestation_root
         )
         return self.exists(lookup_key)
+
+    #
+    # Fork choice API
+    #
+    def get_fork_choice_context_data_for(self, fork: str) -> bytes:
+        # TODO implement
+        raise MissingForkChoiceContext(f"Missing context for fork `{fork}`")
+
+    def persist_fork_choice_context(self, serialized_context: bytes, fork: str) -> None:
+        # TODO implement
+        pass
 
     #
     # Raw Database API

@@ -31,6 +31,7 @@ def test_process_max_attestations(
     keymap,
     fixture_sm_class,
     chaindb,
+    genesis_fork_choice_context,
 ):
     attestation_slot = config.GENESIS_SLOT
     current_slot = attestation_slot + config.MIN_ATTESTATION_INCLUSION_DELAY
@@ -39,7 +40,7 @@ def test_process_max_attestations(
     attestations = create_mock_signed_attestations_at_slot(
         state=state,
         config=config,
-        state_machine=fixture_sm_class(chaindb),
+        state_machine=fixture_sm_class(chaindb, genesis_fork_choice_context),
         attestation_slot=attestation_slot,
         beacon_block_root=genesis_block.signing_root,
         keymap=keymap,
@@ -202,6 +203,7 @@ def test_process_attestations(
     keymap,
     fixture_sm_class,
     chaindb,
+    genesis_fork_choice_context,
     success,
 ):
 
@@ -212,7 +214,7 @@ def test_process_attestations(
     attestations = create_mock_signed_attestations_at_slot(
         state=state,
         config=config,
-        state_machine=fixture_sm_class(chaindb),
+        state_machine=fixture_sm_class(chaindb, genesis_fork_choice_context),
         attestation_slot=attestation_slot,
         beacon_block_root=genesis_block.signing_root,
         keymap=keymap,
