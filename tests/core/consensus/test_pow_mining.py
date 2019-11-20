@@ -14,6 +14,7 @@ from eth.consensus.pow import (
 from eth.tools.mining import POWMiningMixin
 from eth.tools.builder.chain import (
     genesis,
+    upgrade_to_turbo,
 )
 
 
@@ -75,7 +76,7 @@ def test_mining_tools_proof_of_work_mining(base_vm_class):
             (0, vm_class),
         )
 
-    chain = genesis(ChainClass)
+    chain = upgrade_to_turbo(genesis(ChainClass))
 
     block = chain.mine_block()
     check_pow(

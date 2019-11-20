@@ -106,6 +106,7 @@ class TurboDatabase:
         self.reverse_diffs = ()
         self.forward_diffs = ()
 
+
         if header is None:
             return
 
@@ -136,7 +137,7 @@ class TurboDatabase:
             if address in diff.get_changed_accounts():
                 return diff.get_account(address, new=True)
 
-        for diff in self.reverse_diffs:
+        for diff in reversed(self.reverse_diffs):
             if address in diff.get_changed_accounts():
                 return diff.get_account(address, new=False)
 
@@ -173,3 +174,30 @@ class TurboDatabase:
             return rlp.decode(account_rlp, sedes=Account)
         except KeyError:
             return Account()
+
+
+class TurboBaseDB(BaseDB):
+    """
+    A helper so TurboDatabase can be used from inside JournalDB
+
+    Needs: __contains__, __delitem__, __setitem__, __getitem__
+    """
+
+    def __init__(self, turbodb: TurboDatabase) -> None:
+        self._turbodb = turbodb
+
+    def _exists(self, key: bytes) -> bool:
+        try:
+            self.__getitem__(key)
+            return True
+        except KeyError:
+            return False
+
+    def __getitem__(self, key: bytes) -> bytes:
+        return self._turbodb.get_encoded_account(key)
+
+    def __setitem__(self, key: bytes, value: bytes) -> None:
+        raise NotImplemented("TurboBaseDB objects cannot be mutated")
+
+    def __delitem__(self, key: bytes) -> None:
+        raise NotImplemented("TurboBaseDB objects cannot be mutated")

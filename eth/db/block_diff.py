@@ -116,7 +116,6 @@ class BlockDiff:
         return block_diff
 
     def write_to(self, db: BaseDB, state_root: Hash32) -> None:
-
         # TODO: this should probably verify that the state roots have all been added
 
         accounts = [

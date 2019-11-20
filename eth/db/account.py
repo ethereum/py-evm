@@ -68,7 +68,7 @@ from eth.db.storage import (
     AccountStorageDB,
     StorageLookup,
 )
-from eth.db.turbo import TurboDatabase
+from eth.db.turbo import TurboDatabase, TurboBaseDB
 from eth.db.typing import (
     JournalDBCheckpoint,
 )
@@ -267,7 +267,6 @@ class AccountDB(BaseAccountDB):
         AccountDB synchronizes the snapshot/revert/persist of both of the
         journals.
         """
-
         if header:
             state_root = header.state_root
         else:
@@ -292,6 +291,8 @@ class AccountDB(BaseAccountDB):
         if get_schema(db) == Schemas.TURBO:
             headerdb = HeaderDB(db)
             self._turbodb = TurboDatabase(headerdb, header)
+            self._turbobase = TurboBaseDB(self._turbodb)
+            self._turbojournal = JournalDB(self._turbobase)
 
     @property
     def state_root(self) -> Hash32:
@@ -467,6 +468,8 @@ class AccountDB(BaseAccountDB):
         if address in self._account_cache:
             del self._account_cache[address]
         del self._journaltrie[address]
+        if self._turbodb:
+            del self._turbojournal[address]
 
         self._wipe_storage(address)
         self._deleted_accounts.add(address)
@@ -489,16 +492,21 @@ class AccountDB(BaseAccountDB):
     # Internal
     #
     def _get_encoded_account(self, address: Address, from_journal: bool=True) -> bytes:
-        if from_journal:
-            # TODO: This also needs to read from the TurboDB!
-            return self._get_encoded_account_from_trie(address, from_journal=True)
-
-        turbo_result = self._get_encoded_account_from_turbodb(address)
         trie_result = self._get_encoded_account_from_trie(address, from_journal)
+        if self._turbodb is None:
+            return trie_result
+
+        turbo_result = self._get_encoded_account_from_turbodb(address, from_journal)
 
         # TODO: remove this once enough tests have been run to ensure this class works
         # TODO: raise a better error message here
-        assert trie_result == turbo_result
+        if trie_result != turbo_result:
+            # Set some variables for easier debugging
+            if trie_result != b'':
+                trie_account = rlp.decode(trie_result, sedes=Account)
+            if turbo_result != b'':
+                turbo_account = rlp.decode(turbo_result, sedes=Account)
+            assert False
 
         return turbo_result
 
@@ -513,6 +521,17 @@ class AccountDB(BaseAccountDB):
         except KeyError:
             # In case the account is deleted in the JournalDB
             return b''
+
+    def _get_encoded_account_from_turbodb(self, address: Address,
+                                          from_journal: bool=False) -> bytes:
+        source = self._turbojournal if from_journal else self._turbobase
+
+        try:
+            return source[address]
+        except KeyError:
+            return b''
+
+        assert False
 
     def _get_account(self, address: Address, from_journal: bool=True) -> Account:
         if from_journal and address in self._account_cache:
@@ -532,6 +551,8 @@ class AccountDB(BaseAccountDB):
         self._account_cache[address] = account
         rlp_account = rlp.encode(account, sedes=Account)
         self._journaltrie[address] = rlp_account
+        if self._turbodb:
+            self._turbojournal[address] = rlp_account
 
         self._dirty_account_rlps.add(address)
 
@@ -541,6 +562,8 @@ class AccountDB(BaseAccountDB):
     def record(self) -> JournalDBCheckpoint:
         checkpoint = self._journaldb.record()
         self._journaltrie.record(checkpoint)
+        if self._turbodb:
+            self._turbojournal.record(checkpoint)
 
         for _, store in self._dirty_account_stores():
             store.record(checkpoint)
@@ -549,6 +572,8 @@ class AccountDB(BaseAccountDB):
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
         self._journaldb.discard(checkpoint)
         self._journaltrie.discard(checkpoint)
+        if self._turbodb:
+            self._turbojournal.discard(checkpoint)
         self._account_cache.clear()
         for _, store in self._dirty_account_stores():
             store.discard(checkpoint)
@@ -556,6 +581,8 @@ class AccountDB(BaseAccountDB):
     def commit(self, checkpoint: JournalDBCheckpoint) -> None:
         self._journaldb.commit(checkpoint)
         self._journaltrie.commit(checkpoint)
+        if self._turbodb:
+            self._turbojournal.commit(checkpoint)
         for _, store in self._dirty_account_stores():
             store.commit(checkpoint)
 
@@ -580,6 +607,10 @@ class AccountDB(BaseAccountDB):
             self._apply_account_diff_without_proof(diff, memory_trie)
 
         self._journaltrie.reset()
+        if self._turbodb:
+            # Don't reset, that blows away all changes (they weren't persisted like the
+            # changes in _journaltrie were).
+            self._turbojournal.flatten()
         self._trie_cache.reset_cache()
 
         return self.state_root
@@ -622,7 +653,6 @@ class AccountDB(BaseAccountDB):
         """
         Persists, including a diff which can be used to unwind/replay the changes this block makes.
         """
-
         block_diff = BlockDiff()
 
         # 1. Grab all the changed accounts and their previous values
@@ -631,6 +661,8 @@ class AccountDB(BaseAccountDB):
         # it blows away all the changes. Create an old_trie here so we can peer into the
         # state as it was at the beginning of the block.
 
+        # TODO: In a world where the trie isn't being stored this won't work. We should
+        # instead construct an old_turbodb
         old_trie = CacheDB(HashTrie(HexaryTrie(
             self._raw_store_db, parent_state_root, prune=False
         )))
@@ -642,7 +674,9 @@ class AccountDB(BaseAccountDB):
 
         for address in self._dirty_account_rlps:
             old_value = old_trie[address]
-            new_value = self._get_encoded_account(address, from_journal=True)
+            # TODO: This should be _get_encoded_account_from_turbodb, but
+            #       make_storage_root() isn't correctly handled yet.
+            new_value = self._get_encoded_account_from_turbodb(address, from_journal=True)
             block_diff.set_account_changed(address, old_value, new_value)
 
         # 2. Grab all the changed storage items and their previous values.
@@ -694,22 +728,19 @@ class AccountDB(BaseAccountDB):
             # old_value_by_turbo = self._get_encoded_account_from_turbodb(address)
             old_account_value = old_trie[address]
             # assert old_value_by_turbo == old_account_value
-            new_account_value = self._get_encoded_account(address, from_journal=True)
+
+            # TODO: Call self._get_encoded_account, so we read from both the trie and from
+            #       the turbodb. This will cause problems, because the above call to
+            #       self.persist() calls self.make_state_root() which blows away the
+            #       journal. The _journaltrie path doesn't mind because the intermediate
+            #       state is persisted, but the _turbojournal path will return the wrong
+            #       result, because the intermediate state is lost when the journal is
+            #       blown.
+            new_account_value = self._get_encoded_account_from_trie(address, from_journal=True)
             block_diff.set_account_changed(address, old_account_value, new_account_value)
 
         # 5. return the block diff
         return block_diff
-
-    def _get_encoded_account_from_turbodb(self, address: Address) -> bytes:
-        db = self._raw_store_db
-        ensure_schema(db, Schemas.TURBO)
-
-        key = SchemaTurbo.make_account_state_lookup_key(keccak(address))
-        try:
-            return db[key]
-        except KeyError:
-            # TODO: figure out why/whether this is the right thing to return
-            return b''
 
     def _changed_accounts(self) -> DBDiff:
         """

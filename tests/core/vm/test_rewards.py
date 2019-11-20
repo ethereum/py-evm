@@ -22,6 +22,7 @@ from eth.tools.builder.chain import (
     constantinople_at,
     petersburg_at,
     genesis,
+    upgrade_to_turbo,
 )
 
 
@@ -47,6 +48,7 @@ def test_rewards(vm_fn, miner_1_balance, miner_2_balance):
         vm_fn(0),
         disable_pow_check(),
         genesis(),
+        upgrade_to_turbo,
         mine_block(),  # 1
         mine_block(),  # 2
     )
@@ -154,6 +156,7 @@ def test_rewards_uncle_created_at_different_generations(
         vm_fn(0),
         disable_pow_check(),
         genesis(),
+        upgrade_to_turbo,
         mine_blocks(TOTAL_BLOCKS_CANONICAL_CHAIN - 1),
     )
 
@@ -215,6 +218,7 @@ def test_uncle_block_inclusion_validity(vm_fn):
         vm_fn(0),
         disable_pow_check(),
         genesis(),
+        upgrade_to_turbo,
         mine_block(),  # 1
         mine_block(),  # 2
     )
@@ -265,6 +269,7 @@ def test_rewards_nephew_uncle_different_vm(
         vm_fn_nephew(VM_CHANGE_BLOCK_NUMBER),
         disable_pow_check(),
         genesis(),
+        upgrade_to_turbo,
         mine_blocks(TOTAL_BLOCKS_CANONICAL_CHAIN - 1),
     )
 

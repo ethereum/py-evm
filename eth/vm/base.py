@@ -613,7 +613,7 @@ class VM(BaseVM):
                 self._state.set_balance(address, 0)
 
             # Persist the changes to the database
-            self._state.persist()
+            # self._state.persist()
 
             base_header = header.copy(
                 state_root=self._state.state_root
