@@ -37,6 +37,7 @@ from eth.abc import (
     MiningChainAPI,
     VirtualMachineAPI,
 )
+from eth.consensus.applier import ConsensusApplier
 from eth.consensus.noproof import NoProofConsensus
 from eth.db.atomic import AtomicDB
 from eth.db.backends.memory import (
@@ -298,9 +299,10 @@ def disable_pow_check(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
         blocks mined this way will not be importable on any chain that does not
         have proof of work disabled.
     """
-    return chain_class.configure(
-        consensus_engine_class=NoProofConsensus
-    )
+    original_vms = chain_class.vm_configuration
+    no_pow_vms = ConsensusApplier(NoProofConsensus).amend_vm_configuration(original_vms)
+
+    return chain_class.configure(vm_configuration=no_pow_vms)
 
 
 #

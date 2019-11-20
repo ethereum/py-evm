@@ -14,20 +14,20 @@ from eth.db.chain import ChainDB
 
 from eth_typing import (
     Address,
-    Hash32,
 )
 from eth_utils import (
     encode_hex,
+    to_tuple,
     ValidationError,
 )
 
+from eth.abc import (
+    ConsensusAPI,
+)
 from eth.typing import (
     HeaderParams,
     VMConfiguration,
-)
-from eth.vm.chain_context import ChainContext
-from eth.vm.execution_context import (
-    ExecutionContext,
+    VMFork,
 )
 
 from .constants import (
@@ -67,7 +67,7 @@ def _construct_turn_error_message(expected_difficulty: int,
     )
 
 
-class CliqueConsensus(VirtualMachineModifierAPI):
+class CliqueConsensus(ConsensusAPI):
     """
     This class is the entry point to operate a chain under the rules of Clique consensus which
     is defined in EIP-225: https://eips.ethereum.org/EIPS/eip-225
@@ -88,43 +88,12 @@ class CliqueConsensus(VirtualMachineModifierAPI):
         )
 
     @classmethod
-    def amend_vm_configuration_for_chain_class(cls, config: VMConfiguration) -> None:
-        """
-        Amend the given ``VMConfiguration`` to operate under the rules of Clique consensus.
-        """
-        for pair in config:
-            block_number, vm = pair
-            setattr(vm, 'extra_data_max_bytes', 65535)
-            setattr(vm, 'create_execution_context', staticmethod(cls.create_execution_context))
-            setattr(vm, 'configure_header', configure_header)
-            setattr(vm, '_assign_block_rewards', lambda *_: None)
-
-    def amend_vm_for_chain_instance(self, vm: VirtualMachineAPI) -> None:
-        # `validate_seal` is stateful. We would not want two different instances of GoerliChain
-        # to operate on the same instance of CliqueConsensus. Therefore, this modification needs
-        # to be done for a specic chain instance, not chain class.
-        setattr(vm, 'validate_seal', self.validate_seal)
-
-    @staticmethod
-    def create_execution_context(header: BlockHeaderAPI,
-                                 prev_hashes: Iterable[Hash32],
-                                 chain_context: ChainContext) -> ExecutionContext:
-
+    def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
         # In Clique consensus, the tx fee goes to the signer
         try:
-            coinbase = get_block_signer(header)
+            return get_block_signer(header)
         except ValueError:
-            coinbase = header.coinbase
-
-        return ExecutionContext(
-            coinbase=coinbase,
-            timestamp=header.timestamp,
-            block_number=header.block_number,
-            difficulty=header.difficulty,
-            gas_limit=header.gas_limit,
-            prev_hashes=prev_hashes,
-            chain_id=chain_context.chain_id,
-        )
+            return header.coinbase
 
     def get_snapshot(self, header: BlockHeaderAPI) -> Snapshot:
         """
@@ -168,3 +137,26 @@ class CliqueConsensus(VirtualMachineModifierAPI):
             )
 
         self._header_cache.evict()
+
+
+class CliqueApplier(VirtualMachineModifierAPI):
+    """
+    This class is used to apply a clique consensus engine to a series of virtual machines
+    """
+
+    @to_tuple
+    def amend_vm_configuration(self, config: VMConfiguration) -> Iterable[VMFork]:
+        """
+        Amend the given ``VMConfiguration`` to operate under the rules of Clique consensus.
+        """
+        for pair in config:
+            block_number, vm = pair
+            vm_class = vm.configure(
+                extra_data_max_bytes=65535,
+                consensus_class=CliqueConsensus,
+                configure_header=configure_header,
+                get_block_reward=staticmethod(int),
+                get_uncle_reward=staticmethod(int),
+            )
+
+            yield block_number, vm_class

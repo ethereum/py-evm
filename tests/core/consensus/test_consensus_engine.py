@@ -1,6 +1,6 @@
 import pytest
 
-from eth.abc import VirtualMachineModifierAPI
+from eth.abc import ConsensusAPI
 from eth.chains.base import MiningChain
 from eth.tools.builder.chain import (
     genesis,
@@ -19,7 +19,7 @@ WHITELISTED_ROOT = b"root"
 ZERO_BYTE = b'\x00'
 
 
-class WhitelistConsensus(VirtualMachineModifierAPI):
+class WhitelistConsensus(ConsensusAPI):
     """
     A pseudo consensus engine for testing. Each accepted block puts another block on a whitelist.
     """
@@ -27,11 +27,7 @@ class WhitelistConsensus(VirtualMachineModifierAPI):
     def __init__(self, base_db) -> None:
         self.base_db = base_db
 
-    @classmethod
-    def amend_vm_configuration_for_chain_class(cls, config):
-        pass
-
-    def get_consensus_data(self, consensus_data):
+    def _get_consensus_data(self, consensus_data):
         if len(consensus_data) != CONSENSUS_DATA_LENGH:
             raise ValidationError(
                 f"The `extra_data` field must be of length {CONSENSUS_DATA_LENGH}"
@@ -42,24 +38,24 @@ class WhitelistConsensus(VirtualMachineModifierAPI):
 
     def validate_seal(self, header):
 
-        current, following = self.get_consensus_data(header.extra_data)
+        current, following = self._get_consensus_data(header.extra_data)
 
         if current == WHITELISTED_ROOT or current in self.base_db:
             self.base_db[following] = ZERO_BYTE
         else:
             raise ValidationError(f"Block isn't on whitelist: {current}")
 
-    def amend_vm_for_chain_instance(self, vm):
-        setattr(vm, 'validate_seal', self.validate_seal)
+    @classmethod
+    def get_fee_recipient(cls, header):
+        return header.coinbase
 
 
 def test_stateful_consensus_isnt_shared_across_chain_instances():
 
     class ChainClass(MiningChain):
         vm_configuration = (
-            (0, IstanbulVM),
+            (0, IstanbulVM.configure(consensus_class=WhitelistConsensus)),
         )
-        consensus_engine_class = WhitelistConsensus
 
     chain = genesis(ChainClass)
 

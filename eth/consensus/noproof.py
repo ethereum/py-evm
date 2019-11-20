@@ -1,14 +1,14 @@
 from eth.abc import (
     AtomicDatabaseAPI,
-    VirtualMachineAPI,
-    VirtualMachineModifierAPI,
+    BlockHeaderAPI,
+    ConsensusAPI,
 )
 from eth.typing import (
-    VMConfiguration,
+    Address,
 )
 
 
-class NoProofConsensus(VirtualMachineModifierAPI):
+class NoProofConsensus(ConsensusAPI):
     """
     Modify a set of VMs to accept blocks without any validation.
     """
@@ -16,14 +16,12 @@ class NoProofConsensus(VirtualMachineModifierAPI):
     def __init__(self, base_db: AtomicDatabaseAPI) -> None:
         pass
 
-    @classmethod
-    def amend_vm_configuration_for_chain_class(cls, config: VMConfiguration) -> None:
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
         """
-        Amend the given ``VMConfiguration`` to operate under the default POW rules.
+        Validate the seal on the given header.
         """
-        for pair in config:
-            block_number, vm = pair
-            setattr(vm, 'validate_seal', lambda *_: None)
+        return
 
-    def amend_vm_for_chain_instance(self, vm: VirtualMachineAPI) -> None:
-        setattr(vm, 'validate_seal', lambda *_: None)
+    @classmethod
+    def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
+        return header.coinbase

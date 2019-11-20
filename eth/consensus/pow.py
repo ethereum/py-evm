@@ -4,6 +4,7 @@ from typing import (
 )
 
 from eth_typing import (
+    Address,
     Hash32,
 )
 
@@ -25,11 +26,7 @@ from pyethash import (
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,
-    VirtualMachineAPI,
-    VirtualMachineModifierAPI,
-)
-from eth.typing import (
-    VMConfiguration,
+    ConsensusAPI,
 )
 from eth.validation import (
     validate_length,
@@ -103,26 +100,12 @@ def mine_pow_nonce(block_number: int, mining_hash: Hash32, difficulty: int) -> T
     raise Exception("Too many attempts at POW mining, giving up")
 
 
-class PowConsensus(VirtualMachineModifierAPI):
+class PowConsensus(ConsensusAPI):
     """
     Modify a set of VMs to validate blocks via Proof of Work (POW)
     """
 
     def __init__(self, base_db: AtomicDatabaseAPI) -> None:
-        pass
-
-    @classmethod
-    def amend_vm_configuration_for_chain_class(cls, config: VMConfiguration) -> None:
-        """
-        Amend the given ``VMConfiguration`` to operate under the default POW rules.
-        """
-        for pair in config:
-            block_number, vm = pair
-            setattr(vm, 'validate_seal', cls.validate_seal)
-
-    def amend_vm_for_chain_instance(self, vm: VirtualMachineAPI) -> None:
-        # Nothing to do here. In `PoWConsensus` it is safe to overwrite `validate_seal` on the
-        # class level. It is independent of any instance state.
         pass
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
@@ -132,3 +115,7 @@ class PowConsensus(VirtualMachineModifierAPI):
         check_pow(
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
+
+    @classmethod
+    def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
+        return header.coinbase

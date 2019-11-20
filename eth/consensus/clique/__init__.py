@@ -1,4 +1,5 @@
 from .clique import (  # noqa: F401
+    CliqueApplier,
     CliqueConsensus,
 )
 from .constants import (  # noqa: F401

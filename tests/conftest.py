@@ -147,9 +147,8 @@ def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
     klass = chain_cls.configure(
         __name__='TestChain',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, VM),
+            (constants.GENESIS_BLOCK_NUMBER, VM.configure(consensus_class=NoProofConsensus)),
         ),
-        consensus_engine_class=NoProofConsensus,
         chain_id=1337,
     )
     chain = klass.from_genesis(base_db, genesis_params, genesis_state)
@@ -213,9 +212,8 @@ def _chain_without_block_validation(request, VM, base_db, genesis_state):
     klass = chain_class.configure(
         __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, VM),
+            (constants.GENESIS_BLOCK_NUMBER, VM.configure(consensus_class=NoProofConsensus)),
         ),
-        consensus_engine_class=NoProofConsensus,
         chain_id=1337,
         **overrides,
     )

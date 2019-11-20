@@ -1757,6 +1757,21 @@ class StateAPI(ConfigurableAPI):
         ...
 
 
+class ConsensusAPI(ABC):
+    @abstractmethod
+    def __init__(self, db: AtomicDatabaseAPI) -> None:
+        ...
+
+    @abstractmethod
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
+        ...
+
+    @classmethod
+    @abstractmethod
+    def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
+        ...
+
+
 class VirtualMachineAPI(ConfigurableAPI):
     """
     The :class:`~eth.abc.VirtualMachineAPI` class represents the Chain rules for a
@@ -1773,6 +1788,7 @@ class VirtualMachineAPI(ConfigurableAPI):
     fork: str  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
     chaindb: ChainDatabaseAPI
     extra_data_max_bytes: ClassVar[int]
+    consensus_class: Type[ConsensusAPI]
 
     @abstractmethod
     def __init__(self, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> None:
@@ -2165,24 +2181,11 @@ class VirtualMachineModifierAPI(ABC):
     """
 
     @abstractmethod
-    def __init__(self, base_db: AtomicDatabaseAPI) -> None:
-        ...
-
-    @classmethod
-    @abstractmethod
-    def amend_vm_configuration_for_chain_class(cls, vm_config: VMConfiguration) -> None:
+    def amend_vm_configuration(self, vm_config: VMConfiguration) -> VMConfiguration:
         """
         Make amendments to the ``vm_config`` that are independent of any instance state. These
         changes are applied across all instances of the chain where this
         ``VirtualMachineModifierAPI`` is applied on.
-        """
-        ...
-
-    @abstractmethod
-    def amend_vm_for_chain_instance(self, vm: VirtualMachineAPI) -> None:
-        """
-        Make amendments to ``vm`` that are only valid for a specific chain instance. This
-        includes any modifications that depend on stateful data.
         """
         ...
 
@@ -2292,8 +2295,6 @@ class ChainAPI(ConfigurableAPI):
     vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
     chain_id: int
     chaindb: ChainDatabaseAPI
-    consensus_engine_class: Type[VirtualMachineModifierAPI]
-    consensus_engine: VirtualMachineModifierAPI
 
     #
     # Helpers

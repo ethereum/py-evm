@@ -268,6 +268,11 @@ def header_pairs(VM, headers, valid):
         yield VM, pair[1], pair[0], valid
 
 
+class FakeChainDB:
+    def __init__(self, db):
+        self.db = db
+
+
 @pytest.mark.parametrize(
     'VM, header, previous_header, valid',
     header_pairs(MainnetHomesteadVM, ETH_HEADERS_NEAR_FORK, valid=True) + (
@@ -281,7 +286,7 @@ def header_pairs(VM, headers, valid):
     ),
 )
 def test_mainnet_dao_fork_header_validation(VM, header, previous_header, valid):
-    vm = VM(header=previous_header, chaindb=None, chain_context=ChainContext(1))
+    vm = VM(header=previous_header, chaindb=FakeChainDB({}), chain_context=ChainContext(1))
     if valid:
         vm.validate_header(header, previous_header, check_seal=True)
     else:
