@@ -328,21 +328,28 @@ class VM(Configurable, VirtualMachineAPI):
             len(block.uncles) * self.get_nephew_reward()
         )
 
-        self.state.delta_balance(block.header.coinbase, block_reward)
-        self.logger.debug(
-            "BLOCK REWARD: %s -> %s",
-            block_reward,
-            block.header.coinbase,
-        )
+        if block_reward != 0:
+            self.state.delta_balance(block.header.coinbase, block_reward)
+            self.logger.debug(
+                "BLOCK REWARD: %s -> %s",
+                block_reward,
+                block.header.coinbase,
+            )
+        else:
+            self.logger.debug("No block reward given to %s", block.header.coinbase)
 
         for uncle in block.uncles:
             uncle_reward = self.get_uncle_reward(block.number, uncle)
-            self.state.delta_balance(uncle.coinbase, uncle_reward)
-            self.logger.debug(
-                "UNCLE REWARD REWARD: %s -> %s",
-                uncle_reward,
-                uncle.coinbase,
-            )
+
+            if uncle_reward != 0:
+                self.state.delta_balance(uncle.coinbase, uncle_reward)
+                self.logger.debug(
+                    "UNCLE REWARD REWARD: %s -> %s",
+                    uncle_reward,
+                    uncle.coinbase,
+                )
+            else:
+                self.logger.debug("No uncle reward given to %s", uncle.coinbase)
 
     def finalize_block(self, block: BlockAPI) -> BlockAPI:
         if block.number > 0:
