@@ -8,6 +8,7 @@ from typing import (
 
 from eth_typing import (
     Hash32,
+    HexStr,
 )
 
 from eth_utils import (
@@ -28,7 +29,7 @@ from .etherscan_api import (
 
 
 def is_block_hash(value: str) -> bool:
-    return is_hex(value) and len(remove_0x_prefix(value)) == 64
+    return is_hex(value) and len(remove_0x_prefix(HexStr(value))) == 64
 
 
 def remove_non_digits(value: str) -> str:
