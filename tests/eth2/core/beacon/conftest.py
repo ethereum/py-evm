@@ -235,6 +235,11 @@ def max_voluntary_exits():
 
 
 @pytest.fixture
+def safe_slots_to_update_justified():
+    return SERENITY_CONFIG.SAFE_SLOTS_TO_UPDATE_JUSTIFIED
+
+
+@pytest.fixture
 def deposit_contract_tree_depth():
     return DEPOSIT_CONTRACT_TREE_DEPTH
 
@@ -285,6 +290,7 @@ def config(
     max_attestations,
     max_deposits,
     max_voluntary_exits,
+    safe_slots_to_update_justified,
     deposit_contract_address,
 ):
     return Eth2Config(
@@ -327,6 +333,7 @@ def config(
         MAX_ATTESTATIONS=max_attestations,
         MAX_DEPOSITS=max_deposits,
         MAX_VOLUNTARY_EXITS=max_voluntary_exits,
+        SAFE_SLOTS_TO_UPDATE_JUSTIFIED=safe_slots_to_update_justified,
         DEPOSIT_CONTRACT_ADDRESS=deposit_contract_address,
     )
 
