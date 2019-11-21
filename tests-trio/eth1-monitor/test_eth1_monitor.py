@@ -19,6 +19,11 @@ from trinity.components.eth2.eth1_monitor.exceptions import (
     Eth1BlockNotFound,
     Eth1MonitorValidationError,
 )
+from trinity.components.eth2.eth1_monitor.factories import (
+    DepositDataFactory,
+    ListCachedDepositDataDBFactory,
+)
+from trinity.tools.factories.db import AtomicDBFactory
 
 
 @pytest.mark.trio
@@ -28,9 +33,9 @@ async def test_logs_handling(
     tester,
     num_blocks_confirmed,
     polling_period,
-    start_block_number,
     endpoint_server,
     func_do_deposit,
+    start_block_number,
 ):
     amount_0 = func_do_deposit()
     amount_1 = func_do_deposit()
@@ -42,11 +47,13 @@ async def test_logs_handling(
         polling_period=polling_period,
         start_block_number=start_block_number,
         event_bus=endpoint_server,
+        base_db=AtomicDBFactory(),
     )
     async with background_service(m):
         # Test: logs emitted prior to starting `Eth1Monitor` can still be queried.
         await wait_all_tasks_blocked()
-        assert len(m._deposit_data) == 0
+        assert m.total_deposit_count == 0
+        assert m.highest_processed_block_number == 0
 
         tester.mine_blocks(num_blocks_confirmed - 1)
         # Test: only single deposit is processed.
@@ -55,7 +62,9 @@ async def test_logs_handling(
         # [x] -> [x] -> [ ] -> [ ]
         await trio.sleep(polling_period)
         await wait_all_tasks_blocked()
-        assert len(m._deposit_data) == 1 and m._deposit_data[0].amount == amount_0
+        assert (
+            m.total_deposit_count == 1 and m._db.get_deposit_data(0).amount == amount_0
+        )
 
         tester.mine_blocks(1)
         # Test: both deposits are processed.
@@ -64,7 +73,9 @@ async def test_logs_handling(
         # [x] -> [x] -> [ ] -> [ ] -> [ ]
         await trio.sleep(polling_period)
         await wait_all_tasks_blocked()
-        assert len(m._deposit_data) == 2 and m._deposit_data[1].amount == amount_1
+        assert (
+            m.total_deposit_count == 2 and m._db.get_deposit_data(1).amount == amount_1
+        )
         # Test: a new log can be queried after the transaction is included in a block
         #   and `num_blocks_confirmed` blocks are mined.
         #                                         `num_blocks_confirmed`
@@ -74,7 +85,9 @@ async def test_logs_handling(
         tester.mine_blocks(num_blocks_confirmed)
         await trio.sleep(polling_period)
         await wait_all_tasks_blocked()
-        assert len(m._deposit_data) == 3 and m._deposit_data[2].amount == amount_2
+        assert (
+            m.total_deposit_count == 3 and m._db.get_deposit_data(2).amount == amount_2
+        )
 
 
 @pytest.mark.trio
@@ -107,7 +120,9 @@ async def test_get_deposit(
         deposit = eth1_monitor._get_deposit(
             deposit_count=deposit_count, deposit_index=deposit_index
         )
-        _, root = make_deposit_tree_and_root(eth1_monitor._deposit_data[:deposit_count])
+        _, root = make_deposit_tree_and_root(
+            eth1_monitor._db.get_deposit_data_range(0, deposit_count)
+        )
         return verify_merkle_branch(
             deposit.data.hash_tree_root,
             deposit.proof,
@@ -227,9 +242,14 @@ async def test_get_eth1_data(
 
     # Test: `DepositDataCorrupted` is raised when the calculated `deposit_root` from
     #   `deposit_data` mismatches the one got from the deposit contract.
-    mismatched_deposit_data = eth1_monitor._deposit_data[1:]
     with monkeypatch.context() as m_context:
-        m_context.setattr(eth1_monitor, "_deposit_data", mismatched_deposit_data)
+        # Create another `DepositDataDB` with the same number but different `DepositData`s.
+        corrupted_deposit_data_db = ListCachedDepositDataDBFactory()
+        corrupted_list_deposit_data = [
+            DepositDataFactory() for _ in range(eth1_monitor.total_deposit_count)
+        ]
+        corrupted_deposit_data_db.add_deposit_data_batch(corrupted_list_deposit_data, 1)
+        m_context.setattr(eth1_monitor, "_db", corrupted_deposit_data_db)
         with pytest.raises(DepositDataCorrupted):
             eth1_monitor._get_eth1_data(
                 distance=0,
