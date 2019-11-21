@@ -70,6 +70,9 @@ deps = {
     # We have to keep some separation between trio and asyncio based tests
     # because `pytest-asyncio` is greedy and tries to run all asyncio fixtures.
     # See: https://github.com/ethereum/trinity/pull/790
+    # NOTE: In order to properly run any asyncio tests you need to manually install the
+    # test-asyncio deps, otherwise pytest will run them but never await for them to finish and
+    # you'll get warnings saying that a coroutine was never awaited.
     'test-asyncio': [
         "pytest-asyncio>=0.10.0,<0.11",
         "pytest-aiohttp==0.3.0",

@@ -1,0 +1,1 @@
+Removed experimental support for discovery v5 protocol

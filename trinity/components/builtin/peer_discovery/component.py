@@ -9,22 +9,11 @@ from typing import (
 
 from lahja import EndpointAPI
 
-from eth_typing import (
-    BlockNumber,
-)
-from eth.constants import (
-    GENESIS_BLOCK_NUMBER
-)
-from eth.db.header import HeaderDB
-
 from p2p.abc import ProtocolAPI
 from p2p.constants import (
     DISCOVERY_EVENTBUS_ENDPOINT,
 )
 from p2p.discovery import (
-    get_v5_topic,
-    DiscoveryByTopicProtocol,
-    DiscoveryProtocol,
     DiscoveryService,
     PreferredNodeDiscoveryProtocol,
     StaticDiscoveryService,
@@ -41,7 +30,6 @@ from trinity.config import (
     Eth1DbMode,
     TrinityConfig,
 )
-from trinity.db.manager import DBClient
 from trinity.events import ShutdownRequest
 from trinity.extensibility import (
     AsyncioIsolatedComponent,
@@ -70,15 +58,6 @@ def get_protocol(trinity_config: TrinityConfig) -> Type[ProtocolAPI]:
         return ETHProtocol
 
 
-def get_discv5_topic(trinity_config: TrinityConfig, protocol: Type[ProtocolAPI]) -> bytes:
-    db = DBClient.connect(trinity_config.database_ipc_path)
-
-    header_db = HeaderDB(db)
-    genesis_hash = header_db.get_canonical_block_hash(BlockNumber(GENESIS_BLOCK_NUMBER))
-
-    return get_v5_topic(protocol, genesis_hash)
-
-
 class DiscoveryBootstrapService(BaseService):
     """
     Bootstrap discovery to provide a parent ``CancellationToken``
@@ -97,25 +76,13 @@ class DiscoveryBootstrapService(BaseService):
         external_ip = "0.0.0.0"
         address = Address(external_ip, self.trinity_config.port, self.trinity_config.port)
 
-        if self.trinity_config.use_discv5:
-            protocol = get_protocol(self.trinity_config)
-            topic = get_discv5_topic(self.trinity_config, protocol)
-
-            discovery_protocol: DiscoveryProtocol = DiscoveryByTopicProtocol(
-                topic,
-                self.trinity_config.nodekey,
-                address,
-                self.trinity_config.bootstrap_nodes,
-                self.cancel_token,
-            )
-        else:
-            discovery_protocol = PreferredNodeDiscoveryProtocol(
-                self.trinity_config.nodekey,
-                address,
-                self.trinity_config.bootstrap_nodes,
-                self.trinity_config.preferred_nodes,
-                self.cancel_token,
-            )
+        discovery_protocol = PreferredNodeDiscoveryProtocol(
+            self.trinity_config.nodekey,
+            address,
+            self.trinity_config.bootstrap_nodes,
+            self.trinity_config.preferred_nodes,
+            self.cancel_token,
+        )
 
         if self.is_discovery_disabled:
             discovery_service: BaseService = StaticDiscoveryService(

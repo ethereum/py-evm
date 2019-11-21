@@ -178,13 +178,6 @@ class AlreadyWaitingDiscoveryResponse(BaseP2PError):
     pass
 
 
-class UnableToGetDiscV5Ticket(BaseP2PError):
-    """
-    Raised when we're unable to get a discv5 ticket from a remote peer.
-    """
-    pass
-
-
 class NoMatchingPeerCapabilities(BaseP2PError):
     """
     Raised during primary p2p handshake if there are no common capabilities with a peer.

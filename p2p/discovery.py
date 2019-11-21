@@ -25,7 +25,6 @@ from typing import (
     Set,
     Text,
     Tuple,
-    Type,
     TYPE_CHECKING,
     Union,
 )
@@ -46,8 +45,6 @@ from eth_typing import Hash32
 
 from eth_utils import (
     encode_hex,
-    remove_0x_prefix,
-    text_if_str,
     to_bytes,
     to_hex,
     to_list,
@@ -64,14 +61,14 @@ from eth_hash.auto import keccak
 from cancel_token import CancelToken, OperationCancelled
 
 from p2p import constants
-from p2p.abc import AddressAPI, NodeAPI, ProtocolAPI
+from p2p.abc import AddressAPI, NodeAPI
 from p2p.events import (
     PeerCandidatesRequest,
     RandomBootnodeRequest,
     BaseRequestResponseEvent,
     PeerCandidatesResponse,
 )
-from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes, UnableToGetDiscV5Ticket
+from p2p.exceptions import AlreadyWaitingDiscoveryResponse, NoEligibleNodes
 from p2p.kademlia import Address, Node, RoutingTable, check_relayed_addr, sort_by_distance
 from p2p.service import BaseService
 
@@ -84,19 +81,14 @@ else:
 
 # V4 handler methods take a Node, payload and msg_hash as arguments.
 V4_HANDLER_TYPE = Callable[[NodeAPI, Tuple[Any, ...], Hash32], None]
-# V5 handler methods take a Node, payload, msg_hash and msg as arguments.
-V5_HANDLER_TYPE = Callable[[NodeAPI, Tuple[Any, ...], Hash32, bytes], None]
 
 MAX_ENTRIES_PER_TOPIC = 50
 # UDP packet constants.
-V5_ID_STRING = b"temporary discovery v5"
 MAC_SIZE = 256 // 8  # 32
 SIG_SIZE = 520 // 8  # 65
 HEAD_SIZE = MAC_SIZE + SIG_SIZE  # 97
-HEAD_SIZE_V5 = len(V5_ID_STRING) + SIG_SIZE  # 87
 EXPIRATION = 60  # let messages expire after N secondes
 PROTO_VERSION = 4
-PROTO_VERSION_V5 = 5
 
 
 class DefectiveMessage(Exception):
@@ -129,30 +121,11 @@ CMD_FIND_NODE = DiscoveryCommand("find_node", 3, 2)
 CMD_NEIGHBOURS = DiscoveryCommand("neighbours", 4, 2)
 CMD_ID_MAP = dict((cmd.id, cmd) for cmd in [CMD_PING, CMD_PONG, CMD_FIND_NODE, CMD_NEIGHBOURS])
 
-CMD_PING_V5 = DiscoveryCommand("ping", 1, 5)
-CMD_PONG_V5 = DiscoveryCommand("pong", 2, 6)
-CMD_FIND_NODEHASH = DiscoveryCommand("find_nodehash", 5, 2)
-CMD_TOPIC_REGISTER = DiscoveryCommand("topic_register", 6, 3)
-CMD_TOPIC_QUERY = DiscoveryCommand("topic_query", 7, 2)
-CMD_TOPIC_NODES = DiscoveryCommand("topic_nodes", 8, 2)
-CMD_ID_MAP_V5 = dict(
-    (cmd.id, cmd)
-    for cmd in [
-        CMD_PING_V5,
-        CMD_PONG_V5,
-        CMD_FIND_NODE,
-        CMD_NEIGHBOURS,
-        CMD_FIND_NODEHASH,
-        CMD_TOPIC_REGISTER,
-        CMD_TOPIC_QUERY,
-        CMD_TOPIC_NODES])
-
 
 class DiscoveryProtocol(asyncio.DatagramProtocol):
     """A Kademlia-like protocol to discover RLPx nodes."""
     logger = get_extended_debug_logger("p2p.discovery.DiscoveryProtocol")
     transport: asyncio.DatagramTransport = None
-    use_v5 = False
     _max_neighbours_per_packet_cache = None
 
     def __init__(self,
@@ -194,18 +167,11 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         elif node == self.this_node:
             return False
 
-        if self.use_v5:
-            token = self.send_ping_v5(node, [])
-            log_version = "v5"
-        else:
-            token = self.send_ping_v4(node)
-            log_version = "v4"
+        token = self.send_ping_v4(node)
+        log_version = "v4"
 
         try:
-            if self.use_v5:
-                got_pong, _, _ = await self.wait_pong_v5(node, token)
-            else:
-                got_pong = await self.wait_pong_v4(node, token)
+            got_pong = await self.wait_pong_v4(node, token)
         except AlreadyWaitingDiscoveryResponse:
             self.logger.debug("bonding failed, awaiting %s pong from %s", log_version, node)
             return False
@@ -314,10 +280,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         return Hash32(token + node.pubkey.to_bytes())
 
     def _send_find_node(self, node: NodeAPI, target_node_id: int) -> None:
-        if self.use_v5:
-            self.send_find_node_v5(node, target_node_id)
-        else:
-            self.send_find_node_v4(node, target_node_id)
+        self.send_find_node_v4(node, target_node_id)
 
     async def lookup(self, node_id: int) -> Tuple[NodeAPI, ...]:
         """Lookup performs a network search for nodes close to the given target.
@@ -443,12 +406,7 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
     def datagram_received(self, data: Union[bytes, Text], addr: Tuple[str, int]) -> None:
         ip_address, udp_port = addr
         address = Address(ip_address, udp_port)
-        # The prefix below is what geth uses to identify discv5 msgs.
-        # https://github.com/ethereum/go-ethereum/blob/c4712bf96bc1bae4a5ad4600e9719e4a74bde7d5/p2p/discv5/udp.go#L149
-        if text_if_str(to_bytes, data).startswith(V5_ID_STRING):
-            self.receive_v5(address, cast(bytes, data))
-        else:
-            self.receive(address, cast(bytes, data))
+        self.receive(address, cast(bytes, data))
 
     def send(self, node: NodeAPI, message: bytes) -> None:
         self.transport.sendto(message, (node.address.ip, node.address.udp_port))
@@ -624,244 +582,6 @@ class DiscoveryProtocol(asyncio.DatagramProtocol):
         else:
             callback()
 
-    #
-    # Discovery v5 specific methods
-    #
-
-    def send_v5(self, node: NodeAPI, message: bytes) -> Hash32:
-        msg_hash = keccak(message)
-        self.send(node, V5_ID_STRING + message)
-        return msg_hash
-
-    def _get_handler_v5(self, cmd: DiscoveryCommand) -> V5_HANDLER_TYPE:
-        if cmd == CMD_PING_V5:
-            return self.recv_ping_v5
-        elif cmd == CMD_PONG_V5:
-            return self.recv_pong_v5
-        elif cmd == CMD_FIND_NODE:
-            return self.recv_find_node_v5
-        elif cmd == CMD_NEIGHBOURS:
-            return self.recv_neighbours_v5
-        elif cmd == CMD_FIND_NODEHASH:
-            return self.recv_find_nodehash
-        elif cmd == CMD_TOPIC_REGISTER:
-            return self.recv_topic_register
-        elif cmd == CMD_TOPIC_QUERY:
-            return self.recv_topic_query
-        elif cmd == CMD_TOPIC_NODES:
-            return self.recv_topic_nodes
-        else:
-            raise ValueError(f"Unknown command: {cmd}")
-
-    def receive_v5(self, address: AddressAPI, message: bytes) -> None:
-        try:
-            remote_pubkey, cmd_id, payload, message_hash = _unpack_v5(message)
-        except DefectiveMessage as e:
-            self.logger.error('error unpacking message (%s) from %s: %s', message, address, e)
-            return
-
-        cmd = CMD_ID_MAP_V5[cmd_id]
-        if len(payload) != cmd.elem_count:
-            self.logger.error('invalid %s payload: %s', cmd.name, payload)
-            return
-        node = Node(remote_pubkey, address)
-        handler = self._get_handler_v5(cmd)
-        handler(node, payload, message_hash, message)
-
-    def recv_ping_v5(self, node: NodeAPI, payload: Sequence[Any],
-                     message_hash: Hash32, _: bytes) -> None:
-        # version, from, to, expiration, topics
-        _, _, _, _, topics = payload
-        self.logger.debug2('<<< ping(v5) from %s, topics: %s', node, topics)
-        self.process_ping(node, message_hash)
-        topic_hash = keccak(rlp.encode(topics))
-        ticket_serial = self.topic_table.issue_ticket(node)
-        # TODO: Generate wait_periods list according to spec.
-        wait_periods: List[int] = [60] * len(topics)
-        self.send_pong_v5(node, message_hash, topic_hash, ticket_serial, wait_periods)
-
-    def recv_pong_v5(
-            self, node: NodeAPI, payload: Sequence[Any], _: Hash32, raw_msg: bytes) -> None:
-        # to, token, expiration, topic_hash, ticket_serial, wait_periods
-        _, token, _, _, _, wait_periods = payload
-        wait_periods = [big_endian_to_int(wait_period) for wait_period in wait_periods]
-        self.logger.debug2('<<< pong (v5) from %s (token == %s)', node, encode_hex(token))
-        self.process_pong_v5(node, token, raw_msg, wait_periods)
-
-    def recv_find_node_v5(self, node: NodeAPI, payload: Sequence[Any],
-                          msg_hash: Hash32, _: bytes) -> None:
-        # FIND_NODE in v5 is identical to v4, so just call the v4 handler.
-        self.recv_find_node_v4(node, payload, msg_hash)
-
-    def recv_neighbours_v5(self, node: NodeAPI, payload: Sequence[Any],
-                           msg_hash: Hash32, _: bytes) -> None:
-        # NEIGHBOURS in v5 is identical to v4, so just call the v4 handler.
-        self.recv_neighbours_v4(node, payload, msg_hash)
-
-    def recv_find_nodehash(self, node: NodeAPI, payload: Sequence[Any],
-                           _: Hash32, _b: bytes) -> None:
-        target_hash, _ = payload
-        self.logger.debug2('<<< find_nodehash from %s, target: %s', node, target_hash)
-        # TODO: Reply with a neighbours msg.
-
-    def recv_topic_register(self, node: NodeAPI, payload: Sequence[Any],
-                            _: Hash32, _m: bytes) -> None:
-        topics, idx, raw_pong = payload
-        topic_idx = big_endian_to_int(idx)
-        self.logger.debug2(
-            '<<< topic_register from %s, topics: %s, idx: %d', node, topics, topic_idx)
-        key, cmd_id, pong_payload, _ = _unpack_v5(raw_pong)
-        _, _, _, _, ticket_serial, _ = pong_payload
-        self.topic_table.use_ticket(node, big_endian_to_int(ticket_serial), topics[topic_idx])
-
-    def recv_topic_query(self, node: NodeAPI, payload: Sequence[Any],
-                         message_hash: Hash32, _: bytes) -> None:
-        topic, _ = payload
-        self.logger.debug2('<<< topic_query (%s) from %s', topic, node)
-        nodes = self.topic_table.get_nodes(topic)
-        self.send_topic_nodes(node, message_hash, nodes)
-
-    def recv_topic_nodes(self, node: NodeAPI, payload: Sequence[Any],
-                         _: Hash32, _m: bytes) -> None:
-        echo, raw_nodes = payload
-        nodes = _extract_nodes_from_payload(node.address, raw_nodes, self.logger)
-        self.logger.debug2('<<< topic_nodes from %s: %s', node, nodes)
-        try:
-            callback = self.topic_nodes_callbacks.get_callback(node)
-        except KeyError:
-            self.logger.debug(
-                'Unexpected topic_nodes from %s, probably came too late', node)
-        else:
-            callback(echo, nodes)
-
-    def send_ping_v5(self, node: NodeAPI, topics: List[bytes]) -> Hash32:
-        version = rlp.sedes.big_endian_int.serialize(PROTO_VERSION_V5)
-        payload = (
-            version, self.address.to_endpoint(), node.address.to_endpoint(),
-            _get_msg_expiration(), topics)
-        message = _pack_v5(CMD_PING_V5.id, payload, self.privkey)
-        token = self.send_v5(node, message)
-        self.logger.debug2('>>> ping (v5) %s (token == %s)', node, encode_hex(token))
-        # Return the msg hash, which is used as a token to identify pongs.
-        return token
-
-    def send_pong_v5(
-            self, node: NodeAPI, token: Hash32, topic_hash: Hash32,
-            ticket_serial: int, wait_periods: List[int]) -> None:
-        self.logger.debug2('>>> pong (v5) %s', node)
-        payload = (
-            node.address.to_endpoint(), token, _get_msg_expiration(), topic_hash, ticket_serial,
-            wait_periods)
-        message = _pack_v5(CMD_PONG_V5.id, payload, self.privkey)
-        self.send_v5(node, message)
-
-    def send_find_node_v5(self, node: NodeAPI, target_node_id: int) -> None:
-        node_id = int_to_big_endian(
-            target_node_id).rjust(constants.KADEMLIA_PUBLIC_KEY_SIZE // 8, b'\0')
-        self.logger.debug2('>>> find_node to %s', node)
-        message = _pack_v5(CMD_FIND_NODE.id, (node_id, _get_msg_expiration()), self.privkey)
-        self.send_v5(node, message)
-
-    def send_topic_query(self, node: NodeAPI, topic: bytes) -> Hash32:
-        self.logger.debug2('>>> topic_query (%s) to %s', topic, node)
-        payload = (topic, _get_msg_expiration())
-        message = _pack_v5(CMD_TOPIC_QUERY.id, payload, self.privkey)
-        return self.send_v5(node, message)
-
-    def send_topic_register(
-            self, node: NodeAPI, topics: List[bytes], idx: int, pong: bytes) -> None:
-        if idx >= len(topics):
-            raise ValueError(f"Invalid topic idx: {idx}")
-        message = _pack_v5(CMD_TOPIC_REGISTER.id, (topics, idx, pong), self.privkey)
-        self.logger.debug2('>>> topic_register to %s: %s', node, topics[idx])
-        self.send_v5(node, message)
-
-    def send_topic_nodes(
-            self, node: NodeAPI, echo: Hash32, nodes: Sequence[NodeAPI]) -> None:
-        encoded_nodes = tuple(
-            n.address.to_endpoint() + [n.pubkey.to_bytes()]
-            for n in nodes)
-        max_neighbours = self._get_max_neighbours_per_packet()
-        for batch in eth_utils.toolz.partition_all(max_neighbours, encoded_nodes):
-            message = _pack_v5(CMD_TOPIC_NODES.id, (echo, batch), self.privkey)
-            self.logger.debug2('>>> topic_nodes to %s: %s', node, batch)
-            self.send_v5(node, message)
-
-    async def wait_topic_nodes(
-            self, remote: NodeAPI, echo: Hash32) -> Tuple[NodeAPI, ...]:
-        """Wait for a topic_nodes msg from the given node.
-
-        Returns the list of nodes received.
-        """
-        event = asyncio.Event()
-        nodes: List[NodeAPI] = []
-
-        def process(received_echo: Hash32, response: List[NodeAPI]) -> None:
-            if received_echo != echo:
-                self.logger.warning(
-                    "Unexpected topic_nodes from %s, expected echo %s, got %s",
-                    remote, encode_hex(echo), encode_hex(received_echo))
-                return
-
-            nodes.extend(response)
-            # This callback may be called multiple times if the number of nodes returned by the
-            # peer make the msg exceed the 1280 bytes limit, so we only call event.set() once
-            # we've received enough neighbours.
-            if len(nodes) >= MAX_ENTRIES_PER_TOPIC:
-                event.set()
-
-        with self.topic_nodes_callbacks.acquire(remote, process):
-            try:
-                await self.cancel_token.cancellable_wait(
-                    event.wait(), timeout=constants.KADEMLIA_REQUEST_TIMEOUT)
-            except asyncio.TimeoutError:
-                # A timeout here just means we didn't get at least MAX_ENTRIES_PER_TOPIC nodes,
-                # but we'll still process the ones we get.
-                self.logger.debug2(
-                    'timed out waiting for %d neighbours from %s', MAX_ENTRIES_PER_TOPIC, remote)
-            finally:
-                self.logger.debug2('got %d topic nodes from %s', len(nodes), remote)
-
-        return tuple(n for n in nodes if n != self.this_node)
-
-    async def get_ticket(self, node: NodeAPI, topics: List[bytes]) -> 'Ticket':
-        token = self.send_ping_v5(node, topics)
-        try:
-            got_pong, raw_pong, wait_periods = await self.wait_pong_v5(node, token)
-        except AlreadyWaitingDiscoveryResponse:
-            raise UnableToGetDiscV5Ticket(
-                f"Failed to get ticket from {node}, already waiting for pong")
-
-        if not got_pong:
-            raise UnableToGetDiscV5Ticket(f"failed to get ticket from {node}")
-
-        return Ticket(node, raw_pong, topics, wait_periods)
-
-    async def wait_pong_v5(
-            self, remote: NodeAPI, token: Hash32) -> Tuple[bool, bytes, List[float]]:
-        event = asyncio.Event()
-        wait_periods: List[float] = []
-        pong: bytes = None
-
-        def callback(raw_msg: bytes, wps: List[float]) -> None:
-            nonlocal pong, wait_periods
-            event.set()
-            pong = raw_msg
-            wait_periods = wps
-
-        got_pong = await self._wait_pong(remote, token, event, callback)
-        return got_pong, pong, wait_periods
-
-    def process_pong_v5(self, remote: NodeAPI, token: Hash32, raw_msg: bytes,
-                        wait_periods: List[float]) -> None:
-        pingid = self._mkpingid(token, remote)
-        try:
-            callback = self.pong_callbacks.get_callback(pingid)
-        except KeyError:
-            self.logger.debug('unexpected v5 pong from %s (token == %s)', remote, encode_hex(token))
-        else:
-            callback(raw_msg, wait_periods)
-
 
 class PreferredNodeDiscoveryProtocol(DiscoveryProtocol):
     """
@@ -928,50 +648,6 @@ class PreferredNodeDiscoveryProtocol(DiscoveryProtocol):
 
         num_nodes_needed = max(0, count - len(preferred_nodes))
         yield from super().get_nodes_to_connect(num_nodes_needed)
-
-
-class DiscoveryByTopicProtocol(DiscoveryProtocol):
-    """Experimental discovery implementation that uses topic_query to find compatible nodes"""
-    use_v5 = True
-    _concurrent_topic_nodes_requests = 10
-
-    def __init__(self,
-                 topic: bytes,
-                 privkey: datatypes.PrivateKey,
-                 address: AddressAPI,
-                 bootstrap_nodes: Sequence[NodeAPI],
-                 cancel_token: CancelToken) -> None:
-        super().__init__(privkey, address, bootstrap_nodes, cancel_token)
-        self.topic = topic
-
-    def get_nodes_to_connect(self, count: int) -> Iterator[NodeAPI]:
-        topic_nodes = self.topic_table.get_nodes(self.topic)
-        for node in topic_nodes:
-            yield node
-
-        num_nodes_needed = max(0, count - len(topic_nodes))
-        yield from super().get_nodes_to_connect(num_nodes_needed)
-
-    async def lookup_random(self) -> Tuple[NodeAPI, ...]:
-        query_nodes = list(self.routing.get_random_nodes(self._concurrent_topic_nodes_requests))
-        expected_echoes = tuple(
-            (n, self.send_topic_query(n, self.topic))
-            for n in query_nodes)
-        replies = await asyncio.gather(
-            *[self.wait_topic_nodes(n, echo) for n, echo in expected_echoes])
-        seen_nodes = set(eth_utils.toolz.concat(replies))
-        self.logger.debug(
-            "Got %d nodes for the %s topic: %s", len(seen_nodes), self.topic, seen_nodes)
-        for node in seen_nodes:
-            self.topic_table.add_node(node, self.topic)
-
-        if len(seen_nodes) < constants.KADEMLIA_BUCKET_SIZE:
-            # Not enough nodes were found for our topic, so perform a regular kademlia lookup for
-            # a random node ID.
-            extra_nodes = await super().lookup_random()
-            seen_nodes.update(extra_nodes)
-
-        return tuple(seen_nodes)
 
 
 class StaticDiscoveryService(BaseService):
@@ -1275,33 +951,6 @@ def _get_msg_expiration() -> int:
     return int(time.time() + EXPIRATION)
 
 
-def _pack_v5(cmd_id: int, payload: Sequence[Any], privkey: datatypes.PrivateKey) -> bytes:
-    """Create and sign a discovery v5 UDP message to be sent to a remote node."""
-    cmd_id = to_bytes(cmd_id)
-    encoded_data = cmd_id + rlp.encode(payload)
-    signature = privkey.sign_msg(encoded_data)
-    return signature.to_bytes() + encoded_data
-
-
-def _unpack_v5(message: bytes) -> Tuple[datatypes.PublicKey, int, Tuple[Any, ...], Hash32]:
-    """Unpack a discovery v5 UDP message received from a remote node.
-
-    Returns the public key used to sign the message, the cmd ID, payload and msg hash.
-    """
-    if not message.startswith(V5_ID_STRING):
-        raise DefectiveMessage("Missing v5 version prefix")
-    message_hash = keccak(message[len(V5_ID_STRING):])
-    signature = keys.Signature(message[len(V5_ID_STRING):HEAD_SIZE_V5])
-    body = message[HEAD_SIZE_V5:]
-    remote_pubkey = signature.recover_public_key_from_msg(body)
-    cmd_id = body[0]
-    cmd = CMD_ID_MAP_V5[cmd_id]
-    payload = tuple(rlp.decode(body[1:], strict=False))
-    # Ignore excessive list elements as required by EIP-8.
-    payload = payload[:cmd.elem_count]
-    return remote_pubkey, cmd_id, payload, message_hash
-
-
 class CallbackLock:
     def __init__(self,
                  callback: Callable[..., Any],
@@ -1347,11 +996,3 @@ class CallbackManager(UserDict):
                 return False
             else:
                 return True
-
-
-def get_v5_topic(proto: Type[ProtocolAPI], genesis_hash: Hash32) -> bytes:
-    proto_id = proto.name.upper()
-    if proto.version != 1:
-        proto_id += str(proto.version)
-    topic = proto_id + '@' + remove_0x_prefix(encode_hex(genesis_hash[:8]))
-    return topic.encode('ascii')

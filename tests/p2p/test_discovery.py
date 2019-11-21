@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import random
 import re
 
@@ -57,7 +56,7 @@ def test_ping_pong(alice, bob):
     assert token == payload[1]
 
 
-def _test_find_node_neighbours(use_v5, alice, bob):
+def _test_find_node_neighbours(alice, bob):
     # Add some nodes to bob's routing table so that it has something to use when replying to
     # alice's find_node.
     for _ in range(constants.KADEMLIA_BUCKET_SIZE * 2):
@@ -72,10 +71,7 @@ def _test_find_node_neighbours(use_v5, alice, bob):
     # Pretend that bob and alice have already bonded, otherwise bob will ignore alice's find_node.
     bob.update_routing_table(alice.this_node)
 
-    if use_v5:
-        alice.send_find_node_v5(bob.this_node, alice.this_node.id)
-    else:
-        alice.send_find_node_v4(bob.this_node, alice.this_node.id)
+    alice.send_find_node_v4(bob.this_node, alice.this_node.id)
 
     # Bob should have sent two neighbours packets in order to keep the total packet size under the
     # 1280 bytes limit.
@@ -91,7 +87,7 @@ def _test_find_node_neighbours(use_v5, alice, bob):
 
 
 def test_find_node_neighbours_v4(alice, bob):
-    _test_find_node_neighbours(use_v5=False, alice=alice, bob=bob)
+    _test_find_node_neighbours(alice=alice, bob=bob)
 
 
 @pytest.mark.asyncio
@@ -292,81 +288,6 @@ def test_unpack_eip8_packets():
             assert pubkey.to_hex() == '0xca634cae0d49acb401d8a4c6b6fe8c55b70d115bf400769cc1400f3258cd31387574077f301b421bc84df7266c44e9e6d569fc56be00812904767bf5ccd1fc7f'  # noqa: E501
             assert cmd.id == cmd_id
             assert cmd.elem_count == len(payload)
-
-
-def test_v5_handlers(monkeypatch):
-    # Ensure we dispatch v5 messages to the appropriate handlers.
-    # These are hex-encoded messages sent by geth over the wire, obtained via wireshark using the
-    # ethereum dissectors (https://github.com/ConsenSys/ethereum-dissectors).
-    v5_handlers = dict(
-        recv_topic_register='74656d706f7261727920646973636f766572792076354b1f9f999e3cf283e42270742eb3b52b1c0b63ede116ea58632517ffccc7516c794f6fc20f199b3a3a887f3e961b453bb9213eebad4581aaf9b2a60da7e5ba7b0106e2da954c455332406434653536373430663837366165663883666f6f8204d283666f6f',  # noqa: E501
-        recv_pong_v5='74656d706f7261727920646973636f766572792076356cb538da9382c022cc6d9b860b7cc7660718c731e1e6331de86a7cabfba8f01c061b5d6c09dd84de1d6c653536bb8ad31fb140d55d317dfaea5225a6907f49450102f855cb84a5a587f2827660827660a0b484b40a3712766dbbe8498f110bab968a543f9d0d57ec4cfa3b38b32ef2f237831f5ca3a0bd1ea218eaf7cddc6b068a414ae08876315f92bd134e214d5f3961d1a3e8e35b4ec13c',  # noqa: E501
-        recv_ping_v5='74656d706f7261727920646973636f76657279207635c26911f1d2a320f17fa683397028e6cc7ebe114623e28e933d870634aa6050f45960679170192ec0f133dbc3f4e627eef468dbdb48bf4a7848412938da21be8a0001f84104d79000000000000000000000000000000000827660827660cb84b0201d9282848b82848b845b7e5593d6954c4553324064346535363734306638373661656638',  # noqa: E501
-        recv_find_nodehash='74656d706f7261727920646973636f7665727920763558dc895847c5d2cc9ab6f722f25b9ff1b9c188af6ff7ed7c716a3cde2e93f3ec1e2b897acb1a33aa1d345c72ea34912287b21480c80ef99241d4bd9fd53711ee0105e6a038f7bb96e94bcd39866baa56038367ad6145de1ee8f4a8b0993ebdf8883a0ad8845b7e5593',  # noqa: E501
-        recv_topic_query='74656d706f7261727920646973636f76657279207635308621f1ed59a67613da52da3f84bac3d927d0dc1650b27552b10a0a823fb2133cebf3680f68bf88457bb0c07787031357430985d03afa1af0574e8ef0eab7fc0007d7954c455332406434653536373430663837366165663880',  # noqa: E501
-        recv_topic_nodes='74656d706f7261727920646973636f76657279207635e33166b59d20f206f0df2502be59186cb971c76ee91dba94ea9b1bbeb1308a5f4efbdf945ead9ba89d7c2c55d5d841dacdef69a455c98e1a5415e489508afa450008f87ea0cff0456ecbf2e6b0a40bc6541bd209c60ced192509470b405c256a17443674b3f85bf8599000000000000000000000ffff904c1f9c82765f82765fb840e7d624c642b86d3d48cea3e395305345c3a0226fc4c2dfdfbeb94cb6891e5e72b4467c69684ac14b072d2e4fa9c7a731cc1fdf0283abe41186d00b4c879f80ed',  # noqa: E501
-        recv_neighbours_v5='74656d706f7261727920646973636f766572792076358f6671ae9611c82c9cb04538aeed13a8b4e8eb8ad0d0dbba4b161ded52b195846c6086a0d42eef44cfcc0b793a0b9420613727958a8956139c127810b94d4e830004f90174f9016cf8599000000000000000000000ffff59401a22826597826597b840d723e264da67820fb0cedb0d03d5d975cc82bffdadd2879f3e5fa58b5525de5fdd0b90002bba44ac9232247dfbccb2a730e5ea98201bab1f1fe72422aa58143ff8599000000000000000000000ffffae6c601a82765f82765fb840779f19056e0a0486c3f6838896a931bf920cd8f551f664022a50690d4cca4730b50a97058aac11a5aa0cc55db6f9207e12a9cd389269f414a98e5b6a2f6c9f89f8599000000000000000000000ffff287603df827663827663b84085c85d7143ae8bb96924f2b54f1b3e70d8c4d367af305325d30a61385a432f247d2c75c45c6b4a60335060d072d7f5b35dd1d4c45f76941f62a4f83b6e75daaff8599000000000000000000000ffff0d4231b0820419820419b8407b46cc366b6cbaec088a7d15688a2c12bb8ba4cf7ee8e01b22ab534829f9ff13f7cc4130f10a4021f7d77e9b9c80a9777f5ddc035efb130fe3b6786434367973845b7e5569',  # noqa: E501
-    )
-
-    proto = DiscoveryProtocolFactory()
-    addr = AddressFactory()
-
-    for handler, msg in v5_handlers.items():
-        mock_handler = MockHandler()
-        monkeypatch.setattr(proto, handler, mock_handler)
-        proto.datagram_received(decode_hex(msg), (addr.ip, addr.udp_port))
-        assert mock_handler.called
-
-
-def test_ping_pong_v5(alice, bob):
-    # Connect alice's and bob's transports directly so we don't need to deal with the complexities
-    # of going over the wire.
-    link_transports(alice, bob)
-
-    # Collect all pongs received by alice in a list for later inspection.
-    received_pongs = []
-    alice.recv_pong_v5 = lambda node, payload, hash_, _: received_pongs.append((node, payload))
-
-    topics = [b'foo', b'bar']
-    token = alice.send_ping_v5(bob.this_node, topics)
-
-    assert len(received_pongs) == 1
-    node, payload = received_pongs[0]
-    _, reply_token, _, topic_hash, _, _ = payload
-    assert node.id == bob.this_node.id
-    assert token == reply_token
-    assert topic_hash == keccak(rlp.encode(topics))
-
-
-def test_find_node_neighbours_v5(alice, bob):
-    _test_find_node_neighbours(use_v5=True, alice=alice, bob=bob)
-
-
-def test_topic_table():
-    table = discovery.TopicTable(logging.getLogger("test"))
-    topic = b'topic'
-    node = NodeFactory()
-
-    table.add_node(node, topic)
-    assert len(table.get_nodes(topic)) == 1
-    assert table.get_nodes(topic)[0] == node
-
-    node2 = NodeFactory()
-    table.add_node(node2, topic)
-    assert len(table.get_nodes(topic)) == 2
-    assert table.get_nodes(topic)[1] == node2
-
-    # Adding the same node again won't cause a duplicate entry to be added.
-    table.add_node(node, topic)
-    assert len(table.get_nodes(topic)) == 2
-
-    # When we reach the max number of entries for a given topic, the first added items are evicted
-    # to make room for the new ones.
-    for _ in range(discovery.MAX_ENTRIES_PER_TOPIC + 2):
-        table.add_node(NodeFactory(), topic)
-
-    assert node not in table.get_nodes(topic)
-    assert node2 not in table.get_nodes(topic)
 
 
 def remove_whitespace(s):

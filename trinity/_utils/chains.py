@@ -117,7 +117,6 @@ def load_nodekey(nodekey_path: Path) -> PrivateKey:
 
 class TrinityConfigParams(TypedDict):
     network_id: int
-    use_discv5: bool
 
     trinity_root_dir: Optional[Path]
 
@@ -153,7 +152,6 @@ def _construct_trinity_config_params(
     Helper function for constructing the kwargs to initialize a TrinityConfig object.
     """
     yield 'network_id', args.network_id
-    yield 'use_discv5', args.discv5
 
     yield 'trinity_tmp_root_dir', args.trinity_tmp_root_dir
     if args.trinity_tmp_root_dir:
