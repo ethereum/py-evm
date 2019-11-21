@@ -909,6 +909,10 @@ class MiningChain(Chain):
 
         self.header = new_block.header
 
+        # We need to create a new VM so that the next transaction to be processed builds
+        # on top of the result of processing this transaction. However, in order to save
+        # block diffs, we need to have a single instance of _state which is reused between
+        # all calls to `apply_transaction`. This is a bit of a kludge but it works.
         new_vm_class = self.get_vm_class_for_block_number(self.header.block_number)
         new_vm = new_vm_class(header=self.header, chaindb=self.vm.chaindb)
         new_vm._state = self.vm._state
