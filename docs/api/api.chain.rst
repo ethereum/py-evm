@@ -12,3 +12,9 @@ Chain
 
 .. autoclass:: eth.chains.base.Chain
   :members:
+
+MiningChain
+-----------
+
+.. autoclass:: eth.chains.base.MiningChain
+  :members:
