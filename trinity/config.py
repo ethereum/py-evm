@@ -676,7 +676,7 @@ class BeaconChainConfig:
     def beacon_chain_class(self) -> Type['BaseBeaconChain']:
         if self._beacon_chain_class is None:
             # TODO: we should be able to customize configs for tests/ instead of using the configs
-            #   from `TestnetChain`
+            # from the specific chain
             self._beacon_chain_class = SkeletonLakeChain.configure(
                 __name__=self.chain_name,
             )

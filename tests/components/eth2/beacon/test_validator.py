@@ -22,18 +22,17 @@ from eth2.beacon.exceptions import (
 )
 from eth2.beacon.helpers import compute_start_slot_at_epoch
 from eth2.beacon.state_machines.forks.serenity.block_validation import validate_attestation
-from eth2.beacon.state_machines.forks.xiao_long_bao.configs import (
-    XIAO_LONG_BAO_CONFIG,
+from eth2.beacon.state_machines.forks.skeleton_lake.config import (
+    MINIMAL_SERENITY_CONFIG,
 )
 from eth2.beacon.tools.factories import (
     BeaconChainFactory,
-    index_to_pubkey,
-    keymap,
 )
 from eth2.beacon.tools.builder.proposer import (
     get_beacon_proposer_index,
     is_proposer,
 )
+from eth2.beacon.tools.builder.validator import mk_key_pair_from_seed_index, mk_keymap_of_size
 from eth2.beacon.tools.misc.ssz_vector import (
     override_lengths,
 )
@@ -48,7 +47,9 @@ from trinity.components.eth2.beacon.slot_ticker import (
 from trinity.components.eth2.misc.tick_type import TickType
 
 
-override_lengths(XIAO_LONG_BAO_CONFIG)
+override_lengths(MINIMAL_SERENITY_CONFIG)
+
+NUM_VALIDATORS = 8
 
 
 class FakeNode:
@@ -65,7 +66,7 @@ class FakeNode:
 async def get_validator(event_loop, event_bus, indices) -> Validator:
     chain = BeaconChainFactory()
     validator_privkeys = {
-        index: keymap[index_to_pubkey[index]]
+        index: mk_key_pair_from_seed_index(index)[1]
         for index in indices
     }
 
@@ -87,6 +88,7 @@ async def get_validator(event_loop, event_bus, indices) -> Validator:
 
 
 async def get_linked_validators(event_loop, event_bus) -> Tuple[Validator, Validator]:
+    keymap = mk_keymap_of_size(NUM_VALIDATORS)
     all_indices = tuple(
         index for index in range(len(keymap))
     )
@@ -340,7 +342,7 @@ async def test_validator_get_committee_assigment(event_loop, event_bus):
 
 @pytest.mark.asyncio
 async def test_validator_attest(event_loop, event_bus, monkeypatch):
-    alice_indices = [i for i in range(8)]
+    alice_indices = [i for i in range(NUM_VALIDATORS)]
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=alice_indices)
     head = alice.chain.get_canonical_head()
     state_machine = alice.chain.get_state_machine()
@@ -372,7 +374,7 @@ async def test_validator_attest(event_loop, event_bus, monkeypatch):
 @pytest.mark.asyncio
 async def test_validator_include_ready_attestations(event_loop, event_bus, monkeypatch):
     # Alice controls all validators
-    alice_indices = list(range(8))
+    alice_indices = list(range(NUM_VALIDATORS))
     alice = await get_validator(event_loop=event_loop, event_bus=event_bus, indices=alice_indices)
     state_machine = alice.chain.get_state_machine()
     state = alice.chain.get_head_state()
@@ -388,7 +390,7 @@ async def test_validator_include_ready_attestations(event_loop, event_bus, monke
         return attestations
     monkeypatch.setattr(alice, 'get_ready_attestations', get_ready_attestations_fn)
 
-    proposing_slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
+    proposing_slot = attesting_slot + MINIMAL_SERENITY_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
     proposer_index = get_beacon_proposer_index(
         state.copy(
             slot=proposing_slot,
