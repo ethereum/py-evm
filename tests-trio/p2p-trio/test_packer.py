@@ -4,9 +4,7 @@ import trio
 
 import pytest_trio
 
-from p2p.trio_service import (
-    background_service,
-)
+from async_service import background_trio_service
 
 from p2p.discv5.channel_services import (
     IncomingPacket,
@@ -175,7 +173,7 @@ async def peer_packer(enr_db,
         outgoing_message_receive_channel=outgoing_message_channels[1],
         outgoing_packet_send_channel=outgoing_packet_channels[0],
     )
-    async with background_service(peer_packer):
+    async with background_trio_service(peer_packer):
         yield peer_packer
 
 
@@ -199,7 +197,7 @@ async def remote_peer_packer(enr_db,
         outgoing_message_receive_channel=remote_outgoing_message_channels[1],
         outgoing_packet_send_channel=remote_outgoing_packet_channels[0],
     )
-    async with background_service(peer_packer):
+    async with background_trio_service(peer_packer):
         yield peer_packer
 
 
@@ -221,7 +219,7 @@ async def packer(enr_db,
         outgoing_message_receive_channel=outgoing_message_channels[1],
         outgoing_packet_send_channel=outgoing_packet_channels[0],
     )
-    async with background_service(packer):
+    async with background_trio_service(packer):
         yield packer
 
 
@@ -244,7 +242,7 @@ async def remote_packer(enr_db,
         outgoing_message_receive_channel=remote_outgoing_message_channels[1],
         outgoing_packet_send_channel=remote_outgoing_packet_channels[0],
     )
-    async with background_service(remote_packer):
+    async with background_trio_service(remote_packer):
         yield packer
 
 

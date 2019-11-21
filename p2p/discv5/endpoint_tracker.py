@@ -14,7 +14,7 @@ from eth_utils.toolz import (
     merge,
 )
 
-from p2p.trio_service import (
+from async_service import (
     Service,
 )
 

@@ -26,7 +26,7 @@ from eth_utils import (
     encode_hex,
 )
 
-from p2p.trio_service import Service
+from async_service import Service
 
 from p2p.discv5.channel_services import (
     Endpoint,

@@ -11,6 +11,7 @@ deps = {
     'p2p': [
         "async-exit-stack==1.0.1",
         "async-generator==1.10",
+        "async-service==0.1.0a2",
         "asyncio-cancel-token>=0.2,<0.3",
         "async_lru>=0.1.0,<1.0.0",
         "cached-property>=1.5.1,<2",
@@ -22,8 +23,8 @@ deps = {
         "pysha3>=1.0.0,<2.0.0",
         "python-snappy>=0.5.3",
         "SQLAlchemy>=1.3.3,<2",
-        'trio==0.13.0,<0.14',
-        'trio-typing>=0.2.0,<0.3',
+        'trio>=0.13.0,<0.14',
+        'trio-typing>=0.3.0,<0.4',
         "upnpclient>=0.0.8,<1",
     ],
     'trinity': [
@@ -37,7 +38,7 @@ deps = {
         "plyvel==1.1.0",
         PYEVM_DEPENDENCY,
         "web3==4.4.1",
-        "lahja>=0.14.6,<0.15.0",
+        "lahja>=0.15,<0.16",
         "termcolor>=1.1.0,<2.0.0",
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",  # noqa: E501
         "websockets==5.0.1",
@@ -82,7 +83,7 @@ deps = {
     'lint': [
         "flake8==3.7.9",
         "flake8-bugbear==19.8.0",
-        "mypy==0.730",
+        "mypy==0.740",
         "sqlalchemy-stubs==0.1",
     ],
     'doc': [
@@ -122,7 +123,7 @@ deps = {
         "isort==4.3.21",
         "flake8==3.7.9",
         "flake8-bugbear==19.8.0",
-        "mypy==0.730",
+        "mypy==0.740",
     ],
 }
 

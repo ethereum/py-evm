@@ -2,6 +2,7 @@ import pytest
 
 import pytest_trio
 
+from async_service import background_trio_service
 import trio
 from trio.testing import (
     wait_all_tasks_blocked,
@@ -44,10 +45,6 @@ from p2p.tools.factories.discovery import (
     NodeIDFactory,
     IncomingMessageFactory,
     PingMessageFactory,
-)
-
-from p2p.trio_service import (
-    background_service,
 )
 
 
@@ -108,7 +105,7 @@ async def message_dispatcher(enr_db, incoming_message_channels, outgoing_message
         incoming_message_receive_channel=incoming_message_channels[1],
         outgoing_message_send_channel=outgoing_message_channels[0],
     )
-    async with background_service(message_dispatcher):
+    async with background_trio_service(message_dispatcher):
         yield message_dispatcher
 
 
@@ -126,7 +123,7 @@ async def ping_handler_service(local_enr,
         enr_db=enr_db,
         outgoing_message_send_channel=outgoing_message_channels[0],
     )
-    async with background_service(ping_handler_service):
+    async with background_trio_service(ping_handler_service):
         yield ping_handler_service
 
 
@@ -145,7 +142,7 @@ async def find_node_handler_service(local_enr,
         enr_db=enr_db,
         outgoing_message_send_channel=outgoing_message_channels[0],
     )
-    async with background_service(find_node_handler_service):
+    async with background_trio_service(find_node_handler_service):
         yield find_node_handler_service
 
 
@@ -163,7 +160,7 @@ async def ping_sender_service(local_enr,
         enr_db=enr_db,
         endpoint_vote_send_channel=endpoint_vote_channels[0],
     )
-    async with background_service(ping_sender_service):
+    async with background_trio_service(ping_sender_service):
         yield ping_sender_service
 
 
