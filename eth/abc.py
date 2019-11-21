@@ -255,6 +255,28 @@ class BlockAPI(rlp.Serializable, ABC):
         ...
 
 
+class SchemaAPI(ABC):
+    @staticmethod
+    @abstractmethod
+    def make_canonical_head_hash_lookup_key() -> bytes:
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def make_block_number_to_hash_lookup_key(block_number: BlockNumber) -> bytes:
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def make_transaction_hash_to_block_lookup_key(transaction_hash: Hash32) -> bytes:
+        ...
+
+
 class DatabaseAPI(MutableMapping[bytes, bytes], ABC):
     @abstractmethod
     def set(self, key: bytes, value: bytes) -> None:
