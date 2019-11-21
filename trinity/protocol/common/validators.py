@@ -66,7 +66,7 @@ class BaseBlockHeadersValidator(ValidatorAPI[Tuple[BlockHeaderAPI, ...]]):
         )
         return self._validate_sequence(block_numbers)
 
-    def _generate_block_numbers(self, block_number: BlockNumber=None) -> Tuple[BlockNumber, ...]:
+    def _generate_block_numbers(self, block_number: BlockNumber = None) -> Tuple[BlockNumber, ...]:
         if block_number is None and not self._is_numbered:
             raise TypeError(
                 "A `block_number` must be supplied to generate block numbers "

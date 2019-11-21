@@ -269,7 +269,7 @@ class DBManager:
             while self.is_running:
                 try:
                     operation_byte = sock.read_exactly(1)
-                except OSError as err:
+                except OSError:
                     self.logger.debug("%s: closing client connection: %s", self, raw_socket)
                     break
                 except Exception:
@@ -295,7 +295,7 @@ class DBManager:
                         self.handle_ATOMIC_BATCH(sock)
                     else:
                         self.logger.error("Got unhandled operation %s", operation)
-                except Exception as err:
+                except Exception:
                     self.logger.exception("Unhandled error during operation: %s", operation)
                     raise
 

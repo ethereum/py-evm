@@ -27,7 +27,7 @@ class ValidateAndStoreEnodes(argparse.Action):
                  parser: argparse.ArgumentParser,
                  namespace: argparse.Namespace,
                  value: Any,
-                 option_string: str=None) -> None:
+                 option_string: str = None) -> None:
         if value is None:
             return
 
@@ -77,7 +77,7 @@ class ValidateAndStoreLogLevel(argparse.Action):
                  parser: argparse.ArgumentParser,
                  namespace: argparse.Namespace,
                  value: Any,
-                 option_string: str=None) -> None:
+                 option_string: str = None) -> None:
         if value is None:
             return
 
@@ -255,7 +255,7 @@ class EIP1085GenesisLoader(argparse.Action):
                  parser: argparse.ArgumentParser,
                  namespace: argparse.Namespace,
                  value: Any,
-                 option_string: str=None) -> None:
+                 option_string: str = None) -> None:
         genesis_file_path = Path(value)
 
         if not genesis_file_path.exists():

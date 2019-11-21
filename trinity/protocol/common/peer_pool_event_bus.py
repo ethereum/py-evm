@@ -253,7 +253,7 @@ class BaseProxyPeerPool(BaseService, Generic[TProxyPeer]):
     def __init__(self,
                  event_bus: EndpointAPI,
                  broadcast_config: BroadcastConfig,
-                 token: CancelToken=None):
+                 token: CancelToken = None):
         super().__init__(token)
         self.event_bus = event_bus
         self.broadcast_config = broadcast_config

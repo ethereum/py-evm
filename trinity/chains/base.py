@@ -17,7 +17,7 @@ class AsyncChainAPI(ChainAPI):
     @abstractmethod
     async def coro_import_block(self,
                                 block: BlockHeaderAPI,
-                                perform_validation: bool=True,
+                                perform_validation: bool = True,
                                 ) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
         ...
 

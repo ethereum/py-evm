@@ -311,7 +311,7 @@ class Manager(ManagerAPI):
         """
         try:
             await self._service.run()
-        except Exception as err:
+        except Exception:
             self.logger.debug(
                 '%s: _handle_run got error, storing exception and setting cancelled',
                 self

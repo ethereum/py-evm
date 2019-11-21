@@ -22,7 +22,7 @@ class AsyncProcessRunner():
     @asynccontextmanager
     async def run(cls,
                   cmds: Tuple[str, ...],
-                  timeout_sec: int=10) -> AsyncIterator['AsyncProcessRunner']:
+                  timeout_sec: int = 10) -> AsyncIterator['AsyncProcessRunner']:
         try:
             async with timeout(timeout_sec):
                 runner = cls()

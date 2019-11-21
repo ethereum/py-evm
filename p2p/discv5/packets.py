@@ -142,7 +142,7 @@ class AuthHeaderPacket(NamedTuple):
 
         try:
             decoded_rlp = rlp.decode(plain_text)
-        except DecodingError as error:
+        except DecodingError:
             raise ValidationError(
                 f"Auth response does not contain valid RLP: {encode_hex(plain_text)}"
             )

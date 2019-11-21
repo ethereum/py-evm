@@ -115,7 +115,7 @@ class NormalizeCheckpointURI(argparse.Action):
                  parser: argparse.ArgumentParser,
                  namespace: argparse.Namespace,
                  value: Any,
-                 option_string: str=None) -> None:
+                 option_string: str = None) -> None:
 
         try:
             parsed = parse_checkpoint_uri(value, namespace.network_id)

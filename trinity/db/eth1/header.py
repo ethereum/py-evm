@@ -67,7 +67,7 @@ class BaseAsyncHeaderDB(HeaderDB):
     async def coro_persist_header_chain(
         self,
         headers: Iterable[BlockHeaderAPI],
-        genesis_parent_hash: Hash32=None
+        genesis_parent_hash: Hash32 = None
     ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         ...
 

@@ -45,7 +45,7 @@ class WaitingPeers(Generic[TChainPeer]):
     def __init__(
             self,
             response_command_type: Union[Type[CommandAPI[Any]], Sequence[Type[CommandAPI[Any]]]],
-            sort_key: Callable[[PerformanceAPI], float]=_items_per_second) -> None:
+            sort_key: Callable[[PerformanceAPI], float] = _items_per_second) -> None:
         """
         :param sort_key: how should we sort the peers to get the fastest? low score means top-ranked
         """

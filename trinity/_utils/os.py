@@ -20,6 +20,6 @@ def friendly_filename_or_url(value: str) -> str:
     # Taken from:
     # https://stackoverflow.com/questions/295135/turn-a-string-into-a-valid-filename/295466#295466
     value = str(unicodedata.normalize('NFKD', value).encode('ascii', 'ignore'))
-    value = str(re.sub('[^\w\s-]', '', value).strip().lower())
-    value = str(re.sub('[-\s]+', '-', value))
+    value = str(re.sub(r'[^\w\s-]', '', value).strip().lower())
+    value = str(re.sub(r'[-\s]+', '-', value))
     return value

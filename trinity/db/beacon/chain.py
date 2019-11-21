@@ -58,7 +58,7 @@ class BaseAsyncBeaconChainDB(BeaconChainDB):
         ...
 
     @abstractmethod
-    async def coro_get_canonical_head_root(self)-> SigningRoot:
+    async def coro_get_canonical_head_root(self) -> SigningRoot:
         ...
 
     @abstractmethod
@@ -106,7 +106,7 @@ class BaseAsyncBeaconChainDB(BeaconChainDB):
     @abstractmethod
     async def coro_get_attestation_key_by_root(
         self, attestation_root: HashTreeRoot
-    )-> Tuple[SigningRoot, int]:
+    ) -> Tuple[SigningRoot, int]:
         ...
 
     @abstractmethod

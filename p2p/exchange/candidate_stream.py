@@ -87,7 +87,7 @@ class ResponseCandidateStream(
 
                 try:
                     yield await self._get_payload(timeout_remaining)
-                except asyncio.TimeoutError as err:
+                except asyncio.TimeoutError:
                     tracker.record_timeout(total_timeout)
                     raise
         finally:

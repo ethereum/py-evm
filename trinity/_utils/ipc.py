@@ -12,7 +12,7 @@ from typing import (  # noqa: F401
 )
 
 
-def wait_for_ipc(ipc_path: pathlib.Path, timeout: int=30) -> None:
+def wait_for_ipc(ipc_path: pathlib.Path, timeout: int = 30) -> None:
     """
     Waits up to ``timeout`` seconds for the IPC socket file to appear at path
     ``ipc_path``, or raises a :exc:`TimeoutError` otherwise.
@@ -56,16 +56,16 @@ DEFAULT_SIGTERM_TIMEOUT = 5
 def kill_process_gracefully(
         process: Process,
         logger: Logger,
-        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
-        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
+        SIGINT_timeout: int = DEFAULT_SIGINT_TIMEOUT,
+        SIGTERM_timeout: int = DEFAULT_SIGTERM_TIMEOUT) -> None:
     kill_process_id_gracefully(process.pid, process.join, logger, SIGINT_timeout, SIGTERM_timeout)
 
 
 def kill_processes_gracefully(
         processes: Iterable[Process],
         logger: Logger,
-        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
-        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
+        SIGINT_timeout: int = DEFAULT_SIGINT_TIMEOUT,
+        SIGTERM_timeout: int = DEFAULT_SIGTERM_TIMEOUT) -> None:
 
     # Send SIGINT to each process without blocking
     for process in processes:
@@ -100,8 +100,8 @@ def kill_processes_gracefully(
 def kill_popen_gracefully(
         popen: 'subprocess.Popen[Any]',
         logger: Logger,
-        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
-        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
+        SIGINT_timeout: int = DEFAULT_SIGINT_TIMEOUT,
+        SIGTERM_timeout: int = DEFAULT_SIGTERM_TIMEOUT) -> None:
 
     def silent_timeout(timeout_len: int) -> None:
         try:
@@ -116,8 +116,8 @@ def kill_process_id_gracefully(
         process_id: int,
         wait_for_completion: Callable[[int], None],
         logger: Logger,
-        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT,
-        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
+        SIGINT_timeout: int = DEFAULT_SIGINT_TIMEOUT,
+        SIGTERM_timeout: int = DEFAULT_SIGTERM_TIMEOUT) -> None:
 
     sigint_process_id(process_id, wait_for_completion, logger, SIGINT_timeout)
     sigterm_process_id(process_id, wait_for_completion, logger, SIGTERM_timeout)
@@ -128,7 +128,7 @@ def sigint_process_id(
         process_id: int,
         wait_for_completion: Callable[[int], None],
         logger: Logger,
-        SIGINT_timeout: int=DEFAULT_SIGINT_TIMEOUT) -> None:
+        SIGINT_timeout: int = DEFAULT_SIGINT_TIMEOUT) -> None:
 
     try:
         try:
@@ -151,7 +151,7 @@ def sigterm_process_id(
         process_id: int,
         wait_for_completion: Callable[[int], None],
         logger: Logger,
-        SIGTERM_timeout: int=DEFAULT_SIGTERM_TIMEOUT) -> None:
+        SIGTERM_timeout: int = DEFAULT_SIGTERM_TIMEOUT) -> None:
 
     try:
         try:

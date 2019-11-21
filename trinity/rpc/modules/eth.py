@@ -74,7 +74,7 @@ from ._util import get_header
 async def state_at_block(
         chain: AsyncChainAPI,
         at_block: Union[str, int],
-        read_only: bool=True) -> StateAPI:
+        read_only: bool = True) -> StateAPI:
     at_header = await get_header(chain, at_block)
     vm = chain.get_vm(at_header)
     return vm.state
@@ -121,13 +121,18 @@ def dict_to_spoof_transaction(
     return cast(SignedTransactionAPI, SpoofTransaction(unsigned, from_=sender))
 
 
+class SyncProgressDict(TypedDict):
+    startingBlock: BlockNumber
+    currentBlock: BlockNumber
+    highestBlock: BlockNumber
+
+
 class Eth(Eth1ChainRPCModule):
     """
     All the methods defined by JSON-RPC API, starting with "eth_"...
 
     Any attribute without an underscore is publicly accessible.
     """
-
     async def accounts(self) -> List[str]:
         # trinity does not manage accounts for the user
         return []
@@ -268,12 +273,7 @@ class Eth(Eth1ChainRPCModule):
     async def protocolVersion(self) -> str:
         return "63"
 
-    class SyncProgress(TypedDict):
-        startingBlock: BlockNumber
-        currentBlock: BlockNumber
-        highestBlock: BlockNumber
-
-    async def syncing(self) -> Union[bool, SyncProgress]:
+    async def syncing(self) -> Union[bool, SyncProgressDict]:
         res = await self.event_bus.request(SyncingRequest(), TO_NETWORKING_BROADCAST_CONFIG)
         if res.is_syncing:
             return {

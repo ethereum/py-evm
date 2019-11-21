@@ -89,7 +89,7 @@ def trinity_boot(args: Namespace,
 
     try:
         wait_for_ipc(trinity_config.database_ipc_path)
-    except TimeoutError as e:
+    except TimeoutError:
         logger.error("Timeout waiting for database to start.  Exiting...")
         kill_process_gracefully(database_server_process, logger)
         ArgumentParser().error(message="Timed out waiting for database start")

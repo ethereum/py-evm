@@ -166,7 +166,7 @@ class BeaconBlockFactory(factory.Factory):
     @to_tuple
     def create_branch(cls,
                       length: int,
-                      root: BeaconBlock=None,
+                      root: BeaconBlock = None,
                       **kwargs: Any) -> Iterable[BeaconBlock]:
         if length == 0:
             return
@@ -186,7 +186,7 @@ class BeaconBlockFactory(factory.Factory):
     @to_tuple
     def create_branch_by_slots(cls,
                                slots: Sequence[Slot],
-                               root: BeaconBlock=None,
+                               root: BeaconBlock = None,
                                **kwargs: Any) -> Iterable[BeaconBlock]:
         if root is None:
             root = cls()

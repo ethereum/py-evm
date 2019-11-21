@@ -133,7 +133,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
     async def ensure_nodes_present(
             self,
             node_hashes: Iterable[Hash32],
-            urgent: bool=True) -> int:
+            urgent: bool = True) -> int:
         """
         Wait until the nodes that are the preimages of `node_hashes` are available in the database.
         If one is not available in the first check, request it from peers.
@@ -181,7 +181,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             self,
             account_addresses: Iterable[Address],
             root_hash: Hash32,
-            urgent: bool=True) -> int:
+            urgent: bool = True) -> int:
         """
         Like :meth:`download_account`, but waits for multiple addresses to be available.
 
@@ -218,7 +218,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             self,
             account_hash: Hash32,
             root_hash: Hash32,
-            urgent: bool=True) -> Tuple[bytes, int]:
+            urgent: bool = True) -> Tuple[bytes, int]:
         """
         Check the given account address for presence in the state database.
         Wait until we have the state proof for the given address.
@@ -250,7 +250,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
             storage_key: Hash32,
             storage_root_hash: Hash32,
             account: Address,
-            urgent: bool=True) -> int:
+            urgent: bool = True) -> int:
         """
         Check the given storage key for presence in the account's storage database.
         Wait until we have a trie proof for the given storage key.
@@ -499,7 +499,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
         self.logger.debug2("Requesting %d nodes from %s", num_nodes, peer)
         try:
             return await peer.eth_api.get_node_data(node_hashes, timeout=self._reply_timeout)
-        except asyncio.TimeoutError as err:
+        except asyncio.TimeoutError:
             # This kind of exception shouldn't necessarily *drop* the peer,
             # so capture error, log and swallow
             self.logger.debug("Timed out requesting %d nodes from %s", num_nodes, peer)

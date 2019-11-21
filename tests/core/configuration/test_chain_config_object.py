@@ -58,7 +58,7 @@ def test_chain_config_from_preconfigured_network(network_id):
         assert_vm_configuration_equal(chain_config.vm_configuration, RopstenChain.vm_configuration)
         assert chain.get_canonical_head() == ROPSTEN_GENESIS_HEADER
     else:
-        assert False, "Invariant: unreachable code path"
+        raise AssertionError("Invariant: unreachable code path")
 
 
 EIP1085_GENESIS_CONFIG = {

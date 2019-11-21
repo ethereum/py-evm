@@ -767,7 +767,7 @@ class HeaderMeatSyncer(BaseService, PeerSubscriber, Generic[TChainPeer]):
         self.logger.debug("Requesting %d headers from %s", length, peer)
         try:
             return await peer.chain_api.get_block_headers(start_at, length, skip=0, reverse=False)
-        except asyncio.TimeoutError as err:
+        except asyncio.TimeoutError:
             self.logger.debug("Timed out requesting %d headers from %s", length, peer)
             return tuple()
         except CancelledError:

@@ -80,7 +80,7 @@ class LightDispatchChain(AsyncChainAPI, Chain):
     def from_genesis(cls,
                      base_db: DatabaseAPI,
                      genesis_params: Dict[str, HeaderParams],
-                     genesis_state: AccountState=None) -> 'LightDispatchChain':
+                     genesis_state: AccountState = None) -> 'LightDispatchChain':
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     @classmethod
@@ -95,7 +95,7 @@ class LightDispatchChain(AsyncChainAPI, Chain):
     #
     # VM API
     #
-    def get_vm(self, header: BlockHeaderAPI=None) -> VirtualMachineAPI:
+    def get_vm(self, header: BlockHeaderAPI = None) -> VirtualMachineAPI:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     #
@@ -173,7 +173,7 @@ class LightDispatchChain(AsyncChainAPI, Chain):
 
     def build_block_with_transactions(self,
                                       transactions: Sequence[SignedTransactionAPI],
-                                      parent_header: BlockHeaderAPI=None) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:        # noqa: E501
+                                      parent_header: BlockHeaderAPI = None) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:        # noqa: E501
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     #
@@ -215,13 +215,13 @@ class LightDispatchChain(AsyncChainAPI, Chain):
     def estimate_gas(
             self,
             transaction: SignedTransactionAPI,
-            at_header: BlockHeaderAPI=None) -> int:
+            at_header: BlockHeaderAPI = None) -> int:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    def import_block(self, block: BlockAPI, perform_validation: bool=True) -> BlockAPI:
+    def import_block(self, block: BlockAPI, perform_validation: bool = True) -> BlockAPI:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
-    async def coro_import_block(self, block: BlockAPI, perform_validation: bool=True) -> BlockAPI:
+    async def coro_import_block(self, block: BlockAPI, perform_validation: bool = True) -> BlockAPI:
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:

@@ -67,7 +67,7 @@ class RPCServer:
     def __init__(self,
                  modules: Sequence[BaseRPCModule],
                  chain: Union[AsyncChainAPI, BaseAsyncBeaconChainDB],
-                 event_bus: EndpointAPI=None) -> None:
+                 event_bus: EndpointAPI = None) -> None:
         self.event_bus = event_bus
         self.modules: Dict[str, BaseRPCModule] = {}
         self.chain = chain
@@ -103,7 +103,7 @@ class RPCServer:
 
     async def _get_result(self,
                           request: Dict[str, Any],
-                          debug: bool=False) -> Tuple[Any, Union[Exception, str]]:
+                          debug: bool = False) -> Tuple[Any, Union[Exception, str]]:
         """
         :returns: (result, error) - result is None if error is provided. Error must be
             convertable to string with ``str(error)``.

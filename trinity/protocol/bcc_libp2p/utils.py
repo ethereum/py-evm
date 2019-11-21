@@ -163,10 +163,7 @@ async def validate_peer_status(chain: BaseBeaconChain, peer_status: Status) -> N
         )
 
 
-def compare_chain_tip_and_finalized_epoch(
-    chain: BaseBeaconChain,
-    peer_status: Status,
-)-> None:
+def compare_chain_tip_and_finalized_epoch(chain: BaseBeaconChain, peer_status: Status) -> None:
     checkpoint = chain.get_head_state().finalized_checkpoint
     head_block = chain.get_canonical_head()
 

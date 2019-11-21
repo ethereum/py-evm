@@ -30,7 +30,7 @@ async def handler(execute_rpc: Callable[[Any], Any], request: web.Request) -> we
         try:
             body_json = await request.json()
             logger.debug(f'data: {body_json}')
-        except Exception as e:
+        except Exception:
             # invalid json request, keep reading data until a valid json is formed
             msg = f"Invalid request: {request}"
             logger.debug(msg)
@@ -38,7 +38,7 @@ async def handler(execute_rpc: Callable[[Any], Any], request: web.Request) -> we
 
         try:
             result = await execute_rpc(body_json)
-        except Exception as e:
+        except Exception:
             msg = "Unrecognized exception while executing RPC"
             logger.exception(msg)
             return response_error(msg)
