@@ -10,10 +10,6 @@ from eth.validation import (
 
 
 class BaseTransactionContext(TransactionContextAPI):
-    """
-    This immutable object houses information that remains constant for the entire context of the VM
-    execution.
-    """
     __slots__ = ['_gas_price', '_origin', '_log_counter']
 
     def __init__(self, gas_price: int, origin: Address) -> None:

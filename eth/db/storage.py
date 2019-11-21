@@ -149,10 +149,6 @@ class StorageLookup(BaseDB):
 
 
 class AccountStorageDB(AccountStorageDatabaseAPI):
-    """
-    Storage cache and write batch for a single account. Changes are not
-    merklized until :meth:`make_storage_root` is called.
-    """
     logger = get_extended_debug_logger("eth.db.storage.AccountStorageDB")
 
     def __init__(self, db: AtomicDatabaseAPI, storage_root: Hash32, address: Address) -> None:
@@ -242,9 +238,6 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
             self._journal_storage.flatten()
 
     def make_storage_root(self) -> None:
-        """
-        Force calculation of the storage root for this account
-        """
         self._journal_storage.persist()
 
     def _validate_flushed(self) -> None:

@@ -50,12 +50,6 @@ class HeaderDB(HeaderDatabaseAPI):
     # Canonical Chain API
     #
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        """
-        Returns the block hash for the canonical block at the given number.
-
-        Raises BlockNotFound if there's no block header with the given number in the
-        canonical chain.
-        """
         return self._get_canonical_block_hash(self.db, block_number)
 
     @staticmethod
@@ -73,12 +67,6 @@ class HeaderDB(HeaderDatabaseAPI):
             return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
 
     def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
-        """
-        Returns the block header with the given number in the canonical chain.
-
-        Raises BlockNotFound if there's no block header with the given number in the
-        canonical chain.
-        """
         return self._get_canonical_block_header_by_number(self.db, block_number)
 
     @classmethod
@@ -91,9 +79,6 @@ class HeaderDB(HeaderDatabaseAPI):
         return cls._get_block_header_by_hash(db, canonical_block_hash)
 
     def get_canonical_head(self) -> BlockHeaderAPI:
-        """
-        Returns the current block header at the head of the chain.
-        """
         return self._get_canonical_head(self.db)
 
     @classmethod
@@ -152,23 +137,10 @@ class HeaderDB(HeaderDatabaseAPI):
                              headers: Iterable[BlockHeaderAPI],
                              genesis_parent_hash: Hash32 = GENESIS_PARENT_HASH
                              ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
-        """
-        Return two iterable of headers, the first containing the new canonical headers,
-        the second containing the old canonical headers
-
-        :param genesis_parent_hash: *optional* parent hash of the block that is treated as genesis.
-            Providing a ``genesis_parent_hash`` allows storage of headers that aren't (yet)
-            connected back to the true genesis header.
-
-        """
         with self.db.atomic_batch() as db:
             return self._persist_header_chain(db, headers, genesis_parent_hash)
 
     def persist_checkpoint_header(self, header: BlockHeaderAPI, score: int) -> None:
-        """
-        Persist a checkpoint header with a trusted score. Persisting the checkpoint header
-        automatically sets it as the new canonical head.
-        """
         with self.db.atomic_batch() as db:
             return self._persist_checkpoint_header(db, header, score)
 

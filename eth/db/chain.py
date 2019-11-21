@@ -77,9 +77,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     # Header API
     #
     def get_block_uncles(self, uncles_hash: Hash32) -> Tuple[BlockHeaderAPI, ...]:
-        """
-        Returns an iterable of uncle headers specified by the given uncles_hash
-        """
         validate_word(uncles_hash, title="Uncles Hash")
         if uncles_hash == EMPTY_UNCLE_HASH:
             return ()
@@ -142,16 +139,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                       block: BlockAPI,
                       genesis_parent_hash: Hash32 = GENESIS_PARENT_HASH
                       ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
-        """
-        Persist the given block's header and uncles.
-
-        :param block: the block that gets persisted
-        :param genesis_parent_hash: *optional* parent hash of the header that is treated
-            as genesis. Providing a ``genesis_parent_hash`` allows storage of blocks that
-            aren't (yet) connected back to the true genesis header.
-
-        Assumes all block transactions have been persisted already.
-        """
         with self.db.atomic_batch() as db:
             return self._persist_block(db, block, genesis_parent_hash)
 
@@ -195,11 +182,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         return new_canonical_hashes, old_canonical_hashes
 
     def persist_uncles(self, uncles: Tuple[BlockHeaderAPI]) -> Hash32:
-        """
-        Persists the list of uncles to the database.
-
-        Returns the uncles hash.
-        """
         return self._persist_uncles(self.db, uncles)
 
     @staticmethod
@@ -216,11 +198,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     def add_receipt(self,
                     block_header: BlockHeaderAPI,
                     index_key: int, receipt: ReceiptAPI) -> Hash32:
-        """
-        Adds the given receipt to the provided block header.
-
-        Returns the updated `receipts_root` for updated block header.
-        """
         receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_db[index_key] = rlp.encode(receipt)
         return receipt_db.root_hash
@@ -229,11 +206,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                         block_header: BlockHeaderAPI,
                         index_key: int,
                         transaction: SignedTransactionAPI) -> Hash32:
-        """
-        Adds the given transaction to the provided block header.
-
-        Returns the updated `transactions_root` for updated block header.
-        """
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         transaction_db[index_key] = rlp.encode(transaction)
         return transaction_db.root_hash
@@ -242,10 +214,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             self,
             header: BlockHeaderAPI,
             transaction_class: Type[SignedTransactionAPI]) -> Tuple[SignedTransactionAPI, ...]:
-        """
-        Returns an iterable of transactions for the block speficied by the
-        given block header.
-        """
         return self._get_block_transactions(header.transaction_root, transaction_class)
 
     def get_block_transaction_hashes(self, block_header: BlockHeaderAPI) -> Tuple[Hash32, ...]:
@@ -272,10 +240,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     def get_receipts(self,
                      header: BlockHeaderAPI,
                      receipt_class: Type[ReceiptAPI]) -> Iterable[ReceiptAPI]:
-        """
-        Returns an iterable of receipts for the block specified by the given
-        block header.
-        """
         receipt_db = HexaryTrie(db=self.db, root_hash=header.receipt_root)
         for receipt_idx in itertools.count():
             receipt_key = rlp.encode(receipt_idx)
@@ -290,12 +254,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             block_number: BlockNumber,
             transaction_index: int,
             transaction_class: Type[SignedTransactionAPI]) -> SignedTransactionAPI:
-        """
-        Returns the transaction at the specified `transaction_index` from the
-        block specified by `block_number` from the canonical chain.
-
-        Raises TransactionNotFound if no block
-        """
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
@@ -311,14 +269,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             )
 
     def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
-        """
-        Returns a 2-tuple of (block_number, transaction_index) indicating which
-        block the given transaction can be found in and at what index in the
-        block transactions.
-
-        Raises TransactionNotFound if the transaction_hash is not found in the
-        canonical chain.
-        """
         key = SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash)
         try:
             encoded_key = self.db[key]
@@ -333,10 +283,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     def get_receipt_by_index(self,
                              block_number: BlockNumber,
                              receipt_index: int) -> ReceiptAPI:
-        """
-        Returns the Receipt of the transaction at specified index
-        for the block header obtained by the specified block number
-        """
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
@@ -408,21 +354,12 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     # Raw Database API
     #
     def exists(self, key: bytes) -> bool:
-        """
-        Returns True if the given key exists in the database.
-        """
         return self.db.exists(key)
 
     def get(self, key: bytes) -> bytes:
-        """
-        Return the value for the given key or a KeyError if it doesn't exist in the database.
-        """
         return self.db[key]
 
     def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
-        """
-        Store raw trie data to db from a dict
-        """
         with self.db.atomic_batch() as db:
             for key, value in trie_data_dict.items():
                 db[key] = value

@@ -41,9 +41,6 @@ class Opcode(Configurable, OpcodeAPI):
                   logic_fn: Callable[..., Any],
                   mnemonic: str,
                   gas_cost: int) -> T:
-        """
-        Class factory method for turning vanilla functions into Opcode classes.
-        """
         if gas_cost:
             @functools.wraps(logic_fn)
             def wrapped_logic_fn(computation: ComputationAPI) -> Any:

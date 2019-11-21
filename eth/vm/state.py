@@ -37,21 +37,6 @@ from eth._utils.datatypes import (
 
 
 class BaseState(Configurable, StateAPI):
-    """
-    The base class that encapsulates all of the various moving parts related to
-    the state of the VM during execution.
-    Each :class:`~eth.abc.VirtualMachineAPI` must be configured with a subclass of the
-    :class:`~eth.abc.StateAPI`.
-
-      .. note::
-
-        Each :class:`~eth.abc.StateAPI` class must be configured with:
-
-        - ``computation_class``: The :class:`~eth.abc.ComputationAPI` class for
-          vm execution.
-        - ``transaction_context_class``: The :class:`~eth.abc.TransactionContextAPI`
-          class for vm execution.
-    """
     #
     # Set from __init__
     #
@@ -84,37 +69,22 @@ class BaseState(Configurable, StateAPI):
 
     @property
     def coinbase(self) -> Address:
-        """
-        Return the current ``coinbase`` from the current :attr:`~execution_context`
-        """
         return self.execution_context.coinbase
 
     @property
     def timestamp(self) -> int:
-        """
-        Return the current ``timestamp`` from the current :attr:`~execution_context`
-        """
         return self.execution_context.timestamp
 
     @property
     def block_number(self) -> BlockNumber:
-        """
-        Return the current ``block_number`` from the current :attr:`~execution_context`
-        """
         return self.execution_context.block_number
 
     @property
     def difficulty(self) -> int:
-        """
-        Return the current ``difficulty`` from the current :attr:`~execution_context`
-        """
         return self.execution_context.difficulty
 
     @property
     def gas_limit(self) -> int:
-        """
-        Return the current ``gas_limit`` from the current :attr:`~transaction_context`
-        """
         return self.execution_context.gas_limit
 
     #
@@ -122,19 +92,12 @@ class BaseState(Configurable, StateAPI):
     #
     @classmethod
     def get_account_db_class(cls) -> Type[AccountDatabaseAPI]:
-        """
-        Return the :class:`~eth.abc.AccountDatabaseAPI` class that the
-        state class uses.
-        """
         if cls.account_db_class is None:
             raise AttributeError(f"No account_db_class set for {cls.__name__}")
         return cls.account_db_class
 
     @property
     def state_root(self) -> Hash32:
-        """
-        Return the current ``state_root`` from the underlying database
-        """
         return self._account_db.state_root
 
     def make_state_root(self) -> Hash32:
@@ -198,18 +161,9 @@ class BaseState(Configurable, StateAPI):
     # Access self._chaindb
     #
     def snapshot(self) -> Tuple[Hash32, UUID]:
-        """
-        Perform a full snapshot of the current state.
-
-        Snapshots are a combination of the :attr:`~state_root` at the time of the
-        snapshot and the checkpoint from the journaled DB.
-        """
         return self.state_root, self._account_db.record()
 
     def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
-        """
-        Revert the VM to the state at the snapshot
-        """
         state_root, account_snapshot = snapshot
 
         # first revert the database state root.
@@ -218,10 +172,6 @@ class BaseState(Configurable, StateAPI):
         self._account_db.discard(account_snapshot)
 
     def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
-        """
-        Commit the journal to the point where the snapshot was taken.  This
-        merges in any changes that were recorded since the snapshot.
-        """
         _, account_snapshot = snapshot
         self._account_db.commit(account_snapshot)
 
@@ -232,11 +182,6 @@ class BaseState(Configurable, StateAPI):
     # Access self.prev_hashes (Read-only)
     #
     def get_ancestor_hash(self, block_number: int) -> Hash32:
-        """
-        Return the hash for the ancestor block with number ``block_number``.
-        Return the empty bytestring ``b''`` if the block number is outside of the
-        range of available block numbers (typically the last 255 blocks).
-        """
         ancestor_depth = self.block_number - block_number - 1
         is_ancestor_depth_out_of_range = (
             ancestor_depth >= MAX_PREV_HEADER_DEPTH or
@@ -258,9 +203,6 @@ class BaseState(Configurable, StateAPI):
     def get_computation(self,
                         message: MessageAPI,
                         transaction_context: TransactionContextAPI) -> ComputationAPI:
-        """
-        Return a computation instance for the given `message` and `transaction_context`
-        """
         if self.computation_class is None:
             raise AttributeError("No `computation_class` has been set for this State")
         else:
@@ -272,10 +214,6 @@ class BaseState(Configurable, StateAPI):
     #
     @classmethod
     def get_transaction_context_class(cls) -> Type[TransactionContextAPI]:
-        """
-        Return the :class:`~eth.vm.transaction_context.BaseTransactionContext` class that the
-        state class uses.
-        """
         if cls.transaction_context_class is None:
             raise AttributeError("No `transaction_context_class` has been set for this State")
         return cls.transaction_context_class

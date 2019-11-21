@@ -157,9 +157,6 @@ class BaseComputation(Configurable, ComputationAPI):
     #
     @property
     def is_origin_computation(self) -> bool:
-        """
-        Return ``True`` if this computation is the outermost computation at ``depth == 0``.
-        """
         return self.msg.sender == self.transaction_context.origin
 
     #
@@ -167,16 +164,10 @@ class BaseComputation(Configurable, ComputationAPI):
     #
     @property
     def is_success(self) -> bool:
-        """
-        Return ``True`` if the computation did not result in an error.
-        """
         return self._error is None
 
     @property
     def is_error(self) -> bool:
-        """
-        Return ``True`` if the computation resulted in an error.
-        """
         return not self.is_success
 
     @property
@@ -192,44 +183,25 @@ class BaseComputation(Configurable, ComputationAPI):
         self._error = value
 
     def raise_if_error(self) -> None:
-        """
-        If there was an error during computation, raise it as an exception immediately.
-
-        :raise VMError:
-        """
         if self._error is not None:
             raise self._error
 
     @property
     def should_burn_gas(self) -> bool:
-        """
-        Return ``True`` if the remaining gas should be burned.
-        """
         return self.is_error and self._error.burns_gas
 
     @property
     def should_return_gas(self) -> bool:
-        """
-        Return ``True`` if the remaining gas should be returned.
-        """
         return not self.should_burn_gas
 
     @property
     def should_erase_return_data(self) -> bool:
-        """
-        Return ``True`` if the return data should be zerod out due to an error.
-        """
         return self.is_error and self._error.erases_return_data
 
     #
     # Memory Management
     #
     def extend_memory(self, start_position: int, size: int) -> None:
-        """
-        Extend the size of the memory to be at minimum ``start_position + size``
-        bytes in length.  Raise `eth.exceptions.OutOfGas` if there is not enough
-        gas to pay for extending the memory.
-        """
         validate_uint256(start_position, title="Memory start position")
         validate_uint256(size, title="Memory size")
 
@@ -264,21 +236,12 @@ class BaseComputation(Configurable, ComputationAPI):
             self._memory.extend(start_position, size)
 
     def memory_write(self, start_position: int, size: int, value: bytes) -> None:
-        """
-        Write ``value`` to memory at ``start_position``. Require that ``len(value) == size``.
-        """
         return self._memory.write(start_position, size, value)
 
     def memory_read(self, start_position: int, size: int) -> memoryview:
-        """
-        Read and return a view of ``size`` bytes from memory starting at ``start_position``.
-        """
         return self._memory.read(start_position, size)
 
     def memory_read_bytes(self, start_position: int, size: int) -> bytes:
-        """
-        Read and return ``size`` bytes from memory starting at ``start_position``.
-        """
         return self._memory.read_bytes(start_position, size)
 
     #
@@ -288,22 +251,12 @@ class BaseComputation(Configurable, ComputationAPI):
         return GasMeter(self.msg.gas)
 
     def consume_gas(self, amount: int, reason: str) -> None:
-        """
-        Consume ``amount`` of gas from the remaining gas.
-        Raise `eth.exceptions.OutOfGas` if there is not enough gas remaining.
-        """
         return self._gas_meter.consume_gas(amount, reason)
 
     def return_gas(self, amount: int) -> None:
-        """
-        Return ``amount`` of gas to the available gas pool.
-        """
         return self._gas_meter.return_gas(amount)
 
     def refund_gas(self, amount: int) -> None:
-        """
-        Add ``amount`` of gas to the pool of gas marked to be refunded.
-        """
         return self._gas_meter.refund_gas(amount)
 
     def get_gas_refund(self) -> int:
@@ -331,15 +284,9 @@ class BaseComputation(Configurable, ComputationAPI):
     # Stack management
     #
     def stack_swap(self, position: int) -> None:
-        """
-        Swap the item on the top of the stack with the item at ``position``.
-        """
         return self._stack.swap(position)
 
     def stack_dup(self, position: int) -> None:
-        """
-        Duplicate the stack item at ``position`` and pushes it onto the stack.
-        """
         return self._stack.dup(position)
 
     # Stack manipulation is performance-sensitive code.
@@ -382,9 +329,6 @@ class BaseComputation(Configurable, ComputationAPI):
     #
     @property
     def output(self) -> bytes:
-        """
-        Get the return value of the computation.
-        """
         if self.should_erase_return_data:
             return b''
         else:
@@ -392,9 +336,6 @@ class BaseComputation(Configurable, ComputationAPI):
 
     @output.setter
     def output(self, value: bytes) -> None:
-        """
-        Set the return value of the computation.
-        """
         validate_is_bytes(value)
         self._output = value
 
@@ -408,9 +349,6 @@ class BaseComputation(Configurable, ComputationAPI):
                               data: BytesOrView,
                               code: bytes,
                               **kwargs: Any) -> MessageAPI:
-        """
-        Helper method for creating a child computation.
-        """
         kwargs.setdefault('sender', self.msg.storage_address)
 
         child_message = Message(
@@ -425,9 +363,6 @@ class BaseComputation(Configurable, ComputationAPI):
         return child_message
 
     def apply_child_computation(self, child_msg: MessageAPI) -> ComputationAPI:
-        """
-        Apply the vm message ``child_msg`` as a child computation.
-        """
         child_computation = self.generate_child_computation(child_msg)
         self.add_child_computation(child_computation)
         return child_computation
@@ -496,12 +431,6 @@ class BaseComputation(Configurable, ComputationAPI):
             (self.transaction_context.get_next_log_counter(), account, topics, data))
 
     def get_raw_log_entries(self) -> Tuple[Tuple[int, bytes, Tuple[int, ...], bytes], ...]:
-        """
-        Return the log entries for this computation and its children.
-
-        They are sorted in the same order they were emitted during the transaction processing, and
-        include the sequential counter as the first element of the tuple representing every entry.
-        """
         if self.is_error:
             return ()
         else:
@@ -586,16 +515,10 @@ class BaseComputation(Configurable, ComputationAPI):
     #
     @abstractmethod
     def apply_message(self) -> ComputationAPI:
-        """
-        Execution of a VM message.
-        """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
     def apply_create_message(self) -> ComputationAPI:
-        """
-        Execution of a VM message to create a new contract.
-        """
         raise NotImplementedError("Must be implemented by subclasses")
 
     @classmethod
@@ -603,9 +526,6 @@ class BaseComputation(Configurable, ComputationAPI):
                           state: StateAPI,
                           message: MessageAPI,
                           transaction_context: TransactionContextAPI) -> ComputationAPI:
-        """
-        Perform the computation that would be triggered by the VM message.
-        """
         with cls(state, message, transaction_context) as computation:
             # Early exit on pre-compiles
             precompile = computation.precompiles.get(message.code_address, NO_RESULT)
