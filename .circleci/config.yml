@@ -389,7 +389,7 @@ workflows:
 
       - py37-eth1-core
       - py37-p2p
-      - py36-p2p-trio
+      - py37-p2p-trio
       - py37-eth2-core
       - py37-eth2-utils
       - py37-eth2-fixtures
