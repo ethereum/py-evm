@@ -15,9 +15,6 @@ from eth.abc import MemoryAPI
 
 
 class Memory(MemoryAPI):
-    """
-    VM Memory
-    """
     __slots__ = ['_bytes']
     logger = logging.getLogger('eth.vm.memory.Memory')
 
@@ -48,9 +45,6 @@ class Memory(MemoryAPI):
         return len(self._bytes)
 
     def write(self, start_position: int, size: int, value: bytes) -> None:
-        """
-        Write `value` into memory.
-        """
         if size:
             validate_uint256(start_position)
             validate_uint256(size)
@@ -62,13 +56,7 @@ class Memory(MemoryAPI):
                 self._bytes[start_position + idx] = v
 
     def read(self, start_position: int, size: int) -> memoryview:
-        """
-        Return a view into the memory
-        """
         return memoryview(self._bytes)[start_position:start_position + size]
 
     def read_bytes(self, start_position: int, size: int) -> bytes:
-        """
-        Read a value from memory and return a fresh bytes instance
-        """
         return bytes(self._bytes[start_position:start_position + size])

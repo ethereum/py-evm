@@ -116,9 +116,6 @@ class BaseChain(Configurable, ChainAPI):
 
     @classmethod
     def get_vm_class_for_block_number(cls, block_number: BlockNumber) -> Type[VirtualMachineAPI]:
-        """
-        Returns the VM class for the given block number.
-        """
         if cls.vm_configuration is None:
             raise AttributeError("Chain classes must define the VMs in vm_configuration")
 
@@ -142,13 +139,6 @@ class BaseChain(Configurable, ChainAPI):
             root: BlockHeaderAPI,
             descendants: Tuple[BlockHeaderAPI, ...],
             seal_check_random_sample_rate: int = 1) -> None:
-        """
-        Validate that all of the descendents are valid, given that the root header is valid.
-
-        By default, check the seal validity (Proof-of-Work on Ethereum 1.x mainnet) of all headers.
-        This can be expensive. Instead, check a random sample of seals using
-        seal_check_random_sample_rate.
-        """
 
         all_indices = range(len(descendants))
         if seal_check_random_sample_rate == 1:
@@ -178,12 +168,6 @@ class BaseChain(Configurable, ChainAPI):
 
 
 class Chain(BaseChain):
-    """
-    A Chain is a combination of one or more VM classes.  Each VM is associated
-    with a range of blocks.  The Chain class acts as a wrapper around these other
-    VM classes, delegating operations to the appropriate VM depending on the
-    current block number.
-    """
     logger = logging.getLogger("eth.chain.chain.Chain")
     gas_estimator: StaticMethod[Callable[[StateAPI, SignedTransactionAPI], int]] = None
 
@@ -219,9 +203,6 @@ class Chain(BaseChain):
                      base_db: AtomicDatabaseAPI,
                      genesis_params: Dict[str, HeaderParams],
                      genesis_state: AccountState=None) -> 'BaseChain':
-        """
-        Initializes the Chain from a genesis state.
-        """
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
 
         pre_genesis_header = BlockHeader(difficulty=0, block_number=-1, gas_limit=0)
@@ -255,9 +236,6 @@ class Chain(BaseChain):
     def from_genesis_header(cls,
                             base_db: AtomicDatabaseAPI,
                             genesis_header: BlockHeaderAPI) -> 'BaseChain':
-        """
-        Initializes the chain from the genesis header.
-        """
         chaindb = cls.get_chaindb_class()(base_db)
         chaindb.persist_header(genesis_header)
         return cls(base_db)
@@ -266,9 +244,6 @@ class Chain(BaseChain):
     # VM API
     #
     def get_vm(self, at_header: BlockHeaderAPI = None) -> VirtualMachineAPI:
-        """
-        Returns the VM instance for the given block number.
-        """
         header = self.ensure_header(at_header)
         vm_class = self.get_vm_class_for_block_number(header.block_number)
         chain_context = ChainContext(self.chain_id)
@@ -280,37 +255,18 @@ class Chain(BaseChain):
     def create_header_from_parent(self,
                                   parent_header: BlockHeaderAPI,
                                   **header_params: HeaderParams) -> BlockHeaderAPI:
-        """
-        Passthrough helper to the VM class of the block descending from the
-        given header.
-        """
         return self.get_vm_class_for_block_number(
             block_number=BlockNumber(parent_header.block_number + 1),
         ).create_header_from_parent(parent_header, **header_params)
 
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeaderAPI:
-        """
-        Returns the requested block header as specified by block hash.
-
-        Raises BlockNotFound if there's no block header with the given hash in the db.
-        """
         validate_word(block_hash, title="Block Hash")
         return self.chaindb.get_block_header_by_hash(block_hash)
 
     def get_canonical_head(self) -> BlockHeaderAPI:
-        """
-        Returns the block header at the canonical chain head.
-
-        Raises CanonicalHeadNotFound if there's no head defined for the canonical chain.
-        """
         return self.chaindb.get_canonical_head()
 
     def get_score(self, block_hash: Hash32) -> int:
-        """
-        Returns the difficulty score of the block with the given hash.
-
-        Raises HeaderNotFound if there is no matching black hash.
-        """
         return self.headerdb.get_score(block_hash)
 
     def ensure_header(self, header: BlockHeaderAPI = None) -> BlockHeaderAPI:
@@ -328,9 +284,6 @@ class Chain(BaseChain):
     # Block API
     #
     def get_ancestors(self, limit: int, header: BlockHeaderAPI) -> Tuple[BlockAPI, ...]:
-        """
-        Return `limit` number of ancestor blocks from the current canonical head.
-        """
         ancestor_count = min(header.block_number, limit)
 
         # We construct a temporary block object
@@ -350,43 +303,22 @@ class Chain(BaseChain):
         return tuple(take(ancestor_count, ancestor_generator))
 
     def get_block(self) -> BlockAPI:
-        """
-        Returns the current TIP block.
-        """
         return self.get_vm().get_block()
 
     def get_block_by_hash(self, block_hash: Hash32) -> BlockAPI:
-        """
-        Returns the requested block as specified by block hash.
-        """
         validate_word(block_hash, title="Block Hash")
         block_header = self.get_block_header_by_hash(block_hash)
         return self.get_block_by_header(block_header)
 
     def get_block_by_header(self, block_header: BlockHeaderAPI) -> BlockAPI:
-        """
-        Returns the requested block as specified by the block header.
-        """
         vm = self.get_vm(block_header)
         return vm.get_block()
 
     def get_canonical_block_by_number(self, block_number: BlockNumber) -> BlockAPI:
-        """
-        Returns the block with the given number in the canonical chain.
-
-        Raises BlockNotFound if there's no block with the given number in the
-        canonical chain.
-        """
         validate_uint256(block_number, title="Block Number")
         return self.get_block_by_hash(self.chaindb.get_canonical_block_hash(block_number))
 
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
-        """
-        Returns the block hash with the given number in the canonical chain.
-
-        Raises BlockNotFound if there's no block with the given number in the
-        canonical chain.
-        """
         return self.chaindb.get_canonical_block_hash(block_number)
 
     def build_block_with_transactions(
@@ -394,15 +326,6 @@ class Chain(BaseChain):
             transactions: Sequence[SignedTransactionAPI],
             parent_header: BlockHeaderAPI = None
     ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
-        """
-        Generate a block with the provided transactions. This does *not* import
-        that block into your chain. If you want this new block in your chain,
-        run :meth:`~import_block` with the result block from this method.
-
-        :param transactions: an iterable of transactions to insert to the block
-        :param parent_header: parent of the new block -- or canonical head if ``None``
-        :return: (new block, receipts, computations)
-        """
         base_header = self.ensure_header(parent_header)
         vm = self.get_vm(base_header)
 
@@ -415,13 +338,6 @@ class Chain(BaseChain):
     # Transaction API
     #
     def get_canonical_transaction(self, transaction_hash: Hash32) -> SignedTransactionAPI:
-        """
-        Returns the requested transaction as specified by the transaction hash
-        from the canonical chain.
-
-        Raises TransactionNotFound if no transaction with the specified hash is
-        found in the main chain.
-        """
         (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
         VM_class = self.get_vm_class_for_block_number(block_num)
 
@@ -440,9 +356,6 @@ class Chain(BaseChain):
             )
 
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:
-        """
-        Passthrough helper to the current VM class.
-        """
         return self.get_vm().create_transaction(*args, **kwargs)
 
     def create_unsigned_transaction(self,
@@ -453,9 +366,6 @@ class Chain(BaseChain):
                                     to: Address,
                                     value: int,
                                     data: bytes) -> UnsignedTransactionAPI:
-        """
-        Passthrough helper to the current VM class.
-        """
         return self.get_vm().create_unsigned_transaction(
             nonce=nonce,
             gas_price=gas_price,
@@ -483,10 +393,7 @@ class Chain(BaseChain):
             self,
             transaction: SignedTransactionAPI,
             at_header: BlockHeaderAPI) -> bytes:
-        """
-        Return the result of running the given transaction.
-        This is referred to as a `call()` in web3.
-        """
+
         with self.get_vm(at_header).state_in_temp_block() as state:
             computation = state.costless_execute_transaction(transaction)
 
@@ -497,10 +404,6 @@ class Chain(BaseChain):
             self,
             transaction: SignedTransactionAPI,
             at_header: BlockHeaderAPI = None) -> int:
-        """
-        Returns an estimation of the amount of gas the given transaction will
-        use if executed on top of the block specified by the given header.
-        """
         if at_header is None:
             at_header = self.get_canonical_head()
         with self.get_vm(at_header).state_in_temp_block() as state:
@@ -510,13 +413,6 @@ class Chain(BaseChain):
                      block: BlockAPI,
                      perform_validation: bool=True
                      ) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
-        """
-        Imports a complete block and returns a 3-tuple
-
-        - the imported block
-        - a tuple of blocks which are now part of the canonical chain.
-        - a tuple of blocks which were canonical and now are no longer canonical.
-        """
 
         try:
             parent_header = self.get_block_header_by_hash(block.header.parent_hash)
@@ -567,15 +463,6 @@ class Chain(BaseChain):
         VM_class.validate_receipt(receipt)
 
     def validate_block(self, block: BlockAPI) -> None:
-        """
-        Performs validation on a block that is either being mined or imported.
-
-        Since block validation (specifically the uncle validation) must have
-        access to the ancestor blocks, this validation must occur at the Chain
-        level.
-
-        Cannot be used to validate genesis block.
-        """
         if block.is_genesis:
             raise ValidationError("Cannot validate genesis block this way")
         VM_class = self.get_vm_class_for_block_number(BlockNumber(block.number))
@@ -585,16 +472,10 @@ class Chain(BaseChain):
         self.validate_gaslimit(block.header)
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
-        """
-        Validate the seal on the given header.
-        """
         VM_class = self.get_vm_class_for_block_number(BlockNumber(header.block_number))
         VM_class.validate_seal(header)
 
     def validate_gaslimit(self, header: BlockHeaderAPI) -> None:
-        """
-        Validate the gas limit on the given header.
-        """
         parent_header = self.get_block_header_by_hash(header.parent_hash)
         low_bound, high_bound = compute_gas_limit_bounds(parent_header)
         if header.gas_limit < low_bound:
@@ -611,9 +492,6 @@ class Chain(BaseChain):
             )
 
     def validate_uncles(self, block: BlockAPI) -> None:
-        """
-        Validate the uncles for the given block.
-        """
         has_uncles = len(block.uncles) > 0
         should_have_uncles = block.header.uncles_hash != EMPTY_UNCLE_HASH
 
@@ -701,12 +579,6 @@ class MiningChain(Chain, MiningChainAPI):
     def apply_transaction(self,
                           transaction: SignedTransactionAPI
                           ) -> Tuple[BlockAPI, ReceiptAPI, ComputationAPI]:
-        """
-        Applies the transaction to the current tip block.
-
-        WARNING: ReceiptAPI and Transaction trie generation is computationally
-        heavy and incurs significant performance overhead.
-        """
         vm = self.get_vm(self.header)
         base_block = vm.get_block()
 
@@ -737,10 +609,6 @@ class MiningChain(Chain, MiningChainAPI):
         return imported_block, new_canonical_blocks, old_canonical_blocks
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
-        """
-        Mines the current block. Proxies to the current Virtual Machine.
-        See VM. :meth:`~eth.vm.base.VM.mine_block`
-        """
         mined_block = self.get_vm(self.header).mine_block(*args, **kwargs)
 
         self.validate_block(mined_block)

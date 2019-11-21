@@ -83,17 +83,6 @@ from eth.vm.message import (
 
 
 class VM(Configurable, VirtualMachineAPI):
-    """
-    The :class:`~eth.abc.VirtualMachineAPI` class represents the Chain rules for a
-    specific protocol definition such as the Frontier or Homestead network.
-
-      .. note::
-
-        Each :class:`~eth.abc.VirtualMachineAPI` class must be configured with:
-
-        - ``block_class``: The :class:`~eth.abc.BlockAPI` class for blocks in this VM ruleset.
-        - ``_state_class``: The :class:`~eth.abc.StateAPI` class used by this VM for execution.
-    """
     block_class: Type[BlockAPI] = None
     extra_data_max_bytes: ClassVar[int] = 32
     fork: str = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
@@ -141,13 +130,6 @@ class VM(Configurable, VirtualMachineAPI):
                     chain_context: ChainContextAPI,
                     previous_hashes: Iterable[Hash32] = (),
                     ) -> StateAPI:
-        """
-        You probably want `VM().state` instead of this.
-
-        Occasionally, you want to build custom state against a particular header and DB,
-        even if you don't have the VM initialized. This is a convenience method to do that.
-        """
-
         execution_context = cls.create_execution_context(header, previous_hashes, chain_context)
         return cls.get_state_class()(db, execution_context, header.state_root)
 
@@ -165,13 +147,6 @@ class VM(Configurable, VirtualMachineAPI):
                           header: BlockHeaderAPI,
                           transaction: SignedTransactionAPI
                           ) -> Tuple[ReceiptAPI, ComputationAPI]:
-        """
-        Apply the transaction to the current block. This is a wrapper around
-        :func:`~eth.vm.state.State.apply_transaction` with some extra orchestration logic.
-
-        :param header: header of the block before application
-        :param transaction: to apply
-        """
         self.validate_transaction_against_header(header, transaction)
         computation = self.state.apply_transaction(transaction)
         receipt = self.make_receipt(header, transaction, computation, self.state)
@@ -204,10 +179,6 @@ class VM(Configurable, VirtualMachineAPI):
                          code: bytes,
                          code_address: Address = None,
                          ) -> ComputationAPI:
-        """
-        Execute raw bytecode in the context of the current state of
-        the virtual machine.
-        """
         if origin is None:
             origin = sender
 
@@ -240,14 +211,6 @@ class VM(Configurable, VirtualMachineAPI):
         transactions: Sequence[SignedTransactionAPI],
         base_header: BlockHeaderAPI
     ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
-        """
-        Determine the results of applying all transactions to the base header.
-        This does *not* update the current block or header of the VM.
-
-        :param transactions: an iterable of all transactions to apply
-        :param base_header: the starting header to apply transactions to
-        :return: the final header, the receipts of each transaction, and the computations
-        """
         if base_header.block_number != self.get_header().block_number:
             raise ValidationError(
                 f"This VM instance must only work on block #{self.get_header().block_number}, "
@@ -283,9 +246,6 @@ class VM(Configurable, VirtualMachineAPI):
     # Mining
     #
     def import_block(self, block: BlockAPI) -> BlockAPI:
-        """
-        Import the given block to the chain.
-        """
         if self.get_block().number != block.number:
             raise ValidationError(
                 f"This VM can only import blocks at number #{self.get_block().number},"
@@ -326,9 +286,6 @@ class VM(Configurable, VirtualMachineAPI):
         return self.mine_block()
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
-        """
-        Mine the current block. Proxies to self.pack_block method.
-        """
         packed_block = self.pack_block(self.get_block(), *args, **kwargs)
 
         final_block = self.finalize_block(packed_block)
@@ -383,10 +340,6 @@ class VM(Configurable, VirtualMachineAPI):
             )
 
     def finalize_block(self, block: BlockAPI) -> BlockAPI:
-        """
-        Perform any finalization steps like awarding the block mining reward,
-        and persisting the final state root.
-        """
         if block.number > 0:
             snapshot = self.state.snapshot()
             try:
@@ -404,20 +357,6 @@ class VM(Configurable, VirtualMachineAPI):
         return block.copy(header=block.header.copy(state_root=self.state.state_root))
 
     def pack_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAPI:
-        """
-        Pack block for mining.
-
-        :param bytes coinbase: 20-byte public address to receive block reward
-        :param bytes uncles_hash: 32 bytes
-        :param bytes state_root: 32 bytes
-        :param bytes transaction_root: 32 bytes
-        :param bytes receipt_root: 32 bytes
-        :param int bloom:
-        :param int gas_used:
-        :param bytes extra_data: 32 bytes
-        :param bytes mix_hash: 32 bytes
-        :param bytes nonce: 8 bytes
-        """
         if 'uncles' in kwargs:
             uncles = kwargs.pop('uncles')
             kwargs.setdefault('uncles_hash', keccak(rlp.encode(uncles)))
@@ -447,9 +386,6 @@ class VM(Configurable, VirtualMachineAPI):
     def generate_block_from_parent_header_and_coinbase(cls,
                                                        parent_header: BlockHeaderAPI,
                                                        coinbase: Address) -> BlockAPI:
-        """
-        Generate block from parent header and coinbase.
-        """
         block_header = generate_header_from_parent_header(
             cls.compute_difficulty,
             parent_header,
@@ -465,9 +401,6 @@ class VM(Configurable, VirtualMachineAPI):
 
     @classmethod
     def get_block_class(cls) -> Type[BlockAPI]:
-        """
-        Return the :class:`~eth.rlp.blocks.Block` class that this VM uses for blocks.
-        """
         if cls.block_class is None:
             raise AttributeError("No `block_class` has been set for this VM")
         else:
@@ -491,18 +424,12 @@ class VM(Configurable, VirtualMachineAPI):
 
     @property
     def previous_hashes(self) -> Optional[Iterable[Hash32]]:
-        """
-        Convenience API for accessing the previous 255 block hashes.
-        """
         return self.get_prev_hashes(self.get_header().parent_hash, self.chaindb)
 
     #
     # Transactions
     #
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:
-        """
-        Proxy for instantiating a signed transaction for this VM.
-        """
         return self.get_transaction_class()(*args, **kwargs)
 
     @classmethod
@@ -514,9 +441,6 @@ class VM(Configurable, VirtualMachineAPI):
                                     to: Address,
                                     value: int,
                                     data: bytes) -> UnsignedTransactionAPI:
-        """
-        Proxy for instantiating an unsigned transaction for this VM.
-        """
         return cls.get_transaction_class().create_unsigned_transaction(
             nonce=nonce,
             gas_price=gas_price,
@@ -528,9 +452,6 @@ class VM(Configurable, VirtualMachineAPI):
 
     @classmethod
     def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
-        """
-        Return the class that this VM uses for transactions.
-        """
         return cls.get_block_class().get_transaction_class()
 
     #
@@ -562,9 +483,6 @@ class VM(Configurable, VirtualMachineAPI):
                 already_checked.add(topic)
 
     def validate_block(self, block: BlockAPI) -> None:
-        """
-        Validate the the given block.
-        """
         if not isinstance(block, self.get_block_class()):
             raise ValidationError(
                 f"This vm ({self!r}) is not equipped to validate a block of type {block!r}"
@@ -612,9 +530,6 @@ class VM(Configurable, VirtualMachineAPI):
                         header: BlockHeaderAPI,
                         parent_header: BlockHeaderAPI,
                         check_seal: bool = True) -> None:
-        """
-        :raise eth.exceptions.ValidationError: if the header is not valid
-        """
         if parent_header is None:
             # to validate genesis header, check if it equals canonical header at block number 0
             raise ValidationError("Must have access to parent header to validate current header")
@@ -652,18 +567,12 @@ class VM(Configurable, VirtualMachineAPI):
 
     @classmethod
     def validate_seal(cls, header: BlockHeaderAPI) -> None:
-        """
-        Validate the seal on the given header.
-        """
         check_pow(
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
 
     @classmethod
     def validate_uncle(cls, block: BlockAPI, uncle: BlockAPI, uncle_parent: BlockAPI) -> None:
-        """
-        Validate the given uncle in the context of the given block.
-        """
         if uncle.block_number >= block.number:
             raise ValidationError(
                 f"Uncle number ({uncle.block_number}) is higher than "
@@ -690,9 +599,6 @@ class VM(Configurable, VirtualMachineAPI):
     #
     @classmethod
     def get_state_class(cls) -> Type[StateAPI]:
-        """
-        Return the class that this VM uses for states.
-        """
         if cls._state_class is None:
             raise AttributeError("No `_state_class` has been set for this VM")
 

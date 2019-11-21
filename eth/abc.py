@@ -96,11 +96,18 @@ class ReceiptAPI(rlp.Serializable, ABC):
 class BaseTransactionAPI(ABC):
     @abstractmethod
     def validate(self) -> None:
+        """
+        Hook called during instantiation to ensure that all transaction
+        parameters pass validation rules.
+        """
         ...
 
     @property
     @abstractmethod
     def intrinsic_gas(self) -> int:
+        """
+        Convenience property for the return value of `get_intrinsic_gas`
+        """
         ...
 
     @abstractmethod
@@ -109,6 +116,11 @@ class BaseTransactionAPI(ABC):
 
     @abstractmethod
     def gas_used_by(self, computation: 'ComputationAPI') -> int:
+        """
+        Return the gas used by the given computation. In Frontier,
+        for example, this is sum of the intrinsic cost and the gas used
+        during computation.
+        """
         ...
 
     @abstractmethod
@@ -162,6 +174,9 @@ class SignedTransactionAPI(rlp.Serializable, BaseTransactionAPI, TransactionFiel
     @property
     @abstractmethod
     def sender(self) -> Address:
+        """
+        Convenience and performance property for the return value of `get_sender`
+        """
         ...
 
     # +-------------------------------------------------------------+
@@ -173,6 +188,11 @@ class SignedTransactionAPI(rlp.Serializable, BaseTransactionAPI, TransactionFiel
     #
     @abstractmethod
     def validate(self) -> None:
+        """
+        Hook called during instantiation to ensure that all transaction
+        parameters pass validation rules.
+        """
+
         ...
 
     #
@@ -292,6 +312,10 @@ class DatabaseAPI(MutableMapping[bytes, bytes], ABC):
 
 
 class AtomicDatabaseAPI(DatabaseAPI):
+    """
+    Like ``BatchDB``, but it immediately write out changes if they are
+    not in an ``atomic_batch()`` context.
+    """
     @abstractmethod
     def atomic_batch(self) -> ContextManager[DatabaseAPI]:
         ...
@@ -309,14 +333,29 @@ class HeaderDatabaseAPI(ABC):
     #
     @abstractmethod
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
+        """
+        Return the block hash for the canonical block at the given number.
+
+        Raise ``BlockNotFound`` if there's no block header with the given number in the
+        canonical chain.
+        """
         ...
 
     @abstractmethod
     def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
+        """
+        Return the block header with the given number in the canonical chain.
+
+        Raise ``BlockNotFound`` if there's no block header with the given number in the
+        canonical chain.
+        """
         ...
 
     @abstractmethod
     def get_canonical_head(self) -> BlockHeaderAPI:
+        """
+        Return the current block header at the head of the chain.
+        """
         ...
 
     #
@@ -336,6 +375,10 @@ class HeaderDatabaseAPI(ABC):
 
     @abstractmethod
     def persist_checkpoint_header(self, header: BlockHeaderAPI, score: int) -> None:
+        """
+        Persist a checkpoint header with a trusted score. Persisting the checkpoint header
+        automatically sets it as the new canonical head.
+        """
         ...
 
     @abstractmethod
@@ -349,6 +392,15 @@ class HeaderDatabaseAPI(ABC):
                              headers: Sequence[BlockHeaderAPI],
                              genesis_parent_hash: Hash32 = None,
                              ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
+        """
+        Return two iterable of headers, the first containing the new canonical headers,
+        the second containing the old canonical headers
+
+        :param genesis_parent_hash: *optional* parent hash of the block that is treated as genesis.
+            Providing a ``genesis_parent_hash`` allows storage of headers that aren't (yet)
+            connected back to the true genesis header.
+
+        """
         ...
 
 
@@ -358,6 +410,9 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     #
     @abstractmethod
     def get_block_uncles(self, uncles_hash: Hash32) -> Tuple[BlockHeaderAPI, ...]:
+        """
+        Return an iterable of uncle headers specified by the given ``uncles_hash``
+        """
         ...
 
     #
@@ -368,10 +423,25 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
                       block: BlockAPI,
                       genesis_parent_hash: Hash32 = None,
                       ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
+        """
+        Persist the given block's header and uncles.
+
+        :param block: the block that gets persisted
+        :param genesis_parent_hash: *optional* parent hash of the header that is treated
+            as genesis. Providing a ``genesis_parent_hash`` allows storage of blocks that
+            aren't (yet) connected back to the true genesis header.
+
+        Assumes all block transactions have been persisted already.
+        """
         ...
 
     @abstractmethod
     def persist_uncles(self, uncles: Tuple[BlockHeaderAPI]) -> Hash32:
+        """
+        Persist the list of uncles to the database.
+
+        Return the uncles hash.
+        """
         ...
 
     #
@@ -381,12 +451,22 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     def add_receipt(self,
                     block_header: BlockHeaderAPI,
                     index_key: int, receipt: ReceiptAPI) -> Hash32:
+        """
+        Add the given receipt to the provided block header.
+
+        Return the updated `receipts_root` for updated block header.
+        """
         ...
 
     @abstractmethod
     def add_transaction(self,
                         block_header: BlockHeaderAPI,
                         index_key: int, transaction: SignedTransactionAPI) -> Hash32:
+        """
+        Add the given transaction to the provided block header.
+
+        Return the updated `transactions_root` for updated block header.
+        """
         ...
 
     @abstractmethod
@@ -394,6 +474,10 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
             self,
             block_header: BlockHeaderAPI,
             transaction_class: Type[SignedTransactionAPI]) -> Sequence[SignedTransactionAPI]:
+        """
+        Return an iterable of transactions for the block speficied by the
+        given block header.
+        """
         ...
 
     @abstractmethod
@@ -404,12 +488,20 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     def get_receipt_by_index(self,
                              block_number: BlockNumber,
                              receipt_index: int) -> ReceiptAPI:
+        """
+        Return the Receipt of the transaction at specified index
+        for the block header obtained by the specified block number
+        """
         ...
 
     @abstractmethod
     def get_receipts(self,
                      header: BlockHeaderAPI,
                      receipt_class: Type[ReceiptAPI]) -> Tuple[ReceiptAPI, ...]:
+        """
+        Return an iterable of receipts for the block specified by the given
+        block header.
+        """
         ...
 
     @abstractmethod
@@ -418,10 +510,24 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
             block_number: BlockNumber,
             transaction_index: int,
             transaction_class: Type[SignedTransactionAPI]) -> SignedTransactionAPI:
+        """
+        Return the transaction at the specified `transaction_index` from the
+        block specified by `block_number` from the canonical chain.
+
+        Raise ``TransactionNotFound`` if no block with that ``block_number`` exists.
+        """
         ...
 
     @abstractmethod
     def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
+        """
+        Return a 2-tuple of (block_number, transaction_index) indicating which
+        block the given transaction can be found in and at what index in the
+        block transactions.
+
+        Raise ``TransactionNotFound`` if the transaction_hash is not found in the
+        canonical chain.
+        """
         ...
 
     #
@@ -429,14 +535,23 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     #
     @abstractmethod
     def exists(self, key: bytes) -> bool:
+        """
+        Return ``True`` if the given key exists in the database.
+        """
         ...
 
     @abstractmethod
     def get(self, key: bytes) -> bytes:
+        """
+        Return the value for the given key or a KeyError if it doesn't exist in the database.
+        """
         ...
 
     @abstractmethod
     def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
+        """
+        Store raw trie data to db from a dict
+        """
         ...
 
 
@@ -526,6 +641,9 @@ class OpcodeAPI(ABC):
                   logic_fn: Callable[['ComputationAPI'], None],
                   mnemonic: str,
                   gas_cost: int) -> Type[T]:
+        """
+        Class factory method for turning vanilla functions into Opcode classes.
+        """
         ...
 
     @abstractmethod
@@ -538,6 +656,9 @@ class OpcodeAPI(ABC):
 
 
 class ChainContextAPI(ABC):
+    """
+    Immutable chain context information that remains constant over the VM execution.
+    """
     @abstractmethod
     def __init__(self, chain_id: Optional[int]) -> None:
         ...
@@ -549,6 +670,9 @@ class ChainContextAPI(ABC):
 
 
 class TransactionContextAPI(ABC):
+    """
+    Immutable transaction context information that remains constant over the VM execution.
+    """
     @abstractmethod
     def __init__(self, gas_price: int, origin: Address) -> None:
         ...
@@ -569,6 +693,9 @@ class TransactionContextAPI(ABC):
 
 
 class MemoryAPI(ABC):
+    """
+    The memory of the VM
+    """
     @abstractmethod
     def extend(self, start_position: int, size: int) -> None:
         ...
@@ -579,56 +706,123 @@ class MemoryAPI(ABC):
 
     @abstractmethod
     def write(self, start_position: int, size: int, value: bytes) -> None:
+        """
+        Write `value` into memory.
+        """
         ...
 
     @abstractmethod
     def read(self, start_position: int, size: int) -> memoryview:
+        """
+        Return a view into the memory
+        """
         ...
 
     @abstractmethod
     def read_bytes(self, start_position: int, size: int) -> bytes:
+        """
+        Read a value from memory and return a fresh bytes instance
+        """
         ...
 
 
 class StackAPI(ABC):
+    """
+    The stack of the VM.
+    """
     @abstractmethod
     def push_int(self, value: int) -> None:
+        """
+        Push an integer item onto the stack.
+        """
         ...
 
     @abstractmethod
     def push_bytes(self, value: bytes) -> None:
+        """
+        Push a bytes item onto the stack.
+        """
         ...
 
     @abstractmethod
     def pop1_bytes(self) -> bytes:
+        """
+        Pop and return a bytes element from the stack.
+
+        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
+        """
         ...
 
     @abstractmethod
     def pop1_int(self) -> int:
+        """
+        Pop and return an integer from the stack.
+
+        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
+        """
         ...
 
     @abstractmethod
     def pop1_any(self) -> Union[int, bytes]:
+        """
+        Pop and return an element from the stack.
+        The type of each element will be int or bytes, depending on whether it was
+        pushed with push_bytes or push_int.
+
+        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
+        """
         ...
 
     @abstractmethod
     def pop_any(self, num_items: int) -> Tuple[Union[int, bytes], ...]:
+        """
+        Pop and return a tuple of items of length ``num_items`` from the stack.
+        The type of each element will be int or bytes, depending on whether it was
+        pushed with stack_push_bytes or stack_push_int.
+
+        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
+        the stack.
+
+        Items are ordered with the top of the stack as the first item in the tuple.
+        """
         ...
 
     @abstractmethod
     def pop_ints(self, num_items: int) -> Tuple[int, ...]:
+        """
+        Pop and return a tuple of integers of length ``num_items`` from the stack.
+
+        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
+        the stack.
+
+        Items are ordered with the top of the stack as the first item in the tuple.
+        """
         ...
 
     @abstractmethod
     def pop_bytes(self, num_items: int) -> Tuple[bytes, ...]:
+        """
+        Pop and return a tuple of bytes of length ``num_items`` from the stack.
+
+        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
+        the stack.
+
+        Items are ordered with the top of the stack as the first item in the tuple.
+        """
         ...
 
     @abstractmethod
     def swap(self, position: int) -> None:
+        """
+        Perform a SWAP operation on the stack.
+        """
         ...
 
     @abstractmethod
     def dup(self, position: int) -> None:
+        """
+        Perform a DUP operation on the stack.
+        """
         ...
 
 
@@ -736,6 +930,9 @@ class ExecutionContextAPI(ABC):
 
 
 class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
+    """
+    The base class for all execution computations.
+    """
     msg: MessageAPI
     logger: ExtendedDebugLogger
     code: CodeStreamAPI
@@ -756,6 +953,9 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     @property
     @abstractmethod
     def is_origin_computation(self) -> bool:
+        """
+        Return ``True`` if this computation is the outermost computation at ``depth == 0``.
+        """
         ...
 
     #
@@ -764,11 +964,17 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     @property
     @abstractmethod
     def is_success(self) -> bool:
+        """
+        Return ``True`` if the computation did not result in an error.
+        """
         ...
 
     @property
     @abstractmethod
     def is_error(self) -> bool:
+        """
+        Return ``True`` if the computation resulted in an error.
+        """
         ...
 
     @property
@@ -785,21 +991,35 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
 
     @abstractmethod
     def raise_if_error(self) -> None:
+        """
+        If there was an error during computation, raise it as an exception immediately.
+
+        :raise VMError:
+        """
         ...
 
     @property
     @abstractmethod
     def should_burn_gas(self) -> bool:
+        """
+        Return ``True`` if the remaining gas should be burned.
+        """
         ...
 
     @property
     @abstractmethod
     def should_return_gas(self) -> bool:
+        """
+        Return ``True`` if the remaining gas should be returned.
+        """
         ...
 
     @property
     @abstractmethod
     def should_erase_return_data(self) -> bool:
+        """
+        Return ``True`` if the return data should be zerod out due to an error.
+        """
         ...
 
     #
@@ -807,18 +1027,32 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     #
     @abstractmethod
     def extend_memory(self, start_position: int, size: int) -> None:
+        """
+        Extend the size of the memory to be at minimum ``start_position + size``
+        bytes in length.  Raise `eth.exceptions.OutOfGas` if there is not enough
+        gas to pay for extending the memory.
+        """
         ...
 
     @abstractmethod
     def memory_write(self, start_position: int, size: int, value: bytes) -> None:
+        """
+        Write ``value`` to memory at ``start_position``. Require that ``len(value) == size``.
+        """
         ...
 
     @abstractmethod
     def memory_read(self, start_position: int, size: int) -> memoryview:
+        """
+        Read and return a view of ``size`` bytes from memory starting at ``start_position``.
+        """
         ...
 
     @abstractmethod
     def memory_read_bytes(self, start_position: int, size: int) -> bytes:
+        """
+        Read and return ``size`` bytes from memory starting at ``start_position``.
+        """
         ...
 
     #
@@ -830,14 +1064,24 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
 
     @abstractmethod
     def consume_gas(self, amount: int, reason: str) -> None:
+        """
+        Consume ``amount`` of gas from the remaining gas.
+        Raise `eth.exceptions.OutOfGas` if there is not enough gas remaining.
+        """
         ...
 
     @abstractmethod
     def return_gas(self, amount: int) -> None:
+        """
+        Return ``amount`` of gas to the available gas pool.
+        """
         ...
 
     @abstractmethod
     def refund_gas(self, amount: int) -> None:
+        """
+        Add ``amount`` of gas to the pool of gas marked to be refunded.
+        """
         ...
 
     @abstractmethod
@@ -857,10 +1101,16 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     #
     @abstractmethod
     def stack_swap(self, position: int) -> None:
+        """
+        Swap the item on the top of the stack with the item at ``position``.
+        """
         ...
 
     @abstractmethod
     def stack_dup(self, position: int) -> None:
+        """
+        Duplicate the stack item at ``position`` and pushes it onto the stack.
+        """
         ...
 
     #
@@ -869,10 +1119,16 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     @property
     @abstractmethod
     def output(self) -> bytes:
+        """
+        Get the return value of the computation.
+        """
         ...
 
     @output.setter
     def output(self, value: bytes) -> None:
+        """
+        Set the return value of the computation.
+        """
         # See: https://github.com/python/mypy/issues/4165
         # Since we can't also decorate this with abstract method we want to be
         # sure that the setter doesn't actually get used as a noop.
@@ -889,10 +1145,16 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
                               data: BytesOrView,
                               code: bytes,
                               **kwargs: Any) -> MessageAPI:
+        """
+        Helper method for creating a child computation.
+        """
         ...
 
     @abstractmethod
     def apply_child_computation(self, child_msg: MessageAPI) -> 'ComputationAPI':
+        """
+        Apply the vm message ``child_msg`` as a child computation.
+        """
         ...
 
     @abstractmethod
@@ -927,6 +1189,12 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
 
     @abstractmethod
     def get_log_entries(self) -> Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]:
+        """
+        Return the log entries for this computation and its children.
+
+        They are sorted in the same order they were emitted during the transaction processing, and
+        include the sequential counter as the first element of the tuple representing every entry.
+        """
         ...
 
     #
@@ -934,10 +1202,16 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     #
     @abstractmethod
     def apply_message(self) -> 'ComputationAPI':
+        """
+        Execution of a VM message.
+        """
         ...
 
     @abstractmethod
     def apply_create_message(self) -> 'ComputationAPI':
+        """
+        Execution of a VM message to create a new contract.
+        """
         ...
 
     @classmethod
@@ -946,6 +1220,9 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
                           state: 'StateAPI',
                           message: MessageAPI,
                           transaction_context: TransactionContextAPI) -> 'ComputationAPI':
+        """
+        Perform the computation that would be triggered by the VM message.
+        """
         ...
 
     #
@@ -962,6 +1239,10 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
 
 
 class AccountStorageDatabaseAPI(ABC):
+    """
+    Storage cache and write batch for a single account. Changes are not
+    merklized until :meth:`make_storage_root` is called.
+    """
     @abstractmethod
     def get(self, slot: int, from_journal: bool=True) -> int:
         ...
@@ -988,6 +1269,9 @@ class AccountStorageDatabaseAPI(ABC):
 
     @abstractmethod
     def make_storage_root(self) -> None:
+        """
+        Force calculation of the storage root for this account
+        """
         ...
 
     @property
@@ -1166,6 +1450,11 @@ class TransactionExecutorAPI(ABC):
     def build_computation(self,
                           message: MessageAPI,
                           transaction: SignedTransactionAPI) -> 'ComputationAPI':
+        """
+        Apply the ``message`` to the VM and use the given ``transaction`` to
+        retrieve the context from.
+        """
+
         ...
 
     @abstractmethod
@@ -1185,6 +1474,21 @@ class ConfigurableAPI(ABC):
 
 
 class StateAPI(ConfigurableAPI):
+    """
+    The base class that encapsulates all of the various moving parts related to
+    the state of the VM during execution.
+    Each :class:`~eth.abc.VirtualMachineAPI` must be configured with a subclass of the
+    :class:`~eth.abc.StateAPI`.
+
+      .. note::
+
+        Each :class:`~eth.abc.StateAPI` class must be configured with:
+
+        - ``computation_class``: The :class:`~eth.abc.ComputationAPI` class for
+          vm execution.
+        - ``transaction_context_class``: The :class:`~eth.abc.TransactionContextAPI`
+          class for vm execution.
+    """
     #
     # Set from __init__
     #
@@ -1214,26 +1518,41 @@ class StateAPI(ConfigurableAPI):
     @property
     @abstractmethod
     def coinbase(self) -> Address:
+        """
+        Return the current ``coinbase`` from the current :attr:`~execution_context`
+        """
         ...
 
     @property
     @abstractmethod
     def timestamp(self) -> int:
+        """
+        Return the current ``timestamp`` from the current :attr:`~execution_context`
+        """
         ...
 
     @property
     @abstractmethod
     def block_number(self) -> BlockNumber:
+        """
+        Return the current ``block_number`` from the current :attr:`~execution_context`
+        """
         ...
 
     @property
     @abstractmethod
     def difficulty(self) -> int:
+        """
+        Return the current ``difficulty`` from the current :attr:`~execution_context`
+        """
         ...
 
     @property
     @abstractmethod
     def gas_limit(self) -> int:
+        """
+        Return the current ``gas_limit`` from the current :attr:`~transaction_context`
+        """
         ...
 
     #
@@ -1242,11 +1561,18 @@ class StateAPI(ConfigurableAPI):
     @classmethod
     @abstractmethod
     def get_account_db_class(cls) -> Type[AccountDatabaseAPI]:
+        """
+        Return the :class:`~eth.abc.AccountDatabaseAPI` class that the
+        state class uses.
+        """
         ...
 
     @property
     @abstractmethod
     def state_root(self) -> Hash32:
+        """
+        Return the current ``state_root`` from the underlying database
+        """
         ...
 
     @abstractmethod
@@ -1330,14 +1656,27 @@ class StateAPI(ConfigurableAPI):
     #
     @abstractmethod
     def snapshot(self) -> Tuple[Hash32, UUID]:
+        """
+        Perform a full snapshot of the current state.
+
+        Snapshots are a combination of the :attr:`~state_root` at the time of the
+        snapshot and the checkpoint from the journaled DB.
+        """
         ...
 
     @abstractmethod
     def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
+        """
+        Revert the VM to the state at the snapshot
+        """
         ...
 
     @abstractmethod
     def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
+        """
+        Commit the journal to the point where the snapshot was taken.  This
+        merges in any changes that were recorded since the snapshot.
+        """
         ...
 
     @abstractmethod
@@ -1349,6 +1688,11 @@ class StateAPI(ConfigurableAPI):
     #
     @abstractmethod
     def get_ancestor_hash(self, block_number: BlockNumber) -> Hash32:
+        """
+        Return the hash for the ancestor block with number ``block_number``.
+        Return the empty bytestring ``b''`` if the block number is outside of the
+        range of available block numbers (typically the last 255 blocks).
+        """
         ...
 
     #
@@ -1358,6 +1702,9 @@ class StateAPI(ConfigurableAPI):
     def get_computation(self,
                         message: MessageAPI,
                         transaction_context: TransactionContextAPI) -> ComputationAPI:
+        """
+        Return a computation instance for the given `message` and `transaction_context`
+        """
         ...
 
     #
@@ -1366,6 +1713,10 @@ class StateAPI(ConfigurableAPI):
     @classmethod
     @abstractmethod
     def get_transaction_context_class(cls) -> Type[TransactionContextAPI]:
+        """
+        Return the :class:`~eth.vm.transaction_context.BaseTransactionContext` class that the
+        state class uses.
+        """
         ...
 
     #
@@ -1406,6 +1757,18 @@ class StateAPI(ConfigurableAPI):
 
 
 class VirtualMachineAPI(ConfigurableAPI):
+    """
+    The :class:`~eth.abc.VirtualMachineAPI` class represents the Chain rules for a
+    specific protocol definition such as the Frontier or Homestead network.
+
+      .. note::
+
+        Each :class:`~eth.abc.VirtualMachineAPI` class must be configured with:
+
+        - ``block_class``: The :class:`~eth.abc.BlockAPI` class for blocks in this VM ruleset.
+        - ``_state_class``: The :class:`~eth.abc.StateAPI` class used by this VM for execution.
+    """
+
     fork: str  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
     chaindb: ChainDatabaseAPI
     extra_data_max_bytes: ClassVar[int]
@@ -1427,6 +1790,12 @@ class VirtualMachineAPI(ConfigurableAPI):
                     chain_context: ChainContextAPI,
                     previous_hashes: Iterable[Hash32] = (),
                     ) -> StateAPI:
+        """
+        You probably want `VM().state` instead of this.
+
+        Occasionally, you want to build custom state against a particular header and DB,
+        even if you don't have the VM initialized. This is a convenience method to do that.
+        """
         ...
 
     @abstractmethod
@@ -1445,6 +1814,13 @@ class VirtualMachineAPI(ConfigurableAPI):
                           header: BlockHeaderAPI,
                           transaction: SignedTransactionAPI
                           ) -> Tuple[ReceiptAPI, ComputationAPI]:
+        """
+        Apply the transaction to the current block. This is a wrapper around
+        :func:`~eth.vm.state.State.apply_transaction` with some extra orchestration logic.
+
+        :param header: header of the block before application
+        :param transaction: to apply
+        """
         ...
 
     @staticmethod
@@ -1465,6 +1841,10 @@ class VirtualMachineAPI(ConfigurableAPI):
                          data: bytes,
                          code: bytes,
                          code_address: Address = None) -> ComputationAPI:
+        """
+        Execute raw bytecode in the context of the current state of
+        the virtual machine.
+        """
         ...
 
     @abstractmethod
@@ -1473,6 +1853,14 @@ class VirtualMachineAPI(ConfigurableAPI):
         transactions: Sequence[SignedTransactionAPI],
         base_header: BlockHeaderAPI
     ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
+        """
+        Determine the results of applying all transactions to the base header.
+        This does *not* update the current block or header of the VM.
+
+        :param transactions: an iterable of all transactions to apply
+        :param base_header: the starting header to apply transactions to
+        :return: the final header, the receipts of each transaction, and the computations
+        """
         ...
 
     @abstractmethod
@@ -1498,10 +1886,16 @@ class VirtualMachineAPI(ConfigurableAPI):
     #
     @abstractmethod
     def import_block(self, block: BlockAPI) -> BlockAPI:
+        """
+        Import the given block to the chain.
+        """
         ...
 
     @abstractmethod
     def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
+        """
+        Mine the current block. Proxies to self.pack_block method.
+        """
         ...
 
     @abstractmethod
@@ -1517,10 +1911,28 @@ class VirtualMachineAPI(ConfigurableAPI):
     #
     @abstractmethod
     def finalize_block(self, block: BlockAPI) -> BlockAPI:
+        """
+        Perform any finalization steps like awarding the block mining reward,
+        and persisting the final state root.
+        """
         ...
 
     @abstractmethod
     def pack_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAPI:
+        """
+        Pack block for mining.
+
+        :param bytes coinbase: 20-byte public address to receive block reward
+        :param bytes uncles_hash: 32 bytes
+        :param bytes state_root: 32 bytes
+        :param bytes transaction_root: 32 bytes
+        :param bytes receipt_root: 32 bytes
+        :param int bloom:
+        :param int gas_used:
+        :param bytes extra_data: 32 bytes
+        :param bytes mix_hash: 32 bytes
+        :param bytes nonce: 8 bytes
+        """
         ...
 
     #
@@ -1576,11 +1988,17 @@ class VirtualMachineAPI(ConfigurableAPI):
     def generate_block_from_parent_header_and_coinbase(cls,
                                                        parent_header: BlockHeaderAPI,
                                                        coinbase: Address) -> BlockAPI:
+        """
+        Generate block from parent header and coinbase.
+        """
         ...
 
     @classmethod
     @abstractmethod
     def get_block_class(cls) -> Type[BlockAPI]:
+        """
+        Return the :class:`~eth.rlp.blocks.Block` class that this VM uses for blocks.
+        """
         ...
 
     @staticmethod
@@ -1613,6 +2031,14 @@ class VirtualMachineAPI(ConfigurableAPI):
                         chaindb: ChainDatabaseAPI) -> Optional[Iterable[Hash32]]:
         ...
 
+    @property
+    @abstractmethod
+    def previous_hashes(self) -> Optional[Iterable[Hash32]]:
+        """
+        Convenience API for accessing the previous 255 block hashes.
+        """
+        ...
+
     @staticmethod
     @abstractmethod
     def get_uncle_reward(block_number: BlockNumber, uncle: BlockAPI) -> int:
@@ -1629,6 +2055,9 @@ class VirtualMachineAPI(ConfigurableAPI):
     #
     @abstractmethod
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:
+        """
+        Proxy for instantiating a signed transaction for this VM.
+        """
         ...
 
     @classmethod
@@ -1641,11 +2070,17 @@ class VirtualMachineAPI(ConfigurableAPI):
                                     to: Address,
                                     value: int,
                                     data: bytes) -> UnsignedTransactionAPI:
+        """
+        Proxy for instantiating an unsigned transaction for this VM.
+        """
         ...
 
     @classmethod
     @abstractmethod
     def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
+        """
+        Return the class that this VM uses for transactions.
+        """
         ...
 
     #
@@ -1658,6 +2093,9 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @abstractmethod
     def validate_block(self, block: BlockAPI) -> None:
+        """
+        Validate the the given block.
+        """
         ...
 
     @classmethod
@@ -1667,6 +2105,9 @@ class VirtualMachineAPI(ConfigurableAPI):
                         parent_header: BlockHeaderAPI,
                         check_seal: bool = True
                         ) -> None:
+        """
+        :raise eth.exceptions.ValidationError: if the header is not valid
+        """
         ...
 
     @abstractmethod
@@ -1686,6 +2127,9 @@ class VirtualMachineAPI(ConfigurableAPI):
     @classmethod
     @abstractmethod
     def validate_seal(cls, header: BlockHeaderAPI) -> None:
+        """
+        Validate the seal on the given header.
+        """
         ...
 
     @classmethod
@@ -1695,6 +2139,9 @@ class VirtualMachineAPI(ConfigurableAPI):
                        uncle: BlockHeaderAPI,
                        uncle_parent: BlockHeaderAPI
                        ) -> None:
+        """
+        Validate the given uncle in the context of the given block.
+        """
         ...
 
     #
@@ -1703,6 +2150,9 @@ class VirtualMachineAPI(ConfigurableAPI):
     @classmethod
     @abstractmethod
     def get_state_class(cls) -> Type[StateAPI]:
+        """
+        Return the class that this VM uses for states.
+        """
         ...
 
     @abstractmethod
@@ -1727,6 +2177,9 @@ class HeaderChainAPI(ABC):
     def from_genesis_header(cls,
                             base_db: AtomicDatabaseAPI,
                             genesis_header: BlockHeaderAPI) -> 'HeaderChainAPI':
+        """
+        Initialize the chain from the genesis header.
+        """
         ...
 
     #
@@ -1735,17 +2188,31 @@ class HeaderChainAPI(ABC):
     @classmethod
     @abstractmethod
     def get_headerdb_class(cls) -> Type[HeaderDatabaseAPI]:
+        """
+        Return the class which should be used for the `headerdb`
+        """
         ...
 
     #
     # Canonical Chain API
     #
+    def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
+        """
+        Direct passthrough to `headerdb`
+        """
+
     @abstractmethod
     def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
+        """
+        Direct passthrough to `headerdb`
+        """
         ...
 
     @abstractmethod
     def get_canonical_head(self) -> BlockHeaderAPI:
+        """
+        Direct passthrough to `headerdb`
+        """
         ...
 
     #
@@ -1753,20 +2220,48 @@ class HeaderChainAPI(ABC):
     #
     @abstractmethod
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeaderAPI:
+        """
+        Direct passthrough to `headerdb`
+        """
         ...
 
     @abstractmethod
     def header_exists(self, block_hash: Hash32) -> bool:
+        """
+        Direct passthrough to `headerdb`
+        """
         ...
 
     @abstractmethod
     def import_header(self,
                       header: BlockHeaderAPI,
                       ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
+        """
+        Direct passthrough to `headerdb`
+
+        Also updates the local `header` property to be the latest canonical head.
+
+        Returns an iterable of headers representing the headers that are newly
+        part of the canonical chain.
+
+        - If the imported header is not part of the canonical chain then an
+          empty tuple will be returned.
+        - If the imported header simply extends the canonical chain then a
+          length-1 tuple with the imported header will be returned.
+        - If the header is part of a non-canonical chain which overtakes the
+          current canonical chain then the returned tuple will contain the
+          headers which are newly part of the canonical chain.
+        """
         ...
 
 
 class ChainAPI(ConfigurableAPI):
+    """
+    A Chain is a combination of one or more VM classes. Each VM is associated
+    with a range of blocks. The Chain class acts as a wrapper around these other
+    VM classes, delegating operations to the appropriate VM depending on the
+    current block number.
+    """
     vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
     chain_id: int
     chaindb: ChainDatabaseAPI
@@ -1788,6 +2283,9 @@ class ChainAPI(ConfigurableAPI):
                      base_db: AtomicDatabaseAPI,
                      genesis_params: Dict[str, HeaderParams],
                      genesis_state: AccountState=None) -> 'ChainAPI':
+        """
+        Initialize the Chain from a genesis state.
+        """
         ...
 
     @classmethod
@@ -1795,6 +2293,9 @@ class ChainAPI(ConfigurableAPI):
     def from_genesis_header(cls,
                             base_db: AtomicDatabaseAPI,
                             genesis_header: BlockHeaderAPI) -> 'ChainAPI':
+        """
+        Initialize the chain from the genesis header.
+        """
         ...
 
     #
@@ -1804,16 +2305,22 @@ class ChainAPI(ConfigurableAPI):
     @abstractmethod
     def get_vm_class(cls, header: BlockHeaderAPI) -> Type[VirtualMachineAPI]:
         """
-        Returns the VM instance for the given block number.
+        Return the VM class for the given ``header``
         """
         ...
 
     @abstractmethod
     def get_vm(self, header: BlockHeaderAPI = None) -> VirtualMachineAPI:
+        """
+        Return the VM instance for the given ``header``.
+        """
         ...
 
     @classmethod
     def get_vm_class_for_block_number(cls, block_number: BlockNumber) -> Type[VirtualMachineAPI]:
+        """
+        Return the VM class for the given ``block_number``
+        """
         ...
 
     #
@@ -1823,18 +2330,36 @@ class ChainAPI(ConfigurableAPI):
     def create_header_from_parent(self,
                                   parent_header: BlockHeaderAPI,
                                   **header_params: HeaderParams) -> BlockHeaderAPI:
+        """
+        Passthrough helper to the VM class of the block descending from the
+        given header.
+        """
         ...
 
     @abstractmethod
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeaderAPI:
+        """
+        Return the requested block header as specified by ``block_hash``.
+        Raise ``BlockNotFound`` if no block header with the given hash exists in the db.
+        """
         ...
 
     @abstractmethod
     def get_canonical_head(self) -> BlockHeaderAPI:
+        """
+        Return the block header at the canonical chain head.
+
+        Raise ``CanonicalHeadNotFound`` if there's no head defined for the canonical chain.
+        """
         ...
 
     @abstractmethod
     def get_score(self, block_hash: Hash32) -> int:
+        """
+        Return the difficulty score of the block with the given ``block_hash``.
+
+        Raise ``HeaderNotFound`` if there is no matching block hash.
+        """
         ...
 
     #
@@ -1842,26 +2367,50 @@ class ChainAPI(ConfigurableAPI):
     #
     @abstractmethod
     def get_ancestors(self, limit: int, header: BlockHeaderAPI) -> Tuple[BlockAPI, ...]:
+        """
+        Return `limit` number of ancestor blocks from the current canonical head.
+        """
         ...
 
     @abstractmethod
     def get_block(self) -> BlockAPI:
+        """
+        Return the current block at the tip of the chain.
+        """
         ...
 
     @abstractmethod
     def get_block_by_hash(self, block_hash: Hash32) -> BlockAPI:
+        """
+        Return the requested block as specified by ``block_hash``.
+        """
         ...
 
     @abstractmethod
     def get_block_by_header(self, block_header: BlockHeaderAPI) -> BlockAPI:
+        """
+        Return the requested block as specified by the ``block_header``.
+        """
         ...
 
     @abstractmethod
     def get_canonical_block_by_number(self, block_number: BlockNumber) -> BlockAPI:
+        """
+        Return the block with the given ``block_number`` in the canonical chain.
+
+        Raise ``BlockNotFound`` if no block with the given ``block_number`` exists in the
+        canonical chain.
+        """
         ...
 
     @abstractmethod
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
+        """
+        Return the block hash with the given ``block_number`` in the canonical chain.
+
+        Raise ``BlockNotFound`` if there's no block with the given number in the
+        canonical chain.
+        """
         ...
 
     @abstractmethod
@@ -1870,6 +2419,15 @@ class ChainAPI(ConfigurableAPI):
             transactions: Tuple[SignedTransactionAPI, ...],
             parent_header: BlockHeaderAPI = None
     ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
+        """
+        Generate a block with the provided transactions. This does *not* import
+        that block into your chain. If you want this new block in your chain,
+        run :meth:`~import_block` with the result block from this method.
+
+        :param transactions: an iterable of transactions to insert to the block
+        :param parent_header: parent of the new block -- or canonical head if ``None``
+        :return: (new block, receipts, computations)
+        """
         ...
 
     #
@@ -1877,6 +2435,9 @@ class ChainAPI(ConfigurableAPI):
     #
     @abstractmethod
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:
+        """
+        Passthrough helper to the current VM class.
+        """
         ...
 
     @abstractmethod
@@ -1888,14 +2449,30 @@ class ChainAPI(ConfigurableAPI):
                                     to: Address,
                                     value: int,
                                     data: bytes) -> UnsignedTransactionAPI:
+        """
+        Passthrough helper to the current VM class.
+        """
         ...
 
     @abstractmethod
     def get_canonical_transaction(self, transaction_hash: Hash32) -> SignedTransactionAPI:
+        """
+        Return the requested transaction as specified by the ``transaction_hash``
+        from the canonical chain.
+
+        Raise ``TransactionNotFound`` if no transaction with the specified hash is
+        found in the canonical chain.
+        """
         ...
 
     @abstractmethod
     def get_transaction_receipt(self, transaction_hash: Hash32) -> ReceiptAPI:
+        """
+        Return the requested receipt for the transaction as specified by the ``transaction_hash``.
+
+        Raise ``ReceiptNotFound`` if not receipt for the specified ``transaction_hash`` is found
+        in the canonical chain.
+        """
         ...
 
     #
@@ -1906,6 +2483,10 @@ class ChainAPI(ConfigurableAPI):
             self,
             transaction: SignedTransactionAPI,
             at_header: BlockHeaderAPI) -> bytes:
+        """
+        Return the result of running the given transaction.
+        This is referred to as a `call()` in web3.
+        """
         ...
 
     @abstractmethod
@@ -1913,6 +2494,10 @@ class ChainAPI(ConfigurableAPI):
             self,
             transaction: SignedTransactionAPI,
             at_header: BlockHeaderAPI = None) -> int:
+        """
+        Return an estimation of the amount of gas the given ``transaction`` will
+        use if executed on top of the block specified by ``at_header``.
+        """
         ...
 
     @abstractmethod
@@ -1920,6 +2505,13 @@ class ChainAPI(ConfigurableAPI):
                      block: BlockAPI,
                      perform_validation: bool=True,
                      ) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
+        """
+        Import the given ``block`` and return a 3-tuple
+
+        - the imported block
+        - a tuple of blocks which are now part of the canonical chain.
+        - a tuple of blocks which were canonical and now are no longer canonical.
+        """
         ...
 
     #
@@ -1927,22 +2519,43 @@ class ChainAPI(ConfigurableAPI):
     #
     @abstractmethod
     def validate_receipt(self, receipt: ReceiptAPI, at_header: BlockHeaderAPI) -> None:
+        """
+        Validate the given ``receipt`` at the given header.
+        """
         ...
 
     @abstractmethod
     def validate_block(self, block: BlockAPI) -> None:
+        """
+        Validate a block that is either being mined or imported.
+
+        Since block validation (specifically the uncle validation) must have
+        access to the ancestor blocks, this validation must occur at the Chain
+        level.
+
+        Cannot be used to validate genesis block.
+        """
         ...
 
     @abstractmethod
     def validate_seal(self, header: BlockHeaderAPI) -> None:
+        """
+        Validate the seal on the given ``header``.
+        """
         ...
 
     @abstractmethod
     def validate_gaslimit(self, header: BlockHeaderAPI) -> None:
+        """
+        Validate the gas limit on the given ``header``.
+        """
         ...
 
     @abstractmethod
     def validate_uncles(self, block: BlockAPI) -> None:
+        """
+        Validate the uncles for the given ``block``.
+        """
         ...
 
     @classmethod
@@ -1952,6 +2565,13 @@ class ChainAPI(ConfigurableAPI):
             root: BlockHeaderAPI,
             descendants: Tuple[BlockHeaderAPI, ...],
             seal_check_random_sample_rate: int = 1) -> None:
+        """
+        Validate that all of the descendents are valid, given that the root header is valid.
+
+        By default, check the seal validity (Proof-of-Work on Ethereum 1.x mainnet) of all headers.
+        This can be expensive. Instead, check a random sample of seals using
+        seal_check_random_sample_rate.
+        """
         ...
 
 
@@ -1966,18 +2586,18 @@ class MiningChainAPI(ChainAPI):
     def apply_transaction(self,
                           transaction: SignedTransactionAPI
                           ) -> Tuple[BlockAPI, ReceiptAPI, ComputationAPI]:
-        ...
+        """
+        Apply the transaction to the current tip block.
 
-    @abstractmethod
-    def import_block(self,
-                     block: BlockAPI,
-                     perform_validation: bool=True
-                     ) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
+        WARNING: ReceiptAPI and Transaction trie generation is computationally
+        heavy and incurs significant performance overhead.
+        """
         ...
 
     @abstractmethod
     def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
-        ...
-
-    def get_vm(self, at_header: BlockHeaderAPI = None) -> VirtualMachineAPI:
+        """
+        Mines the current block. Proxies to the current Virtual Machine.
+        See VM. :meth:`~eth.vm.base.VM.mine_block`
+        """
         ...

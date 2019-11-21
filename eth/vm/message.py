@@ -21,9 +21,6 @@ from eth.validation import (
 
 
 class Message(MessageAPI):
-    """
-    A message for VM computation.
-    """
     __slots__ = [
         'to', 'sender', 'value', 'data', 'depth', 'gas', 'code', '_code_address',
         'create_address', 'should_transfer_value', 'is_static', '_storage_address'

@@ -27,25 +27,13 @@ from .sedes import address
 
 class BaseTransactionMethods(BaseTransactionAPI):
     def validate(self) -> None:
-        """
-        Hook called during instantiation to ensure that all transaction
-        parameters pass validation rules.
-        """
         pass
 
     @property
     def intrinsic_gas(self) -> int:
-        """
-        Convenience property for the return value of `get_intrinsic_gas`
-        """
         return self.get_intrinsic_gas()
 
     def gas_used_by(self, computation: ComputationAPI) -> int:
-        """
-        Return the gas used by the given computation. In Frontier,
-        for example, this is sum of the intrinsic cost and the gas used
-        during computation.
-        """
         return self.get_intrinsic_gas() + computation.get_gas_used()
 
 
@@ -82,9 +70,6 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods, SignedTrans
 
     @cached_property
     def sender(self) -> Address:
-        """
-        Convenience and performance property for the return value of `get_sender`
-        """
         return self.get_sender()
 
     # +-------------------------------------------------------------+
@@ -95,10 +80,6 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods, SignedTrans
     # Validation
     #
     def validate(self) -> None:
-        """
-        Hook called during instantiation to ensure that all transaction
-        parameters pass validation rules.
-        """
         if self.gas < self.intrinsic_gas:
             raise ValidationError("Insufficient gas")
         self.check_signature_validity()

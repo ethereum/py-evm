@@ -55,9 +55,6 @@ class Stack(StackAPI):
         self.__len__ = values.__len__
 
     def push_int(self, value: int) -> None:
-        """
-        Push an integer item onto the stack.
-        """
         if len(self.values) > 1023:
             raise FullStack('Stack limit reached')
 
@@ -66,9 +63,6 @@ class Stack(StackAPI):
         self._append((int, value))
 
     def push_bytes(self, value: bytes) -> None:
-        """
-        Push a bytes item onto the stack.
-        """
         if len(self.values) > 1023:
             raise FullStack('Stack limit reached')
 
@@ -77,12 +71,6 @@ class Stack(StackAPI):
         self._append((bytes, value))
 
     def pop1_bytes(self) -> bytes:
-        """
-        Pop and return a bytes element from the stack.
-
-        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
-        """
-
         #
         # Note: This function is optimized for speed over readability.
         # Knowing the popped type means that we can pop *very* quickly
@@ -100,12 +88,6 @@ class Stack(StackAPI):
                 raise _busted_type(item_type, popped)
 
     def pop1_int(self) -> int:
-        """
-        Pop and return an integer from the stack.
-
-        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
-        """
-
         #
         # Note: This function is optimized for speed over readability.
         #
@@ -121,14 +103,6 @@ class Stack(StackAPI):
                 raise _busted_type(item_type, popped)
 
     def pop1_any(self) -> Union[int, bytes]:
-        """
-        Pop and return an element from the stack.
-        The type of each element will be int or bytes, depending on whether it was
-        pushed with push_bytes or push_int.
-
-        Raise `eth.exceptions.InsufficientStack` if the stack was empty.
-        """
-
         #
         # Note: This function is optimized for speed over readability.
         #
@@ -139,17 +113,6 @@ class Stack(StackAPI):
             return popped
 
     def pop_any(self, num_items: int) -> Tuple[Union[int, bytes], ...]:
-        """
-        Pop and return a tuple of items of length ``num_items`` from the stack.
-        The type of each element will be int or bytes, depending on whether it was
-        pushed with stack_push_bytes or stack_push_int.
-
-        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
-        the stack.
-
-        Items are ordered with the top of the stack as the first item in the tuple.
-        """
-
         #
         # Note: This function is optimized for speed over readability.
         #
@@ -170,15 +133,6 @@ class Stack(StackAPI):
             return tuple(val for _, val in all_popped)
 
     def pop_ints(self, num_items: int) -> Tuple[int, ...]:
-        """
-        Pop and return a tuple of integers of length ``num_items`` from the stack.
-
-        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
-        the stack.
-
-        Items are ordered with the top of the stack as the first item in the tuple.
-        """
-
         #
         # Note: This function is optimized for speed over readability.
         #
@@ -210,15 +164,6 @@ class Stack(StackAPI):
             return tuple(type_cast_popped)  # type: ignore
 
     def pop_bytes(self, num_items: int) -> Tuple[bytes, ...]:
-        """
-        Pop and return a tuple of bytes of length ``num_items`` from the stack.
-
-        Raise `eth.exceptions.InsufficientStack` if there are not enough items on
-        the stack.
-
-        Items are ordered with the top of the stack as the first item in the tuple.
-        """
-
         #
         # Note: This function is optimized for speed over readability.
         #
@@ -249,9 +194,6 @@ class Stack(StackAPI):
             return tuple(type_cast_popped)
 
     def swap(self, position: int) -> None:
-        """
-        Perform a SWAP operation on the stack.
-        """
         idx = -1 * position - 1
         try:
             self.values[-1], self.values[idx] = self.values[idx], self.values[-1]
@@ -259,9 +201,6 @@ class Stack(StackAPI):
             raise InsufficientStack(f"Insufficient stack items for SWAP{position}")
 
     def dup(self, position: int) -> None:
-        """
-        Perform a DUP operation on the stack.
-        """
         if len(self.values) > 1023:
             raise FullStack('Stack limit reached')
 

@@ -22,10 +22,6 @@ from eth.db.backends.memory import MemoryDB
 
 
 class AtomicDB(BaseAtomicDB):
-    """
-    This is nearly the same as BatchDB, but it immediately writes out changes if they are
-    not in an atomic_batch() context.
-    """
     logger = logging.getLogger("eth.db.AtomicDB")
 
     wrapped_db: DatabaseAPI = None

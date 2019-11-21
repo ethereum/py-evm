@@ -104,7 +104,6 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
     def build_computation(self,
                           message: MessageAPI,
                           transaction: SignedTransactionAPI) -> ComputationAPI:
-        """Apply the message to the VM."""
         transaction_context = self.vm_state.get_transaction_context(transaction)
         if message.is_create:
             is_collision = self.vm_state.has_code_or_nonce(
