@@ -160,12 +160,12 @@ class DepositDataDB(BaseDepositDataDB):
         key = SchemaV1.make_deposit_data_lookup_key(index)
         try:
             raw_bytes = self.db[key]
-        except KeyError:
+        except KeyError as error:
             # Should never enter here. Something strange must have happened.
             raise Exception(
                 f"`index < self.deposit_count` but failed to find `DepositData` at key {key}: "
                 f"index={index}, self.deposit_count={self.deposit_count}"
-            )
+            ) from error
         return ssz.decode(raw_bytes, DepositData)
 
     def get_deposit_data_range(
