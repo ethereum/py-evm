@@ -954,7 +954,7 @@ def _get_msg_expiration() -> int:
 class CallbackLock:
     def __init__(self,
                  callback: Callable[..., Any],
-                 timeout: float=2 * constants.KADEMLIA_REQUEST_TIMEOUT) -> None:
+                 timeout: float = 2 * constants.KADEMLIA_REQUEST_TIMEOUT) -> None:
         self.callback = callback
         self.timeout = timeout
         self.created_at = time.time()

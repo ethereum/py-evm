@@ -50,7 +50,7 @@ async def assert_nothing_ready(otp):
     except asyncio.TimeoutError:
         pass
     else:
-        assert False, f"No tasks should be ready, but got {finished!r}"
+        raise AssertionError(f"No tasks should be ready, but got {finished!r}")
 
 
 @pytest.mark.asyncio

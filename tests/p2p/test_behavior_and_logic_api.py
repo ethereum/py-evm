@@ -58,7 +58,7 @@ async def test_behavior_reentrance_protection(alice):
         with pytest.raises(ValidationError, match="Reentrance: Behavior"):
             async with behavior.apply(alice):
                 # this block should not be hit
-                assert False
+                raise AssertionError("should not be hit")
 
 
 @pytest.mark.asyncio
@@ -70,7 +70,7 @@ async def test_behavior_logic_reuse_protection_on_apply(alice):
         with pytest.raises(ValidationError, match="Reentrance: Logic"):
             async with behavior_b.apply(alice):
                 # this block should not be hit
-                assert False
+                raise AssertionError("should not be hit")
 
 
 def test_logic_as_behavior_with_local_qualifier(alice, bob):

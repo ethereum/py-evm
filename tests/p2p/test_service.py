@@ -56,7 +56,7 @@ async def test_cancel_exits_async_generator():
     async def async_iterator():
         yield 1
         await asyncio.sleep(10)
-        assert False, "iterator should have been cancelled by now"
+        raise AssertionError("iterator should have been cancelled by now")
 
     async def do_iter_and_assert():
         try:
@@ -65,7 +65,7 @@ async def test_cancel_exits_async_generator():
         except OperationCancelled:
             pass
         else:
-            assert False, "iterator should have been cancelled during iteration"
+            raise AssertionError("iterator should have been cancelled during iteration")
 
     await asyncio.wait_for(do_iter_and_assert(), timeout=1)
 

@@ -26,7 +26,7 @@ async def test_slot_ticker_ticking(event_bus, event_loop):
             loop=event_loop,
         )
     except asyncio.TimeoutError:
-        assert False, "Slot not ticking"
+        raise AssertionError("Slot not ticking")
     assert slot_tick_event.slot > 0
     await slot_ticker.cancel()
 
@@ -49,7 +49,7 @@ async def test_slot_ticker_all_ticks(event_bus, event_loop):
             loop=event_loop,
         )
     except asyncio.TimeoutError:
-        assert False, "Slot not ticking"
+        raise AssertionError("Slot not ticking")
     assert first_slot_event.tick_type.is_start
 
     try:
@@ -59,7 +59,7 @@ async def test_slot_ticker_all_ticks(event_bus, event_loop):
             loop=event_loop,
         )
     except asyncio.TimeoutError:
-        assert False, "Should have gotten the second tick"
+        raise AssertionError("Should have gotten the second tick")
     assert second_slot_event.slot == first_slot_event.slot
     assert second_slot_event.tick_type.is_one_third
 
@@ -70,7 +70,7 @@ async def test_slot_ticker_all_ticks(event_bus, event_loop):
             loop=event_loop,
         )
     except asyncio.TimeoutError:
-        assert False, "Should have gotten the third tick"
+        raise AssertionError("Should have gotten the third tick")
     assert third_slot_event.slot == first_slot_event.slot
     assert third_slot_event.tick_type.is_two_third
 

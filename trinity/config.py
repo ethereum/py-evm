@@ -142,7 +142,7 @@ def _get_preconfigured_chain_name(network_id: int) -> str:
 class Eth1ChainConfig:
     def __init__(self,
                  genesis_data: GenesisData,
-                 chain_name: str=None) -> None:
+                 chain_name: str = None) -> None:
 
         self.genesis_data = genesis_data
         self._chain_name = chain_name
@@ -177,7 +177,7 @@ class Eth1ChainConfig:
     @classmethod
     def from_eip1085_genesis_config(cls,
                                     genesis_config: Dict[str, Any],
-                                    chain_name: str=None,
+                                    chain_name: str = None,
                                     ) -> 'Eth1ChainConfig':
         genesis_data = extract_genesis_data(genesis_config)
         return cls(
@@ -263,17 +263,17 @@ class TrinityConfig:
 
     def __init__(self,
                  network_id: int,
-                 app_identifier: str="",
-                 genesis_config: Dict[str, Any]=None,
-                 max_peers: int=25,
-                 trinity_root_dir: Path=None,
-                 trinity_tmp_root_dir: bool=False,
-                 data_dir: Path=None,
-                 nodekey_path: Path=None,
-                 nodekey: PrivateKey=None,
-                 port: int=30303,
-                 preferred_nodes: Tuple[KademliaNode, ...]=None,
-                 bootstrap_nodes: Tuple[KademliaNode, ...]=None) -> None:
+                 app_identifier: str = "",
+                 genesis_config: Dict[str, Any] = None,
+                 max_peers: int = 25,
+                 trinity_root_dir: Path = None,
+                 trinity_tmp_root_dir: bool = False,
+                 data_dir: Path = None,
+                 nodekey_path: Path = None,
+                 nodekey: PrivateKey = None,
+                 port: int = 30303,
+                 preferred_nodes: Tuple[KademliaNode, ...] = None,
+                 bootstrap_nodes: Tuple[KademliaNode, ...] = None) -> None:
         self.app_identifier = app_identifier
         self.network_id = network_id
         self.max_peers = max_peers
@@ -646,8 +646,8 @@ class BeaconChainConfig:
     _genesis_config: Eth2GenesisConfig = None
 
     def __init__(self,
-                 chain_name: str=None,
-                 genesis_data: BeaconGenesisData=None) -> None:
+                 chain_name: str = None,
+                 genesis_data: BeaconGenesisData = None) -> None:
 
         self.network_id = 5567
         self.genesis_data = genesis_data
@@ -683,7 +683,7 @@ class BeaconChainConfig:
     @classmethod
     def from_genesis_files(cls,
                            root_dir: Path,
-                           chain_name: str=None) -> 'BeaconChainConfig':
+                           chain_name: str = None) -> 'BeaconChainConfig':
         # parse `genesis_state`
         genesis_file_path = root_dir / GENESIS_FILE
         state = extract_genesis_state_from_stream(genesis_file_path)

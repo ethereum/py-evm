@@ -66,7 +66,7 @@ def LESAPI_class(alice):
     elif alice.connection.has_protocol(LESProtocolV2):
         return LESV2API
     else:
-        assert False
+        raise Exception("No LES protocol found")
 
 
 @pytest.mark.asyncio

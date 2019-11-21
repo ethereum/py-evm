@@ -250,7 +250,7 @@ def kill_trinity_gracefully(trinity_config: TrinityConfig,
                             logger: logging.Logger,
                             processes: Iterable[multiprocessing.Process],
                             component_manager_service: ComponentManagerService,
-                            reason: str=None) -> None:
+                            reason: str = None) -> None:
     # When a user hits Ctrl+C in the terminal, the SIGINT is sent to all processes in the
     # foreground *process group*, so both our networking and database processes will terminate
     # at the same time and not sequentially as we'd like. That shouldn't be a problem but if

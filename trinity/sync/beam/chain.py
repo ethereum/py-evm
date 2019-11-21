@@ -531,7 +531,7 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
             state_getter: BeamDownloader,
             backfiller: BeamStateBackfill,
             event_bus: EndpointAPI,
-            token: CancelToken=None) -> None:
+            token: CancelToken = None) -> None:
         super().__init__(token=token)
 
         self._chain = chain
@@ -618,7 +618,7 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
             header: BlockHeader,
             parent_state_root: Hash32,
             transactions: Tuple[BaseTransaction, ...],
-            urgent: bool=True) -> Tuple[int, float]:
+            urgent: bool = True) -> Tuple[int, float]:
         """
         Load all state needed to read transaction account status.
         """
@@ -668,7 +668,7 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
             header: BlockHeader,
             parent_state_root: Hash32,
             transactions: Tuple[BaseTransaction, ...],
-            urgent: bool=True) -> Tuple[int, int]:
+            urgent: bool = True) -> Tuple[int, int]:
         """
         Request any missing trie nodes needed to read account state for the given transactions.
 
@@ -699,7 +699,7 @@ class MissingDataEventHandler(BaseService):
             self,
             state_downloader: BeamDownloader,
             event_bus: EndpointAPI,
-            token: CancelToken=None) -> None:
+            token: CancelToken = None) -> None:
         super().__init__(token=token)
         self._state_downloader = state_downloader
         self._event_bus = event_bus

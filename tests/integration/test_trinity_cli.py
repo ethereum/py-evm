@@ -298,11 +298,11 @@ async def test_logger_configuration(command,
 
         for log in expected_stderr_logs:
             if not contains_substring(stderr_logs, log):
-                assert False, f"Log should contain `{log}` but does not"
+                raise AssertionError(f"Log should contain `{log}` but does not")
 
         for log in unexpected_stderr_logs:
             if contains_substring(stderr_logs, log):
-                assert False, f"Log should not contain `{log}` but does"
+                raise AssertionError(f"Log should not contain `{log}` but does")
 
         log_file_path = TrinityConfig(app_identifier="eth1", network_id=1).logfile_path
         with open(log_file_path) as log_file:
@@ -310,11 +310,11 @@ async def test_logger_configuration(command,
 
             for log in expected_file_logs:
                 if log not in file_content:
-                    assert False, f"Logfile should contain `{log}` but does not"
+                    raise AssertionError(f"Logfile should contain `{log}` but does not")
 
             for log in unexpected_file_logs:
                 if log in file_content:
-                    assert False, f"Logfile should not contain `{log}` but does"
+                    raise AssertionError(f"Logfile should not contain `{log}` but does")
 
 
 @pytest.mark.parametrize(

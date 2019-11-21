@@ -405,7 +405,7 @@ class BlockImportServer(BaseService):
             self,
             event_bus: EndpointAPI,
             beam_chain: BeamChain,
-            token: CancelToken=None) -> None:
+            token: CancelToken = None) -> None:
         super().__init__(token=token)
         self._event_bus = event_bus
         self._beam_chain = beam_chain
@@ -528,7 +528,7 @@ class BlockPreviewServer(BaseService):
             event_bus: EndpointAPI,
             beam_chain: BeamChain,
             shard_num: int,
-            token: CancelToken=None) -> None:
+            token: CancelToken = None) -> None:
         super().__init__(token=token)
         self._event_bus = event_bus
         self._beam_chain = beam_chain

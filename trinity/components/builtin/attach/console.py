@@ -74,9 +74,9 @@ def python_shell(namespace: Dict[str, Any], banner: str) -> Any:
 
 
 def console(ipc_path: Path,
-            use_ipython: bool=True,
-            env: Dict[str, Any]=None,
-            banner: str=DEFAULT_BANNER) -> None:
+            use_ipython: bool = True,
+            env: Dict[str, Any] = None,
+            banner: str = DEFAULT_BANNER) -> None:
     """
     Method that starts the chain, setups the trinity CLI and register the
     cleanup function.

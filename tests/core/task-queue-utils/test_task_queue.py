@@ -145,7 +145,7 @@ async def test_queue_size_reset_after_complete():
     except asyncio.TimeoutError:
         pass
     else:
-        assert False, "should not be able to add task past maxsize"
+        raise AssertionError("should not be able to add task past maxsize")
 
     # do imaginary work here, then complete it all
 
@@ -287,7 +287,7 @@ async def test_wait_empty_queue():
     except asyncio.TimeoutError:
         pass
     else:
-        assert False, "should not return from get() when nothing is available on queue"
+        raise AssertionError("should not return from get() when nothing is available on queue")
 
 
 @pytest.mark.asyncio
@@ -420,7 +420,7 @@ async def test_queue_get_cap(start_tasks, get_max, expected, remainder):
         except asyncio.TimeoutError:
             pass
         else:
-            assert False, f"No more tasks to get, but got {tasks2!r}"
+            raise AssertionError(f"No more tasks to get, but got {tasks2!r}")
 
 
 @pytest.mark.asyncio

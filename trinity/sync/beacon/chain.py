@@ -173,8 +173,8 @@ class BeaconChainSyncer(BaseService):
                     else:
                         raise Exception("Invariant: unreachable code path")
                 except ValidationError as error:
-                        self.logger.info(f"Received invalid block from {self.sync_peer}: {error}")
-                        break
+                    self.logger.info(f"Received invalid block from {self.sync_peer}: {error}")
+                    break
 
     async def request_batches(self,
                               start_slot: Slot,

@@ -158,7 +158,7 @@ class BaseServer(BaseService, Generic[TPeerPool]):
             raise
         except OperationCancelled:
             pass
-        except Exception as e:
+        except Exception:
             self.logger.exception("Unexpected error handling handshake")
 
     async def _receive_handshake(

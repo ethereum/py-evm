@@ -18,10 +18,10 @@ class NormalizeTrackingBackend(argparse.Action):
                  parser: argparse.ArgumentParser,
                  namespace: argparse.Namespace,
                  value: Any,
-                 option_string: str=None) -> None:
+                 option_string: str = None) -> None:
         try:
             tracking_backend = TrackingBackend(value)
-        except TypeError as err:
+        except TypeError:
             raise argparse.ArgumentError(
                 self,
                 (
