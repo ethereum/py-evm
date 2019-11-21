@@ -4,8 +4,8 @@ from trinity.components.registry import (
 )
 
 
-def test_component_discovery():
-    if not pytest.config.getoption("--integration"):
+def test_component_discovery(request):
+    if not request.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
     # This component is external to this code base and installed by tox

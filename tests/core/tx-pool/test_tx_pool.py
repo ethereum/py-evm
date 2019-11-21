@@ -27,9 +27,6 @@ from trinity.protocol.eth.events import (
     SendTransactionsEvent,
 )
 
-from tests.conftest import (
-    funded_address_private_key
-)
 from tests.core.integration_test_helpers import (
     run_proxy_peer_pool,
     run_mock_request_response,
@@ -60,6 +57,7 @@ def observe_outgoing_transactions(event_bus):
 
 @pytest.mark.asyncio
 async def test_tx_propagation(event_bus,
+                              funded_address_private_key,
                               chain_with_block_validation,
                               tx_validator):
 
@@ -76,7 +74,9 @@ async def test_tx_propagation(event_bus,
 
             await asyncio.sleep(0.01)
 
-            txs_broadcasted_by_peer1 = [create_random_tx(chain_with_block_validation)]
+            txs_broadcasted_by_peer1 = [
+                create_random_tx(chain_with_block_validation, funded_address_private_key)
+            ]
 
             # this needs to go here to ensure that the subscription is *after*
             # the one installed by the transaction pool so that the got_txns
@@ -114,7 +114,7 @@ async def test_tx_propagation(event_bus,
             assert len(outgoing_tx) == 0
 
             txs_broadcasted_by_peer2 = [
-                create_random_tx(chain_with_block_validation),
+                create_random_tx(chain_with_block_validation, funded_address_private_key),
                 txs_broadcasted_by_peer1[0]
             ]
 
@@ -134,6 +134,7 @@ async def test_tx_propagation(event_bus,
 
 @pytest.mark.asyncio
 async def test_does_not_propagate_invalid_tx(event_bus,
+                                             funded_address_private_key,
                                              chain_with_block_validation,
                                              tx_validator):
 
@@ -150,8 +151,8 @@ async def test_does_not_propagate_invalid_tx(event_bus,
             await asyncio.sleep(0.01)
 
             txs_broadcasted_by_peer1 = [
-                create_random_tx(chain_with_block_validation, is_valid=False),
-                create_random_tx(chain_with_block_validation)
+                create_random_tx(chain_with_block_validation, funded_address_private_key, is_valid=False),  # noqa: E501
+                create_random_tx(chain_with_block_validation, funded_address_private_key)
             ]
 
             outgoing_tx, got_txns = observe_outgoing_transactions(event_bus)
@@ -168,7 +169,7 @@ async def test_does_not_propagate_invalid_tx(event_bus,
             ]
 
 
-def create_random_tx(chain, is_valid=True):
+def create_random_tx(chain, private_key, is_valid=True):
     return chain.create_unsigned_transaction(
         nonce=0,
         gas_price=1,
@@ -178,4 +179,4 @@ def create_random_tx(chain, is_valid=True):
         data=uuid.uuid4().bytes,
         to=force_bytes_to_address(b'\x10\x10'),
         value=1,
-    ).as_signed_transaction(funded_address_private_key())
+    ).as_signed_transaction(private_key)
