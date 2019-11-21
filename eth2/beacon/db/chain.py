@@ -554,7 +554,7 @@ class BeaconChainDB(BaseBeaconChainDB):
             block = cls._get_block_by_root(db, block_root, block_class)
         except BlockNotFound:
             raise ValueError(
-                "Cannot use unknown block root as canonical head: {}".format(block_root)
+                "Cannot use unknown block root as canonical head: {block_root.hex()}"
             )
 
         new_canonical_blocks = tuple(

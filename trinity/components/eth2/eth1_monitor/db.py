@@ -163,7 +163,7 @@ class DepositDataDB(BaseDepositDataDB):
         except KeyError as error:
             # Should never enter here. Something strange must have happened.
             raise Exception(
-                f"`index < self.deposit_count` but failed to find `DepositData` at key {key}: "
+                f"`index < self.deposit_count` but failed to find `DepositData` at key {key!r}: "
                 f"index={index}, self.deposit_count={self.deposit_count}"
             ) from error
         return ssz.decode(raw_bytes, DepositData)

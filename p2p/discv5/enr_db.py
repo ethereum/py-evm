@@ -35,7 +35,7 @@ class BaseEnrDb(EnrDbApi):
         """
         if enr.identity_scheme.id not in self.identity_scheme_registry:
             raise ValueError(
-                f"ENRs identity scheme with id {enr.identity_scheme.id} unknown to ENR DBs "
+                f"ENRs identity scheme with id {enr.identity_scheme.id!r} unknown to ENR DBs "
                 f"identity scheme registry"
             )
 

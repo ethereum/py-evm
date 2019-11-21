@@ -160,7 +160,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         request_id = peer.les_api.send_get_block_bodies([block_hash])
         block_bodies = await self._wait_for_reply(request_id)
         if not block_bodies.payload.bodies:
-            raise BlockNotFound(f"Peer {peer} has no block with hash {block_hash}")
+            raise BlockNotFound(f"Peer {peer} has no block with hash {block_hash.hex()}")
         return block_bodies.payload.bodies[0]
 
     # TODO add a get_receipts() method to BaseChain API, and dispatch to this, as needed
@@ -173,7 +173,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         request_id = peer.les_api.send_get_receipts((block_hash,))
         receipts = await self._wait_for_reply(request_id)
         if not receipts.payload.receipts:
-            raise BlockNotFound(f"No block with hash {block_hash} found")
+            raise BlockNotFound(f"No block with hash {block_hash.hex()} found")
         return receipts.payload.receipts[0]
 
     # TODO implement AccountDB exceptions that provide the info needed to
@@ -221,7 +221,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             account = await self.coro_get_account(block_hash, address)
         except HeaderNotFound as exc:
             raise NoEligiblePeers(
-                f"Our best peer does not have header {block_hash}"
+                f"Our best peer does not have header {block_hash.hex()}"
             ) from exc
 
         code_hash = account.code_hash
@@ -286,7 +286,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
         except HeaderNotFound:
             # We presume that the current peer is the best peer. Because
             # our best peer doesn't have the header we want, there are no eligible peers.
-            raise NoEligiblePeers(f"Our best peer does not have the header {block_hash}")
+            raise NoEligiblePeers(f"Our best peer does not have the header {block_hash.hex()}")
 
         head_number = peer.head_info.head_number
         if head_number - header.block_number > MAX_REORG_DEPTH:
@@ -301,19 +301,19 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             else:
                 # our header isn't canonical, so treat the empty response as missing data
                 raise NoEligiblePeers(
-                    f"Our best peer does not have the non-canonical header {block_hash}"
+                    f"Our best peer does not have the non-canonical header {block_hash.hex()}"
                 )
         elif head_number - header.block_number < 0:
             # The peer claims to be behind the header we requested, but somehow served it to us.
             # Odd, it might be a race condition. Treat as if there are no eligible peers for now.
-            raise NoEligiblePeers(f"Our best peer's head does include header {block_hash}")
+            raise NoEligiblePeers(f"Our best peer's head does include header {block_hash.hex()}")
         else:
             # The peer is ahead of the current block header, but only by a bit. It might be on
             # an uncle, or we might be. So we can't tell the difference between missing and
             # malicious. We don't want to aggressively drop this peer, so treat the code as missing.
             raise NoEligiblePeers(
                 f"Peer {peer} claims to be ahead of {header}, but "
-                f"returned empty code with hash {code_hash}. "
+                f"returned empty code with hash {code_hash.hex()}. "
                 f"It is on number {head_number}, maybe an uncle. Retry with an older block hash."
             )
 
@@ -335,7 +335,7 @@ class LightPeerChain(PeerSubscriber, BaseService, BaseLightPeerChain):
             reverse=False,
         )
         if not headers:
-            raise HeaderNotFound(f"Peer {peer} has no block with hash {block_hash}")
+            raise HeaderNotFound(f"Peer {peer} has no block with hash {block_hash.hex()}")
         header = headers[0]
         if header.hash != block_hash:
             raise BadLESResponse(

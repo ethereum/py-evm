@@ -98,7 +98,7 @@ async def receive_server():
 
 @pytest.fixture
 async def receive_server_with_mock_process_orphan_blocks_period(
-    mock_process_orphan_blocks_period
+    mock_process_orphan_blocks_period,
 ):
     topic_msg_queues = {
         PUBSUB_TOPIC_BEACON_BLOCK: asyncio.Queue(),

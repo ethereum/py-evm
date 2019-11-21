@@ -134,7 +134,7 @@ class OrphanBlockPool:
         for block in self._pool:
             if block.signing_root == block_root:
                 return block
-        raise BlockNotFound(f"No block with signing_root {block_root} is found")
+        raise BlockNotFound(f"No block with signing_root {block_root.hex()} is found")
 
     def add(self, block: BaseBeaconBlock) -> None:
         if block in self._pool:

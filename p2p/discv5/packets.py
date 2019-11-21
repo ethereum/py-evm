@@ -350,8 +350,8 @@ def validate_auth_header(auth_header: AuthHeader) -> None:
     validate_nonce(auth_header.auth_tag)
     if auth_header.auth_scheme_name != AUTH_SCHEME_NAME:
         raise ValidationError(
-            f"Auth header uses scheme {auth_header.auth_scheme_name}, but only "
-            f"{AUTH_SCHEME_NAME} is supported"
+            f"Auth header uses scheme {auth_header.auth_scheme_name!r}, but only "
+            f"{AUTH_SCHEME_NAME!r} is supported"
         )
     validate_length(auth_header.id_nonce, ID_NONCE_SIZE, "id nonce")
 

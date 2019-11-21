@@ -17,10 +17,10 @@ def validate_private_key(privkey: int) -> None:
 def validate_public_key(pubkey: BLSPubkey, allow_empty: bool = False) -> None:
     if len(pubkey) != 48:
         raise PublicKeyError(
-            f"Invalid public key length, expect 48 got {len(pubkey)}. pubkey: {pubkey}"
+            f"Invalid public key length, expect 48 got {len(pubkey)}. pubkey: {pubkey.hex()}"
         )
     if not allow_empty and pubkey == EMPTY_PUBKEY:
-        raise PublicKeyError(f"Empty public key is invalid  pubkey={pubkey}")
+        raise PublicKeyError(f"Empty public key is invalid  pubkey={pubkey.hex()}")
 
 
 def validate_many_public_keys(pubkeys: Sequence[BLSPubkey]) -> None:
@@ -31,7 +31,9 @@ def validate_many_public_keys(pubkeys: Sequence[BLSPubkey]) -> None:
 def validate_signature(signature: BLSSignature) -> None:
     if len(signature) != 96:
         raise SignatureError(
-            f"Invalid signaute length, expect 96 got {len(signature)}. Signature: {signature}"
+            f"Invalid signaute length, expect 96 got {len(signature)}. Signature: {signature.hex()}"
         )
     if signature == EMPTY_SIGNATURE:
-        raise SignatureError(f"Signature should not be empty. Signature: {signature}")
+        raise SignatureError(
+            f"Signature should not be empty. Signature: {signature.hex()}"
+        )
