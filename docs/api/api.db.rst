@@ -7,7 +7,14 @@ DataBase
    :name: toc-eth-api-db
    :caption: Database
 
-   db/api.db.backends
    db/api.db.account
-   db/api.db.journal
+   db/api.db.atomic
+   db/api.db.backends
+   db/api.db.batch
+   db/api.db.cache
    db/api.db.chain
+   db/api.db.diff
+   db/api.db.header
+   db/api.db.journal
+   db/api.db.schema
+   db/api.db.storage
