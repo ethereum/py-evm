@@ -52,17 +52,16 @@ deps = {
     ],
     'test': [
         "async-timeout>=3.0.1,<4",
-        "hypothesis>=4.24.3,<5",
+        "hypothesis>=4.45.1,<5",
         "pexpect>=4.6, <5",
         "factory-boy==2.12.0",
-        # pinned to <3.7 until async fixtures work again
-        # https://github.com/pytest-dev/pytest-asyncio/issues/89
-        "pytest>=3.6,<3.7",
-        "pytest-cov==2.5.1",
-        "pytest-watch>=4.1.0,<5",
-        "pytest-xdist==1.18.1",
-        "pytest-mock==1.10.4",
-        "pytest-randomly==3.0.0",
+        "pytest>=5.3.0,<5.4",
+        "pytest-cov>=2.8.1,<2.9",
+        "pytest-mock>=1.12.1,<1.13",
+        "pytest-randomly>=3.1.0,<3.2",
+        "pytest-watch>=4.2.0,<4.3",
+        # xdist pinned at <1.29 due to: https://github.com/pytest-dev/pytest-xdist/issues/472
+        "pytest-xdist>=1.29.0,<1.30",
         # only for eth2
         "ruamel.yaml==0.15.98",
         "eth-tester==0.2.0b3",
@@ -75,10 +74,10 @@ deps = {
     # you'll get warnings saying that a coroutine was never awaited.
     'test-asyncio': [
         "pytest-asyncio>=0.10.0,<0.11",
-        "pytest-aiohttp==0.3.0",
+        "pytest-aiohttp>=0.3.0,<0.4",
     ],
     'test-trio': [
-        'pytest-trio==0.5.2',
+        "pytest-trio>=0.5.2,<0.6",
     ],
     'lint': [
         "flake8==3.7.9",
@@ -87,7 +86,7 @@ deps = {
         "sqlalchemy-stubs==0.1",
     ],
     'doc': [
-        "pytest~=3.2",
+        "pytest~=5.3",
         # Sphinx pined to `<1.8.0`: https://github.com/sphinx-doc/sphinx/issues/3494
         "Sphinx>=1.5.5,<1.8.0",
         "sphinx_rtd_theme>=0.1.9",
@@ -98,9 +97,6 @@ deps = {
         "bumpversion>=0.5.3,<1",
         "wheel",
         "setuptools>=36.2.0",
-        # Fixing this dependency due to: pytest 3.6.4 has requirement
-        # pluggy<0.8,>=0.5, but you'll have pluggy 0.8.0 which is incompatible.
-        "pluggy==0.7.1",
         # Fixing this dependency due to: requests 2.20.1 has requirement
         # idna<2.8,>=2.5, but you'll have idna 2.8 which is incompatible.
         "idna==2.7",

@@ -153,7 +153,7 @@ async def test_lightchain_integration(
 
     It only needs the first 11 blocks for this test to succeed.
     """
-    if not pytest.config.getoption("--integration"):
+    if not request.config.getoption("--integration"):
         pytest.skip("Not asked to run integration tests")
 
     # will almost certainly want verbose logging in a failure
