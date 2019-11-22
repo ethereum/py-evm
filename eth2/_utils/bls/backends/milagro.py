@@ -48,7 +48,7 @@ class MilagroBackend(BaseBLSBackend):
     ) -> bool:
         if pubkey == EMPTY_PUBKEY:
             raise ValueError(
-                f"Empty public key breaks Milagro binding  pubkey={pubkey}"
+                f"Empty public key breaks Milagro binding  pubkey={pubkey.hex()}"
             )
         return verify(message_hash, pubkey, signature, to_int(domain))
 
@@ -77,7 +77,7 @@ class MilagroBackend(BaseBLSBackend):
     ) -> bool:
         if signature == EMPTY_SIGNATURE:
             raise ValueError(
-                f"Empty signature breaks Milagro binding  signature={signature}"
+                f"Empty signature breaks Milagro binding  signature={signature.hex()}"
             )
 
         non_empty_pubkeys, filtered_message_hashes = zip(

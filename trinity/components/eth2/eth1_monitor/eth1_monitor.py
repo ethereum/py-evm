@@ -227,7 +227,8 @@ class Eth1Monitor(Service):
         if contract_deposit_root != deposit_root:
             raise DepositDataCorrupted(
                 "deposit root built locally mismatches the one in the contract on chain: "
-                f"contract_deposit_root={contract_deposit_root}, deposit_root={deposit_root}"
+                f"contract_deposit_root={contract_deposit_root.hex()}, "
+                f"deposit_root={deposit_root.hex()}"
             )
         return Eth1Data(
             deposit_root=deposit_root,

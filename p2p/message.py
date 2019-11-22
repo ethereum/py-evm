@@ -21,4 +21,4 @@ class Message(MessageAPI):
         return f"Message(header={self.header.hex()}, body={self.body.hex()})"
 
     def __repr__(self) -> str:
-        return f"Message(header={self.header}, body={self.body})"
+        return f"Message(header={self.header!r}, body={self.body!r})"

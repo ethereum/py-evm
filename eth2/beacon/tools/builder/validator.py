@@ -653,7 +653,7 @@ def create_mock_deposit_data(
 
 
 def make_deposit_tree_and_root(
-    list_deposit_data: Sequence[DepositData]
+    list_deposit_data: Sequence[DepositData],
 ) -> Tuple[MerkleTree, Hash32]:
     deposit_data_leaves = [data.hash_tree_root for data in list_deposit_data]
     length_mix_in = len(list_deposit_data).to_bytes(32, byteorder="little")

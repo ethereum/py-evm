@@ -42,7 +42,7 @@ deps = {
         "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",  # noqa: E501
         "websockets==5.0.1",
         "jsonschema==3.0.1",
-        "mypy_extensions>=0.4.1,<1.0.0",
+        "mypy-extensions>=0.4.3,<0.5.0",
         "typing_extensions>=3.7.2,<4.0.0",
         "ruamel.yaml==0.15.98",
         "argcomplete>=1.10.0,<2",
@@ -126,7 +126,7 @@ deps = {
         "isort==4.3.21",
         "flake8==3.7.9",
         "flake8-bugbear==19.8.0",
-        "mypy==0.720",
+        "mypy==0.730",
     ],
 }
 

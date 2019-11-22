@@ -72,7 +72,7 @@ class IdentitySchemeRegistry(IdentitySchemeRegistryBaseType):
 
         if identity_scheme_class.id in self:
             raise ValueError(
-                f"Identity scheme with id {identity_scheme_class.id} is already registered",
+                f"Identity scheme with id {identity_scheme_class.id!r} is already registered",
             )
 
         self[identity_scheme_class.id] = identity_scheme_class
@@ -193,7 +193,7 @@ class V4IdentityScheme(IdentityScheme):
     @classmethod
     def validate_enr_structure(cls, enr: "BaseENR") -> None:
         if cls.public_key_enr_key not in enr:
-            raise ValidationError(f"ENR is missing required key {cls.public_key_enr_key}")
+            raise ValidationError(f"ENR is missing required key {cls.public_key_enr_key!r}")
 
         public_key = cls.extract_public_key(enr)
         cls.validate_public_key(public_key)

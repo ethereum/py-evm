@@ -119,7 +119,7 @@ def decrypt(data: bytes, privkey: datatypes.PrivateKey, shared_mac_data: bytes =
         key_material = ecdh_agree(privkey, keys.PublicKey(shared))
     except _InvalidPublicKey as exc:
         raise DecryptionError(
-            f"Failed to generate shared secret with pubkey {shared}: {exc}"
+            f"Failed to generate shared secret with pubkey {shared!r}: {exc}"
         ) from exc
     key = kdf(key_material)
     key_enc, key_mac = key[:KEY_LEN // 2], key[KEY_LEN // 2:]

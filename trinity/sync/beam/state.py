@@ -275,7 +275,7 @@ class BeamDownloader(BaseService, PeerSubscriber):
         else:
             raise Exception(
                 f"State Downloader failed to download storage 0x{storage_key.hex()} in "
-                f"{to_checksum_address(account)} at storage root 0x{storage_root_hash} "
+                f"{to_checksum_address(account)} at storage root 0x{storage_root_hash.hex()} "
                 f"in 64 runs."
             )
 

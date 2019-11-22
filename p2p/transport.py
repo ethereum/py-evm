@@ -381,7 +381,7 @@ class Transport(TransportAPI):
         expected_header_mac = self._ingress_mac.digest()[:HEADER_LEN]
         if not hmac.compare_digest(expected_header_mac, header_mac):
             raise DecryptionError(
-                f'Invalid header mac: expected {expected_header_mac}, got {header_mac}'
+                f'Invalid header mac: expected {expected_header_mac.hex()}, got {header_mac.hex()}'
             )
         return self._aes_dec.update(header_ciphertext)
 
@@ -401,7 +401,7 @@ class Transport(TransportAPI):
         expected_frame_mac = self._ingress_mac.digest()[:MAC_LEN]
         if not hmac.compare_digest(expected_frame_mac, frame_mac):
             raise DecryptionError(
-                f'Invalid frame mac: expected {expected_frame_mac}, got {frame_mac}'
+                f'Invalid frame mac: expected {expected_frame_mac.hex()}, got {frame_mac.hex()}'
             )
         return self._aes_dec.update(frame_ciphertext)[:body_size]
 

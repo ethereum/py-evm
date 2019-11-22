@@ -86,10 +86,10 @@ class Eth2BLS:
         if not cls.verify(message_hash, pubkey, signature, domain):
             raise SignatureError(
                 f"backend {cls.backend.__name__}\n"
-                f"message_hash {message_hash}\n"
-                f"pubkey {pubkey}\n"
-                f"signature {signature}\n"
-                f"domain {domain}"
+                f"message_hash {message_hash.hex()}\n"
+                f"pubkey {pubkey.hex()}\n"
+                f"signature {signature.hex()}\n"
+                f"domain {domain.hex()}"
             )
 
     @classmethod
@@ -109,8 +109,8 @@ class Eth2BLS:
                 f"backend {cls.backend.__name__}\n"
                 f"pubkeys {pubkeys}\n"
                 f"message_hashes {message_hashes}\n"
-                f"signature {signature}\n"
-                f"domain {domain}"
+                f"signature {signature.hex()}\n"
+                f"domain {domain.hex()}"
             )
 
 

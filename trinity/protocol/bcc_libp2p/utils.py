@@ -157,9 +157,9 @@ async def validate_peer_status(chain: BaseBeaconChain, peer_status: Status) -> N
     if peer_status.finalized_root != finalized_root:
         raise IrrelevantNetwork(
             "`finalized_root` mismatches: "
-            f"peer_status.finalized_root={peer_status.finalized_root}, "
+            f"peer_status.finalized_root={peer_status.finalized_root.hex()}, "
             f"peer_status.finalized_epoch={peer_status.finalized_epoch}, "
-            f"our `finalized_root` at the same `finalized_epoch`={finalized_root}"
+            f"our `finalized_root` at the same `finalized_epoch`={finalized_root.hex()}"
         )
 
 
@@ -452,7 +452,7 @@ async def read_resp(
     result_bytes = await _read_stream(stream, 1, TTFB_TIMEOUT)
     if len(result_bytes) != 1:
         raise ReadMessageFailure(
-            f"result bytes should be of length 1: result_bytes={result_bytes}"
+            f"result bytes should be of length 1: result_bytes={result_bytes!r}"
         )
     try:
         resp_code = ResponseCode(result_bytes[0])

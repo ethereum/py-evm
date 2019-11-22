@@ -2,6 +2,7 @@ import asyncio
 import functools
 import operator
 from typing import (
+    cast,
     Iterable,
     NamedTuple,
     Sequence,
@@ -279,11 +280,11 @@ async def negotiate_protocol_handshakes(transport: TransportAPI,
     async with multiplexer.multiplex():
         # Concurrently perform the handshakes for each protocol, gathering up
         # the returned receipts.
-        protocol_receipts = await asyncio.gather(*(
+        protocol_receipts = cast(Tuple[HandshakeReceiptAPI, ...], await asyncio.gather(*(
             handshaker.do_handshake(multiplexer, protocol)
             for handshaker, protocol
             in zip(selected_handshakers, selected_protocols)
-        ))
+        )))
     # Return the `Multiplexer` object as well as the handshake receipts.  The
     # `Multiplexer` object acts as a container for the individual protocol
     # instances.
