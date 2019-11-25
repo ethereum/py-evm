@@ -301,7 +301,7 @@ FRONTIER_OPCODES: Dict[int, OpcodeAPI] = {
         gas_cost=constants.GAS_HIGH,
     ),
     opcode_values.PC: as_opcode(
-        logic_fn=flow.pc,
+        logic_fn=flow.program_counter,
         mnemonic=mnemonics.PC,
         gas_cost=constants.GAS_BASE,
     ),
