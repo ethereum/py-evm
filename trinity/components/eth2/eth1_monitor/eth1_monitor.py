@@ -13,6 +13,7 @@ from typing import (
     Union,
 )
 
+from async_service import Service
 from eth_typing import Address, BLSPubkey, BLSSignature, BlockNumber, Hash32
 
 from eth_utils import encode_hex, event_abi_to_log_topic
@@ -32,8 +33,6 @@ from eth2.beacon.tools.builder.validator import (
     make_deposit_proof,
     make_deposit_tree_and_root,
 )
-
-from p2p.trio_service import Service
 
 from .db import BaseDepositDataDB, ListCachedDepositDataDB
 from .events import (
@@ -156,7 +155,7 @@ class Eth1Monitor(Service):
         self.manager.run_daemon_task(
             self._run_handle_request, *(GetEth1DataRequest, self._handle_get_eth1_data)
         )
-        await self.manager.wait_stopped()
+        await self.manager.wait_finished()
 
     async def _handle_new_logs(self) -> None:
         """

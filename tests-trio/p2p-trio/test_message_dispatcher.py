@@ -4,9 +4,7 @@ import pytest_trio
 
 import trio
 
-from p2p.trio_service import (
-    background_service,
-)
+from async_service import background_trio_service
 
 from p2p.tools.factories.discovery import (
     EndpointFactory,
@@ -99,7 +97,7 @@ async def message_dispatcher(enr_db, incoming_message_channels, outgoing_message
         incoming_message_receive_channel=incoming_message_channels[1],
         outgoing_message_send_channel=outgoing_message_channels[0],
     )
-    async with background_service(message_dispatcher):
+    async with background_trio_service(message_dispatcher):
         yield message_dispatcher
 
 

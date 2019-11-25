@@ -14,7 +14,7 @@ from mypy_extensions import (
     TypedDict,
 )
 
-from p2p.trio_service import (
+from async_service import (
     Service,
 )
 from p2p.trio_utils import (
@@ -414,4 +414,4 @@ class RoutingTableManager(Service):
         for child_service in child_services:
             self.manager.run_daemon_child_service(child_service)
 
-        await self.manager.wait_cancelled()
+        await self.manager.wait_finished()

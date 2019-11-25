@@ -12,12 +12,12 @@ import eth_utils
 
 from eth_tester import EthereumTester, PyEVMBackend
 
+from async_service import background_trio_service
 from web3 import Web3
 from web3.providers.eth_tester import EthereumTesterProvider
 from lahja.trio.endpoint import TrioEndpoint
 from lahja import ConnectionConfig
 
-from p2p.trio_service import background_service
 from trinity.components.eth2.eth1_monitor.configs import deposit_contract_json
 from trinity.components.eth2.eth1_monitor.eth1_monitor import Eth1Monitor
 from trinity.components.eth2.eth1_monitor.factories import DepositDataFactory
@@ -101,7 +101,7 @@ async def eth1_monitor(
         event_bus=endpoint_server,
         base_db=AtomicDBFactory(),
     )
-    async with background_service(m):
+    async with background_trio_service(m):
         yield m
 
 

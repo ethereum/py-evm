@@ -8,9 +8,7 @@ from trio.testing import (
 
 import pytest_trio
 
-from p2p.trio_service import (
-    background_service,
-)
+from async_service import background_trio_service
 
 from p2p.tools.factories.discovery import (
     EndpointFactory,
@@ -69,7 +67,7 @@ async def endpoint_tracker(private_key, initial_enr, enr_db, vote_channels):
         identity_scheme_registry=default_identity_scheme_registry,
         vote_receive_channel=vote_channels[1],
     )
-    async with background_service(endpoint_tracker):
+    async with background_trio_service(endpoint_tracker):
         yield endpoint_tracker
 
 
