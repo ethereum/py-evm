@@ -39,7 +39,7 @@ deps = {
         "web3==4.4.1",
         "lahja>=0.14.6,<0.15.0",
         "termcolor>=1.1.0,<2.0.0",
-        "uvloop==0.11.2;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",  # noqa: E501
+        "uvloop==0.14.0;platform_system=='Linux' or platform_system=='Darwin' or platform_system=='FreeBSD'",  # noqa: E501
         "websockets==5.0.1",
         "jsonschema==3.0.1",
         "mypy_extensions>=0.4.1,<1.0.0",
