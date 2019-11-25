@@ -17,7 +17,7 @@ def stop(computation: BaseComputation) -> None:
 def jump(computation: BaseComputation) -> None:
     jump_dest = computation.stack_pop1_int()
 
-    computation.code.pc = jump_dest
+    computation.code.program_counter = jump_dest
 
     next_opcode = computation.code.peek()
 
@@ -32,7 +32,7 @@ def jumpi(computation: BaseComputation) -> None:
     jump_dest, check_value = computation.stack_pop_ints(2)
 
     if check_value:
-        computation.code.pc = jump_dest
+        computation.code.program_counter = jump_dest
 
         next_opcode = computation.code.peek()
 
@@ -47,8 +47,8 @@ def jumpdest(computation: BaseComputation) -> None:
     pass
 
 
-def pc(computation: BaseComputation) -> None:
-    pc = max(computation.code.pc - 1, 0)
+def program_counter(computation: BaseComputation) -> None:
+    pc = max(computation.code.program_counter - 1, 0)
 
     computation.stack_push_int(pc)
 

@@ -26,17 +26,17 @@ class CodeStream(CodeStreamAPI):
         # in order to avoid method overhead when setting/accessing pc, we no longer fence
         # the pc (Program Counter) into 0 <= pc <= len(code_bytes). We now let it float free.
         # NOTE: Setting pc to a negative value has undefined behavior.
-        self.pc = 0
+        self.program_counter = 0
         self._raw_code_bytes = code_bytes
         self._length_cache = len(code_bytes)
         self.invalid_positions: Set[int] = set()
         self.valid_positions: Set[int] = set()
 
     def read(self, size: int) -> bytes:
-        old_pc = self.pc
-        target_pc = old_pc + size
-        self.pc = target_pc
-        return self._raw_code_bytes[old_pc:target_pc]
+        old_program_counter = self.program_counter
+        target_program_counter = old_program_counter + size
+        self.program_counter = target_program_counter
+        return self._raw_code_bytes[old_program_counter:target_program_counter]
 
     def __len__(self) -> int:
         return self._length_cache
@@ -46,31 +46,31 @@ class CodeStream(CodeStreamAPI):
 
     def __iter__(self) -> Iterator[int]:
         # a very performance-sensitive method
-        pc = self.pc
+        pc = self.program_counter
         while pc < self._length_cache:
             opcode = self._raw_code_bytes[pc]
-            self.pc = pc + 1
+            self.program_counter = pc + 1
             yield opcode
             # a read might have adjusted the pc during the last yield
-            pc = self.pc
+            pc = self.program_counter
 
         yield STOP
 
     def peek(self) -> int:
-        pc = self.pc
+        pc = self.program_counter
         if pc < self._length_cache:
             return self._raw_code_bytes[pc]
         else:
             return STOP
 
     @contextlib.contextmanager
-    def seek(self, pc: int) -> Iterator['CodeStream']:
-        anchor_pc = self.pc
-        self.pc = pc
+    def seek(self, program_counter: int) -> Iterator['CodeStream']:
+        anchor_pc = self.program_counter
+        self.program_counter = program_counter
         try:
             yield self
         finally:
-            self.pc = anchor_pc
+            self.program_counter = anchor_pc
 
     def _potentially_disqualifying_opcode_positions(self, position: int) -> Iterator[int]:
         # Look at the last 32 positions (from 1 byte back to 32 bytes back).

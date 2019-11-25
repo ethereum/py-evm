@@ -65,27 +65,27 @@ class SlowCodeStream:
             return STOP
 
     def peek(self) -> int:
-        current_pc = self.pc
+        current_pc = self.program_counter
         next_opcode = next(self)
-        self.pc = current_pc
+        self.program_counter = current_pc
         return next_opcode
 
     @property
-    def pc(self) -> int:
+    def program_counter(self) -> int:
         return self.stream.tell()
 
-    @pc.setter
-    def pc(self, value: int) -> None:
+    @program_counter.setter
+    def program_counter(self, value: int) -> None:
         self.stream.seek(min(value, len(self)))
 
     @contextlib.contextmanager
     def seek(self, pc: int) -> Iterator['SlowCodeStream']:
-        anchor_pc = self.pc
-        self.pc = pc
+        anchor_pc = self.program_counter
+        self.program_counter = pc
         try:
             yield self
         finally:
-            self.pc = anchor_pc
+            self.program_counter = anchor_pc
 
     def _potentially_disqualifying_opcode_positions(self, position: int) -> Iterator[int]:
         # Look at the last 32 positions (from 1 byte back to 32 bytes back).

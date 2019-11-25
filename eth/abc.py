@@ -827,7 +827,10 @@ class StackAPI(ABC):
 
 
 class CodeStreamAPI(ABC):
-    pc: int
+    """
+    A class representing a stream of EVM code.
+    """
+    program_counter: int
 
     @abstractmethod
     def read(self, size: int) -> bytes:
@@ -850,7 +853,11 @@ class CodeStreamAPI(ABC):
         ...
 
     @abstractmethod
-    def seek(self, pc: int) -> ContextManager['CodeStreamAPI']:
+    def seek(self, program_counter: int) -> ContextManager['CodeStreamAPI']:
+        """
+        Return a :class:`~typing.ContextManager` with the program counter
+        set to ``program_counter``.
+        """
         ...
 
     @abstractmethod

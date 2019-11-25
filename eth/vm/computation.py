@@ -547,7 +547,7 @@ class BaseComputation(Configurable, ComputationAPI):
                         "OPCODE: 0x%x (%s) | pc: %s",
                         opcode,
                         opcode_fn.mnemonic,
-                        max(0, computation.code.pc - 1),
+                        max(0, computation.code.program_counter - 1),
                     )
 
                 try:
