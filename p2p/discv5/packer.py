@@ -583,9 +583,12 @@ class Packer(Service):
             enr_db=self.enr_db,
             message_type_registry=self.message_type_registry,
             incoming_packet_receive_channel=incoming_packet_channels[1],
-            # trio doesn't expose a `MemoryXXXChannel` type that can be used
-            # for these and the `clone` method is only available on the memory
-            # channel interfaces.
+            # These channels are the standard `trio.abc.XXXChannel` interfaces.
+            # The `clone` method is only available on `MemoryXXXChannel` types
+            # which trio currently doesn't expose in a way that allows us to
+            # type these channels as those types.  Thus, we need to tell mypy
+            # to ignore this since it doesn't recognize the standard
+            # `trio.abc.XXXChannel` interfaces as having a `clone()` method.
             incoming_message_send_channel=self.incoming_message_send_channel.clone(),  # type: ignore  # noqa: E501
             outgoing_message_receive_channel=outgoing_message_channels[1],
             outgoing_packet_send_channel=self.outgoing_packet_send_channel.clone(),  # type: ignore

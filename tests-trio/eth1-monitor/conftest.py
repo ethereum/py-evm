@@ -18,8 +18,8 @@ from web3.providers.eth_tester import EthereumTesterProvider
 from lahja.trio.endpoint import TrioEndpoint
 from lahja import ConnectionConfig
 
-from trinity.components.eth2.eth1_monitor.eth1_monitor import Eth1Monitor
 from trinity.components.eth2.eth1_monitor.configs import deposit_contract_json
+from trinity.components.eth2.eth1_monitor.eth1_monitor import Eth1Monitor
 from trinity.components.eth2.eth1_monitor.factories import DepositDataFactory
 from trinity.tools.factories.db import AtomicDBFactory
 
