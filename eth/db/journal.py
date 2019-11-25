@@ -180,11 +180,11 @@ class Journal(BaseDB):
         We build a special empty reversion changeset just for marking that all previous data should
         be ignored.
         """
-        checkpooint = get_next_checkpoint()
-        self._journal_data[checkpooint] = self._current_values
+        checkpoint = get_next_checkpoint()
+        self._journal_data[checkpoint] = self._current_values
         self._current_values = {}
         self._ignore_wrapped_db = True
-        self._clears_at.add(checkpooint)
+        self._clears_at.add(checkpoint)
 
     def has_clear(self, at_checkpoint: JournalDBCheckpoint) -> bool:
         for reversion_changeset_id in reversed(self._journal_data.keys()):

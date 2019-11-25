@@ -50,6 +50,10 @@ T = TypeVar('T')
 
 
 class MiningHeaderAPI(rlp.Serializable, ABC):
+    """
+    A class to define a block header without ``mix_hash`` and ``nonce`` which can act as a
+    temporary representation during mining before the block header is sealed.
+    """
     parent_hash: Hash32
     uncles_hash: Hash32
     coinbase: Address
@@ -66,11 +70,18 @@ class MiningHeaderAPI(rlp.Serializable, ABC):
 
 
 class BlockHeaderAPI(MiningHeaderAPI):
+    """
+    A class derived from :class:`~eth.abc.MiningHeaderAPI` to define a block header after it is
+    sealed.
+    """
     mix_hash: Hash32
     nonce: bytes
 
 
 class LogAPI(rlp.Serializable, ABC):
+    """
+    A class to define a written log.
+    """
     address: Address
     topics: Sequence[int]
     data: bytes
@@ -82,6 +93,9 @@ class LogAPI(rlp.Serializable, ABC):
 
 
 class ReceiptAPI(rlp.Serializable, ABC):
+    """
+    A class to define a receipt to capture the outcome of a transaction.
+    """
     state_root: bytes
     gas_used: int
     bloom: int
@@ -94,6 +108,9 @@ class ReceiptAPI(rlp.Serializable, ABC):
 
 
 class BaseTransactionAPI(ABC):
+    """
+    A class to define all common methods of a transaction.
+    """
     @abstractmethod
     def validate(self) -> None:
         """
@@ -112,6 +129,10 @@ class BaseTransactionAPI(ABC):
 
     @abstractmethod
     def get_intrinsic_gas(self) -> int:
+        """
+        Return the intrinsic gas for the transaction which is defined as the amount of gas that
+        is needed before any code runs.
+        """
         ...
 
     @abstractmethod
@@ -125,10 +146,16 @@ class BaseTransactionAPI(ABC):
 
     @abstractmethod
     def copy(self: T, **overrides: Any) -> T:
+        """
+        Return a copy of the transaction.
+        """
         ...
 
 
 class TransactionFieldsAPI(ABC):
+    """
+    A class to define all common transaction fields.
+    """
     nonce: int
     gas_price: int
     gas: int
@@ -146,6 +173,9 @@ class TransactionFieldsAPI(ABC):
 
 
 class UnsignedTransactionAPI(rlp.Serializable, BaseTransactionAPI):
+    """
+    A class representing a transaction before it is signed.
+    """
     nonce: int
     gas_price: int
     gas: int
@@ -166,9 +196,15 @@ class UnsignedTransactionAPI(rlp.Serializable, BaseTransactionAPI):
 
 
 class SignedTransactionAPI(rlp.Serializable, BaseTransactionAPI, TransactionFieldsAPI):
+    """
+    A class representing a transaction that was signed with a private key.
+    """
     @classmethod
     @abstractmethod
     def from_base_transaction(cls, transaction: 'SignedTransactionAPI') -> 'SignedTransactionAPI':
+        """
+        Create a signed transaction from a base transaction.
+        """
         ...
 
     @property
@@ -201,12 +237,15 @@ class SignedTransactionAPI(rlp.Serializable, BaseTransactionAPI, TransactionFiel
     @property
     @abstractmethod
     def is_signature_valid(self) -> bool:
+        """
+        Return ``True`` if the signature is valid, otherwise ``False``.
+        """
         ...
 
     @abstractmethod
     def check_signature_validity(self) -> None:
         """
-        Checks signature validity, raising a ValidationError if the signature
+        Check if the signature is valid. Raise a ``ValidationError`` if the signature
         is invalid.
         """
         ...
@@ -247,85 +286,140 @@ class SignedTransactionAPI(rlp.Serializable, BaseTransactionAPI, TransactionFiel
 
 
 class BlockAPI(rlp.Serializable, ABC):
+    """
+    A class to define a block.
+    """
     transaction_class: Type[SignedTransactionAPI] = None
 
     @classmethod
     @abstractmethod
     def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
+        """
+        Return the transaction class that is valid for the block.
+        """
         ...
 
     @classmethod
     @abstractmethod
     def from_header(cls, header: BlockHeaderAPI, chaindb: 'ChainDatabaseAPI') -> 'BlockAPI':
+        """
+        Instantiate a block from the given ``header`` and the ``chaindb``.
+        """
         ...
 
     @property
     @abstractmethod
     def hash(self) -> Hash32:
+        """
+        Return the hash of the block.
+        """
         ...
 
     @property
     @abstractmethod
     def number(self) -> BlockNumber:
+        """
+        Return the number of the block.
+        """
         ...
 
     @property
     @abstractmethod
     def is_genesis(self) -> bool:
+        """
+        Return ``True`` if this block represents the genesis block of the chain,
+        otherwise ``False``.
+        """
         ...
 
 
 class SchemaAPI(ABC):
+    """
+    A class representing a database schema that maps values to lookup keys.
+    """
     @staticmethod
     @abstractmethod
     def make_canonical_head_hash_lookup_key() -> bytes:
+        """
+        Return the lookup key to retrieve the canonical head from the database.
+        """
         ...
 
     @staticmethod
     @abstractmethod
     def make_block_number_to_hash_lookup_key(block_number: BlockNumber) -> bytes:
+        """
+        Return the lookup key to retrieve a block hash from a block number.
+        """
         ...
 
     @staticmethod
     @abstractmethod
     def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
+        """
+        Return the lookup key to retrieve the score from a block hash.
+        """
         ...
 
     @staticmethod
     @abstractmethod
     def make_transaction_hash_to_block_lookup_key(transaction_hash: Hash32) -> bytes:
+        """
+        Return the lookup key to retrieve a transaction key from a transaction hash.
+        """
         ...
 
 
 class DatabaseAPI(MutableMapping[bytes, bytes], ABC):
+    """
+    A class representing a database.
+    """
     @abstractmethod
     def set(self, key: bytes, value: bytes) -> None:
+        """
+        Assign the ``value`` to the ``key``.
+        """
         ...
 
     @abstractmethod
     def exists(self, key: bytes) -> bool:
+        """
+        Return ``True`` if the ``key`` exists in the database, otherwise ``False``.
+        """
         ...
 
     @abstractmethod
     def delete(self, key: bytes) -> None:
+        """
+        Delete the given ``key`` from the database.
+        """
         ...
 
 
 class AtomicDatabaseAPI(DatabaseAPI):
     """
-    Like ``BatchDB``, but it immediately write out changes if they are
+    Like ``BatchDB``, but immediately write out changes if they are
     not in an ``atomic_batch()`` context.
     """
     @abstractmethod
     def atomic_batch(self) -> ContextManager[DatabaseAPI]:
+        """
+        Return a :class:`~typing.ContextManager` to write an atomic batch to the database.
+        """
         ...
 
 
 class HeaderDatabaseAPI(ABC):
+    """
+    A class representing a database for block headers.
+    """
     db: AtomicDatabaseAPI
 
     @abstractmethod
     def __init__(self, db: AtomicDatabaseAPI) -> None:
+        """
+        Instantiate the database from an :class:`~eth.abc.AtomicDatabaseAPI`.
+        """
         ...
 
     #
@@ -363,14 +457,24 @@ class HeaderDatabaseAPI(ABC):
     #
     @abstractmethod
     def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeaderAPI:
+        """
+        Return the block header for the given ``block_hash``.
+        Raise ``HeaderNotFound`` if no header with the given ``block_hash`` exists in the database.
+        """
         ...
 
     @abstractmethod
     def get_score(self, block_hash: Hash32) -> int:
+        """
+        Return the score for the given ``block_hash``.
+        """
         ...
 
     @abstractmethod
     def header_exists(self, block_hash: Hash32) -> bool:
+        """
+        Return ``True`` if the ``block_hash`` exists in the database, otherwise ``False``.
+        """
         ...
 
     @abstractmethod
@@ -385,6 +489,11 @@ class HeaderDatabaseAPI(ABC):
     def persist_header(self,
                        header: BlockHeaderAPI
                        ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
+        """
+        Persist the ``header`` in the database.
+        Return two iterable of headers, the first containing the new canonical header,
+        the second containing the old canonical headers
+        """
         ...
 
     @abstractmethod
@@ -393,6 +502,7 @@ class HeaderDatabaseAPI(ABC):
                              genesis_parent_hash: Hash32 = None,
                              ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         """
+        Persist a chain of headers in the database.
         Return two iterable of headers, the first containing the new canonical headers,
         the second containing the old canonical headers
 
@@ -405,6 +515,10 @@ class HeaderDatabaseAPI(ABC):
 
 
 class ChainDatabaseAPI(HeaderDatabaseAPI):
+    """
+    A class representing a database for chain data. This class is derived from
+    :class:`~eth.abc.HeaderDatabaseAPI`.
+    """
     #
     # Header API
     #
@@ -473,7 +587,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     def get_block_transactions(
             self,
             block_header: BlockHeaderAPI,
-            transaction_class: Type[SignedTransactionAPI]) -> Sequence[SignedTransactionAPI]:
+            transaction_class: Type[SignedTransactionAPI]) -> Tuple[SignedTransactionAPI, ...]:
         """
         Return an iterable of transactions for the block speficied by the
         given block header.
@@ -482,6 +596,9 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
 
     @abstractmethod
     def get_block_transaction_hashes(self, block_header: BlockHeaderAPI) -> Tuple[Hash32, ...]:
+        """
+        Return a tuple cointaining the hashes of the transactions of the given ``block_header``.
+        """
         ...
 
     @abstractmethod
@@ -489,7 +606,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
                              block_number: BlockNumber,
                              receipt_index: int) -> ReceiptAPI:
         """
-        Return the Receipt of the transaction at specified index
+        Return the receipt of the transaction at specified index
         for the block header obtained by the specified block number
         """
         ...
@@ -499,7 +616,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
                      header: BlockHeaderAPI,
                      receipt_class: Type[ReceiptAPI]) -> Tuple[ReceiptAPI, ...]:
         """
-        Return an iterable of receipts for the block specified by the given
+        Return a tuple of receipts for the block specified by the given
         block header.
         """
         ...
@@ -556,6 +673,9 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
 
 
 class GasMeterAPI(ABC):
+    """
+    A class to define a gas meter.
+    """
     gas_refunded: int
     gas_remaining: int
 
@@ -564,14 +684,23 @@ class GasMeterAPI(ABC):
     #
     @abstractmethod
     def consume_gas(self, amount: int, reason: str) -> None:
+        """
+        Consume ``amount`` of gas for a defined ``reason``.
+        """
         ...
 
     @abstractmethod
     def return_gas(self, amount: int) -> None:
+        """
+        Return ``amount`` of gas.
+        """
         ...
 
     @abstractmethod
     def refund_gas(self, amount: int) -> None:
+        """
+        Refund ``amount`` of gas.
+        """
         ...
 
 
@@ -629,10 +758,16 @@ class MessageAPI(ABC):
 
 
 class OpcodeAPI(ABC):
+    """
+    A class representing an opcode.
+    """
     mnemonic: str
 
     @abstractmethod
     def __call__(self, computation: 'ComputationAPI') -> None:
+        """
+        Execute the logic of the opcode.
+        """
         ...
 
     @classmethod
@@ -648,10 +783,16 @@ class OpcodeAPI(ABC):
 
     @abstractmethod
     def __copy__(self) -> 'OpcodeAPI':
+        """
+        Return a copy of the opcode.
+        """
         ...
 
     @abstractmethod
     def __deepcopy__(self, memo: Any) -> 'OpcodeAPI':
+        """
+        Return a deep copy of the opcode.
+        """
         ...
 
 
@@ -661,11 +802,17 @@ class ChainContextAPI(ABC):
     """
     @abstractmethod
     def __init__(self, chain_id: Optional[int]) -> None:
+        """
+        Initialize the chain context with the given ``chain_id``.
+        """
         ...
 
     @property
     @abstractmethod
     def chain_id(self) -> int:
+        """
+        Return the chain id of the chain context.
+        """
         ...
 
 
@@ -675,33 +822,51 @@ class TransactionContextAPI(ABC):
     """
     @abstractmethod
     def __init__(self, gas_price: int, origin: Address) -> None:
+        """
+        Initialize the transaction context from the given ``gas_price`` and ``origin`` address.
+        """
         ...
 
     @abstractmethod
     def get_next_log_counter(self) -> int:
+        """
+        Increment and return the log counter.
+        """
         ...
 
     @property
     @abstractmethod
     def gas_price(self) -> int:
+        """
+        Return the gas price of the transaction context.
+        """
         ...
 
     @property
     @abstractmethod
     def origin(self) -> Address:
+        """
+        Return the origin of the transaction context.
+        """
         ...
 
 
 class MemoryAPI(ABC):
     """
-    The memory of the VM
+    A class representing the memory of the :class:`~eth.abc.VirtualMachineAPI`.
     """
     @abstractmethod
     def extend(self, start_position: int, size: int) -> None:
+        """
+        Extend the memory from the given ``start_position`` to the provided ``size``.
+        """
         ...
 
     @abstractmethod
     def __len__(self) -> int:
+        """
+        Return the length of the memory.
+        """
         ...
 
     @abstractmethod
@@ -728,7 +893,7 @@ class MemoryAPI(ABC):
 
 class StackAPI(ABC):
     """
-    The stack of the VM.
+    A class representing the stack of the :class:`~eth.abc.VirtualMachineAPI`.
     """
     @abstractmethod
     def push_int(self, value: int) -> None:
@@ -834,22 +999,37 @@ class CodeStreamAPI(ABC):
 
     @abstractmethod
     def read(self, size: int) -> bytes:
+        """
+        Read and return the code from the current position of the cursor up to ``size``.
+        """
         ...
 
     @abstractmethod
     def __len__(self) -> int:
+        """
+        Return the length of the code stream.
+        """
         ...
 
     @abstractmethod
-    def __getitem__(self, i: int) -> int:
+    def __getitem__(self, index: int) -> int:
+        """
+        Return the ordinal value of the byte at the given ``index``.
+        """
         ...
 
     @abstractmethod
     def __iter__(self) -> Iterator[int]:
+        """
+        Iterate over all ordinal values of the bytes of the code stream.
+        """
         ...
 
     @abstractmethod
     def peek(self) -> int:
+        """
+        Return the ordinal value of the byte at the current program counter.
+        """
         ...
 
     @abstractmethod
@@ -862,77 +1042,130 @@ class CodeStreamAPI(ABC):
 
     @abstractmethod
     def is_valid_opcode(self, position: int) -> bool:
+        """
+        Return ``True`` if a valid opcode exists at ``position``.
+        """
         ...
 
 
 class StackManipulationAPI(ABC):
     @abstractmethod
     def stack_pop_ints(self, num_items: int) -> Tuple[int, ...]:
+        """
+        Pop the last ``num_items`` from the stack, returning a tuple of their ordinal values.
+        """
         ...
 
     @abstractmethod
     def stack_pop_bytes(self, num_items: int) -> Tuple[bytes, ...]:
+        """
+        Pop the last ``num_items`` from the stack, returning a tuple of bytes.
+        """
         ...
 
     @abstractmethod
     def stack_pop_any(self, num_items: int) -> Tuple[Union[int, bytes], ...]:
+        """
+        Pop the last ``num_items`` from the stack, returning a tuple with potentially mixed values
+        of bytes or ordinal values of bytes.
+        """
         ...
 
     @abstractmethod
     def stack_pop1_int(self) -> int:
+        """
+        Pop one item from the stack and return the ordinal value of the represented bytes.
+        """
         ...
 
     @abstractmethod
     def stack_pop1_bytes(self) -> bytes:
+        """
+        Pop one item from the stack and return the value as ``bytes``.
+        """
         ...
 
     @abstractmethod
     def stack_pop1_any(self) -> Union[int, bytes]:
+        """
+        Pop one item from the stack and return the value either as byte or the ordinal value of
+        a byte.
+        """
         ...
 
     @abstractmethod
     def stack_push_int(self, value: int) -> None:
+        """
+        Push ``value`` on the stack which must be a 256 bit integer.
+        """
         ...
 
     @abstractmethod
     def stack_push_bytes(self, value: bytes) -> None:
+        """
+        Push ``value`` on the stack which must be a 32 byte string.
+        """
         ...
 
 
 class ExecutionContextAPI(ABC):
+    """
+    A class representing context information that remains constant over the execution of a block.
+    """
     @property
     @abstractmethod
     def coinbase(self) -> Address:
+        """
+        Return the coinbase address of the block.
+        """
         ...
 
     @property
     @abstractmethod
     def timestamp(self) -> int:
+        """
+        Return the timestamp of the block.
+        """
         ...
 
     @property
     @abstractmethod
     def block_number(self) -> BlockNumber:
+        """
+        Return the number of the block.
+        """
         ...
 
     @property
     @abstractmethod
     def difficulty(self) -> int:
+        """
+        Return the difficulty of the block.
+        """
         ...
 
     @property
     @abstractmethod
     def gas_limit(self) -> int:
+        """
+        Return the gas limit of the block.
+        """
         ...
 
     @property
     @abstractmethod
     def prev_hashes(self) -> Iterable[Hash32]:
+        """
+        Return an iterable of block hashes that precede the block.
+        """
         ...
 
     @property
     @abstractmethod
     def chain_id(self) -> int:
+        """
+        Return the id of the chain.
+        """
         ...
 
 
@@ -952,6 +1185,9 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
                  state: 'StateAPI',
                  message: MessageAPI,
                  transaction_context: TransactionContextAPI) -> None:
+        """
+        Instantiate the computation.
+        """
         ...
 
     #
@@ -987,10 +1223,17 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     @property
     @abstractmethod
     def error(self) -> VMError:
+        """
+        Return the :class:`~eth.exceptions.VMError` of the computation.
+        Raise ``AttributeError`` if no error exists.
+        """
         ...
 
     @error.setter
     def error(self, value: VMError) -> None:
+        """
+        Set an :class:`~eth.exceptions.VMError` for the computation.
+        """
         # See: https://github.com/python/mypy/issues/4165
         # Since we can't also decorate this with abstract method we want to be
         # sure that the setter doesn't actually get used as a noop.
@@ -1067,6 +1310,9 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     #
     @abstractmethod
     def get_gas_meter(self) -> GasMeterAPI:
+        """
+        Return the :class:`~eth.abc.GasMeterAPI` of the computation.
+        """
         ...
 
     @abstractmethod
@@ -1093,14 +1339,23 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
 
     @abstractmethod
     def get_gas_refund(self) -> int:
+        """
+        Return the number of refunded gas.
+        """
         ...
 
     @abstractmethod
     def get_gas_used(self) -> int:
+        """
+        Return the number of used gas.
+        """
         ...
 
     @abstractmethod
     def get_gas_remaining(self) -> int:
+        """
+        Return the number of remaining gas.
+        """
         ...
 
     #
@@ -1166,10 +1421,16 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
 
     @abstractmethod
     def generate_child_computation(self, child_msg: MessageAPI) -> 'ComputationAPI':
+        """
+        Generate a child computation from the given ``child_msg``.
+        """
         ...
 
     @abstractmethod
     def add_child_computation(self, child_computation: 'ComputationAPI') -> None:
+        """
+        Add the given ``child_computation``.
+        """
         ...
 
     #
@@ -1177,10 +1438,16 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     #
     @abstractmethod
     def register_account_for_deletion(self, beneficiary: Address) -> None:
+        """
+        Register the address of ``beneficiary`` for deletion.
+        """
         ...
 
     @abstractmethod
     def get_accounts_for_deletion(self) -> Tuple[Tuple[Address, Address], ...]:
+        """
+        Return a tuple of addresses that are registered for deletion.
+        """
         ...
 
     #
@@ -1188,10 +1455,16 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     #
     @abstractmethod
     def add_log_entry(self, account: Address, topics: Tuple[int, ...], data: bytes) -> None:
+        """
+        Add a log entry.
+        """
         ...
 
     @abstractmethod
     def get_raw_log_entries(self) -> Tuple[Tuple[int, bytes, Tuple[int, ...], bytes], ...]:
+        """
+        Return a tuple of raw log entries.
+        """
         ...
 
     @abstractmethod
@@ -1238,10 +1511,17 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     @property
     @abstractmethod
     def precompiles(self) -> Dict[Address, Callable[['ComputationAPI'], None]]:
+        """
+        Return a dictionary where the keys are the addresses of precompiles and the values are
+        the precompile functions.
+        """
         ...
 
     @abstractmethod
     def get_opcode_fn(self, opcode: int) -> OpcodeAPI:
+        """
+        Return the function for the given ``opcode``.
+        """
         ...
 
 
@@ -1252,26 +1532,45 @@ class AccountStorageDatabaseAPI(ABC):
     """
     @abstractmethod
     def get(self, slot: int, from_journal: bool=True) -> int:
+        """
+        Return the value at ``slot``. Lookups take the journal into consideration unless
+        ``from_journal`` is explicitly set to ``False``.
+        """
         ...
 
     @abstractmethod
     def set(self, slot: int, value: int) -> None:
+        """
+        Write ``value`` into ``slot``.
+        """
         ...
 
     @abstractmethod
     def delete(self) -> None:
+        """
+        Delete the entire storage at the account.
+        """
         ...
 
     @abstractmethod
     def record(self, checkpoint: JournalDBCheckpoint) -> None:
+        """
+        Record changes into the given ``checkpoint``.
+        """
         ...
 
     @abstractmethod
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
+        """
+        Discard the given ``checkpoint``.
+        """
         ...
 
     @abstractmethod
     def commit(self, checkpoint: JournalDBCheckpoint) -> None:
+        """
+        Collapse changes into the given ``checkpoint``.
+        """
         ...
 
     @abstractmethod
@@ -1284,29 +1583,51 @@ class AccountStorageDatabaseAPI(ABC):
     @property
     @abstractmethod
     def has_changed_root(self) -> bool:
+        """
+        Return ``True`` if the storage root has changed.
+        """
         ...
 
     @abstractmethod
     def get_changed_root(self) -> Hash32:
+        """
+        Return the changed root hash.
+        Raise ``ValidationError`` if the root has not changed.
+        """
         ...
 
     @abstractmethod
     def persist(self, db: DatabaseAPI) -> None:
+        """
+        Persist all changes to the database.
+        """
         ...
 
 
 class AccountDatabaseAPI(ABC):
+    """
+    A class representing a database for accounts.
+    """
     @abstractmethod
     def __init__(self, db: AtomicDatabaseAPI, state_root: Hash32 = BLANK_ROOT_HASH) -> None:
+        """
+        Initialize the account database.
+        """
         ...
 
     @property
     @abstractmethod
     def state_root(self) -> Hash32:
+        """
+        Return the state root hash.
+        """
         ...
 
     @abstractmethod
     def has_root(self, state_root: bytes) -> bool:
+        """
+        Return ``True`` if the `state_root` exists, otherwise ``False``.
+        """
         ...
 
     #
@@ -1314,14 +1635,24 @@ class AccountDatabaseAPI(ABC):
     #
     @abstractmethod
     def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+        """
+        Return the value stored at ``slot`` for the given ``address``. Take the journal
+        into consideration unless ``from_journal`` is set to ``False``.
+        """
         ...
 
     @abstractmethod
     def set_storage(self, address: Address, slot: int, value: int) -> None:
+        """
+        Write ``value`` into ``slot`` for the given ``address``.
+        """
         ...
 
     @abstractmethod
     def delete_storage(self, address: Address) -> None:
+        """
+        Delete the storage at ``address``.
+        """
         ...
 
     #
@@ -1329,10 +1660,16 @@ class AccountDatabaseAPI(ABC):
     #
     @abstractmethod
     def get_balance(self, address: Address) -> int:
+        """
+        Return the balance at ``address``.
+        """
         ...
 
     @abstractmethod
     def set_balance(self, address: Address, balance: int) -> None:
+        """
+        Set ``balance`` as the new balance for ``address``.
+        """
         ...
 
     #
@@ -1340,14 +1677,23 @@ class AccountDatabaseAPI(ABC):
     #
     @abstractmethod
     def get_nonce(self, address: Address) -> int:
+        """
+        Return the nonce for ``address``.
+        """
         ...
 
     @abstractmethod
     def set_nonce(self, address: Address, nonce: int) -> None:
+        """
+        Set ``nonce`` as the new nonce for ``address``.
+        """
         ...
 
     @abstractmethod
     def increment_nonce(self, address: Address) -> None:
+        """
+        Increment the nonce for ``address``.
+        """
         ...
 
     #
@@ -1355,18 +1701,30 @@ class AccountDatabaseAPI(ABC):
     #
     @abstractmethod
     def set_code(self, address: Address, code: bytes) -> None:
+        """
+        Set ``code`` as the new code at ``address``.
+        """
         ...
 
     @abstractmethod
     def get_code(self, address: Address) -> bytes:
+        """
+        Return the code at the given ``address``.
+        """
         ...
 
     @abstractmethod
     def get_code_hash(self, address: Address) -> Hash32:
+        """
+        Return the hash of the code at ``address``.
+        """
         ...
 
     @abstractmethod
     def delete_code(self, address: Address) -> None:
+        """
+        Delete the code at ``address``.
+        """
         ...
 
     #
@@ -1374,22 +1732,37 @@ class AccountDatabaseAPI(ABC):
     #
     @abstractmethod
     def account_has_code_or_nonce(self, address: Address) -> bool:
+        """
+        Return ``True`` if either code or a nonce exists at ``address``.
+        """
         ...
 
     @abstractmethod
     def delete_account(self, address: Address) -> None:
+        """
+        Delete the account at ``address``.
+        """
         ...
 
     @abstractmethod
     def account_exists(self, address: Address) -> bool:
+        """
+        Return ``True`` if an account exists at ``address``, otherwise ``False``.
+        """
         ...
 
     @abstractmethod
     def touch_account(self, address: Address) -> None:
+        """
+        Touch the account at ``address``.
+        """
         ...
 
     @abstractmethod
     def account_is_empty(self, address: Address) -> bool:
+        """
+        Return ``True`` if an account exists at ``address``.
+        """
         ...
 
     #
@@ -1397,14 +1770,23 @@ class AccountDatabaseAPI(ABC):
     #
     @abstractmethod
     def record(self) -> JournalDBCheckpoint:
+        """
+        Create and return a new checkpoint.
+        """
         ...
 
     @abstractmethod
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
+        """
+        Discard the given ``checkpoint``.
+        """
         ...
 
     @abstractmethod
     def commit(self, checkpoint: JournalDBCheckpoint) -> None:
+        """
+        Collapse changes into ``checkpoint``.
+        """
         ...
 
     @abstractmethod
@@ -1437,20 +1819,36 @@ class AccountDatabaseAPI(ABC):
 
 
 class TransactionExecutorAPI(ABC):
+    """
+    A class providing APIs to execute transactions on VM state.
+    """
     @abstractmethod
     def __init__(self, vm_state: 'StateAPI') -> None:
+        """
+        Initialize the executor from the given ``vm_state``.
+        """
         ...
 
     @abstractmethod
     def __call__(self, transaction: SignedTransactionAPI) -> 'ComputationAPI':
+        """
+        Execute the ``transaction`` and return a :class:`eth.abc.ComputationAPI`.
+        """
         ...
 
     @abstractmethod
     def validate_transaction(self, transaction: SignedTransactionAPI) -> None:
+        """
+        Validate the given ``transaction``.
+        Raise a ``ValidationError`` if the transaction is invalid.
+        """
         ...
 
     @abstractmethod
     def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
+        """
+        Build and return a :class:`~eth.abc.MessageAPI` from the given ``transaction``.
+        """
         ...
 
     @abstractmethod
@@ -1468,10 +1866,16 @@ class TransactionExecutorAPI(ABC):
     def finalize_computation(self,
                              transaction: SignedTransactionAPI,
                              computation: 'ComputationAPI') -> 'ComputationAPI':
+        """
+        Finalize the ``transaction``.
+        """
         ...
 
 
 class ConfigurableAPI(ABC):
+    """
+    A class providing inline subclassing.
+    """
     @classmethod
     @abstractmethod
     def configure(cls: Type[T],
@@ -1512,11 +1916,17 @@ class StateAPI(ConfigurableAPI):
             db: AtomicDatabaseAPI,
             execution_context: ExecutionContextAPI,
             state_root: bytes) -> None:
+        """
+        Initialize the state.
+        """
         ...
 
     @property
     @abstractmethod
     def logger(self) -> ExtendedDebugLogger:
+        """
+        Return the logger.
+        """
         ...
 
     #
@@ -1584,78 +1994,135 @@ class StateAPI(ConfigurableAPI):
 
     @abstractmethod
     def make_state_root(self) -> Hash32:
+        """
+        Create and return the state root.
+        """
         ...
 
     @abstractmethod
     def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+        """
+        Return the storage at ``slot`` for ``address``.
+        """
         ...
 
     @abstractmethod
     def set_storage(self, address: Address, slot: int, value: int) -> None:
+        """
+        Write ``value`` to the given ``slot`` at ``address``.
+        """
         ...
 
     @abstractmethod
     def delete_storage(self, address: Address) -> None:
+        """
+        Delete the storage at ``address``
+        """
         ...
 
     @abstractmethod
     def delete_account(self, address: Address) -> None:
+        """
+        Delete the account at the given ``address``.
+        """
         ...
 
     @abstractmethod
     def get_balance(self, address: Address) -> int:
+        """
+        Return the balance for the account at ``address``.
+        """
         ...
 
     @abstractmethod
     def set_balance(self, address: Address, balance: int) -> None:
+        """
+        Set ``balance`` to the balance at ``address``.
+        """
         ...
 
     @abstractmethod
     def delta_balance(self, address: Address, delta: int) -> None:
+        """
+        Apply ``delta`` to the balance at ``address``.
+        """
         ...
 
     @abstractmethod
     def get_nonce(self, address: Address) -> int:
+        """
+        Return the nonce at ``address``.
+        """
         ...
 
     @abstractmethod
     def set_nonce(self, address: Address, nonce: int) -> None:
+        """
+        Set ``nonce`` as the new nonce at ``address``.
+        """
         ...
 
     @abstractmethod
     def increment_nonce(self, address: Address) -> None:
+        """
+        Increment the nonce at ``address``.
+        """
         ...
 
     @abstractmethod
     def get_code(self, address: Address) -> bytes:
+        """
+        Return the code at ``address``.
+        """
         ...
 
     @abstractmethod
     def set_code(self, address: Address, code: bytes) -> None:
+        """
+        Set ``code`` as the new code at ``address``.
+        """
         ...
 
     @abstractmethod
     def get_code_hash(self, address: Address) -> Hash32:
+        """
+        Return the hash of the code at ``address``.
+        """
         ...
 
     @abstractmethod
     def delete_code(self, address: Address) -> None:
+        """
+        Delete the code at ``address``.
+        """
         ...
 
     @abstractmethod
     def has_code_or_nonce(self, address: Address) -> bool:
+        """
+        Return ``True`` if either a nonce or code exists at the given ``address``.
+        """
         ...
 
     @abstractmethod
     def account_exists(self, address: Address) -> bool:
+        """
+        Return ``True`` if an account exists at ``address``.
+        """
         ...
 
     @abstractmethod
     def touch_account(self, address: Address) -> None:
+        """
+        Touch the account at the given ``address``.
+        """
         ...
 
     @abstractmethod
     def account_is_empty(self, address: Address) -> bool:
+        """
+        Return ``True`` if the account at ``address`` is empty, otherwise ``False``.
+        """
         ...
 
     #
@@ -1688,6 +2155,9 @@ class StateAPI(ConfigurableAPI):
 
     @abstractmethod
     def persist(self) -> None:
+        """
+        Persist the current state to the database.
+        """
         ...
 
     #
@@ -1741,25 +2211,41 @@ class StateAPI(ConfigurableAPI):
 
     @abstractmethod
     def get_transaction_executor(self) -> TransactionExecutorAPI:
+        """
+        Return the transaction executor.
+        """
         ...
 
     @abstractmethod
     def costless_execute_transaction(self,
                                      transaction: SignedTransactionAPI) -> ComputationAPI:
+        """
+        Execute the given ``transaction`` with a gas price of ``0``.
+        """
         ...
 
     @abstractmethod
     def override_transaction_context(self, gas_price: int) -> ContextManager[None]:
+        """
+        Return a :class:`~typing.ContextManager` that overwrites the current transaction context,
+        applying the given ``gas_price``.
+        """
         ...
 
     @abstractmethod
     def validate_transaction(self, transaction: SignedTransactionAPI) -> None:
+        """
+        Validate the given ``transaction``.
+        """
         ...
 
     @classmethod
     @abstractmethod
     def get_transaction_context(cls,
                                 transaction: SignedTransactionAPI) -> TransactionContextAPI:
+        """
+        Return the :class:`~eth.abc.TransactionContextAPI` for the given ``transaction``
+        """
         ...
 
 
@@ -1782,11 +2268,17 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @abstractmethod
     def __init__(self, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> None:
+        """
+        Initialize the virtual machine.
+        """
         ...
 
     @property
     @abstractmethod
     def state(self) -> StateAPI:
+        """
+        Return the current state.
+        """
         ...
 
     @classmethod
@@ -1807,10 +2299,16 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @abstractmethod
     def get_header(self) -> BlockHeaderAPI:
+        """
+        Return the current header.
+        """
         ...
 
     @abstractmethod
     def get_block(self) -> BlockAPI:
+        """
+        Return the current block.
+        """
         ...
 
     #
@@ -1835,6 +2333,10 @@ class VirtualMachineAPI(ConfigurableAPI):
     def create_execution_context(header: BlockHeaderAPI,
                                  prev_hashes: Iterable[Hash32],
                                  chain_context: ChainContextAPI) -> ExecutionContextAPI:
+        """
+        Create and return the :class:`~eth.abc.ExecutionContextAPI`` for the given ``header``,
+        iterable of block hashes that precede the block and the ``chain_context``.
+        """
         ...
 
     @abstractmethod
@@ -1911,6 +2413,9 @@ class VirtualMachineAPI(ConfigurableAPI):
                                new_header: BlockHeaderAPI,
                                transactions: Sequence[SignedTransactionAPI],
                                receipts: Sequence[ReceiptAPI]) -> BlockAPI:
+        """
+        Create a new block with the given ``transactions``.
+        """
         ...
 
     #
@@ -2036,6 +2541,10 @@ class VirtualMachineAPI(ConfigurableAPI):
     def get_prev_hashes(cls,
                         last_block_hash: Hash32,
                         chaindb: ChainDatabaseAPI) -> Optional[Iterable[Hash32]]:
+        """
+        Return an iterable of block hashes that precede the block with the given
+        ``last_block_hash``.
+        """
         ...
 
     @property
@@ -2096,6 +2605,9 @@ class VirtualMachineAPI(ConfigurableAPI):
     @classmethod
     @abstractmethod
     def validate_receipt(self, receipt: ReceiptAPI) -> None:
+        """
+        Validate the given ``receipt``.
+        """
         ...
 
     @abstractmethod
@@ -2164,16 +2676,26 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @abstractmethod
     def state_in_temp_block(self) -> ContextManager[StateAPI]:
+        """
+        Return a :class:`~typing.ContextManager` with the current state wrapped in a temporary
+        block.
+        """
         ...
 
 
 class HeaderChainAPI(ABC):
+    """
+    Like :class:`eth.abc.ChainAPI` but does only support headers, not entire blocks.
+    """
     header: BlockHeaderAPI
     chain_id: int
     vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
 
     @abstractmethod
     def __init__(self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None) -> None:
+        """
+        Initialize the header chain.
+        """
         ...
 
     #
@@ -2279,6 +2801,9 @@ class ChainAPI(ConfigurableAPI):
     @classmethod
     @abstractmethod
     def get_chaindb_class(cls) -> Type[ChainDatabaseAPI]:
+        """
+        Return the class for the used :class:`~eth.abc.ChainDatabaseAPI`.
+        """
         ...
 
     #
@@ -2583,10 +3108,16 @@ class ChainAPI(ConfigurableAPI):
 
 
 class MiningChainAPI(ChainAPI):
+    """
+    Like :class:`~eth.abc.ChainAPI` but with APIs to create blocks incrementially.
+    """
     header: BlockHeaderAPI
 
     @abstractmethod
     def __init__(self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None) -> None:
+        """
+        Initialize the chain.
+        """
         ...
 
     @abstractmethod
