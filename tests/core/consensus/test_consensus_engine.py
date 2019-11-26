@@ -37,7 +37,9 @@ class WhitelistConsensus(ConsensusAPI):
         return consensus_data[:4], consensus_data[5:]
 
     def validate_seal(self, header):
+        pass
 
+    def validate_extension(self, header):
         current, following = self._get_consensus_data(header.extra_data)
 
         if current == WHITELISTED_ROOT or current in self.base_db:

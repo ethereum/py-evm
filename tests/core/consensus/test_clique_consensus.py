@@ -181,6 +181,7 @@ def alice_nominates_bob_and_ron_then_they_kick_her():
 
 def validate_seal_and_get_snapshot(clique, header):
     clique.validate_seal(header)
+    clique.validate_extension(header)
     return clique.get_snapshot(header)
 
 

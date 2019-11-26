@@ -102,8 +102,13 @@ class CliqueConsensus(ConsensusAPI):
         return self._snapshot_manager.get_or_create_snapshot(header.block_number, header.hash)
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
+        validate_header_integrity(header, self._epoch_length)
+
+    def validate_extension(self, header: BlockHeaderAPI) -> None:
         """
         Validate the seal of the given ``header`` according to the Clique consensus rules.
+
+        The caller asserts that the header's parent is in the database.
         """
         if header.block_number == 0:
             return

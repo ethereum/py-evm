@@ -1764,6 +1764,16 @@ class ConsensusAPI(ABC):
 
     @abstractmethod
     def validate_seal(self, header: BlockHeaderAPI) -> None:
+        """
+        Validate the seal on the given header, even if its parent is missing.
+        """
+        ...
+
+    @abstractmethod
+    def validate_extension(self, header: BlockHeaderAPI) -> None:
+        """
+        Validate the seal on the given header, after its parent is imported.
+        """
         ...
 
     @classmethod
@@ -2143,7 +2153,14 @@ class VirtualMachineAPI(ConfigurableAPI):
     @abstractmethod
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         """
-        Validate the seal on the given header.
+        Validate the seal on the given header, even if its parent is missing.
+        """
+        ...
+
+    @abstractmethod
+    def validate_extension_seal(self, header: BlockHeaderAPI) -> None:
+        """
+        Validate the seal on the given header, after its parent is imported.
         """
         ...
 

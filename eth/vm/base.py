@@ -582,6 +582,9 @@ class VM(Configurable, VirtualMachineAPI):
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         self._consensus.validate_seal(header)
 
+    def validate_extension_seal(self, header: BlockHeaderAPI) -> None:
+        self._consensus.validate_extension(header)
+
     @classmethod
     def validate_uncle(cls, block: BlockAPI, uncle: BlockAPI, uncle_parent: BlockAPI) -> None:
         if uncle.block_number >= block.number:

@@ -17,10 +17,10 @@ class NoProofConsensus(ConsensusAPI):
         pass
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
-        """
-        Validate the seal on the given header.
-        """
-        return
+        pass
+
+    def validate_extension(self, header: BlockHeaderAPI) -> None:
+        pass
 
     @classmethod
     def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:

@@ -109,12 +109,12 @@ class PowConsensus(ConsensusAPI):
         pass
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
-        """
-        Validate the seal on the given header.
-        """
         check_pow(
             header.block_number, header.mining_hash,
             header.mix_hash, header.nonce, header.difficulty)
+
+    def validate_extension(self, header: BlockHeaderAPI) -> None:
+        pass
 
     @classmethod
     def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:

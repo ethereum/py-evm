@@ -165,6 +165,22 @@ class BaseChain(Configurable, ChainAPI):
                     f"{child} is not a valid child of {parent}: {exc}"
                 ) from exc
 
+    def validate_extension(
+            self,
+            new_header: BlockHeaderAPI,
+            check_seal: bool = True) -> None:
+        """
+        Run any validations that cannot be executed until the parent header is persisted
+        to the database.
+
+        This does *not* guarantee to re-run any checks found in :meth:`validate_chain`.
+        """
+        if check_seal:
+            vm = self.get_vm(new_header)
+            vm.validate_extension_seal(new_header)
+
+        # non-seal checks can be added here
+
 
 class Chain(BaseChain):
     logger = logging.getLogger("eth.chain.chain.Chain")
@@ -467,6 +483,7 @@ class Chain(BaseChain):
         vm = self.get_vm(block.header)
         parent_header = self.get_block_header_by_hash(block.header.parent_hash)
         vm.validate_header(block.header, parent_header, check_seal=True)
+        vm.validate_extension_seal(block.header)
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)
 
