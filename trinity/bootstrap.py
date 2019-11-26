@@ -4,6 +4,7 @@ import argcomplete
 import logging
 import multiprocessing
 import os
+import shutil
 import signal
 from typing import (
     Callable,
@@ -240,7 +241,6 @@ def main_entry(trinity_boot: BootFn,
             kill_trinity_with_reason("CTRL+C / Keyboard Interrupt")
         finally:
             if trinity_config.trinity_tmp_root_dir:
-                import shutil
                 shutil.rmtree(trinity_config.trinity_root_dir)
 
 

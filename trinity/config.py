@@ -392,7 +392,7 @@ class TrinityConfig:
     @property
     def logging_ipc_path(self) -> Path:
         """
-        Return the path for the database IPC socket connection.
+        Return the path for the logging IPC socket connection.
         """
         return self.ipc_dir / LOGGING_IPC_SOCKET_FILENAME
 
