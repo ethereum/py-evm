@@ -41,6 +41,14 @@ class SerenityStateMachine(BeaconStateMachine):
 
     def get_fork_choice_scoring(self) -> ForkChoiceScoringFn:
         state = self._get_justified_head_state()
+        # NOTE: temporary import here
+        from eth2.beacon.operations.attestation_pool import AttestationPool
+
         return lmd_ghost_scoring(
-            self.chaindb, self.attestation_pool, state, self.config, self.block_class
+            # NOTE: temporary ``AttestationPool``
+            self.chaindb,
+            AttestationPool(),
+            state,
+            self.config,
+            self.block_class,
         )
