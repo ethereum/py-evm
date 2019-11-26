@@ -8,11 +8,13 @@ import pytest
 import ssz
 
 from eth2.beacon.chains.base import BaseBeaconChain
-from eth2.beacon.chains.testnet import TestnetChain as _TestnetChain
+from eth2.beacon.chains.testnet import SkeletonLakeChain
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
 from eth2.beacon.operations.attestation_pool import AttestationPool as TempPool
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
-from eth2.beacon.state_machines.forks.xiao_long_bao.configs import XIAO_LONG_BAO_CONFIG
+from eth2.beacon.state_machines.forks.skeleton_lake.config import (
+    MINIMAL_SERENITY_CONFIG,
+)
 from eth2.beacon.types.attestation_data import AttestationData
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BaseBeaconBlock, BeaconBlock
@@ -33,7 +35,7 @@ from trinity.tools.bcc_factories import (
 )
 
 
-class FakeChain(_TestnetChain):
+class FakeChain(SkeletonLakeChain):
     chaindb_class = AsyncBeaconChainDB
 
     def import_block(
@@ -56,7 +58,7 @@ class FakeChain(_TestnetChain):
 
 
 async def get_fake_chain() -> FakeChain:
-    genesis_config = Eth2GenesisConfig(XIAO_LONG_BAO_CONFIG)
+    genesis_config = Eth2GenesisConfig(MINIMAL_SERENITY_CONFIG)
     chain_db = AsyncBeaconChainDBFactory(genesis_config=genesis_config)
     return FakeChain(
         base_db=chain_db.db, attestation_pool=TempPool(), genesis_config=genesis_config
@@ -395,7 +397,7 @@ async def test_bcc_receive_server_handle_orphan_block_loop(
 @pytest.mark.asyncio
 async def test_bcc_receive_server_get_ready_attestations(receive_server, monkeypatch):
     class MockState:
-        slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
+        slot = MINIMAL_SERENITY_CONFIG.GENESIS_SLOT
 
     state = MockState()
 
@@ -404,7 +406,7 @@ async def test_bcc_receive_server_get_ready_attestations(receive_server, monkeyp
 
     monkeypatch.setattr(receive_server.chain, "get_head_state", mock_get_head_state)
 
-    attesting_slot = XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
+    attesting_slot = MINIMAL_SERENITY_CONFIG.GENESIS_SLOT
     a1 = Attestation(data=AttestationData(slot=attesting_slot))
     a2 = Attestation(signature=b"\x56" * 96, data=AttestationData(slot=attesting_slot))
     a3 = Attestation(
@@ -415,25 +417,27 @@ async def test_bcc_receive_server_get_ready_attestations(receive_server, monkeyp
     # Workaround: add a fake head state slot
     # so `get_state_machine` won't trigger `HeadStateSlotNotFound` exception
     receive_server.chain.chaindb._add_head_state_slot_lookup(
-        XIAO_LONG_BAO_CONFIG.GENESIS_SLOT
+        MINIMAL_SERENITY_CONFIG.GENESIS_SLOT
     )
 
     state.slot = (
-        attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1
+        attesting_slot + MINIMAL_SERENITY_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY - 1
     )
     ready_attestations = receive_server.get_ready_attestations(state.slot)
     assert len(ready_attestations) == 0
 
-    state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
+    state.slot = (
+        attesting_slot + MINIMAL_SERENITY_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY
+    )
     ready_attestations = receive_server.get_ready_attestations(state.slot)
     assert set([a1, a2]) == set(ready_attestations)
 
     state.slot = (
-        attesting_slot + XIAO_LONG_BAO_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1
+        attesting_slot + MINIMAL_SERENITY_CONFIG.MIN_ATTESTATION_INCLUSION_DELAY + 1
     )
     ready_attestations = receive_server.get_ready_attestations(state.slot)
     assert set([a1, a2, a3]) == set(ready_attestations)
 
-    state.slot = attesting_slot + XIAO_LONG_BAO_CONFIG.SLOTS_PER_EPOCH + 1
+    state.slot = attesting_slot + MINIMAL_SERENITY_CONFIG.SLOTS_PER_EPOCH + 1
     ready_attestations = receive_server.get_ready_attestations(state.slot)
     assert set([a3]) == set(ready_attestations)

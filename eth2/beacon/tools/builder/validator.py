@@ -55,6 +55,23 @@ from eth2.beacon.typing import (
 from eth2.configs import CommitteeConfig, Eth2Config
 
 
+#
+# Validator pool utilities
+#
+def mk_key_pair_from_seed_index(seed_index: int) -> Tuple[BLSPubkey, int]:
+    privkey = int.from_bytes(hash_eth2(str(seed_index).encode("utf-8"))[:4], "big")
+    pubkey = bls.privtopub(privkey)
+    return (pubkey, privkey)
+
+
+def mk_keymap_of_size(n: int) -> Dict[BLSPubkey, int]:
+    keymap = {}
+    for i in range(n):
+        key_pair = mk_key_pair_from_seed_index(i)
+        keymap[key_pair[0]] = key_pair[1]
+    return keymap
+
+
 # TODO(ralexstokes) merge w/ below
 def _mk_pending_attestation(
     bitfield: Bitfield = default_bitfield,
