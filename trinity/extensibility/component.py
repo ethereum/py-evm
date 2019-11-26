@@ -4,7 +4,6 @@ from abc import (
 )
 from argparse import (
     ArgumentParser,
-    Namespace,
     _SubParsersAction,
 )
 from enum import (
@@ -15,17 +14,9 @@ import logging
 from multiprocessing import (
     Process
 )
-from typing import (
-    Any,
-    Dict,
-    NamedTuple,
-)
 
 from lahja.base import EndpointAPI
 
-from trinity.config import (
-    TrinityConfig
-)
 from trinity.extensibility.events import (
     ComponentStartedEvent,
 )
@@ -36,8 +27,7 @@ from trinity._utils.mp import (
     ctx,
 )
 from trinity._utils.logging import (
-    setup_log_levels,
-    setup_queue_logging,
+    setup_child_process_logging,
 )
 from trinity._utils.os import (
     friendly_filename_or_url,
@@ -45,6 +35,7 @@ from trinity._utils.os import (
 from trinity._utils.profiling import (
     profiler,
 )
+from trinity.boot_info import BootInfo
 
 
 class ComponentStatus(Enum):
@@ -57,17 +48,11 @@ class ComponentStatus(Enum):
 INVALID_START_STATUS = (ComponentStatus.NOT_READY, ComponentStatus.STARTED,)
 
 
-class TrinityBootInfo(NamedTuple):
-    args: Namespace
-    trinity_config: TrinityConfig
-    boot_kwargs: Dict[str, Any] = None
-
-
 class BaseComponent(ABC):
 
     _status: ComponentStatus = ComponentStatus.NOT_READY
 
-    def __init__(self, boot_info: TrinityBootInfo) -> None:
+    def __init__(self, boot_info: BootInfo) -> None:
         self.boot_info = boot_info
 
     @property
@@ -218,7 +203,7 @@ class BaseIsolatedComponent(BaseComponent):
         self.logger.info("Component started: %s (pid=%d)", self.name, self._process.pid)
 
     def _prepare_spawn(self) -> None:
-        if self.boot_info.boot_kwargs.pop('profile', False):
+        if self.boot_info.profile:
             with profiler(f'profile_{self.normalized_name}'):
                 self._spawn_start()
         else:
@@ -238,8 +223,4 @@ class BaseIsolatedComponent(BaseComponent):
         self._status = ComponentStatus.STOPPED
 
     def _setup_logging(self) -> None:
-        log_queue = self.boot_info.boot_kwargs['log_queue']
-        level = self.boot_info.boot_kwargs.get('log_level', logging.INFO)
-        setup_queue_logging(log_queue, level)
-        if self.boot_info.args.log_levels:
-            setup_log_levels(self.boot_info.args.log_levels)
+        setup_child_process_logging(self.boot_info)

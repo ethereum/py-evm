@@ -229,6 +229,9 @@ class Eth1ChainConfig:
         return self.genesis_data.vm_configuration
 
 
+LOGGING_IPC_SOCKET_FILENAME = 'logging.ipc'
+
+
 TAppConfig = TypeVar('TAppConfig', bound='BaseAppConfig')
 
 
@@ -385,6 +388,13 @@ class TrinityConfig:
         Return the path for the database IPC socket connection.
         """
         return get_database_socket_path(self.ipc_dir)
+
+    @property
+    def logging_ipc_path(self) -> Path:
+        """
+        Return the path for the database IPC socket connection.
+        """
+        return self.ipc_dir / LOGGING_IPC_SOCKET_FILENAME
 
     @property
     def ipc_dir(self) -> Path:
