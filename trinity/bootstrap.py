@@ -191,6 +191,7 @@ def main_entry(trinity_boot: BootFn,
     child_process_log_level = min(
         stderr_logger_level,
         file_logger_level,
+        *logger_levels.values(),
     )
 
     # Components can provide a subcommand with a `func` which does then control

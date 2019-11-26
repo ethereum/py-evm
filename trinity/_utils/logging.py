@@ -143,11 +143,12 @@ def set_logger_levels(log_levels: Dict[str, int],
 def setup_stderr_logging(level: int = None) -> StreamHandler:
     if level is None:
         level = logging.INFO
-    logger = logging.getLogger('trinity')
+    logger = logging.getLogger()
 
     handler_stream = logging.StreamHandler(sys.stderr)
-    handler_stream.setLevel(level)
 
+    if level is not None:
+        handler_stream.setLevel(level)
     handler_stream.setFormatter(LOG_FORMATTER)
 
     logger.addHandler(handler_stream)
@@ -162,7 +163,7 @@ def setup_file_logging(
         level: int = None) -> RotatingFileHandler:
     if level is None:
         level = logging.DEBUG
-    logger = logging.getLogger('trinity')
+    logger = logging.getLogger()
 
     handler_file = RotatingFileHandler(
         str(logfile_path),
@@ -170,7 +171,8 @@ def setup_file_logging(
         backupCount=LOG_BACKUP_COUNT
     )
 
-    handler_file.setLevel(level)
+    if level is not None:
+        handler_file.setLevel(level)
     handler_file.setFormatter(LOG_FORMATTER)
 
     logger.addHandler(handler_file)
@@ -183,6 +185,8 @@ def setup_child_process_logging(boot_info: BootInfo) -> None:
     # pass through this handler
     logger = logging.getLogger()
     logger.setLevel(boot_info.child_process_log_level)
+
+    set_logger_levels(boot_info.logger_levels)
 
     ipc_handler = IPCHandler.connect(boot_info.trinity_config.logging_ipc_path)
     ipc_handler.setLevel(boot_info.child_process_log_level)
