@@ -8,6 +8,7 @@ from eth.abc import (
     ChainAPI,
     BlockHeaderAPI,
     ReceiptAPI,
+    SignedTransactionAPI,
 )
 
 
@@ -60,4 +61,9 @@ class AsyncChainAPI(ChainAPI):
 
     @abstractmethod
     async def coro_get_canonical_head(self) -> BlockHeaderAPI:
+        ...
+
+    @abstractmethod
+    async def coro_get_canonical_transaction(self,
+                                             transaction_hash: Hash32) -> SignedTransactionAPI:
         ...

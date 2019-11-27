@@ -362,11 +362,24 @@ def validate_rpc_transaction_vs_fixture(transaction, fixture):
 
 
 async def validate_transaction_by_index(rpc, transaction_fixture, at_block, index):
-    if is_by_hash(at_block):
+    block_by_hash = is_by_hash(at_block)
+    if block_by_hash:
         rpc_method = 'eth_getTransactionByBlockHashAndIndex'
     else:
         rpc_method = 'eth_getTransactionByBlockNumberAndIndex'
     result, error = await call_rpc(rpc, rpc_method, [at_block, hex(index)])
+    assert error is None
+    validate_rpc_transaction_vs_fixture(result, transaction_fixture)
+
+    if not block_by_hash:
+        # Only try to lookup the transaction by its hash if we know it is in a block
+        # that we can refer to by its number. Otherwise, it may be that we try to lookup
+        # a transaction by its hash that is not in the canonical chain which isn't supported.
+        await validate_transaction_by_hash(rpc, result['hash'], transaction_fixture)
+
+
+async def validate_transaction_by_hash(rpc, tx_hash, transaction_fixture):
+    result, error = await call_rpc(rpc, 'eth_getTransactionByHash', [tx_hash])
     assert error is None
     validate_rpc_transaction_vs_fixture(result, transaction_fixture)
 

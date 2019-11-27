@@ -216,6 +216,12 @@ class Eth(Eth1ChainRPCModule):
         stored_val = state.get_storage(address, position)
         return encode_hex(int_to_big_endian(stored_val))
 
+    @format_params(decode_hex)
+    async def getTransactionByHash(self,
+                                   transaction_hash: Hash32) -> Dict[str, str]:
+        transaction = await self.chain.coro_get_canonical_transaction(transaction_hash)
+        return transaction_to_dict(transaction)
+
     @format_params(decode_hex, to_int_if_hex)
     async def getTransactionByBlockHashAndIndex(self,
                                                 block_hash: Hash32,
