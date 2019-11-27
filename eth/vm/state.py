@@ -188,9 +188,9 @@ class BaseState(Configurable, StateAPI):
     def get_ancestor_hash(self, block_number: int) -> Hash32:
         ancestor_depth = self.block_number - block_number - 1
         is_ancestor_depth_out_of_range = (
-            ancestor_depth >= MAX_PREV_HEADER_DEPTH or
-            ancestor_depth < 0 or
-            block_number < 0
+            ancestor_depth >= MAX_PREV_HEADER_DEPTH
+            or ancestor_depth < 0
+            or block_number < 0
         )
         if is_ancestor_depth_out_of_range:
             return Hash32(b'')

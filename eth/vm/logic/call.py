@@ -365,8 +365,8 @@ class CallEIP161(CallEIP150):
                               to: Address,
                               value: int) -> int:
         account_is_dead = (
-            not computation.state.account_exists(to) or
-            computation.state.account_is_empty(to)
+            not computation.state.account_exists(to)
+            or computation.state.account_is_empty(to)
         )
 
         transfer_gas_fee = constants.GAS_CALLVALUE if value else 0
