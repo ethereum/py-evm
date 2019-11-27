@@ -1,4 +1,5 @@
 from typing import (
+    Iterable,
     Tuple,
     Type,
 )
@@ -48,7 +49,8 @@ class MainnetDAOValidatorVM(HomesteadVM):
     def validate_header(self,
                         header: BlockHeaderAPI,
                         previous_header: BlockHeaderAPI,
-                        check_seal: bool=True) -> None:
+                        check_seal: bool=True,
+                        cached_parents: Iterable[BlockHeaderAPI] = ()) -> None:
 
         super().validate_header(header, previous_header, check_seal)
 

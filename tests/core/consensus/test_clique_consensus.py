@@ -34,6 +34,7 @@ from eth.constants import (
 from eth.rlp.headers import BlockHeader
 from eth.tools.factories.keys import PublicKeyFactory
 from eth.tools.factories.transaction import new_transaction
+from eth.vm.forks.istanbul import IstanbulVM
 from eth.vm.forks.petersburg import PetersburgVM
 
 
@@ -187,7 +188,10 @@ def validate_seal_and_get_snapshot(clique, header):
 @pytest.fixture
 def paragon_chain(base_db):
 
-    vms = ((0, PetersburgVM,),)
+    vms = (
+        (0, PetersburgVM,),
+        (2, IstanbulVM,)
+    )
     clique_vms = CliqueApplier().amend_vm_configuration(vms)
 
     chain = MiningChain.configure(
@@ -221,6 +225,12 @@ def test_raises_unknown_ancestor_error(paragon_chain):
     clique = get_clique(paragon_chain, head)
     with pytest.raises(ValidationError, match='Unknown ancestor'):
         clique.get_snapshot(next_header)
+
+
+def test_validate_chain_works_across_forks(paragon_chain):
+    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
+
+    paragon_chain.validate_chain(PARAGON_GENESIS_HEADER, voting_chain)
 
 
 def test_import_block(paragon_chain):

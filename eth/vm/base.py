@@ -543,7 +543,8 @@ class VM(Configurable, VirtualMachineAPI):
     def validate_header(self,
                         header: BlockHeaderAPI,
                         parent_header: BlockHeaderAPI,
-                        check_seal: bool = True) -> None:
+                        check_seal: bool = True,
+                        cached_parents: Iterable[BlockHeaderAPI]=()) -> None:
         if parent_header is None:
             # to validate genesis header, check if it equals canonical header at block number 0
             raise ValidationError("Must have access to parent header to validate current header")
@@ -571,7 +572,7 @@ class VM(Configurable, VirtualMachineAPI):
 
             if check_seal:
                 try:
-                    self.validate_seal(header)
+                    self.validate_seal(header, cached_parents)
                 except ValidationError:
                     self.cls_logger.warning(
                         "Failed to validate header proof of work on header: %r",
@@ -579,8 +580,10 @@ class VM(Configurable, VirtualMachineAPI):
                     )
                     raise
 
-    def validate_seal(self, header: BlockHeaderAPI) -> None:
-        self._consensus.validate_seal(header)
+    def validate_seal(self,
+                      header: BlockHeaderAPI,
+                      cached_parents: Iterable[BlockHeaderAPI]=()) -> None:
+        self._consensus.validate_seal(header, cached_parents)
 
     @classmethod
     def validate_uncle(cls, block: BlockAPI, uncle: BlockAPI, uncle_parent: BlockAPI) -> None:

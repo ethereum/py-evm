@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import (
+    Iterable,
     Tuple,
 )
 
@@ -108,7 +109,9 @@ class PowConsensus(ConsensusAPI):
     def __init__(self, base_db: AtomicDatabaseAPI) -> None:
         pass
 
-    def validate_seal(self, header: BlockHeaderAPI) -> None:
+    def validate_seal(self,
+                      header: BlockHeaderAPI,
+                      cached_parents: Iterable[BlockHeaderAPI]=()) -> None:
         """
         Validate the seal on the given header.
         """

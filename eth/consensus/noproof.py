@@ -1,3 +1,6 @@
+from typing import (
+    Iterable,
+)
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,
@@ -16,7 +19,9 @@ class NoProofConsensus(ConsensusAPI):
     def __init__(self, base_db: AtomicDatabaseAPI) -> None:
         pass
 
-    def validate_seal(self, header: BlockHeaderAPI) -> None:
+    def validate_seal(self,
+                      header: BlockHeaderAPI,
+                      cached_parents: Iterable[BlockHeaderAPI] = ()) -> None:
         """
         Validate the seal on the given header.
         """

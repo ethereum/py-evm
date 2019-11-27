@@ -1763,7 +1763,9 @@ class ConsensusAPI(ABC):
         ...
 
     @abstractmethod
-    def validate_seal(self, header: BlockHeaderAPI) -> None:
+    def validate_seal(self,
+                      header: BlockHeaderAPI,
+                      cached_parents: Iterable[BlockHeaderAPI] = ()) -> None:
         ...
 
     @classmethod
@@ -2119,7 +2121,8 @@ class VirtualMachineAPI(ConfigurableAPI):
     def validate_header(self,
                         header: BlockHeaderAPI,
                         parent_header: BlockHeaderAPI,
-                        check_seal: bool = True
+                        check_seal: bool = True,
+                        cached_parents: Iterable[BlockHeaderAPI] = ()
                         ) -> None:
         """
         :raise eth.exceptions.ValidationError: if the header is not valid

@@ -159,7 +159,12 @@ class BaseChain(Configurable, ChainAPI):
             should_check_seal = index in indices_to_check_seal
             vm = self.get_vm(child)
             try:
-                vm.validate_header(child, parent, check_seal=should_check_seal)
+                vm.validate_header(
+                    child,
+                    parent,
+                    check_seal=should_check_seal,
+                    cached_parents=(root,) + descendants
+                )
             except ValidationError as exc:
                 raise ValidationError(
                     f"{child} is not a valid child of {parent}: {exc}"

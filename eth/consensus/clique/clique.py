@@ -36,7 +36,6 @@ from .constants import (
 from .datatypes import (
     Snapshot,
 )
-from .header_cache import HeaderCache
 from .snapshot_manager import SnapshotManager
 from ._utils import (
     get_block_signer,
@@ -80,10 +79,8 @@ class CliqueConsensus(ConsensusAPI):
             raise ValueError("Can not instantiate without `base_db`")
         self._epoch_length = epoch_length
         self._chain_db = ChainDB(base_db)
-        self._header_cache = HeaderCache(self._chain_db)
         self._snapshot_manager = SnapshotManager(
             self._chain_db,
-            self._header_cache,
             self._epoch_length,
         )
 
@@ -101,7 +98,9 @@ class CliqueConsensus(ConsensusAPI):
         """
         return self._snapshot_manager.get_or_create_snapshot(header.block_number, header.hash)
 
-    def validate_seal(self, header: BlockHeaderAPI) -> None:
+    def validate_seal(self,
+                      header: BlockHeaderAPI,
+                      cached_parents: Iterable[BlockHeaderAPI] =()) -> None:
         """
         Validate the seal of the given ``header`` according to the Clique consensus rules.
         """
@@ -110,11 +109,9 @@ class CliqueConsensus(ConsensusAPI):
 
         validate_header_integrity(header, self._epoch_length)
 
-        self._header_cache[header.hash] = header
-
         signer = get_block_signer(header)
         snapshot = self._snapshot_manager.get_or_create_snapshot(
-            header.block_number - 1, header.parent_hash)
+            header.block_number - 1, header.parent_hash, cached_parents)
         in_turn = is_in_turn(signer, snapshot, header)
 
         authorized_signers = snapshot.get_sorted_signers()
@@ -135,8 +132,6 @@ class CliqueConsensus(ConsensusAPI):
                 f"Failed to validate {header}."
                 f"Signer {encode_hex(signer)} not in {authorized_signers}"
             )
-
-        self._header_cache.evict()
 
 
 class CliqueApplier(VirtualMachineModifierAPI):

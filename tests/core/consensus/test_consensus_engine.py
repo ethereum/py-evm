@@ -36,7 +36,7 @@ class WhitelistConsensus(ConsensusAPI):
 
         return consensus_data[:4], consensus_data[5:]
 
-    def validate_seal(self, header):
+    def validate_seal(self, header, cached_parents=()):
 
         current, following = self._get_consensus_data(header.extra_data)
 
