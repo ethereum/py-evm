@@ -16,7 +16,6 @@ from libp2p.crypto.secp256k1 import create_new_key_pair, Secp256k1PrivateKey
 
 from eth_utils import decode_hex
 
-from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.typing import (
     ValidatorIndex,
 )
@@ -101,10 +100,8 @@ class BeaconNodeComponent(AsyncioIsolatedComponent):
         beacon_app_config = trinity_config.get_app_config(BeaconAppConfig)
         base_db = DBClient.connect(trinity_config.database_ipc_path)
         chain_config = beacon_app_config.get_chain_config()
-        attestation_pool = AttestationPool()
         chain = chain_config.beacon_chain_class(
             base_db,
-            attestation_pool,
             chain_config.genesis_config
         )
 

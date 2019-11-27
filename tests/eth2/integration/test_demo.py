@@ -3,7 +3,6 @@ import pytest
 from eth2._utils.bls import bls
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
-from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.state_machines.forks.serenity import SerenityStateMachine
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.skeleton_lake import MINIMAL_SERENITY_CONFIG
@@ -30,7 +29,6 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
     genesis_slot = config.GENESIS_SLOT
     genesis_epoch = config.GENESIS_EPOCH
     chaindb = BeaconChainDB(base_db, config)
-    attestation_pool = AttestationPool()
 
     genesis_state, genesis_block = create_mock_genesis(
         pubkeys=pubkeys[:validator_count],
@@ -63,7 +61,7 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
         block = create_mock_block(
             state=state,
             config=config,
-            state_machine=fixture_sm_class(chaindb, attestation_pool),
+            state_machine=fixture_sm_class(chaindb),
             block_class=SerenityBeaconBlock,
             parent_block=block,
             keymap=keymap,
@@ -72,7 +70,7 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
         )
 
         # Get state machine instance
-        sm = fixture_sm_class(chaindb, attestation_pool)
+        sm = fixture_sm_class(chaindb)
         state, _ = sm.import_block(block, state)
 
         chaindb.persist_state(state)
@@ -85,7 +83,7 @@ def test_demo(base_db, validator_count, keymap, pubkeys, fork_choice_scoring):
         attestations = create_mock_signed_attestations_at_slot(
             state=state,
             config=config,
-            state_machine=fixture_sm_class(chaindb, attestation_pool),
+            state_machine=fixture_sm_class(chaindb),
             attestation_slot=attestation_slot,
             beacon_block_root=block.signing_root,
             keymap=keymap,

@@ -16,7 +16,6 @@ from eth.db.backends.level import LevelDB
 
 from eth2.beacon.db.chain import BeaconChainDB
 from eth2.beacon.types.blocks import BeaconBlock
-from eth2.beacon.operations.attestation_pool import AttestationPool
 
 from trinity.config import (
     Eth1AppConfig,
@@ -186,10 +185,8 @@ def get_beacon_shell_context(database_dir: Path, trinity_config: TrinityConfig) 
         db = LevelDB(database_dir)
 
     chain_config = app_config.get_chain_config()
-    attestation_pool = AttestationPool()
     chain = chain_config.beacon_chain_class(
         db,
-        attestation_pool,
         chain_config.genesis_config
     )
 

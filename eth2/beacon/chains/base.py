@@ -12,7 +12,6 @@ from eth2._utils.funcs import constantly
 from eth2._utils.ssz import validate_imported_block_unchanged
 from eth2.beacon.db.chain import BaseBeaconChainDB, BeaconChainDB
 from eth2.beacon.exceptions import BlockClassError, StateMachineNotFound
-from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
@@ -37,10 +36,7 @@ class BaseBeaconChain(Configurable, ABC):
 
     @abstractmethod
     def __init__(
-        self,
-        base_db: AtomicDatabaseAPI,
-        attestation_pool: AttestationPool,
-        genesis_config: Eth2GenesisConfig,
+        self, base_db: AtomicDatabaseAPI, genesis_config: Eth2GenesisConfig
     ) -> None:
         ...
 
@@ -173,10 +169,7 @@ class BeaconChain(BaseBeaconChain):
     chaindb_class = BeaconChainDB  # type: Type[BaseBeaconChainDB]
 
     def __init__(
-        self,
-        base_db: AtomicDatabaseAPI,
-        attestation_pool: AttestationPool,
-        genesis_config: Eth2GenesisConfig,
+        self, base_db: AtomicDatabaseAPI, genesis_config: Eth2GenesisConfig
     ) -> None:
         if not self.sm_configuration:
             raise ValueError(
@@ -188,7 +181,6 @@ class BeaconChain(BaseBeaconChain):
             pass
 
         self.chaindb = self.get_chaindb_class()(base_db, genesis_config)
-        self.attestation_pool = attestation_pool
 
     #
     # Helpers
@@ -226,16 +218,12 @@ class BeaconChain(BaseBeaconChain):
 
         chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
         chaindb.persist_state(genesis_state)
-        attestation_pool = AttestationPool()
-        return cls._from_genesis_block(
-            base_db, attestation_pool, genesis_block, genesis_config
-        )
+        return cls._from_genesis_block(base_db, genesis_block, genesis_config)
 
     @classmethod
     def _from_genesis_block(
         cls,
         base_db: AtomicDatabaseAPI,
-        attestation_pool: AttestationPool,
         genesis_block: BaseBeaconBlock,
         genesis_config: Eth2GenesisConfig,
     ) -> "BaseBeaconChain":
@@ -245,7 +233,7 @@ class BeaconChain(BaseBeaconChain):
         chaindb = cls.get_chaindb_class()(db=base_db, genesis_config=genesis_config)
         genesis_scoring = constantly(0)
         chaindb.persist_block(genesis_block, genesis_block.__class__, genesis_scoring)
-        return cls(base_db, attestation_pool, genesis_config)
+        return cls(base_db, genesis_config)
 
     #
     # StateMachine API
@@ -288,7 +276,7 @@ class BeaconChain(BaseBeaconChain):
             slot = at_slot
         sm_class = self.get_state_machine_class_for_block_slot(slot)
 
-        return sm_class(chaindb=self.chaindb, attestation_pool=self.attestation_pool)
+        return sm_class(chaindb=self.chaindb)
 
     @classmethod
     def get_genesis_state_machine_class(cls) -> Type["BaseBeaconStateMachine"]:

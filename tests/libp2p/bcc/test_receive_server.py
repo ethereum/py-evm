@@ -10,7 +10,6 @@ import ssz
 from eth2.beacon.chains.base import BaseBeaconChain
 from eth2.beacon.chains.testnet import SkeletonLakeChain
 from eth2.beacon.fork_choice.higher_slot import higher_slot_scoring
-from eth2.beacon.operations.attestation_pool import AttestationPool as TempPool
 from eth2.beacon.state_machines.forks.serenity.blocks import SerenityBeaconBlock
 from eth2.beacon.state_machines.forks.skeleton_lake.config import (
     MINIMAL_SERENITY_CONFIG,
@@ -60,9 +59,7 @@ class FakeChain(SkeletonLakeChain):
 async def get_fake_chain() -> FakeChain:
     genesis_config = Eth2GenesisConfig(MINIMAL_SERENITY_CONFIG)
     chain_db = AsyncBeaconChainDBFactory(genesis_config=genesis_config)
-    return FakeChain(
-        base_db=chain_db.db, attestation_pool=TempPool(), genesis_config=genesis_config
-    )
+    return FakeChain(base_db=chain_db.db, genesis_config=genesis_config)
 
 
 def get_blocks(
