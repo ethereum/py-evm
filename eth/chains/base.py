@@ -338,11 +338,16 @@ class Chain(BaseChain):
     # Transaction API
     #
     def get_canonical_transaction(self, transaction_hash: Hash32) -> SignedTransactionAPI:
-        (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
-        VM_class = self.get_vm_class_for_block_number(block_num)
+        (block_hash, index) = self.chaindb.get_transaction_index(transaction_hash)
+        try:
+            header = self.chaindb.get_block_header_by_hash(block_hash)
+        except HeaderNotFound:
+            raise TransactionNotFound(f"Block {block_hash} is not in the canonical chain")
+
+        VM_class = self.get_vm_class(header)
 
         transaction = self.chaindb.get_transaction_by_index(
-            block_num,
+            header,
             index,
             VM_class.get_transaction_class(),
         )
@@ -352,7 +357,7 @@ class Chain(BaseChain):
         else:
             raise TransactionNotFound(
                 f"Found transaction {encode_hex(transaction.hash)} "
-                f"instead of {encode_hex(transaction_hash)} in block {block_num} at {index}"
+                f"instead of {encode_hex(transaction_hash)} in block {block_hash} at {index}"
             )
 
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:
@@ -376,11 +381,11 @@ class Chain(BaseChain):
         )
 
     def get_transaction_receipt(self, transaction_hash: Hash32) -> ReceiptAPI:
-        transaction_block_number, transaction_index = self.chaindb.get_transaction_index(
+        transaction_block_hash, transaction_index = self.chaindb.get_transaction_index(
             transaction_hash,
         )
         receipt = self.chaindb.get_receipt_by_index(
-            block_number=transaction_block_number,
+            block_hash=transaction_block_hash,
             receipt_index=transaction_index,
         )
 

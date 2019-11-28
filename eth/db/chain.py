@@ -9,7 +9,6 @@ from typing import (
 )
 
 from eth_typing import (
-    BlockNumber,
     Hash32
 )
 from eth_utils import (
@@ -64,7 +63,7 @@ with catch_and_ignore_import_warning():
 
 class TransactionKey(rlp.Serializable):
     fields = [
-        ('block_number', rlp.sedes.big_endian_int),
+        ('block_hash', rlp.sedes.binary),
         ('index', rlp.sedes.big_endian_int),
     ]
 
@@ -155,17 +154,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             genesis_parent_hash
         )
 
-        for header in new_canonical_headers:
-            if header.hash == block.hash:
-                # Most of the time this is called to persist a block whose parent is the current
-                # head, so we optimize for that and read the tx hashes from the block itself. This
-                # is specially important during a fast sync.
-                tx_hashes = tuple(tx.hash for tx in block.transactions)
-            else:
-                tx_hashes = cls._get_block_transaction_hashes(db, header)
-
-            for index, transaction_hash in enumerate(tx_hashes):
-                cls._add_transaction_to_canonical_chain(db, transaction_hash, header, index)
+        for index, transaction in enumerate(block.transactions):
+            cls._add_transaction_to_canonical_chain(db, transaction.hash, block.header, index)
 
         if block.uncles:
             uncles_hash = cls._persist_uncles(db, block.uncles)
@@ -251,13 +241,9 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
 
     def get_transaction_by_index(
             self,
-            block_number: BlockNumber,
+            block_header: BlockHeaderAPI,
             transaction_index: int,
             transaction_class: Type[SignedTransactionAPI]) -> SignedTransactionAPI:
-        try:
-            block_header = self.get_canonical_block_header_by_number(block_number)
-        except HeaderNotFound:
-            raise TransactionNotFound(f"Block {block_number} is not in the canonical chain")
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
         encoded_index = rlp.encode(transaction_index)
         encoded_transaction = transaction_db[encoded_index]
@@ -265,10 +251,10 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             return rlp.decode(encoded_transaction, sedes=transaction_class)
         else:
             raise TransactionNotFound(
-                f"No transaction is at index {transaction_index} of block {block_number}"
+                f"No transaction is at index {transaction_index} of block {block_header}"
             )
 
-    def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
+    def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[Hash32, int]:
         key = SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash)
         try:
             encoded_key = self.db[key]
@@ -278,15 +264,15 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             )
 
         transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
-        return (transaction_key.block_number, transaction_key.index)
+        return (transaction_key.block_hash, transaction_key.index)
 
     def get_receipt_by_index(self,
-                             block_number: BlockNumber,
+                             block_hash: Hash32,
                              receipt_index: int) -> ReceiptAPI:
         try:
-            block_header = self.get_canonical_block_header_by_number(block_number)
+            block_header = self.get_block_header_by_hash(block_hash)
         except HeaderNotFound:
-            raise ReceiptNotFound(f"Block {block_number} is not in the canonical chain")
+            raise ReceiptNotFound(f"Block {block_hash} is not in the canonical chain")
 
         receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_key = rlp.encode(receipt_index)
@@ -344,7 +330,10 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         - add lookup from transaction hash to the block number and index that the body is stored at
         - remove transaction hash to body lookup in the pending pool
         """
-        transaction_key = TransactionKey(block_header.block_number, index)
+        transaction_key = TransactionKey(block_header.hash, index)
+
+        import logging
+        logging.getLogger().error(f"MAPPING {encode_hex(transaction_hash)} to block {block_header}")
         db.set(
             SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),

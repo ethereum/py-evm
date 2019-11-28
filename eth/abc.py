@@ -603,11 +603,11 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
 
     @abstractmethod
     def get_receipt_by_index(self,
-                             block_number: BlockNumber,
+                             block_hash: Hash32,
                              receipt_index: int) -> ReceiptAPI:
         """
-        Return the receipt of the transaction at specified index
-        for the block header obtained by the specified block number
+        Return the Receipt of the transaction at specified index
+        for the block header obtained by the specified block hash
         """
         ...
 
@@ -624,19 +624,19 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     @abstractmethod
     def get_transaction_by_index(
             self,
-            block_number: BlockNumber,
+            block_header: BlockHeaderAPI,
             transaction_index: int,
             transaction_class: Type[SignedTransactionAPI]) -> SignedTransactionAPI:
         """
         Return the transaction at the specified `transaction_index` from the
-        block specified by `block_number` from the canonical chain.
+        block specified by the given `block_header`.
 
-        Raise ``TransactionNotFound`` if no block with that ``block_number`` exists.
+        Raise ``TransactionNotFound`` if no transaction exists at that block and index.
         """
         ...
 
     @abstractmethod
-    def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
+    def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[Hash32, int]:
         """
         Return a 2-tuple of (block_number, transaction_index) indicating which
         block the given transaction can be found in and at what index in the
