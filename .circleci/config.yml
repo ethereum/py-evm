@@ -6,6 +6,10 @@ version: 2.0
 common: &common
   working_directory: ~/repo
   steps:
+    # TODO: remove this step when `plyvel` gets a Python 3.8 wheel
+    - run:
+        name: install LevelDB headers dependency system-wide
+        command: sudo apt-get install libleveldb-dev
     - checkout
     - run:
         name: checkout fixtures submodule
