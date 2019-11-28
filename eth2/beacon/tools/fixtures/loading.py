@@ -11,6 +11,10 @@ from eth2.configs import Eth2Config
 def generate_config_by_dict(dict_config: Dict[str, Any]) -> Eth2Config:
     filtered_keys = (
         "DOMAIN_",
+        "ETH1_FOLLOW_DISTANCE",
+        "TARGET_AGGREGATORS_PER_COMMITTEE",
+        "RANDOM_SUBNETS_PER_VALIDATOR",
+        "EPOCHS_PER_RANDOM_SUBNET_SUBSCRIPTION",
         # Phase 1
         "MAX_EPOCHS_PER_CROSSLINK",
         "EARLY_DERIVED_SECRET_PENALTY_MAX_FUTURE_EPOCHS",
