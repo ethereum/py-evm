@@ -5,6 +5,7 @@ Create a Trinity database by importing the current state of a Geth database
 """
 
 import argparse
+import logging
 import os
 import os.path
 from pathlib import Path
@@ -16,10 +17,15 @@ import plyvel
 
 from eth_utils import humanize_hash
 import rlp
+from rlp.sedes import CountableList
 
 from eth.chains.mainnet import MAINNET_GENESIS_HEADER, MainnetChain
 from eth.db.backends.level import LevelDB
 from eth.rlp.headers import BlockHeader
+from eth.rlp.transactions import BaseTransactionFields
+
+
+logger = logging.getLogger('importer')
 
 
 class GethKeys:
@@ -30,6 +36,8 @@ class GethKeys:
     headerPrefix = b'h'
     headerNumberPrefix = b'H'
     headerHashSuffix = b'n'
+
+    blockBodyPrefix = b'b'
 
     @classmethod
     def header_hash_for_block_number(cls, block_number: int) -> bytes:
@@ -46,6 +54,11 @@ class GethKeys:
     def block_header(cls, block_number: int, header_hash: bytes) -> bytes:
         packed_block_number = struct.pack('>Q', block_number)
         return cls.headerPrefix + packed_block_number + header_hash
+
+    @classmethod
+    def block_body(cls, block_number: int, header_hash: bytes) -> bytes:
+        packed_block_number = struct.pack('>Q', block_number)
+        return cls.blockBodyPrefix + packed_block_number + header_hash
 
 
 class GethFreezerIndexEntry:
@@ -68,23 +81,23 @@ class GethFreezerTable:
         self.ancient_path = ancient_path
         self.name = name
         self.uses_compression = uses_compression
-        print(f'opening freezer table. name={self.name}')
+        logger.debug(f'opening freezer table. name={self.name}')
 
         self.index_file = open(os.path.join(ancient_path, self.index_file_name), 'rb')
         stat_result = os.stat(self.index_file.fileno())
         index_file_size = stat_result.st_size
         assert index_file_size % 6 == 0, index_file_size
-        print(f'index_size={index_file_size} ({index_file_size // 6} entries)')
+        logger.debug(f'index_size={index_file_size} ({index_file_size // 6} entries)')
         self.entries = index_file_size // 6
 
         first_index_bytes = self.index_file.read(6)
         first_index = GethFreezerIndexEntry.from_bytes(first_index_bytes)
-        print(f'first_index={first_index}')
+        logger.debug(f'first_index={first_index}')
 
         self.index_file.seek(-6, 2)
         last_index_bytes = self.index_file.read(6)
         last_index = GethFreezerIndexEntry.from_bytes(last_index_bytes)
-        print(f'last_index={last_index}')
+        logger.debug(f'last_index={last_index}')
 
         self._data_files = dict()
 
@@ -137,6 +150,17 @@ class GethFreezerTable:
         self.index_file.close()
 
 
+class BlockBody(rlp.Serializable):
+    "This is how geth stores block bodies"
+    fields = [
+        ('transactions', CountableList(BaseTransactionFields)),
+        ('uncles', CountableList(BlockHeader)),
+    ]
+
+    def __repr__(self) -> str:
+        return f'BlockBody(txns={self.transactions}, uncles={self.uncles})'
+
+
 class GethDatabase:
     def __init__(self, path):
         self.db = plyvel.DB(
@@ -149,6 +173,7 @@ class GethDatabase:
         ancient_path = os.path.join(path, 'ancient')
         self.ancient_hashes = GethFreezerTable(ancient_path, 'hashes', False)
         self.ancient_headers = GethFreezerTable(ancient_path, 'headers', True)
+        self.ancient_bodies = GethFreezerTable(ancient_path, 'bodies', True)
 
         if self.database_version != b'\x07':
             raise Exception(f'geth database version {self.database_version} is not supported')
@@ -166,8 +191,10 @@ class GethDatabase:
         raw_num = self.db.get(GethKeys.block_number_for_header_hash(header_hash))
         return struct.unpack('>Q', raw_num)[0]
 
-    def block_header(self, block_number: int, header_hash: bytes) -> BlockHeader:
-        # This also needs to check the ancient db
+    def block_header(self, block_number: int, header_hash: bytes = None) -> BlockHeader:
+        if header_hash is None:
+            header_hash = self.header_hash_for_block_number(block_number)
+
         raw_data = self.db.get(GethKeys.block_header(block_number, header_hash))
         if raw_data is not None:
             return rlp.decode(raw_data, sedes=BlockHeader)
@@ -184,28 +211,34 @@ class GethDatabase:
 
         return self.ancient_hashes.get(block_number)
 
+    def block_body(self, block_number: int, header_hash: bytes = None):
+        if header_hash is None:
+            header_hash = self.header_hash_for_block_number(block_number)
+
+        raw_data = self.db.get(GethKeys.block_body(block_number, header_hash))
+        if raw_data is not None:
+            return rlp.decode(raw_data, sedes=BlockBody)
+
+        raw_data = self.ancient_bodies.get(block_number)
+        return rlp.decode(raw_data, sedes=BlockBody)
+
 
 def main(args):
-    # Open geth database
+    # 1. Open Geth database
+
     gethdb = GethDatabase(args.gethdb)
 
     last_block = gethdb.last_block_hash
     last_block_num = gethdb.block_num_for_hash(last_block)
-    print('geth database opened')
-    print(f'found chain tip: header_hash={humanize_hash(last_block)} block_number={last_block_num}')
-
-    print(f'header: {len(gethdb.block_header(last_block_num, last_block))}')
+    logger.info('geth database opened')
+    logger.info(f'found geth chain tip: header_hash={humanize_hash(last_block)} block_number={last_block_num}')
 
     genesis_hash = gethdb.header_hash_for_block_number(0)
     genesis_header = gethdb.block_header(0, genesis_hash)
-    print(f'genesis header: {genesis_header}')
     assert genesis_header == MAINNET_GENESIS_HEADER
+    logger.info(f'geth genesis header matches expected genesis')
 
-    first_hash = gethdb.header_hash_for_block_number(1)
-    first_block = gethdb.block_header(1, first_hash)
-    print(f'first header: {first_block}')
-
-    # Create trinity database
+    # 2. Create trinity database
 
     db_already_existed = False
     if os.path.exists(args.destdb):
@@ -214,17 +247,19 @@ def main(args):
     leveldb = LevelDB(db_path=Path(args.destdb), max_open_files=16)
 
     if not db_already_existed:
-        print(f'Trinity database did not already exist, initializing it now')
+        logger.info(f'Trinity database did not already exist, initializing it now')
         chain = MainnetChain.from_genesis_header(leveldb, MAINNET_GENESIS_HEADER)
     else:
         chain = MainnetChain(leveldb)
 
     headerdb = chain.headerdb
 
-    canonical_head = headerdb.get_canonical_head()
-    print(f'starting copy from trinity\'s canonical head: {canonical_head}')
+    # 3. Import headers + bodies
 
-    # verify the trinity database matches what geth has
+    canonical_head = headerdb.get_canonical_head()
+    logger.info(f'starting import from trinity\'s canonical head: {canonical_head}')
+
+    # fail fast if geth disagrees with trinity's canonical head
     geth_header = gethdb.block_header(canonical_head.block_number, canonical_head.hash)
     assert geth_header.hash == canonical_head.hash
 
@@ -232,15 +267,31 @@ def main(args):
         header_hash = gethdb.header_hash_for_block_number(i)
         header = gethdb.block_header(i, header_hash)
 
-        headerdb.persist_header(header)
+        body = gethdb.block_body(i)
+        block_class = chain.get_vm_class(header).get_block_class()
+        block = block_class(header, body.transactions, body.uncles)
+        chain.chaindb.persist_block(block)
 
         if i % 1000 == 0:
-            print(f'current canonical header: {headerdb.get_canonical_head()}')
+            logger.debug(f'current canonical header: {headerdb.get_canonical_head()}')
 
-    return
+    # some final checks, these should never fail
+    canonical_head = headerdb.get_canonical_head()
+    geth_last_block_hash = gethdb.last_block_hash
+    geth_last_block_num = gethdb.block_num_for_hash(geth_last_block_hash)
+    assert canonical_head.hash == geth_last_block_hash
+    assert canonical_head.block_number == geth_last_block_num
+
+    logger.info('finished importing headers + bodies')
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s.%(msecs)03d %(levelname)s: %(message)s',
+        datefmt='%H:%M:%S'
+    )
+
     parser = argparse.ArgumentParser()
     parser.add_argument('-gethdb', type=str, required=True)
     parser.add_argument('-destdb', type=str, required=True)
