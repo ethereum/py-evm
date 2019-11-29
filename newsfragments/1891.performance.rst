@@ -1,0 +1,2 @@
+Improve performance when importing a header which is a child of the current canonical
+chain tip.
