@@ -46,6 +46,7 @@ from eth.abc import (
     ChainDatabaseAPI,
     VirtualMachineAPI,
     ReceiptAPI,
+    FullReceiptAPI,
     ComputationAPI,
     StateAPI,
     SignedTransactionAPI,
@@ -68,6 +69,7 @@ from eth.estimators import (
 )
 from eth.exceptions import (
     HeaderNotFound,
+    ReceiptNotFound,
     TransactionNotFound,
     VMNotFound,
 )
@@ -375,16 +377,43 @@ class Chain(BaseChain):
             data=data,
         )
 
-    def get_transaction_receipt(self, transaction_hash: Hash32) -> ReceiptAPI:
+    def get_transaction_receipt(self, transaction_hash: Hash32) -> FullReceiptAPI:
         transaction_block_number, transaction_index = self.chaindb.get_transaction_index(
             transaction_hash,
         )
-        receipt = self.chaindb.get_receipt_by_index(
-            block_number=transaction_block_number,
+
+        try:
+            block_header = self.chaindb.get_canonical_block_header_by_number(
+                transaction_block_number
+            )
+        except HeaderNotFound:
+            raise ReceiptNotFound(
+                f"Block {transaction_block_number} is not in the canonical chain"
+            )
+
+        receipt = self.chaindb.get_receipt_by_header_and_index(
+            block_header=block_header,
             receipt_index=transaction_index,
         )
 
-        return receipt
+        try:
+            transaction = self.get_canonical_transaction(transaction_hash)
+        except TransactionNotFound:
+            raise ReceiptNotFound(f"Transaction {transaction_hash} is not in the canonical chain")
+
+        full_receipt = FullReceiptAPI()
+        full_receipt.state_root = receipt.state_root
+        full_receipt.gas_used = receipt.gas_used
+        full_receipt.bloom = receipt.bloom
+        full_receipt.logs = receipt.logs
+        full_receipt.block_hash = block_header.hash
+        full_receipt.block_number = transaction_block_number
+        full_receipt.sender = transaction.sender
+        full_receipt.receipient = transaction.to
+        full_receipt.transaction_hash = transaction_hash
+        full_receipt.transaction_index = transaction_index
+
+        return full_receipt
 
     #
     # Execution API

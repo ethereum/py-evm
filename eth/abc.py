@@ -107,6 +107,24 @@ class ReceiptAPI(rlp.Serializable, ABC):
         ...
 
 
+class FullReceiptAPI:
+    """
+    A class representing a receipt with additional context information that is retrieved
+    via the transaction and block it belongs to.
+    """
+
+    block_hash: Hash32
+    block_number: BlockNumber
+    bloom: int
+    gas_used: int
+    logs: Sequence[LogAPI]
+    receipient: Address
+    sender: Address
+    state_root: bytes
+    transaction_hash: Hash32
+    transaction_index: int
+
+
 class BaseTransactionAPI(ABC):
     """
     A class to define all common methods of a transaction.
@@ -602,12 +620,22 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
         ...
 
     @abstractmethod
-    def get_receipt_by_index(self,
-                             block_number: BlockNumber,
-                             receipt_index: int) -> ReceiptAPI:
+    def get_receipt_by_number_and_index(self,
+                                        block_number: BlockNumber,
+                                        receipt_index: int) -> ReceiptAPI:
         """
         Return the receipt of the transaction at specified index
         for the block header obtained by the specified block number
+        """
+        ...
+
+    @abstractmethod
+    def get_receipt_by_header_and_index(self,
+                                        block_header: BlockHeaderAPI,
+                                        receipt_index: int) -> ReceiptAPI:
+        """
+        Return the receipt of the transaction at specified index
+        for the given block header.
         """
         ...
 
@@ -2998,7 +3026,7 @@ class ChainAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def get_transaction_receipt(self, transaction_hash: Hash32) -> ReceiptAPI:
+    def get_transaction_receipt(self, transaction_hash: Hash32) -> FullReceiptAPI:
         """
         Return the requested receipt for the transaction as specified by the ``transaction_hash``.
 

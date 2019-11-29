@@ -149,7 +149,7 @@ def test_chaindb_get_canonical_block_hash(chaindb, block):
     assert block_hash == block.hash
 
 
-def test_chaindb_get_receipt_by_index(
+def test_chaindb_get_receipt_by_number_and_index(
         chain,
         funded_address,
         funded_address_private_key):
@@ -175,7 +175,7 @@ def test_chaindb_get_receipt_by_index(
         chain.mine_block()
 
     # Check that the receipt retrieved is indeed the actual one
-    chaindb_retrieved_receipt = chain.chaindb.get_receipt_by_index(
+    chaindb_retrieved_receipt = chain.chaindb.get_receipt_by_number_and_index(
         REQUIRED_BLOCK_NUMBER,
         REQUIRED_RECEIPT_INDEX,
     )
@@ -183,14 +183,14 @@ def test_chaindb_get_receipt_by_index(
 
     # Raise error if block number is not found
     with pytest.raises(ReceiptNotFound):
-        chain.chaindb.get_receipt_by_index(
+        chain.chaindb.get_receipt_by_number_and_index(
             NUMBER_BLOCKS_IN_CHAIN + 1,
             REQUIRED_RECEIPT_INDEX,
         )
 
     # Raise error if receipt index is out of range
     with pytest.raises(ReceiptNotFound):
-        chain.chaindb.get_receipt_by_index(
+        chain.chaindb.get_receipt_by_number_and_index(
             NUMBER_BLOCKS_IN_CHAIN,
             TRANSACTIONS_IN_BLOCK + 1,
         )

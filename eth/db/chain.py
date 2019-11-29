@@ -280,13 +280,19 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
         return (transaction_key.block_number, transaction_key.index)
 
-    def get_receipt_by_index(self,
-                             block_number: BlockNumber,
-                             receipt_index: int) -> ReceiptAPI:
+    def get_receipt_by_number_and_index(self,
+                                        block_number: BlockNumber,
+                                        receipt_index: int) -> ReceiptAPI:
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
             raise ReceiptNotFound(f"Block {block_number} is not in the canonical chain")
+
+        return self.get_receipt_by_header_and_index(block_header, receipt_index)
+
+    def get_receipt_by_header_and_index(self,
+                                        block_header: BlockHeader,
+                                        receipt_index: int) -> ReceiptAPI:
 
         receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
         receipt_key = rlp.encode(receipt_index)
