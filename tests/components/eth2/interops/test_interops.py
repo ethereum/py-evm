@@ -20,4 +20,3 @@ from trinity._utils.async_iter import contains_all
 async def test_directory_generation(command, tmpdir):
     async with AsyncProcessRunner.run(command, timeout_sec=30) as runner:
         assert await contains_all(runner.stderr, {"Validator", "BCCReceiveServer"})
-    assert False, "AsyncProcessRunner timeout"

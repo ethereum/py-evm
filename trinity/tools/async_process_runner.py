@@ -39,6 +39,7 @@ class AsyncProcessRunner():
                 runner.kill()
         except asyncio.TimeoutError:
             runner.kill()
+            raise
 
     @property
     async def stdout(self) -> AsyncIterable[str]:
