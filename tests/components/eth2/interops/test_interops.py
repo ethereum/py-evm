@@ -18,5 +18,5 @@ from trinity._utils.async_iter import contains_all
 )
 @pytest.mark.asyncio
 async def test_directory_generation(command, tmpdir):
-    async with AsyncProcessRunner.run(command, timeout_sec=60) as runner:
+    async with AsyncProcessRunner.run(command, timeout_sec=120) as runner:
         assert await contains_all(runner.stderr, {"Validator", "BCCReceiveServer"})
