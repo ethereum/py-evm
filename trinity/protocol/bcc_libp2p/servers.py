@@ -31,7 +31,7 @@ from p2p.service import BaseService
 from eth2.beacon.chains.base import (
     BaseBeaconChain,
 )
-from eth2.beacon.operations.pool import OperationPool
+from eth2.beacon.operations.attestation_pool import AttestationPool
 from eth2.beacon.types.attestations import (
     Attestation,
 )
@@ -41,7 +41,6 @@ from eth2.beacon.types.blocks import (
 )
 from eth2.beacon.typing import (
     SigningRoot,
-    HashTreeRoot,
 )
 from eth2.beacon.state_machines.forks.serenity.block_validation import (
     validate_attestation_slot,
@@ -56,48 +55,6 @@ from .configs import (
 )
 
 PROCESS_ORPHAN_BLOCKS_PERIOD = 10.0
-
-
-class AttestationPool(OperationPool[Attestation]):
-    """
-    Store the attestations not yet included on chain.
-    """
-    # TODO: can probably use lru-cache or even database
-
-    def __len__(self) -> int:
-        return len(self._pool_storage.keys())
-
-    def __contains__(self, attestation_or_root: Union[Attestation, HashTreeRoot]) -> bool:
-        attestation_root: HashTreeRoot
-        if isinstance(attestation_or_root, Attestation):
-            attestation_root = attestation_or_root.hash_tree_root
-        elif isinstance(attestation_or_root, bytes):
-            attestation_root = attestation_or_root
-        else:
-            raise TypeError(
-                f"`attestation_or_root` should be `Attestation` or `HashTreeRoot`,"
-                f" got {type(attestation_or_root)}"
-            )
-        try:
-            self.get(attestation_root)
-            return True
-        except KeyError:
-            return False
-
-    def get_all(self) -> Tuple[Attestation, ...]:
-        return tuple(self._pool_storage.values())
-
-    def batch_add(self, attestations: Iterable[Attestation]) -> None:
-        for attestation in attestations:
-            self.add(attestation)
-
-    def remove(self, attestation: Attestation) -> None:
-        if attestation.hash_tree_root in self._pool_storage:
-            del self._pool_storage[attestation.hash_tree_root]
-
-    def batch_remove(self, attestations: Iterable[Attestation]) -> None:
-        for attestation in attestations:
-            self.remove(attestation)
 
 
 class OrphanBlockPool:
