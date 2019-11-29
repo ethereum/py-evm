@@ -128,7 +128,7 @@ def normalize_to_address(value: AnyStr) -> Address:
         return CREATE_CONTRACT_ADDRESS
 
 
-robust_decode_hex = eth_utils.curried.hexstr_if_str(to_bytes)  # type: ignore  # https://github.com/ethereum/eth-utils/issues/156  # noqa: E501
+robust_decode_hex = eth_utils.curried.hexstr_if_str(to_bytes)
 
 
 #
@@ -247,7 +247,7 @@ normalize_state = compose(
         "nonce": normalize_int,
         "storage": normalize_storage
     }, required=[])),
-    eth_utils.curried.apply_formatter_if(  # type: ignore  # https://github.com/ethereum/eth-utils/issues/156  # noqa: E501
+    eth_utils.curried.apply_formatter_if(
         lambda s: isinstance(s, Iterable) and not isinstance(s, Mapping),
         state_definition_to_dict
     ),

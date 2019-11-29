@@ -90,21 +90,11 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
 
     @classmethod
-    def _set_as_canonical_chain_head(
-            cls,
-            db: DatabaseAPI,
-            block_hash: Hash32,
-            genesis_parent_hash: Hash32,
-    ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
-        try:
-            header = cls._get_block_header_by_hash(db, block_hash)
-        except HeaderNotFound:
-            raise ValueError(
-                f"Cannot use unknown block hash as canonical head: {header.hash}"
-            )
-
-        new_canonical_headers = tuple(reversed(
-            cls._find_new_ancestors(db, header, genesis_parent_hash)))
+    def _decanonicalize_old_headers(
+        cls,
+        db: DatabaseAPI,
+        new_canonical_headers: Tuple[BlockHeaderAPI, ...]
+    ) -> Tuple[BlockHeaderAPI, ...]:
         old_canonical_headers = []
 
         # remove transaction lookups for blocks that are no longer canonical
@@ -118,19 +108,16 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                 old_header = cls._get_block_header_by_hash(db, old_hash)
                 old_canonical_headers.append(old_header)
                 try:
-                    for transaction_hash in cls._get_block_transaction_hashes(db, old_header):
+                    transaction_hashes = cls._get_block_transaction_hashes(db, old_header)
+                    for transaction_hash in transaction_hashes:
                         cls._remove_transaction_from_canonical_chain(db, transaction_hash)
                 except MissingTrieNode:
-                    # If the transactions were never stored for the (now) non-canonical chain,
-                    #   then you don't need to remove them from the canonical chain lookup.
+                    # If the transactions were never stored for the (now) non-canonical
+                    # chain, then you don't need to remove them from the canonical chain
+                    # lookup.
                     pass
 
-        for h in new_canonical_headers:
-            cls._add_block_number_to_hash_lookup(db, h)
-
-        db.set(SchemaV1.make_canonical_head_hash_lookup_key(), header.hash)
-
-        return new_canonical_headers, tuple(old_canonical_headers)
+        return tuple(old_canonical_headers)
 
     #
     # Block API
