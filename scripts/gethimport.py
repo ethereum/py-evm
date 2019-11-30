@@ -20,9 +20,15 @@ import rlp
 from rlp.sedes import CountableList
 
 from eth.chains.mainnet import MAINNET_GENESIS_HEADER, MainnetChain
+from eth.constants import BLANK_ROOT_HASH, EMPTY_SHA3
 from eth.db.backends.level import LevelDB
 from eth.rlp.headers import BlockHeader
 from eth.rlp.transactions import BaseTransactionFields
+from eth.rlp.accounts import Account
+
+from eth.db.trie_iteration import iterate_leaves
+
+from trie.utils.nibbles import nibbles_to_bytes
 
 
 logger = logging.getLogger('importer')
@@ -223,6 +229,26 @@ class GethDatabase:
         return rlp.decode(raw_data, sedes=BlockBody)
 
 
+class ImportDatabase:
+    "Creates a 'ChainDB' which can be passed to the trie_iteration utils"
+    def __init__(self, gethdb, trinitydb):
+        self.gethdb = gethdb
+        self.trinitydb = trinitydb
+
+    def get(self, node_hash):
+        trinity_result = self.trinitydb.get(node_hash)
+        if trinity_result is not None:
+            return trinity_result
+
+        geth_result = self.gethdb.get(node_hash)
+        if geth_result is None:
+            logger.error(f'could not find node for hash: {node_hash.hex()}')
+            assert False
+
+        self.trinitydb.put(node_hash, geth_result)
+        return geth_result
+
+
 def main(args):
     # 1. Open Geth database
 
@@ -263,26 +289,73 @@ def main(args):
     geth_header = gethdb.block_header(canonical_head.block_number, canonical_head.hash)
     assert geth_header.hash == canonical_head.hash
 
-    for i in range(canonical_head.block_number, last_block_num + 1):
+    final_block_to_sync = last_block_num
+    if args.syncuntil:
+        final_block_to_sync = min(args.syncuntil, final_block_to_sync)
+
+    for i in range(canonical_head.block_number, final_block_to_sync + 1):
         header_hash = gethdb.header_hash_for_block_number(i)
         header = gethdb.block_header(i, header_hash)
 
-        body = gethdb.block_body(i)
-        block_class = chain.get_vm_class(header).get_block_class()
-        block = block_class(header, body.transactions, body.uncles)
-        chain.chaindb.persist_block(block)
+        if not args.nobodies:
+            body = gethdb.block_body(i)
+            block_class = chain.get_vm_class(header).get_block_class()
+            block = block_class(header, body.transactions, body.uncles)
+            chain.chaindb.persist_block(block)
+        else:
+            headerdb.persist_header(header)
 
         if i % 1000 == 0:
             logger.debug(f'current canonical header: {headerdb.get_canonical_head()}')
 
-    # some final checks, these should never fail
     canonical_head = headerdb.get_canonical_head()
-    geth_last_block_hash = gethdb.last_block_hash
-    geth_last_block_num = gethdb.block_num_for_hash(geth_last_block_hash)
-    assert canonical_head.hash == geth_last_block_hash
-    assert canonical_head.block_number == geth_last_block_num
+    if not args.syncuntil:
+        # similar checks should be run if we added sync until!
+        # some final checks, these should never fail
+        geth_last_block_hash = gethdb.last_block_hash
+        geth_last_block_num = gethdb.block_num_for_hash(geth_last_block_hash)
+        assert canonical_head.hash == geth_last_block_hash
+        assert canonical_head.block_number == geth_last_block_num
 
     logger.info('finished importing headers + bodies')
+
+    if args.justblocks:
+        return
+
+    state_root = canonical_head.state_root
+    logger.info(f'starting state trie import: {humanize_hash(state_root)}')
+
+    # 4. Import the state trie + storage tries
+    # Write something which iterates over the entire trie, from left to right
+    # Pass it a database which first looks in the trinity db, and if nothing is there
+    #   copies the requested node from geth->trinity before returning it
+
+    imported_leaf_count = 0
+    importdb = ImportDatabase(gethdb=gethdb.db, trinitydb=leveldb.db)
+    for path, leaf_data in iterate_leaves(importdb, state_root):
+        account = rlp.decode(leaf_data, sedes=Account)
+        addr_hash = nibbles_to_bytes(path)
+
+
+        if account.code_hash != EMPTY_SHA3:
+            bytecode = importdb.get(account.code_hash)
+
+        if account.storage_root == BLANK_ROOT_HASH:
+            imported_leaf_count += 1
+
+            if imported_leaf_count % 1000 == 0:
+                logger.debug(f'progress sha(addr)={addr_hash.hex()}')
+            continue
+
+        for path, leaf_data in iterate_leaves(importdb, account.storage_root):
+            item_addr = nibbles_to_bytes(path)
+            imported_leaf_count += 1
+
+            if imported_leaf_count % 1000 == 0:
+                logger.debug(f'progress sha(addr)={addr_hash.hex()} sha(item)={item_addr.hex()}')
+
+    loger.info('successfully imported state trie and all storage tries')
+
 
 
 if __name__ == "__main__":
@@ -295,6 +368,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-gethdb', type=str, required=True)
     parser.add_argument('-destdb', type=str, required=True)
+    parser.add_argument('-justblocks', action='store_true')
+    parser.add_argument('-nobodies', action='store_true')
+    parser.add_argument('-syncuntil', type=int, action='store')
     args = parser.parse_args()
 
     main(args)
+
+    logger.warning('Some features are not yet implemented:')
+    logger.warning('- Receipts were not imported')
+    logger.warning('- This script did not verify that the chain configs match')
