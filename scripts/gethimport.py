@@ -322,6 +322,9 @@ def main(args):
     if args.justblocks:
         return
 
+    scan_state(gethdb, leveldb)
+    return
+
     state_root = canonical_head.state_root
     logger.info(f'starting state trie import: {humanize_hash(state_root)}')
 
@@ -356,6 +359,39 @@ def main(args):
 
     loger.info('successfully imported state trie and all storage tries')
 
+
+def scan_state(gethdb: GethDatabase, trinitydb: LevelDB):
+    """
+    Imports state, but by indiscriminately copying over everything which might be part of
+    the state trie. This copies more data than necessary, but is likely to be much faster
+    than iterating all state.
+    """
+    logger.debug('scan_state: bulk-importing state entries')
+
+    iterator = gethdb.db.iterator(
+        start=b'\x00'*32,
+        stop=b'\xff'*32,
+        include_start=True,
+        include_stop=True,
+    )
+
+    imported_entries = 0
+    skipped_keys = 0
+    bucket = b'\x00' * 2
+    for key, value in iterator:
+        if len(key) != 32:
+            skipped_keys += 1
+            continue
+        trinitydb[key] = value
+        imported_entries += 1
+
+        if key >= bucket:
+            logger.debug(f'imported: {bucket.hex()} skipped={skipped_keys}')
+            if bucket == b'\xff' * 2:
+                break
+            bucket = (int.from_bytes(bucket, 'big') + 1).to_bytes(2, 'big')
+
+    logger.info(f'scan_state: successfully imported {imported_entries} state entries')
 
 
 if __name__ == "__main__":
