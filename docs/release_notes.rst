@@ -3,6 +3,45 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.9 (2019-12-02)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Add new Chain APIs (`#1887 <https://github.com/ethereum/py-evm/issues/1887>`__):
+
+  - `get_canonical_block_header_by_number`
+  - `get_canonical_transaction_index`
+  - `get_canonical_transaction_by_index`
+  - `get_transaction_receipt_by_index`
+
+
+Bugfixes
+~~~~~~~~
+
+- Remove the ice age delay that was accidentally left in Istanbul (`#1877 <https://github.com/ethereum/py-evm/issues/1877>`__)
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- In the API docs display class methods, static methods and methods as one group "methods".
+  While we ideally wish to separate these, Sphinx keeps them all as one group which we'll
+  be following until we find a better option. (`#794 <https://github.com/ethereum/py-evm/issues/794>`__)
+- Tweak layout of API docs to improve readability
+
+  Group API docs by member (methods, attributes) (`#1797 <https://github.com/ethereum/py-evm/issues/1797>`__)
+- Add missing API docs for ``MiningChain``.
+  Add missing API docs for ``eth.db.*``
+  Add missing API docs for ``Constantinople``, ``Petersburg`` and ``Istanbul`` forks
+  Move all docstrings that aren't overly specific to a particular implementation from
+  the implementation to the interface. This has the effect that the docstring will
+  appear both on the interface as well as on the implementation except for when the
+  implementation overwrites the docstring with a more specific descriptions. (`#1880 <https://github.com/ethereum/py-evm/issues/1880>`__)
+- Add docstrings to all public APIs that were still lacking one. (`#1882 <https://github.com/ethereum/py-evm/issues/1882>`__)
+
+
 py-evm 0.3.0-alpha.8 (2019-11-05)
 ---------------------------------
 

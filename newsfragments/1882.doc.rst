@@ -1,1 +1,0 @@
-Add docstrings to all public APIs that were still lacking one.

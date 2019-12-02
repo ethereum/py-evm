@@ -1,6 +1,0 @@
-Add new Chain APIs:
-
-- `get_canonical_block_header_by_number`
-- `get_canonical_transaction_index`
-- `get_canonical_transaction_by_index`
-- `get_transaction_receipt_by_index`
