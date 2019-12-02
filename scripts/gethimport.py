@@ -12,6 +12,7 @@ from pathlib import Path
 import shutil
 import snappy
 import struct
+import time
 
 import plyvel
 
@@ -249,9 +250,7 @@ class ImportDatabase:
         return geth_result
 
 
-def main(args):
-    # 1. Open Geth database
-
+def open_gethdb(location):
     gethdb = GethDatabase(args.gethdb)
 
     last_block = gethdb.last_block_hash
@@ -262,15 +261,16 @@ def main(args):
     genesis_hash = gethdb.header_hash_for_block_number(0)
     genesis_header = gethdb.block_header(0, genesis_hash)
     assert genesis_header == MAINNET_GENESIS_HEADER
-    logger.info(f'geth genesis header matches expected genesis')
 
-    # 2. Create trinity database
+    return gethdb
 
+
+def open_trinitydb(location):
     db_already_existed = False
-    if os.path.exists(args.destdb):
+    if os.path.exists(location):
         db_already_existed = True
 
-    leveldb = LevelDB(db_path=Path(args.destdb), max_open_files=16)
+    leveldb = LevelDB(db_path=Path(location), max_open_files=16)
 
     if not db_already_existed:
         logger.info(f'Trinity database did not already exist, initializing it now')
@@ -278,6 +278,12 @@ def main(args):
     else:
         chain = MainnetChain(leveldb)
 
+    return chain
+
+
+def main(args):
+    gethdb = open_gethdb(args.gethdb)
+    chain = open_trinitydb(args.destdb)
     headerdb = chain.headerdb
 
     # 3. Import headers + bodies
@@ -289,7 +295,10 @@ def main(args):
     geth_header = gethdb.block_header(canonical_head.block_number, canonical_head.hash)
     assert geth_header.hash == canonical_head.hash
 
-    final_block_to_sync = last_block_num
+    geth_last_block_hash = gethdb.last_block_hash
+    geth_last_block_num = gethdb.block_num_for_hash(geth_last_block_hash)
+
+    final_block_to_sync = geth_last_block_num
     if args.syncuntil:
         final_block_to_sync = min(args.syncuntil, final_block_to_sync)
 
@@ -312,8 +321,6 @@ def main(args):
     if not args.syncuntil:
         # similar checks should be run if we added sync until!
         # some final checks, these should never fail
-        geth_last_block_hash = gethdb.last_block_hash
-        geth_last_block_num = gethdb.block_num_for_hash(geth_last_block_hash)
         assert canonical_head.hash == geth_last_block_hash
         assert canonical_head.block_number == geth_last_block_num
 
@@ -394,6 +401,26 @@ def scan_state(gethdb: GethDatabase, trinitydb: LevelDB):
     logger.info(f'scan_state: successfully imported {imported_entries} state entries')
 
 
+def import_body_range(gethdb, chain, start_block, end_block):
+    logger.debug(
+        f'importing block bodies for blocks in range({start_block}, {end_block + 1})'
+    )
+    previous_log_time = time.time()
+
+    for i in range(start_block, end_block + 1):
+        header_hash = gethdb.header_hash_for_block_number(i)
+        header = gethdb.block_header(i, header_hash)
+
+        body = gethdb.block_body(i)
+        block_class = chain.get_vm_class(header).get_block_class()
+        block = block_class(header, body.transactions, body.uncles)
+        chain.chaindb.persist_block(block)
+
+        if time.time() - previous_log_time > 5:
+            logger.debug(f'importing bodies. block_number={i}')
+            previous_log_time = time.time()
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
@@ -407,9 +434,21 @@ if __name__ == "__main__":
     parser.add_argument('-justblocks', action='store_true')
     parser.add_argument('-nobodies', action='store_true')
     parser.add_argument('-syncuntil', type=int, action='store')
+
+    subparsers = parser.add_subparsers(dest="command")
+
+    import_body_range_parser = subparsers.add_parser('import_body_range')
+    import_body_range_parser.add_argument('-startblock', type=int, required=True)
+    import_body_range_parser.add_argument('-endblock', type=int, required=True)
+
     args = parser.parse_args()
 
-    main(args)
+    if args.command == 'import_body_range':
+        gethdb = open_gethdb(args.gethdb)
+        chain = open_trinitydb(args.destdb)
+        import_body_range(gethdb, chain, args.startblock, args.endblock)
+    else:
+        main(args)
 
     logger.warning('Some features are not yet implemented:')
     logger.warning('- Receipts were not imported')
