@@ -440,7 +440,7 @@ class HeaderDatabaseAPI(ABC):
         """
         Return the block header with the given number in the canonical chain.
 
-        Raise ``BlockNotFound`` if there's no block header with the given number in the
+        Raise ``HeaderNotFound`` if there's no block header with the given number in the
         canonical chain.
         """
         ...
@@ -2877,6 +2877,16 @@ class ChainAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
+    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
+        """
+        Return the block header with the given number in the canonical chain.
+
+        Raise ``HeaderNotFound`` if there's no block header with the given number in the
+        canonical chain.
+        """
+        ...
+
+    @abstractmethod
     def get_canonical_head(self) -> BlockHeaderAPI:
         """
         Return the block header at the canonical chain head.
@@ -2987,6 +2997,17 @@ class ChainAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
+    def get_canonical_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
+        """
+        Return a 2-tuple of (block_number, transaction_index) indicating which
+        block the given transaction can be found in and at what index in the
+        block transactions.
+
+        Raise ``TransactionNotFound`` if the transaction does not exist in the canoncial
+        chain.
+        """
+
+    @abstractmethod
     def get_canonical_transaction(self, transaction_hash: Hash32) -> SignedTransactionAPI:
         """
         Return the requested transaction as specified by the ``transaction_hash``
@@ -2998,12 +3019,36 @@ class ChainAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
+    def get_canonical_transaction_by_index(self,
+                                           block_number: BlockNumber,
+                                           index: int) -> SignedTransactionAPI:
+        """
+        Return the requested transaction as specified by the ``block_number``
+        and ``index`` from the canonical chain.
+
+        Raise ``TransactionNotFound`` if no transaction exists at ``index`` at ``block_number`` in
+        the canonical chain.
+        """
+        ...
+
+    @abstractmethod
     def get_transaction_receipt(self, transaction_hash: Hash32) -> ReceiptAPI:
         """
         Return the requested receipt for the transaction as specified by the ``transaction_hash``.
 
         Raise ``ReceiptNotFound`` if not receipt for the specified ``transaction_hash`` is found
         in the canonical chain.
+        """
+        ...
+
+    @abstractmethod
+    def get_transaction_receipt_by_index(self, block_number: BlockNumber, index: int) -> ReceiptAPI:
+        """
+        Return the requested receipt for the transaction as specified by the ``block_number``
+        and ``index``.
+
+        Raise ``ReceiptNotFound`` if not receipt for the specified ``block_number`` and ``index`` is
+        found in the canonical chain.
         """
         ...
 
