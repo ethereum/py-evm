@@ -19,6 +19,9 @@ from eth.constants import (
     GENESIS_BLOCK_NUMBER,
     GENESIS_PARENT_HASH,
 )
+from eth.exceptions import (
+    HeaderNotFound,
+)
 
 from p2p.disconnect import DisconnectReason
 from p2p.exceptions import (
@@ -109,6 +112,15 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
         self._peer_pool = peer_pool
 
     async def fulfill_prerequisites(self) -> None:
+        try:
+            checkpoint = await self._db.coro_get_block_header_by_hash(self._checkpoint.block_hash)
+        except HeaderNotFound:
+            pass
+        else:
+            self.logger.debug("Skipped checkpoint header download of %s", checkpoint)
+            self.min_block_number = checkpoint.block_number
+            return
+
         max_attempts = 1000
 
         for _attempt in range(max_attempts):
