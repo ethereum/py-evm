@@ -53,7 +53,7 @@ docs: build-docs
 	open docs/_build/html/index.html
 
 linux-docs: build-docs
-	readlink -f docs/_build/html/index.html
+	xdg-open docs/_build/html/index.html
 
 package: clean
 	python setup.py sdist bdist_wheel
