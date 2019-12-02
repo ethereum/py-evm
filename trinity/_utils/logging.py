@@ -1,5 +1,4 @@
 import copy
-from datetime import datetime
 import logging
 from logging import (
     StreamHandler
@@ -166,16 +165,13 @@ def setup_file_logging(
         level = logging.DEBUG
     logger = logging.getLogger()
 
-    log_file_with_timestamp = logfile_path.with_suffix(
-        datetime.now().strftime('.%Y%m%d_%H%M%S.log')
-    )
     handler_file = RotatingFileHandler(
-        str(log_file_with_timestamp),
+        str(logfile_path),
         maxBytes=(10000000 * LOG_MAX_MB),
         backupCount=LOG_BACKUP_COUNT,
         delay=True
     )
-    if log_file_with_timestamp.exists():
+    if logfile_path.exists():
         handler_file.doRollover()
 
     if level is not None:
