@@ -272,11 +272,13 @@ def open_trinitydb(location):
 
     leveldb = LevelDB(db_path=Path(location), max_open_files=16)
 
-    if not db_already_existed:
-        logger.info(f'Trinity database did not already exist, initializing it now')
-        chain = MainnetChain.from_genesis_header(leveldb, MAINNET_GENESIS_HEADER)
-    else:
-        chain = MainnetChain(leveldb)
+    if db_already_existed:
+        return MainnetChain(leveldb)
+
+    logger.info(f'Trinity database did not already exist, initializing it now')
+    chain = MainnetChain.from_genesis_header(leveldb, MAINNET_GENESIS_HEADER)
+
+    # from_genesis_header copied the header over to our trinity db but not the state
 
     return chain
 
@@ -421,6 +423,29 @@ def import_body_range(gethdb, chain, start_block, end_block):
             previous_log_time = time.time()
 
 
+def process_blocks(gethdb, chain, end_block):
+    "Imports blocks read out of the gethdb. Simulates a full sync but w/o network traffic"
+
+    canonical_head = chain.headerdb.get_canonical_head()
+    logger.info(f'starting block processing from chain tip: {canonical_head}')
+
+    start_block = max(canonical_head.block_number, 1)
+    for i in range(start_block, end_block + 1):
+        header_hash = gethdb.header_hash_for_block_number(i)
+        header = gethdb.block_header(i, header_hash)
+        vm_class = chain.get_vm_class(header)
+        block_class = vm_class.get_block_class()
+        transaction_class = vm_class.get_transaction_class()
+
+        body = gethdb.block_body(i)
+        transactions = [
+            transaction_class.from_base_transaction(txn) for txn in body.transactions
+        ]
+        block = block_class(header, transactions, body.uncles)
+        imported_block, _, _ = chain.import_block(block, perform_validation = True)
+        logger.debug('imported block: {imported_block}')
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
@@ -441,12 +466,19 @@ if __name__ == "__main__":
     import_body_range_parser.add_argument('-startblock', type=int, required=True)
     import_body_range_parser.add_argument('-endblock', type=int, required=True)
 
+    process_blocks_parser = subparsers.add_parser('process_blocks')
+    process_blocks_parser.add_argument('-endblock', type=int, required=True)
+
     args = parser.parse_args()
 
     if args.command == 'import_body_range':
         gethdb = open_gethdb(args.gethdb)
         chain = open_trinitydb(args.destdb)
         import_body_range(gethdb, chain, args.startblock, args.endblock)
+    elif args.command == 'process_blocks':
+        gethdb = open_gethdb(args.gethdb)
+        chain = open_trinitydb(args.destdb)
+        process_blocks(gethdb, chain, args.endblock)
     else:
         main(args)
 
