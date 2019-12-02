@@ -11,10 +11,10 @@ Features
 
 - Add new Chain APIs (`#1887 <https://github.com/ethereum/py-evm/issues/1887>`__):
 
-  - `get_canonical_block_header_by_number`
-  - `get_canonical_transaction_index`
-  - `get_canonical_transaction_by_index`
-  - `get_transaction_receipt_by_index`
+  - :meth:`~eth.chains.base.Chain.get_canonical_block_header_by_number` (parallel to :meth:`~eth.chains.base.Chain.get_canonical_block_by_number`)
+  - :meth:`~eth.chains.base.Chain.get_canonical_transaction_index`
+  - :meth:`~eth.chains.base.Chain.get_canonical_transaction_by_index`
+  - :meth:`~eth.chains.base.Chain.get_transaction_receipt_by_index`
 
 
 Bugfixes
@@ -32,13 +32,17 @@ Improved Documentation
 - Tweak layout of API docs to improve readability
 
   Group API docs by member (methods, attributes) (`#1797 <https://github.com/ethereum/py-evm/issues/1797>`__)
-- Add missing API docs for ``MiningChain``.
-  Add missing API docs for ``eth.db.*``
-  Add missing API docs for ``Constantinople``, ``Petersburg`` and ``Istanbul`` forks
-  Move all docstrings that aren't overly specific to a particular implementation from
-  the implementation to the interface. This has the effect that the docstring will
-  appear both on the interface as well as on the implementation except for when the
-  implementation overwrites the docstring with a more specific descriptions. (`#1880 <https://github.com/ethereum/py-evm/issues/1880>`__)
+- API doc additions (`#1880 <https://github.com/ethereum/py-evm/issues/1880>`__)
+
+  - Add missing API docs for :class:`~eth.chains.base.MiningChain`.
+  - Add missing API docs for :mod:`eth.db.*`
+  - Add missing API docs for :class:`~eth.vm.forks.constantinople.ConstantinopleVM`,
+    :class:`~eth.vm.forks.petersburg.PetersburgVM` and
+    :class:`~eth.vm.forks.istanbul.IstanbulVM` forks
+  - Move all docstrings that aren't overly specific to a particular implementation from
+    the implementation to the interface. This has the effect that the docstring will
+    appear both on the interface as well as on the implementation except for when the
+    implementation overwrites the docstring with a more specific descriptions.
 - Add docstrings to all public APIs that were still lacking one. (`#1882 <https://github.com/ethereum/py-evm/issues/1882>`__)
 
 
