@@ -263,6 +263,9 @@ class Chain(BaseChain):
         validate_word(block_hash, title="Block Hash")
         return self.chaindb.get_block_header_by_hash(block_hash)
 
+    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
+        return self.chaindb.get_canonical_block_header_by_number(block_number)
+
     def get_canonical_head(self) -> BlockHeaderAPI:
         return self.chaindb.get_canonical_head()
 
@@ -337,15 +340,13 @@ class Chain(BaseChain):
     #
     # Transaction API
     #
+    def get_canonical_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
+        return self.chaindb.get_transaction_index(transaction_hash)
+
     def get_canonical_transaction(self, transaction_hash: Hash32) -> SignedTransactionAPI:
         (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
-        VM_class = self.get_vm_class_for_block_number(block_num)
 
-        transaction = self.chaindb.get_transaction_by_index(
-            block_num,
-            index,
-            VM_class.get_transaction_class(),
-        )
+        transaction = self.get_canonical_transaction_by_index(block_num, index)
 
         if transaction.hash == transaction_hash:
             return transaction
@@ -354,6 +355,18 @@ class Chain(BaseChain):
                 f"Found transaction {encode_hex(transaction.hash)} "
                 f"instead of {encode_hex(transaction_hash)} in block {block_num} at {index}"
             )
+
+    def get_canonical_transaction_by_index(self,
+                                           block_number: BlockNumber,
+                                           index: int) -> SignedTransactionAPI:
+
+        VM_class = self.get_vm_class_for_block_number(block_number)
+
+        return self.chaindb.get_transaction_by_index(
+            block_number,
+            index,
+            VM_class.get_transaction_class(),
+        )
 
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:
         return self.get_vm().create_transaction(*args, **kwargs)
@@ -379,9 +392,15 @@ class Chain(BaseChain):
         transaction_block_number, transaction_index = self.chaindb.get_transaction_index(
             transaction_hash,
         )
+        return self.get_transaction_receipt_by_index(transaction_block_number, transaction_index)
+
+    def get_transaction_receipt_by_index(self,
+                                         block_number: BlockNumber,
+                                         index: int) -> ReceiptAPI:
+
         receipt = self.chaindb.get_receipt_by_index(
-            block_number=transaction_block_number,
-            receipt_index=transaction_index,
+            block_number=block_number,
+            receipt_index=index,
         )
 
         return receipt
