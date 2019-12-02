@@ -203,7 +203,10 @@ def test_new_vs_reference_code_stream_iter(bytecode):
     assert latest.program_counter == reference.program_counter
 
 
-@given(read_len=st.integers(min_value=0), bytecode=st.binary(max_size=128))
+@given(
+    read_len=st.integers(min_value=0, max_value=2048),
+    bytecode=st.binary(max_size=128)
+)
 def test_new_vs_reference_code_stream_read(read_len, bytecode):
     reference = SlowCodeStream(bytecode)
     latest = CodeStream(bytecode)
@@ -217,7 +220,7 @@ def test_new_vs_reference_code_stream_read(read_len, bytecode):
 
 @given(
     read_idx=st.integers(min_value=0, max_value=10),
-    read_len=st.integers(min_value=0),
+    read_len=st.integers(min_value=0, max_value=2048),
     bytecode=st.binary(max_size=128),
 )
 def test_new_vs_reference_code_stream_read_during_iter(read_idx, read_len, bytecode):
