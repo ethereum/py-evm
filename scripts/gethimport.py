@@ -46,6 +46,7 @@ class GethKeys:
     headerHashSuffix = b'n'
 
     blockBodyPrefix = b'b'
+    blockReceiptsPrefix = b'r'
 
     @classmethod
     def header_hash_for_block_number(cls, block_number: int) -> bytes:
@@ -67,6 +68,11 @@ class GethKeys:
     def block_body(cls, block_number: int, header_hash: bytes) -> bytes:
         packed_block_number = struct.pack('>Q', block_number)
         return cls.blockBodyPrefix + packed_block_number + header_hash
+
+    @classmethod
+    def block_receipts(cls, block_number: int, header_hash: bytes) -> bytes:
+        packed_block_number = struct.pack('>Q', block_number)
+        return cls.blockReceiptsPrefix + packed_block_number + header_hash
 
 
 class GethFreezerIndexEntry:
@@ -182,6 +188,7 @@ class GethDatabase:
         self.ancient_hashes = GethFreezerTable(ancient_path, 'hashes', False)
         self.ancient_headers = GethFreezerTable(ancient_path, 'headers', True)
         self.ancient_bodies = GethFreezerTable(ancient_path, 'bodies', True)
+        self.ancient_receipts = GethFreezerTable(ancient_path, 'receipts', True)
 
         if self.database_version != b'\x07':
             raise Exception(f'geth database version {self.database_version} is not supported')
@@ -229,6 +236,17 @@ class GethDatabase:
 
         raw_data = self.ancient_bodies.get(block_number)
         return rlp.decode(raw_data, sedes=BlockBody)
+
+    def block_receipts(self, block_number: int, header_hash: bytes = None):
+        if header_hash is None:
+            header_hash = self.header_hash_for_block_number(block_number)
+
+        raw_data = self.db.get(GethKeys.block_receipts(block_number, header_hash))
+        if raw_data is not None:
+            return raw_data
+
+        raw_data = self.ancient_receipts.get(block_number)
+        return raw_data
 
 
 class ImportDatabase:
@@ -455,6 +473,22 @@ def process_blocks(gethdb, chain, end_block):
         logger.debug(f'imported block: {imported_block}')
 
 
+def read_receipts(gethdb, block_number):
+    logger.info(f'reading receipts for block. block_number={block_number}')
+
+    raw_data = gethdb.block_receipts(block_number)
+    decoded = rlp.decode(raw_data)
+
+    logger.info(f'- receipt_count={len(decoded)}')
+
+    for receipt in decoded:
+        post_state, raw_gas_used, logs = receipt
+        if len(raw_gas_used) < 8:
+            padded = (b'\x00' * (8 - len(raw_gas_used))) + raw_gas_used
+            gas_used = struct.unpack('>Q', padded)[0]
+        logger.info(f'- post_state_or_status={post_state} gas_used={gas_used} len(logs)={len(logs)}')
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
@@ -478,6 +512,9 @@ if __name__ == "__main__":
     process_blocks_parser = subparsers.add_parser('process_blocks')
     process_blocks_parser.add_argument('-endblock', type=int, required=True)
 
+    read_receipts_parser = subparsers.add_parser('read_receipts')
+    read_receipts_parser.add_argument('-block', type=int, required=True)
+
     args = parser.parse_args()
 
     if args.command == 'import_body_range':
@@ -488,6 +525,9 @@ if __name__ == "__main__":
         gethdb = open_gethdb(args.gethdb)
         chain = open_trinitydb(args.destdb)
         process_blocks(gethdb, chain, args.endblock)
+    elif args.command == 'read_receipts':
+        gethdb = open_gethdb(args.gethdb)
+        read_receipts(gethdb, args.block)
     else:
         main(args)
 
