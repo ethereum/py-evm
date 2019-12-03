@@ -41,6 +41,12 @@ GAP_BETWEEN_TESTS = 0.25
 # when a new peer has excellent service stats. It might take several requests
 # to establish it (partially because we measure using an exponential average).
 
+# About how many seconds after a block can we request trie data from peers?
+# The value is configurable by client, but tends to be around 120 blocks.
+# To make up for clients that are configured low, unusually low block times,
+# and other surprises, we pick half of the 15-second * 120 blocks time window:
+ESTIMATED_BEAMABLE_SECONDS = 900
+
 # We need MAX_UNCLE_DEPTH + 1 headers to check during uncle validation
 # We need to request one more header, to set the starting tip
 FULL_BLOCKS_NEEDED_TO_START_BEAM = MAX_UNCLE_DEPTH + 2
