@@ -40,7 +40,7 @@ class BaseBeaconChainDB(ABC):
     def __init__(
         self, db: AtomicDatabaseAPI, genesis_config: Eth2GenesisConfig
     ) -> None:
-        pass
+        ...
 
     #
     # Block API
@@ -52,61 +52,61 @@ class BaseBeaconChainDB(ABC):
         block_class: Type[BaseBeaconBlock],
         fork_choice_scoring: ForkChoiceScoringFn,
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
-        pass
+        ...
 
     @abstractmethod
     def get_canonical_block_root(self, slot: Slot) -> SigningRoot:
-        pass
+        ...
 
     @abstractmethod
     def get_genesis_block_root(self) -> SigningRoot:
-        pass
+        ...
 
     @abstractmethod
     def get_canonical_block_by_slot(
         self, slot: Slot, block_class: Type[BaseBeaconBlock]
     ) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     def get_canonical_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     def get_canonical_head_root(self) -> SigningRoot:
-        pass
+        ...
 
     @abstractmethod
     def get_finalized_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     def get_justified_head(self, block_class: Type[BaseBeaconBlock]) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     def get_block_by_root(
         self, block_root: SigningRoot, block_class: Type[BaseBeaconBlock]
     ) -> BaseBeaconBlock:
-        pass
+        ...
 
     @abstractmethod
     def get_slot_by_root(self, block_root: SigningRoot) -> Slot:
-        pass
+        ...
 
     @abstractmethod
     def get_block_signing_root_by_hash_tree_root(
         self, block_root: HashTreeRoot
     ) -> SigningRoot:
-        pass
+        ...
 
     @abstractmethod
     def get_score(self, block_root: SigningRoot) -> int:
-        pass
+        ...
 
     @abstractmethod
     def block_exists(self, block_root: SigningRoot) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def persist_block_chain(
@@ -115,32 +115,32 @@ class BaseBeaconChainDB(ABC):
         block_class: Type[BaseBeaconBlock],
         fork_choice_scoring: Iterable[ForkChoiceScoringFn],
     ) -> Tuple[Tuple[BaseBeaconBlock, ...], Tuple[BaseBeaconBlock, ...]]:
-        pass
+        ...
 
     @abstractmethod
     def set_score(self, block: BaseBeaconBlock, score: int) -> None:
-        pass
+        ...
 
     #
     # Beacon State
     #
     @abstractmethod
     def get_head_state_slot(self) -> Slot:
-        pass
+        ...
 
     @abstractmethod
     def get_state_root_by_slot(self, slot: Slot) -> Hash32:
-        pass
+        ...
 
     @abstractmethod
     def get_state_by_root(
         self, state_root: Hash32, state_class: Type[BeaconState]
     ) -> BeaconState:
-        pass
+        ...
 
     @abstractmethod
     def persist_state(self, state: BeaconState) -> None:
-        pass
+        ...
 
     #
     # Attestation API
@@ -149,33 +149,33 @@ class BaseBeaconChainDB(ABC):
     def get_attestation_key_by_root(
         self, attestation_root: HashTreeRoot
     ) -> Tuple[SigningRoot, int]:
-        pass
+        ...
 
     @abstractmethod
     def attestation_exists(self, attestation_root: HashTreeRoot) -> bool:
-        pass
+        ...
 
     #
     # Fork choice API
     #
     @abstractmethod
     def get_fork_choice_context_data_for(self, fork: str) -> bytes:
-        pass
+        ...
 
     @abstractmethod
     def persist_fork_choice_context(self, serialized_context: bytes, fork: str) -> None:
-        pass
+        ...
 
     #
     # Raw Database API
     #
     @abstractmethod
     def exists(self, key: bytes) -> bool:
-        pass
+        ...
 
     @abstractmethod
     def get(self, key: bytes) -> bytes:
-        pass
+        ...
 
 
 class BeaconChainDB(BaseBeaconChainDB):
