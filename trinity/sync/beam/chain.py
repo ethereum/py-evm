@@ -211,7 +211,7 @@ class BeamSyncer(BaseService):
         final_headers = self._header_persister.get_final_headers()
 
         # First, download block bodies for previous 6 blocks, for validation
-        await self._download_blocks(final_headers[0])
+        await self.wait(self._download_blocks(final_headers[0]))
 
         # Now let the beam sync importer kick in
         self._checkpoint_header_syncer.set_checkpoint_headers(final_headers)
@@ -624,12 +624,12 @@ class BeamBlockImporter(BaseBlockImporter, BaseService):
         """
 
         address_timer = Timer()
-        num_accounts, new_account_nodes = await self._request_address_nodes(
+        num_accounts, new_account_nodes = await self.wait(self._request_address_nodes(
             header,
             parent_state_root,
             transactions,
             urgent,
-        )
+        ))
         collection_time = address_timer.elapsed
 
         self.logger.debug(

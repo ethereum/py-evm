@@ -1,0 +1,1 @@
+Speed up beam sync shutdown, and second launch from checkpoint

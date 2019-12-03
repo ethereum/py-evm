@@ -143,17 +143,23 @@ class ETHPeerRequestHandler(BasePeerRequestHandler):
 
         self.logger.debug2("%s requested %d trie nodes", peer, len(node_hashes))
         nodes = []
+        missing_node_hashes = []
         # Only serve up to MAX_STATE_FETCH items in every request.
         for node_hash in node_hashes[:MAX_STATE_FETCH]:
             try:
                 node = await self.wait(self.db.coro_get(node_hash))
             except KeyError:
-                self.logger.debug(
-                    "%s asked for a trie node we don't have: %s", peer, to_hex(node_hash)
-                )
-                continue
-            nodes.append(node)
+                missing_node_hashes.append(node_hash)
+            else:
+                nodes.append(node)
         self.logger.debug2("Replying to %s with %d trie nodes", peer, len(nodes))
+        if len(missing_node_hashes):
+            self.logger.debug(
+                "%s asked for %d trie nodes that we don't have, out of request for %d",
+                peer,
+                len(missing_node_hashes),
+                len(node_hashes),
+            )
         peer.eth_api.send_node_data(tuple(nodes))
 
 

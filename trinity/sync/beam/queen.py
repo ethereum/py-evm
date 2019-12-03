@@ -72,7 +72,7 @@ class QueeningQueue(BaseService, PeerSubscriber, QueenTrackerAPI):
         Wait until a queen peer is designated, then return it.
         """
         while self._queen_peer is None:
-            peer = await self._waiting_peers.get_fastest()
+            peer = await self.wait(self._waiting_peers.get_fastest())
             self._update_queen(peer)
 
         return self._queen_peer

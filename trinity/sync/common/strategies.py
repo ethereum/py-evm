@@ -15,9 +15,15 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import (
+    BlockHeaderAPI,
+)
 from eth.constants import (
     GENESIS_BLOCK_NUMBER,
     GENESIS_PARENT_HASH,
+)
+from eth.exceptions import (
+    HeaderNotFound,
 )
 
 from p2p.disconnect import DisconnectReason
@@ -108,7 +114,55 @@ class FromCheckpointLaunchStrategy(SyncLaunchStrategyAPI):
         self._checkpoint = checkpoint
         self._peer_pool = peer_pool
 
+    async def _are_prerequisites_complete(self, checkpoint: BlockHeaderAPI) -> bool:
+        block_numbers_to_download = range(
+            checkpoint.block_number + 1,  # we already have the checkpoint, we can skip it
+            checkpoint.block_number + FULL_BLOCKS_NEEDED_TO_START_BEAM,
+        )
+        last_header = checkpoint
+        for block_int in block_numbers_to_download:
+            block_num = BlockNumber(block_int)
+            try:
+                next_header = await self._db.coro_get_canonical_block_header_by_number(block_num)
+            except HeaderNotFound:
+                self.logger.debug(
+                    "Checkpoint validation header at #%d, parent %s, is missing. "
+                    "Downloading from peers...",
+                    block_num,
+                    last_header,
+                )
+                return False
+            else:
+                if next_header.parent_hash != last_header.hash:
+                    self.logger.warning(
+                        "Checkpoint %s is not on the local canonical chain, which has "
+                        "%s following %s. Forcing the checkpoint to be canonical...",
+                        checkpoint,
+                        next_header,
+                        last_header,
+                    )
+                    # re-download from checkpoint to assert that the checkpoint is canonical
+                    return False
+                else:
+                    self.logger.debug("Validated checkpoint %s locally", next_header)
+                    last_header = next_header
+        else:
+            # if loop never breaks, then all headers are validated.
+            return True
+
     async def fulfill_prerequisites(self) -> None:
+        try:
+            checkpoint = await self._db.coro_get_block_header_by_hash(self._checkpoint.block_hash)
+        except HeaderNotFound:
+            pass
+        else:
+            self.logger.debug("Found checkpoint header %s locally", checkpoint)
+            self.min_block_number = checkpoint.block_number
+
+            if await self._are_prerequisites_complete(checkpoint):
+                self.logger.debug("Found all needed checkpoint headers locally, skipping download")
+                return
+
         max_attempts = 1000
 
         for _attempt in range(max_attempts):
