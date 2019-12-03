@@ -39,7 +39,6 @@ class AsyncProcessRunner():
                 runner.kill()
         except asyncio.TimeoutError:
             runner.kill()
-            raise
 
     @property
     async def stdout(self) -> AsyncIterable[str]:
@@ -56,7 +55,11 @@ class AsyncProcessRunner():
             awaitable_bytes_fn: Callable[[], Awaitable[bytes]]) -> AsyncIterable[str]:
 
         while True:
-            line = await awaitable_bytes_fn()
+            try:
+                line = await awaitable_bytes_fn()
+            except Exception:
+                # Return when process is killed to keep the consumer of the AsyncIterable running
+                return
             self.logger.debug(line)
             if line == b'':
                 return

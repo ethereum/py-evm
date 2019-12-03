@@ -17,5 +17,4 @@ async def contains_all(async_gen: AsyncIterable[str], keywords: Set[str]) -> boo
                 seen_keywords.add(check)
         if seen_keywords == keywords:
             return True
-
     return False
