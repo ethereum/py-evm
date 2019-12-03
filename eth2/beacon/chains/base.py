@@ -15,7 +15,13 @@ from eth2.beacon.exceptions import BlockClassError, StateMachineNotFound
 from eth2.beacon.types.attestations import Attestation
 from eth2.beacon.types.blocks import BaseBeaconBlock
 from eth2.beacon.types.states import BeaconState
-from eth2.beacon.typing import FromBlockParams, HashTreeRoot, SigningRoot, Slot
+from eth2.beacon.typing import (
+    FromBlockParams,
+    HashTreeRoot,
+    SigningRoot,
+    Slot,
+    Timestamp,
+)
 from eth2.configs import Eth2Config, Eth2GenesisConfig
 
 if TYPE_CHECKING:
@@ -86,6 +92,18 @@ class BaseBeaconChain(Configurable, ABC):
     @classmethod
     @abstractmethod
     def get_genesis_state_machine_class(self) -> Type["BaseBeaconStateMachine"]:
+        ...
+
+    @abstractmethod
+    def on_tick(self, time: Timestamp, slot: Slot = None) -> None:
+        ...
+
+    @abstractmethod
+    def on_block(self, block: BaseBeaconBlock, slot: Slot = None) -> None:
+        ...
+
+    @abstractmethod
+    def on_attestation(self, attestation: Attestation, slot: Slot = None) -> None:
         ...
 
     #
@@ -281,6 +299,19 @@ class BeaconChain(BaseBeaconChain):
     @classmethod
     def get_genesis_state_machine_class(cls) -> Type["BaseBeaconStateMachine"]:
         return cls.sm_configuration[0][1]
+
+    # TODO how to handle the current slot in fork choice handlers
+    def on_tick(self, time: Timestamp, slot: Slot = None) -> None:
+        state_machine = self.get_state_machine(at_slot=slot)
+        state_machine.on_tick(time)
+
+    def on_block(self, block: BaseBeaconBlock, slot: Slot = None) -> None:
+        state_machine = self.get_state_machine(at_slot=slot)
+        state_machine.on_block(block)
+
+    def on_attestation(self, attestation: Attestation, slot: Slot = None) -> None:
+        state_machine = self.get_state_machine(at_slot=slot)
+        state_machine.on_attestation(attestation)
 
     #
     # State API
