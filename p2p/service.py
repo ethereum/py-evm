@@ -269,7 +269,7 @@ class BaseService(CancellableMixin, AsyncioServiceAPI):
         their cleanup.
         """
         if self._child_services:
-            self.logger.debug("Waiting for child services: %s", list(self._child_services))
+            self.logger.debug("%s waiting for child services: %s", self, list(self._child_services))
             wait_for_clean_up_tasks = (
                 child_service.events.cleaned_up.wait()
                 for child_service in self._child_services
@@ -295,7 +295,7 @@ class BaseService(CancellableMixin, AsyncioServiceAPI):
             ]))
         else:
             task_display = str(task_list)
-        self.logger.debug("%s (%d): %s", message, len(self._tasks), task_display)
+        self.logger.debug("%s: %s (%d): %s", self, message, len(self._tasks), task_display)
 
     def cancel_nowait(self) -> None:
         if self.is_cancelled:

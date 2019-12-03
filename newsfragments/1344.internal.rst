@@ -1,0 +1,6 @@
+Show more helpful information in logs, like:
+
+- show peer info in more logs and exceptions
+- add extra information about exception context & cause
+- show eth_api stats in the "Peer details" again
+- show which service is stuck waiting on subservices

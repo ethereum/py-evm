@@ -131,11 +131,11 @@ class PeerPoolEventServer(BaseService, PeerSubscriber, Generic[TPeer]):
                 "Peer with session %s does not exist in the pool anymore",
                 session,
             )
-            raise PeerConnectionLost()
+            raise PeerConnectionLost(f"Peer at {session} is gone from the pool")
         else:
             if not peer.is_operational:
                 self.logger.debug("Peer %s is not operational when selecting from pool", peer)
-                raise PeerConnectionLost()
+                raise PeerConnectionLost(f"{peer} is no longer operational")
             else:
                 return cast(TPeer, peer)
 

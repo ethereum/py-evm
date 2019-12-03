@@ -463,7 +463,7 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
         """
         peer = cast(BasePeer, peer)
         if peer.session in self.connected_nodes:
-            self.logger.info(
+            self.logger.debug(
                 "Removing %s from pool: local_reason=%s remote_reason=%s",
                 peer,
                 peer.p2p_api.local_disconnect_reason,
@@ -520,6 +520,8 @@ class BasePeerPool(BaseService, AsyncIterable[BasePeer]):
                     "client_version_string='%s'",
                     peer.p2p_api.safe_client_version_string,
                 )
+                if not hasattr(peer, "eth_api"):
+                    self.logger.warning("Huh? %s doesn't have an eth API", peer)
                 for line in peer.get_extra_stats():
                     self.logger.debug("    %s", line)
             self.logger.debug("== End peer details == ")

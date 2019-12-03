@@ -85,6 +85,11 @@ class ETHPeer(BaseChainPeer):
     def eth_api(self) -> ETHAPI:
         return self.connection.get_logic(ETHAPI.name, ETHAPI)
 
+    def get_extra_stats(self) -> Tuple[str, ...]:
+        basic_stats = super().get_extra_stats()
+        eth_stats = self.eth_api.get_extra_stats()
+        return basic_stats + eth_stats
+
 
 class ETHProxyPeer(BaseProxyPeer):
     """
