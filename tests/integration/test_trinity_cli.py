@@ -244,15 +244,16 @@ async def test_does_not_throw_errors_on_short_run(command, unused_tcp_port):
             {'Started main process', 'ConnectionTrackerServer  Running task <coroutine object'},
             {'DiscoveryProtocol  >>> ping'},
         ),
-        (
+        pytest.param(
             # Reduce stderr logging to ERROR logs but report DEBUG2 or higher for file logs
             ('trinity', '--stderr-log-level=ERROR', '--file-log-level=DEBUG2',),
             {},
             {'Started main process', 'DiscoveryProtocol  >>> ping'},
             {'Started main process', 'DiscoveryProtocol  >>> ping'},
             {},
+            marks=(pytest.mark.xfail),  # investigate in #1347
         ),
-        (
+        pytest.param(
             # Reduce everything to ERROR logs, except discovery that should report DEBUG2 or higher
             ('trinity', '-l=ERROR', '-l', 'p2p.discovery=DEBUG2'),
             {'DiscoveryProtocol  >>> ping'},
@@ -264,7 +265,8 @@ async def test_does_not_throw_errors_on_short_run(command, unused_tcp_port):
             # is resolved, the following should work.
             # {'DiscoveryProtocol  >>> ping'},
             # {'Started main process'},
-        )
+            marks=(pytest.mark.xfail),  # investigate in #1347
+        ),
     )
 )
 @pytest.mark.asyncio
