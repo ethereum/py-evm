@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import (
     AsyncIterator,
     Iterable,
@@ -34,6 +35,7 @@ from trinity.db.eth1.header import BaseAsyncHeaderDB
 from trinity.protocol.eth.peer import ETHPeerPool
 from trinity.protocol.eth.sync import ETHHeaderChainSyncer
 from trinity.sync.beam.constants import (
+    ESTIMATED_BEAMABLE_SECONDS,
     FULL_BLOCKS_NEEDED_TO_START_BEAM,
 )
 from trinity.sync.common.checkpoint import (
@@ -400,9 +402,21 @@ class HeaderOnlyPersist(BaseService):
         self._launch_strategy = launch_strategy
 
     async def _run(self) -> None:
-        self.run_daemon_task(self._persist_headers())
+        self.run_daemon_task(self._persist_headers_if_tip_too_old())
         # run sync until cancelled
         await self.cancellation()
+
+    def _is_header_eligible_to_beam_sync(self, header: BlockHeader) -> bool:
+        time_gap = time.time() - header.timestamp
+        return time_gap < ESTIMATED_BEAMABLE_SECONDS
+
+    async def _persist_headers_if_tip_too_old(self) -> None:
+        tip = await self._db.coro_get_canonical_head()
+        if self._is_header_eligible_to_beam_sync(tip):
+            self._force_end_block_number = tip.block_number + 1
+            self.logger.info("Tip is recent enough, syncing from last synced header at %s", tip)
+
+        await self.wait(self._persist_headers())
 
     async def _persist_headers(self) -> None:
         async for headers in self._header_syncer.new_sync_headers(HEADER_QUEUE_SIZE_TARGET):
