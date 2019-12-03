@@ -59,7 +59,7 @@ class TxComponent(AsyncioIsolatedComponent):
         is_enabled = not is_disable and is_supported
 
         if is_disable:
-            self.logger.debug("Transaction pool disabled")
+            self.logger.info("Transaction pool disabled")
         elif not is_supported:
             self.logger.warning("Transaction pool disabled.  Not supported in light mode.")
         elif is_enabled:
