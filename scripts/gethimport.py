@@ -23,6 +23,7 @@ from rlp.sedes import CountableList
 from eth.chains.mainnet import MAINNET_GENESIS_HEADER, MainnetChain
 from eth.constants import BLANK_ROOT_HASH, EMPTY_SHA3
 from eth.db.backends.level import LevelDB
+from eth.db.trie import make_trie_root_and_nodes
 from eth.rlp.headers import BlockHeader
 from eth.rlp.transactions import BaseTransactionFields
 from eth.rlp.accounts import Account
@@ -251,7 +252,7 @@ class ImportDatabase:
 
 
 def open_gethdb(location):
-    gethdb = GethDatabase(args.gethdb)
+    gethdb = GethDatabase(location)
 
     last_block = gethdb.last_block_hash
     last_block_num = gethdb.block_num_for_hash(last_block)
@@ -305,15 +306,12 @@ def main(args):
         final_block_to_sync = min(args.syncuntil, final_block_to_sync)
 
     for i in range(canonical_head.block_number, final_block_to_sync + 1):
-        header_hash = gethdb.header_hash_for_block_number(i)
-        header = gethdb.block_header(i, header_hash)
 
         if not args.nobodies:
-            body = gethdb.block_body(i)
-            block_class = chain.get_vm_class(header).get_block_class()
-            block = block_class(header, body.transactions, body.uncles)
-            chain.chaindb.persist_block(block)
+            import_block_body(gethdb, chain, i)
         else:
+            header_hash = gethdb.header_hash_for_block_number(i)
+            header = gethdb.block_header(i, header_hash)
             headerdb.persist_header(header)
 
         if i % 1000 == 0:
@@ -403,6 +401,23 @@ def scan_state(gethdb: GethDatabase, trinitydb: LevelDB):
     logger.info(f'scan_state: successfully imported {imported_entries} state entries')
 
 
+def import_block_body(gethdb, chain, block_number: int):
+    header_hash = gethdb.header_hash_for_block_number(block_number)
+    header = gethdb.block_header(block_number, header_hash)
+
+    body = gethdb.block_body(block_number)
+    block_class = chain.get_vm_class(header).get_block_class()
+    block = block_class(header, body.transactions, body.uncles)
+    chain.chaindb.persist_block(block)
+
+    # persist_block saves the transactions into an index, but doesn't actually persist the
+    # transaction trie, meaning that without this next block attempts to read out the
+    # block will throw an exception
+    tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(body.transactions)
+    assert tx_root_hash == block.header.transaction_root
+    chain.chaindb.persist_trie_data_dict(tx_kv_nodes)
+
+
 def import_body_range(gethdb, chain, start_block, end_block):
     logger.debug(
         f'importing block bodies for blocks in range({start_block}, {end_block + 1})'
@@ -410,13 +425,7 @@ def import_body_range(gethdb, chain, start_block, end_block):
     previous_log_time = time.time()
 
     for i in range(start_block, end_block + 1):
-        header_hash = gethdb.header_hash_for_block_number(i)
-        header = gethdb.block_header(i, header_hash)
-
-        body = gethdb.block_body(i)
-        block_class = chain.get_vm_class(header).get_block_class()
-        block = block_class(header, body.transactions, body.uncles)
-        chain.chaindb.persist_block(block)
+        import_block_body(gethdb, chain, i)
 
         if time.time() - previous_log_time > 5:
             logger.debug(f'importing bodies. block_number={i}')
@@ -443,7 +452,7 @@ def process_blocks(gethdb, chain, end_block):
         ]
         block = block_class(header, transactions, body.uncles)
         imported_block, _, _ = chain.import_block(block, perform_validation = True)
-        logger.debug('imported block: {imported_block}')
+        logger.debug(f'imported block: {imported_block}')
 
 
 if __name__ == "__main__":
