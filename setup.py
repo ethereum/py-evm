@@ -4,7 +4,7 @@ import os
 import re
 from setuptools import setup, find_packages
 
-PYEVM_DEPENDENCY = "py-evm==0.3.0a8"
+PYEVM_DEPENDENCY = "py-evm==0.3.0a9"
 
 
 deps = {
@@ -34,7 +34,7 @@ deps = {
         "coincurve>=10.0.0,<11.0.0",
         "dataclasses>=0.6, <1;python_version<'3.7'",
         "eth-utils>=1.8.1,<2",
-        "ipython>=7.8.0,<8.0.0",
+        "ipython>=7.8.0,<7.10.0",  # attach fails with v7.10.{0,1}
         "plyvel==1.1.0",
         PYEVM_DEPENDENCY,
         "web3==4.4.1",
