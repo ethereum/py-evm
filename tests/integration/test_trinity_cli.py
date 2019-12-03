@@ -107,7 +107,7 @@ async def test_expected_logs_with_disabled_txpool(command, unused_tcp_port):
         assert await contains_all(runner.stderr, {
             "Started DB server process",
             "Component started: Sync / PeerPool",
-            "Transaction pool does not support light mode",
+            "Transaction pool disabled.  Not supported in light mode.",
         })
 
 
