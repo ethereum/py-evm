@@ -65,7 +65,7 @@ def trinity_boot(boot_info: BootInfo) -> Tuple[multiprocessing.Process, ...]:
         name="DB",
         target=run_database_process,
         args=(
-            trinity_config,
+            boot_info,
             LevelDB,
         ),
     )

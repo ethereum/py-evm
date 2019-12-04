@@ -107,7 +107,7 @@ async def test_expected_logs_with_disabled_txpool(command, unused_tcp_port):
         assert await contains_all(runner.stderr, {
             "Started DB server process",
             "Component started: Sync / PeerPool",
-            "Transaction pool does not support light mode",
+            "Transaction pool disabled.  Not supported in light mode.",
         })
 
 
@@ -244,15 +244,17 @@ async def test_does_not_throw_errors_on_short_run(command, unused_tcp_port):
             {'Started main process', 'ConnectionTrackerServer  Running task <coroutine object'},
             {'DiscoveryProtocol  >>> ping'},
         ),
-        (
+        pytest.param(
             # Reduce stderr logging to ERROR logs but report DEBUG2 or higher for file logs
             ('trinity', '--stderr-log-level=ERROR', '--file-log-level=DEBUG2',),
             {},
             {'Started main process', 'DiscoveryProtocol  >>> ping'},
             {'Started main process', 'DiscoveryProtocol  >>> ping'},
             {},
+            # TODO: investigate in #1347
+            marks=(pytest.mark.xfail),
         ),
-        (
+        pytest.param(
             # Reduce everything to ERROR logs, except discovery that should report DEBUG2 or higher
             ('trinity', '-l=ERROR', '-l', 'p2p.discovery=DEBUG2'),
             {'DiscoveryProtocol  >>> ping'},
@@ -264,7 +266,9 @@ async def test_does_not_throw_errors_on_short_run(command, unused_tcp_port):
             # is resolved, the following should work.
             # {'DiscoveryProtocol  >>> ping'},
             # {'Started main process'},
-        )
+            # TODO: investigate in #1347
+            marks=(pytest.mark.xfail),
+        ),
     )
 )
 @pytest.mark.asyncio

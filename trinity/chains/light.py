@@ -249,3 +249,4 @@ class LightDispatchChain(AsyncChainAPI, Chain):
         raise NotImplementedError("Chain classes must implement " + inspect.stack()[0][3])
 
     coro_validate_chain = async_method(Chain.validate_chain)
+    coro_get_canonical_transaction = async_method(Chain.get_canonical_transaction)

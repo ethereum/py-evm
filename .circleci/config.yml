@@ -274,12 +274,6 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-eth1-components
-  py36-eth2-components:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-eth2-components
 
   py37-rpc-state-quadratic:
     <<: *common
@@ -431,7 +425,6 @@ workflows:
       - py36-eth2-utils
       - py36-eth2-fixtures
       - py36-eth2-integration
-      - py36-eth2-components
       - py36-eth1-components
 
       - py36-lightchain_integration
