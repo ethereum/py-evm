@@ -231,6 +231,7 @@ class VM(Configurable, VirtualMachineAPI):
                 )
             except EVMMissingData as exc:
                 self.state.revert(snapshot)
+                raise
 
             result_header = self.add_receipt_to_header(previous_header, receipt)
             previous_header = result_header
