@@ -251,7 +251,8 @@ async def test_does_not_throw_errors_on_short_run(command, unused_tcp_port):
             {'Started main process', 'DiscoveryProtocol  >>> ping'},
             {'Started main process', 'DiscoveryProtocol  >>> ping'},
             {},
-            marks=(pytest.mark.xfail),  # investigate in #1347
+            # TODO: investigate in #1347
+            marks=(pytest.mark.xfail),
         ),
         pytest.param(
             # Reduce everything to ERROR logs, except discovery that should report DEBUG2 or higher
@@ -265,7 +266,8 @@ async def test_does_not_throw_errors_on_short_run(command, unused_tcp_port):
             # is resolved, the following should work.
             # {'DiscoveryProtocol  >>> ping'},
             # {'Started main process'},
-            marks=(pytest.mark.xfail),  # investigate in #1347
+            # TODO: investigate in #1347
+            marks=(pytest.mark.xfail),
         ),
     )
 )
