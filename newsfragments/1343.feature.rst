@@ -1,2 +1,0 @@
-Upgrade py-evm to v0.3.0-alpha.9, for Istanbul fix. See the `py-evm release notes
-<https://py-evm.readthedocs.io/en/latest/release_notes.html#py-evm-0-3-0-alpha-9-2019-12-02>`_

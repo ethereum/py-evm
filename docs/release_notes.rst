@@ -5,6 +5,54 @@ Trinity is moving fast. Read up on all the latest improvements.
 
 .. towncrier release notes start
 
+Trinity 0.1.0-alpha.31 (2019-12-04)
+-----------------------------------
+
+Features
+~~~~~~~~
+
+- Upgrade py-evm to v0.3.0-alpha.9, which includes **consensus-sensitive** Istanbul fix. See the `py-evm release notes
+  <https://py-evm.readthedocs.io/en/latest/release_notes.html#py-evm-0-3-0-alpha-9-2019-12-02>`_ (`#1343 <https://github.com/ethereum/trinity/issues/1343>`__)
+- Add `export` and `import` command that lets one export blocks to a file or import blocks from a file. (`#1266 <https://github.com/ethereum/trinity/issues/1266>`__)
+- Properly handle Ropsten and Goerli when using
+  `--beam-from-checkpoint eth://block/byetherscan/latest` to resolve a checkpoint. Also,
+  propagate a proper error to the user in case the syntax is used for an unsupported networḱ. (`#1269 <https://github.com/ethereum/trinity/issues/1269>`__)
+- Automatically rotate logfiles across runs (`#1294 <https://github.com/ethereum/trinity/issues/1294>`__)
+- Add support for `eth_getTransactionByHash` JSON-RPC API (`#1329 <https://github.com/ethereum/trinity/issues/1329>`__)
+- When resuming beam sync, prefer to pick up from the canonical tip, if it's not too far behind. (`#1349 <https://github.com/ethereum/trinity/issues/1349>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Turn leaking exceptions into properly formatted user errors. (`#1269 <https://github.com/ethereum/trinity/issues/1269>`__)
+
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Speed up beam sync shutdown, and second launch from checkpoint (`#1345 <https://github.com/ethereum/trinity/issues/1345>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Removed experimental support for discovery v5 protocol (`#1314 <https://github.com/ethereum/trinity/issues/1314>`__)
+
+
+Internal Changes - for Trinity Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Show more helpful information in logs, like:
+
+  - show peer info in more logs and exceptions
+  - add extra information about exception context & cause
+  - show eth_api stats in the "Peer details" again
+  - show which service is stuck waiting on subservices (`#1344 <https://github.com/ethereum/trinity/issues/1344>`__)
+
+- Collapse log spam about missing trie nodes (`#1345 <https://github.com/ethereum/trinity/issues/1345>`__)
+
+
 Trinity 0.1.0-alpha.30 (2019-11-13)
 -----------------------------------
 

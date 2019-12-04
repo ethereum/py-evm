@@ -1,3 +1,0 @@
-Properly handle Ropsten and Goerli when using
-`--beam-from-checkpoint eth://block/byetherscan/latest` to resolve a checkpoint. Also,
-propagate a proper error to the user in case the syntax is used for an unsupported networḱ.

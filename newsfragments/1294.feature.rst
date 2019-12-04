@@ -1,1 +1,0 @@
-Automatically rotate logfiles across runs
