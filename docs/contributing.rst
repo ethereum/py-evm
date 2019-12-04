@@ -99,24 +99,6 @@ feature or bugfix.
 Releasing
 ~~~~~~~~~
 
-One time setup
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Pandoc is required for transforming the markdown README to the proper
-format to render correctly on pypi.
-
-For Debian-like systems:
-
-::
-
-    apt install pandoc
-
-Or on OSX:
-
-.. code:: sh
-
-    brew install pandoc
-
 Final test before each release
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
