@@ -57,8 +57,8 @@ class AsyncProcessRunner():
         while True:
             try:
                 line = await awaitable_bytes_fn()
-            except Exception:
-                # Return when process is killed to keep the consumer of the AsyncIterable running
+            except asyncio.CancelledError:
+                # Return to keep the consumer of the AsyncIterable running
                 return
             self.logger.debug(line)
             if line == b'':
