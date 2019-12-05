@@ -139,10 +139,10 @@ def validate_header_integrity(header: BlockHeaderAPI, epoch_length: int) -> None
         )
 
     if header.nonce != NONCE_AUTH and header.nonce != NONCE_DROP:
-        raise ValidationError(f"Invalid nonce: {header.nonce}")
+        raise ValidationError(f"Invalid nonce: {header.nonce!r}")
 
     if at_checkpoint and header.nonce != NONCE_DROP:
-        raise ValidationError(f"Invalid checkpoint nonce: {header.nonce}")
+        raise ValidationError(f"Invalid checkpoint nonce: {header.nonce!r}")
 
     if len(header.extra_data) < VANITY_LENGTH:
         raise ValidationError("Missing vanity bytes in extra data")
@@ -159,7 +159,7 @@ def validate_header_integrity(header: BlockHeaderAPI, epoch_length: int) -> None
         raise ValidationError("Checkpoint header must contain list of signers")
 
     if header.mix_hash != ZERO_HASH32:
-        raise ValidationError(f"Invalid mix hash: {header.mix_hash}")
+        raise ValidationError(f"Invalid mix hash: {header.mix_hash!r}")
 
     if header.uncles_hash != EMPTY_UNCLE_HASH:
         raise ValidationError(f"Invalid uncle hash: {header.uncle_hash}")

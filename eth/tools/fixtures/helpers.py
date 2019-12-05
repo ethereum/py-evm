@@ -76,13 +76,13 @@ def verify_state(expected_state: AccountState, state: StateAPI) -> None:
             if field == 'balance':
                 error_messages.append(
                     f"{to_normalized_address(account)}(balance) | "
-                    f"Actual: {actual_value} | Expected: {expected_value} | "
+                    f"Actual: {actual_value!r} | Expected: {expected_value!r} | "
                     f"Delta: {cast(int, actual_value) - cast(int, expected_value)}"
                 )
             else:
                 error_messages.append(
                     f"{to_normalized_address(account)}({field}) | "
-                    f"Actual: {actual_value} | Expected: {expected_value}"
+                    f"Actual: {actual_value!r} | Expected: {expected_value!r}"
                 )
         raise AssertionError(
             f"State DB did not match expected state on {len(error_messages)} values:{new_line}"

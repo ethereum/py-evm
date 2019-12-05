@@ -46,7 +46,7 @@ class VoteAction(Enum):
         if not signer_is_kicked and not signer_is_nominated:
             raise ValidationError(
                 "Must either kick an existing signer or nominate a new signer"
-                f"Subject: {subject} Current signers: {signers}"
+                f"Subject: {subject!r} Current signers: {signers}"
             )
 
 

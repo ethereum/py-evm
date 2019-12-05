@@ -537,7 +537,7 @@ class VM(Configurable, VirtualMachineAPI):
         if tx_root_hash != block.header.transaction_root:
             raise ValidationError(
                 f"Block's transaction_root ({block.header.transaction_root}) "
-                f"does not match expected value: {tx_root_hash}"
+                f"does not match expected value: {tx_root_hash!r}"
             )
 
         if len(block.uncles) > MAX_UNCLES:
