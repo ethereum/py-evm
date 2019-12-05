@@ -95,23 +95,12 @@ class GethFreezerTable:
         self.ancient_path = ancient_path
         self.name = name
         self.uses_compression = uses_compression
-        logger.debug(f'opening freezer table. name={self.name}')
 
         self.index_file = open(os.path.join(ancient_path, self.index_file_name), 'rb')
         stat_result = os.stat(self.index_file.fileno())
         index_file_size = stat_result.st_size
         assert index_file_size % 6 == 0, index_file_size
-        logger.debug(f'index_size={index_file_size} ({index_file_size // 6} entries)')
         self.entries = index_file_size // 6
-
-        first_index_bytes = self.index_file.read(6)
-        first_index = GethFreezerIndexEntry.from_bytes(first_index_bytes)
-        logger.debug(f'first_index={first_index}')
-
-        self.index_file.seek(-6, 2)
-        last_index_bytes = self.index_file.read(6)
-        last_index = GethFreezerIndexEntry.from_bytes(last_index_bytes)
-        logger.debug(f'last_index={last_index}')
 
         self._data_files = dict()
 
@@ -162,6 +151,19 @@ class GethFreezerTable:
         for f in self._data_files.values():
             f.close()
         self.index_file.close()
+
+    @property
+    def last_index(self):
+        self.index_file.seek(-6, 2)
+        last_index_bytes = self.index_file.read(6)
+        return GethFreezerIndexEntry.from_bytes(last_index_bytes)
+
+    @property
+    def first_index(self):
+        self.index_file.seek(0)
+        first_index_bytes = self.index_file.read(6)
+        return GethFreezerIndexEntry.from_bytes(first_index_bytes)
+
 
 
 class BlockBody(rlp.Serializable):
@@ -274,7 +276,6 @@ def open_gethdb(location):
 
     last_block = gethdb.last_block_hash
     last_block_num = gethdb.block_num_for_hash(last_block)
-    logger.info('geth database opened')
     logger.info(f'found geth chain tip: header_hash={humanize_hash(last_block)} block_number={last_block_num}')
 
     genesis_hash = gethdb.header_hash_for_block_number(0)
@@ -297,17 +298,18 @@ def open_trinitydb(location):
     logger.info(f'Trinity database did not already exist, initializing it now')
     chain = MainnetChain.from_genesis_header(leveldb, MAINNET_GENESIS_HEADER)
 
-    # from_genesis_header copied the header over to our trinity db but not the state
+    logger.warining('The new db contains the genesis header but not the genesis state.')
+    logger.warining('Attempts to full sync will fail.')
 
     return chain
 
 
-def main(args):
-    gethdb = open_gethdb(args.gethdb)
-    chain = open_trinitydb(args.destdb)
+def import_headers(gethdb, chain):
     headerdb = chain.headerdb
 
-    # 3. Import headers + bodies
+    logger.warning('Some features are not yet implemented:')
+    logger.warning('- This only supports importing the mainnet chain')
+    logger.warning('- This script will not verify that geth is using the mainnet chain')
 
     canonical_head = headerdb.get_canonical_head()
     logger.info(f'starting import from trinity\'s canonical head: {canonical_head}')
@@ -324,13 +326,9 @@ def main(args):
         final_block_to_sync = min(args.syncuntil, final_block_to_sync)
 
     for i in range(canonical_head.block_number, final_block_to_sync + 1):
-
-        if not args.nobodies:
-            import_block_body(gethdb, chain, i)
-        else:
-            header_hash = gethdb.header_hash_for_block_number(i)
-            header = gethdb.block_header(i, header_hash)
-            headerdb.persist_header(header)
+        header_hash = gethdb.header_hash_for_block_number(i)
+        header = gethdb.block_header(i, header_hash)
+        headerdb.persist_header(header)
 
         if i % 1000 == 0:
             logger.debug(f'current canonical header: {headerdb.get_canonical_head()}')
@@ -344,54 +342,14 @@ def main(args):
 
     logger.info('finished importing headers + bodies')
 
-    if args.justblocks:
-        return
 
-    scan_state(gethdb, leveldb)
-    return
-
-    state_root = canonical_head.state_root
-    logger.info(f'starting state trie import: {humanize_hash(state_root)}')
-
-    # 4. Import the state trie + storage tries
-    # Write something which iterates over the entire trie, from left to right
-    # Pass it a database which first looks in the trinity db, and if nothing is there
-    #   copies the requested node from geth->trinity before returning it
-
-    imported_leaf_count = 0
-    importdb = ImportDatabase(gethdb=gethdb.db, trinitydb=leveldb.db)
-    for path, leaf_data in iterate_leaves(importdb, state_root):
-        account = rlp.decode(leaf_data, sedes=Account)
-        addr_hash = nibbles_to_bytes(path)
-
-
-        if account.code_hash != EMPTY_SHA3:
-            bytecode = importdb.get(account.code_hash)
-
-        if account.storage_root == BLANK_ROOT_HASH:
-            imported_leaf_count += 1
-
-            if imported_leaf_count % 1000 == 0:
-                logger.debug(f'progress sha(addr)={addr_hash.hex()}')
-            continue
-
-        for path, leaf_data in iterate_leaves(importdb, account.storage_root):
-            item_addr = nibbles_to_bytes(path)
-            imported_leaf_count += 1
-
-            if imported_leaf_count % 1000 == 0:
-                logger.debug(f'progress sha(addr)={addr_hash.hex()} sha(item)={item_addr.hex()}')
-
-    loger.info('successfully imported state trie and all storage tries')
-
-
-def scan_state(gethdb: GethDatabase, trinitydb: LevelDB):
+def sweep_state(gethdb: GethDatabase, trinitydb: LevelDB):
     """
     Imports state, but by indiscriminately copying over everything which might be part of
     the state trie. This copies more data than necessary, but is likely to be much faster
     than iterating all state.
     """
-    logger.debug('scan_state: bulk-importing state entries')
+    logger.debug('sweep_state: bulk-importing state entries')
 
     iterator = gethdb.db.iterator(
         start=b'\x00'*32,
@@ -416,7 +374,43 @@ def scan_state(gethdb: GethDatabase, trinitydb: LevelDB):
                 break
             bucket = (int.from_bytes(bucket, 'big') + 1).to_bytes(2, 'big')
 
-    logger.info(f'scan_state: successfully imported {imported_entries} state entries')
+    logger.info(f'sweep_state: successfully imported {imported_entries} state entries')
+
+
+def import_state(gethdb: GethDatabase, chain):
+    headerdb = chain.headerdb
+    canonical_head = headerdb.get_canonical_head()
+    state_root = canonical_head.state_root
+
+    logger.info(
+        f'starting state trie import. canonical_head={canonical_head} '
+        f'state_root={humanize_hash(state_root)}'
+    )
+
+    imported_leaf_count = 0
+    importdb = ImportDatabase(gethdb=gethdb.db, trinitydb=leveldb.db)
+    for path, leaf_data in iterate_leaves(importdb, state_root):
+        account = rlp.decode(leaf_data, sedes=Account)
+        addr_hash = nibbles_to_bytes(path)
+
+        if account.code_hash != EMPTY_SHA3:
+            bytecode = importdb.get(account.code_hash)
+
+        if account.storage_root == BLANK_ROOT_HASH:
+            imported_leaf_count += 1
+
+            if imported_leaf_count % 1000 == 0:
+                logger.debug(f'progress sha(addr)={addr_hash.hex()}')
+            continue
+
+        for path, leaf_data in iterate_leaves(importdb, account.storage_root):
+            item_addr = nibbles_to_bytes(path)
+            imported_leaf_count += 1
+
+            if imported_leaf_count % 1000 == 0:
+                logger.debug(f'progress sha(addr)={addr_hash.hex()} sha(item)={item_addr.hex()}')
+
+    loger.info('successfully imported state trie and all storage tries')
 
 
 def import_block_body(gethdb, chain, block_number: int):
@@ -429,7 +423,7 @@ def import_block_body(gethdb, chain, block_number: int):
     chain.chaindb.persist_block(block)
 
     # persist_block saves the transactions into an index, but doesn't actually persist the
-    # transaction trie, meaning that without this next block attempts to read out the
+    # transaction trie, meaning that without this next section attempts to read out the
     # block will throw an exception
     tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(body.transactions)
     assert tx_root_hash == block.header.transaction_root
@@ -489,6 +483,25 @@ def read_receipts(gethdb, block_number):
         logger.info(f'- post_state_or_status={post_state} gas_used={gas_used} len(logs)={len(logs)}')
 
 
+def read_geth(gethdb):
+    logger.info(f'database_version={gethdb.database_version}')
+
+    ancient_entry_count = gethdb.ancient_hashes.entries
+    logger.info(f'entries_in_ancient_db={ancient_entry_count}')
+
+
+def read_trinity(location):
+    if not os.path.exists(location):
+        logger.error(f'There is no database at {location}')
+        return
+
+    chain = open_trinitydb(location)
+    headerdb = chain.headerdb
+
+    canonical_head = headerdb.get_canonical_head()
+    logger.info(f'canonical_head={canonical_head}')
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
@@ -496,24 +509,85 @@ if __name__ == "__main__":
         datefmt='%H:%M:%S'
     )
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-gethdb', type=str, required=True)
-    parser.add_argument('-destdb', type=str, required=True)
-    parser.add_argument('-justblocks', action='store_true')
-    parser.add_argument('-nobodies', action='store_true')
-    parser.add_argument('-syncuntil', type=int, action='store')
+    parser = argparse.ArgumentParser(
+        description="Import chaindata from geth: builds a database py-evm understands.",
+        epilog="For more information on using a subcommand: 'subcommand --help'"
+    )
+    subparsers = parser.add_subparsers(dest="command", title="subcommands")
 
-    subparsers = parser.add_subparsers(dest="command")
+    import_headers_parser = subparsers.add_parser(
+        'import_headers',
+        help="Copies over headers from geth into trinity",
+        description="""
+                    copies every header, starting from trinity's canonical chain tip,
+                    continuing up to geth's canonical chain tip
+                    """
+    )
+    import_headers_parser.add_argument('-gethdb', type=str, required=True)
+    import_headers_parser.add_argument('-destdb', type=str, required=True)
+    import_headers_parser.add_argument(
+        '-syncuntil', type=int, action='store',
+        help="Only import headers up to this block number"
+    )
 
-    import_body_range_parser = subparsers.add_parser('import_body_range')
+    sweep_state_parser = subparsers.add_parser(
+        'sweep_state',
+        help="Does a (very fast) bulk copy of state entries from the gethdb",
+        description="""
+                    Scans over every key:value pair in the geth database, and copies over
+                    everything which looks like a state node (has a 32-byte key). This is
+                    much faster than iterating over the state trie (as import_state does)
+                    but imports too much. If a geth node has been running for a while (and
+                    started and stopped a lot) then there will be a lot of unimportant
+                    state entries.
+                    """
+    )
+    sweep_state_parser.add_argument('-gethdb', type=str, required=True)
+    sweep_state_parser.add_argument('-destdb', type=str, required=True)
+
+    import_body_range_parser = subparsers.add_parser(
+        'import_body_range',
+        help="Imports block bodies (transactions and uncles, but not receipts)",
+        description="""
+                    block bodies take a while to import so this command lets you import
+                    just the segment you need. -startblock and -endblock are inclusive.
+                    """
+    )
+    import_body_range_parser.add_argument('-gethdb', type=str, required=True)
+    import_body_range_parser.add_argument('-destdb', type=str, required=True)
     import_body_range_parser.add_argument('-startblock', type=int, required=True)
     import_body_range_parser.add_argument('-endblock', type=int, required=True)
 
-    process_blocks_parser = subparsers.add_parser('process_blocks')
+    process_blocks_parser = subparsers.add_parser(
+        'process_blocks',
+        help="Simulates a full sync, runs each block.",
+        description="""
+                    Starting from trinity's canonical chain tip this fetches block bodies
+                    from the gethdb and runs each of them.
+                    """
+    )
+    process_blocks_parser.add_argument('-gethdb', type=str, required=True)
+    process_blocks_parser.add_argument('-destdb', type=str, required=True)
     process_blocks_parser.add_argument('-endblock', type=int, required=True)
 
-    read_receipts_parser = subparsers.add_parser('read_receipts')
+    read_receipts_parser = subparsers.add_parser(
+        'read_receipts',
+        help="Helper to inspect all the receipts for a given block"
+    )
+    read_receipts_parser.add_argument('-gethdb', type=str, required=True)
     read_receipts_parser.add_argument('-block', type=int, required=True)
+
+    read_trinity_parser = subparsers.add_parser(
+        'read_trinity',
+        help="Helper to print summary statistics for a given trinitydb"
+    )
+    read_trinity_parser.add_argument('-destdb', type=str, required=True)
+
+    read_geth_parser = subparsers.add_parser(
+        'read_geth',
+        help="Helper to print summary statistics for a given gethdb"
+    )
+    read_geth_parser.add_argument('-gethdb', type=str, required=True)
 
     args = parser.parse_args()
 
@@ -528,9 +602,18 @@ if __name__ == "__main__":
     elif args.command == 'read_receipts':
         gethdb = open_gethdb(args.gethdb)
         read_receipts(gethdb, args.block)
+    elif args.command == 'read_geth':
+        gethdb = open_gethdb(args.gethdb)
+        read_geth(gethdb)
+    elif args.command == 'read_trinity':
+        read_trinity(args.destdb)
+    elif args.command == 'import_headers':
+        gethdb = open_gethdb(args.gethdb)
+        chain = open_trinitydb(args.destdb)
+        import_headers(gethdb, chain)
+    elif args.command == 'sweep_state':
+        gethdb = open_gethdb(args.gethdb)
+        chain = open_trinitydb(args.destdb)
+        sweep_state(gethdb, chain.headerdb.db)
     else:
-        main(args)
-
-    logger.warning('Some features are not yet implemented:')
-    logger.warning('- Receipts were not imported')
-    logger.warning('- This script did not verify that the chain configs match')
+        logger.error(f'unrecognized command. command={args.command}')
