@@ -225,8 +225,8 @@ class Chain(BaseChain):
             # the computed state from the initialized state database.
             raise ValidationError(
                 "The provided genesis state root does not match the computed "
-                f"genesis state root.  Got {state.state_root}.  "
-                f"Expected {genesis_params['state_root']}"
+                f"genesis state root.  Got {state.state_root!r}.  "
+                f"Expected {genesis_params['state_root']!r}"
             )
 
         genesis_header = BlockHeader(**genesis_params)
@@ -438,8 +438,8 @@ class Chain(BaseChain):
         except HeaderNotFound:
             raise ValidationError(
                 f"Attempt to import block #{block.number}.  "
-                f"Cannot import block {block.hash} before importing "
-                f"its parent block at {block.header.parent_hash}"
+                f"Cannot import block {block.hash!r} before importing "
+                f"its parent block at {block.header.parent_hash!r}"
             )
 
         base_header_for_import = self.create_header_from_parent(parent_header)

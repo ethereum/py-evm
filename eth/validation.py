@@ -111,7 +111,7 @@ def validate_lt(value: int, maximum: int, title: str="Value") -> None:
 def validate_canonical_address(value: Address, title: str="Value") -> None:
     if not isinstance(value, bytes) or not len(value) == 20:
         raise ValidationError(
-            f"{title} {value} is not a valid canonical address"
+            f"{title} {value!r} is not a valid canonical address"
         )
 
 

@@ -220,16 +220,16 @@ class SnapshotManager:
                 # Otherwise, we can retrieve it on the fly
                 header = self._chain_db.get_block_header_by_hash(block_hash)
             except HeaderNotFound:
-                raise SnapshotNotFound(f"Can not get snapshot for {block_hash} at {block_number}")
+                raise SnapshotNotFound(f"Can not get snapshot for {block_hash!r} at {block_number}")
             else:
                 if header.block_number != block_number:
                     raise SnapshotNotFound(
-                        f"Can not get snapshot for {block_hash} at {block_number}"
+                        f"Can not get snapshot for {block_hash!r} at {block_number}"
                     )
                 else:
                     return self._create_snapshot_from_checkpoint_header(header)
 
-        raise SnapshotNotFound(f"Can not get snapshot for {block_hash} at {block_number}")
+        raise SnapshotNotFound(f"Can not get snapshot for {block_hash!r} at {block_number}")
 
     def add_snapshot(self, mutable_snapshot: MutableSnapshot) -> Snapshot:
         """
@@ -256,7 +256,7 @@ class SnapshotManager:
             encoded_key = self._chain_db.db[key]
         except KeyError as e:
             raise SnapshotNotFound(
-                f"Can not get on-disk snapshot for {block_hash}"
+                f"Can not get on-disk snapshot for {block_hash!r}"
             )
         else:
             return decode_snapshot(encoded_key)
