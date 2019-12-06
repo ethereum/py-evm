@@ -9,7 +9,6 @@ import logging
 import os
 import os.path
 from pathlib import Path
-import shutil
 import snappy
 import struct
 import time
@@ -130,7 +129,7 @@ class GethFreezerTable:
 
         # What happens if we're trying to read the last item? Won't this fail?
         # Is there always one extra entry in the index file?
-        self.index_file.seek((number+1) * 6)
+        self.index_file.seek((number + 1) * 6)
         entry_bytes = self.index_file.read(6)
         end_entry = GethFreezerIndexEntry.from_bytes(entry_bytes)
 
@@ -163,7 +162,6 @@ class GethFreezerTable:
         self.index_file.seek(0)
         first_index_bytes = self.index_file.read(6)
         return GethFreezerIndexEntry.from_bytes(first_index_bytes)
-
 
 
 class BlockBody(rlp.Serializable):
@@ -276,7 +274,9 @@ def open_gethdb(location):
 
     last_block = gethdb.last_block_hash
     last_block_num = gethdb.block_num_for_hash(last_block)
-    logger.info(f'found geth chain tip: header_hash={humanize_hash(last_block)} block_number={last_block_num}')
+
+    context = f'header_hash={humanize_hash(last_block)} block_number={last_block_num}'
+    logger.info(f'found geth chain tip: {context}')
 
     genesis_hash = gethdb.header_hash_for_block_number(0)
     genesis_header = gethdb.block_header(0, genesis_hash)
@@ -352,8 +352,8 @@ def sweep_state(gethdb: GethDatabase, trinitydb: LevelDB):
     logger.debug('sweep_state: bulk-importing state entries')
 
     iterator = gethdb.db.iterator(
-        start=b'\x00'*32,
-        stop=b'\xff'*32,
+        start=b'\x00' * 32,
+        stop=b'\xff' * 32,
         include_start=True,
         include_stop=True,
     )
@@ -385,6 +385,7 @@ def import_state(gethdb: GethDatabase, chain):
         f'state_root={humanize_hash(state_root)}'
     )
 
+    leveldb = headerdb.db
     imported_leaf_count = 0
     importdb = ImportDatabase(gethdb=gethdb.db, trinitydb=leveldb.db)
     for path, leaf_data in iterate_leaves(importdb, state_root):
@@ -392,7 +393,8 @@ def import_state(gethdb: GethDatabase, chain):
         addr_hash = nibbles_to_bytes(path)
 
         if account.code_hash != EMPTY_SHA3:
-            bytecode = importdb.get(account.code_hash)
+            # by fetching it, we're copying it into the trinity database
+            importdb.get(account.code_hash)
 
         if account.storage_root == BLANK_ROOT_HASH:
             imported_leaf_count += 1
@@ -401,14 +403,14 @@ def import_state(gethdb: GethDatabase, chain):
                 logger.debug(f'progress sha(addr)={addr_hash.hex()}')
             continue
 
-        for path, leaf_data in iterate_leaves(importdb, account.storage_root):
+        for path, _leaf_data in iterate_leaves(importdb, account.storage_root):
             item_addr = nibbles_to_bytes(path)
             imported_leaf_count += 1
 
             if imported_leaf_count % 1000 == 0:
                 logger.debug(f'progress sha(addr)={addr_hash.hex()} sha(item)={item_addr.hex()}')
 
-    loger.info('successfully imported state trie and all storage tries')
+    logger.info('successfully imported state trie and all storage tries')
 
 
 def import_block_body(gethdb, chain, block_number: int):
@@ -461,7 +463,7 @@ def process_blocks(gethdb, chain, end_block):
             transaction_class.from_base_transaction(txn) for txn in body.transactions
         ]
         block = block_class(header, transactions, body.uncles)
-        imported_block, _, _ = chain.import_block(block, perform_validation = True)
+        imported_block, _, _ = chain.import_block(block, perform_validation=True)
         logger.debug(f'imported block: {imported_block}')
 
 
@@ -478,7 +480,12 @@ def read_receipts(gethdb, block_number):
         if len(raw_gas_used) < 8:
             padded = (b'\x00' * (8 - len(raw_gas_used))) + raw_gas_used
             gas_used = struct.unpack('>Q', padded)[0]
-        logger.info(f'- post_state_or_status={post_state} gas_used={gas_used} len(logs)={len(logs)}')
+        context = ' '.join([
+            f'post_state_or_status={post_state}',
+            f'gas_used={gas_used}',
+            f'len(logs)={len(logs)}'
+        ])
+        logger.info(f'- {context}')
 
 
 def read_geth(gethdb):

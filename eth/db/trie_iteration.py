@@ -55,14 +55,14 @@ class TrieNode(NamedTuple):
                 f"hash={self.keccak.hex()}"
                 f" path={self.path_rest}"
                 f" child={self.obj[1].hex()}"
-                 ")"
+                f")"
             )
         if self.kind == NodeKind.LEAF:
             return (
                 "TrieNode<Leaf>("
                 f"hash={self.keccak.hex()}"
                 f" path={self.path_rest[:10]}..."
-                 ")"
+                f")"
             )
         return f"TrieNode(kind={self.kind.name} hash={self.keccak.hex()})"
 
@@ -104,7 +104,7 @@ def _get_children_with_nibbles(node: TrieNode, prefix: Nibbles) -> Iterable[Tupl
 
 def _get_node(db: ChainDB, node_hash: Hash32) -> TrieNode:
     if len(node_hash) < 32:
-        node_rlp = node_hash
+        node_rlp = cast(bytes, node_hash)
     else:
         node_rlp = db.get(node_hash)
 
