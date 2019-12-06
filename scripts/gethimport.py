@@ -507,6 +507,12 @@ def read_trinity(location):
     logger.info(f'canonical_head={canonical_head}')
 
 
+def compact(chain):
+    logger.info('this might take a while')
+    leveldb = chain.headerdb.db.db  # what law of demeter?
+    leveldb.compact_range()
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
@@ -594,6 +600,16 @@ if __name__ == "__main__":
     )
     read_geth_parser.add_argument('-gethdb', type=str, required=True)
 
+    compact_parser = subparsers.add_parser(
+        "compact",
+        help="Runs a compaction over the database, do this after importing state!",
+        description="""
+                    If the database is not compacted it will compact itself at an
+                    unconvenient time, freezing your process for uncomfortably long.
+                    """
+    )
+    compact_parser.add_argument('-destdb', type=str, required=True)
+
     args = parser.parse_args()
 
     if args.command == 'import_body_range':
@@ -620,5 +636,8 @@ if __name__ == "__main__":
         gethdb = open_gethdb(args.gethdb)
         chain = open_trinitydb(args.destdb)
         sweep_state(gethdb, chain.headerdb.db)
+    elif args.command == 'compact':
+        chain = open_trinitydb(args.destdb)
+        compact(chain)
     else:
         logger.error(f'unrecognized command. command={args.command}')
