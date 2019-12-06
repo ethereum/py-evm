@@ -35,6 +35,7 @@ from eth.constants import (
     GENESIS_PARENT_HASH,
 )
 from eth.exceptions import (
+    CanonicalHeadNotFound,
     HeaderNotFound,
     ReceiptNotFound,
     TransactionNotFound,
