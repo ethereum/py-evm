@@ -886,9 +886,9 @@ class OpcodeAPI(ABC):
     def as_opcode(cls: Type[T],
                   logic_fn: Callable[['ComputationAPI'], None],
                   mnemonic: str,
-                  gas_cost: int) -> Type[T]:
+                  gas_cost: int) -> T:
         """
-        Class factory method for turning vanilla functions into Opcode classes.
+        Class factory method for turning vanilla functions into Opcodes.
         """
         ...
 
