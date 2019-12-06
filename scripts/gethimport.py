@@ -368,10 +368,8 @@ def sweep_state(gethdb: GethDatabase, trinitydb: LevelDB):
         trinitydb[key] = value
         imported_entries += 1
 
-        if key >= bucket:
+        if key >= bucket and bucket != b'\xff\xff':
             logger.debug(f'imported: {bucket.hex()} skipped={skipped_keys}')
-            if bucket == b'\xff' * 2:
-                break
             bucket = (int.from_bytes(bucket, 'big') + 1).to_bytes(2, 'big')
 
     logger.info(f'sweep_state: successfully imported {imported_entries} state entries')
