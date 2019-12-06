@@ -52,7 +52,7 @@ class BaseState(Configurable, StateAPI):
             self,
             db: AtomicDatabaseAPI,
             execution_context: ExecutionContextAPI,
-            state_root: bytes) -> None:
+            state_root: Hash32) -> None:
         self._db = db
         self.execution_context = execution_context
         self._account_db = self.get_account_db_class()(db, state_root)
