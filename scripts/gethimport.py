@@ -298,8 +298,8 @@ def open_trinitydb(location):
     logger.info(f'Trinity database did not already exist, initializing it now')
     chain = MainnetChain.from_genesis_header(leveldb, MAINNET_GENESIS_HEADER)
 
-    logger.warining('The new db contains the genesis header but not the genesis state.')
-    logger.warining('Attempts to full sync will fail.')
+    logger.warning('The new db contains the genesis header but not the genesis state.')
+    logger.warning('Attempts to full sync will fail.')
 
     return chain
 
