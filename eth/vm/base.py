@@ -148,6 +148,10 @@ class VM(Configurable, VirtualMachineAPI):
                           transaction: SignedTransactionAPI
                           ) -> Tuple[ReceiptAPI, ComputationAPI]:
         self.validate_transaction_against_header(header, transaction)
+
+        # Mark current state as un-revertable, since new transaction is starting...
+        self.state.lock_changes()
+
         computation = self.state.apply_transaction(transaction)
         receipt = self.make_receipt(header, transaction, computation, self.state)
         self.validate_receipt(receipt)

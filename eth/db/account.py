@@ -370,6 +370,10 @@ class AccountDB(AccountDatabaseAPI):
         for _, store in self._dirty_account_stores():
             store.commit(checkpoint)
 
+    def lock_changes(self) -> None:
+        for _, store in self._dirty_account_stores():
+            store.lock_changes()
+
     def make_state_root(self) -> Hash32:
         for _, store in self._dirty_account_stores():
             store.make_storage_root()

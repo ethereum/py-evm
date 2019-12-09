@@ -175,6 +175,9 @@ class BaseState(Configurable, StateAPI):
         _, account_snapshot = snapshot
         self._account_db.commit(account_snapshot)
 
+    def lock_changes(self) -> None:
+        self._account_db.lock_changes()
+
     def persist(self) -> None:
         self._account_db.persist()
 
