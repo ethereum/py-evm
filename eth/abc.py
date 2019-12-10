@@ -2287,7 +2287,10 @@ class VirtualMachineAPI(ConfigurableAPI):
     extra_data_max_bytes: ClassVar[int]
 
     @abstractmethod
-    def __init__(self, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> None:
+    def __init__(self,
+                 header: BlockHeaderAPI,
+                 chaindb: ChainDatabaseAPI,
+                 chain_context: ChainContextAPI) -> None:
         """
         Initialize the virtual machine.
         """
