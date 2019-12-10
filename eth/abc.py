@@ -1633,6 +1633,16 @@ class AccountDatabaseAPI(ABC):
         """
         ...
 
+    @state_root.setter
+    def state_root(self, value: Hash32) -> None:
+        """
+        Force-set the state root hash.
+        """
+        # See: https://github.com/python/mypy/issues/4165
+        # Since we can't also decorate this with abstract method we want to be
+        # sure that the setter doesn't actually get used as a noop.
+        raise NotImplementedError
+
     @abstractmethod
     def has_root(self, state_root: bytes) -> bool:
         """
