@@ -101,3 +101,13 @@ def test_revert_selfdestruct(state, read_storage_before_snapshot):
     #       "starting" storage root hash would always be the empty one, which causes
     #       it to not be able to recover from a revert
     assert state.get_storage(ADDRESS, 1) == 2
+
+
+def test_lock_state(state):
+    assert state.get_storage(ADDRESS, 1, from_journal=False) == 0
+
+    state.set_storage(ADDRESS, 1, 2)
+    assert state.get_storage(ADDRESS, 1, from_journal=False) == 0
+
+    state.lock_changes()
+    assert state.get_storage(ADDRESS, 1, from_journal=False) == 2

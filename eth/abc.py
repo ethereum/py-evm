@@ -1574,6 +1574,16 @@ class AccountStorageDatabaseAPI(ABC):
         ...
 
     @abstractmethod
+    def lock_changes(self) -> None:
+        """
+        Locks in changes to storage, typically just as a transaction starts.
+
+        This is used, for example, to look up the storage value from the start
+        of the transaction, when calculating gas costs in EIP-2200: net gas metering.
+        """
+        ...
+
+    @abstractmethod
     def make_storage_root(self) -> None:
         """
         Force calculation of the storage root for this account
@@ -2150,6 +2160,16 @@ class StateAPI(ConfigurableAPI):
         """
         Commit the journal to the point where the snapshot was taken.  This
         merges in any changes that were recorded since the snapshot.
+        """
+        ...
+
+    @abstractmethod
+    def lock_changes(self) -> None:
+        """
+        Locks in all changes to state, typically just as a transaction starts.
+
+        This is used, for example, to look up the storage value from the start
+        of the transaction, when calculating gas costs in EIP-2200: net gas metering.
         """
         ...
 
