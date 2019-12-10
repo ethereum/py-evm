@@ -1,3 +1,0 @@
-Bug: if data was missing during a call to :meth:`~eth.vm.base.VM.apply_all_transactions`,
-then the call would revert and continue processing transactions. Fix: we re-raise
-the :class:`~eth.exceptions.EVMMissingData` and do not continue processing transactions.

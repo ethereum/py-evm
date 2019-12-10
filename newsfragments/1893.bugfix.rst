@@ -1,3 +1,0 @@
-Fix for net gas metering (EIP-2200) in Istanbul. The "original value" used to calculate gas
-costs was incorrectly accessing the value at the start of the block, instead of the start of the
-transaction.

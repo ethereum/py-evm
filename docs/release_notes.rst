@@ -3,6 +3,32 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.10 (2019-12-09)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Bug: if data was missing during a call to :meth:`~eth.vm.base.VM.apply_all_transactions`,
+  then the call would revert and continue processing transactions. Fix: we re-raise
+  the :class:`~eth.exceptions.EVMMissingData` and do not continue processing transactions. (`#1889 <https://github.com/ethereum/py-evm/issues/1889>`__)
+- Fix for net gas metering (EIP-2200) in Istanbul. The "original value" used to calculate gas
+  costs was incorrectly accessing the value at the start of the block, instead of the start of the
+  transaction. (`#1893 <https://github.com/ethereum/py-evm/issues/1893>`__)
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Add Matomo Tracking to Docs site.
+
+  Matomo is an Open Source web analytics platform that allows us
+  to get better insights and optimize for our audience without
+  the negative consequences of other compareable platforms.
+
+  Read more: https://matomo.org/why-matomo/ (`#1892 <https://github.com/ethereum/py-evm/issues/1892>`__)
+
+
 py-evm 0.3.0-alpha.9 (2019-12-02)
 ---------------------------------
 
