@@ -21,10 +21,6 @@ from eth.exceptions import (
     ContractCreationCollision,
 )
 
-from eth._utils.address import (
-    generate_contract_address,
-)
-
 from eth.vm.message import (
     Message,
 )
@@ -63,7 +59,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         message_gas = transaction.gas - transaction.intrinsic_gas
 
         if transaction.to == CREATE_CONTRACT_ADDRESS:
-            contract_address = generate_contract_address(
+            contract_address = transaction.generate_contract_address(
                 transaction.sender,
                 self.vm_state.get_nonce(transaction.sender) - 1,
             )

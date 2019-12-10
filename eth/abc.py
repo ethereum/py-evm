@@ -111,6 +111,15 @@ class BaseTransactionAPI(ABC):
     """
     A class to define all common methods of a transaction.
     """
+
+    @staticmethod
+    @abstractmethod
+    def generate_contract_address(sender: Address, nonce: int) -> Address:
+        """
+        Generate an address for a contract that is created by a *Contract Creation Transaction*,
+        that is, a transaction where the ``to`` field is empty.
+        """
+
     @abstractmethod
     def validate(self) -> None:
         """

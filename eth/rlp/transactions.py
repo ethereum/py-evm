@@ -22,6 +22,10 @@ from eth.abc import (
     UnsignedTransactionAPI,
 )
 
+from eth._utils.address import (
+    generate_contract_address,
+)
+
 from .sedes import address
 
 
@@ -35,6 +39,10 @@ class BaseTransactionMethods(BaseTransactionAPI):
 
     def gas_used_by(self, computation: ComputationAPI) -> int:
         return self.get_intrinsic_gas() + computation.get_gas_used()
+
+    @staticmethod
+    def generate_contract_address(sender: Address, nonce: int) -> Address:
+        return generate_contract_address(sender, nonce)
 
 
 BASE_TRANSACTION_FIELDS = [
