@@ -1,0 +1,3 @@
+When double-deleting a storage slot, got ``KeyError: (b'\x03', 'key could not be deleted in
+JournalDB, because it was missing')``. This was fallout from `#1893
+  <https://github.com/ethereum/py-evm/pull/1893>`_
