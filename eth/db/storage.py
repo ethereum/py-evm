@@ -210,7 +210,15 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         if value:
             self._journal_storage[key] = rlp.encode(value)
         else:
-            del self._journal_storage[key]
+            try:
+                current_val = self._journal_storage[key]
+            except KeyError:
+                # deleting an empty key has no effect
+                return
+            else:
+                if current_val != b'':
+                    # only try to delete the value if it's present
+                    del self._journal_storage[key]
 
     def delete(self) -> None:
         self.logger.debug2(
