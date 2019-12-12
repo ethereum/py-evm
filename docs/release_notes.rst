@@ -3,6 +3,24 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.11 (2019-12-12)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- When double-deleting a storage slot, got ``KeyError: (b'\x03', 'key could not be deleted in
+  JournalDB, because it was missing')``. This was fallout from `#1893
+  <https://github.com/ethereum/py-evm/pull/1893>`_ (`#1898 <https://github.com/ethereum/py-evm/issues/1898>`__)
+
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improve performance when importing a header which is a child of the current canonical
+  chain tip. (`#1891 <https://github.com/ethereum/py-evm/issues/1891>`__)
+
+
 py-evm 0.3.0-alpha.10 (2019-12-09)
 ----------------------------------
 
