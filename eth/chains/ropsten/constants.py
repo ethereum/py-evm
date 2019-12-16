@@ -52,3 +52,8 @@ PETERSBURG_ROPSTEN_BLOCK = BlockNumber(4939394)
 # Istanbul
 #
 ISTANBUL_ROPSTEN_BLOCK = BlockNumber(6485846)
+
+#
+# Muir Glacier Block
+#
+MUIR_GLACIER_ROPSTEN_BLOCK = BlockNumber(7117117)

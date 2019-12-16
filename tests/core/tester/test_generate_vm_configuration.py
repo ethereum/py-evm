@@ -18,6 +18,7 @@ class Forks(enum.Enum):
     Constantinople = 'Constantinople'
     Petersburg = 'Petersburg'
     Istanbul = 'Istanbul'
+    MuirGlacier = 'MuirGlacier'
 
 
 class CustomFrontierVM(FrontierVM):
@@ -30,7 +31,7 @@ class CustomFrontierVM(FrontierVM):
         (
             tuple(),
             {},
-            ((0, Forks.Istanbul),),
+            ((0, Forks.MuirGlacier),),
         ),
         (
             ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
@@ -119,6 +120,7 @@ class CustomFrontierVM(FrontierVM):
                 (3, 'byzantium'),
                 (5, 'petersburg'),
                 (6, 'istanbul'),
+                (7, 'muir-glacier'),
             ),
             {},
             (
@@ -128,12 +130,14 @@ class CustomFrontierVM(FrontierVM):
                 (3, Forks.Byzantium),
                 (5, Forks.Petersburg),
                 (6, Forks.Istanbul),
+                (7, Forks.MuirGlacier),
             ),
         ),
     ),
 )
 def test_generate_vm_configuration(args, kwargs, expected):
     actual = _generate_vm_configuration(*args, **kwargs)
+
     assert len(actual) == len(expected)
 
     for left, right in zip(actual, expected):
