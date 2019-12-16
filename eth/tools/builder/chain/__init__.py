@@ -25,6 +25,7 @@ from .builders import (  # noqa: F401
     constantinople_at,
     petersburg_at,
     istanbul_at,
+    muir_glacier_at,
     latest_mainnet_at,
 )
 

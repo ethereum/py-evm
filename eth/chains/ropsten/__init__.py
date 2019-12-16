@@ -6,6 +6,7 @@ from .constants import (
     BYZANTIUM_ROPSTEN_BLOCK,
     CONSTANTINOPLE_ROPSTEN_BLOCK,
     ISTANBUL_ROPSTEN_BLOCK,
+    MUIR_GLACIER_ROPSTEN_BLOCK,
     PETERSBURG_ROPSTEN_BLOCK,
     ROPSTEN_CHAIN_ID,
     SPURIOUS_DRAGON_ROPSTEN_BLOCK,
@@ -20,6 +21,7 @@ from eth.vm.forks import (
     ByzantiumVM,
     ConstantinopleVM,
     IstanbulVM,
+    MuirGlacierVM,
     PetersburgVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
@@ -34,6 +36,7 @@ ROPSTEN_VM_CONFIGURATION = (
     (CONSTANTINOPLE_ROPSTEN_BLOCK, ConstantinopleVM),
     (PETERSBURG_ROPSTEN_BLOCK, PetersburgVM),
     (ISTANBUL_ROPSTEN_BLOCK, IstanbulVM),
+    (MUIR_GLACIER_ROPSTEN_BLOCK, MuirGlacierVM)
 )
 
 

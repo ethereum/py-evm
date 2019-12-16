@@ -70,6 +70,7 @@ from eth.vm.forks import (
     ConstantinopleVM,
     PetersburgVM,
     IstanbulVM,
+    MuirGlacierVM,
 )
 
 
@@ -232,8 +233,9 @@ byzantium_at = fork_at(ByzantiumVM)
 constantinople_at = fork_at(ConstantinopleVM)
 petersburg_at = fork_at(PetersburgVM)
 istanbul_at = fork_at(IstanbulVM)
+muir_glacier_at = fork_at(MuirGlacierVM)
 
-latest_mainnet_at = petersburg_at
+latest_mainnet_at = muir_glacier_at
 
 GENESIS_DEFAULTS = cast(
     Tuple[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]], ...],

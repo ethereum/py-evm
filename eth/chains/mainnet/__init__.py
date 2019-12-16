@@ -15,6 +15,7 @@ from .constants import (
     BYZANTIUM_MAINNET_BLOCK,
     PETERSBURG_MAINNET_BLOCK,
     ISTANBUL_MAINNET_BLOCK,
+    MUIR_GLACIER_MAINNET_BLOCK,
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     HOMESTEAD_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
@@ -36,6 +37,7 @@ from eth.vm.forks import (
     FrontierVM,
     HomesteadVM,
     IstanbulVM,
+    MuirGlacierVM,
     PetersburgVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
@@ -83,6 +85,7 @@ MAINNET_FORK_BLOCKS = (
     BYZANTIUM_MAINNET_BLOCK,
     PETERSBURG_MAINNET_BLOCK,
     ISTANBUL_MAINNET_BLOCK,
+    MUIR_GLACIER_MAINNET_BLOCK,
 )
 MAINNET_VMS = (
     FrontierVM,
@@ -92,6 +95,7 @@ MAINNET_VMS = (
     ByzantiumVM,
     PetersburgVM,
     IstanbulVM,
+    MuirGlacierVM,
 )
 
 MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
