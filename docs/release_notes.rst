@@ -3,6 +3,17 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.12 (2019-12-19)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Implement the Muir Glacier fork
+
+  See: https://eips.ethereum.org/EIPS/eip-2387 (`#1901 <https://github.com/ethereum/py-evm/issues/1901>`__)
+
+
 py-evm 0.3.0-alpha.11 (2019-12-12)
 ----------------------------------
 
