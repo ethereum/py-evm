@@ -562,10 +562,18 @@ class VM(Configurable, VirtualMachineAPI):
 
             if check_seal:
                 try:
+                    cls.validate_seal(parent_header)
+                except ValidationError:
+                    cls.cls_logger.warning(
+                        "Failed to validate seal on parent header: %r",
+                        header.as_dict()
+                    )
+                    raise
+                try:
                     cls.validate_seal(header)
                 except ValidationError:
                     cls.cls_logger.warning(
-                        "Failed to validate header proof of work on header: %r",
+                        "Failed to validate seal on header: %r",
                         header.as_dict()
                     )
                     raise
