@@ -30,7 +30,7 @@ deps = {
     ],
     'test': [
         "factory-boy==2.11.1",
-        "hypothesis==3.69.5",
+        "hypothesis>=5,<6",
         "pexpect>=4.6, <5",
         "pytest>=5.1.3,<6",
         "pytest-asyncio>=0.10.0,<0.11",
