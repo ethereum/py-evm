@@ -1,0 +1,1 @@
+Support Istanbul fork in ``GOERLI_VM_CONFIGURATION``
