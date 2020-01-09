@@ -580,10 +580,11 @@ class VM(Configurable, VirtualMachineAPI):
             if check_seal:
                 try:
                     self.validate_seal(header)
-                except ValidationError:
+                except ValidationError as exc:
                     self.cls_logger.warning(
-                        "Failed to validate header proof of work on header: %r",
-                        header.as_dict()
+                        "Failed to validate seal on header: %r. Error: %s",
+                        header.as_dict(),
+                        exc,
                     )
                     raise
 

@@ -1,0 +1,2 @@
+Do not mention PoW in the logging message that we log when `validate_seal` fails.
+The VM could also be running under a non-PoW consensus mechanism.
