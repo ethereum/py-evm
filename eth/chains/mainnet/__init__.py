@@ -68,15 +68,15 @@ def validate_header_is_on_intended_dao_fork(support_dao_fork: bool,
 class MainnetDAOValidatorVM(HomesteadVM):
     """Only on mainnet, TheDAO fork is accompanied by special extra data. Validate those headers"""
 
-    def validate_header(self,
+    @classmethod
+    def validate_header(cls,
                         header: BlockHeaderAPI,
-                        previous_header: BlockHeaderAPI,
-                        check_seal: bool=True) -> None:
+                        previous_header: BlockHeaderAPI) -> None:
 
-        super().validate_header(header, previous_header, check_seal)
+        super().validate_header(header, previous_header)
         validate_header_is_on_intended_dao_fork(
-            self.support_dao_fork,
-            self.get_dao_fork_block_number(),
+            cls.support_dao_fork,
+            cls.get_dao_fork_block_number(),
             header
         )
 
