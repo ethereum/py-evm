@@ -548,16 +548,17 @@ class VM(Configurable, VirtualMachineAPI):
                 f" - header uncle_hash: {block.header.uncles_hash}"
             )
 
-    def validate_header(self,
+    @classmethod
+    def validate_header(cls,
                         header: BlockHeaderAPI,
-                        parent_header: BlockHeaderAPI,
-                        check_seal: bool = True) -> None:
+                        parent_header: BlockHeaderAPI) -> None:
+
         if parent_header is None:
             # to validate genesis header, check if it equals canonical header at block number 0
             raise ValidationError("Must have access to parent header to validate current header")
         else:
             validate_length_lte(
-                header.extra_data, self.extra_data_max_bytes, title="BlockHeader.extra_data")
+                header.extra_data, cls.extra_data_max_bytes, title="BlockHeader.extra_data")
 
             validate_gas_limit(header.gas_limit, parent_header.gas_limit)
 
@@ -577,19 +578,16 @@ class VM(Configurable, VirtualMachineAPI):
                     f"- parent : {parent_header.timestamp}. "
                 )
 
-            if check_seal:
-                try:
-                    self.validate_seal(header)
-                except ValidationError as exc:
-                    self.cls_logger.warning(
-                        "Failed to validate seal on header: %r. Error: %s",
-                        header.as_dict(),
-                        exc,
-                    )
-                    raise
-
     def validate_seal(self, header: BlockHeaderAPI) -> None:
-        self._consensus.validate_seal(header)
+        try:
+            self._consensus.validate_seal(header)
+        except ValidationError as exc:
+            self.cls_logger.debug(
+                "Failed to validate seal on header: %r. Error: %s",
+                header.as_dict(),
+                exc,
+            )
+            raise
 
     def validate_seal_extension(self,
                                 header: BlockHeaderAPI,

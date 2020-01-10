@@ -164,11 +164,14 @@ class BaseChain(Configurable, ChainAPI):
             should_check_seal = index in indices_to_check_seal
             vm = self.get_vm(child)
             try:
-                vm.validate_header(child, parent, check_seal=should_check_seal)
+                vm.validate_header(child, parent)
             except ValidationError as exc:
                 raise ValidationError(
                     f"{child} is not a valid child of {parent}: {exc}"
                 ) from exc
+
+            if should_check_seal:
+                vm.validate_seal(child)
 
     def validate_chain_extension(self, headers: Tuple[BlockHeaderAPI, ...]) -> None:
         for index, header in enumerate(headers):
@@ -506,7 +509,8 @@ class Chain(BaseChain):
             raise ValidationError("Cannot validate genesis block this way")
         vm = self.get_vm(block.header)
         parent_header = self.get_block_header_by_hash(block.header.parent_hash)
-        vm.validate_header(block.header, parent_header, check_seal=True)
+        vm.validate_header(block.header, parent_header)
+        vm.validate_seal(block.header)
         vm.validate_seal_extension(block.header, ())
         self.validate_uncles(block)
         self.validate_gaslimit(block.header)

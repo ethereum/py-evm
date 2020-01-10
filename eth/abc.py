@@ -2696,12 +2696,11 @@ class VirtualMachineAPI(ConfigurableAPI):
         """
         ...
 
+    @classmethod
     @abstractmethod
     def validate_header(self,
                         header: BlockHeaderAPI,
-                        parent_header: BlockHeaderAPI,
-                        check_seal: bool = True
-                        ) -> None:
+                        parent_header: BlockHeaderAPI) -> None:
         """
         :raise eth.exceptions.ValidationError: if the header is not valid
         """
