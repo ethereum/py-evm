@@ -1,3 +1,0 @@
-Drop optional ``check_seal`` param from ``VM.validate_header`` and turn it into a ``classmethod``.
-Seal checks now need to be made explicitly via ``VM.check_seal`` which is also aligned
-with ``VM.check_seal_extension``.

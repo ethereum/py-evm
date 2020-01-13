@@ -3,6 +3,44 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.13 (2020-01-13)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Make handling of different consensus mechanisms more flexible and sound.
+
+  1. ``validate_seal`` and ``validate_header`` are now instance methods. The only reason they can
+  be classmethods today is because our Pow implementation relies on a globally shared cache
+  which should be refactored to use the ``ConsensusContextAPI``.
+
+  2. There a two new methods: ``chain.validate_chain_extension(header, parents)`` and
+  ``vm.validate_seal_extension``. They perform extension seal checks to support consensus schemes
+  where headers can not be checked if parents are missing.
+
+  3. The consensus mechanism is now abstracted via ``ConsensusAPI`` and ``ConsensusContextAPI``.
+  VMs instantiate a consensus api based on the set ``consensus_class`` and pass it a context which
+  they receive from the chain upon instantiation. The chain instantiates the consensus context api
+  based on the ``consensus_context_class``. (`#1899 <https://github.com/ethereum/py-evm/issues/1899>`__)
+- Support Istanbul fork in ``GOERLI_VM_CONFIGURATION`` (`#1904 <https://github.com/ethereum/py-evm/issues/1904>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Do not mention PoW in the logging message that we log when `validate_seal` fails.
+  The VM could also be running under a non-PoW consensus mechanism. (`#1907 <https://github.com/ethereum/py-evm/issues/1907>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Drop optional ``check_seal`` param from ``VM.validate_header`` and turn it into a ``classmethod``.
+  Seal checks now need to be made explicitly via ``VM.check_seal`` which is also aligned
+  with ``VM.check_seal_extension``. (`#1909 <https://github.com/ethereum/py-evm/issues/1909>`__)
+
+
 py-evm 0.3.0-alpha.12 (2019-12-19)
 ----------------------------------
 
