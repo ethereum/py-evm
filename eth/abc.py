@@ -17,7 +17,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
-)
+    NamedTuple)
 from uuid import UUID
 
 import rlp
@@ -332,6 +332,12 @@ class BlockAPI(rlp.Serializable, ABC):
         otherwise ``False``.
         """
         ...
+
+
+class BlockImportResult(NamedTuple):
+    imported_block: BlockAPI
+    new_canonical_blocks: Tuple[BlockAPI, ...]
+    old_canonical_blocks: Tuple[BlockAPI, ...]
 
 
 class SchemaAPI(ABC):
@@ -3183,7 +3189,7 @@ class ChainAPI(ConfigurableAPI):
     def import_block(self,
                      block: BlockAPI,
                      perform_validation: bool=True,
-                     ) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
+                     ) -> BlockImportResult:
         """
         Import the given ``block`` and return a 3-tuple
 
