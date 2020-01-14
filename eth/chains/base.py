@@ -51,6 +51,7 @@ from eth.abc import (
     StateAPI,
     SignedTransactionAPI,
     UnsignedTransactionAPI,
+    BlockImportResult
 )
 from eth.consensus import (
     ConsensusContext,
@@ -454,7 +455,7 @@ class Chain(BaseChain):
     def import_block(self,
                      block: BlockAPI,
                      perform_validation: bool=True
-                     ) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
+                     ) -> BlockImportResult:
 
         try:
             parent_header = self.get_block_header_by_hash(block.header.parent_hash)
@@ -495,7 +496,11 @@ class Chain(BaseChain):
             in old_canonical_hashes
         )
 
-        return imported_block, new_canonical_blocks, old_canonical_blocks
+        return BlockImportResult(
+            imported_block=imported_block,
+            new_canonical_blocks=new_canonical_blocks,
+            old_canonical_blocks=old_canonical_blocks
+        )
 
     #
     # Validation API
@@ -645,12 +650,12 @@ class MiningChain(Chain, MiningChainAPI):
     def import_block(self,
                      block: BlockAPI,
                      perform_validation: bool=True
-                     ) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
-        imported_block, new_canonical_blocks, old_canonical_blocks = super().import_block(
+                     ) -> BlockImportResult:
+        result = super().import_block(
             block, perform_validation)
 
         self.header = self.ensure_header()
-        return imported_block, new_canonical_blocks, old_canonical_blocks
+        return result
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
         mined_block = self.get_vm(self.header).mine_block(*args, **kwargs)
