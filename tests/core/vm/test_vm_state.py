@@ -103,6 +103,73 @@ def test_revert_selfdestruct(state, read_storage_before_snapshot):
     assert state.get_storage(ADDRESS, 1) == 2
 
 
+@pytest.mark.parametrize('make_state_root_after_create', [True, False])
+def test_delete_after_create_in_same_block(state, make_state_root_after_create):
+    # create account with storage in one "transaction"
+    state.set_storage(ADDRESS, 0, 1)
+    state.lock_changes()
+
+    if make_state_root_after_create:
+        state.make_state_root()
+
+    # delete account in next "transaction"
+    state.delete_account(ADDRESS)
+    state.lock_changes()
+
+    # deleted account should not exist
+    assert not state.account_exists(ADDRESS)
+
+    state.persist()
+
+    # deleted account should not exist, even after persisting
+    assert not state.account_exists(ADDRESS)
+
+
+@pytest.mark.parametrize('make_state_root_after_lock', [True, False])
+@pytest.mark.parametrize('persist_after_first_create', [True, False])
+def test_delete_and_revive_in_same_block(
+        state,
+        make_state_root_after_lock,
+        persist_after_first_create):
+
+    # create account with storage in one "transaction"
+    state.set_storage(ADDRESS, 0, 1)
+    state.lock_changes()
+
+    if persist_after_first_create:
+        state.persist()
+    elif make_state_root_after_lock:
+        state.make_state_root()
+
+    # delete account in next "transaction"
+    state.delete_account(ADDRESS)
+    assert state.get_storage(ADDRESS, 0) == 0
+    state.lock_changes()
+
+    assert state.get_storage(ADDRESS, 0) == 0
+
+    if make_state_root_after_lock:
+        state.make_state_root()
+
+    assert state.get_storage(ADDRESS, 0) == 0
+
+    # revive account in next "transaction"
+    state.set_storage(ADDRESS, 2, 3)
+    state.lock_changes()
+
+    # make sure original value stays deleted
+    assert state.get_storage(ADDRESS, 0) == 0
+    # but new value is saved
+    assert state.get_storage(ADDRESS, 2) == 3
+
+    state.persist()
+
+    # make sure original value stays deleted
+    assert state.get_storage(ADDRESS, 0) == 0
+    # but new value is saved
+    assert state.get_storage(ADDRESS, 2) == 3
+
+
 def test_lock_state(state):
     assert state.get_storage(ADDRESS, 1, from_journal=False) == 0
 
