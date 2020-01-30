@@ -203,3 +203,41 @@ def test_account_db_read_then_update_then_make_root_then_read(account_db):
     account_db.persist()
     # if you start caching read tries, then you might get this answer wrong:
     assert account_db.get_storage(ADDRESS, 1) == 3
+
+
+def test_has_changes_even_if_storage_root_returns_to_old_value(account_db):
+
+    account_db.set_storage(ADDRESS, 1, 2)
+
+    # must always explicitly make the root before persisting
+    account_db.make_state_root()
+    storage_db = account_db._get_address_store(ADDRESS)
+
+    # changed root only shows up after making root
+    assert storage_db.has_changed_root
+    original_storage_root = storage_db.get_changed_root()
+
+    account_db.persist()
+    assert not storage_db.has_changed_root
+
+    account_db.set_storage(ADDRESS, 1, 3)
+
+    account_db.lock_changes()
+    account_db.make_state_root()
+
+    storage_db = account_db._get_address_store(ADDRESS)
+    assert storage_db.has_changed_root
+    assert storage_db.get_changed_root() != original_storage_root
+
+    # change storage
+    account_db.set_storage(ADDRESS, 1, 2)
+
+    account_db.lock_changes()
+    account_db.make_state_root()
+
+    # even after the storage root changes back to the original root, it should be marked as changed
+    storage_db = account_db._get_address_store(ADDRESS)
+    assert storage_db.has_changed_root
+
+    repeated_storage_root = storage_db.get_changed_root()
+    assert repeated_storage_root == original_storage_root
