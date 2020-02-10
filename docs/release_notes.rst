@@ -3,6 +3,28 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.14 (2020-02-10)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Change return type for ``import_block`` from ``Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]`` to ``BlockImportResult`` (NamedTuple). (`#1910 <https://github.com/ethereum/py-evm/issues/1910>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Fixed a consensus-critical bug for contracts that are created and destroyed in the same block,
+  especially pre-Byzantium. (`#1912 <https://github.com/ethereum/py-evm/issues/1912>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Add explicit tests for ``validate_header`` (`#1911 <https://github.com/ethereum/py-evm/issues/1911>`__)
+
+
 py-evm 0.3.0-alpha.13 (2020-01-13)
 ----------------------------------
 

@@ -1,1 +1,0 @@
-Change return type for ``import_block`` from ``Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]`` to ``BlockImportResult`` (NamedTuple).
