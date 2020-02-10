@@ -471,7 +471,11 @@ class Chain(BaseChain):
 
         # Validate the imported block.
         if perform_validation:
-            validate_imported_block_unchanged(imported_block, block)
+            try:
+                validate_imported_block_unchanged(imported_block, block)
+            except ValidationError:
+                self.logger.warning("Proposed %s doesn't follow EVM rules, rejecting...", block)
+                raise
             self.validate_block(imported_block)
 
         (

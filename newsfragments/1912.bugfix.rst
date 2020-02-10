@@ -1,0 +1,2 @@
+Fixed a consensus-critical bug for contracts that are created and destroyed in the same block,
+especially pre-Byzantium.
