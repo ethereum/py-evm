@@ -9,6 +9,7 @@ from eth_utils import (
 )
 
 from eth.abc import (
+    AtomicWriteBatchAPI,
     DatabaseAPI,
 )
 
@@ -17,7 +18,7 @@ from eth.db.diff import (
     DBDiffTracker,
     DiffMissingError,
 )
-from eth.db.backends.base import BaseDB, BaseAtomicDB
+from eth.db.backends.base import BaseAtomicDB, BaseDB
 from eth.db.backends.memory import MemoryDB
 
 
@@ -46,12 +47,12 @@ class AtomicDB(BaseAtomicDB):
         return key in self.wrapped_db
 
     @contextmanager
-    def atomic_batch(self) -> Iterator['AtomicDBWriteBatch']:
+    def atomic_batch(self) -> Iterator[AtomicWriteBatchAPI]:
         with AtomicDBWriteBatch._commit_unless_raises(self) as readable_batch:
             yield readable_batch
 
 
-class AtomicDBWriteBatch(BaseDB):
+class AtomicDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
     """
     This is returned by a BaseAtomicDB during an atomic_batch, to provide a temporary view
     of the database, before commit.
@@ -112,7 +113,7 @@ class AtomicDBWriteBatch(BaseDB):
 
     @classmethod
     @contextmanager
-    def _commit_unless_raises(cls, write_target_db: DatabaseAPI) -> Iterator['AtomicDBWriteBatch']:
+    def _commit_unless_raises(cls, write_target_db: DatabaseAPI) -> Iterator[AtomicWriteBatchAPI]:
         """
         Commit all writes inside the context, unless an exception was raised.
 

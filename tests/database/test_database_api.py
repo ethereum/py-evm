@@ -1,4 +1,8 @@
 import pytest
+from eth.db.accesslog import (
+    KeyAccessLoggerAtomicDB,
+    KeyAccessLoggerDB,
+)
 from eth.db.backends.memory import MemoryDB
 from eth.db.journal import JournalDB
 from eth.db.batch import BatchDB
@@ -8,7 +12,15 @@ from eth.db.cache import CacheDB
 from eth.tools.db.base import DatabaseAPITestSuite
 
 
-@pytest.fixture(params=[JournalDB, BatchDB, MemoryDB, AtomicDB, CacheDB])
+@pytest.fixture(params=[
+    JournalDB,
+    BatchDB,
+    MemoryDB,
+    AtomicDB,
+    CacheDB,
+    KeyAccessLoggerAtomicDB,
+    KeyAccessLoggerDB,
+])
 def db(request):
     base_db = MemoryDB()
     if request.param is JournalDB:
@@ -23,6 +35,11 @@ def db(request):
             yield batch
     elif request.param is CacheDB:
         yield CacheDB(base_db)
+    elif request.param is KeyAccessLoggerAtomicDB:
+        atomic_db = AtomicDB(base_db)
+        yield KeyAccessLoggerAtomicDB(atomic_db)
+    elif request.param is KeyAccessLoggerDB:
+        yield KeyAccessLoggerDB(base_db)
     else:
         raise Exception("Invariant")
 
