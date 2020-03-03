@@ -385,4 +385,4 @@ zero value transfer transaction.
   ... )
 
   >>> chain.mine_block(mix_hash=mix_hash, nonce=nonce)
-  <ByzantiumBlock(#Block #1)>
+  <ByzantiumBlock(#Block #1-0x41f6..2913)>
