@@ -403,13 +403,24 @@ class DatabaseAPI(MutableMapping[bytes, bytes], ABC):
         ...
 
 
+class AtomicWriteBatchAPI(DatabaseAPI):
+    """
+    The readable/writeable object returned by an atomic database when we start building
+    a batch of writes to commit.
+
+    Reads to this database will observe writes written during batching,
+    but the writes will not actually persist until this object is committed.
+    """
+    pass
+
+
 class AtomicDatabaseAPI(DatabaseAPI):
     """
     Like ``BatchDB``, but immediately write out changes if they are
     not in an ``atomic_batch()`` context.
     """
     @abstractmethod
-    def atomic_batch(self) -> ContextManager[DatabaseAPI]:
+    def atomic_batch(self) -> ContextManager[AtomicWriteBatchAPI]:
         """
         Return a :class:`~typing.ContextManager` to write an atomic batch to the database.
         """
