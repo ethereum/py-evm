@@ -12,6 +12,7 @@ from pathlib import Path
 import snappy
 import struct
 import time
+import random
 
 import plyvel
 
@@ -513,6 +514,30 @@ def compact(chain):
     leveldb.compact_range()
 
 
+def scan_bodies(gethdb):
+    fake_bloom = bytes(random.getrandbits(8) for _ in range(32))
+
+    for blocknum in range(9000000, 9060000):
+        header = gethdb.block_header(blocknum)
+        body = gethdb.block_body(blocknum, header.hash)
+
+        new_block = rlp.encode([header, body.transactions, body.uncles])
+        new_block_2 = rlp.encode([
+            header,
+            [transaction.hash for transaction in body.transactions],
+            body.uncles
+        ])
+        new_block_3 = rlp.encode([
+            header, fake_bloom, body.uncles
+        ])
+
+        c_new_block = snappy.compress(new_block)
+        c_new_block_2 = snappy.compress(new_block_2)
+        c_new_block_3 = snappy.compress(new_block_3)
+
+        logger.info(f'{blocknum} {len(new_block)} {len(new_block_2)} {len(new_block_3)} {len(c_new_block)} {len(c_new_block_2)} {len(c_new_block_3)}')
+
+
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.DEBUG,
@@ -610,6 +635,11 @@ if __name__ == "__main__":
     )
     compact_parser.add_argument('-destdb', type=str, required=True)
 
+    scan_bodies_parser = subparsers.add_parser(
+        "scan_bodies"
+    )
+    scan_bodies_parser.add_argument('-gethdb', type=str, required=True)
+
     args = parser.parse_args()
 
     if args.command == 'import_body_range':
@@ -639,5 +669,8 @@ if __name__ == "__main__":
     elif args.command == 'compact':
         chain = open_trinitydb(args.destdb)
         compact(chain)
+    elif args.command == 'scan_bodies':
+        gethdb = open_gethdb(args.gethdb)
+        scan_bodies(gethdb)
     else:
         logger.error(f'unrecognized command. command={args.command}')
