@@ -18,6 +18,7 @@ from eth.chains.base import (
     Chain,
     MiningChain,
 )
+from eth.consensus.noproof import NoProofConsensus
 from eth.db.atomic import AtomicDB
 from eth.rlp.headers import BlockHeader
 from eth.vm.forks import (
@@ -146,7 +147,7 @@ def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
     klass = chain_cls.configure(
         __name__='TestChain',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, VM),
+            (constants.GENESIS_BLOCK_NUMBER, VM.configure(consensus_class=NoProofConsensus)),
         ),
         chain_id=1337,
     )
@@ -207,12 +208,11 @@ def _chain_without_block_validation(request, VM, base_db, genesis_state):
         'import_block': import_block_without_validation,
         'validate_block': lambda self, block: None,
     }
-    VMForTesting = VM.configure(validate_seal=lambda block: None)
     chain_class = request.param
     klass = chain_class.configure(
         __name__='TestChainWithoutBlockValidation',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, VMForTesting),
+            (constants.GENESIS_BLOCK_NUMBER, VM.configure(consensus_class=NoProofConsensus)),
         ),
         chain_id=1337,
         **overrides,

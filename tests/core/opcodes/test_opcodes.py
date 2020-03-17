@@ -15,6 +15,7 @@ from eth import (
 from eth._utils.address import (
     force_bytes_to_address,
 )
+from eth.consensus import ConsensusContext
 from eth.db.atomic import (
     AtomicDB
 )
@@ -98,7 +99,8 @@ def setup_computation(
         origin=CANONICAL_ADDRESS_B,
     )
 
-    vm = vm_class(GENESIS_HEADER, ChainDB(AtomicDB()), chain_context)
+    db = AtomicDB()
+    vm = vm_class(GENESIS_HEADER, ChainDB(db), chain_context, ConsensusContext(db))
 
     computation = vm_class._state_class.computation_class(
         state=vm.state,

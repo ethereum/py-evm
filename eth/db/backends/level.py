@@ -2,13 +2,16 @@ from contextlib import contextmanager
 import logging
 from pathlib import Path
 from typing import (
-    Generator,
+    Iterator,
     TYPE_CHECKING,
 )
 
 from eth_utils import ValidationError
 
-from eth.abc import DatabaseAPI
+from eth.abc import (
+    AtomicWriteBatchAPI,
+    DatabaseAPI,
+)
 from eth.db.diff import (
     DBDiffTracker,
     DiffMissingError,
@@ -67,7 +70,7 @@ class LevelDB(BaseAtomicDB):
         self.db.delete(key)
 
     @contextmanager
-    def atomic_batch(self) -> Generator['LevelDBWriteBatch', None, None]:
+    def atomic_batch(self) -> Iterator[AtomicWriteBatchAPI]:
         with self.db.write_batch(transaction=True) as atomic_batch:
             readable_batch = LevelDBWriteBatch(self, atomic_batch)
             try:
@@ -76,7 +79,7 @@ class LevelDB(BaseAtomicDB):
                 readable_batch.decommission()
 
 
-class LevelDBWriteBatch(BaseDB):
+class LevelDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
     """
     A native leveldb write batch does not permit reads on the in-progress data.
     This class fills that gap, by tracking the in-progress diff, and adding

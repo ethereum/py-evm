@@ -22,3 +22,6 @@ from .petersburg import (  # noqa: F401
 from .istanbul import (  # noqa: F401
     IstanbulVM,
 )
+from .muir_glacier import (  # noqa: F401
+    MuirGlacierVM,
+)

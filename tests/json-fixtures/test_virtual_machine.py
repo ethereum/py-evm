@@ -6,6 +6,7 @@ from eth_utils import (
     to_bytes,
 )
 
+from eth.consensus import ConsensusContext
 from eth.db import (
     get_db_backend,
 )
@@ -180,7 +181,9 @@ def fixture_to_bytecode_computation(fixture, code, vm):
     ),
 )
 def test_vm_fixtures(fixture, vm_class, computation_getter):
-    chaindb = ChainDB(get_db_backend())
+    db = get_db_backend()
+    chaindb = ChainDB(db)
+    consensus_context = ConsensusContext(db)
     header = BlockHeader(
         coinbase=fixture['env']['currentCoinbase'],
         difficulty=fixture['env']['currentDifficulty'],
@@ -194,7 +197,12 @@ def test_vm_fixtures(fixture, vm_class, computation_getter):
     #   For now, just hard-code it to something not used in practice:
     chain_context = ChainContext(chain_id=0)
 
-    vm = vm_class(header=header, chaindb=chaindb, chain_context=chain_context)
+    vm = vm_class(
+        header=header,
+        chaindb=chaindb,
+        chain_context=chain_context,
+        consensus_context=consensus_context
+    )
     state = vm.state
     setup_state(fixture['pre'], state)
     code = state.get_code(fixture['exec']['address'])

@@ -15,6 +15,7 @@ from .constants import (
     BYZANTIUM_MAINNET_BLOCK,
     PETERSBURG_MAINNET_BLOCK,
     ISTANBUL_MAINNET_BLOCK,
+    MUIR_GLACIER_MAINNET_BLOCK,
     TANGERINE_WHISTLE_MAINNET_BLOCK,
     HOMESTEAD_MAINNET_BLOCK,
     SPURIOUS_DRAGON_MAINNET_BLOCK,
@@ -36,10 +37,32 @@ from eth.vm.forks import (
     FrontierVM,
     HomesteadVM,
     IstanbulVM,
+    MuirGlacierVM,
     PetersburgVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
 )
+
+
+def validate_header_is_on_intended_dao_fork(support_dao_fork: bool,
+                                            dao_fork_at: BlockNumber,
+                                            header: BlockHeaderAPI) -> None:
+
+    # The special extra_data is set on the ten headers starting at the fork
+    extra_data_block_nums = range(dao_fork_at, dao_fork_at + 10)
+
+    if header.block_number in extra_data_block_nums:
+        if support_dao_fork and header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
+            raise ValidationError(
+                f"Block {header!r} must have extra data "
+                f"{encode_hex(DAO_FORK_MAINNET_EXTRA_DATA)} not "
+                f"{encode_hex(header.extra_data)} when supporting DAO fork"
+            )
+        elif not support_dao_fork and header.extra_data == DAO_FORK_MAINNET_EXTRA_DATA:
+            raise ValidationError(
+                f"Block {header!r} must not have extra data "
+                f"{encode_hex(DAO_FORK_MAINNET_EXTRA_DATA)} when declining the DAO fork"
+            )
 
 
 class MainnetDAOValidatorVM(HomesteadVM):
@@ -48,27 +71,14 @@ class MainnetDAOValidatorVM(HomesteadVM):
     @classmethod
     def validate_header(cls,
                         header: BlockHeaderAPI,
-                        previous_header: BlockHeaderAPI,
-                        check_seal: bool=True) -> None:
+                        previous_header: BlockHeaderAPI) -> None:
 
-        super().validate_header(header, previous_header, check_seal)
-
-        # The special extra_data is set on the ten headers starting at the fork
-        dao_fork_at = cls.get_dao_fork_block_number()
-        extra_data_block_nums = range(dao_fork_at, dao_fork_at + 10)
-
-        if header.block_number in extra_data_block_nums:
-            if cls.support_dao_fork and header.extra_data != DAO_FORK_MAINNET_EXTRA_DATA:
-                raise ValidationError(
-                    f"Block {header!r} must have extra data "
-                    f"{encode_hex(DAO_FORK_MAINNET_EXTRA_DATA)} not "
-                    f"{encode_hex(header.extra_data)} when supporting DAO fork"
-                )
-            elif not cls.support_dao_fork and header.extra_data == DAO_FORK_MAINNET_EXTRA_DATA:
-                raise ValidationError(
-                    f"Block {header!r} must not have extra data "
-                    f"{encode_hex(DAO_FORK_MAINNET_EXTRA_DATA)} when declining the DAO fork"
-                )
+        super().validate_header(header, previous_header)
+        validate_header_is_on_intended_dao_fork(
+            cls.support_dao_fork,
+            cls.get_dao_fork_block_number(),
+            header
+        )
 
 
 class MainnetHomesteadVM(MainnetDAOValidatorVM):
@@ -83,6 +93,7 @@ MAINNET_FORK_BLOCKS = (
     BYZANTIUM_MAINNET_BLOCK,
     PETERSBURG_MAINNET_BLOCK,
     ISTANBUL_MAINNET_BLOCK,
+    MUIR_GLACIER_MAINNET_BLOCK,
 )
 MAINNET_VMS = (
     FrontierVM,
@@ -92,6 +103,7 @@ MAINNET_VMS = (
     ByzantiumVM,
     PetersburgVM,
     IstanbulVM,
+    MuirGlacierVM,
 )
 
 MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))

@@ -384,7 +384,8 @@ class AccountDB(AccountDatabaseAPI):
                 address.hex(),
                 storage_root.hex(),
             )
-            self._set_storage_root(address, storage_root)
+            if self.account_exists(address) or storage_root != BLANK_ROOT_HASH:
+                self._set_storage_root(address, storage_root)
 
         self._journaldb.persist()
 
@@ -409,7 +410,12 @@ class AccountDB(AccountDatabaseAPI):
                 store.persist(write_batch)
 
         for address, new_root in self._get_changed_roots():
-            if new_root not in self._raw_store_db and new_root != BLANK_ROOT_HASH:
+            if new_root is None:
+                raise ValidationError(
+                    f"Cannot validate new root of account 0x{address.hex()} "
+                    f"which has a new root hash of None"
+                )
+            elif new_root not in self._raw_store_db and new_root != BLANK_ROOT_HASH:
                 raise ValidationError(
                     "After persisting storage trie, a root node was not found. "
                     f"State root for account 0x{address.hex()} "

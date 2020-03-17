@@ -1,16 +1,19 @@
 import logging
-from typing import Sequence, Iterable
+from typing import (
+    Iterable,
+    Sequence,
+)
 
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,
     VirtualMachineAPI,
+    VirtualMachineModifierAPI,
 )
 from eth.db.chain import ChainDB
 
 from eth_typing import (
     Address,
-    Hash32,
 )
 from eth_utils import (
     encode_hex,
@@ -18,14 +21,14 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import (
+    ConsensusAPI,
+    ConsensusContextAPI,
+)
 from eth.typing import (
     HeaderParams,
     VMConfiguration,
     VMFork,
-)
-from eth.vm.chain_context import ChainContext
-from eth.vm.execution_context import (
-    ExecutionContext,
 )
 
 from .constants import (
@@ -34,7 +37,6 @@ from .constants import (
 from .datatypes import (
     Snapshot,
 )
-from .header_cache import HeaderCache
 from .snapshot_manager import SnapshotManager
 from ._utils import (
     get_block_signer,
@@ -65,7 +67,16 @@ def _construct_turn_error_message(expected_difficulty: int,
     )
 
 
-class CliqueConsensus:
+class CliqueConsensusContext(ConsensusContextAPI):
+
+    epoch_length = EPOCH_LENGTH
+
+    def __init__(self, db: AtomicDatabaseAPI):
+        self.db = db
+        self.snapshot_manager = SnapshotManager(ChainDB(db), self.epoch_length)
+
+
+class CliqueConsensus(ConsensusAPI):
     """
     This class is the entry point to operate a chain under the rules of Clique consensus which
     is defined in EIP-225: https://eips.ethereum.org/EIPS/eip-225
@@ -73,55 +84,22 @@ class CliqueConsensus:
 
     logger = logging.getLogger('eth.consensus.clique.CliqueConsensus')
 
-    def __init__(self, base_db: AtomicDatabaseAPI, epoch_length: int = EPOCH_LENGTH) -> None:
-        if base_db is None:
-            raise ValueError("Can not instantiate without `base_db`")
-        self._epoch_length = epoch_length
-        self._chain_db = ChainDB(base_db)
-        self._header_cache = HeaderCache(self._chain_db)
-        self._snapshot_manager = SnapshotManager(
-            self._chain_db,
-            self._header_cache,
-            self._epoch_length,
-        )
+    def __init__(self, context: CliqueConsensusContext) -> None:
+        if context is None:
+            raise ValueError("Can not instantiate without `context`")
+        self._epoch_length = context.epoch_length
+        self._snapshot_manager = context.snapshot_manager
 
-    @to_tuple
-    def amend_vm_configuration(self, config: VMConfiguration) -> Iterable[VMFork]:
+    @classmethod
+    def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
         """
-        Amend the given ``VMConfiguration`` to operate under the rules of Clique consensus.
+        If the ``header`` has a signer, return the signer, otherwise return the ``coinbase``
+        of the passed header.
         """
-        for pair in config:
-            block_number, vm = pair
-            vm_class = vm.configure(
-                extra_data_max_bytes=65535,
-                validate_seal=staticmethod(self.validate_seal),
-                create_execution_context=staticmethod(self.create_execution_context),
-                configure_header=configure_header,
-                _assign_block_rewards=lambda _, __: None,
-            )
-
-            yield block_number, vm_class
-
-    @staticmethod
-    def create_execution_context(header: BlockHeaderAPI,
-                                 prev_hashes: Iterable[Hash32],
-                                 chain_context: ChainContext) -> ExecutionContext:
-
-        # In Clique consensus, the tx fee goes to the signer
         try:
-            coinbase = get_block_signer(header)
+            return get_block_signer(header)
         except ValueError:
-            coinbase = header.coinbase
-
-        return ExecutionContext(
-            coinbase=coinbase,
-            timestamp=header.timestamp,
-            block_number=header.block_number,
-            difficulty=header.difficulty,
-            gas_limit=header.gas_limit,
-            prev_hashes=prev_hashes,
-            chain_id=chain_context.chain_id,
-        )
+            return header.coinbase
 
     def get_snapshot(self, header: BlockHeaderAPI) -> Snapshot:
         """
@@ -131,18 +109,26 @@ class CliqueConsensus:
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         """
+        Only validate the integrity of the header, use `validate_seal_extension` to validate
+        the consensus relevant seal of the header.
+        """
+        validate_header_integrity(header, self._epoch_length)
+
+    def validate_seal_extension(self,
+                                header: BlockHeaderAPI,
+                                parents: Iterable[BlockHeaderAPI]) -> None:
+        """
         Validate the seal of the given ``header`` according to the Clique consensus rules.
         """
+
         if header.block_number == 0:
             return
 
         validate_header_integrity(header, self._epoch_length)
 
-        self._header_cache[header.hash] = header
-
         signer = get_block_signer(header)
         snapshot = self._snapshot_manager.get_or_create_snapshot(
-            header.block_number - 1, header.parent_hash)
+            header.block_number - 1, header.parent_hash, parents)
         in_turn = is_in_turn(signer, snapshot, header)
 
         authorized_signers = snapshot.get_sorted_signers()
@@ -164,4 +150,25 @@ class CliqueConsensus:
                 f"Signer {encode_hex(signer)} not in {authorized_signers}"
             )
 
-        self._header_cache.evict()
+
+class CliqueApplier(VirtualMachineModifierAPI):
+    """
+    This class is used to apply a clique consensus engine to a series of virtual machines
+    """
+
+    @to_tuple
+    def amend_vm_configuration(self, config: VMConfiguration) -> Iterable[VMFork]:
+        """
+        Amend the given ``VMConfiguration`` to operate under the rules of Clique consensus.
+        """
+        for pair in config:
+            block_number, vm = pair
+            vm_class = vm.configure(
+                extra_data_max_bytes=65535,
+                consensus_class=CliqueConsensus,
+                configure_header=configure_header,
+                get_block_reward=staticmethod(int),
+                get_uncle_reward=staticmethod(int),
+            )
+
+            yield block_number, vm_class

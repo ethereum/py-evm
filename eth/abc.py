@@ -17,7 +17,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
-)
+    NamedTuple)
 from uuid import UUID
 
 import rlp
@@ -43,6 +43,7 @@ from eth.typing import (
     JournalDBCheckpoint,
     AccountState,
     HeaderParams,
+    VMConfiguration,
 )
 
 
@@ -333,6 +334,12 @@ class BlockAPI(rlp.Serializable, ABC):
         ...
 
 
+class BlockImportResult(NamedTuple):
+    imported_block: BlockAPI
+    new_canonical_blocks: Tuple[BlockAPI, ...]
+    old_canonical_blocks: Tuple[BlockAPI, ...]
+
+
 class SchemaAPI(ABC):
     """
     A class representing a database schema that maps values to lookup keys.
@@ -396,13 +403,24 @@ class DatabaseAPI(MutableMapping[bytes, bytes], ABC):
         ...
 
 
+class AtomicWriteBatchAPI(DatabaseAPI):
+    """
+    The readable/writeable object returned by an atomic database when we start building
+    a batch of writes to commit.
+
+    Reads to this database will observe writes written during batching,
+    but the writes will not actually persist until this object is committed.
+    """
+    pass
+
+
 class AtomicDatabaseAPI(DatabaseAPI):
     """
     Like ``BatchDB``, but immediately write out changes if they are
     not in an ``atomic_batch()`` context.
     """
     @abstractmethod
-    def atomic_batch(self) -> ContextManager[DatabaseAPI]:
+    def atomic_batch(self) -> ContextManager[AtomicWriteBatchAPI]:
         """
         Return a :class:`~typing.ContextManager` to write an atomic batch to the database.
         """
@@ -2269,6 +2287,59 @@ class StateAPI(ConfigurableAPI):
         ...
 
 
+class ConsensusContextAPI(ABC):
+    """
+    A class representing a data context for the :class:`~eth.abc.ConsensusAPI` which is
+    instantiated once per chain instance and stays in memory across VM runs.
+    """
+
+    @abstractmethod
+    def __init__(self, db: AtomicDatabaseAPI) -> None:
+        """
+        Initialize the context with a database.
+        """
+        ...
+
+
+class ConsensusAPI(ABC):
+    """
+    A class encapsulating the consensus scheme to allow chains to run under different kind of
+    EVM-compatible consensus mechanisms such as the Clique Proof of Authority scheme.
+    """
+
+    @abstractmethod
+    def __init__(self, context: ConsensusContextAPI) -> None:
+        """
+        Initialize the consensus api.
+        """
+        ...
+
+    @abstractmethod
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
+        """
+        Validate the seal on the given header, even if its parent is missing.
+        """
+        ...
+
+    @abstractmethod
+    def validate_seal_extension(self,
+                                header: BlockHeaderAPI,
+                                parents: Iterable[BlockHeaderAPI]) -> None:
+        """
+        Validate the seal on the given header when all parents must be present. Parent headers
+        that are not yet in the database must be passed as ``parents``.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
+        """
+        Return the address that should receive rewards for creating the block.
+        """
+        ...
+
+
 class VirtualMachineAPI(ConfigurableAPI):
     """
     The :class:`~eth.abc.VirtualMachineAPI` class represents the Chain rules for a
@@ -2285,9 +2356,14 @@ class VirtualMachineAPI(ConfigurableAPI):
     fork: str  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
     chaindb: ChainDatabaseAPI
     extra_data_max_bytes: ClassVar[int]
+    consensus_class: Type[ConsensusAPI]
+    consensus_context: ConsensusContextAPI
 
     @abstractmethod
-    def __init__(self, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> None:
+    def __init__(self,
+                 header: BlockHeaderAPI,
+                 chaindb: ChainDatabaseAPI,
+                 consensus_context: ConsensusContextAPI) -> None:
         """
         Initialize the virtual machine.
         """
@@ -2639,11 +2715,9 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @classmethod
     @abstractmethod
-    def validate_header(cls,
+    def validate_header(self,
                         header: BlockHeaderAPI,
-                        parent_header: BlockHeaderAPI,
-                        check_seal: bool = True
-                        ) -> None:
+                        parent_header: BlockHeaderAPI) -> None:
         """
         :raise eth.exceptions.ValidationError: if the header is not valid
         """
@@ -2663,11 +2737,20 @@ class VirtualMachineAPI(ConfigurableAPI):
         """
         ...
 
-    @classmethod
     @abstractmethod
-    def validate_seal(cls, header: BlockHeaderAPI) -> None:
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
         """
         Validate the seal on the given header.
+        """
+        ...
+
+    @abstractmethod
+    def validate_seal_extension(self,
+                                header: BlockHeaderAPI,
+                                parents: Iterable[BlockHeaderAPI]) -> None:
+        """
+        Validate the seal on the given header when all parents must be present. Parent headers
+        that are not yet in the database must be passed as ``parents``.
         """
         ...
 
@@ -2699,6 +2782,20 @@ class VirtualMachineAPI(ConfigurableAPI):
         """
         Return a :class:`~typing.ContextManager` with the current state wrapped in a temporary
         block.
+        """
+        ...
+
+
+class VirtualMachineModifierAPI(ABC):
+    """
+    Amend a set of VMs for a chain. This allows modifying a chain for different consensus schemes.
+    """
+
+    @abstractmethod
+    def amend_vm_configuration(self, vm_config: VMConfiguration) -> VMConfiguration:
+        """
+        Amend the ``vm_config`` by configuring the VM classes, and hence returning a modified
+        set of VM classes.
         """
         ...
 
@@ -2814,6 +2911,7 @@ class ChainAPI(ConfigurableAPI):
     vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...]
     chain_id: int
     chaindb: ChainDatabaseAPI
+    consensus_context_class: Type[ConsensusContextAPI]
 
     #
     # Helpers
@@ -3101,7 +3199,7 @@ class ChainAPI(ConfigurableAPI):
     def import_block(self,
                      block: BlockAPI,
                      perform_validation: bool=True,
-                     ) -> Tuple[BlockAPI, Tuple[BlockAPI, ...], Tuple[BlockAPI, ...]]:
+                     ) -> BlockImportResult:
         """
         Import the given ``block`` and return a 3-tuple
 
@@ -3155,10 +3253,9 @@ class ChainAPI(ConfigurableAPI):
         """
         ...
 
-    @classmethod
     @abstractmethod
     def validate_chain(
-            cls,
+            self,
             root: BlockHeaderAPI,
             descendants: Tuple[BlockHeaderAPI, ...],
             seal_check_random_sample_rate: int = 1) -> None:
@@ -3168,6 +3265,17 @@ class ChainAPI(ConfigurableAPI):
         By default, check the seal validity (Proof-of-Work on Ethereum 1.x mainnet) of all headers.
         This can be expensive. Instead, check a random sample of seals using
         seal_check_random_sample_rate.
+        """
+        ...
+
+    @abstractmethod
+    def validate_chain_extension(self, headers: Tuple[BlockHeaderAPI, ...]) -> None:
+        """
+        Validate a chain of headers under the assumption that the entire chain of headers is
+        present. Headers that are not already in the database must exist in ``headers``. Calling
+        this API is not a replacement for calling :meth:`~eth.abc.ChainAPI.validate_chain`, it is
+        an additional API to call at a different stage of header processing to enable consensus
+        schemes where the consensus can not be verified out of order.
         """
         ...
 

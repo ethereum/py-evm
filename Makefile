@@ -39,7 +39,6 @@ coverage:
 	open htmlcov/index.html
 
 build-docs:
-	pip install -e .[doc]
 	cd docs/; sphinx-build -W -T -E . _build/html
 
 doctest:
