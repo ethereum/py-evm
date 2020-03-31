@@ -8,6 +8,7 @@ from typing import (
     ClassVar,
     ContextManager,
     Dict,
+    FrozenSet,
     Iterable,
     Iterator,
     MutableMapping,
@@ -334,10 +335,53 @@ class BlockAPI(rlp.Serializable, ABC):
         ...
 
 
+class MetaWitnessAPI(ABC):
+    @property
+    @abstractmethod
+    def hashes(self) -> FrozenSet[Hash32]:
+        ...
+
+    @property
+    @abstractmethod
+    def accounts_queried(self) -> FrozenSet[Address]:
+        ...
+
+    @property
+    @abstractmethod
+    def account_bytecodes_queried(self) -> FrozenSet[Address]:
+        ...
+
+    @abstractmethod
+    def get_slots_queried(self, address: Address) -> FrozenSet[int]:
+        ...
+
+    @property
+    @abstractmethod
+    def total_slots_queried(self) -> int:
+        """
+        Summed across all accounts, how many storage slots were queried?
+        """
+        ...
+
+
+class BlockAndMetaWitness(NamedTuple):
+    """
+    After evaluating a block using the VirtualMachine, this information
+    becomes available.
+    """
+    block: BlockAPI
+    meta_witness: MetaWitnessAPI
+
+
 class BlockImportResult(NamedTuple):
+    """
+    After importing and persisting a block into the active chain, this information
+    becomes available.
+    """
     imported_block: BlockAPI
     new_canonical_blocks: Tuple[BlockAPI, ...]
     old_canonical_blocks: Tuple[BlockAPI, ...]
+    meta_witness: MetaWitnessAPI
 
 
 class SchemaAPI(ABC):
@@ -1631,6 +1675,13 @@ class AccountStorageDatabaseAPI(ABC):
         """
         ...
 
+    @abstractmethod
+    def get_accessed_slots(self) -> FrozenSet[int]:
+        """
+        List all the slots that had been accessed since object creation.
+        """
+        ...
+
 
 class AccountDatabaseAPI(ABC):
     """
@@ -1835,7 +1886,7 @@ class AccountDatabaseAPI(ABC):
         ...
 
     @abstractmethod
-    def persist(self) -> None:
+    def persist(self) -> MetaWitnessAPI:
         """
         Send changes to underlying database, including the trie state
         so that it will forever be possible to read the trie from this checkpoint.
@@ -2192,7 +2243,7 @@ class StateAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def persist(self) -> None:
+    def persist(self) -> MetaWitnessAPI:
         """
         Persist the current state to the database.
         """
@@ -2490,14 +2541,14 @@ class VirtualMachineAPI(ConfigurableAPI):
     # Mining
     #
     @abstractmethod
-    def import_block(self, block: BlockAPI) -> BlockAPI:
+    def import_block(self, block: BlockAPI) -> BlockAndMetaWitness:
         """
         Import the given block to the chain.
         """
         ...
 
     @abstractmethod
-    def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
+    def mine_block(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
         """
         Mine the current block. Proxies to self.pack_block method.
         """
@@ -2518,7 +2569,7 @@ class VirtualMachineAPI(ConfigurableAPI):
     # Finalization
     #
     @abstractmethod
-    def finalize_block(self, block: BlockAPI) -> BlockAPI:
+    def finalize_block(self, block: BlockAPI) -> BlockAndMetaWitness:
         """
         Perform any finalization steps like awarding the block mining reward,
         and persisting the final state root.
@@ -3310,5 +3361,13 @@ class MiningChainAPI(ChainAPI):
         """
         Mines the current block. Proxies to the current Virtual Machine.
         See VM. :meth:`~eth.vm.base.VM.mine_block`
+        """
+        ...
+
+    @abstractmethod
+    def mine_block_extended(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
+        """
+        Just like :meth:`~mine_block`, but includes extra returned info. Currently,
+        the only extra info returned is the :class:`MetaWitness`.
         """
         ...

@@ -39,9 +39,11 @@ from eth._utils.rlp import (
 )
 from eth.abc import (
     BlockAPI,
+    BlockAndMetaWitness,
     MiningChainAPI,
     AtomicDatabaseAPI,
     BlockHeaderAPI,
+    BlockImportResult,
     ChainAPI,
     ChainDatabaseAPI,
     ConsensusContextAPI,
@@ -51,7 +53,6 @@ from eth.abc import (
     StateAPI,
     SignedTransactionAPI,
     UnsignedTransactionAPI,
-    BlockImportResult
 )
 from eth.consensus import (
     ConsensusContext,
@@ -467,7 +468,8 @@ class Chain(BaseChain):
             )
 
         base_header_for_import = self.create_header_from_parent(parent_header)
-        imported_block = self.get_vm(base_header_for_import).import_block(block)
+        block_result = self.get_vm(base_header_for_import).import_block(block)
+        imported_block = block_result.block
 
         # Validate the imported block.
         if perform_validation:
@@ -503,7 +505,8 @@ class Chain(BaseChain):
         return BlockImportResult(
             imported_block=imported_block,
             new_canonical_blocks=new_canonical_blocks,
-            old_canonical_blocks=old_canonical_blocks
+            old_canonical_blocks=old_canonical_blocks,
+            meta_witness=block_result.meta_witness,
         )
 
     #
@@ -662,13 +665,17 @@ class MiningChain(Chain, MiningChainAPI):
         return result
 
     def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
-        mined_block = self.get_vm(self.header).mine_block(*args, **kwargs)
+        return self.mine_block_extended(*args, **kwargs).block
+
+    def mine_block_extended(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
+        mine_result = self.get_vm(self.header).mine_block(*args, **kwargs)
+        mined_block = mine_result.block
 
         self.validate_block(mined_block)
 
         self.chaindb.persist_block(mined_block)
         self.header = self.create_header_from_parent(mined_block.header)
-        return mined_block
+        return mine_result
 
     def get_vm(self, at_header: BlockHeaderAPI = None) -> VirtualMachineAPI:
         if at_header is None:

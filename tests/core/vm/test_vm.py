@@ -95,7 +95,7 @@ def test_import_block(chain, funded_address, funded_address_private_key):
 
     # import the built block
     validation_vm = chain.get_vm(pending_header)
-    block = validation_vm.import_block(new_block)
+    block, _ = validation_vm.import_block(new_block)
     assert block.transactions == (tx, )
 
 

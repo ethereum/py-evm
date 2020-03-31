@@ -219,7 +219,8 @@ def apply_fixture_block_to_chain(
 
     block = rlp.decode(block_fixture['rlp'], sedes=block_class)
 
-    mined_block, _, _ = chain.import_block(block, perform_validation=perform_validation)
+    import_result = chain.import_block(block, perform_validation=perform_validation)
+    mined_block = import_result.imported_block
 
     rlp_encoded_mined_block = rlp.encode(mined_block, sedes=block_class)
 

@@ -27,6 +27,7 @@ from eth.abc import (
     StateAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
+    MetaWitnessAPI,
 )
 from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
@@ -178,8 +179,8 @@ class BaseState(Configurable, StateAPI):
     def lock_changes(self) -> None:
         self._account_db.lock_changes()
 
-    def persist(self) -> None:
-        self._account_db.persist()
+    def persist(self) -> MetaWitnessAPI:
+        return self._account_db.persist()
 
     #
     # Access self.prev_hashes (Read-only)

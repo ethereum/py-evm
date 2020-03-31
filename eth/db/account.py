@@ -1,5 +1,6 @@
 from lru import LRU
 from typing import (
+    cast,
     Dict,
     Iterable,
     Set,
@@ -16,6 +17,7 @@ from eth_utils import (
     encode_hex,
     get_extended_debug_logger,
     to_checksum_address,
+    to_dict,
     to_tuple,
     ValidationError,
 )
@@ -30,10 +32,15 @@ from eth.abc import (
     AccountStorageDatabaseAPI,
     AtomicDatabaseAPI,
     DatabaseAPI,
+    MetaWitnessAPI,
 )
 from eth.constants import (
     BLANK_ROOT_HASH,
     EMPTY_SHA3,
+)
+from eth.db.accesslog import (
+    KeyAccessLoggerAtomicDB,
+    KeyAccessLoggerDB,
 )
 from eth.db.batch import (
     BatchDB,
@@ -49,6 +56,10 @@ from eth.db.journal import (
 )
 from eth.db.storage import (
     AccountStorageDB,
+)
+from eth.db.witness import (
+    AccountQueryTracker,
+    MetaWitness,
 )
 from eth.typing import (
     JournalDBCheckpoint,
@@ -110,17 +121,20 @@ class AccountDB(AccountDatabaseAPI):
         AccountDB synchronizes the snapshot/revert/persist of both of the
         journals.
         """
-        self._raw_store_db = db
-        self._batchdb = BatchDB(db)
-        self._batchtrie = BatchDB(db, read_through_deletes=True)
+        self._raw_store_db = KeyAccessLoggerAtomicDB(db, log_missing_keys=False)
+        self._batchdb = BatchDB(self._raw_store_db)
+        self._batchtrie = BatchDB(self._raw_store_db, read_through_deletes=True)
         self._journaldb = JournalDB(self._batchdb)
         self._trie = HashTrie(HexaryTrie(self._batchtrie, state_root, prune=True))
-        self._trie_cache = CacheDB(self._trie)
+        self._trie_logger = KeyAccessLoggerDB(self._trie, log_missing_keys=False)
+        self._trie_cache = CacheDB(self._trie_logger)
         self._journaltrie = JournalDB(self._trie_cache)
         self._account_cache = LRU(2048)
         self._account_stores: Dict[Address, AccountStorageDatabaseAPI] = {}
         self._dirty_accounts: Set[Address] = set()
         self._root_hash_at_last_persist = state_root
+        self._accessed_accounts: Set[Address] = set()
+        self._accessed_bytecodes: Set[Address] = set()
 
     @property
     def state_root(self) -> Hash32:
@@ -258,6 +272,9 @@ class AccountDB(AccountDatabaseAPI):
                 return self._journaldb[code_hash]
             except KeyError:
                 raise MissingBytecode(code_hash) from KeyError
+            finally:
+                if code_hash in self._get_accessed_node_hashes():
+                    self._accessed_bytecodes.add(address)
 
     def set_code(self, address: Address, code: bytes) -> None:
         validate_canonical_address(address, title="Storage Address")
@@ -317,6 +334,7 @@ class AccountDB(AccountDatabaseAPI):
     # Internal
     #
     def _get_encoded_account(self, address: Address, from_journal: bool=True) -> bytes:
+        self._accessed_accounts.add(address)
         lookup_trie = self._journaltrie if from_journal else self._trie_cache
 
         try:
@@ -390,17 +408,18 @@ class AccountDB(AccountDatabaseAPI):
         self._journaldb.persist()
 
         diff = self._journaltrie.diff()
-        # In addition to squashing (which is redundant here), this context manager causes
-        # an atomic commit of the changes, so exceptions will revert the trie
-        with self._trie.squash_changes() as memory_trie:
-            self._apply_account_diff_without_proof(diff, memory_trie)
+        if diff.deleted_keys() or diff.pending_items():
+            # In addition to squashing (which is redundant here), this context manager causes
+            # an atomic commit of the changes, so exceptions will revert the trie
+            with self._trie.squash_changes() as memory_trie:
+                self._apply_account_diff_without_proof(diff, memory_trie)
 
         self._journaltrie.reset()
         self._trie_cache.reset_cache()
 
         return self.state_root
 
-    def persist(self) -> None:
+    def persist(self) -> MetaWitnessAPI:
         self.make_state_root()
 
         # persist storage
@@ -422,9 +441,18 @@ class AccountDB(AccountDatabaseAPI):
                     f"is missing for hash 0x{new_root.hex()}."
                 )
 
+        # generate witness (copy) before clearing the underlying data
+        meta_witness = self._get_meta_witness()
+
         # reset local storage trackers
         self._account_stores = {}
         self._dirty_accounts = set()
+        self._accessed_accounts = set()
+        self._accessed_bytecodes = set()
+        # We have to clear the account cache here so that future account accesses
+        #   will get added to _accessed_accounts correctly. Account accesses that
+        #   are cached do not add the address to the list of accessed accounts.
+        self._account_cache.clear()
 
         # persist accounts
         self._validate_generated_root()
@@ -434,6 +462,33 @@ class AccountDB(AccountDatabaseAPI):
             self._batchtrie.commit_to(write_batch, apply_deletes=False)
             self._batchdb.commit_to(write_batch, apply_deletes=False)
         self._root_hash_at_last_persist = new_root_hash
+
+        return meta_witness
+
+    def _get_accessed_node_hashes(self) -> Set[Hash32]:
+        return cast(Set[Hash32], self._raw_store_db.keys_read)
+
+    @to_dict
+    def _get_access_list(self) -> Iterable[Tuple[Address, AccountQueryTracker]]:
+        """
+        Get the list of addresses that were accessed, whether the bytecode was accessed, and
+        which storage slots were accessed.
+        """
+        for address in self._accessed_accounts:
+            did_access_bytecode = address in self._accessed_bytecodes
+            if address in self._account_stores:
+                accessed_storage_slots = self._account_stores[address].get_accessed_slots()
+            else:
+                accessed_storage_slots = frozenset()
+            yield address, AccountQueryTracker(did_access_bytecode, accessed_storage_slots)
+
+    def _get_meta_witness(self) -> MetaWitness:
+        """
+        Get a variety of metadata about the state witness needed to execute the block.
+
+        This creates a copy, so that underlying changes do not affect the returned MetaWitness.
+        """
+        return MetaWitness(self._get_accessed_node_hashes(), self._get_access_list())
 
     def _validate_generated_root(self) -> None:
         db_diff = self._journaldb.diff()
@@ -448,6 +503,10 @@ class AccountDB(AccountDatabaseAPI):
             )
 
     def _log_pending_accounts(self) -> None:
+        # This entire method is about debug2 logging, so skip it if debug2 is disabled
+        if not self.logger.show_debug2:
+            return
+
         diff = self._journaltrie.diff()
         for address in sorted(diff.pending_keys()):
             account = self._get_account(Address(address))
@@ -460,6 +519,8 @@ class AccountDB(AccountDatabaseAPI):
                 encode_hex(account.code_hash),
             )
         for deleted_address in sorted(diff.deleted_keys()):
+            # Check if the account was accessed before accessing/logging info about the address
+            was_account_accessed = deleted_address in self._accessed_accounts
             cast_deleted_address = Address(deleted_address)
             self.logger.debug2(
                 "Deleted Account %s, empty? %s, exists? %s",
@@ -467,6 +528,9 @@ class AccountDB(AccountDatabaseAPI):
                 self.account_is_empty(cast_deleted_address),
                 self.account_exists(cast_deleted_address),
             )
+            # If the account was not accessed previous to the log, (re)mark it as not accessed
+            if not was_account_accessed:
+                self._accessed_accounts.remove(cast_deleted_address)
 
     def _apply_account_diff_without_proof(self, diff: DBDiff, trie: DatabaseAPI) -> None:
         """
