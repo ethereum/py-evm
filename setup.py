@@ -36,7 +36,7 @@ deps = {
         "pytest-asyncio>=0.10.0,<0.11",
         "pytest-cov==2.5.1",
         "pytest-watch>=4.1.0,<5",
-        "pytest-xdist==1.18.1",
+        "pytest-xdist==1.31.0",
     ],
     'lint': [
         "flake8==3.5.0",
