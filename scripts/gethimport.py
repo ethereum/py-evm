@@ -13,6 +13,7 @@ import snappy
 import struct
 import time
 import random
+from typing import Tuple, Iterable, List, Type, Dict
 
 import plyvel
 
@@ -32,6 +33,26 @@ from eth.db.trie_iteration import iterate_leaves
 
 from trie.utils.nibbles import nibbles_to_bytes
 
+from eth.abc import HeaderDatabaseAPI, ChainDatabaseAPI, BlockHeaderAPI, ReceiptAPI
+from eth.db.header import HeaderDB
+from eth.db.chain import ChainDB
+
+from eth.vm.chain_context import ChainContext
+from eth.chains.mainnet.constants import MAINNET_CHAIN_ID
+
+from eth.consensus import ConsensusContext
+
+from eth_typing import BlockNumber, Hash32
+
+from eth.db.batch import BatchDB
+from eth.db.atomic import AtomicDB
+
+from eth._utils.rlp import (
+    validate_imported_block_unchanged,
+)
+
+from eth.db.backends.memory import MemoryDB
+
 
 logger = logging.getLogger('importer')
 
@@ -44,6 +65,7 @@ class GethKeys:
     headerPrefix = b'h'
     headerNumberPrefix = b'H'
     headerHashSuffix = b'n'
+    headerTDSuffix = b't'
 
     blockBodyPrefix = b'b'
     blockReceiptsPrefix = b'r'
@@ -53,6 +75,12 @@ class GethKeys:
         "The key to get the hash of the header with the given block number"
         packed_block_number = struct.pack('>Q', block_number)
         return cls.headerPrefix + packed_block_number + cls.headerHashSuffix
+
+    @classmethod
+    def header_difficulty_for_block_number(cls, block_number: int) -> bytes:
+        "The key to get the hash of the header with the given block number"
+        packed_block_number = struct.pack('>Q', block_number)
+        return cls.headerPrefix + packed_block_number + cls.headerTDSuffix
 
     @classmethod
     def block_number_for_header_hash(cls, header_hash: bytes) -> bytes:
@@ -190,6 +218,7 @@ class GethDatabase:
         self.ancient_headers = GethFreezerTable(ancient_path, 'headers', True)
         self.ancient_bodies = GethFreezerTable(ancient_path, 'bodies', True)
         self.ancient_receipts = GethFreezerTable(ancient_path, 'receipts', True)
+        self.ancient_difficulties = GethFreezerTable(ancient_path, 'diffs', False)
 
         if self.database_version != b'\x07':
             raise Exception(f'geth database version {self.database_version} is not supported')
@@ -205,6 +234,8 @@ class GethDatabase:
 
     def block_num_for_hash(self, header_hash: bytes) -> int:
         raw_num = self.db.get(GethKeys.block_number_for_header_hash(header_hash))
+        if raw_num is None:
+            raise Exception(f"could not find block with given header hash: 0x{header_hash.hex()}")
         return struct.unpack('>Q', raw_num)[0]
 
     def block_header(self, block_number: int, header_hash: bytes = None) -> BlockHeader:
@@ -219,13 +250,20 @@ class GethDatabase:
         return rlp.decode(raw_data, sedes=BlockHeader)
 
     def header_hash_for_block_number(self, block_number: int) -> bytes:
-        # This needs to check the ancient db (freezerHashTable)
         result = self.db.get(GethKeys.header_hash_for_block_number(block_number))
 
         if result is not None:
             return result
 
         return self.ancient_hashes.get(block_number)
+
+    def header_td_for_block_number(self, block_number: int) -> bytes:
+        result = self.db.get(GethKeys.header_difficulty_for_block_number(block_number))
+
+        if result is not None:
+            return result
+
+        return self.ancient_difficulties.get(block_number)
 
     def block_body(self, block_number: int, header_hash: bytes = None):
         if header_hash is None:
@@ -249,6 +287,210 @@ class GethDatabase:
         raw_data = self.ancient_receipts.get(block_number)
         return raw_data
 
+class GethHeaderDB(HeaderDatabaseAPI):
+    """
+    An implemention of HeaderDB which can read from Geth's database format
+    """
+
+    def __init__(self, geth: GethDatabase) -> None:
+        self.geth = geth
+
+    ### Canonical Chain API
+
+    def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
+        # https://github.com/ethereum/go-ethereum/blob/v1.8.27/core/rawdb/schema.go#L91
+
+        return cast(Hash32, self.geth.header_hash_for_block_number(block_number))
+
+    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeader:
+        return self.geth.block_header(block_number)
+
+    def get_canonical_head(self) -> BlockHeader:
+        geth_last_block_hash = self.geth.last_block_hash
+        geth_last_block_num = self.geth.block_num_for_hash(geth_last_block_hash)
+        return self.get_canonical_block_header_by_number(geth_last_block_num)
+
+    ### Header API
+
+    def get_block_header_by_hash(self, block_hash: Hash32) -> BlockHeader:
+        block_num = self.geth.block_num_for_hash(block_hash)
+        return self.geth.block_header(block_num, block_hash)
+
+    def get_score(self, block_hash: Hash32) -> int:
+        block_num = self.geth.block_num_for_hash(block_hash)
+        return self.geth.header_td_for_block_number(block_num)
+
+    def header_exists(self, block_hash: Hash32) -> bool:
+        raise NotImplementedError("Hope I don't need this")
+
+    def persist_checkpoint_header(self, header: BlockHeaderAPI, score: int):
+        raise NotImplementedError("Writing to Geth databases is not supported")
+
+    def persist_header(self,
+                       header: BlockHeader
+                       ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+        raise NotImplementedError("Writing to Geth databases is not supported")
+
+    def persist_header_chain(self,
+                             headers: Iterable[BlockHeader]
+                             ) -> Tuple[Tuple[BlockHeader, ...], Tuple[BlockHeader, ...]]:
+        raise NotImplementedError("Writing to Geth databases is not supported")
+
+
+class WrapperDB:
+    def __init__(self, db):
+        self.db = db
+
+    def __getitem__(self, key: bytes) -> bytes:
+        v = self.db.get(key)
+        if v is None:
+            raise KeyError(key)
+        return v
+
+    def __setitem__(self, key: bytes, value: bytes) -> None:
+        raise NotImplementedError("sorry")
+
+    def __delitem__(self, key: bytes) -> None:
+        raise NotImplementedError("sorry")
+
+
+class GethChainDB(GethHeaderDB, ChainDatabaseAPI):
+    """
+    An implementation of ChainDB which can read from Geth's database format
+    """
+
+    def __init__(self, geth: GethDatabase) -> None:
+        self.geth = geth
+        self.db = AtomicDB(
+            BatchDB(wrapped_db=WrapperDB(geth.db))  # prevent writes from being committed
+        )
+
+    def _get_block_body(self, block_hash: Hash32) -> BlockBody:
+        block_num = self.geth.block_num_for_hash(block_hash)
+        return self.geth.block_body(block_num, block_hash)
+
+    def _get_block_transactions(self,
+                                block_header: BlockHeader) -> Iterable['BaseTransaction']:
+        body = self._get_block_body(block_hash)
+        return body.transactions
+
+    ### Header API
+
+    def get_block_uncles(self, uncles_hash: Hash32) -> List[BlockHeader]:
+        body = self._get_block_body(uncles_hash)
+        return list(body.uncles)  # (it's naturally a tuple)
+
+    ### Block API
+
+    def persist_block(self,
+                      block: 'BaseBlock'
+                      ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
+        raise NotImplementedError("Writing to Geth databases is not supported")
+
+    def persist_uncles(self, uncles: Tuple[BlockHeader]) -> Hash32:
+        raise NotImplementedError("Writing to Geth databases is not supported")
+
+    ### Transaction API
+
+    def add_receipt(self,
+                    block_header: BlockHeader,
+                    index_key: int, receipt: ReceiptAPI) -> Hash32:
+        raise NotImplementedError("Writing to Geth databases is not supported")
+
+    def add_transaction(self,
+                        block_header: BlockHeader,
+                        index_key: int, transaction: 'BaseTransaction') -> Hash32:
+        raise NotImplementedError("Writing to Geth databases is not supported")
+
+    def get_block_transactions(
+            self,
+            block_header: BlockHeader,
+            transaction_class: Type['BaseTransaction']) -> Iterable['BaseTransaction']:
+        # This is sometimes called with a fake header with an invalid hash...
+
+        body = self._get_block_body(block_header.hash)
+
+        encoded = [rlp.encode(txn) for txn in body.transactions]
+        decoded = [rlp.decode(txn, sedes=transaction_class) for txn in encoded]
+
+        return decoded
+
+    def get_block_transaction_hashes(self, block_header: BlockHeader) -> Iterable[Hash32]:
+        body = self._get_block_body(block_header.hash)
+        return [txn.hash for txn in body.transactions]
+
+    def get_receipt_by_index(self,
+                             block_number: BlockNumber,
+                             receipt_index: int) -> ReceiptAPI:
+        raise NotImplementedError("ChainDB classes must implement this method")
+        receipts = self.geth.block_receipts(block_number)
+        decoded = rlp.decode(receipts)
+        return decoded[receipt_index]
+
+    def get_receipts(self,
+                     header: BlockHeader,
+                     receipt_class: Type[ReceiptAPI]) -> Iterable[ReceiptAPI]:
+        receipts = self.geth.block_receipts(block_number)
+        return rlp.decode(receipts)
+        # https://github.com/ethereum/go-ethereum/blob/v1.8.27/core/rawdb/schema.go#L51
+
+        # geth stores receipts with a custom RLP:
+
+        # type receiptStorageRLP struct {
+        #	PostStateOrStatus []byte
+        #   CumulativeGasUsed uint64
+        #   TxHash            common.Hash
+        #   ContractAddress   common.Address
+        #   Logs              []*LogForStorage
+        #   GasUsed           uint64
+        # }
+
+        # TODO: implement receipts
+
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+    def get_transaction_by_index(
+            self,
+            block_number: BlockNumber,
+            transaction_index: int,
+            transaction_class: Type['BaseTransaction']) -> 'BaseTransaction':
+
+        block_header = self.get_canonical_block_header_by_number(block_number)
+        txns = self.get_block_transactions(block_header, transaction_class)
+        return txns[transaction_index]
+
+    def get_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
+        # https://github.com/ethereum/go-ethereum/blob/v1.8.27/core/rawdb/schema.go#L53
+
+        raise NotImplementedError("ChainDB classes must implement this method")
+
+        block_hash = self.db.get(self.TX_LOOKUP_PREFIX + transaction_hash)
+        # https://github.com/ethereum/go-ethereum/blob/f9aa1cd21f776a4d3267d9c89772bdc622468d6d/core/rawdb/accessors_indexes.go#L36
+        # there was also a legacy thing which went here
+        assert len(block_hash) == 32
+
+        encoded_block_num = self._number_for_block(block_hash)
+        block_num = self._decode_block_number(encoded_block_num)
+
+        body = self._get_block_body(block_hash)
+        for index, transaction in enumerate(body.transactions):
+            if transaction.hash == transaction_hash:
+                return block_num, index
+        raise Exception('could not find transaction')
+
+    ### Raw Database API
+
+    def exists(self, key: bytes) -> bool:
+        return self.db.exists(key)
+
+    def get(self, key: bytes) -> bytes:
+        return self.db[key]
+
+    def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
+        # write to self.db, which never commits to the real database
+        with self.db.atomic_batch() as db:
+            for key, value in trie_data_dict.items():
+                db[key] = value
 
 class ImportDatabase:
     "Creates a 'ChainDB' which can be passed to the trie_iteration utils"
@@ -453,20 +695,62 @@ def process_blocks(gethdb, chain, end_block):
 
     start_block = max(canonical_head.block_number, 1)
     for i in range(start_block, end_block + 1):
-        header_hash = gethdb.header_hash_for_block_number(i)
-        header = gethdb.block_header(i, header_hash)
-        vm_class = chain.get_vm_class(header)
-        block_class = vm_class.get_block_class()
-        transaction_class = vm_class.get_transaction_class()
+        import_block(gethdb, chain, i)
 
-        body = gethdb.block_body(i)
-        transactions = [
-            transaction_class.from_base_transaction(txn) for txn in body.transactions
-        ]
-        block = block_class(header, transactions, body.uncles)
-        imported_block, _, _ = chain.import_block(block, perform_validation=True)
-        logger.debug(f'imported block: {imported_block}')
+def import_block(gethdb, i):
+    logger.debug(f'importing block: {i}')
 
+    chaindb = GethChainDB(gethdb)
+    chain = MainnetChain.from_genesis_header(chaindb.db, MAINNET_GENESIS_HEADER)
+
+    # chain builds its own ChainDB, force it to use our GethChainDB
+    chain.chaindb = chaindb
+    chain.headerdb = chaindb
+
+    header_hash = gethdb.header_hash_for_block_number(i)
+    header = gethdb.block_header(i, header_hash)
+
+    vm_class = chain.get_vm_class(header)
+    block_class = vm_class.get_block_class()
+    transaction_class = vm_class.get_transaction_class()
+
+    body = gethdb.block_body(i)
+    transactions = [
+        transaction_class.from_base_transaction(txn) for txn in body.transactions
+    ]
+    block = block_class(header, transactions, body.uncles)
+
+    parent_header = gethdb.block_header(i-1, header.parent_hash)
+    base_header_for_import = vm_class.create_header_from_parent(parent_header)
+
+    vm = vm_class(
+        header=header,
+        chaindb=chaindb,
+        chain_context=ChainContext(MAINNET_CHAIN_ID),
+        consensus_context=ConsensusContext(gethdb.db)
+    )
+
+    """
+    - vm.import_block() first calls vm.get_block()
+    - vm.get_block() creates a block from the provided header
+      - creating a block requires reading its transactions out of the database
+      - this fails with the GethDB, because transactions are looked up by header hash
+      - base_header_for_import is completely fake and that hash does not exist in the db
+      - py-evm has no problem with this because it looks transactions up by the trie hash
+    - the better solution is to change how BaseVM works, but this is good enough for now
+    """
+    vm.get_block()
+    vm._initial_header = base_header_for_import
+    vm._block = vm._block.copy(
+        header = base_header_for_import
+    )
+
+    imported_block = vm.import_block(block)
+
+    validate_imported_block_unchanged(imported_block, block)
+    chain.validate_block(imported_block)
+
+    logger.debug(f'imported block: {imported_block}')
 
 def read_receipts(gethdb, block_number):
     logger.info(f'reading receipts for block. block_number={block_number}')
@@ -640,6 +924,12 @@ if __name__ == "__main__":
     )
     scan_bodies_parser.add_argument('-gethdb', type=str, required=True)
 
+    import_block_parser = subparsers.add_parser(
+        "import_block"
+    )
+    import_block_parser.add_argument('-gethdb', type=str, required=True)
+    import_block_parser.add_argument('-block', type=int, required=True)
+
     args = parser.parse_args()
 
     if args.command == 'import_body_range':
@@ -672,5 +962,8 @@ if __name__ == "__main__":
     elif args.command == 'scan_bodies':
         gethdb = open_gethdb(args.gethdb)
         scan_bodies(gethdb)
+    elif args.command == 'import_block':
+        gethdb = open_gethdb(args.gethdb)
+        import_block(gethdb, args.block)
     else:
         logger.error(f'unrecognized command. command={args.command}')
