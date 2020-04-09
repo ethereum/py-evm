@@ -27,11 +27,13 @@ CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bd
 
 
 class DummyComputation(BaseComputation):
-    def apply_message(self):
-        return self
+    @classmethod
+    def apply_message(cls, *args):
+        return cls(*args)
 
-    def apply_create_message(self):
-        return self
+    @classmethod
+    def apply_create_message(cls, *args):
+        return cls(*args)
 
 
 class DummyTransactionContext(BaseTransactionContext):

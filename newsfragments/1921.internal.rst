@@ -1,0 +1,5 @@
+Fix for creating a duplicate "ghost" Computation that was never used. It didn't
+break anything, but was ineligant and surprising to get extra objects created
+that were mostly useless. This was achieved by changing
+:meth:`ComputationAPI.apply_message` and
+:meth:`ComputationAPI.apply_create_message` to be class methods.

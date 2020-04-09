@@ -8,7 +8,12 @@ from eth_utils import (
     encode_hex,
 )
 
-from eth.abc import ComputationAPI
+from eth.abc import (
+    ComputationAPI,
+    MessageAPI,
+    StateAPI,
+    TransactionContextAPI,
+)
 from eth.vm.forks.frontier.computation import (
     FrontierComputation,
 )
@@ -24,13 +29,18 @@ class HomesteadComputation(FrontierComputation):
     # Override
     opcodes = HOMESTEAD_OPCODES
 
-    def apply_create_message(self) -> ComputationAPI:
-        snapshot = self.state.snapshot()
+    @classmethod
+    def apply_create_message(
+            cls,
+            state: StateAPI,
+            message: MessageAPI,
+            transaction_context: TransactionContextAPI) -> ComputationAPI:
+        snapshot = state.snapshot()
 
-        computation = self.apply_message()
+        computation = cls.apply_message(state, message, transaction_context)
 
         if computation.is_error:
-            self.state.revert(snapshot)
+            state.revert(snapshot)
             return computation
         else:
             contract_code = computation.output
@@ -46,18 +56,18 @@ class HomesteadComputation(FrontierComputation):
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
                     computation.error = err
-                    self.state.revert(snapshot)
+                    state.revert(snapshot)
                 else:
-                    if self.logger:
-                        self.logger.debug2(
+                    if cls.logger:
+                        cls.logger.debug2(
                             "SETTING CODE: %s -> length: %s | hash: %s",
-                            encode_hex(self.msg.storage_address),
+                            encode_hex(message.storage_address),
                             len(contract_code),
                             encode_hex(keccak(contract_code))
                         )
 
-                    self.state.set_code(self.msg.storage_address, contract_code)
-                    self.state.commit(snapshot)
+                    state.set_code(message.storage_address, contract_code)
+                    state.commit(snapshot)
             else:
-                self.state.commit(snapshot)
+                state.commit(snapshot)
             return computation

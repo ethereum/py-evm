@@ -87,18 +87,18 @@ def fixture(fixture_data):
 #
 # Testing Overrides
 #
-def apply_message_for_testing(self):
+def apply_message_for_testing(cls, *args):
     """
     For VM tests, we don't actually apply messages.
     """
-    return self
+    return cls(*args)
 
 
-def apply_create_message_for_testing(self):
+def apply_create_message_for_testing(cls, *args):
     """
     For VM tests, we don't actually apply messages.
     """
-    return self
+    return cls(*args)
 
 
 def get_block_hash_for_testing(self, block_number):

@@ -1542,17 +1542,28 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     #
     # State Transition
     #
+    @classmethod
     @abstractmethod
-    def apply_message(self) -> 'ComputationAPI':
+    def apply_message(
+            cls,
+            state: 'StateAPI',
+            message: MessageAPI,
+            transaction_context: TransactionContextAPI) -> 'ComputationAPI':
         """
-        Execution of a VM message.
+        Execute a VM message. This is where the VM-specific call logic exists.
         """
         ...
 
+    @classmethod
     @abstractmethod
-    def apply_create_message(self) -> 'ComputationAPI':
+    def apply_create_message(
+            cls,
+            state: 'StateAPI',
+            message: MessageAPI,
+            transaction_context: TransactionContextAPI) -> 'ComputationAPI':
         """
-        Execution of a VM message to create a new contract.
+        Execute a VM message to create a new contract. This is where the VM-specific
+        create logic exists.
         """
         ...
 
@@ -1563,7 +1574,14 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
                           message: MessageAPI,
                           transaction_context: TransactionContextAPI) -> 'ComputationAPI':
         """
-        Perform the computation that would be triggered by the VM message.
+        Execute the logic within the message: Either run the precompile, or
+        step through each opcode.  Generally, the only VM-specific logic is for
+        each opcode as it executes.
+
+        This should rarely be called directly, because it will skip over other important
+        VM-specific logic that happens before or after the execution.
+
+        Instead, prefer :meth:`~apply_message` or :meth:`~apply_create_message`.
         """
         ...
 
@@ -2499,7 +2517,17 @@ class VirtualMachineAPI(ConfigurableAPI):
                          code_address: Address = None) -> ComputationAPI:
         """
         Execute raw bytecode in the context of the current state of
-        the virtual machine.
+        the virtual machine. Note that this skips over some of the logic
+        that would normally happen during a call. Watch out for:
+
+            - value (ether) is *not* transferred
+            - state is *not* rolled back in case of an error
+            - The target account is *not* necessarily created
+            - others...
+
+        For other potential surprises, check the implementation differences
+        between :meth:`ComputationAPI.apply_computation` and
+        :meth:`ComputationAPI.apply_message`. (depending on the VM fork)
         """
         ...
 

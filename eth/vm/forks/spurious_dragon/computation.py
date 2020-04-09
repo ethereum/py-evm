@@ -4,7 +4,12 @@ from eth_utils import (
 )
 
 from eth import constants
-from eth.abc import ComputationAPI
+from eth.abc import (
+    ComputationAPI,
+    MessageAPI,
+    StateAPI,
+    TransactionContextAPI,
+)
 from eth.exceptions import (
     OutOfGas,
 )
@@ -24,16 +29,22 @@ class SpuriousDragonComputation(HomesteadComputation):
     # Override
     opcodes = SPURIOUS_DRAGON_OPCODES
 
-    def apply_create_message(self) -> ComputationAPI:
-        snapshot = self.state.snapshot()
+    @classmethod
+    def apply_create_message(
+            cls,
+            state: StateAPI,
+            message: MessageAPI,
+            transaction_context: TransactionContextAPI) -> ComputationAPI:
+
+        snapshot = state.snapshot()
 
         # EIP161 nonce incrementation
-        self.state.increment_nonce(self.msg.storage_address)
+        state.increment_nonce(message.storage_address)
 
-        computation = self.apply_message()
+        computation = cls.apply_message(state, message, transaction_context)
 
         if computation.is_error:
-            self.state.revert(snapshot)
+            state.revert(snapshot)
             return computation
         else:
             contract_code = computation.output
@@ -43,7 +54,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                     f"Contract code size exceeds EIP170 limit of {EIP170_CODE_SIZE_LIMIT}."
                     f"  Got code of size: {len(contract_code)}"
                 )
-                self.state.revert(snapshot)
+                state.revert(snapshot)
             elif contract_code:
                 contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
                 try:
@@ -55,18 +66,18 @@ class SpuriousDragonComputation(HomesteadComputation):
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
                     computation.error = err
-                    self.state.revert(snapshot)
+                    state.revert(snapshot)
                 else:
-                    if self.logger:
-                        self.logger.debug2(
+                    if cls.logger:
+                        cls.logger.debug2(
                             "SETTING CODE: %s -> length: %s | hash: %s",
-                            encode_hex(self.msg.storage_address),
+                            encode_hex(message.storage_address),
                             len(contract_code),
                             encode_hex(keccak(contract_code))
                         )
 
-                    self.state.set_code(self.msg.storage_address, contract_code)
-                    self.state.commit(snapshot)
+                    state.set_code(message.storage_address, contract_code)
+                    state.commit(snapshot)
             else:
-                self.state.commit(snapshot)
+                state.commit(snapshot)
             return computation
