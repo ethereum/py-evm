@@ -1,6 +1,3 @@
-from abc import (
-    abstractmethod,
-)
 import itertools
 from types import TracebackType
 from typing import (
@@ -369,17 +366,17 @@ class BaseComputation(Configurable, ComputationAPI):
 
     def generate_child_computation(self, child_msg: MessageAPI) -> ComputationAPI:
         if child_msg.is_create:
-            child_computation = self.__class__(
+            child_computation = self.apply_create_message(
                 self.state,
                 child_msg,
                 self.transaction_context,
-            ).apply_create_message()
+            )
         else:
-            child_computation = self.__class__(
+            child_computation = self.apply_message(
                 self.state,
                 child_msg,
                 self.transaction_context,
-            ).apply_message()
+            )
         return child_computation
 
     def add_child_computation(self, child_computation: ComputationAPI) -> None:
@@ -513,14 +510,6 @@ class BaseComputation(Configurable, ComputationAPI):
     #
     # State Transition
     #
-    @abstractmethod
-    def apply_message(self) -> ComputationAPI:
-        raise NotImplementedError("Must be implemented by subclasses")
-
-    @abstractmethod
-    def apply_create_message(self) -> ComputationAPI:
-        raise NotImplementedError("Must be implemented by subclasses")
-
     @classmethod
     def apply_computation(cls,
                           state: StateAPI,

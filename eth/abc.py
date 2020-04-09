@@ -1542,17 +1542,27 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     #
     # State Transition
     #
+    @classmethod
     @abstractmethod
-    def apply_message(self) -> 'ComputationAPI':
+    def apply_message(
+            cls,
+            state: 'StateAPI',
+            message: MessageAPI,
+            transaction_context: TransactionContextAPI) -> 'ComputationAPI':
         """
-        Execution of a VM message.
+        Execution of a VM message. Typically used for sub-calls.
         """
         ...
 
+    @classmethod
     @abstractmethod
-    def apply_create_message(self) -> 'ComputationAPI':
+    def apply_create_message(
+            cls,
+            state: 'StateAPI',
+            message: MessageAPI,
+            transaction_context: TransactionContextAPI) -> 'ComputationAPI':
         """
-        Execution of a VM message to create a new contract.
+        Execution of a VM message to create a new contract. Typically used for sub-calls.
         """
         ...
 

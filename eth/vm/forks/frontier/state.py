@@ -123,14 +123,17 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                     encode_hex(message.storage_address),
                 )
             else:
-                computation = self.vm_state.get_computation(
+                computation = self.vm_state.computation_class.apply_create_message(
+                    self.vm_state,
                     message,
                     transaction_context,
-                ).apply_create_message()
+                )
         else:
-            computation = self.vm_state.get_computation(
+            computation = self.vm_state.computation_class.apply_message(
+                self.vm_state,
                 message,
-                transaction_context).apply_message()
+                transaction_context,
+            )
 
         return computation
 

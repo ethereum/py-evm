@@ -15,6 +15,9 @@ from eth._utils.address import (
 )
 from eth.abc import (
     ComputationAPI,
+    MessageAPI,
+    StateAPI,
+    TransactionContextAPI,
 )
 from eth.exceptions import (
     OutOfGas,
@@ -45,47 +48,59 @@ class FrontierComputation(BaseComputation):
     opcodes = FRONTIER_OPCODES
     _precompiles = FRONTIER_PRECOMPILES     # type: ignore # https://github.com/python/mypy/issues/708 # noqa: E501
 
-    def apply_message(self) -> ComputationAPI:
-        snapshot = self.state.snapshot()
+    @classmethod
+    def apply_message(
+            cls,
+            state: StateAPI,
+            message: MessageAPI,
+            transaction_context: TransactionContextAPI) -> ComputationAPI:
 
-        if self.msg.depth > STACK_DEPTH_LIMIT:
+        snapshot = state.snapshot()
+
+        if message.depth > STACK_DEPTH_LIMIT:
             raise StackDepthLimit("Stack depth limit reached")
 
-        if self.msg.should_transfer_value and self.msg.value:
-            sender_balance = self.state.get_balance(self.msg.sender)
+        if message.should_transfer_value and message.value:
+            sender_balance = state.get_balance(message.sender)
 
-            if sender_balance < self.msg.value:
+            if sender_balance < message.value:
                 raise InsufficientFunds(
-                    f"Insufficient funds: {sender_balance} < {self.msg.value}"
+                    f"Insufficient funds: {sender_balance} < {message.value}"
                 )
 
-            self.state.delta_balance(self.msg.sender, -1 * self.msg.value)
-            self.state.delta_balance(self.msg.storage_address, self.msg.value)
+            state.delta_balance(message.sender, -1 * message.value)
+            state.delta_balance(message.storage_address, message.value)
 
-            self.logger.debug2(
+            cls.logger.debug2(
                 "TRANSFERRED: %s from %s -> %s",
-                self.msg.value,
-                encode_hex(self.msg.sender),
-                encode_hex(self.msg.storage_address),
+                message.value,
+                encode_hex(message.sender),
+                encode_hex(message.storage_address),
             )
 
-        self.state.touch_account(self.msg.storage_address)
+        state.touch_account(message.storage_address)
 
-        computation = self.apply_computation(
-            self.state,
-            self.msg,
-            self.transaction_context,
+        computation = cls.apply_computation(
+            state,
+            message,
+            transaction_context,
         )
 
         if computation.is_error:
-            self.state.revert(snapshot)
+            state.revert(snapshot)
         else:
-            self.state.commit(snapshot)
+            state.commit(snapshot)
 
         return computation
 
-    def apply_create_message(self) -> ComputationAPI:
-        computation = self.apply_message()
+    @classmethod
+    def apply_create_message(
+            cls,
+            state: StateAPI,
+            message: MessageAPI,
+            transaction_context: TransactionContextAPI) -> ComputationAPI:
+
+        computation = cls.apply_message(state, message, transaction_context)
 
         if computation.is_error:
             return computation
@@ -102,11 +117,11 @@ class FrontierComputation(BaseComputation):
                 except OutOfGas:
                     computation.output = b''
                 else:
-                    self.logger.debug2(
+                    cls.logger.debug2(
                         "SETTING CODE: %s -> length: %s | hash: %s",
-                        encode_hex(self.msg.storage_address),
+                        encode_hex(message.storage_address),
                         len(contract_code),
                         encode_hex(keccak(contract_code))
                     )
-                    self.state.set_code(self.msg.storage_address, contract_code)
+                    state.set_code(message.storage_address, contract_code)
             return computation

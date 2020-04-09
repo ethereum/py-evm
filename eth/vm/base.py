@@ -216,7 +216,7 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         # Execute it in the VM
-        return self.state.get_computation(message, transaction_context).apply_computation(
+        return self.state.computation_class.apply_computation(
             self.state,
             message,
             transaction_context,
