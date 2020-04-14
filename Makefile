@@ -15,7 +15,6 @@ clean: clean-build clean-pyc
 clean-build:
 	rm -fr build/
 	rm -fr dist/
-	rm -fr *.egg-info
 
 clean-pyc:
 	find . -name '*.pyc' -exec rm -f {} +
@@ -38,7 +37,7 @@ coverage:
 	coverage html
 	open htmlcov/index.html
 
-build-docs:
+build-docs: clean
 	cd docs/; sphinx-build -W -T -E . _build/html
 
 doctest:
