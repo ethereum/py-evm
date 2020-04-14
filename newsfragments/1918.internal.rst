@@ -1,3 +1,0 @@
-Added :class:`~eth.db.accesslog.KeyAccessLoggerDB` and its atomic twin; faster ``make
-validate-docs`` (but you have to remember to ``pip install -e .[doc]`` yourself); ``str(block)`` now
-includes some bytes of the block hash.

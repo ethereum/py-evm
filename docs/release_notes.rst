@@ -3,6 +3,33 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.15 (2020-04-14)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- :meth:`eth.chains.base.Chain.import_block()` now returns some meta-information about the witness.
+  You can get a list of trie node hashes needed to build the witness, as well
+  as the accesses of accounts, storage slots, and bytecodes. (`#1917
+  <https://github.com/ethereum/py-evm/issues/1917>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Use a more recent eth-keys, which calls an eth-typing that's not deprecated. (`#1665 <https://github.com/ethereum/py-evm/issues/1665>`__)
+- Upgrade pytest-xdist from 1.18.1 to 1.31.0, to fix a CI crash. (`#1917 <https://github.com/ethereum/py-evm/issues/1917>`__)
+- Added :class:`~eth.db.accesslog.KeyAccessLoggerDB` and its atomic twin; faster ``make
+  validate-docs`` (but you have to remember to ``pip install -e .[doc]`` yourself); ``str(block)`` now
+  includes some bytes of the block hash. (`#1918 <https://github.com/ethereum/py-evm/issues/1918>`__)
+- Fix for creating a duplicate "ghost" Computation that was never used. It didn't
+  break anything, but was inelegant and surprising to get extra objects created
+  that were mostly useless. This was achieved by changing
+  :meth:`eth.abc.ComputationAPI.apply_message` and
+  :meth:`eth.abc.ComputationAPI.apply_create_message` to be class methods. (`#1921 <https://github.com/ethereum/py-evm/issues/1921>`__)
+
+
 py-evm 0.3.0-alpha.14 (2020-02-10)
 ----------------------------------
 

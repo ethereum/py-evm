@@ -7,6 +7,7 @@ DataBase
    :name: toc-eth-api-db
    :caption: Database
 
+   db/api.db.accesslog
    db/api.db.account
    db/api.db.atomic
    db/api.db.backends

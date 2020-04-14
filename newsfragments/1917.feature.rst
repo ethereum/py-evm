@@ -1,3 +1,0 @@
-Chain.import_block() now returns some meta-information about the witness. You can get a list of trie
-node hashes needed to build the witness, as well as the accesses of accounts, storage slots, and
-bytecodes.
