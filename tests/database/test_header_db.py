@@ -16,8 +16,10 @@ from eth.constants import (
     GENESIS_DIFFICULTY,
     GENESIS_GAS_LIMIT,
 )
+from eth.db.chain_gaps import GapChange
 from eth.exceptions import (
     CanonicalHeadNotFound,
+    HeaderNotFound,
     ParentNotFound,
 )
 from eth.db.header import HeaderDB
@@ -94,17 +96,140 @@ def test_headerdb_persist_disconnected_headers(headerdb, genesis_header):
 
     pseudo_genesis = headers[7]
 
+    gaps = headerdb.get_header_chain_gaps()
+    assert gaps == ()
     # Persist the checkpoint header with a trusted score
     headerdb.persist_checkpoint_header(pseudo_genesis, score_at_pseudo_genesis)
+    assert headerdb.get_header_chain_gaps() == ((1, 7), (9, -1))
 
     assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
 
     headers_from_pseudo_genesis = (headers[8], headers[9],)
 
     headerdb.persist_header_chain(headers_from_pseudo_genesis, pseudo_genesis.parent_hash)
+    assert headerdb.get_header_chain_gaps() == ((1, 7), (11, -1))
     head = headerdb.get_canonical_head()
     assert_headers_eq(head, headers[-1])
     assert headerdb.get_score(head.hash) == expected_score_at_tip
+
+    header_8 = headerdb.get_block_header_by_hash(headers[8].hash)
+    assert_headers_eq(header_8, headers[8])
+
+    with pytest.raises(HeaderNotFound):
+        headerdb.get_block_header_by_hash(headers[2].hash)
+
+
+def test_can_patch_holes(headerdb, genesis_header):
+    headerdb.persist_header(genesis_header)
+    headers = mk_header_chain(genesis_header, length=10)
+
+    assert headerdb.get_header_chain_gaps() == ()
+    # Persist the checkpoint header with a trusted score
+    pseudo_genesis = headers[7]
+    headerdb.persist_checkpoint_header(pseudo_genesis, 154618822656)
+    assert headerdb.get_header_chain_gaps() == ((1, 7), (9, -1))
+    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
+
+    headerdb.persist_header_chain(headers[:7])
+    assert headerdb.get_header_chain_gaps() == ((9, -1),)
+
+    for number in range(1, 9):
+        # Make sure we can lookup the headers by block number
+        header_by_number = headerdb.get_canonical_block_header_by_number(number)
+        assert header_by_number.block_number == headers[number - 1].block_number
+
+    # Make sure patching the hole does not affect what our current head is
+    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
+
+
+def test_write_batch_that_patches_gap_and_adds_new_at_the_tip(headerdb, genesis_header):
+    headerdb.persist_header(genesis_header)
+    headers = mk_header_chain(genesis_header, length=10)
+
+    assert headerdb.get_header_chain_gaps() == ()
+    # Persist the checkpoint header with a trusted score
+    pseudo_genesis = headers[7]
+    headerdb.persist_checkpoint_header(pseudo_genesis, 154618822656)
+    assert headerdb.get_header_chain_gaps() == ((1, 7), (9, -1))
+    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
+
+    headerdb.persist_header_chain(headers)
+    assert headerdb.get_header_chain_gaps() == ((11, -1),)
+
+    for number in range(1, len(headers)):
+        # Make sure we can lookup the headers by block number
+        header_by_number = headerdb.get_canonical_block_header_by_number(number)
+        assert header_by_number.block_number == headers[number - 1].block_number
+    # Make sure patching the hole does not affect what our current head is
+    assert_headers_eq(headerdb.get_canonical_head(), headers[-1])
+
+
+@pytest.mark.parametrize(
+    'written_headers, evolving_gaps',
+    (
+        (   # consecutive updates, then overwriting existing header
+            (1, 2, 1),
+            (
+                (GapChange.TailWrite, ((2, -1),)),
+                (GapChange.TailWrite, ((3, -1),)),
+                (GapChange.NoChange, ((3, -1),))
+            )
+        ),
+        (   # consecutive updates
+            (1, 2, 3),
+            (
+                (GapChange.TailWrite, ((2, -1),)),
+                (GapChange.TailWrite, ((3, -1),)),
+                (GapChange.TailWrite, ((4, -1),))
+            )
+        ),
+        (   # missing a single header in the middle
+            (1, 3),
+            ((GapChange.TailWrite, ((2, -1),)), (GapChange.NewGap, ((2, 2), (4, -1),)))
+        ),
+        (   # missing three headers in the middle
+            (1, 5),
+            ((GapChange.TailWrite, ((2, -1),)), (GapChange.NewGap, ((2, 4), (6, -1),)))
+        ),
+        (   # missing three headers in the middle, then patching center, dividing existing hole
+            (1, 5, 3),
+            (
+                (GapChange.TailWrite, ((2, -1),)),
+                (GapChange.NewGap, ((2, 4), (6, -1),)),
+                (GapChange.GapSplit, ((2, 2), (4, 4), (6, -1),))
+            )
+        ),
+        (   # multiple holes, shrinking them until they vanish
+            (1, 10, 5, 2, 4, 3, 9, 8, 7, 6),
+            (
+                (GapChange.TailWrite, ((2, -1),)),
+                (GapChange.NewGap, ((2, 9), (11, -1),)),
+                (GapChange.GapSplit, ((2, 4), (6, 9), (11, -1),)),
+                (GapChange.GapShrink, ((3, 4), (6, 9), (11, -1),)),
+                (GapChange.GapShrink, ((3, 3), (6, 9), (11, -1),)),
+                (GapChange.GapShrink, ((6, 9), (11, -1),)),
+                (GapChange.GapShrink, ((6, 8), (11, -1),)),
+                (GapChange.GapShrink, ((6, 7), (11, -1),)),
+                (GapChange.GapShrink, ((6, 6), (11, -1),)),
+                (GapChange.GapShrink, ((11, -1),)),
+            )
+        ),
+    )
+)
+def test_gap_tracking(headerdb, genesis_header, written_headers, evolving_gaps):
+    headerdb.persist_header(genesis_header)
+    headers = mk_header_chain(genesis_header, length=15)
+
+    current_info = ()
+
+    for idx, block_number in enumerate(written_headers):
+        # using block numbers for the test parameters keeps it easier to read
+        block_idx = block_number - 1
+        change, current_info = headerdb._update_header_chain_gaps(
+            headerdb.db, headers[block_idx], current_info
+        )
+        assert current_info == evolving_gaps[idx][1]
+        assert change == evolving_gaps[idx][0]
 
 
 @pytest.mark.parametrize(

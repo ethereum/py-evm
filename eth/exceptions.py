@@ -65,6 +65,13 @@ class CanonicalHeadNotFound(PyEVMError):
     pass
 
 
+class GapTrackingCorrupted(PyEVMError):
+    """
+    Raised when the tracking of chain gaps appears to be corrupted
+    """
+    pass
+
+
 class Halt(PyEVMError):
     """
     Raised when an opcode function halts vm execution.

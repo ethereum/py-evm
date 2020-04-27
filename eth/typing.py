@@ -41,6 +41,8 @@ AccountState = Dict[Address, AccountDetails]
 
 AccountDiff = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
 
+BlockRange = Tuple[int, int]
+
 GeneralState = Union[
     AccountState,
     List[Tuple[Address, Dict[str, Union[int, bytes, Dict[int, int]]]]]
