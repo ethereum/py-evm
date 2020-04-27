@@ -40,6 +40,7 @@ from eth.constants import (
 )
 from eth.exceptions import VMError
 from eth.typing import (
+    BlockRange,
     BytesOrView,
     JournalDBCheckpoint,
     AccountState,
@@ -390,6 +391,14 @@ class SchemaAPI(ABC):
     """
     @staticmethod
     @abstractmethod
+    def make_header_chain_gaps_lookup_key() -> bytes:
+        """
+        Return the lookup key to retrieve the header chain integrity info from the database.
+        """
+        ...
+
+    @staticmethod
+    @abstractmethod
     def make_canonical_head_hash_lookup_key() -> bytes:
         """
         Return the lookup key to retrieve the canonical head from the database.
@@ -483,6 +492,18 @@ class HeaderDatabaseAPI(ABC):
         Instantiate the database from an :class:`~eth.abc.AtomicDatabaseAPI`.
         """
         ...
+
+    @abstractmethod
+    def get_header_chain_gaps(self) -> Tuple[BlockRange, ...]:
+        """
+        Return an ordered sequence of block ranges describing the integrity of the chain of
+        headers. Each block range describes a missing segment in the chain and each range is defined
+        with inclusive boundaries, meaning the first value describes the first missing block of that
+        segment and the second value describes the last missing block of the segment.
+
+        The last block range in the sequence is expected to have a block number of `-1` as the
+        right-hand value which is to say the gap is open-ended.
+        """
 
     #
     # Canonical Chain API

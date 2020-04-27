@@ -29,6 +29,11 @@ from eth.abc import (
 from eth.constants import (
     GENESIS_PARENT_HASH,
 )
+from eth.db.chain_gaps import (
+    calculate_gaps,
+    GapChange,
+    GapInfo,
+)
 from eth.exceptions import (
     CanonicalHeadNotFound,
     HeaderNotFound,
@@ -36,6 +41,11 @@ from eth.exceptions import (
 )
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import BlockHeader
+from eth.rlp.chain_gaps import (
+    decode_chain_gaps,
+    encode_chain_gaps,
+)
+from eth.typing import BlockRange
 from eth.validation import (
     validate_block_number,
     validate_word,
@@ -45,6 +55,40 @@ from eth.validation import (
 class HeaderDB(HeaderDatabaseAPI):
     def __init__(self, db: AtomicDatabaseAPI) -> None:
         self.db = db
+
+    def get_header_chain_gaps(self) -> Tuple[BlockRange, ...]:
+        return self._get_header_chain_gaps(self.db)
+
+    @classmethod
+    def _get_header_chain_gaps(cls, db: DatabaseAPI) -> Tuple[BlockRange, ...]:
+        try:
+            encoded_gaps = db[SchemaV1.make_header_chain_gaps_lookup_key()]
+        except KeyError:
+            return ()
+        else:
+            return decode_chain_gaps(encoded_gaps)
+
+    @classmethod
+    def _update_header_chain_gaps(
+            cls,
+            db: DatabaseAPI,
+            persisted_header: BlockHeaderAPI,
+            base_gaps: Tuple[BlockRange, ...] = None) -> GapInfo:
+
+            # If we make many updates in a row, we can avoid reloading the integrity info by
+            # continuously caching it and providing it as a parameter to this API
+            if base_gaps is None:
+                base_gaps = cls._get_header_chain_gaps(db)
+
+            gap_change, gaps = calculate_gaps(persisted_header.block_number, base_gaps)
+
+            if gap_change is not GapChange.NoChange:
+                db.set(
+                    SchemaV1.make_header_chain_gaps_lookup_key(),
+                    encode_chain_gaps(gaps)
+                )
+
+            return gap_change, gaps
 
     #
     # Canonical Chain API
@@ -178,6 +222,7 @@ class HeaderDB(HeaderDatabaseAPI):
         previous_score = score - header.difficulty
         cls._set_hash_scores_to_db(db, header, previous_score)
         cls._set_as_canonical_chain_head(db, header, header.parent_hash)
+        cls._update_header_chain_gaps(db, header)
 
     @classmethod
     def _persist_header_chain(
@@ -211,6 +256,9 @@ class HeaderDB(HeaderDatabaseAPI):
             rlp.encode(curr_chain_head),
         )
         score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
+        gap_change, gaps = cls._update_header_chain_gaps(db, curr_chain_head)
+        if gap_change is GapChange.GapShrink or gap_change is GapChange.GapSplit:
+            cls._add_block_number_to_hash_lookup(db, curr_chain_head)
 
         orig_headers_seq = concat([(first_header,), headers_iterator])
         for parent, child in sliding_window(2, orig_headers_seq):
@@ -228,7 +276,9 @@ class HeaderDB(HeaderDatabaseAPI):
             )
 
             score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
-
+            gap_change, gaps = cls._update_header_chain_gaps(db, curr_chain_head, gaps)
+            if gap_change is GapChange.GapShrink or gap_change is GapChange.GapSplit:
+                cls._add_block_number_to_hash_lookup(db, curr_chain_head)
         try:
             previous_canonical_head = cls._get_canonical_head_hash(db)
             head_score = cls._get_score(db, previous_canonical_head)

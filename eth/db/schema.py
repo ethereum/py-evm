@@ -21,5 +21,9 @@ class SchemaV1(SchemaAPI):
         return b'block-hash-to-score:%s' % block_hash
 
     @staticmethod
+    def make_header_chain_gaps_lookup_key() -> bytes:
+        return b'v1:header_chain_gaps'
+
+    @staticmethod
     def make_transaction_hash_to_block_lookup_key(transaction_hash: Hash32) -> bytes:
         return b'transaction-hash-to-block:%s' % transaction_hash
