@@ -33,6 +33,8 @@ from eth.db.chain_gaps import (
     calculate_gaps,
     GapChange,
     GapInfo,
+    GAP_WRITES,
+    GENESIS_CHAIN_GAPS,
 )
 from eth.exceptions import (
     CanonicalHeadNotFound,
@@ -41,11 +43,8 @@ from eth.exceptions import (
 )
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import BlockHeader
-from eth.rlp.chain_gaps import (
-    decode_chain_gaps,
-    encode_chain_gaps,
-)
-from eth.typing import BlockRange
+from eth.rlp.sedes import chain_gaps
+from eth.typing import ChainGaps
 from eth.validation import (
     validate_block_number,
     validate_word,
@@ -56,24 +55,24 @@ class HeaderDB(HeaderDatabaseAPI):
     def __init__(self, db: AtomicDatabaseAPI) -> None:
         self.db = db
 
-    def get_header_chain_gaps(self) -> Tuple[BlockRange, ...]:
+    def get_header_chain_gaps(self) -> ChainGaps:
         return self._get_header_chain_gaps(self.db)
 
     @classmethod
-    def _get_header_chain_gaps(cls, db: DatabaseAPI) -> Tuple[BlockRange, ...]:
+    def _get_header_chain_gaps(cls, db: DatabaseAPI) -> ChainGaps:
         try:
             encoded_gaps = db[SchemaV1.make_header_chain_gaps_lookup_key()]
         except KeyError:
-            return ()
+            return GENESIS_CHAIN_GAPS
         else:
-            return decode_chain_gaps(encoded_gaps)
+            return rlp.decode(encoded_gaps, sedes=chain_gaps)
 
     @classmethod
     def _update_header_chain_gaps(
             cls,
             db: DatabaseAPI,
             persisted_header: BlockHeaderAPI,
-            base_gaps: Tuple[BlockRange, ...] = None) -> GapInfo:
+            base_gaps: ChainGaps = None) -> GapInfo:
 
             # If we make many updates in a row, we can avoid reloading the integrity info by
             # continuously caching it and providing it as a parameter to this API
@@ -85,7 +84,7 @@ class HeaderDB(HeaderDatabaseAPI):
             if gap_change is not GapChange.NoChange:
                 db.set(
                     SchemaV1.make_header_chain_gaps_lookup_key(),
-                    encode_chain_gaps(gaps)
+                    rlp.encode(gaps, sedes=chain_gaps)
                 )
 
             return gap_change, gaps
@@ -257,7 +256,14 @@ class HeaderDB(HeaderDatabaseAPI):
         )
         score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
         gap_change, gaps = cls._update_header_chain_gaps(db, curr_chain_head)
-        if gap_change is GapChange.GapShrink or gap_change is GapChange.GapSplit:
+        if gap_change in GAP_WRITES:
+            # The caller implicitly asserts that persisted headers are canonical here.
+            # This assertion is made when persisting headers that are known to be part of a gap
+            # in the canonical chain. While we do validate that the headers are valid, we can not
+            # be 100 % sure that they will eventually lead to the expected child that fills the gap.
+            # E.g. there is nothing preventing one from persisting an uncle as the final header to
+            # close the gap, even if that will not be the parent of the next consecutive header.
+            # Py-EVM makes the assumption that client code will check and prevent such a scenario.
             cls._add_block_number_to_hash_lookup(db, curr_chain_head)
 
         orig_headers_seq = concat([(first_header,), headers_iterator])
@@ -277,7 +283,7 @@ class HeaderDB(HeaderDatabaseAPI):
 
             score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
             gap_change, gaps = cls._update_header_chain_gaps(db, curr_chain_head, gaps)
-            if gap_change is GapChange.GapShrink or gap_change is GapChange.GapSplit:
+            if gap_change in GAP_WRITES:
                 cls._add_block_number_to_hash_lookup(db, curr_chain_head)
         try:
             previous_canonical_head = cls._get_canonical_head_hash(db)

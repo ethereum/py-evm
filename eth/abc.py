@@ -18,7 +18,8 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    NamedTuple)
+    NamedTuple,
+)
 from uuid import UUID
 
 import rlp
@@ -38,10 +39,11 @@ from eth_keys.datatypes import PrivateKey
 from eth.constants import (
     BLANK_ROOT_HASH,
 )
+
 from eth.exceptions import VMError
 from eth.typing import (
-    BlockRange,
     BytesOrView,
+    ChainGaps,
     JournalDBCheckpoint,
     AccountState,
     HeaderParams,
@@ -494,15 +496,16 @@ class HeaderDatabaseAPI(ABC):
         ...
 
     @abstractmethod
-    def get_header_chain_gaps(self) -> Tuple[BlockRange, ...]:
+    def get_header_chain_gaps(self) -> ChainGaps:
         """
-        Return an ordered sequence of block ranges describing the integrity of the chain of
-        headers. Each block range describes a missing segment in the chain and each range is defined
-        with inclusive boundaries, meaning the first value describes the first missing block of that
-        segment and the second value describes the last missing block of the segment.
+        Return information about gaps in the chain of headers. This consists of an ordered sequence
+        of block ranges describing the integrity of the chain. Each block range describes a missing
+        segment in the chain and each range is defined with inclusive boundaries, meaning the first
+        value describes the first missing block of that segment and the second value describes the
+        last missing block of the segment.
 
-        The last block range in the sequence is expected to have a block number of `-1` as the
-        right-hand value which is to say the gap is open-ended.
+        In addition to the sequences of block ranges a block number is included that indicates the
+        number of the first header that is known to be missing at the very tip of the chain.
         """
 
     #
