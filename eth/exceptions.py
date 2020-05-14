@@ -67,7 +67,7 @@ class CanonicalHeadNotFound(PyEVMError):
 
 class GapTrackingCorrupted(PyEVMError):
     """
-    Raised when the tracking of chain gaps appears to be corrupted
+    Raised when the tracking of chain gaps appears to be corrupted (e.g. overlapping gaps)
     """
     pass
 

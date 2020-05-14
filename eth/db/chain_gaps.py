@@ -4,48 +4,50 @@ from typing import Tuple
 from eth_typing import BlockNumber
 
 from eth.exceptions import GapTrackingCorrupted
-from eth.typing import BlockRange
+from eth.typing import BlockRange, ChainGaps
 
 
 class GapChange(enum.Enum):
-
     NoChange = enum.auto()
     NewGap = enum.auto()
+    GapFill = enum.auto()
     GapSplit = enum.auto()
     GapShrink = enum.auto()
     TailWrite = enum.auto()
 
 
-GapInfo = Tuple[GapChange, Tuple[BlockRange, ...]]
+GAP_WRITES = (GapChange.GapFill, GapChange.GapSplit, GapChange.GapShrink)
+GENESIS_CHAIN_GAPS = ((), BlockNumber(1))
+
+GapInfo = Tuple[GapChange, ChainGaps]
 
 
-def calculate_gaps(newly_persisted: BlockNumber, base_gaps: Tuple[BlockRange, ...]) -> GapInfo:
+def calculate_gaps(newly_persisted: BlockNumber, base_gaps: ChainGaps) -> GapInfo:
 
-    # If we have a fresh chain, our highest missing number can only be 1
-    highest_missing_number = 1 if base_gaps == () else base_gaps[-1][0]
+    current_gaps, known_missing_tip = base_gaps
 
-    if newly_persisted == highest_missing_number:
+    if newly_persisted == known_missing_tip:
         # This is adding a consecutive header at the very tail
-        new_last_marker = (newly_persisted + 1, -1)
-        new_gaps = base_gaps[:-1] + (new_last_marker,)
+        new_gaps = (current_gaps, BlockNumber(newly_persisted + 1))
         gap_change = GapChange.TailWrite
-    elif newly_persisted > highest_missing_number:
+    elif newly_persisted > known_missing_tip:
         # We are creating a gap in the chain
-        gap_end = newly_persisted - 1
-        new_tail = ((highest_missing_number, gap_end), (newly_persisted + 1, -1),)
-        new_gaps = base_gaps[:-1] + new_tail
+        gap_end = BlockNumber(newly_persisted - 1)
+        new_gaps = (
+            current_gaps + ((known_missing_tip, gap_end),), BlockNumber(newly_persisted + 1)
+        )
         gap_change = GapChange.NewGap
-    elif newly_persisted < highest_missing_number:
+    elif newly_persisted < known_missing_tip:
         # We are patching a gap which may either shrink an existing gap or divide it
         matching_gaps = [
-            (index, pair) for index, pair in enumerate(base_gaps)
+            (index, pair) for index, pair in enumerate(current_gaps)
             if newly_persisted >= pair[0] and newly_persisted <= pair[1]
         ]
 
         if len(matching_gaps) > 1:
             raise GapTrackingCorrupted(
                 "Corrupted chain gap tracking",
-                f"No {newly_persisted} appears to be missing in multiple gaps",
+                f"No. {newly_persisted} appears to be missing in multiple gaps",
                 f"1st gap goes from {matching_gaps[0][1][0]} to {matching_gaps[0][1][1]}"
                 f"2nd gap goes from {matching_gaps[1][1][0]} to {matching_gaps[1][1][1]}"
             )
@@ -55,26 +57,28 @@ def calculate_gaps(newly_persisted: BlockNumber, base_gaps: Tuple[BlockRange, ..
         elif len(matching_gaps) == 1:
             gap_index, gap = matching_gaps[0]
             if newly_persisted == gap[0] and newly_persisted == gap[1]:
-                updated_center: Tuple[Tuple[int, int], ...] = ()
-                gap_change = GapChange.GapShrink
+                updated_center: Tuple[BlockRange, ...] = ()
+                gap_change = GapChange.GapFill
             elif newly_persisted == gap[0]:
                 # we are shrinking the gap at the start
-                updated_center = ((gap[0] + 1, gap[1],),)
+                updated_center = ((BlockNumber(gap[0] + 1), gap[1],),)
                 gap_change = GapChange.GapShrink
             elif newly_persisted == gap[1]:
                 # we are shrinking the gap at the tail
-                updated_center = ((gap[0], gap[1] - 1,),)
+                updated_center = ((gap[0], BlockNumber(gap[1] - 1),),)
                 gap_change = GapChange.GapShrink
-            else:
+            elif gap[0] < newly_persisted < gap[1]:
                 # we are dividing the gap
-                first_new_gap = (gap[0], newly_persisted - 1)
-                second_new_gap = (newly_persisted + 1, gap[1])
+                first_new_gap = (gap[0], BlockNumber(newly_persisted - 1))
+                second_new_gap = (BlockNumber(newly_persisted + 1), gap[1])
                 updated_center = (first_new_gap, second_new_gap,)
                 gap_change = GapChange.GapSplit
+            else:
+                raise Exception("Invariant")
 
-            before_gap = base_gaps[:gap_index]
-            after_gap = base_gaps[gap_index + 1:]
-            new_gaps = before_gap + updated_center + after_gap
+            before_gap = current_gaps[:gap_index]
+            after_gap = current_gaps[gap_index + 1:]
+            new_gaps = (before_gap + updated_center + after_gap, known_missing_tip)
 
     else:
         raise Exception("Invariant")
