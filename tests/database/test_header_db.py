@@ -142,6 +142,44 @@ def test_can_patch_holes(headerdb, genesis_header):
     assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
 
 
+def test_gap_filling_handles_uncles_correctly(headerdb, genesis_header):
+    headerdb.persist_header(genesis_header)
+    chain_a = mk_header_chain(genesis_header, length=10)
+    chain_b = mk_header_chain(genesis_header, length=10)
+
+    assert headerdb.get_header_chain_gaps() == GENESIS_CHAIN_GAPS
+    # Persist the checkpoint header with a trusted score
+    # chain_a[7] has block number 8 because `chain_a` doesn't include the genesis
+    pseudo_genesis = chain_a[7]
+    headerdb.persist_checkpoint_header(pseudo_genesis, 154618822656)
+    assert headerdb.get_header_chain_gaps() == (((1, 7),), 9)
+    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
+
+    # Start filling the gap with headers from `chain_b`. At this point, we do not yet know this is
+    # an alternative history not leading up to our expected checkpoint header.
+    headerdb.persist_header_chain(chain_b[:3])
+    assert headerdb.get_header_chain_gaps() == (((4, 7),), 9)
+
+    with pytest.raises(ValidationError):
+        headerdb.persist_header_chain(chain_b[3:7])
+
+    # That last persist did not write any headers
+    assert headerdb.get_header_chain_gaps() == (((4, 7),), 9)
+
+    for number in range(1, 4):
+        # Make sure we can lookup the headers by block number
+        header_by_number = headerdb.get_canonical_block_header_by_number(number)
+        assert header_by_number == chain_b[number - 1]
+
+    # Make sure patching the hole does not affect what our current head is
+    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
+
+    # Now we fill the gap with the actual correct chain that does lead up to our checkpoint header
+    headerdb.persist_header_chain(chain_a)
+
+    assert_is_canonical_chain(headerdb, chain_a)
+
+
 def test_write_batch_that_patches_gap_and_adds_new_at_the_tip(headerdb, genesis_header):
     headerdb.persist_header(genesis_header)
     headers = mk_header_chain(genesis_header, length=10)
