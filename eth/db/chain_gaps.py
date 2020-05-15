@@ -24,20 +24,20 @@ GapInfo = Tuple[GapChange, ChainGaps]
 
 def calculate_gaps(newly_persisted: BlockNumber, base_gaps: ChainGaps) -> GapInfo:
 
-    current_gaps, known_missing_tip = base_gaps
+    current_gaps, tip_child = base_gaps
 
-    if newly_persisted == known_missing_tip:
+    if newly_persisted == tip_child:
         # This is adding a consecutive header at the very tail
         new_gaps = (current_gaps, BlockNumber(newly_persisted + 1))
         gap_change = GapChange.TailWrite
-    elif newly_persisted > known_missing_tip:
+    elif newly_persisted > tip_child:
         # We are creating a gap in the chain
         gap_end = BlockNumber(newly_persisted - 1)
         new_gaps = (
-            current_gaps + ((known_missing_tip, gap_end),), BlockNumber(newly_persisted + 1)
+            current_gaps + ((tip_child, gap_end),), BlockNumber(newly_persisted + 1)
         )
         gap_change = GapChange.NewGap
-    elif newly_persisted < known_missing_tip:
+    elif newly_persisted < tip_child:
         # We are patching a gap which may either shrink an existing gap or divide it
         matching_gaps = [
             (index, pair) for index, pair in enumerate(current_gaps)
@@ -78,7 +78,7 @@ def calculate_gaps(newly_persisted: BlockNumber, base_gaps: ChainGaps) -> GapInf
 
             before_gap = current_gaps[:gap_index]
             after_gap = current_gaps[gap_index + 1:]
-            new_gaps = (before_gap + updated_center + after_gap, known_missing_tip)
+            new_gaps = (before_gap + updated_center + after_gap, tip_child)
 
     else:
         raise Exception("Invariant")
