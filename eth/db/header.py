@@ -298,7 +298,8 @@ class HeaderDB(HeaderDatabaseAPI):
             return
 
         if gap_change is GapChange.GapFill:
-            expected_child = cls._get_canonical_head(db)
+            next_child_number = BlockNumber(header.block_number + 1)
+            expected_child = cls._get_canonical_block_header_by_number(db, next_child_number)
             if header.hash != expected_child.parent_hash:
                 # We are trying to close a gap with an uncle. Reject!
                 raise ValidationError(f"{header} is not the parent of {expected_child}")
@@ -306,25 +307,9 @@ class HeaderDB(HeaderDatabaseAPI):
         # We implicitly assert that persisted headers are canonical here.
         # This assertion is made when persisting headers that are known to be part of a gap
         # in the canonical chain.
-        # What we don't know is if this header will eventually lead up to the upper end of the
-        # gap (the checkpoint header) or if this is an alternative history. But we do ensure the
-        # integrity eventually. For one, we check the final header that would close the gap and if
-        # it does not match our expected child (the checkpoint header), we will reject it.
-        # Additionally, if we have persisted a chain of alternative history under the wrong
-        # assumption that it would be the canonical chain, but then at a later point it turns out it
-        # isn't and we overwrite it with the correct canonical chain, we make sure to
-        # recanonicalize all affected headers.
-        # IMPORTANT: Not only do we have to take this into account when we fill a gap, but also
-        # every time we write into a gap.
-        # Suppose we have a gap of 10 headers, then we fill 1 -5 with uncles from chain B.
-        # Now suppose we find the original chain A and attempt to write headers 1 - 10. At that
-        # point, we are under the assumption our current gap spans from just 6 - 10 because we have
-        # previously written headers 1 - 5 from chain B *believing* they are canonical which they
-        # turn out not to be. That means by the time we write headers 1 -5 again (but from chain A)
-        # we do not recognize it as writing to a known gap. Therefore by the time we write header 6,
-        # when we finally realize that we are attempting to fill in a gap, we have to backtrack
-        # the ancestors to add them to the canonical chain.
-
+        # What if this assertion is later found to be false? At gap fill time, we can detect if the
+        # chains don't link (and raise a ValidationError). Also, when a true canonical header is
+        # added eventually, we need to canonicalize all the true headers.
         for ancestor in cls._find_new_ancestors(db, header, genesis_parent_hash):
             cls._add_block_number_to_hash_lookup(db, ancestor)
 
