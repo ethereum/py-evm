@@ -12,13 +12,13 @@ from typing import (
     Iterable,
     Iterator,
     MutableMapping,
+    NamedTuple,
     Optional,
     Sequence,
     Tuple,
     Type,
     TypeVar,
     Union,
-    NamedTuple,
 )
 from uuid import UUID
 

@@ -1,3 +1,4 @@
+import enum
 import operator
 import random
 
@@ -60,6 +61,10 @@ def mk_header_chain(base_header, length):
         previous_header = next_header
 
 
+def get_score(genesis_header, children):
+    return sum(header.difficulty for header in children) + genesis_header.difficulty
+
+
 def test_headerdb_get_canonical_head_not_found(headerdb):
     with pytest.raises(CanonicalHeadNotFound):
         headerdb.get_canonical_head()
@@ -89,16 +94,16 @@ def test_headerdb_persist_disconnected_headers(headerdb, genesis_header):
 
     headers = mk_header_chain(genesis_header, length=10)
 
-    score_at_pseudo_genesis = 154618822656
     # This is the score that we would reach at the tip if we persist the entire chain.
     # But we test to reach it by building on top of a trusted score.
-    expected_score_at_tip = 188978561024
+    expected_score_at_tip = get_score(genesis_header, headers)
 
     pseudo_genesis = headers[7]
+    pseudo_genesis_score = get_score(genesis_header, headers[0:8])
 
     assert headerdb.get_header_chain_gaps() == GENESIS_CHAIN_GAPS
     # Persist the checkpoint header with a trusted score
-    headerdb.persist_checkpoint_header(pseudo_genesis, score_at_pseudo_genesis)
+    headerdb.persist_checkpoint_header(pseudo_genesis, pseudo_genesis_score)
     assert headerdb.get_header_chain_gaps() == (((1, 7),), 9)
 
     assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
@@ -118,88 +123,130 @@ def test_headerdb_persist_disconnected_headers(headerdb, genesis_header):
         headerdb.get_block_header_by_hash(headers[2].hash)
 
 
-def test_can_patch_holes(headerdb, genesis_header):
-    headerdb.persist_header(genesis_header)
-    headers = mk_header_chain(genesis_header, length=10)
-
-    assert headerdb.get_header_chain_gaps() == GENESIS_CHAIN_GAPS
-    # Persist the checkpoint header with a trusted score
-    # headers[7] has block number 8 because `headers` doesn't include the genesis
-    pseudo_genesis = headers[7]
-    headerdb.persist_checkpoint_header(pseudo_genesis, 154618822656)
-    assert headerdb.get_header_chain_gaps() == (((1, 7),), 9)
-    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
-
-    headerdb.persist_header_chain(headers[:7])
-    assert headerdb.get_header_chain_gaps() == ((), 9)
-
-    for number in range(1, 9):
-        # Make sure we can lookup the headers by block number
-        header_by_number = headerdb.get_canonical_block_header_by_number(number)
-        assert header_by_number.block_number == headers[number - 1].block_number
-
-    # Make sure patching the hole does not affect what our current head is
-    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
+class StepAction(enum.Enum):
+    PERSIST_CHECKPOINT = enum.auto()
+    PERSIST_HEADERS = enum.auto()
+    VERIFY_GAPS = enum.auto()
+    VERIFY_CANONICAL_HEAD = enum.auto()
+    VERIFY_CANONICAL_HEADERS = enum.auto()
+    VERIFY_PERSIST_RAISES = enum.auto()
 
 
-def test_gap_filling_handles_uncles_correctly(headerdb, genesis_header):
+@pytest.mark.parametrize(
+    'steps',
+    (
+        # Start patching gap with uncles, later overwrite with true chain
+        (
+            (StepAction.PERSIST_CHECKPOINT, 8),
+            (StepAction.VERIFY_GAPS, (((1, 7),), 9)),
+            (StepAction.VERIFY_CANONICAL_HEAD, 8),
+            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:3])),
+            (StepAction.VERIFY_GAPS, (((4, 7),), 9)),
+            (StepAction.VERIFY_CANONICAL_HEADERS, ('b', lambda headers: headers[:3])),
+            # Verify patching the gap does not affect what our current head is
+            (StepAction.VERIFY_CANONICAL_HEAD, 8),
+            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers)),
+            # It's important to verify all headers of a became canonical because there was a point
+            # in time where the chain "thought" we already had filled 1 - 3 but they later turned
+            # out to be uncles.
+            (StepAction.VERIFY_CANONICAL_HEADERS, ('a', lambda headers: headers)),
+            (StepAction.VERIFY_GAPS, ((), 11)),
+        ),
+        # Can not close gap with uncle chain
+        (
+            (StepAction.PERSIST_CHECKPOINT, 8),
+            (StepAction.VERIFY_GAPS, (((1, 7),), 9)),
+            (StepAction.VERIFY_CANONICAL_HEAD, 8),
+            (StepAction.VERIFY_PERSIST_RAISES, ('b', ValidationError, lambda h: h[:7])),
+            (StepAction.VERIFY_GAPS, (((1, 7),), 9)),
+        ),
+        # Can not fill gaps non-sequentially (backwards from checkpoint)
+        (
+            (StepAction.PERSIST_CHECKPOINT, 4),
+            (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
+            (StepAction.VERIFY_CANONICAL_HEAD, 4),
+            (StepAction.VERIFY_PERSIST_RAISES, ('b', ParentNotFound, lambda headers: [headers[2]])),
+            (StepAction.VERIFY_PERSIST_RAISES, ('a', ParentNotFound, lambda headers: [headers[2]])),
+            (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
+        ),
+        # Can close gap, when head has advanced from checkpoint header
+        (
+            (StepAction.PERSIST_CHECKPOINT, 4),
+            (StepAction.PERSIST_HEADERS, ('a', lambda headers: [headers[4]])),
+            (StepAction.VERIFY_GAPS, (((1, 3),), 6)),
+            (StepAction.VERIFY_CANONICAL_HEAD, 5),
+            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:3])),
+            (StepAction.VERIFY_GAPS, ((), 6)),
+        ),
+        # Can close gap that ends at checkpoint header
+        (
+            (StepAction.PERSIST_CHECKPOINT, 4),
+            (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
+            (StepAction.VERIFY_CANONICAL_HEAD, 4),
+            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:3])),
+            (StepAction.VERIFY_GAPS, ((), 5)),
+        ),
+        # Open new gaps, while filling in previous gaps
+        (
+            (StepAction.PERSIST_CHECKPOINT, 4),
+            (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
+            (StepAction.VERIFY_CANONICAL_HEAD, 4),
+            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:2])),
+            (StepAction.VERIFY_GAPS, (((3, 3),), 5)),
+            # Create another gap
+            (StepAction.PERSIST_CHECKPOINT, 8),
+            (StepAction.VERIFY_CANONICAL_HEAD, 8),
+            (StepAction.VERIFY_GAPS, (((3, 3), (5, 7),), 9)),
+            # Work on the second gap but don't close
+            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[4:6])),
+            (StepAction.VERIFY_GAPS, (((3, 3), (7, 7)), 9)),
+            # Close first gap
+            (StepAction.PERSIST_HEADERS, ('a', lambda headers: [headers[2]])),
+            (StepAction.VERIFY_GAPS, (((7, 7),), 9)),
+            # Close second gap
+            (StepAction.PERSIST_HEADERS, ('a', lambda headers: [headers[6]])),
+            (StepAction.VERIFY_GAPS, ((), 9)),
+        ),
+    ),
+)
+def test_different_cases_of_patching_gaps(headerdb, genesis_header, steps):
     headerdb.persist_header(genesis_header)
     chain_a = mk_header_chain(genesis_header, length=10)
     chain_b = mk_header_chain(genesis_header, length=10)
 
-    assert headerdb.get_header_chain_gaps() == GENESIS_CHAIN_GAPS
-    # Persist the checkpoint header with a trusted score
-    # chain_a[7] has block number 8 because `chain_a` doesn't include the genesis
-    pseudo_genesis = chain_a[7]
-    headerdb.persist_checkpoint_header(pseudo_genesis, 154618822656)
-    assert headerdb.get_header_chain_gaps() == (((1, 7),), 9)
-    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
-
-    # Start filling the gap with headers from `chain_b`. At this point, we do not yet know this is
-    # an alternative history not leading up to our expected checkpoint header.
-    headerdb.persist_header_chain(chain_b[:3])
-    assert headerdb.get_header_chain_gaps() == (((4, 7),), 9)
-
-    with pytest.raises(ValidationError):
-        headerdb.persist_header_chain(chain_b[3:7])
-
-    # That last persist did not write any headers
-    assert headerdb.get_header_chain_gaps() == (((4, 7),), 9)
-
-    for number in range(1, 4):
-        # Make sure we can lookup the headers by block number
-        header_by_number = headerdb.get_canonical_block_header_by_number(number)
-        assert header_by_number == chain_b[number - 1]
-
-    # Make sure patching the hole does not affect what our current head is
-    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
-
-    # Now we fill the gap with the actual correct chain that does lead up to our checkpoint header
-    headerdb.persist_header_chain(chain_a)
-
-    assert_is_canonical_chain(headerdb, chain_a)
-
-
-def test_write_batch_that_patches_gap_and_adds_new_at_the_tip(headerdb, genesis_header):
-    headerdb.persist_header(genesis_header)
-    headers = mk_header_chain(genesis_header, length=10)
+    def _get_chain(id):
+        if chain_id == 'a':
+            return chain_a
+        elif chain_id == 'b':
+            return chain_b
+        else:
+            raise Exception(f"Invalid chain id: {chain_id}")
 
     assert headerdb.get_header_chain_gaps() == GENESIS_CHAIN_GAPS
-    # Persist the checkpoint header with a trusted score
-    pseudo_genesis = headers[7]
-    headerdb.persist_checkpoint_header(pseudo_genesis, 154618822656)
-    assert headerdb.get_header_chain_gaps() == (((1, 7),), 9)
-    assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
 
-    headerdb.persist_header_chain(headers)
-    assert headerdb.get_header_chain_gaps() == ((), 11)
-
-    for number in range(1, len(headers)):
-        # Make sure we can lookup the headers by block number
-        header_by_number = headerdb.get_canonical_block_header_by_number(number)
-        assert header_by_number.block_number == headers[number - 1].block_number
-    # Make sure patching the hole does not affect what our current head is
-    assert_headers_eq(headerdb.get_canonical_head(), headers[-1])
+    for step in steps:
+        step_action, step_data = step
+        if step_action is StepAction.PERSIST_CHECKPOINT:
+            pseudo_genesis = chain_a[step_data - 1]
+            pseudo_genesis_score = get_score(genesis_header, chain_a[0:step_data])
+            headerdb.persist_checkpoint_header(pseudo_genesis, pseudo_genesis_score)
+        elif step_action is StepAction.PERSIST_HEADERS:
+            chain_id, selector_fn = step_data
+            headerdb.persist_header_chain(selector_fn(_get_chain(chain_id)))
+        elif step_action is StepAction.VERIFY_GAPS:
+            assert headerdb.get_header_chain_gaps() == step_data
+        elif step_action is StepAction.VERIFY_PERSIST_RAISES:
+            chain_id, error, selector_fn = step_data
+            with pytest.raises(error):
+                headerdb.persist_header_chain(selector_fn(_get_chain(chain_id)))
+        elif step_action is StepAction.VERIFY_CANONICAL_HEAD:
+            assert_headers_eq(headerdb.get_canonical_head(), chain_a[step_data - 1])
+        elif step_action is StepAction.VERIFY_CANONICAL_HEADERS:
+            chain_id, selector_fn = step_data
+            for header in selector_fn(_get_chain(chain_id)):
+                assert headerdb.get_canonical_block_header_by_number(header.block_number) == header
+        else:
+            raise Exception("Unknown step action")
 
 
 @pytest.mark.parametrize(
