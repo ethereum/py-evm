@@ -18,6 +18,7 @@ from eth.chains.base import (
     Chain,
     MiningChain,
 )
+from eth.consensus import PowConsensus
 from eth.consensus.noproof import NoProofConsensus
 from eth.db.atomic import AtomicDB
 from eth.rlp.headers import BlockHeader
@@ -147,7 +148,7 @@ def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
     klass = chain_cls.configure(
         __name__='TestChain',
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, VM.configure(consensus_class=NoProofConsensus)),
+            (constants.GENESIS_BLOCK_NUMBER, VM.configure(consensus_class=PowConsensus)),
         ),
         chain_id=1337,
     )
