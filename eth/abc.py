@@ -631,9 +631,34 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
             as genesis. Providing a ``genesis_parent_hash`` allows storage of blocks that
             aren't (yet) connected back to the true genesis header.
 
-        Assumes all block transactions have been persisted already.
+        .. warning::
+            This API assumes all block transactions have been persisted already. Use
+            :meth:`eth.abc.ChainDatabaseAPI.persist_unexecuted_block` to persist blocks that were
+            not executed.
         """
         ...
+
+    @abstractmethod
+    def persist_unexecuted_block(self,
+                                 block: BlockAPI,
+                                 receipts: Tuple[ReceiptAPI, ...],
+                                 genesis_parent_hash: Hash32 = None
+                                 ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
+        """
+        Persist the given block's header, uncles, transactions, and receipts. Does
+        **not** validate if state transitions are valid.
+
+        :param block: the block that gets persisted
+        :param receipts: the receipts for the given block
+        :param genesis_parent_hash: *optional* parent hash of the header that is treated
+            as genesis. Providing a ``genesis_parent_hash`` allows storage of blocks that
+            aren't (yet) connected back to the true genesis header.
+
+        This API should be used to persist blocks that the EVM does not execute but which it
+        stores to make them available. It ensures to persist receipts and transactions which
+        :meth:`eth.abc.ChainDatabaseAPI.persist_block` in contrast assumes to be persisted
+        separately.
+        """
 
     @abstractmethod
     def persist_uncles(self, uncles: Tuple[BlockHeaderAPI]) -> Hash32:

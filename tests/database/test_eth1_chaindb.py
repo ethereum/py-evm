@@ -15,6 +15,7 @@ from eth.constants import (
 from eth.chains.base import (
     MiningChain,
 )
+from eth.db.atomic import AtomicDB
 from eth.db.chain import (
     ChainDB,
 )
@@ -149,17 +150,15 @@ def test_chaindb_get_canonical_block_hash(chaindb, block):
     assert block_hash == block.hash
 
 
-def test_chaindb_get_receipt_by_index(
-        chain,
-        funded_address,
-        funded_address_private_key):
-    NUMBER_BLOCKS_IN_CHAIN = 5
-    TRANSACTIONS_IN_BLOCK = 10
-    REQUIRED_BLOCK_NUMBER = 2
-    REQUIRED_RECEIPT_INDEX = 3
+def mine_blocks_with_receipts(chain,
+                              num_blocks,
+                              num_tx_per_block,
+                              funded_address,
+                              funded_address_private_key):
 
-    for block_number in range(NUMBER_BLOCKS_IN_CHAIN):
-        for tx_index in range(TRANSACTIONS_IN_BLOCK):
+    for _ in range(num_blocks):
+        block_receipts = []
+        for _ in range(num_tx_per_block):
             tx = new_transaction(
                 chain.get_vm(),
                 from_=funded_address,
@@ -167,12 +166,29 @@ def test_chaindb_get_receipt_by_index(
                 private_key=funded_address_private_key,
             )
             new_block, tx_receipt, computation = chain.apply_transaction(tx)
+            block_receipts.append(tx_receipt)
             computation.raise_if_error()
 
-            if (block_number + 1) == REQUIRED_BLOCK_NUMBER and tx_index == REQUIRED_RECEIPT_INDEX:
-                actual_receipt = tx_receipt
+        yield chain.mine_block(), block_receipts
 
-        chain.mine_block()
+
+def test_chaindb_get_receipt_and_tx_by_index(chain, funded_address, funded_address_private_key):
+    NUMBER_BLOCKS_IN_CHAIN = 5
+    TRANSACTIONS_IN_BLOCK = 10
+    REQUIRED_BLOCK_NUMBER = 2
+    REQUIRED_RECEIPT_INDEX = 3
+
+    for (block, receipts) in mine_blocks_with_receipts(
+            chain,
+            NUMBER_BLOCKS_IN_CHAIN,
+            TRANSACTIONS_IN_BLOCK,
+            funded_address,
+            funded_address_private_key,
+    ):
+        if block.header.block_number == REQUIRED_BLOCK_NUMBER:
+            actual_receipt = receipts[REQUIRED_RECEIPT_INDEX]
+            actual_tx = block.transactions[REQUIRED_RECEIPT_INDEX]
+            tx_class = block.transaction_class
 
     # Check that the receipt retrieved is indeed the actual one
     chaindb_retrieved_receipt = chain.chaindb.get_receipt_by_index(
@@ -180,6 +196,10 @@ def test_chaindb_get_receipt_by_index(
         REQUIRED_RECEIPT_INDEX,
     )
     assert chaindb_retrieved_receipt == actual_receipt
+
+    chaindb_retrieved_tx = chain.chaindb.get_transaction_by_index(
+        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class)
+    assert chaindb_retrieved_tx == actual_tx
 
     # Raise error if block number is not found
     with pytest.raises(ReceiptNotFound):
@@ -191,6 +211,83 @@ def test_chaindb_get_receipt_by_index(
     # Raise error if receipt index is out of range
     with pytest.raises(ReceiptNotFound):
         chain.chaindb.get_receipt_by_index(
+            NUMBER_BLOCKS_IN_CHAIN,
+            TRANSACTIONS_IN_BLOCK + 1,
+        )
+
+
+@pytest.mark.parametrize(
+    "use_persist_unexecuted_block",
+    (
+        True,
+        pytest.param(
+            False,
+            marks=pytest.mark.xfail(
+                reason=(
+                    "The `persist_block` API relies on block execution to persist"
+                    "transactions and receipts. It is expected to fail this test."
+                )
+            ),
+        ),
+    )
+)
+def test_chaindb_persist_unexecuted_block(chain,
+                                          chain_without_block_validation_factory,
+                                          funded_address,
+                                          funded_address_private_key,
+                                          use_persist_unexecuted_block):
+
+    # We need one chain to create blocks and a second one with a pristine database to test
+    # persisting blocks that have not been executed.
+    second_chain = chain_without_block_validation_factory(AtomicDB())
+    assert chain.get_canonical_head() == second_chain.get_canonical_head()
+    assert chain != second_chain
+
+    NUMBER_BLOCKS_IN_CHAIN = 5
+    TRANSACTIONS_IN_BLOCK = 10
+    REQUIRED_BLOCK_NUMBER = 2
+    REQUIRED_RECEIPT_INDEX = 3
+
+    for (block, receipts) in mine_blocks_with_receipts(
+            chain,
+            NUMBER_BLOCKS_IN_CHAIN,
+            TRANSACTIONS_IN_BLOCK,
+            funded_address,
+            funded_address_private_key,
+    ):
+        if block.header.block_number == REQUIRED_BLOCK_NUMBER:
+            actual_receipt = receipts[REQUIRED_RECEIPT_INDEX]
+            actual_tx = block.transactions[REQUIRED_RECEIPT_INDEX]
+            tx_class = block.transaction_class
+
+        if use_persist_unexecuted_block:
+            second_chain.chaindb.persist_unexecuted_block(block, receipts)
+        else:
+            # We just use this for an XFAIL to prove `persist_block` does not properly
+            # persist blocks that were not executed.
+            second_chain.chaindb.persist_block(block)
+
+    chaindb_retrieved_tx = second_chain.chaindb.get_transaction_by_index(
+        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class)
+    assert chaindb_retrieved_tx == actual_tx
+
+    # Check that the receipt retrieved is indeed the actual one
+    chaindb_retrieved_receipt = second_chain.chaindb.get_receipt_by_index(
+        REQUIRED_BLOCK_NUMBER,
+        REQUIRED_RECEIPT_INDEX,
+    )
+    assert chaindb_retrieved_receipt == actual_receipt
+
+    # Raise error if block number is not found
+    with pytest.raises(ReceiptNotFound):
+        second_chain.chaindb.get_receipt_by_index(
+            NUMBER_BLOCKS_IN_CHAIN + 1,
+            REQUIRED_RECEIPT_INDEX,
+        )
+
+    # Raise error if receipt index is out of range
+    with pytest.raises(ReceiptNotFound):
+        second_chain.chaindb.get_receipt_by_index(
             NUMBER_BLOCKS_IN_CHAIN,
             TRANSACTIONS_IN_BLOCK + 1,
         )

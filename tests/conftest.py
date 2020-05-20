@@ -243,6 +243,11 @@ def chain_without_block_validation(
 
 
 @pytest.fixture(params=[Chain, MiningChain])
+def chain_without_block_validation_factory(request, VM, genesis_state):
+    return lambda db: _chain_without_block_validation(request, VM, db, genesis_state)
+
+
+@pytest.fixture(params=[Chain, MiningChain])
 def chain_without_block_validation_from_vm(request, base_db, genesis_state):
     """
     This fixture is to be used only when the properties of the
