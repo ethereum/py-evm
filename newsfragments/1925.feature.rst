@@ -1,0 +1,4 @@
+Add a new ``persist_unexecuted_block`` API to ``ChainDB``. This API should be used to persist
+a block without executing the EVM on it. The API is used by
+syncing strategies that do not execute all blocks but fill old blocks
+back in (e.g. ``beam`` or ``fast`` sync)

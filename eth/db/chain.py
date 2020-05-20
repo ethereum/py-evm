@@ -34,6 +34,7 @@ from eth.constants import (
     EMPTY_UNCLE_HASH,
     GENESIS_PARENT_HASH,
 )
+from eth.db.trie import make_trie_root_and_nodes
 from eth.exceptions import (
     HeaderNotFound,
     ReceiptNotFound,
@@ -127,6 +128,34 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                       genesis_parent_hash: Hash32 = GENESIS_PARENT_HASH
                       ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
         with self.db.atomic_batch() as db:
+            return self._persist_block(db, block, genesis_parent_hash)
+
+    def persist_unexecuted_block(self,
+                                 block: BlockAPI,
+                                 receipts: Tuple[ReceiptAPI, ...],
+                                 genesis_parent_hash: Hash32 = GENESIS_PARENT_HASH
+                                 ) -> Tuple[Tuple[Hash32, ...], Tuple[Hash32, ...]]:
+
+        tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(block.transactions)
+
+        if tx_root_hash != block.header.transaction_root:
+            raise ValidationError(
+                f"Block's transaction_root ({block.header.transaction_root}) "
+                f"does not match expected value: {tx_root_hash}"
+            )
+
+        receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
+
+        if receipt_root_hash != block.header.receipt_root:
+            raise ValidationError(
+                f"Block's receipt_root ({block.header.receipt_root}) "
+                f"does not match expected value: {receipt_root_hash}"
+            )
+
+        with self.db.atomic_batch() as db:
+            self._persist_trie_data_dict(db, receipt_kv_nodes)
+            self._persist_trie_data_dict(db, tx_kv_nodes)
+
             return self._persist_block(db, block, genesis_parent_hash)
 
     @classmethod
@@ -347,6 +376,9 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         return self.db[key]
 
     def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
-        with self.db.atomic_batch() as db:
-            for key, value in trie_data_dict.items():
-                db[key] = value
+        self._persist_trie_data_dict(self.db, trie_data_dict)
+
+    @classmethod
+    def _persist_trie_data_dict(cls, db: DatabaseAPI, trie_data_dict: Dict[Hash32, bytes]) -> None:
+        for key, value in trie_data_dict.items():
+            db[key] = value
