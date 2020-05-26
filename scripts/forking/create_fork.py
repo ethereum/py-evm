@@ -51,13 +51,13 @@ def bootstrap() -> None:
     print("Specify the fork base (e.g Istanbul):")
     fork_base = input(INPUT_PROMPT)
 
-    fork_base_path = FORKS_BASE_PATH / fork_base
+    writing_new_fork = create_writing(fork_name)
+    writing_parent_fork = create_writing(fork_base)
+
+    fork_base_path = FORKS_BASE_PATH / writing_parent_fork.lower_snake_case
     if not fork_base_path.exists():
         print(f"No fork exists at {fork_base_path}")
         return
-
-    writing_new_fork = create_writing(fork_name)
-    writing_parent_fork = create_writing(fork_base)
 
     print("Check your inputs:")
     print("New fork:")
