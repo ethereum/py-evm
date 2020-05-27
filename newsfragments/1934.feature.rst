@@ -1,1 +1,0 @@
-Update the allowable version of `py_ecc` library.

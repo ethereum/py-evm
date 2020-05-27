@@ -3,6 +3,20 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.16 (2020-05-27)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Expose ``get_header_chain_gaps()`` API on HeaderDB to track chain gaps (`#1924 <https://github.com/ethereum/py-evm/issues/1924>`__)
+- Add a new ``persist_unexecuted_block`` API to ``ChainDB``. This API should be used to persist
+  a block without executing the EVM on it. The API is used by
+  syncing strategies that do not execute all blocks but fill old blocks
+  back in (e.g. ``beam`` or ``fast`` sync) (`#1925 <https://github.com/ethereum/py-evm/issues/1925>`__)
+- Update the allowable version of `py_ecc` library. (`#1934 <https://github.com/ethereum/py-evm/issues/1934>`__)
+
+
 py-evm 0.3.0-alpha.15 (2020-04-14)
 ----------------------------------
 
