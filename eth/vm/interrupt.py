@@ -1,3 +1,7 @@
+from typing import (
+    Optional,
+)
+
 from eth_typing import (
     Address,
     Hash32,
@@ -7,6 +11,9 @@ from eth_utils import (
 )
 from trie.exceptions import (
     MissingTrieNode,
+)
+from trie.typing import (
+    Nibbles,
 )
 
 from eth.exceptions import (
@@ -53,6 +60,7 @@ class MissingStorageTrieNode(EVMMissingData, MissingTrieNode):
             missing_node_hash: Hash32,
             storage_root_hash: Hash32,
             requested_key: Hash32,
+            prefix: Optional[Nibbles],
             account_address: Address,
             *args: bytes) -> None:
         if not isinstance(account_address, bytes):
@@ -62,6 +70,7 @@ class MissingStorageTrieNode(EVMMissingData, MissingTrieNode):
             missing_node_hash,
             storage_root_hash,
             requested_key,
+            prefix,
             account_address,
             *args,
         )
@@ -72,7 +81,7 @@ class MissingStorageTrieNode(EVMMissingData, MissingTrieNode):
 
     @property
     def account_address(self) -> Address:
-        return self.args[3]
+        return self.args[4]
 
     def __repr__(self) -> str:
         return f"MissingStorageTrieNode: {self}"
