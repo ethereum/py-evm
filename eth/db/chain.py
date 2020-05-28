@@ -36,6 +36,7 @@ from eth.constants import (
 )
 from eth.db.trie import make_trie_root_and_nodes
 from eth.exceptions import (
+    CanonicalHeadNotFound,
     HeaderNotFound,
     ReceiptNotFound,
     TransactionNotFound,
