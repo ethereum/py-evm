@@ -129,6 +129,7 @@ class StorageLookup(BaseDB):
                 exc.missing_node_hash,
                 self._starting_root_hash,
                 exc.requested_key,
+                exc.prefix,
                 self._address,
             ) from exc
 
@@ -153,6 +154,7 @@ class StorageLookup(BaseDB):
                 exc.missing_node_hash,
                 self._starting_root_hash,
                 exc.requested_key,
+                exc.prefix,
                 self._address,
             ) from exc
 
