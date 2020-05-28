@@ -6,7 +6,15 @@ Thank you for your interest in contributing! We welcome all contributions no mat
 Setting the stage
 ~~~~~~~~~~~~~~~~~
 
-First we need to clone the Py-EVM repository. Py-EVM depends on a submodule of the common tests across all clients, so we need to clone the repo with the ``--recursive`` flag. Example:
+**Only on macOS**: if it is the first time you install Py-EVM, you will need to install LevelDB with brew before taking the following steps:
+
+.. code:: sh
+
+    brew install python3 LevelDB
+
+
+
+We need to clone the Py-EVM repository. Py-EVM depends on a submodule of the common tests across all clients, so we need to clone the repo with the ``--recursive`` flag. Example:
 
 .. code:: sh
 

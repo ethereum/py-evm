@@ -94,6 +94,14 @@ JUMPDEST = 0x5b
 
 
 #
+# Subroutines
+#
+BEGINSUB = 0x5c
+RETURNSUB = 0x5d
+JUMPSUB = 0x5e
+
+
+#
 # Push Operations
 #
 PUSH1 = 0x60

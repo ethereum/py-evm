@@ -1439,3 +1439,62 @@ def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception
         comp.raise_if_error()
         result = comp.output
         assert result.hex() == output_hex
+
+
+@pytest.mark.parametrize(
+    'vm_class, code, expect_gas_used',
+    (
+        (
+            BerlinVM,
+            '0x60045e005c5d',
+            18,
+        ),
+        (
+            BerlinVM,
+            '0x6800000000000000000c5e005c60115e5d5c5d',
+            36,
+        ),
+        (
+            BerlinVM,
+            '0x6005565c5d5b60035e',
+            30,
+        ),
+    )
+)
+def test_jumpsub(vm_class, code, expect_gas_used):
+    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
+    comp = computation.apply_message(
+        computation.state,
+        computation.msg,
+        computation.transaction_context,
+    )
+    assert comp.is_success
+    assert comp.get_gas_used() == expect_gas_used
+
+
+@pytest.mark.xfail(reason="invalid subroutines")
+@pytest.mark.parametrize(
+    'vm_class, code',
+    (
+        (
+            BerlinVM,
+            '0x5d5858',
+        ),
+        (
+            BerlinVM,
+            '0x6801000000000000000c5e005c60115e5d5c5d',
+        ),
+        (
+            BerlinVM,
+            '0x5c5d00',
+        ),
+    )
+)
+def test_failing_jumpsub(vm_class, code):
+    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
+    comp = computation.apply_message(
+        computation.state,
+        computation.msg,
+        computation.transaction_context,
+    )
+    assert comp.is_success
