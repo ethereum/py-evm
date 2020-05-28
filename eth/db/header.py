@@ -30,11 +30,11 @@ from eth.constants import (
     GENESIS_PARENT_HASH,
 )
 from eth.db.chain_gaps import (
-    calculate_gaps,
     GapChange,
     GapInfo,
     GAP_WRITES,
     GENESIS_CHAIN_GAPS,
+    fill_gap,
 )
 from eth.exceptions import (
     CanonicalHeadNotFound,
@@ -79,7 +79,7 @@ class HeaderDB(HeaderDatabaseAPI):
             if base_gaps is None:
                 base_gaps = cls._get_header_chain_gaps(db)
 
-            gap_change, gaps = calculate_gaps(persisted_header.block_number, base_gaps)
+            gap_change, gaps = fill_gap(persisted_header.block_number, base_gaps)
 
             if gap_change is not GapChange.NoChange:
                 db.set(
@@ -297,7 +297,8 @@ class HeaderDB(HeaderDatabaseAPI):
         if gap_change not in GAP_WRITES:
             return
 
-        if gap_change is GapChange.GapFill:
+        # Check if this change will link up the chain to the right
+        if gap_change in (GapChange.GapFill, GapChange.GapRightShrink):
             next_child_number = BlockNumber(header.block_number + 1)
             expected_child = cls._get_canonical_block_header_by_number(db, next_child_number)
             if header.hash != expected_child.parent_hash:

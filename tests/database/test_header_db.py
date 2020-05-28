@@ -1,12 +1,23 @@
 import enum
+from functools import partial
 import operator
 import random
 
+from hypothesis import (
+    example,
+    given,
+    strategies as st,
+)
 import pytest
 
-from eth_utils.toolz import accumulate
+from eth_utils.toolz import (
+    accumulate,
+    compose,
+    sliding_window,
+)
 
 from eth_utils import (
+    to_set,
     to_tuple,
     keccak,
     ValidationError,
@@ -17,9 +28,16 @@ from eth.constants import (
     GENESIS_DIFFICULTY,
     GENESIS_GAS_LIMIT,
 )
-from eth.db.chain_gaps import GapChange, GENESIS_CHAIN_GAPS
+from eth.db.chain_gaps import (
+    GapChange,
+    GENESIS_CHAIN_GAPS,
+    fill_gap,
+    reopen_gap,
+    is_block_number_in_gap,
+)
 from eth.exceptions import (
     CanonicalHeadNotFound,
+    GapTrackingCorrupted,
     HeaderNotFound,
     ParentNotFound,
 )
@@ -37,7 +55,7 @@ def headerdb(base_db):
     return HeaderDB(base_db)
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def genesis_header():
     return BlockHeader(
         difficulty=GENESIS_DIFFICULTY,
@@ -123,6 +141,13 @@ def test_headerdb_persist_disconnected_headers(headerdb, genesis_header):
         headerdb.get_block_header_by_hash(headers[2].hash)
 
 
+def test_corrupt_gaps():
+    with pytest.raises(GapTrackingCorrupted, match="(1, 3)"):
+        fill_gap(2, (((1, 3), (2, 4)), 6))
+    with pytest.raises(GapTrackingCorrupted, match="(2, 4)"):
+        fill_gap(2, (((1, 3), (2, 4)), 6))
+
+
 class StepAction(enum.Enum):
     PERSIST_CHECKPOINT = enum.auto()
     PERSIST_HEADERS = enum.auto()
@@ -130,6 +155,30 @@ class StepAction(enum.Enum):
     VERIFY_CANONICAL_HEAD = enum.auto()
     VERIFY_CANONICAL_HEADERS = enum.auto()
     VERIFY_PERSIST_RAISES = enum.auto()
+
+
+def _all_gap_numbers(chain_gaps, highest_block_number):
+    """List all the missing headers, the block numbers in gaps"""
+    gap_ranges, tail = chain_gaps
+    for low, high in gap_ranges:
+        yield from range(low, high + 1)
+    yield from range(tail, highest_block_number + 1)
+
+
+def _validate_gap_invariants(gaps):
+    # 1. gaps are sorted
+    for low, high in gaps[0]:
+        assert high >= low, gaps
+
+    # 2. gaps are not overrlapping
+    for low_range, high_range in sliding_window(2, gaps[0]):
+        # the top of the low range must not be sequential with the bottom of the high range
+        assert low_range[1] + 1 < high_range[0], gaps
+
+    # 3. final gap does not overlap with the tail
+    if len(gaps[0]):
+        final_gap_range = gaps[0][-1]
+        assert final_gap_range[1] + 1 < gaps[1], gaps
 
 
 @pytest.mark.parametrize(
@@ -296,12 +345,12 @@ def test_different_cases_of_patching_gaps(headerdb, genesis_header, steps):
                 (GapChange.TailWrite, ((), 2)),
                 (GapChange.NewGap, (((2, 9),), 11)),
                 (GapChange.GapSplit, (((2, 4), (6, 9),), 11)),
-                (GapChange.GapShrink, (((3, 4), (6, 9),), 11)),
-                (GapChange.GapShrink, (((3, 3), (6, 9),), 11)),
+                (GapChange.GapLeftShrink, (((3, 4), (6, 9),), 11)),
+                (GapChange.GapRightShrink, (((3, 3), (6, 9),), 11)),
                 (GapChange.GapFill, (((6, 9),), 11)),
-                (GapChange.GapShrink, (((6, 8),), 11)),
-                (GapChange.GapShrink, (((6, 7),), 11)),
-                (GapChange.GapShrink, (((6, 6),), 11)),
+                (GapChange.GapRightShrink, (((6, 8),), 11)),
+                (GapChange.GapRightShrink, (((6, 7),), 11)),
+                (GapChange.GapRightShrink, (((6, 6),), 11)),
                 (GapChange.GapFill, ((), 11)),
             )
         ),
@@ -323,6 +372,75 @@ def test_gap_tracking(headerdb, genesis_header, written_headers, evolving_gaps):
 
         assert current_info == evolving_gaps[idx][1]
         assert change == evolving_gaps[idx][0]
+
+
+@given(st.lists(
+    st.tuples(
+        # True to insert a header (ie~ remove a gap), False to remove a header (ie~ add a gap)
+        st.booleans(),
+        st.integers(min_value=1, max_value=19),  # constrain to try to cause collisions
+    )
+))
+@example([(True, 2), (True, 4), (False, 4)])
+def test_gap_continuity(changes):
+    MAX_BLOCK_NUM = 21
+
+    # method to get all the block numbers that are in a gap right now
+    _all_missing = compose(set, partial(_all_gap_numbers, highest_block_number=MAX_BLOCK_NUM))
+
+    @to_set
+    def _all_inserted(chain_gaps):
+        """List all the inserted headers, the block numbers not in gaps"""
+        missing = _all_missing(chain_gaps)
+        for block_num in range(MAX_BLOCK_NUM + 1):
+            if block_num not in missing:
+                yield block_num
+
+    chain_gaps = GENESIS_CHAIN_GAPS
+
+    for do_insert, block_num in changes:
+        starts_inserted = _all_inserted(chain_gaps)
+        starts_missing = _all_missing(chain_gaps)
+
+        if do_insert:
+            to_insert = block_num
+            _, chain_gaps = fill_gap(to_insert, chain_gaps)
+            assert not is_block_number_in_gap(to_insert, chain_gaps)
+
+            # Make sure that at most this one block number was filled
+            finished_inserted = _all_inserted(chain_gaps)
+            assert to_insert in finished_inserted
+            new_inserts = finished_inserted - starts_inserted
+            if block_num in starts_inserted:
+                assert new_inserts == set()
+            else:
+                assert new_inserts == {block_num}
+
+            # Make sure that no new gaps were created
+            finished_missing = _all_missing(chain_gaps)
+            assert to_insert not in finished_missing
+            new_missing = finished_missing - starts_missing
+            assert new_missing == set()
+        else:
+            to_remove = block_num
+            # Note that removing a header is inserting a gap
+            chain_gaps = reopen_gap(to_remove, chain_gaps)
+            assert is_block_number_in_gap(to_remove, chain_gaps)
+
+            # Make sure that no gaps were filled
+            finished_inserted = _all_inserted(chain_gaps)
+            new_inserts = finished_inserted - starts_inserted
+            assert new_inserts == set()
+
+            # Make sure that at most this one block number gap was reopened
+            finished_missing = _all_missing(chain_gaps)
+            new_missing = finished_missing - starts_missing
+            if block_num in starts_missing:
+                assert new_missing == set()
+            else:
+                assert new_missing == {block_num}
+
+        _validate_gap_invariants(chain_gaps)
 
 
 @pytest.mark.parametrize(
