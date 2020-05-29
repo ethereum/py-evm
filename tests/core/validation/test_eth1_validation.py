@@ -271,7 +271,7 @@ def test_validate_multiple_of(value, multiple_of, is_valid):
 )
 def test_validate_word(value, is_valid):
     if is_valid:
-            validate_word(value)
+        validate_word(value)
     else:
         with pytest.raises(ValidationError):
             validate_word(value)
@@ -291,7 +291,7 @@ def test_validate_word(value, is_valid):
 )
 def test_validate_uint256(value, is_valid):
     if is_valid:
-            validate_uint256(value)
+        validate_uint256(value)
     else:
         with pytest.raises(ValidationError):
             validate_uint256(value)
@@ -344,7 +344,7 @@ def test_validate_stack_bytes(value, is_valid):
 )
 def test_validate_lt_secpk1n(value, is_valid):
     if is_valid:
-            validate_lt_secpk1n(value)
+        validate_lt_secpk1n(value)
     else:
         with pytest.raises(ValidationError):
             validate_lt_secpk1n(value)
@@ -362,7 +362,7 @@ def test_validate_lt_secpk1n(value, is_valid):
 )
 def test_validate_lt_secpk1n2(value, is_valid):
     if is_valid:
-            validate_lt_secpk1n2(value)
+        validate_lt_secpk1n2(value)
     else:
         with pytest.raises(ValidationError):
             validate_lt_secpk1n2(value)
@@ -404,7 +404,7 @@ def test_validate_block_number(block_number, is_valid):
 )
 def test_validate_vm_block_numbers(vm_block_numbers, is_valid):
     if is_valid:
-            validate_vm_block_numbers(vm_block_numbers)
+        validate_vm_block_numbers(vm_block_numbers)
     else:
         with pytest.raises(ValidationError):
             validate_vm_block_numbers(vm_block_numbers)

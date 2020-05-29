@@ -79,22 +79,23 @@ class HeaderDB(HeaderDatabaseAPI):
             cls,
             db: DatabaseAPI,
             persisted_header: BlockHeaderAPI,
-            base_gaps: ChainGaps = None) -> GapInfo:
+            base_gaps: ChainGaps = None
+    ) -> GapInfo:
 
-            # If we make many updates in a row, we can avoid reloading the integrity info by
-            # continuously caching it and providing it as a parameter to this API
-            if base_gaps is None:
-                base_gaps = cls._get_header_chain_gaps(db)
+        # If we make many updates in a row, we can avoid reloading the integrity info by
+        # continuously caching it and providing it as a parameter to this API
+        if base_gaps is None:
+            base_gaps = cls._get_header_chain_gaps(db)
 
-            gap_change, gaps = fill_gap(persisted_header.block_number, base_gaps)
+        gap_change, gaps = fill_gap(persisted_header.block_number, base_gaps)
 
-            if gap_change is not GapChange.NoChange:
-                db.set(
-                    SchemaV1.make_header_chain_gaps_lookup_key(),
-                    rlp.encode(gaps, sedes=chain_gaps)
-                )
+        if gap_change is not GapChange.NoChange:
+            db.set(
+                SchemaV1.make_header_chain_gaps_lookup_key(),
+                rlp.encode(gaps, sedes=chain_gaps)
+            )
 
-            return gap_change, gaps
+        return gap_change, gaps
 
     #
     # Canonical Chain API
