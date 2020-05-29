@@ -1946,6 +1946,22 @@ class AccountDatabaseAPI(ABC):
         ...
 
     @abstractmethod
+    def lock_changes(self) -> None:
+        """
+        Locks in changes across all accounts' storage databases.
+
+        This is typically used at the end of a transaction, to make sure that
+        a revert doesn't roll back through the previous transaction, and to
+        be able to look up the "original" value of any account storage, where
+        "original" is the beginning of a transaction (instead of the beginning
+        of a block).
+
+        See :meth:`eth.abc.AccountStorageDatabaseAPI.lock_changes` for
+        what is called on each account's storage database.
+        """
+        ...
+
+    @abstractmethod
     def make_state_root(self) -> Hash32:
         """
         Generate the state root with all the current changes in AccountDB
