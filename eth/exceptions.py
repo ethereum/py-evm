@@ -72,6 +72,13 @@ class GapTrackingCorrupted(PyEVMError):
     pass
 
 
+class CheckpointsMustBeCanonical(PyEVMError):
+    """
+    Raised when a persisted header attempts to de-canonicalize a checkpoint
+    """
+    pass
+
+
 class Halt(PyEVMError):
     """
     Raised when an opcode function halts vm execution.

@@ -25,5 +25,12 @@ class SchemaV1(SchemaAPI):
         return b'v1:header_chain_gaps'
 
     @staticmethod
+    def make_checkpoint_headers_key() -> bytes:
+        """
+        Checkpoint header hashes stored as concatenated 32 byte values
+        """
+        return b'v1:checkpoint-header-hashes-list'
+
+    @staticmethod
     def make_transaction_hash_to_block_lookup_key(transaction_hash: Hash32) -> bytes:
         return b'transaction-hash-to-block:%s' % transaction_hash

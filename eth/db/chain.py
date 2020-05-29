@@ -4,6 +4,7 @@ import itertools
 from typing import (
     Dict,
     Iterable,
+    Sequence,
     Tuple,
     Type,
 )
@@ -94,14 +95,14 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     def _decanonicalize_old_headers(
         cls,
         db: DatabaseAPI,
-        new_canonical_headers: Tuple[BlockHeaderAPI, ...]
+        numbers_to_decanonicalize: Sequence[BlockNumber],
     ) -> Tuple[BlockHeaderAPI, ...]:
         old_canonical_headers = []
 
         # remove transaction lookups for blocks that are no longer canonical
-        for h in new_canonical_headers:
+        for block_number in numbers_to_decanonicalize:
             try:
-                old_hash = cls._get_canonical_block_hash(db, h.block_number)
+                old_hash = cls._get_canonical_block_hash(db, block_number)
             except HeaderNotFound:
                 # no old block, and no more possible
                 break
