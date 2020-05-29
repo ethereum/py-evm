@@ -2481,6 +2481,7 @@ class VirtualMachineAPI(ConfigurableAPI):
     def __init__(self,
                  header: BlockHeaderAPI,
                  chaindb: ChainDatabaseAPI,
+                 chain_context: ChainContextAPI,
                  consensus_context: ConsensusContextAPI) -> None:
         """
         Initialize the virtual machine.
