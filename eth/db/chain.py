@@ -84,10 +84,10 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             return ()
         try:
             encoded_uncles = self.db[uncles_hash]
-        except KeyError:
+        except KeyError as exc:
             raise HeaderNotFound(
                 f"No uncles found for hash {uncles_hash!r}"
-            )
+            ) from exc
         else:
             return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
 

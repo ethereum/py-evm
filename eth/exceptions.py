@@ -33,6 +33,8 @@ class HeaderNotFound(PyEVMError):
 class BlockNotFound(PyEVMError):
     """
     Raised when the block with the given number/hash does not exist.
+    This will happen, for example, if the transactions or uncles are not
+    saved in the database.
     """
     pass
 

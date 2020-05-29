@@ -19,6 +19,9 @@ from eth_typing import (
 )
 
 from eth_hash.auto import keccak
+from trie.exceptions import (
+    MissingTrieNode,
+)
 
 from eth.abc import (
     BlockHeaderAPI,
@@ -28,6 +31,10 @@ from eth.abc import (
 )
 from eth.constants import (
     EMPTY_UNCLE_HASH,
+)
+from eth.exceptions import (
+    BlockNotFound,
+    HeaderNotFound,
 )
 from eth.rlp.blocks import (
     BaseBlock,
@@ -103,13 +110,21 @@ class FrontierBlock(BaseBlock):
     def from_header(cls, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> "FrontierBlock":
         """
         Returns the block denoted by the given block header.
+
+        :raise eth.exceptions.BlockNotFound: if transactions or uncle headers are missing
         """
         if header.uncles_hash == EMPTY_UNCLE_HASH:
             uncles: Tuple[BlockHeader, ...] = ()
         else:
-            uncles = chaindb.get_block_uncles(header.uncles_hash)
+            try:
+                uncles = chaindb.get_block_uncles(header.uncles_hash)
+            except HeaderNotFound as exc:
+                raise BlockNotFound(f"Uncles not found in database for {header}: {exc}") from exc
 
-        transactions = chaindb.get_block_transactions(header, cls.get_transaction_class())
+        try:
+            transactions = chaindb.get_block_transactions(header, cls.get_transaction_class())
+        except MissingTrieNode as exc:
+            raise BlockNotFound(f"Transactions not found in database for {header}: {exc}") from exc
 
         return cls(
             header=header,
