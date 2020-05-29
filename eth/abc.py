@@ -20,7 +20,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from uuid import UUID
 
 import rlp
 
@@ -2301,7 +2300,7 @@ class StateAPI(ConfigurableAPI):
     # Access self._chaindb
     #
     @abstractmethod
-    def snapshot(self) -> Tuple[Hash32, UUID]:
+    def snapshot(self) -> Tuple[Hash32, JournalDBCheckpoint]:
         """
         Perform a full snapshot of the current state.
 
@@ -2311,14 +2310,14 @@ class StateAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def revert(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         """
         Revert the VM to the state at the snapshot
         """
         ...
 
     @abstractmethod
-    def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         """
         Commit the journal to the point where the snapshot was taken.  This
         merges in any changes that were recorded since the snapshot.

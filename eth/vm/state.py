@@ -4,7 +4,6 @@ from typing import (
     Tuple,
     Type,
 )
-from uuid import UUID
 
 from eth_typing import (
     Address,
@@ -32,6 +31,7 @@ from eth.abc import (
 from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
 )
+from eth.typing import JournalDBCheckpoint
 from eth._utils.datatypes import (
     Configurable,
 )
@@ -161,10 +161,10 @@ class BaseState(Configurable, StateAPI):
     #
     # Access self._chaindb
     #
-    def snapshot(self) -> Tuple[Hash32, UUID]:
+    def snapshot(self) -> Tuple[Hash32, JournalDBCheckpoint]:
         return self.state_root, self._account_db.record()
 
-    def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def revert(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         state_root, account_snapshot = snapshot
 
         # first revert the database state root.
@@ -172,7 +172,7 @@ class BaseState(Configurable, StateAPI):
         # now roll the underlying database back
         self._account_db.discard(account_snapshot)
 
-    def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         _, account_snapshot = snapshot
         self._account_db.commit(account_snapshot)
 
