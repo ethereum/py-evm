@@ -261,7 +261,7 @@ class HeaderDB(HeaderDatabaseAPI):
                     # True parent should have already been canonicalized during
                     #   _set_as_canonical_chain_head()
                     raise ValidationError(
-                        f"Why was a non-matching parent header {parent_hash} left as canonical "
+                        f"Why was a non-matching parent header {parent_hash!r} left as canonical "
                         f"after _set_as_canonical_chain_head() and {true_parent} is available?"
                     )
 
