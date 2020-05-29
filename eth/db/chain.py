@@ -377,7 +377,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         return self.db[key]
 
     def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
-        self._persist_trie_data_dict(self.db, trie_data_dict)
+        with self.db.atomic_batch() as db:
+            self._persist_trie_data_dict(db, trie_data_dict)
 
     @classmethod
     def _persist_trie_data_dict(cls, db: DatabaseAPI, trie_data_dict: Dict[Hash32, bytes]) -> None:
