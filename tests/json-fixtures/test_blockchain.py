@@ -297,7 +297,7 @@ def test_blockchain_fixtures(fixture_data, fixture):
         else:
             try:
                 apply_fixture_block_to_chain(block_fixture, chain)
-            except (TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError) as err:
+            except (TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError):
                 # failure is expected on this bad block
                 pass
             else:

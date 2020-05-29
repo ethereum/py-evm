@@ -245,7 +245,7 @@ class VM(Configurable, VirtualMachineAPI):
                     previous_header,
                     transaction,
                 )
-            except EVMMissingData as exc:
+            except EVMMissingData:
                 self.state.revert(snapshot)
                 raise
 
@@ -368,7 +368,7 @@ class VM(Configurable, VirtualMachineAPI):
             snapshot = self.state.snapshot()
             try:
                 self._assign_block_rewards(block)
-            except EVMMissingData as exc:
+            except EVMMissingData:
                 self.state.revert(snapshot)
                 raise
             else:

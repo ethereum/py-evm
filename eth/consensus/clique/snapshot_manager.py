@@ -182,7 +182,7 @@ class SnapshotManager:
             try:
                 new_snapshot = self.get_snapshot(
                     current_header.block_number, current_header.parent_hash)
-            except SnapshotNotFound as e:
+            except SnapshotNotFound:
                 current_header = self._lookup_header(current_header.parent_hash, cached_parents)
 
                 if is_checkpoint(current_header.block_number, self._epoch_length):
@@ -262,7 +262,7 @@ class SnapshotManager:
         except KeyError as e:
             raise SnapshotNotFound(
                 f"Can not get on-disk snapshot for {block_hash!r}"
-            )
+            ) from e
         else:
             return decode_snapshot(encoded_key)
 

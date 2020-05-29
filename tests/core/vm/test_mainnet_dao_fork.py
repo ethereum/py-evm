@@ -289,4 +289,4 @@ def test_mainnet_dao_fork_header_validation(VM, header, previous_header, valid):
         except ValidationError:
             pass
         else:
-            assert False, "The invalid header %r must fail" % header
+            raise AssertionError("The invalid header %r must fail" % header)

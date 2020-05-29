@@ -61,7 +61,7 @@ def test_database_api_missing_key_retrieval(db):
     except DiffMissingError as exc:
         assert not exc.is_deleted
     else:
-        assert False, f"key should be missing, but was retrieved as {val}"
+        raise AssertionError(f"key should be missing, but was retrieved as {val}")
 
 
 def test_database_api_missing_key_for_deletion(db):
@@ -73,7 +73,7 @@ def test_database_api_missing_key_for_deletion(db):
     except DiffMissingError as exc:
         assert exc.is_deleted
     else:
-        assert False, f"key should be missing, but was retrieved as {val}"
+        raise AssertionError(f"key should be missing, but was retrieved as {val}")
 
 
 def test_db_diff_equality(db):
@@ -98,7 +98,7 @@ def test_database_api_deleted_key_for_deletion(db):
     except DiffMissingError as exc:
         assert exc.is_deleted
     else:
-        assert False, f"key should be missing, but was retrieved as {val}"
+        raise AssertionError(f"key should be missing, but was retrieved as {val}")
 
 
 @pytest.mark.parametrize(
