@@ -26,8 +26,11 @@ def validate_frontier_transaction(state: StateAPI,
     if sender_balance < total_cost:
         raise ValidationError("Sender account balance cannot afford txn")
 
-    if state.get_nonce(transaction.sender) != transaction.nonce:
-        raise ValidationError("Invalid transaction nonce")
+    sender_nonce = state.get_nonce(transaction.sender)
+    if sender_nonce != transaction.nonce:
+        raise ValidationError(
+            f"Invalid transaction nonce: Expected {sender_nonce}, but got {transaction.nonce}"
+        )
 
 
 def validate_frontier_transaction_against_header(_vm: VirtualMachineAPI,
