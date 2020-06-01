@@ -50,8 +50,8 @@ def compute_difficulty(
     has_uncles = parent_header.uncles_hash != EMPTY_UNCLE_HASH
     adj_factor = max(
         (
-            (2 if has_uncles else 1) -
-            ((timestamp - parent_timestamp) // BYZANTIUM_DIFFICULTY_ADJUSTMENT_CUTOFF)
+            (2 if has_uncles else 1)
+            - ((timestamp - parent_timestamp) // BYZANTIUM_DIFFICULTY_ADJUSTMENT_CUTOFF)
         ),
         -99,
     )

@@ -137,7 +137,7 @@ def vm_class(request):
     elif request.param == 'SpuriousDragon':
         pytest.skip('Only the Homestead VM rules are currently supported')
     else:
-        assert False, f"Unsupported VM: {request.param}"
+        raise AssertionError(f"Unsupported VM: {request.param}")
 
 
 def fixture_to_computation(fixture, code, vm):

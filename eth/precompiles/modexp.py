@@ -34,8 +34,8 @@ def _compute_adjusted_exponent_length(exponent_length: int,
     else:
         first_32_bytes_as_int = big_endian_to_int(first_32_exponent_bytes)
         return (
-            8 * (exponent_length - 32) +
-            get_highest_bit_index(first_32_bytes_as_int)
+            8 * (exponent_length - 32)
+            + get_highest_bit_index(first_32_bytes_as_int)
         )
 
 
@@ -78,9 +78,9 @@ def _compute_modexp_gas_fee(data: bytes) -> int:
     complexity = _compute_complexity(max(modulus_length, base_length))
 
     gas_fee = (
-        complexity *
-        max(adjusted_exponent_length, 1) //
-        constants.GAS_MOD_EXP_QUADRATIC_DENOMINATOR
+        complexity
+        * max(adjusted_exponent_length, 1)
+        // constants.GAS_MOD_EXP_QUADRATIC_DENOMINATOR
     )
     return gas_fee
 

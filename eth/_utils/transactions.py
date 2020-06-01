@@ -136,8 +136,8 @@ def calculate_intrinsic_gas(
     else:
         create_cost = 0
     return (
-        gas_schedule.gas_tx +
-        num_zero_bytes * gas_schedule.gas_txdatazero +
-        num_non_zero_bytes * gas_schedule.gas_txdatanonzero +
-        create_cost
+        gas_schedule.gas_tx
+        + num_zero_bytes * gas_schedule.gas_txdatazero
+        + num_non_zero_bytes * gas_schedule.gas_txdatanonzero
+        + create_cost
     )

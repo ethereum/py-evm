@@ -86,7 +86,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             encoded_uncles = self.db[uncles_hash]
         except KeyError:
             raise HeaderNotFound(
-                f"No uncles found for hash {uncles_hash}"
+                f"No uncles found for hash {uncles_hash!r}"
             )
         else:
             return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
@@ -141,16 +141,16 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
 
         if tx_root_hash != block.header.transaction_root:
             raise ValidationError(
-                f"Block's transaction_root ({block.header.transaction_root}) "
-                f"does not match expected value: {tx_root_hash}"
+                f"Block's transaction_root ({block.header.transaction_root!r}) "
+                f"does not match expected value: {tx_root_hash!r}"
             )
 
         receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
 
         if receipt_root_hash != block.header.receipt_root:
             raise ValidationError(
-                f"Block's receipt_root ({block.header.receipt_root}) "
-                f"does not match expected value: {receipt_root_hash}"
+                f"Block's receipt_root ({block.header.receipt_root!r}) "
+                f"does not match expected value: {receipt_root_hash!r}"
             )
 
         with self.db.atomic_batch() as db:

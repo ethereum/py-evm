@@ -17,7 +17,7 @@ def validate_frontier_transaction(state: StateAPI,
 
     if sender_balance < gas_cost:
         raise ValidationError(
-            f"Sender {transaction.sender} cannot afford txn gas "
+            f"Sender {transaction.sender!r} cannot afford txn gas "
             f"{gas_cost} with account balance {sender_balance}"
         )
 

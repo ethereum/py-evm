@@ -168,6 +168,37 @@ jobs:
         environment:
           TOXENV: py37-lint
 
+  py38-core:
+    <<: *common
+    docker:
+      - image: circleci/python:3.8
+        environment:
+          TOXENV: py38-core
+  py38-database:
+    <<: *common
+    docker:
+      - image: circleci/python:3.8
+        environment:
+          TOXENV: py38-database
+  py38-transactions:
+    <<: *common
+    docker:
+      - image: circleci/python:3.8
+        environment:
+          TOXENV: py38-transactions
+  py38-vm:
+    <<: *common
+    docker:
+      - image: circleci/python:3.8
+        environment:
+          TOXENV: py38-vm
+  py38-lint:
+    <<: *common
+    docker:
+      - image: circleci/python:3.8
+        environment:
+          TOXENV: py38-lint
+
 workflows:
   version: 2
   test:
@@ -184,12 +215,17 @@ workflows:
       - py36-native-blockchain-transition
       - py36-vm
       - py37-vm
+      - py38-vm
       - py36-core
       - py37-core
+      - py38-core
       - py36-transactions
       - py37-transactions
+      - py38-transactions
       - py36-database
       - py37-database
+      - py38-database
       - py36-docs
       - py36-lint
       - py37-lint
+      - py38-lint

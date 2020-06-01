@@ -20,7 +20,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from uuid import UUID
 
 import rlp
 
@@ -886,9 +885,9 @@ class OpcodeAPI(ABC):
     def as_opcode(cls: Type[T],
                   logic_fn: Callable[['ComputationAPI'], None],
                   mnemonic: str,
-                  gas_cost: int) -> Type[T]:
+                  gas_cost: int) -> T:
         """
-        Class factory method for turning vanilla functions into Opcode classes.
+        Class factory method for turning vanilla functions into Opcodes.
         """
         ...
 
@@ -1769,6 +1768,16 @@ class AccountDatabaseAPI(ABC):
         """
         ...
 
+    @state_root.setter
+    def state_root(self, value: Hash32) -> None:
+        """
+        Force-set the state root hash.
+        """
+        # See: https://github.com/python/mypy/issues/4165
+        # Since we can't also decorate this with abstract method we want to be
+        # sure that the setter doesn't actually get used as a noop.
+        raise NotImplementedError
+
     @abstractmethod
     def has_root(self, state_root: bytes) -> bool:
         """
@@ -1932,6 +1941,22 @@ class AccountDatabaseAPI(ABC):
     def commit(self, checkpoint: JournalDBCheckpoint) -> None:
         """
         Collapse changes into ``checkpoint``.
+        """
+        ...
+
+    @abstractmethod
+    def lock_changes(self) -> None:
+        """
+        Locks in changes across all accounts' storage databases.
+
+        This is typically used at the end of a transaction, to make sure that
+        a revert doesn't roll back through the previous transaction, and to
+        be able to look up the "original" value of any account storage, where
+        "original" is the beginning of a transaction (instead of the beginning
+        of a block).
+
+        See :meth:`eth.abc.AccountStorageDatabaseAPI.lock_changes` for
+        what is called on each account's storage database.
         """
         ...
 
@@ -2275,7 +2300,7 @@ class StateAPI(ConfigurableAPI):
     # Access self._chaindb
     #
     @abstractmethod
-    def snapshot(self) -> Tuple[Hash32, UUID]:
+    def snapshot(self) -> Tuple[Hash32, JournalDBCheckpoint]:
         """
         Perform a full snapshot of the current state.
 
@@ -2285,14 +2310,14 @@ class StateAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def revert(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def revert(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         """
         Revert the VM to the state at the snapshot
         """
         ...
 
     @abstractmethod
-    def commit(self, snapshot: Tuple[Hash32, UUID]) -> None:
+    def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         """
         Commit the journal to the point where the snapshot was taken.  This
         merges in any changes that were recorded since the snapshot.
@@ -2481,6 +2506,7 @@ class VirtualMachineAPI(ConfigurableAPI):
     def __init__(self,
                  header: BlockHeaderAPI,
                  chaindb: ChainDatabaseAPI,
+                 chain_context: ChainContextAPI,
                  consensus_context: ConsensusContextAPI) -> None:
         """
         Initialize the virtual machine.

@@ -65,8 +65,8 @@ def selfdestruct_eip150(computation: ComputationAPI) -> None:
 def selfdestruct_eip161(computation: ComputationAPI) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop1_bytes())
     is_dead = (
-        not computation.state.account_exists(beneficiary) or
-        computation.state.account_is_empty(beneficiary)
+        not computation.state.account_exists(beneficiary)
+        or computation.state.account_is_empty(beneficiary)
     )
     if is_dead and computation.state.get_balance(computation.msg.storage_address):
         computation.consume_gas(
