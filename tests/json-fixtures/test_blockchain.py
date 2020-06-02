@@ -187,6 +187,8 @@ INCORRECT_UPSTREAM_TESTS = {
     # but only in Istanbul, not in Constantinople.
     ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d2g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d3g0v0_Istanbul'),  # noqa: E501
+    # Irrelevant check on uncle https://github.com/ethereum/tests/issues/694
+    ('InvalidBlocks/bcUncleHeaderValidity/incorrectUncleTimestamp4.json', 'incorrectUncleTimestamp4_Istanbul'),
 }
 
 
