@@ -1,1 +1,0 @@
-Upgrade py-trie to the new v2.0.0-alpha.1, and pin it for stability.

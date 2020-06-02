@@ -3,6 +3,49 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.17 (2020-06-02)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Added support for Python 3.8. (`#1940 <https://github.com/ethereum/py-evm/issues/1940>`__)
+- Methods now raise :class:`~eth.exceptions.BlockNotFound` when retrieving a block, and some part
+  of the block is missing. These methods used to raise a KeyError if transactions were missing, or a
+  ``HeaderNotFound`` if uncles were missing:
+
+    - :meth:`eth.db.chain.ChainDB.get_block_by_header`
+    - :meth:`eth.db.chain.ChainDB.get_block_by_hash` (it still raises a HeaderNotFound if there is no
+      header matching the given hash)
+    - :meth:`Block.from_header() <eth.abc.BlockAPI.from_header>` (`#1943 <https://github.com/ethereum/py-evm/issues/1943>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- A number of fixes related to checkpoints and persisting old headers, especially
+  when we try to persist headers that don't match the checkpoints.
+
+    - A new exception :class:`~eth.exceptions.CheckpointsMustBeCanonical` raised when persisting a
+      header that is not linked to a previously-saved checkpoint.
+      (note: we now explicitly save checkpoints)
+    - More broadly, any block persist that would cause the checkpoint to be decanonicalized will
+      raise the :class:`~eth.exceptions.CheckpointsMustBeCanonical`.
+    - Re-insert gaps in the chain when a checkpoint and (parent or child) header do not link
+    - De-canonicalize all children of orphans. (Previously, only decanonicalized headers with block
+      numbers that matched the new canonical headers)
+    - Added some new hypothesis tests to get more confidence that we covered most cases
+    - When filling a gap, if there's an existing child that is not a checkpoint and doesn't link to
+      the parent, then the parent block wins, and the child block is de-canonicalized (and gap added). (`#1929 <https://github.com/ethereum/py-evm/issues/1929>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Upgrade py-trie to the new v2.0.0-alpha.1, and pin it for stability. (`#1935 <https://github.com/ethereum/py-evm/issues/1935>`__)
+- Improve the error when transaction nonce is invalid: include expected and actual. (`#1936 <https://github.com/ethereum/py-evm/issues/1936>`__)
+
+
 py-evm 0.3.0-alpha.16 (2020-05-27)
 ----------------------------------
 
