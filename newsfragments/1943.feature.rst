@@ -1,0 +1,8 @@
+Methods now raise :class:`~eth.exceptions.BlockNotFound` when retrieving a block, and some part
+of the block is missing. These methods used to raise a KeyError if transactions were missing, or a
+``HeaderNotFound`` if uncles were missing:
+
+  - :meth:`eth.db.chain.ChainDB.get_block_by_header`
+  - :meth:`eth.db.chain.ChainDB.get_block_by_hash` (it still raises a HeaderNotFound if there is no
+    header matching the given hash)
+  - :meth:`~eth.abc.BlockHeaderAPI`

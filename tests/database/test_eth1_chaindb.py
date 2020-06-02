@@ -21,6 +21,7 @@ from eth.db.chain import (
 )
 from eth.db.schema import SchemaV1
 from eth.exceptions import (
+    BlockNotFound,
     HeaderNotFound,
     ParentNotFound,
     ReceiptNotFound,
@@ -291,3 +292,19 @@ def test_chaindb_persist_unexecuted_block(chain,
             NUMBER_BLOCKS_IN_CHAIN,
             TRANSACTIONS_IN_BLOCK + 1,
         )
+
+
+def test_chaindb_raises_blocknotfound_on_missing_uncles(VM, chaindb, header):
+    bad_header = header.copy(uncles_hash=b'unicorns' * 4)
+    chaindb.persist_header(bad_header)
+
+    with pytest.raises(BlockNotFound):
+        VM.get_block_class().from_header(bad_header, chaindb)
+
+
+def test_chaindb_raises_blocknotfound_on_missing_transactions(VM, chaindb, header):
+    bad_header = header.copy(transaction_root=b'unicorns' * 4)
+    chaindb.persist_header(bad_header)
+
+    with pytest.raises(BlockNotFound):
+        VM.get_block_class().from_header(bad_header, chaindb)

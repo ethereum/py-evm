@@ -84,10 +84,10 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             return ()
         try:
             encoded_uncles = self.db[uncles_hash]
-        except KeyError:
+        except KeyError as exc:
             raise HeaderNotFound(
                 f"No uncles found for hash {uncles_hash!r}"
-            )
+            ) from exc
         else:
             return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
 
@@ -377,7 +377,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         return self.db[key]
 
     def persist_trie_data_dict(self, trie_data_dict: Dict[Hash32, bytes]) -> None:
-        self._persist_trie_data_dict(self.db, trie_data_dict)
+        with self.db.atomic_batch() as db:
+            self._persist_trie_data_dict(db, trie_data_dict)
 
     @classmethod
     def _persist_trie_data_dict(cls, db: DatabaseAPI, trie_data_dict: Dict[Hash32, bytes]) -> None:

@@ -3197,6 +3197,9 @@ class ChainAPI(ConfigurableAPI):
     def get_block_by_hash(self, block_hash: Hash32) -> BlockAPI:
         """
         Return the requested block as specified by ``block_hash``.
+
+        :raise eth.exceptions.HeaderNotFound: if the header is missing
+        :raise eth.exceptions.BlockNotFound: if any part of the block body is missing
         """
         ...
 
@@ -3204,6 +3207,8 @@ class ChainAPI(ConfigurableAPI):
     def get_block_by_header(self, block_header: BlockHeaderAPI) -> BlockAPI:
         """
         Return the requested block as specified by the ``block_header``.
+
+        :raise eth.exceptions.BlockNotFound: if any part of the block body is missing
         """
         ...
 
