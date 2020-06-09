@@ -43,6 +43,15 @@ def _parse_g1_point(data: bytes) -> G1Point:
     return point
 
 
+def _serialize_g1(result: G1Point) -> bytes:
+    return b"".join(
+        (
+            int(result[0]).to_bytes(64, byteorder="big"),
+            int(result[1]).to_bytes(64, byteorder="big"),
+        )
+    )
+
+
 def g1_add(computation: BaseComputation,
            gas_cost: int = constants.GAS_BLS_G1_ADD) -> BaseComputation:
     raise NotImplementedError()
