@@ -22,6 +22,8 @@ from eth.vm.computation import (
 FP2_SIZE_IN_BYTES = 128
 G1_SIZE_IN_BYTES = 128
 G2_SIZE_IN_BYTES = 256
+# Constant for parsing pairs of points during pairing check
+G1_TO_G2_OFFSET = G1_SIZE_IN_BYTES + G2_SIZE_IN_BYTES
 
 G1Point = Tuple[bls12_381.FQ, bls12_381.FQ]
 G2Point = Tuple[bls12_381.FQ2, bls12_381.FQ2]
@@ -149,12 +151,10 @@ def g2_multiexp(computation: BaseComputation) -> BaseComputation:
 
 def _pairing(input_data: bytes) -> bool:
     field_element = bls12_381.FQ12.one()
-    g1_to_g2_offset = G1_SIZE_IN_BYTES + G2_SIZE_IN_BYTES
     for next_index in range(0, len(input_data), 384):
         p = _parse_g1_point(input_data[next_index:next_index + G1_SIZE_IN_BYTES])
-
         q = _parse_g2_point(
-            input_data[next_index + G1_SIZE_IN_BYTES:next_index + g1_to_g2_offset]
+            input_data[next_index + G1_SIZE_IN_BYTES:next_index + G1_TO_G2_OFFSET]
         )
         projective_p = (p[0], p[1], bls12_381.FQ.one())
         projective_q = (q[0], q[1], bls12_381.FQ2.one())
