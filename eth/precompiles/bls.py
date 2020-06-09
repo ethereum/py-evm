@@ -206,8 +206,8 @@ def _parse_fp2_element(data: bytes) -> bls12_381.FQ2:
     )
 
 
-def _map_fp2_to_g2(x: bls12_381.FQ2) -> G2Point:
-    point = bls.hash_to_curve.map_to_curve_G2(x)
+def _map_fp2_to_g2(field_element: bls12_381.FQ2) -> G2Point:
+    point = bls.hash_to_curve.map_to_curve_G2(field_element)
     return bls12_381.normalize(point)
 
 
@@ -217,8 +217,8 @@ def map_fp2_to_g2(computation: BaseComputation,
 
     try:
         input_data = computation.msg.data_as_bytes
-        x = _parse_fp2_element(input_data[:FP2_SIZE_IN_BYTES])
-        result = _map_fp2_to_g2(x)
+        field_element = _parse_fp2_element(input_data[:FP2_SIZE_IN_BYTES])
+        result = _map_fp2_to_g2(field_element)
     except ValidationError:
         raise VMError("Invalid BLS_MAP_FP2_TO_G2 parameters")
 
