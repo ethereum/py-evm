@@ -1,0 +1,1 @@
+Expose ``get_chain_gaps()`` on ``ChainDB`` to track gaps in the chain of blocks.

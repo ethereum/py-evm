@@ -11,6 +11,7 @@ from eth_hash.auto import keccak
 
 from eth.constants import (
     BLANK_ROOT_HASH,
+    ZERO_ADDRESS,
 )
 from eth.chains.base import (
     MiningChain,
@@ -19,16 +20,19 @@ from eth.db.atomic import AtomicDB
 from eth.db.chain import (
     ChainDB,
 )
+from eth.db.chain_gaps import GENESIS_CHAIN_GAPS
 from eth.db.schema import SchemaV1
 from eth.exceptions import (
     BlockNotFound,
     HeaderNotFound,
     ParentNotFound,
     ReceiptNotFound,
+    CheckpointsMustBeCanonical,
 )
 from eth.rlp.headers import (
     BlockHeader,
 )
+from eth.tools.builder.chain import api
 from eth.tools.rlp import (
     assert_headers_eq,
 )
@@ -87,8 +91,147 @@ def chain(chain_without_block_validation):
 def test_chaindb_add_block_number_to_hash_lookup(chaindb, block):
     block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block.number)
     assert not chaindb.exists(block_number_to_hash_key)
+    assert chaindb.get_chain_gaps() == GENESIS_CHAIN_GAPS
     chaindb.persist_block(block)
     assert chaindb.exists(block_number_to_hash_key)
+
+
+@pytest.mark.parametrize(
+    'has_uncle, has_transaction, can_fetch_block',
+    (
+        # Uncle block gets de-canonicalized by a header that has another uncle
+        (True, False, False,),
+        # Uncle block gets de-canonicalized by a header that has transactions
+        (False, True, False,),
+        # Has uncle and transactions
+        (True, True, False,),
+        # Uncle block gets de-canonicalized by a header that has no uncles nor transactions which
+        # means this is a "Header-only" block. Even though we technically do not need to re-open
+        # a gap here, we don't have a good way of detecting that special case and hence open a gap.
+        (False, False, True,),
+    )
+)
+def test_block_gap_tracking(chain,
+                            funded_address,
+                            funded_address_private_key,
+                            has_uncle,
+                            has_transaction,
+                            can_fetch_block):
+
+    # Mine three common blocks
+    common_chain = api.build(
+        chain,
+        api.mine_blocks(3),
+    )
+
+    assert common_chain.get_canonical_head().block_number == 3
+    assert common_chain.chaindb.get_chain_gaps() == ((), 4)
+
+    tx = new_transaction(
+        common_chain.get_vm(),
+        from_=funded_address,
+        to=ZERO_ADDRESS,
+        private_key=funded_address_private_key,
+    )
+    uncle = api.build(common_chain, api.mine_block()).get_canonical_block_header_by_number(4)
+    uncles = [uncle] if has_uncle else []
+    transactions = [tx] if has_transaction else []
+
+    # Split and have the main chain mine four blocks, the uncle chain two blocks
+    main_chain, uncle_chain = api.build(
+        common_chain,
+        api.chain_split(
+            (
+                # We have four different scenarios for our replaced blocks:
+                #   1. Replaced by a trivial block without uncles or transactions
+                #   2. Replaced by a block with transactions
+                #   3. Replaced by a block with uncles
+                #   4. 2 and 3 combined
+                api.mine_block(uncles=uncles, transactions=transactions),
+                api.mine_block(),
+                api.mine_block(),
+                api.mine_block(),
+            ),
+            # This will be the uncle chain
+            (api.mine_block(extra_data=b'fork-it'), api.mine_block(),),
+        ),
+    )
+
+    main_head = main_chain.get_canonical_head()
+    assert main_head.block_number == 7
+    assert uncle_chain.get_canonical_head().block_number == 5
+
+    assert main_chain.chaindb.get_chain_gaps() == ((), 8)
+    assert uncle_chain.chaindb.get_chain_gaps() == ((), 6)
+
+    main_header_6 = main_chain.chaindb.get_canonical_block_header_by_number(6)
+    main_header_6_score = main_chain.chaindb.get_score(main_header_6.hash)
+
+    gap_chain = api.copy(common_chain)
+    assert gap_chain.get_canonical_head() == common_chain.get_canonical_head()
+
+    gap_chain.chaindb.persist_checkpoint_header(main_header_6, main_header_6_score)
+    # We created a gap in the chain of headers
+    assert gap_chain.chaindb.get_header_chain_gaps() == (((4, 5),), 7)
+    # ...but not in the chain of blocks (yet!)
+    assert gap_chain.chaindb.get_chain_gaps() == ((), 4)
+    block_7 = main_chain.get_canonical_block_by_number(7)
+    block_7_receipts = block_7.get_receipts(main_chain.chaindb)
+    # Persist block 7 on top of the checkpoint
+    gap_chain.chaindb.persist_unexecuted_block(block_7, block_7_receipts)
+    assert gap_chain.chaindb.get_header_chain_gaps() == (((4, 5),), 8)
+    # Now we have a gap in the chain of blocks, too
+    assert gap_chain.chaindb.get_chain_gaps() == (((4, 6),), 8)
+
+    # Overwriting header 3 doesn't cause us to re-open a block gap
+    gap_chain.chaindb.persist_header_chain([
+        main_chain.chaindb.get_canonical_block_header_by_number(3)
+    ])
+    assert gap_chain.chaindb.get_chain_gaps() == (((4, 6),), 8)
+
+    # Now get the uncle block
+    uncle_block = uncle_chain.get_canonical_block_by_number(4)
+    uncle_block_receipts = uncle_block.get_receipts(uncle_chain.chaindb)
+
+    # Put the uncle block in the gap
+    gap_chain.chaindb.persist_unexecuted_block(uncle_block, uncle_block_receipts)
+    assert gap_chain.chaindb.get_header_chain_gaps() == (((5, 5),), 8)
+    assert gap_chain.chaindb.get_chain_gaps() == (((5, 6),), 8)
+
+    # Trying to save another uncle errors as its header isn't the parent of the checkpoint
+    second_uncle = uncle_chain.get_canonical_block_by_number(5)
+    second_uncle_receipts = second_uncle.get_receipts(uncle_chain.chaindb)
+    with pytest.raises(CheckpointsMustBeCanonical):
+        gap_chain.chaindb.persist_unexecuted_block(second_uncle, second_uncle_receipts)
+
+    # Now close the gap in the header chain with the actual correct headers
+    actual_headers = [
+        main_chain.chaindb.get_canonical_block_header_by_number(block_number)
+        for block_number in range(4, 7)
+    ]
+    gap_chain.chaindb.persist_header_chain(actual_headers)
+    # No more gaps in the header chain
+    assert gap_chain.chaindb.get_header_chain_gaps() == ((), 8)
+    # We detected the de-canonicalized uncle and re-opened the block gap
+    assert gap_chain.chaindb.get_chain_gaps() == (((4, 6),), 8)
+
+    if can_fetch_block:
+        # We can fetch the block even if the gap tracking reports it as missing if the block is
+        # a "trivial" block, meaning one that doesn't have transactions nor uncles and hence
+        # can be loaded by just the header alone.
+        block_4 = gap_chain.get_canonical_block_by_number(4)
+        assert block_4 == main_chain.get_canonical_block_by_number(4)
+    else:
+        # The uncle block was implicitly de-canonicalized with its header,
+        # hence we can not fetch it any longer.
+        with pytest.raises(BlockNotFound):
+            gap_chain.get_canonical_block_by_number(4)
+        # Add the missing block and assert the gap shrinks
+        assert gap_chain.chaindb.get_chain_gaps() == (((4, 6),), 8)
+        block_4 = main_chain.get_canonical_block_by_number(4)
+        block_4_receipts = block_4.get_receipts(main_chain.chaindb)
+        gap_chain.chaindb.persist_unexecuted_block(block_4, block_4_receipts)
+        assert gap_chain.chaindb.get_chain_gaps() == (((5, 6),), 8)
 
 
 def test_chaindb_persist_header(chaindb, header):
