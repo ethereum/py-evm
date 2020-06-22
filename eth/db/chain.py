@@ -35,6 +35,14 @@ from eth.constants import (
     EMPTY_UNCLE_HASH,
     GENESIS_PARENT_HASH,
 )
+from eth.db.chain_gaps import (
+    fill_gap,
+    GapChange,
+    GapInfo,
+    GENESIS_CHAIN_GAPS,
+    is_block_number_in_gap,
+    reopen_gap,
+)
 from eth.db.trie import make_trie_root_and_nodes
 from eth.exceptions import (
     HeaderNotFound,
@@ -49,6 +57,8 @@ from eth.rlp.headers import (
 from eth.rlp.receipts import (
     Receipt
 )
+from eth.rlp.sedes import chain_gaps
+from eth.typing import ChainGaps
 from eth.validation import (
     validate_word,
 )
@@ -74,6 +84,73 @@ class TransactionKey(rlp.Serializable):
 class ChainDB(HeaderDB, ChainDatabaseAPI):
     def __init__(self, db: AtomicDatabaseAPI) -> None:
         self.db = db
+
+    def get_chain_gaps(self) -> ChainGaps:
+        return self._get_chain_gaps(self.db)
+
+    @classmethod
+    def _get_chain_gaps(cls, db: DatabaseAPI) -> ChainGaps:
+        try:
+            encoded_gaps = db[SchemaV1.make_chain_gaps_lookup_key()]
+        except KeyError:
+            return GENESIS_CHAIN_GAPS
+        else:
+            return rlp.decode(encoded_gaps, sedes=chain_gaps)
+
+    @classmethod
+    def _update_chain_gaps(
+            cls,
+            db: DatabaseAPI,
+            persisted_block: BlockAPI,
+            base_gaps: ChainGaps = None
+    ) -> GapInfo:
+
+        # If we make many updates in a row, we can avoid reloading the integrity info by
+        # continuously caching it and providing it as a parameter to this API
+        if base_gaps is None:
+            base_gaps = cls._get_chain_gaps(db)
+
+        gap_change, gaps = fill_gap(persisted_block.number, base_gaps)
+        if gap_change is not GapChange.NoChange:
+            db.set(
+                SchemaV1.make_chain_gaps_lookup_key(),
+                rlp.encode(gaps, sedes=chain_gaps)
+            )
+
+        return gap_change, gaps
+
+    @classmethod
+    def _update_header_chain_gaps(
+            cls,
+            db: DatabaseAPI,
+            persisting_header: BlockHeaderAPI,
+            base_gaps: ChainGaps = None
+    ) -> GapInfo:
+        # The only reason we overwrite this here is to be able to detect when the HeaderDB
+        # de-canonicalizes an uncle that should cause us to re-open a block gap.
+        gap_change, gaps = super()._update_header_chain_gaps(db, persisting_header, base_gaps)
+
+        if gap_change is not GapChange.NoChange or persisting_header.block_number == 0:
+            return gap_change, gaps
+
+        # We have written a header for which block number we've already had a header.
+        # This might be a sign of a de-canonicalized uncle.
+        current_gaps = cls._get_chain_gaps(db)
+        if not is_block_number_in_gap(persisting_header.block_number, current_gaps):
+            # ChainDB believes we have that block. If the header has changed, we need to re-open
+            # a gap for the corresponding block.
+            old_canonical_header = cls._get_canonical_block_header_by_number(
+                db,
+                persisting_header.block_number
+            )
+            if old_canonical_header != persisting_header:
+                updated_gaps = reopen_gap(persisting_header.block_number, current_gaps)
+                db.set(
+                    SchemaV1.make_chain_gaps_lookup_key(),
+                    rlp.encode(updated_gaps, sedes=chain_gaps)
+                )
+
+        return gap_change, gaps
 
     #
     # Header API
@@ -196,6 +273,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         old_canonical_hashes = tuple(
             header.hash for header in old_canonical_headers)
 
+        cls._update_chain_gaps(db, block)
         return new_canonical_hashes, old_canonical_hashes
 
     def persist_uncles(self, uncles: Tuple[BlockHeaderAPI]) -> Hash32:

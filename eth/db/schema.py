@@ -25,6 +25,10 @@ class SchemaV1(SchemaAPI):
         return b'v1:header_chain_gaps'
 
     @staticmethod
+    def make_chain_gaps_lookup_key() -> bytes:
+        return b'v1:chain_gaps'
+
+    @staticmethod
     def make_checkpoint_headers_key() -> bytes:
         """
         Checkpoint header hashes stored as concatenated 32 byte values
