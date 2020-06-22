@@ -1,11 +1,12 @@
 import pytest
 
-from eth_utils import ValidationError
+from eth_utils import ValidationError, to_wei
 
 from eth.chains.base import (
     Chain,
     MiningChain,
 )
+from eth.constants import ZERO_ADDRESS
 from eth.tools.builder.chain import (
     at_block_number,
     build,
@@ -19,19 +20,25 @@ from eth.tools.builder.chain import (
     mine_block,
     mine_blocks,
 )
-
-
-MINING_CHAIN_PARAMS = (
-    MiningChain,
-    frontier_at(0),
-    disable_pow_check,
-    genesis(),
-)
+from eth.tools.factories.transaction import new_transaction
 
 
 @pytest.fixture
-def mining_chain():
-    return build(*MINING_CHAIN_PARAMS)
+def mining_chain_params(funded_address):
+    return (
+        MiningChain,
+        frontier_at(0),
+        disable_pow_check,
+        genesis(
+            params={'gas_limit': 1000000},
+            state={funded_address: {'balance': to_wei(1000, 'ether')}}
+        ),
+    )
+
+
+@pytest.fixture
+def mining_chain(mining_chain_params):
+    return build(*mining_chain_params)
 
 
 REGULAR_CHAIN_PARAMS = (
@@ -44,11 +51,6 @@ REGULAR_CHAIN_PARAMS = (
 @pytest.fixture
 def regular_chain():
     return build(*REGULAR_CHAIN_PARAMS)
-
-
-@pytest.fixture(params=(MINING_CHAIN_PARAMS, REGULAR_CHAIN_PARAMS))
-def any_chain(request):
-    return build(*request.param)
 
 
 def test_chain_builder_build_single_default_block(mining_chain):
@@ -90,6 +92,26 @@ def test_chain_builder_mine_block_with_parameters(mining_chain):
 
     header = chain.get_canonical_head()
     assert header.extra_data == b'test-setting-extra-data'
+
+
+def test_chain_builder_mine_block_with_transactions(mining_chain,
+                                                    funded_address,
+                                                    funded_address_private_key):
+    tx = new_transaction(
+        mining_chain.get_vm(),
+        from_=funded_address,
+        to=ZERO_ADDRESS,
+        private_key=funded_address_private_key,
+    )
+
+    chain = build(
+        mining_chain,
+        mine_block(transactions=[tx]),
+    )
+
+    block = chain.get_canonical_block_by_number(1)
+    assert len(block.transactions) == 1
+    assert block.transactions[0] == tx
 
 
 def test_chain_builder_mine_block_only_on_mining_chain(regular_chain):
