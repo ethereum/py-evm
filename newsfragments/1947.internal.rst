@@ -1,3 +1,0 @@
-Allow `mine_block` of chain builder tools to take a ``transactions`` parameter.
-This makes it easier to model test scenarios that depend on creating blocks
-with transactions.

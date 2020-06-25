@@ -3,6 +3,23 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.18 (2020-06-25)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Expose ``get_chain_gaps()`` on ``ChainDB`` to track gaps in the chain of blocks. (`#1947 <https://github.com/ethereum/py-evm/issues/1947>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Allow `mine_block` of chain builder tools to take a ``transactions`` parameter.
+  This makes it easier to model test scenarios that depend on creating blocks
+  with transactions. (`#1947 <https://github.com/ethereum/py-evm/issues/1947>`__)
+- upgrade to Upgrade py-trie to the new v2.0.0-alpha.2 with fixed ``TraversedPartialPath``
+
 py-evm 0.3.0-alpha.17 (2020-06-02)
 ----------------------------------
 
