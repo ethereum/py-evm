@@ -116,7 +116,7 @@ class Configurable(ConfigurableAPI):
                     f"instance: {sub_cls!r}"
                 )
 
-            configured_sub_cls = sub_cls.configure(**sub_overrides)
+            configured_sub_cls = sub_cls.configure(**sub_overrides)  # type: ignore
             local_overrides = assoc(local_overrides, key, configured_sub_cls)
 
         return type(__name__, (cls,), local_overrides)
