@@ -317,7 +317,7 @@ class Chain(BaseChain):
         # We construct a temporary block object
         vm_class = self.get_vm_class_for_block_number(header.block_number)
         block_class = vm_class.get_block_class()
-        block = block_class(header=header, uncles=[])
+        block = block_class(header=header, uncles=[], transactions=[])
 
         ancestor_generator = iterate(compose(
             self.get_block_by_hash,
@@ -611,7 +611,7 @@ class Chain(BaseChain):
                 uncle_parent = self.get_block_header_by_hash(uncle.parent_hash)
             except HeaderNotFound:
                 raise ValidationError(
-                    f"Uncle ancestor not found: {uncle.parent_hash}"
+                    f"Uncle ancestor not found: {uncle.parent_hash!r}"
                 )
 
             uncle_vm_class = self.get_vm_class_for_block_number(uncle.block_number)
@@ -643,7 +643,7 @@ class MiningChain(Chain, MiningChainAPI):
 
         # since we are building the block locally, we have to persist all the incremental state
         vm.state.persist()
-        new_header = header_with_receipt.copy(state_root=vm.state.state_root)
+        new_header: BlockHeaderAPI = header_with_receipt.copy(state_root=vm.state.state_root)
 
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )

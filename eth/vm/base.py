@@ -409,7 +409,7 @@ class VM(Configurable, VirtualMachineAPI):
                 f"Received the following unexpected fields: {', '.join(unknown_fields)}."
             )
 
-        header = block.header.copy(**kwargs)
+        header: BlockHeaderAPI = block.header.copy(**kwargs)
         packed_block = block.copy(uncles=uncles, header=header)
 
         return packed_block
@@ -536,7 +536,7 @@ class VM(Configurable, VirtualMachineAPI):
         tx_root_hash, _ = make_trie_root_and_nodes(block.transactions)
         if tx_root_hash != block.header.transaction_root:
             raise ValidationError(
-                f"Block's transaction_root ({block.header.transaction_root}) "
+                f"Block's transaction_root ({block.header.transaction_root!r}) "
                 f"does not match expected value: {tx_root_hash!r}"
             )
 
@@ -549,15 +549,15 @@ class VM(Configurable, VirtualMachineAPI):
         if not self.chaindb.exists(block.header.state_root):
             raise ValidationError(
                 "`state_root` was not found in the db.\n"
-                f"- state_root: {block.header.state_root}"
+                f"- state_root: {block.header.state_root!r}"
             )
         local_uncle_hash = keccak(rlp.encode(block.uncles))
         if local_uncle_hash != block.header.uncles_hash:
             raise ValidationError(
                 "`uncles_hash` and block `uncles` do not match.\n"
                 f" - num_uncles       : {len(block.uncles)}\n"
-                f" - block uncle_hash : {local_uncle_hash}\n"
-                f" - header uncle_hash: {block.header.uncles_hash}"
+                f" - block uncle_hash : {local_uncle_hash!r}\n"
+                f" - header uncle_hash: {block.header.uncles_hash!r}"
             )
 
     @classmethod
@@ -607,7 +607,11 @@ class VM(Configurable, VirtualMachineAPI):
         self._consensus.validate_seal_extension(header, parents)
 
     @classmethod
-    def validate_uncle(cls, block: BlockAPI, uncle: BlockAPI, uncle_parent: BlockAPI) -> None:
+    def validate_uncle(cls,
+                       block: BlockAPI,
+                       uncle: BlockHeaderAPI,
+                       uncle_parent: BlockHeaderAPI) -> None:
+
         if uncle.block_number >= block.number:
             raise ValidationError(
                 f"Uncle number ({uncle.block_number}) is higher than "

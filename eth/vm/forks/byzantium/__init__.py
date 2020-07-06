@@ -45,7 +45,7 @@ from .state import ByzantiumState
 
 
 @curry
-def get_uncle_reward(block_reward: int, block_number: int, uncle: BlockAPI) -> int:
+def get_uncle_reward(block_reward: int, block_number: int, uncle: BlockHeaderAPI) -> int:
     block_number_delta = block_number - uncle.block_number
     validate_lte(block_number_delta, MAX_UNCLE_DEPTH)
     return (8 - block_number_delta) * block_reward // 8

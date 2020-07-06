@@ -3,6 +3,7 @@ from rlp.sedes import (
     big_endian_int,
 )
 
+from eth.abc import AccountAPI
 from eth.constants import (
     EMPTY_SHA3,
     BLANK_ROOT_HASH,
@@ -16,7 +17,7 @@ from .sedes import (
 from typing import Any
 
 
-class Account(rlp.Serializable):
+class Account(rlp.Serializable, AccountAPI):
     """
     RLP object for accounts.
     """

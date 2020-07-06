@@ -1,5 +1,6 @@
 import itertools
 
+import rlp
 from rlp.sedes import (
     big_endian_int,
     CountableList,
@@ -19,7 +20,7 @@ from .sedes import (
 from .logs import Log
 
 
-class Receipt(ReceiptAPI):
+class Receipt(rlp.Serializable, ReceiptAPI):
 
     fields = [
         ('state_root', binary),

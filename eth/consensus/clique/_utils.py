@@ -68,7 +68,7 @@ def get_signature_hash(header: BlockHeaderAPI) -> Hash32:
     if len(header.extra_data) < SIGNATURE_LENGTH:
         raise ValueError("header.extra_data too short to contain signature")
 
-    signature_header = header.copy(
+    signature_header: BlockHeaderAPI = header.copy(
         extra_data=header.extra_data[:len(header.extra_data) - SIGNATURE_LENGTH]
     )
     return signature_header.hash
@@ -162,7 +162,7 @@ def validate_header_integrity(header: BlockHeaderAPI, epoch_length: int) -> None
         raise ValidationError(f"Invalid mix hash: {header.mix_hash!r}")
 
     if header.uncles_hash != EMPTY_UNCLE_HASH:
-        raise ValidationError(f"Invalid uncle hash: {header.uncle_hash}")
+        raise ValidationError(f"Invalid uncle hash: {header.uncles_hash!r}")
 
     if header.difficulty not in ALLOWED_CLIQUE_DIFFICULTIES:
         raise ValidationError(f"Invalid difficulty: {header.difficulty}")
