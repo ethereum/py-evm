@@ -45,7 +45,7 @@ from .sedes import (
 )
 
 
-class MiningHeader(MiningHeaderAPI):
+class MiningHeader(rlp.Serializable, MiningHeaderAPI):
     fields = [
         ('parent_hash', hash32),
         ('uncles_hash', hash32),
@@ -63,7 +63,7 @@ class MiningHeader(MiningHeaderAPI):
     ]
 
 
-class BlockHeader(BlockHeaderAPI):
+class BlockHeader(rlp.Serializable, BlockHeaderAPI):
     fields = [
         ('parent_hash', hash32),
         ('uncles_hash', hash32),
@@ -170,7 +170,7 @@ class BlockHeader(BlockHeaderAPI):
                     nonce: bytes=None,
                     extra_data: bytes=None,
                     transaction_root: bytes=None,
-                    receipt_root: bytes=None) -> BlockHeaderAPI:
+                    receipt_root: bytes=None) -> 'BlockHeader':
         """
         Initialize a new block header with the `parent` header as the block's
         parent hash.

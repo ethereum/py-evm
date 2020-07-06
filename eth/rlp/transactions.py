@@ -6,7 +6,8 @@ from rlp.sedes import (
 )
 
 from eth_typing import (
-    Address
+    Address,
+    Hash32,
 )
 
 from eth_hash.auto import keccak
@@ -26,6 +27,7 @@ from .sedes import address
 
 
 class BaseTransactionMethods(BaseTransactionAPI):
+
     def validate(self) -> None:
         pass
 
@@ -54,7 +56,7 @@ class BaseTransactionFields(rlp.Serializable, TransactionFieldsAPI):
     fields = BASE_TRANSACTION_FIELDS
 
     @property
-    def hash(self) -> bytes:
+    def hash(self) -> Hash32:
         return keccak(rlp.encode(self))
 
 
@@ -97,7 +99,7 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods, SignedTrans
             return True
 
 
-class BaseUnsignedTransaction(BaseTransactionMethods, UnsignedTransactionAPI):
+class BaseUnsignedTransaction(BaseTransactionMethods, rlp.Serializable, UnsignedTransactionAPI):
     fields = [
         ('nonce', big_endian_int),
         ('gas_price', big_endian_int),

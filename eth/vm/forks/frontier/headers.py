@@ -3,6 +3,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
+from eth.abc import BlockHeaderAPI
 from eth.validation import (
     validate_gt,
     validate_header_params_for_configuration,
@@ -31,7 +32,7 @@ if TYPE_CHECKING:
     from eth.vm.forks.frontier import FrontierVM    # noqa: F401
 
 
-def compute_frontier_difficulty(parent_header: BlockHeader, timestamp: int) -> int:
+def compute_frontier_difficulty(parent_header: BlockHeaderAPI, timestamp: int) -> int:
     """
     Computes the difficulty for a frontier block based on the parent block.
     """
@@ -71,7 +72,7 @@ def compute_frontier_difficulty(parent_header: BlockHeader, timestamp: int) -> i
     return difficulty
 
 
-def create_frontier_header_from_parent(parent_header: BlockHeader,
+def create_frontier_header_from_parent(parent_header: BlockHeaderAPI,
                                        **header_params: Any) -> BlockHeader:
     if 'difficulty' not in header_params:
         # Use setdefault to ensure the new header has the same timestamp we use to calculate its

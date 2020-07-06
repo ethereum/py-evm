@@ -19,9 +19,8 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    Hashable,
 )
-
-import rlp
 
 from eth_bloom import BloomFilter
 
@@ -53,7 +52,7 @@ from eth.typing import (
 T = TypeVar('T')
 
 
-class MiningHeaderAPI(rlp.Serializable, ABC):
+class MiningHeaderAPI(ABC):
     """
     A class to define a block header without ``mix_hash`` and ``nonce`` which can act as a
     temporary representation during mining before the block header is sealed.
@@ -72,6 +71,53 @@ class MiningHeaderAPI(rlp.Serializable, ABC):
     timestamp: int
     extra_data: bytes
 
+    @property
+    @abstractmethod
+    def hash(self) -> Hash32:
+        """
+        Return the hash of the block header.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def mining_hash(self) -> Hash32:
+        """
+        Return the mining hash of the block header.
+        """
+
+    @property
+    def hex_hash(self) -> str:
+        """
+        Return the hash as a hex string.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def is_genesis(self) -> bool:
+        """
+        Return ``True`` if this header represents the genesis block of the chain,
+        otherwise ``False``.
+        """
+        ...
+
+    # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
+    @abstractmethod
+    def build_changeset(self, *args: Any, **kwargs: Any) -> Any:
+        """
+        Open a changeset to modify the header.
+        """
+        ...
+
+    # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
+    @abstractmethod
+    def as_dict(self) -> Dict[Hashable, Any]:
+        """
+        Return a dictionary representation of the header.
+        """
+        ...
+
 
 class BlockHeaderAPI(MiningHeaderAPI):
     """
@@ -81,8 +127,16 @@ class BlockHeaderAPI(MiningHeaderAPI):
     mix_hash: Hash32
     nonce: bytes
 
+    # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
+    @abstractmethod
+    def copy(self, *args: Any, **kwargs: Any) -> 'BlockHeaderAPI':
+        """
+        Return a copy of the header, optionally overwriting any of its properties.
+        """
+        ...
 
-class LogAPI(rlp.Serializable, ABC):
+
+class LogAPI(ABC):
     """
     A class to define a written log.
     """
@@ -96,7 +150,7 @@ class LogAPI(rlp.Serializable, ABC):
         ...
 
 
-class ReceiptAPI(rlp.Serializable, ABC):
+class ReceiptAPI(ABC):
     """
     A class to define a receipt to capture the outcome of a transaction.
     """
@@ -108,6 +162,15 @@ class ReceiptAPI(rlp.Serializable, ABC):
     @property
     @abstractmethod
     def bloom_filter(self) -> BloomFilter:
+        ...
+
+    # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
+    def copy(self, *args: Any, **kwargs: Any) -> 'ReceiptAPI':
+        """
+        Return a copy of the receipt, optionally overwriting any of its properties.
+        """
+        # This method isn't marked abstract because derived classes implement it by deriving from
+        # rlp.Serializable but mypy won't recognize it as implemented.
         ...
 
 
@@ -148,6 +211,7 @@ class BaseTransactionAPI(ABC):
         """
         ...
 
+    # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
     @abstractmethod
     def copy(self: T, **overrides: Any) -> T:
         """
@@ -172,11 +236,15 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def hash(self) -> bytes:
+    def hash(self) -> Hash32:
+        """
+        Return the hash of the transaction.
+        """
         ...
 
 
-class UnsignedTransactionAPI(rlp.Serializable, BaseTransactionAPI):
+class UnsignedTransactionAPI(BaseTransactionAPI):
+
     """
     A class representing a transaction before it is signed.
     """
@@ -199,7 +267,11 @@ class UnsignedTransactionAPI(rlp.Serializable, BaseTransactionAPI):
         ...
 
 
-class SignedTransactionAPI(rlp.Serializable, BaseTransactionAPI, TransactionFieldsAPI):
+class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        ...
+
     """
     A class representing a transaction that was signed with a private key.
     """
@@ -288,12 +360,29 @@ class SignedTransactionAPI(rlp.Serializable, BaseTransactionAPI, TransactionFiel
         """
         ...
 
+    # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
+    def as_dict(self) -> Dict[Hashable, Any]:
+        """
+        Return a dictionary representation of the transaction.
+        """
+        ...
 
-class BlockAPI(rlp.Serializable, ABC):
+
+class BlockAPI(ABC):
     """
     A class to define a block.
     """
+    header: BlockHeaderAPI
+    transactions: Tuple[SignedTransactionAPI, ...]
     transaction_class: Type[SignedTransactionAPI] = None
+    uncles: Tuple[BlockHeaderAPI, ...]
+
+    @abstractmethod
+    def __init__(self,
+                 header: BlockHeaderAPI,
+                 transactions: Sequence[SignedTransactionAPI],
+                 uncles: Sequence[BlockHeaderAPI]):
+        ...
 
     @classmethod
     @abstractmethod
@@ -308,6 +397,13 @@ class BlockAPI(rlp.Serializable, ABC):
     def from_header(cls, header: BlockHeaderAPI, chaindb: 'ChainDatabaseAPI') -> 'BlockAPI':
         """
         Instantiate a block from the given ``header`` and the ``chaindb``.
+        """
+        ...
+
+    @abstractmethod
+    def get_receipts(self, chaindb: 'ChainDatabaseAPI') -> Tuple[ReceiptAPI, ...]:
+        """
+        Fetch the receipts for this block from the given ``chaindb``.
         """
         ...
 
@@ -334,6 +430,15 @@ class BlockAPI(rlp.Serializable, ABC):
         Return ``True`` if this block represents the genesis block of the chain,
         otherwise ``False``.
         """
+        ...
+
+    # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
+    def copy(self, *args: Any, **kwargs: Any) -> 'BlockAPI':
+        """
+        Return a copy of the block, optionally overwriting any of its properties.
+        """
+        # This method isn't marked abstract because derived classes implement it by deriving from
+        # rlp.Serializable but mypy won't recognize it as implemented.
         ...
 
 
@@ -1749,6 +1854,16 @@ class AccountStorageDatabaseAPI(ABC):
         ...
 
 
+class AccountAPI(ABC):
+    """
+    A class representing an Ethereum account.
+    """
+    nonce: int
+    balance: int
+    storage_root: Hash32
+    code_hash: Hash32
+
+
 class AccountDatabaseAPI(ABC):
     """
     A class representing a database for accounts.
@@ -2807,7 +2922,7 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @staticmethod
     @abstractmethod
-    def get_uncle_reward(block_number: BlockNumber, uncle: BlockAPI) -> int:
+    def get_uncle_reward(block_number: BlockNumber, uncle: BlockHeaderAPI) -> int:
         """
         Return the reward which should be given to the miner of the given `uncle`.
 

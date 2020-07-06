@@ -1,10 +1,11 @@
 from typing import (
-    Type
+    Type,
 )
 
 from eth_utils import (
     humanize_hash,
 )
+import rlp
 
 from eth._utils.datatypes import (
     Configurable,
@@ -15,7 +16,7 @@ from eth.abc import (
 )
 
 
-class BaseBlock(Configurable, BlockAPI):
+class BaseBlock(Configurable, rlp.Serializable, BlockAPI):
     transaction_class: Type[SignedTransactionAPI] = None
 
     @classmethod

@@ -114,7 +114,7 @@ class FrontierBlock(BaseBlock):
         :raise eth.exceptions.BlockNotFound: if transactions or uncle headers are missing
         """
         if header.uncles_hash == EMPTY_UNCLE_HASH:
-            uncles: Tuple[BlockHeader, ...] = ()
+            uncles: Tuple[BlockHeaderAPI, ...] = ()
         else:
             try:
                 uncles = chaindb.get_block_uncles(header.uncles_hash)
@@ -136,6 +136,6 @@ class FrontierBlock(BaseBlock):
     # Execution API
     #
     def add_uncle(self, uncle: BlockHeaderAPI) -> "FrontierBlock":
-        self.uncles.append(uncle)
+        self.uncles += (uncle,)
         self.header.uncles_hash = keccak(rlp.encode(self.uncles))
         return self

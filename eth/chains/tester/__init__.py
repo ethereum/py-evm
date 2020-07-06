@@ -21,7 +21,6 @@ from eth_utils import (
 )
 
 from eth.abc import (
-    BlockAPI,
     BlockHeaderAPI,
     VirtualMachineAPI,
 )
@@ -147,7 +146,7 @@ class MainnetTesterChain(BaseMainnetTesterChain):
     configuration of fork rules.
     """
 
-    def validate_seal(self, block: BlockAPI) -> None:
+    def validate_seal(self, header: BlockHeaderAPI) -> None:
         """
         We don't validate the proof of work seal on the tester chain.
         """

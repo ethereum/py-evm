@@ -4,6 +4,8 @@ from typing import Callable, Tuple, Optional
 from eth_typing import (
     Address
 )
+
+from eth.abc import BlockHeaderAPI
 from eth.constants import (
     GENESIS_GAS_LIMIT,
     GAS_LIMIT_EMA_DENOMINATOR,
@@ -17,7 +19,7 @@ from eth.rlp.headers import (
 )
 
 
-def compute_gas_limit_bounds(parent: BlockHeader) -> Tuple[int, int]:
+def compute_gas_limit_bounds(parent: BlockHeaderAPI) -> Tuple[int, int]:
     """
     Compute the boundaries for the block gas limit based on the parent block.
     """
@@ -27,7 +29,7 @@ def compute_gas_limit_bounds(parent: BlockHeader) -> Tuple[int, int]:
     return lower_bound, upper_bound
 
 
-def compute_gas_limit(parent_header: BlockHeader, gas_limit_floor: int) -> int:
+def compute_gas_limit(parent_header: BlockHeaderAPI, gas_limit_floor: int) -> int:
     """
     A simple strategy for adjusting the gas limit.
 
@@ -78,8 +80,8 @@ def compute_gas_limit(parent_header: BlockHeader, gas_limit_floor: int) -> int:
 
 
 def generate_header_from_parent_header(
-        compute_difficulty_fn: Callable[[BlockHeader, int], int],
-        parent_header: BlockHeader,
+        compute_difficulty_fn: Callable[[BlockHeaderAPI, int], int],
+        parent_header: BlockHeaderAPI,
         coinbase: Address,
         timestamp: Optional[int] = None,
         extra_data: bytes = b'') -> BlockHeader:

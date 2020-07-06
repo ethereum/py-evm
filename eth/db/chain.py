@@ -280,7 +280,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         return self._persist_uncles(self.db, uncles)
 
     @staticmethod
-    def _persist_uncles(db: DatabaseAPI, uncles: Tuple[BlockHeaderAPI]) -> Hash32:
+    def _persist_uncles(db: DatabaseAPI, uncles: Tuple[BlockHeaderAPI, ...]) -> Hash32:
         uncles_hash = keccak(rlp.encode(uncles))
         db.set(
             uncles_hash,

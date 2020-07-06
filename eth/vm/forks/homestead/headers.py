@@ -10,6 +10,7 @@ from eth_utils import (
     decode_hex,
 )
 
+from eth.abc import BlockHeaderAPI
 from eth.constants import (
     DIFFICULTY_ADJUSTMENT_DENOMINATOR,
     DIFFICULTY_MINIMUM,
@@ -36,7 +37,7 @@ if TYPE_CHECKING:
     from eth.vm.forks.homestead import HomesteadVM      # noqa: F401
 
 
-def compute_homestead_difficulty(parent_header: BlockHeader, timestamp: int) -> int:
+def compute_homestead_difficulty(parent_header: BlockHeaderAPI, timestamp: int) -> int:
     """
     Computes the difficulty for a homestead block based on the parent block.
     """
@@ -58,7 +59,7 @@ def compute_homestead_difficulty(parent_header: BlockHeader, timestamp: int) -> 
         return difficulty
 
 
-def create_homestead_header_from_parent(parent_header: BlockHeader,
+def create_homestead_header_from_parent(parent_header: BlockHeaderAPI,
                                         **header_params: Any) -> BlockHeader:
     if 'difficulty' not in header_params:
         # Use setdefault to ensure the new header has the same timestamp we use to calculate its

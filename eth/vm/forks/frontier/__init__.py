@@ -83,7 +83,7 @@ class FrontierVM(VM):
         return BLOCK_REWARD
 
     @staticmethod
-    def get_uncle_reward(block_number: int, uncle: BlockAPI) -> int:
+    def get_uncle_reward(block_number: int, uncle: BlockHeaderAPI) -> int:
         return BLOCK_REWARD * (
             UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
         ) // UNCLE_DEPTH_PENALTY_FACTOR

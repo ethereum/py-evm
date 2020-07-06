@@ -13,6 +13,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import UnsignedTransactionAPI
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
@@ -53,7 +54,7 @@ def extract_signature_v(v: int) -> int:
         return V_OFFSET
 
 
-def create_transaction_signature(unsigned_txn: BaseTransaction,
+def create_transaction_signature(unsigned_txn: UnsignedTransactionAPI,
                                  private_key: datatypes.PrivateKey,
                                  chain_id: int=None) -> VRS:
 

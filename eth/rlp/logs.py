@@ -7,6 +7,8 @@ from typing import (
     Tuple,
 )
 
+import rlp
+
 from eth.abc import LogAPI
 
 from .sedes import (
@@ -15,7 +17,7 @@ from .sedes import (
 )
 
 
-class Log(LogAPI):
+class Log(rlp.Serializable, LogAPI):
     fields = [
         ('address', address),
         ('topics', CountableList(uint32)),
