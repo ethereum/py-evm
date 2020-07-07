@@ -4,7 +4,6 @@ from typing import (
     Type,
 )
 
-import rlp
 from rlp.sedes import (
     CountableList,
 )
@@ -18,7 +17,6 @@ from eth_typing import (
     Hash32,
 )
 
-from eth_hash.auto import keccak
 from trie.exceptions import (
     MissingTrieNode,
 )
@@ -131,11 +129,3 @@ class FrontierBlock(BaseBlock):
             transactions=transactions,
             uncles=uncles,
         )
-
-    #
-    # Execution API
-    #
-    def add_uncle(self, uncle: BlockHeaderAPI) -> "FrontierBlock":
-        self.uncles += (uncle,)
-        self.header.uncles_hash = keccak(rlp.encode(self.uncles))
-        return self
