@@ -227,7 +227,8 @@ class VM(Configurable, VirtualMachineAPI):
         transactions: Sequence[SignedTransactionAPI],
         base_header: BlockHeaderAPI
     ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
-        if base_header.block_number != self.get_header().block_number:
+        vm_header = self.get_header()
+        if base_header.block_number != vm_header.block_number:
             raise ValidationError(
                 f"This VM instance must only work on block #{self.get_header().block_number}, "
                 f"but the target header has block #{base_header.block_number}"
@@ -238,7 +239,7 @@ class VM(Configurable, VirtualMachineAPI):
         previous_header = base_header
         result_header = base_header
 
-        for transaction in transactions:
+        for transaction_index, transaction in enumerate(transactions):
             try:
                 snapshot = self.state.snapshot()
                 receipt, computation = self.apply_transaction(
@@ -253,6 +254,15 @@ class VM(Configurable, VirtualMachineAPI):
             previous_header = result_header
             receipts.append(receipt)
             computations.append(computation)
+
+            self.transaction_applied_hook(
+                transaction_index,
+                transactions,
+                vm_header,
+                result_header,
+                computation,
+                receipt,
+            )
 
         receipts_tuple = tuple(receipts)
         computations_tuple = tuple(computations)
@@ -286,7 +296,9 @@ class VM(Configurable, VirtualMachineAPI):
         execution_context = self.create_execution_context(
             block.header, self.previous_hashes, self.chain_context)
 
-        header = self.get_header()
+        # Zero out the gas_used before applying transactions. Each applied transaction will
+        #   increase the gas used in the final new_header.
+        header = self.get_header().copy(gas_used=0)
         # we need to re-initialize the `state` to update the execution context.
         self._state = self.get_state_class()(self.chaindb.db, execution_context, header.state_root)
 
