@@ -468,7 +468,10 @@ class Chain(BaseChain):
             )
 
         base_header_for_import = self.create_header_from_parent(parent_header)
-        block_result = self.get_vm(base_header_for_import).import_block(block)
+        # Make a copy of the empty header, adding in the expected amount of gas used. This
+        #   allows for richer logging in the VM.
+        annotated_header = base_header_for_import.copy(gas_used=block.header.gas_used)
+        block_result = self.get_vm(annotated_header).import_block(block)
         imported_block = block_result.block
 
         # Validate the imported block.

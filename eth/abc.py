@@ -2667,6 +2667,25 @@ class VirtualMachineAPI(ConfigurableAPI):
         ...
 
     #
+    # Hooks
+    #
+
+    def transaction_applied_hook(
+            self,
+            transaction_index: int,
+            transactions: Sequence[SignedTransactionAPI],
+            base_header: BlockHeaderAPI,
+            partial_header: BlockHeaderAPI,
+            computation: ComputationAPI,
+            receipt: ReceiptAPI) -> None:
+        """
+        A hook for a subclass to use as a way to note that a transaction was applied.
+        This only gets triggered as part of `apply_all_transactions`, which is called
+        by `block_import`.
+        """
+        pass
+
+    #
     # Execution
     #
     @abstractmethod

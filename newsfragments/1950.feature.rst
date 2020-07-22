@@ -1,0 +1,3 @@
+Add a new hook :meth:`eth.abc.VirtualMachineAPI.transaction_applied_hook` which is triggered after
+each transaction in ``apply_all_transactions``, which is called by ``import_block``. The first use
+case is reporting progress in the middle of Beam Sync.
