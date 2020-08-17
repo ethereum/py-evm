@@ -15,7 +15,7 @@ deps = {
         "mypy_extensions>=0.4.1,<1.0.0",
         "py-ecc>=1.4.7,<5.0.0",
         "pyethash>=0.1.27,<1.0.0",
-        "rlp>=1.1.0,<2.0.0",
+        "rlp==2.0.0-alpha.1",
         "trie==2.0.0-alpha.3",
     ],
     # The eth-extra sections is for libraries that the evm does not
