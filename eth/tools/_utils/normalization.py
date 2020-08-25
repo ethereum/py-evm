@@ -33,10 +33,13 @@ from eth_typing import (
     HexStr,
 )
 
-from eth_utils import (
+from eth_utils.curried import (
+    apply_formatter_if,
+    apply_formatter_to_array,
     apply_formatters_to_dict,
     big_endian_to_int,
     decode_hex,
+    hexstr_if_str,
     is_0x_prefixed,
     is_bytes,
     is_hex,
@@ -48,7 +51,6 @@ from eth_utils import (
     to_dict,
     ValidationError,
 )
-import eth_utils.curried
 
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -128,7 +130,7 @@ def normalize_to_address(value: AnyStr) -> Address:
         return CREATE_CONTRACT_ADDRESS
 
 
-robust_decode_hex = eth_utils.curried.hexstr_if_str(to_bytes)
+robust_decode_hex = hexstr_if_str(to_bytes)
 
 
 #
@@ -247,7 +249,7 @@ normalize_state = compose(
         "nonce": normalize_int,
         "storage": normalize_storage
     }, required=[])),
-    eth_utils.curried.apply_formatter_if(
+    apply_formatter_if(
         lambda s: isinstance(s, Iterable) and not isinstance(s, Mapping),
         state_definition_to_dict
     ),
@@ -271,13 +273,13 @@ normalize_transaction = cast(TransactionNormalizer, dict_options_normalizer([
 
 
 normalize_main_transaction_group = dict_normalizer({
-    "data": eth_utils.curried.apply_formatter_to_array(normalize_bytes),
-    "gasLimit": eth_utils.curried.apply_formatter_to_array(normalize_int),
+    "data": apply_formatter_to_array(normalize_bytes),
+    "gasLimit": apply_formatter_to_array(normalize_int),
     "gasPrice": normalize_int,
     "nonce": normalize_int,
     "secretKey": normalize_bytes,
     "to": normalize_to_address,
-    "value": eth_utils.curried.apply_formatter_to_array(normalize_int),
+    "value": apply_formatter_to_array(normalize_int),
 })
 
 
@@ -306,14 +308,16 @@ normalize_call_create_item = dict_normalizer({
     "gasLimit": normalize_int,
     "value": normalize_int,
 })
-normalize_call_creates = eth_utils.curried.apply_formatter_to_array(normalize_call_create_item)
+normalize_call_creates: Callable[[Iterable[Any]], Iterable[Any]]
+normalize_call_creates = apply_formatter_to_array(normalize_call_create_item)
 
 normalize_log_item = dict_normalizer({
     "address": to_canonical_address,
-    "topics": eth_utils.curried.apply_formatter_to_array(normalize_int),
+    "topics": apply_formatter_to_array(normalize_int),
     "data": normalize_bytes,
 })
-normalize_logs = eth_utils.curried.apply_formatter_to_array(normalize_log_item)
+normalize_logs: Callable[[Iterable[Any]], Iterable[Any]]
+normalize_logs = apply_formatter_to_array(normalize_log_item)
 
 
 normalize_main_environment = dict_normalizer({
