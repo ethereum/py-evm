@@ -1,0 +1,2 @@
+Upgrade py-trie to v2.0.0-alpha.3 for a dependency fix, and eth-utils to v1.9.4 for a type-check
+fix.
