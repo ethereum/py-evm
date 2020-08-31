@@ -1,0 +1,1 @@
+Upgrade rlp library to ``v2.0.0-a1`` which uses faster rust based encoding/decoding.
