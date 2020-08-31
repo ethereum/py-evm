@@ -3,6 +3,43 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.19 (2020-08-31)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Add a new hook :meth:`eth.abc.VirtualMachineAPI.transaction_applied_hook` which is triggered after
+  each transaction in ``apply_all_transactions``, which is called by ``import_block``. The first use
+  case is reporting progress in the middle of Beam Sync. (`#1950 <https://github.com/ethereum/py-evm/issues/1950>`__)
+
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Upgrade rlp library to ``v2.0.0-a1`` which uses faster rust based encoding/decoding. (`#1951 <https://github.com/ethereum/py-evm/issues/1951>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Removed unused and broken ``add_uncle`` API on ``FrontierBlock`` and
+  consequentially on all other derived block classes. (`#1949 <https://github.com/ethereum/py-evm/issues/1949>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improve type safety by ensuring abc types do not inherit from ``rlp.Serializable``
+  which implicitly has type ``Any``. (`#1948 <https://github.com/ethereum/py-evm/issues/1948>`__)
+
+
+Miscellaneous internal changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- `#1953 <https://github.com/ethereum/py-evm/issues/1953>`__
+
+
 py-evm 0.3.0-alpha.18 (2020-06-25)
 ----------------------------------
 

@@ -1,2 +1,0 @@
-Improve type safety by ensuring abc types do not inherit from ``rlp.Serializable``
-which implicitly has type ``Any``.
