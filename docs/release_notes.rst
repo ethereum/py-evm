@@ -3,6 +3,18 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.3.0-alpha.20 (2020-10-21)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Upgrade rlp library to ``v2.0.0`` stable, which is friendlier to 32-bit and other
+  architectures. Downstream applications can choose to explicitly install the rust
+  implementation with ``pip install rlp[rust-backend]``.
+  (`d553bd <https://github.com/ethereum/py-evm/commit/d553bd405bbf41a1da0c227a614baba7b43e9449>`__)
+
+
 py-evm 0.3.0-alpha.19 (2020-08-31)
 ----------------------------------
 
