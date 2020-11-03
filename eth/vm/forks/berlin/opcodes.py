@@ -8,6 +8,14 @@ from eth.vm.forks.muir_glacier.opcodes import (
 )
 from eth.vm.opcode import Opcode
 
+from eth import constants
+
+from eth.vm import (
+    mnemonics,
+    opcode_values,
+)
+from eth.vm.opcode import as_opcode
+from eth.vm.logic import flow
 
 UPDATED_OPCODES: Dict[int, Opcode] = {
     # New opcodes
@@ -17,17 +25,7 @@ BERLIN_OPCODES = merge(
     copy.deepcopy(MUIR_GLACIER_OPCODES),
     UPDATED_OPCODES,
 )
-import copy
 
-from eth_utils.toolz import merge
-
-from eth import constants
-from eth.vm import (
-    mnemonics,
-    opcode_values,
-)
-from eth.vm.opcode import as_opcode
-from eth.vm.logic import flow
 
 UPDATED_OPCODES = {
     opcode_values.BEGINSUB: as_opcode(
