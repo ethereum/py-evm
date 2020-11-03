@@ -7,7 +7,7 @@ from .frontier import (  # noqa: F401
 from .homestead import (  # noqa: F401
     HomesteadVM,
 )
-frxom .spurious_dragon import (  # noqa: F401
+from .spurious_dragon import (  # noqa: F401
     SpuriousDragonVM,
 )
 from .byzantium import (  # noqa: F401
