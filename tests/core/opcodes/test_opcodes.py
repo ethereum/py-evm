@@ -1500,7 +1500,8 @@ def test_jumpsub(vm_class, code, expect_gas_used):
         ),
         (  #tests if the opcode raises error when trying to jump to an opcode other than BEGINGSUB
             BerlinVM,
-            '0x6100055e0058'
+            '0x6100055e0058',
+            InvalidJumpDestination,
         )
     )
 )
