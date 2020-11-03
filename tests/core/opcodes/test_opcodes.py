@@ -1493,12 +1493,12 @@ def test_jumpsub(vm_class, code, expect_gas_used):
             '0x5c5d00',
             OutOfGas,
         ),
-        (  #tests if the opcode raises error when trying to jump to BEGINSUB into pushdata
+        (  # tests if the opcode raises error when trying to jump to BEGINSUB into pushdata
             BerlinVM,
             '0x60055e61005c58',
             InvalidJumpDestination,
         ),
-        (  #tests if the opcode raises error when trying to jump to an opcode other than BEGINGSUB
+        (  # tests if the opcode raises error when trying to jump to an opcode other than BEGINGSUB
             BerlinVM,
             '0x6100055e0058',
             InvalidJumpDestination,
