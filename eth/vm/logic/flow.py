@@ -87,13 +87,13 @@ def jumpsub(computation: BaseComputation) -> None:
             temp = computation.code.program_counter
             computation.code.program_counter = sub_loc + 1
             computation.rstack_push_int(temp)
-        
+
         else:
             raise InvalidJumpDestination(
-            "Error: at pc={}, code_length={}, op=JUMPSUB: invalid jump destination".format(
-                computation.code.program_counter,
-                code_range_length)
-        )
+                "Error: at pc={}, code_length={}, op=JUMPSUB: invalid jump destination".format(
+                    computation.code.program_counter,
+                    code_range_length)
+            )
 
 
 def returnsub(computation: BaseComputation) -> None:
