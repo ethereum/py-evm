@@ -63,17 +63,20 @@ def gas(computation: BaseComputation) -> None:
 
 
 def beginsub(computation: BaseComputation) -> None:
-    raise OutOfGas("Error: at pc={}, op=BEGINSUB: invalid subroutine entry")
+    raise OutOfGas("Error: at pc={}, op=BEGINSUB: invalid subroutine entry".format(
+        computation.code.program_counter)
+    )
 
 
 def jumpsub(computation: BaseComputation) -> None:
     sub_loc = computation.stack_pop1_int()
-    code_range_length = computation.code.__len__()
+    code_range_length = len(computation.code)
 
     if sub_loc >= code_range_length:
         raise InvalidJumpDestination(
-            "Error: at pc={}, op=JUMPSUB: invalid jump destination".format(
-                computation.code.program_counter)
+            "Error: at pc={}, code_length={}, op=JUMPSUB: invalid jump destination".format(
+                computation.code.program_counter,
+                code_range_length)
         )
 
     if computation.code.is_valid_opcode(sub_loc):
@@ -84,6 +87,13 @@ def jumpsub(computation: BaseComputation) -> None:
             temp = computation.code.program_counter
             computation.code.program_counter = sub_loc + 1
             computation.rstack_push_int(temp)
+        
+        else:
+            raise InvalidJumpDestination(
+            "Error: at pc={}, code_length={}, op=JUMPSUB: invalid jump destination".format(
+                computation.code.program_counter,
+                code_range_length)
+        )
 
 
 def returnsub(computation: BaseComputation) -> None:

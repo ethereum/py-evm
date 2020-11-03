@@ -25,6 +25,9 @@ from eth.db.chain import (
 from eth.exceptions import (
     InvalidInstruction,
     VMError,
+    InvalidJumpDestination,
+    InsufficientStack,
+    OutOfGas,
 )
 from eth.rlp.headers import (
     BlockHeader,
@@ -1472,29 +1475,32 @@ def test_jumpsub(vm_class, code, expect_gas_used):
     assert comp.get_gas_used() == expect_gas_used
 
 
-@pytest.mark.xfail(reason="invalid subroutines")
 @pytest.mark.parametrize(
-    'vm_class, code',
+    'vm_class, code, expected_exception',
     (
         (
             BerlinVM,
             '0x5d5858',
+            InsufficientStack,
         ),
         (
             BerlinVM,
             '0x6801000000000000000c5e005c60115e5d5c5d',
+            InvalidJumpDestination,
         ),
         (
             BerlinVM,
             '0x5c5d00',
+            OutOfGas,
         ),
     )
 )
-def test_failing_jumpsub(vm_class, code):
+def test_failing_jumpsub(vm_class, code, expected_exception):
     computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
     comp = computation.apply_message(
         computation.state,
         computation.msg,
         computation.transaction_context,
     )
-    assert comp.is_success
+    with pytest.raises(expected_exception):
+        comp.raise_if_error()
