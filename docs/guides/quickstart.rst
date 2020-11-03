@@ -37,11 +37,11 @@ Finally, we can install the ``py-evm`` package via pip.
 Installing on macOS
 -------------------
 
-First, install Python 3 with brew:
+First, install Python 3 and LevelDB with brew:
 
 .. code:: sh
 
-  brew install python3
+  brew install python3 leveldb
 
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
