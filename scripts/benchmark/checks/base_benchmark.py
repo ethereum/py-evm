@@ -54,5 +54,5 @@ class BaseBenchmark(ABC):
         self.print_total_line(stat)
         return stat
 
-    def as_timed_result(self, fn: Callable[..., Any]=None) -> TimedResult:
+    def as_timed_result(self, fn: Callable[..., Any] = None) -> TimedResult:
         return time_call(fn)

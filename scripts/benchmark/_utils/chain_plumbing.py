@@ -99,6 +99,6 @@ def get_chain(vm: Type[VirtualMachineAPI], genesis_state: GenesisState) -> Itera
         yield level_db_chain
 
 
-def get_all_chains(genesis_state: GenesisState=DEFAULT_GENESIS_STATE) -> Iterable[MiningChain]:
+def get_all_chains(genesis_state: GenesisState = DEFAULT_GENESIS_STATE) -> Iterable[MiningChain]:
     for vm in ALL_VM:
         yield from get_chain(vm, genesis_state)

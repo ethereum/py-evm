@@ -60,7 +60,7 @@ VMStartBlock = Tuple[BlockNumber, Type[VirtualMachineAPI]]
 
 @to_tuple
 def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
-                               dao_start_block: Union[int, bool]=None) -> Generator[VMStartBlock, None, None]:  # noqa: E501
+                               dao_start_block: Union[int, bool] = None) -> Generator[VMStartBlock, None, None]:  # noqa: E501
     """
     fork_start_blocks should be 2-tuples of (start_block, fork_name_or_vm_class)
 
@@ -154,7 +154,7 @@ class MainnetTesterChain(BaseMainnetTesterChain):
 
     def configure_forks(self,
                         *fork_start_blocks: ForkStartBlocks,
-                        dao_start_block: Union[int, bool]=None) -> None:
+                        dao_start_block: Union[int, bool] = None) -> None:
         """
         On demand configuration of fork rules.  This is a foot gun that if used
         incorrectly could cause weird VM errors.

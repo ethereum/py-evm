@@ -72,7 +72,7 @@ class Configurable(ConfigurableAPI):
     """
     @classmethod
     def configure(cls: Type[T],
-                  __name__: str=None,
+                  __name__: str = None,
                   **overrides: Any) -> Type[T]:
 
         if __name__ is None:

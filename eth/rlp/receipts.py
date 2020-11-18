@@ -33,7 +33,7 @@ class Receipt(rlp.Serializable, ReceiptAPI):
                  state_root: bytes,
                  gas_used: int,
                  logs: Iterable[Log],
-                 bloom: int=None) -> None:
+                 bloom: int = None) -> None:
 
         if bloom is None:
             bloomables = itertools.chain.from_iterable(log.bloomables for log in logs)

@@ -13,7 +13,7 @@ class TimedResult(NamedTuple):
     wrapped_value: Any
 
 
-def time_call(fn: Callable[..., Any]=None) -> TimedResult:
+def time_call(fn: Callable[..., Any] = None) -> TimedResult:
     start = time.perf_counter()
     return_value = fn()
     duration = time.perf_counter() - start

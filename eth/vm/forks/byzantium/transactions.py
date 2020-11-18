@@ -27,7 +27,7 @@ class ByzantiumTransaction(SpuriousDragonTransaction):
 class ByzantiumUnsignedTransaction(SpuriousDragonUnsignedTransaction):
     def as_signed_transaction(self,
                               private_key: PrivateKey,
-                              chain_id: int=None) -> ByzantiumTransaction:
+                              chain_id: int = None) -> ByzantiumTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return ByzantiumTransaction(
             nonce=self.nonce,

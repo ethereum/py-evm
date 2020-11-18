@@ -104,7 +104,7 @@ class BaseState(Configurable, StateAPI):
     def make_state_root(self) -> Hash32:
         return self._account_db.make_state_root()
 
-    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+    def get_storage(self, address: Address, slot: int, from_journal: bool = True) -> int:
         return self._account_db.get_storage(address, slot, from_journal)
 
     def set_storage(self, address: Address, slot: int, value: int) -> None:

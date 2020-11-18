@@ -27,7 +27,9 @@ def _get_computation_error(state: StateAPI, transaction: SignedTransactionAPI) -
 
 
 @curry
-def binary_gas_search(state: StateAPI, transaction: SignedTransactionAPI, tolerance: int=1) -> int:
+def binary_gas_search(state: StateAPI,
+                      transaction: SignedTransactionAPI,
+                      tolerance: int = 1) -> int:
     """
     Run the transaction with various gas limits, progressively
     approaching the minimum needed to succeed without an OutOfGas exception.

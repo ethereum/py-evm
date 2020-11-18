@@ -83,7 +83,7 @@ from .hash_trie import HashTrie
 class AccountDB(AccountDatabaseAPI):
     logger = get_extended_debug_logger('eth.db.account.AccountDB')
 
-    def __init__(self, db: AtomicDatabaseAPI, state_root: Hash32=BLANK_ROOT_HASH) -> None:
+    def __init__(self, db: AtomicDatabaseAPI, state_root: Hash32 = BLANK_ROOT_HASH) -> None:
         r"""
         Internal implementation details (subject to rapid change):
         Database entries go through several pipes, like so...
@@ -152,7 +152,7 @@ class AccountDB(AccountDatabaseAPI):
     #
     # Storage
     #
-    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+    def get_storage(self, address: Address, slot: int, from_journal: bool = True) -> int:
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(slot, title="Storage Slot")
 
@@ -333,7 +333,7 @@ class AccountDB(AccountDatabaseAPI):
     #
     # Internal
     #
-    def _get_encoded_account(self, address: Address, from_journal: bool=True) -> bytes:
+    def _get_encoded_account(self, address: Address, from_journal: bool = True) -> bytes:
         self._accessed_accounts.add(address)
         lookup_trie = self._journaltrie if from_journal else self._trie_cache
 
@@ -345,7 +345,7 @@ class AccountDB(AccountDatabaseAPI):
             # In case the account is deleted in the JournalDB
             return b''
 
-    def _get_account(self, address: Address, from_journal: bool=True) -> Account:
+    def _get_account(self, address: Address, from_journal: bool = True) -> Account:
         if from_journal and address in self._account_cache:
             return self._account_cache[address]
 

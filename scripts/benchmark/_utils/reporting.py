@@ -44,7 +44,7 @@ class DefaultStat(NamedTuple):
     def avg_total_gas(self) -> float:
         return self.total_gas / self.counter
 
-    def cumulate(self, stat: 'DefaultStat', increment_by_counter: bool=False) -> 'DefaultStat':
+    def cumulate(self, stat: 'DefaultStat', increment_by_counter: bool = False) -> 'DefaultStat':
         increment_step = 1 if not increment_by_counter else stat.counter
         return DefaultStat(
             counter=self.counter + increment_step,

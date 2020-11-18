@@ -27,7 +27,7 @@ class PetersburgTransaction(ByzantiumTransaction):
 class PetersburgUnsignedTransaction(ByzantiumUnsignedTransaction):
     def as_signed_transaction(self,
                               private_key: PrivateKey,
-                              chain_id: int=None) -> PetersburgTransaction:
+                              chain_id: int = None) -> PetersburgTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return PetersburgTransaction(
             nonce=self.nonce,

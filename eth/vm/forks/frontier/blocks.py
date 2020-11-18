@@ -61,8 +61,8 @@ class FrontierBlock(BaseBlock):
 
     def __init__(self,
                  header: BlockHeaderAPI,
-                 transactions: Sequence[SignedTransactionAPI]=None,
-                 uncles: Sequence[BlockHeaderAPI]=None) -> None:
+                 transactions: Sequence[SignedTransactionAPI] = None,
+                 uncles: Sequence[BlockHeaderAPI] = None) -> None:
         if transactions is None:
             transactions = []
         if uncles is None:

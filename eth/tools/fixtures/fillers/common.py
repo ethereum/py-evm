@@ -101,7 +101,7 @@ Test.__new__.__defaults__ = (None,)  # type: ignore
 # Filler Generation
 #
 
-def setup_filler(name: str, environment: Dict[Any, Any]=None) -> Dict[str, Dict[str, Any]]:
+def setup_filler(name: str, environment: Dict[Any, Any] = None) -> Dict[str, Dict[str, Any]]:
     environment = normalize_environment(environment or {})
     return {name: {
         "env": environment,
@@ -109,7 +109,7 @@ def setup_filler(name: str, environment: Dict[Any, Any]=None) -> Dict[str, Dict[
     }}
 
 
-def setup_main_filler(name: str, environment: Dict[Any, Any]=None) -> Dict[str, Dict[str, Any]]:
+def setup_main_filler(name: str, environment: Dict[Any, Any] = None) -> Dict[str, Dict[str, Any]]:
     """
     Kick off the filler generation process by creating the general filler scaffold with
     a test name and general information about the testing environment.
@@ -240,9 +240,9 @@ def _expect(post_state: Dict[str, Any],
     return deep_merge(filler, test_update)
 
 
-def expect(post_state: Dict[str, Any]=None,
-           networks: Any=None,
-           transaction: TransactionDict=None) -> Callable[..., Dict[str, Any]]:
+def expect(post_state: Dict[str, Any] = None,
+           networks: Any = None,
+           transaction: TransactionDict = None) -> Callable[..., Dict[str, Any]]:
 
     """
     Specify the expected result for the test.

@@ -26,7 +26,7 @@ class KeyAccessLoggerDB(BaseDB):
 
     logger = logging.getLogger("eth.db.KeyAccessLoggerDB")
 
-    def __init__(self, wrapped_db: DatabaseAPI, log_missing_keys: bool=True) -> None:
+    def __init__(self, wrapped_db: DatabaseAPI, log_missing_keys: bool = True) -> None:
         """
         :param log_missing_keys: True if a key is added to :attr:`keys_read` even if the
             key/value does not exist in the database.
@@ -70,7 +70,7 @@ class KeyAccessLoggerAtomicDB(BaseAtomicDB):
     """
     logger = logging.getLogger("eth.db.KeyAccessLoggerAtomicDB")
 
-    def __init__(self, wrapped_db: AtomicDatabaseAPI, log_missing_keys: bool=True) -> None:
+    def __init__(self, wrapped_db: AtomicDatabaseAPI, log_missing_keys: bool = True) -> None:
         """
         :param log_missing_keys: True if a key is added to :attr:`keys_read` even if the
             key/value does not exist in the database.
