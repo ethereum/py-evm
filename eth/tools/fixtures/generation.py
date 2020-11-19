@@ -42,8 +42,8 @@ def get_fixtures_file_hash(all_fixture_paths: Iterable[str]) -> str:
 @curry
 def generate_fixture_tests(metafunc: Any,
                            base_fixture_path: str,
-                           filter_fn: Callable[..., Any]=identity,
-                           preprocess_fn: Callable[..., Any]=identity) -> None:
+                           filter_fn: Callable[..., Any] = identity,
+                           preprocess_fn: Callable[..., Any] = identity) -> None:
     """
     Helper function for use with `pytest_generate_tests` which will use the
     pytest caching facilities to reduce the load time for fixture tests.

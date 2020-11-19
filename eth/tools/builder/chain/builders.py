@@ -324,9 +324,9 @@ def _fill_and_normalize_state(simple_state: GeneralState) -> AccountState:
 
 @curry
 def genesis(chain_class: ChainAPI,
-            db: AtomicDatabaseAPI=None,
-            params: Dict[str, HeaderParams]=None,
-            state: GeneralState=None) -> ChainAPI:
+            db: AtomicDatabaseAPI = None,
+            params: Dict[str, HeaderParams] = None,
+            state: GeneralState = None) -> ChainAPI:
     """
     Initialize the given chain class with the given genesis header parameters
     and chain state.
