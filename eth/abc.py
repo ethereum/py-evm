@@ -1764,7 +1764,7 @@ class AccountStorageDatabaseAPI(ABC):
     merklized until :meth:`make_storage_root` is called.
     """
     @abstractmethod
-    def get(self, slot: int, from_journal: bool=True) -> int:
+    def get(self, slot: int, from_journal: bool = True) -> int:
         """
         Return the value at ``slot``. Lookups take the journal into consideration unless
         ``from_journal`` is explicitly set to ``False``.
@@ -1904,7 +1904,7 @@ class AccountDatabaseAPI(ABC):
     # Storage
     #
     @abstractmethod
-    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+    def get_storage(self, address: Address, slot: int, from_journal: bool = True) -> int:
         """
         Return the value stored at ``slot`` for the given ``address``. Take the journal
         into consideration unless ``from_journal`` is set to ``False``.
@@ -2165,7 +2165,7 @@ class ConfigurableAPI(ABC):
     @classmethod
     @abstractmethod
     def configure(cls: Type[T],
-                  __name__: str=None,
+                  __name__: str = None,
                   **overrides: Any) -> Type[T]:
         ...
 
@@ -2286,7 +2286,7 @@ class StateAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def get_storage(self, address: Address, slot: int, from_journal: bool=True) -> int:
+    def get_storage(self, address: Address, slot: int, from_journal: bool = True) -> int:
         """
         Return the storage at ``slot`` for ``address``.
         """
@@ -3220,7 +3220,7 @@ class ChainAPI(ConfigurableAPI):
     def from_genesis(cls,
                      base_db: AtomicDatabaseAPI,
                      genesis_params: Dict[str, HeaderParams],
-                     genesis_state: AccountState=None) -> 'ChainAPI':
+                     genesis_state: AccountState = None) -> 'ChainAPI':
         """
         Initialize the Chain from a genesis state.
         """
@@ -3491,7 +3491,7 @@ class ChainAPI(ConfigurableAPI):
     @abstractmethod
     def import_block(self,
                      block: BlockAPI,
-                     perform_validation: bool=True,
+                     perform_validation: bool = True,
                      ) -> BlockImportResult:
         """
         Import the given ``block`` and return a 3-tuple

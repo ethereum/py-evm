@@ -35,11 +35,11 @@ class Message(MessageAPI):
                  value: int,
                  data: BytesOrView,
                  code: bytes,
-                 depth: int=0,
-                 create_address: Address=None,
-                 code_address: Address=None,
-                 should_transfer_value: bool=True,
-                 is_static: bool=False) -> None:
+                 depth: int = 0,
+                 create_address: Address = None,
+                 code_address: Address = None,
+                 should_transfer_value: bool = True,
+                 is_static: bool = False) -> None:
         validate_uint256(gas, title="Message.gas")
         self.gas: int = gas
 

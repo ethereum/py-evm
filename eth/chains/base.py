@@ -221,7 +221,7 @@ class Chain(BaseChain):
     def from_genesis(cls,
                      base_db: AtomicDatabaseAPI,
                      genesis_params: Dict[str, HeaderParams],
-                     genesis_state: AccountState=None) -> 'BaseChain':
+                     genesis_state: AccountState = None) -> 'BaseChain':
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
 
         pre_genesis_header = BlockHeader(difficulty=0, block_number=-1, gas_limit=0)
@@ -455,7 +455,7 @@ class Chain(BaseChain):
 
     def import_block(self,
                      block: BlockAPI,
-                     perform_validation: bool=True
+                     perform_validation: bool = True
                      ) -> BlockImportResult:
 
         try:
@@ -659,7 +659,7 @@ class MiningChain(Chain, MiningChainAPI):
 
     def import_block(self,
                      block: BlockAPI,
-                     perform_validation: bool=True
+                     perform_validation: bool = True
                      ) -> BlockImportResult:
         result = super().import_block(
             block, perform_validation)

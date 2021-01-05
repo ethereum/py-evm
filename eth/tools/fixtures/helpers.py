@@ -204,7 +204,7 @@ def new_chain_from_fixture(fixture: Dict[str, Any],
 def apply_fixture_block_to_chain(
         block_fixture: Dict[str, Any],
         chain: ChainAPI,
-        perform_validation: bool=True) -> Tuple[BlockAPI, BlockAPI, bytes]:
+        perform_validation: bool = True) -> Tuple[BlockAPI, BlockAPI, bytes]:
     """
     :return: (premined_block, mined_block, rlp_encoded_mined_block)
     """

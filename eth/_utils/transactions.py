@@ -56,7 +56,7 @@ def extract_signature_v(v: int) -> int:
 
 def create_transaction_signature(unsigned_txn: UnsignedTransactionAPI,
                                  private_key: datatypes.PrivateKey,
-                                 chain_id: int=None) -> VRS:
+                                 chain_id: int = None) -> VRS:
 
     transaction_parts = rlp.decode(rlp.encode(unsigned_txn))
 

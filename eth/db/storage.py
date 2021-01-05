@@ -297,7 +297,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         # as an index to find the base trie from before the revert.
         self._clear_count = JournalDB(MemoryDB({CLEAR_COUNT_KEY_NAME: to_bytes(0)}))
 
-    def get(self, slot: int, from_journal: bool=True) -> int:
+    def get(self, slot: int, from_journal: bool = True) -> int:
         self._accessed_slots.add(slot)
         key = int_to_big_endian(slot)
         lookup_db = self._journal_storage if from_journal else self._locked_changes

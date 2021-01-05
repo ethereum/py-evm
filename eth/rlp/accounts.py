@@ -29,10 +29,10 @@ class Account(rlp.Serializable, AccountAPI):
     ]
 
     def __init__(self,
-                 nonce: int=0,
-                 balance: int=0,
-                 storage_root: bytes=BLANK_ROOT_HASH,
-                 code_hash: bytes=EMPTY_SHA3,
+                 nonce: int = 0,
+                 balance: int = 0,
+                 storage_root: bytes = BLANK_ROOT_HASH,
+                 code_hash: bytes = EMPTY_SHA3,
                  **kwargs: Any) -> None:
         super().__init__(nonce, balance, storage_root, code_hash, **kwargs)
 

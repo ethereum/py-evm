@@ -27,7 +27,7 @@ class MuirGlacierTransaction(IstanbulTransaction):
 class MuirGlacierUnsignedTransaction(IstanbulUnsignedTransaction):
     def as_signed_transaction(self,
                               private_key: PrivateKey,
-                              chain_id: int=None) -> MuirGlacierTransaction:
+                              chain_id: int = None) -> MuirGlacierTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return MuirGlacierTransaction(
             nonce=self.nonce,

@@ -91,36 +91,36 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
                  difficulty: int,
                  block_number: BlockNumber,
                  gas_limit: int,
-                 timestamp: int=None,
-                 coinbase: Address=ZERO_ADDRESS,
-                 parent_hash: Hash32=ZERO_HASH32,
-                 uncles_hash: Hash32=EMPTY_UNCLE_HASH,
-                 state_root: Hash32=BLANK_ROOT_HASH,
-                 transaction_root: Hash32=BLANK_ROOT_HASH,
-                 receipt_root: Hash32=BLANK_ROOT_HASH,
-                 bloom: int=0,
-                 gas_used: int=0,
-                 extra_data: bytes=b'',
-                 mix_hash: Hash32=ZERO_HASH32,
-                 nonce: bytes=GENESIS_NONCE) -> None:
+                 timestamp: int = None,
+                 coinbase: Address = ZERO_ADDRESS,
+                 parent_hash: Hash32 = ZERO_HASH32,
+                 uncles_hash: Hash32 = EMPTY_UNCLE_HASH,
+                 state_root: Hash32 = BLANK_ROOT_HASH,
+                 transaction_root: Hash32 = BLANK_ROOT_HASH,
+                 receipt_root: Hash32 = BLANK_ROOT_HASH,
+                 bloom: int = 0,
+                 gas_used: int = 0,
+                 extra_data: bytes = b'',
+                 mix_hash: Hash32 = ZERO_HASH32,
+                 nonce: bytes = GENESIS_NONCE) -> None:
         ...
 
     def __init__(self,              # type: ignore  # noqa: F811
                  difficulty: int,
                  block_number: BlockNumber,
                  gas_limit: int,
-                 timestamp: int=None,
-                 coinbase: Address=ZERO_ADDRESS,
-                 parent_hash: Hash32=ZERO_HASH32,
-                 uncles_hash: Hash32=EMPTY_UNCLE_HASH,
-                 state_root: Hash32=BLANK_ROOT_HASH,
-                 transaction_root: Hash32=BLANK_ROOT_HASH,
-                 receipt_root: Hash32=BLANK_ROOT_HASH,
-                 bloom: int=0,
-                 gas_used: int=0,
-                 extra_data: bytes=b'',
-                 mix_hash: Hash32=ZERO_HASH32,
-                 nonce: bytes=GENESIS_NONCE) -> None:
+                 timestamp: int = None,
+                 coinbase: Address = ZERO_ADDRESS,
+                 parent_hash: Hash32 = ZERO_HASH32,
+                 uncles_hash: Hash32 = EMPTY_UNCLE_HASH,
+                 state_root: Hash32 = BLANK_ROOT_HASH,
+                 transaction_root: Hash32 = BLANK_ROOT_HASH,
+                 receipt_root: Hash32 = BLANK_ROOT_HASH,
+                 bloom: int = 0,
+                 gas_used: int = 0,
+                 extra_data: bytes = b'',
+                 mix_hash: Hash32 = ZERO_HASH32,
+                 nonce: bytes = GENESIS_NONCE) -> None:
         if timestamp is None:
             timestamp = int(time.time())
         super().__init__(
@@ -166,11 +166,11 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
                     gas_limit: int,
                     difficulty: int,
                     timestamp: int,
-                    coinbase: Address=ZERO_ADDRESS,
-                    nonce: bytes=None,
-                    extra_data: bytes=None,
-                    transaction_root: bytes=None,
-                    receipt_root: bytes=None) -> 'BlockHeader':
+                    coinbase: Address = ZERO_ADDRESS,
+                    nonce: bytes = None,
+                    extra_data: bytes = None,
+                    transaction_root: bytes = None,
+                    receipt_root: bytes = None) -> 'BlockHeader':
         """
         Initialize a new block header with the `parent` header as the block's
         parent hash.

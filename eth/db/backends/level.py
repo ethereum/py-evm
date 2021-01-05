@@ -33,8 +33,8 @@ class LevelDB(BaseAtomicDB):
 
     # Creates db as a class variable to avoid level db lock error
     def __init__(self,
-                 db_path: Path=None,
-                 max_open_files: int=None) -> None:
+                 db_path: Path = None,
+                 max_open_files: int = None) -> None:
         if not db_path:
             raise TypeError("Please specifiy a valid path for your database.")
         try:

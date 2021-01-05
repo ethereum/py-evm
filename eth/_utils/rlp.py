@@ -56,8 +56,8 @@ def diff_rlp_object(left: BaseBlock,
 @curry
 def validate_rlp_equal(obj_a: BaseBlock,
                        obj_b: BaseBlock,
-                       obj_a_name: str=None,
-                       obj_b_name: str=None) -> None:
+                       obj_a_name: str = None,
+                       obj_b_name: str = None) -> None:
     if obj_a == obj_b:
         return
 

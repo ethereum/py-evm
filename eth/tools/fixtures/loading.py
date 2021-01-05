@@ -62,7 +62,7 @@ def load_json_fixture(fixture_path: str) -> Dict[str, Any]:
 
 def load_fixture(fixture_path: str,
                  fixture_key: str,
-                 normalize_fn: Callable[..., Any]=identity) -> Dict[str, Any]:
+                 normalize_fn: Callable[..., Any] = identity) -> Dict[str, Any]:
     """
     Loads a specific fixture from a fixture file, optionally passing it through
     a normalization function.
@@ -76,8 +76,8 @@ def load_fixture(fixture_path: str,
 @curry
 def filter_fixtures(all_fixtures: Iterable[Any],
                     fixtures_base_dir: str,
-                    mark_fn: Callable[[str, str], bool]=None,
-                    ignore_fn: Callable[..., bool]=None) -> Any:
+                    mark_fn: Callable[[str, str], bool] = None,
+                    ignore_fn: Callable[..., bool] = None) -> Any:
     """
     Helper function for filtering test fixtures.
 

@@ -137,8 +137,8 @@ robust_decode_hex = hexstr_if_str(to_bytes)
 # Containers
 #
 def dict_normalizer(formatters: Dict[Any, Callable[..., Any]],
-                    required: Iterable[Any]=None,
-                    optional: Iterable[Any]=None) -> Normalizer:
+                    required: Iterable[Any] = None,
+                    optional: Iterable[Any] = None) -> Normalizer:
 
     all_keys = set(formatters.keys())
 
