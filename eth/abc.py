@@ -480,6 +480,16 @@ class BlockAndMetaWitness(NamedTuple):
     meta_witness: MetaWitnessAPI
 
 
+class BlockPersistResult(NamedTuple):
+    """
+    After persisting a block into the active chain, this information
+    becomes available.
+    """
+    imported_block: BlockAPI
+    new_canonical_blocks: Tuple[BlockAPI, ...]
+    old_canonical_blocks: Tuple[BlockAPI, ...]
+
+
 class BlockImportResult(NamedTuple):
     """
     After importing and persisting a block into the active chain, this information
@@ -2785,9 +2795,9 @@ class VirtualMachineAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def mine_block(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
+    def mine_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
         """
-        Mine the current block. Proxies to self.pack_block method.
+        Mine the given block. Proxies to self.pack_block method.
         """
         ...
 
@@ -3583,6 +3593,24 @@ class MiningChainAPI(ChainAPI):
     def __init__(self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None) -> None:
         """
         Initialize the chain.
+        """
+        ...
+
+    @abstractmethod
+    def mine_all(
+            self,
+            transactions: Sequence[SignedTransactionAPI],
+            *args: Any,
+            parent_header: BlockHeaderAPI = None,
+            **kwargs: Any,
+    ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
+        """
+        Build a block with the given transactions, and mine it.
+
+        Optionally, supply the parent block header to mine on top of.
+
+        This is much faster than individually running :meth:`apply_transaction`
+        and then :meth:`mine_block`.
         """
         ...
 

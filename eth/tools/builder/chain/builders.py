@@ -366,10 +366,8 @@ def mine_block(chain: MiningChainAPI, **kwargs: Any) -> MiningChainAPI:
         raise ValidationError('`mine_block` may only be used on MiningChain instances')
 
     transactions = kwargs.pop('transactions', ())
-    for tx in transactions:
-        chain.apply_transaction(tx)
 
-    chain.mine_block(**kwargs)
+    chain.mine_all(transactions, **kwargs)
     return chain
 
 
