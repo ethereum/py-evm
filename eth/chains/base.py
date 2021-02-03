@@ -44,6 +44,7 @@ from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,
     BlockImportResult,
+    BlockPersistResult,
     ChainAPI,
     ChainDatabaseAPI,
     ConsensusContextAPI,
@@ -481,17 +482,27 @@ class Chain(BaseChain):
             except ValidationError:
                 self.logger.warning("Proposed %s doesn't follow EVM rules, rejecting...", block)
                 raise
-            self.validate_block(imported_block)
+
+        persist_result = self.persist_block(imported_block, perform_validation)
+        return BlockImportResult(*persist_result, block_result.meta_witness)
+
+    def persist_block(
+            self,
+            block: BlockAPI,
+            perform_validation: bool = True) -> BlockPersistResult:
+
+        if perform_validation:
+            self.validate_block(block)
 
         (
             new_canonical_hashes,
             old_canonical_hashes,
-        ) = self.chaindb.persist_block(imported_block)
+        ) = self.chaindb.persist_block(block)
 
         self.logger.debug(
-            'IMPORTED_BLOCK: number %s | hash %s',
-            imported_block.number,
-            encode_hex(imported_block.hash),
+            'Persisted block: number %s | hash %s',
+            block.number,
+            encode_hex(block.hash),
         )
 
         new_canonical_blocks = tuple(
@@ -505,11 +516,10 @@ class Chain(BaseChain):
             in old_canonical_hashes
         )
 
-        return BlockImportResult(
-            imported_block=imported_block,
+        return BlockPersistResult(
+            imported_block=block,
             new_canonical_blocks=new_canonical_blocks,
             old_canonical_blocks=old_canonical_blocks,
-            meta_witness=block_result.meta_witness,
         )
 
     #
@@ -667,11 +677,43 @@ class MiningChain(Chain, MiningChainAPI):
         self.header = self.ensure_header()
         return result
 
+    def mine_all(
+            self,
+            transactions: Sequence[SignedTransactionAPI],
+            *args: Any,
+            parent_header: BlockHeaderAPI = None,
+            **kwargs: Any,
+    ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
+
+        if parent_header is None:
+            base_header = self.header
+        else:
+            base_header = self.create_header_from_parent(parent_header)
+
+        vm = self.get_vm(base_header)
+
+        new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
+        filled_block = vm.set_block_transactions(vm.get_block(), new_header, transactions, receipts)
+
+        block_result = vm.mine_block(filled_block, *args, **kwargs)
+        imported_block = block_result.block
+
+        block_persist_result = self.persist_block(imported_block)
+        block_import_result = BlockImportResult(*block_persist_result, block_result.meta_witness)
+
+        self.header = self.create_header_from_parent(imported_block.header)
+        return (block_import_result, receipts, computations)
+
     def mine_block(self, *args: Any, **kwargs: Any) -> BlockAPI:
+        """
+        Mine whatever transactions have been incrementally applied so far.
+        """
         return self.mine_block_extended(*args, **kwargs).block
 
     def mine_block_extended(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
-        mine_result = self.get_vm(self.header).mine_block(*args, **kwargs)
+        vm = self.get_vm(self.header)
+        current_block = vm.get_block()
+        mine_result = vm.mine_block(current_block, *args, **kwargs)
         mined_block = mine_result.block
 
         self.validate_block(mined_block)

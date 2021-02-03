@@ -305,17 +305,17 @@ class VM(Configurable, VirtualMachineAPI):
         # run all of the transactions.
         new_header, receipts, _ = self.apply_all_transactions(block.transactions, header)
 
-        self._block = self.set_block_transactions(
+        block_with_transactions = self.set_block_transactions(
             self.get_block(),
             new_header,
             block.transactions,
             receipts,
         )
 
-        return self.mine_block()
+        return self.mine_block(block_with_transactions)
 
-    def mine_block(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
-        packed_block = self.pack_block(self.get_block(), *args, **kwargs)
+    def mine_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
+        packed_block = self.pack_block(block, *args, **kwargs)
 
         block_result = self.finalize_block(packed_block)
 

@@ -1,4 +1,3 @@
-import logging
 import pathlib
 from typing import (
     Tuple,
@@ -15,7 +14,6 @@ from web3 import (
 from eth_utils import (
     encode_hex,
     decode_hex,
-    to_int,
 )
 
 from eth.constants import (
@@ -61,7 +59,7 @@ W3_TX_DEFAULTS = {'gas': 0, 'gasPrice': 0}
 
 class BaseERC20Benchmark(BaseBenchmark):
 
-    def __init__(self, num_blocks: int = 10, num_tx: int = 2) -> None:
+    def __init__(self, num_blocks: int = 2, num_tx: int = 50) -> None:
         super().__init__()
 
         self.num_blocks = num_blocks
@@ -82,7 +80,7 @@ class BaseERC20Benchmark(BaseBenchmark):
         pass
 
     @abstractmethod
-    def _apply_transaction(self, chain: MiningChain) -> None:
+    def _next_transaction(self, chain: MiningChain) -> None:
         raise NotImplementedError(
             "Must be implemented by subclasses"
         )
@@ -114,7 +112,8 @@ class BaseERC20Benchmark(BaseBenchmark):
         total_gas_used = 0
         total_num_tx = 0
         for i in range(1, num_blocks + 1):
-            block = self.mine_block(chain, i, num_tx)
+            import_result = self.mine_block(chain, i, num_tx)
+            block = import_result.imported_block
             total_gas_used = total_gas_used + block.header.gas_used
             total_num_tx = total_num_tx + len(block.transactions)
         return total_gas_used, total_num_tx
@@ -123,11 +122,19 @@ class BaseERC20Benchmark(BaseBenchmark):
                    chain: MiningChain,
                    block_number: int,
                    num_tx: int) -> BaseBlock:
-        for _ in range(1, num_tx + 1):
-            self._apply_transaction(chain)
-        return chain.mine_block()
+        transactions, callbacks = zip(*(
+            self._next_transaction(chain)
+            for _ in range(num_tx)
+        ))
 
-    def _deploy_simple_token(self, chain: MiningChain) -> None:
+        mining_result, receipts, computations = chain.mine_all(transactions)
+
+        for callback, receipt, computation in zip(callbacks, receipts, computations):
+            callback(receipt, computation)
+
+        return mining_result
+
+    def _deploy_simple_token(self, chain: MiningChain, nonce: int = None) -> None:
         # Instantiate the contract
         SimpleToken = self.w3.eth.contract(
             abi=self.contract_interface['abi'],
@@ -143,21 +150,24 @@ class BaseERC20Benchmark(BaseBenchmark):
             amount=0,
             gas=FIRST_TX_GAS_LIMIT,
             data=decode_hex(w3_tx['data']),
-        )
-        logging.debug(f'Applying Transaction {tx}')
-        block, receipt, computation = chain.apply_transaction(tx)
-        # Keep track of deployed contract address
-        self.deployed_contract_address = computation.msg.storage_address
-
-        computation.raise_if_error()
-
-        # Keep track of simple_token object
-        self.simple_token = self.w3.eth.contract(
-            address=Web3.toChecksumAddress(encode_hex(self.deployed_contract_address)),
-            abi=self.contract_interface['abi'],
+            nonce=nonce,
         )
 
-    def _erc_transfer(self, addr: str, chain: MiningChain) -> None:
+        def callback(receipt, computation) -> None:
+            computation.raise_if_error()
+
+            # Keep track of deployed contract address
+            self.deployed_contract_address = computation.msg.storage_address
+
+            # Keep track of simple_token object
+            self.simple_token = self.w3.eth.contract(
+                address=Web3.toChecksumAddress(encode_hex(self.deployed_contract_address)),
+                abi=self.contract_interface['abi'],
+            )
+
+        return tx, callback
+
+    def _erc_transfer(self, addr: str, chain: MiningChain, nonce: int = None) -> None:
         w3_tx = self.simple_token.functions.transfer(
             addr,
             TRANSFER_AMOUNT
@@ -171,15 +181,15 @@ class BaseERC20Benchmark(BaseBenchmark):
             amount=0,
             gas=SECOND_TX_GAS_LIMIT,
             data=decode_hex(w3_tx['data']),
+            nonce=nonce,
         )
 
-        block, receipt, computation = chain.apply_transaction(tx)
+        def callback(receipt, computation) -> None:
+            computation.raise_if_error()
+            assert computation.output == b'\0' * 31 + b'\x01', computation.output
+        return tx, callback
 
-        computation.raise_if_error()
-
-        assert to_int(computation.output) == 1
-
-    def _erc_approve(self, addr2: str, chain: MiningChain) -> None:
+    def _erc_approve(self, addr2: str, chain: MiningChain, nonce: int = None) -> None:
         w3_tx = self.simple_token.functions.approve(
             addr2,
             TRANSFER_AMOUNT
@@ -193,15 +203,21 @@ class BaseERC20Benchmark(BaseBenchmark):
             amount=0,
             gas=SECOND_TX_GAS_LIMIT,
             data=decode_hex(w3_tx['data']),
+            nonce=nonce,
         )
 
-        block, receipt, computation = chain.apply_transaction(tx)
+        def callback(receipt, computation) -> None:
+            computation.raise_if_error()
+            assert computation.output == b'\0' * 31 + b'\x01', computation.output
 
-        computation.raise_if_error()
+        return tx, callback
 
-        assert to_int(computation.output) == 1
-
-    def _erc_transfer_from(self, addr1: str, addr2: str, chain: MiningChain) -> None:
+    def _erc_transfer_from(
+            self,
+            addr1: str,
+            addr2: str,
+            chain: MiningChain,
+            nonce: int = None) -> None:
 
         w3_tx = self.simple_token.functions.transferFrom(
             addr1,
@@ -217,41 +233,59 @@ class BaseERC20Benchmark(BaseBenchmark):
             amount=0,
             gas=SECOND_TX_GAS_LIMIT,
             data=decode_hex(w3_tx['data']),
+            nonce=nonce,
         )
 
-        block, receipt, computation = chain.apply_transaction(tx)
+        def callback(receipt, computation) -> None:
+            computation.raise_if_error()
+            assert computation.output == b'\0' * 31 + b'\x01', computation.output
 
-        computation.raise_if_error()
-
-        assert to_int(computation.output) == 1
+        return tx, callback
 
 
 class ERC20DeployBenchmark(BaseERC20Benchmark):
     def __init__(self) -> None:
         super().__init__()
+        # Can only fit 2 deployments in a block
+        self.num_tx = 2
 
     @property
     def name(self) -> str:
         return 'ERC20 deployment'
 
-    def _apply_transaction(self, chain: MiningChain) -> None:
-        self._deploy_simple_token(chain)
+    def _setup_benchmark(self, chain: MiningChain) -> None:
+        self._next_nonce = None
+
+    def _next_transaction(self, chain: MiningChain) -> None:
+        txn_info = self._deploy_simple_token(chain, self._next_nonce)
+        txn = txn_info[0]
+        self._next_nonce = txn.nonce + 1
+        return txn_info
 
 
 class ERC20TransferBenchmark(BaseERC20Benchmark):
     def __init__(self) -> None:
         super().__init__()
+        self._next_nonce = None
 
     @property
     def name(self) -> str:
         return 'ERC20 Transfer'
 
     def _setup_benchmark(self, chain: MiningChain) -> None:
-        self._deploy_simple_token(chain)
-        chain.mine_block()
+        self._next_nonce = None
 
-    def _apply_transaction(self, chain: MiningChain) -> None:
-        self._erc_transfer(self.addr1, chain)
+        txn, callback = self._deploy_simple_token(chain)
+        _, receipts, computations = chain.mine_all([txn])
+        assert len(receipts) == 1
+        assert len(computations) == 1
+        callback(receipts[0], computations[0])
+
+    def _next_transaction(self, chain: MiningChain) -> None:
+        txn_info = self._erc_transfer(self.addr1, chain, self._next_nonce)
+        txn = txn_info[0]
+        self._next_nonce = txn.nonce + 1
+        return txn_info
 
 
 class ERC20ApproveBenchmark(BaseERC20Benchmark):
@@ -263,11 +297,18 @@ class ERC20ApproveBenchmark(BaseERC20Benchmark):
         return 'ERC20 Approve'
 
     def _setup_benchmark(self, chain: MiningChain) -> None:
-        self._deploy_simple_token(chain)
-        chain.mine_block()
+        self._next_nonce = None
+        txn, callback = self._deploy_simple_token(chain)
+        _, receipts, computations = chain.mine_all([txn])
+        assert len(receipts) == 1
+        assert len(computations) == 1
+        callback(receipts[0], computations[0])
 
-    def _apply_transaction(self, chain: MiningChain) -> None:
-        self._erc_approve(self.addr2, chain)
+    def _next_transaction(self, chain: MiningChain) -> None:
+        txn_info = self._erc_approve(self.addr2, chain, self._next_nonce)
+        txn = txn_info[0]
+        self._next_nonce = txn.nonce + 1
+        return txn_info
 
 
 class ERC20TransferFromBenchmark(BaseERC20Benchmark):
@@ -279,10 +320,25 @@ class ERC20TransferFromBenchmark(BaseERC20Benchmark):
         return 'ERC20 TransferFrom'
 
     def _setup_benchmark(self, chain: MiningChain) -> None:
-        self._deploy_simple_token(chain)
-        self._erc_transfer(self.addr1, chain)
-        self._erc_approve(self.addr2, chain)
-        chain.mine_block()
+        self._next_nonce = None
+        txn, callback = self._deploy_simple_token(chain)
+        _, receipts, computations = chain.mine_all([txn])
+        assert len(receipts) == 1
+        assert len(computations) == 1
+        callback(receipts[0], computations[0])
 
-    def _apply_transaction(self, chain: MiningChain) -> None:
-        self._erc_transfer_from(self.addr1, self.addr2, chain)
+        actions = [
+            self._erc_transfer(self.addr1, chain, nonce=1),
+            self._erc_approve(self.addr2, chain, nonce=2),
+        ]
+        transactions, callbacks = zip(*actions)
+        _, receipts, computations = chain.mine_all(transactions)
+
+        for callback, receipt, computation in zip(callbacks, receipts, computations):
+            callback(receipt, computation)
+
+    def _next_transaction(self, chain: MiningChain) -> None:
+        txn_info = self._erc_transfer_from(self.addr1, self.addr2, chain, self._next_nonce)
+        txn = txn_info[0]
+        self._next_nonce = txn.nonce + 1
+        return txn_info

@@ -229,11 +229,15 @@ def test_uncle_block_inclusion_validity(vm_fn):
     uncle = fork_chain.get_block_header_by_hash(fork_chain.header.parent_hash)
     assert uncle.block_number == 2
 
+    chain = build(
+        chain,
+        # Mines blocks from 3 to 8 (both numbers inclusive)
+        mine_blocks(6),
+    )
+
     with pytest.raises(ValidationError):
         chain = build(
             chain,
-            # Mines blocks from 3 to 8 (both numbers inclusive)
-            mine_blocks(6),
             # Mine block 9 with uncle
             mine_block(uncles=[uncle]),
         )
