@@ -41,7 +41,7 @@ from _utils.shellart import (
 class SimpleValueTransferBenchmarkConfig(NamedTuple):
     to_address: Address
     greeter_info: str
-    num_blocks: int = 1
+    num_blocks: int = 2
 
 
 TO_EXISTING_ADDRESS_CONFIG = SimpleValueTransferBenchmarkConfig(
@@ -63,6 +63,7 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
 
     def __init__(self, config: SimpleValueTransferBenchmarkConfig) -> None:
         self.config = config
+        self._next_nonce = None
 
     @property
     def name(self) -> str:
@@ -77,6 +78,7 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
         num_blocks = self.config.num_blocks
 
         for chain in get_all_chains():
+            self._next_nonce = None
 
             value = self.as_timed_result(lambda: self.mine_blocks(chain, num_blocks))
 
@@ -107,12 +109,18 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
         return total_gas_used, total_num_tx
 
     def mine_block(self, chain: MiningChain, block_number: int, num_tx: int) -> BaseBlock:
-        for _ in range(1, num_tx + 1):
-            self.apply_transaction(chain)
+        actions = [self.next_transaction(chain) for _ in range(num_tx)]
 
-        return chain.mine_block()
+        transactions, callbacks = zip(*actions)
 
-    def apply_transaction(self, chain: MiningChain) -> None:
+        mining_result, receipts, computations = chain.mine_all(transactions)
+
+        for callback, receipt, computation in zip(callbacks, receipts, computations):
+            callback(receipt, computation)
+
+        return mining_result.imported_block
+
+    def next_transaction(self, chain: MiningChain) -> None:
 
         if self.config.to_address is None:
             to_address = generate_random_address()
@@ -125,13 +133,15 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
             from_=FUNDED_ADDRESS,
             to=to_address,
             amount=100,
-            data=b''
+            data=b'',
+            nonce=self._next_nonce,
         )
+        logging.debug(f'Built Transaction {tx}')
 
-        logging.debug(f'Applying Transaction {tx}')
+        self._next_nonce = tx.nonce + 1
 
-        block, receipt, computation = chain.apply_transaction(tx)
+        def callback(receipt, computation) -> None:
+            logging.debug(f'Receipt {receipt}')
+            logging.debug(f'Computation {computation}')
 
-        logging.debug(f'Block {block}')
-        logging.debug(f'Receipt {receipt}')
-        logging.debug(f'Computation {computation}')
+        return tx, callback

@@ -1,0 +1,3 @@
+Got a >10x speedup of some benchmarks and other tests, by adding a new :meth`MiningChain.mine_all`
+API and using it. This is a public API, and should be used whenever all the transactions are known
+up front, to get a significant speedup.
