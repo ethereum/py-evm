@@ -8,7 +8,7 @@ from eth.vm.forks.petersburg.opcodes import (
 )
 
 
-UPDATED_OPCODES = {
+UPDATED_OPCODES: Dict[int, eth.vm.opcode.Opcode] = {
     # New opcodes
 }
 
