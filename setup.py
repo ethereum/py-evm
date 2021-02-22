@@ -35,6 +35,7 @@ deps = {
         "pytest>=5.1.3,<6",
         "pytest-asyncio>=0.10.0,<0.11",
         "pytest-cov==2.5.1",
+        "pytest-timeout>=1.4.2,<2",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==1.31.0",
     ],
