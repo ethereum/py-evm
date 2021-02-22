@@ -141,6 +141,15 @@ SLOWEST_TESTS = {
     ('ValidBlocks/bcStateTests/randomStatetest94.json', 'randomStatetest94_ConstantinopleFix'),  # noqa: E501
     ('ValidBlocks/bcStateTests/randomStatetest94.json', 'randomStatetest94_Homestead'),  # noqa: E501
     ('ValidBlocks/bcStateTests/randomStatetest94.json', 'randomStatetest94_Istanbul'),  # noqa: E501
+    ('ValidBlocks/VMTests/vmPerformance/loop-add-10M.json', 'loop-add-10M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-divadd-10M.json', 'loop-divadd-10M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-divadd-unr100-10M.json', 'loop-divadd-unr100-10M_Istanbul'),  # noqa: E501
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-16b-100k.json', 'loop-exp-16b-100k_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-1b-1M.json', 'loop-exp-1b-1M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-32b-100k.json', 'loop-exp-32b-100k_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json', 'loop-exp-nop-1M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-mul.json', 'loop-mul_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-mulmod-2M.json', 'loop-mulmod-2M_Istanbul'),
 }
 
 
@@ -181,12 +190,18 @@ INCORRECT_UPSTREAM_TESTS = {
     ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d0g0v0_Istanbul'),  # noqa: E501
     # Perhaps even stranger, d2 starts failing again after fixing a long-hidden consensus bug
     # but not in Constantinople, only in Istanbul.
-    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d2g0v0_Istanbul'),  # noqa: E501
-    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d1g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d2g0v0_Istanbul'),
+    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d1g0v0_Istanbul'),
     # The d2 variant started failing again after fixing a long-hidden consensus bug
     # but only in Istanbul, not in Constantinople.
-    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d2g0v0_Istanbul'),  # noqa: E501
-    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d3g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d2g0v0_Istanbul'),
+    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d3g0v0_Istanbul'),
+    # It's not clear how or why this test changed. It doesn't make sense that it only tests Istanbul
+    # either. See: https://github.com/ethereum/tests/issues/787
+    # The test seems to claim to test what happens if the uncle timestamp is the same as
+    # the block, but the RLP doesn't encode a matching timestamp.
+    ('InvalidBlocks/bcUncleHeaderValidity/incorrectUncleTimestamp.json', 'incorrectUncleTimestamp_Istanbul'),  # noqa: E501
+    ('InvalidBlocks/bcUncleHeaderValidity/incorrectUncleTimestamp.json', 'incorrectUncleTimestamp_Berlin'),  # noqa: E501
 }
 
 

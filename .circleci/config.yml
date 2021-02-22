@@ -46,6 +46,12 @@ jobs:
       - image: circleci/python:3.6
         environment:
           TOXENV: py36-benchmark
+  py36-native-blockchain-berlin:
+    <<: *common
+    docker:
+      - image: circleci/python:3.6
+        environment:
+          TOXENV: py36-native-blockchain-berlin
   py36-native-blockchain-byzantium:
     <<: *common
     docker:
