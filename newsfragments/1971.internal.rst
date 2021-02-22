@@ -1,0 +1,3 @@
+Upgrade tests fixtures to v7.0.1, with Berlin tests (but not enabled in CI). Marked an Istanbul test
+as disabled, pending feedback from testing team. Skipped several slow tests in Istanbul. Added
+pytest-timeout to limit annoyance of new slow tests.
