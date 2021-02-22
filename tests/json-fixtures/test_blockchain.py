@@ -141,6 +141,15 @@ SLOWEST_TESTS = {
     ('ValidBlocks/bcStateTests/randomStatetest94.json', 'randomStatetest94_ConstantinopleFix'),  # noqa: E501
     ('ValidBlocks/bcStateTests/randomStatetest94.json', 'randomStatetest94_Homestead'),  # noqa: E501
     ('ValidBlocks/bcStateTests/randomStatetest94.json', 'randomStatetest94_Istanbul'),  # noqa: E501
+    ('ValidBlocks/VMTests/vmPerformance/loop-add-10M.json', 'loop-add-10M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-divadd-10M.json', 'loop-divadd-10M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-divadd-unr100-10M.json', 'loop-divadd-unr100-10M_Istanbul'),  # noqa: E501
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-16b-100k.json', 'loop-exp-16b-100k_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-1b-1M.json', 'loop-exp-1b-1M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-32b-100k.json', 'loop-exp-32b-100k_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json', 'loop-exp-nop-1M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-mul.json', 'loop-mul_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-mulmod-2M.json', 'loop-mulmod-2M_Istanbul'),
 }
 
 
