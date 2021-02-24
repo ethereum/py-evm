@@ -32,7 +32,7 @@ class CustomFrontierVM(FrontierVM):
         (
             tuple(),
             {},
-            ((0, Forks.MuirGlacier),),
+            ((0, Forks.Berlin),),
         ),
         (
             ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
@@ -132,7 +132,8 @@ class CustomFrontierVM(FrontierVM):
                 (3, Forks.Byzantium),
                 (5, Forks.Petersburg),
                 (6, Forks.Istanbul),
-                (7, Forks.Berlin),
+                (7, Forks.MuirGlacier),
+                (8, Forks.Berlin),
             ),
         ),
     ),
