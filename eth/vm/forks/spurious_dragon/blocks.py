@@ -13,9 +13,9 @@ from .transactions import (
 
 
 class SpuriousDragonBlock(HomesteadBlock):
-    transaction_class = SpuriousDragonTransaction
+    transaction_builder = SpuriousDragonTransaction
     fields = [
         ('header', BlockHeader),
-        ('transactions', CountableList(transaction_class)),
+        ('transactions', CountableList(transaction_builder)),
         ('uncles', CountableList(BlockHeader))
     ]

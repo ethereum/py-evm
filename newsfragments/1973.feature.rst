@@ -1,0 +1,2 @@
+Implement EIP-2718: Typed Transactions -- not much action here, mostly refactoring in preparation
+for EIP-2930. (Though it does churn the code a fair bit, to support multiple transaction formats)

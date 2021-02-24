@@ -12,18 +12,18 @@ from eth._utils.datatypes import (
 )
 from eth.abc import (
     BlockAPI,
-    SignedTransactionAPI,
+    TransactionBuilderAPI,
 )
 
 
 class BaseBlock(Configurable, rlp.Serializable, BlockAPI):
-    transaction_class: Type[SignedTransactionAPI] = None
+    transaction_builder: Type[TransactionBuilderAPI] = None
 
     @classmethod
-    def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
-        if cls.transaction_class is None:
-            raise AttributeError("Block subclasses must declare a transaction_class")
-        return cls.transaction_class
+    def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
+        if cls.transaction_builder is None:
+            raise AttributeError("Block subclasses must declare a transaction_builder")
+        return cls.transaction_builder
 
     @property
     def is_genesis(self) -> bool:

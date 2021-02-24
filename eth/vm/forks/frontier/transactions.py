@@ -8,6 +8,9 @@ from eth_typing import (
     Address,
 )
 
+from eth.abc import (
+    SignedTransactionAPI,
+)
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
     GAS_TX,
@@ -111,6 +114,20 @@ class FrontierTransaction(BaseTransaction):
                                     value: int,
                                     data: bytes) -> 'FrontierUnsignedTransaction':
         return FrontierUnsignedTransaction(nonce, gas_price, gas, to, value, data)
+
+    @classmethod
+    def new_transaction(
+            cls,
+            nonce: int,
+            gas_price: int,
+            gas: int,
+            to: Address,
+            value: int,
+            data: bytes,
+            v: int,
+            r: int,
+            s: int) -> SignedTransactionAPI:
+        return cls(nonce, gas_price, gas, to, value, data, v, r, s)
 
 
 class FrontierUnsignedTransaction(BaseUnsignedTransaction):

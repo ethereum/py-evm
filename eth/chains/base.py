@@ -391,7 +391,7 @@ class Chain(BaseChain):
         return self.chaindb.get_transaction_by_index(
             block_number,
             index,
-            VM_class.get_transaction_class(),
+            VM_class.get_transaction_builder(),
         )
 
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:

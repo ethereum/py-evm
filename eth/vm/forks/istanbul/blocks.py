@@ -14,9 +14,9 @@ from .transactions import (
 
 
 class IstanbulBlock(PetersburgBlock):
-    transaction_class = IstanbulTransaction
+    transaction_builder = IstanbulTransaction
     fields = [
         ('header', BlockHeader),
-        ('transactions', CountableList(transaction_class)),
+        ('transactions', CountableList(transaction_builder)),
         ('uncles', CountableList(BlockHeader))
     ]

@@ -332,7 +332,7 @@ def test_chaindb_get_receipt_and_tx_by_index(chain, funded_address, funded_addre
         if block.header.block_number == REQUIRED_BLOCK_NUMBER:
             actual_receipt = receipts[REQUIRED_RECEIPT_INDEX]
             actual_tx = block.transactions[REQUIRED_RECEIPT_INDEX]
-            tx_class = block.transaction_class
+            tx_class = block.transaction_builder
 
     # Check that the receipt retrieved is indeed the actual one
     chaindb_retrieved_receipt = chain.chaindb.get_receipt_by_index(
@@ -402,7 +402,7 @@ def test_chaindb_persist_unexecuted_block(chain,
         if block.header.block_number == REQUIRED_BLOCK_NUMBER:
             actual_receipt = receipts[REQUIRED_RECEIPT_INDEX]
             actual_tx = block.transactions[REQUIRED_RECEIPT_INDEX]
-            tx_class = block.transaction_class
+            tx_class = block.transaction_builder
 
         if use_persist_unexecuted_block:
             second_chain.chaindb.persist_unexecuted_block(block, receipts)

@@ -267,6 +267,76 @@ class UnsignedTransactionAPI(BaseTransactionAPI):
         ...
 
 
+class TransactionBuilderAPI(ABC):
+    """
+    Responsible for creating and encoding transactions.
+
+    Most simply, the builder is responsible for some pieces of the encoding for
+    RLP. In legacy transactions, this happens using rlp.Serializeable. It is
+    also responsible for initializing the transactions. The two transaction
+    initializers assume legacy transactions, for now.
+
+    Some VMs support multiple distinct transaction types. In that case, the
+    builder is responsible for dispatching on the different types.
+    """
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, encoded: bytes) -> 'SignedTransactionAPI':
+        """
+        Extract a transaction from an encoded RLP object.
+
+        This method is used by rlp.decode(..., sedes=TransactionBuilderAPI).
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def serialize(cls, obj: 'SignedTransactionAPI') -> bytes:
+        """
+        Encode a transaction to a series of bytes used by RLP.
+
+        In the case of legacy transactions, it will actually be a list of
+        bytes. That doesn't show up here, because pyrlp doesn't export type
+        annotations.
+
+        This method is used by rlp.encode(obj).
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def create_unsigned_transaction(cls,
+                                    *,
+                                    nonce: int,
+                                    gas_price: int,
+                                    gas: int,
+                                    to: Address,
+                                    value: int,
+                                    data: bytes) -> UnsignedTransactionAPI:
+        """
+        Create an unsigned transaction.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def new_transaction(
+            cls,
+            nonce: int,
+            gas_price: int,
+            gas: int,
+            to: Address,
+            value: int,
+            data: bytes,
+            v: int,
+            r: int,
+            s: int) -> 'SignedTransactionAPI':
+        """
+        Create a signed transaction.
+        """
+        ...
+
+
 class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -345,21 +415,6 @@ class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
         """
         ...
 
-    @classmethod
-    @abstractmethod
-    def create_unsigned_transaction(cls,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> UnsignedTransactionAPI:
-        """
-        Create an unsigned transaction.
-        """
-        ...
-
     # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
     def as_dict(self) -> Dict[Hashable, Any]:
         """
@@ -374,7 +429,7 @@ class BlockAPI(ABC):
     """
     header: BlockHeaderAPI
     transactions: Tuple[SignedTransactionAPI, ...]
-    transaction_class: Type[SignedTransactionAPI] = None
+    transaction_builder: Type[TransactionBuilderAPI] = None
     uncles: Tuple[BlockHeaderAPI, ...]
 
     @abstractmethod
@@ -386,9 +441,9 @@ class BlockAPI(ABC):
 
     @classmethod
     @abstractmethod
-    def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
+    def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
         """
-        Return the transaction class that is valid for the block.
+        Return the transaction builder for the block.
         """
         ...
 
@@ -812,7 +867,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     def get_block_transactions(
             self,
             block_header: BlockHeaderAPI,
-            transaction_class: Type[SignedTransactionAPI]) -> Tuple[SignedTransactionAPI, ...]:
+            transaction_builder: Type[TransactionBuilderAPI]) -> Tuple[SignedTransactionAPI, ...]:
         """
         Return an iterable of transactions for the block speficied by the
         given block header.
@@ -851,7 +906,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
             self,
             block_number: BlockNumber,
             transaction_index: int,
-            transaction_class: Type[SignedTransactionAPI]) -> SignedTransactionAPI:
+            transaction_builder: Type[TransactionBuilderAPI]) -> SignedTransactionAPI:
         """
         Return the transaction at the specified `transaction_index` from the
         block specified by `block_number` from the canonical chain.
@@ -2987,9 +3042,9 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @classmethod
     @abstractmethod
-    def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
+    def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
         """
-        Return the class that this VM uses for transactions.
+        Return the class that this VM uses to build and encode transactions.
         """
         ...
 
