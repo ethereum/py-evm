@@ -27,6 +27,8 @@ from eth.vm.forks import (
     ConstantinopleVM,
     PetersburgVM,
     IstanbulVM,
+    MuirGlacierVM,
+    BerlinVM,
 )
 
 
@@ -220,6 +222,26 @@ def test_get_transaction_result(
         ),
         (
             IstanbulVM,
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+        (
+            MuirGlacierVM,
+            'doRevert()',
+            Revert,
+        ),
+        (
+            MuirGlacierVM,
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+        (
+            BerlinVM,
+            'doRevert()',
+            Revert,
+        ),
+        (
+            BerlinVM,
             'useLotsOfGas()',
             OutOfGas,
         ),
