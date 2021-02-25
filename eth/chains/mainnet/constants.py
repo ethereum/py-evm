@@ -52,3 +52,8 @@ ISTANBUL_MAINNET_BLOCK = BlockNumber(9069000)
 # Muir Glacier Block
 #
 MUIR_GLACIER_MAINNET_BLOCK = BlockNumber(9200000)
+
+#
+# Berlin Block
+#
+BERLIN_MAINNET_BLOCK = BlockNumber(12244000)

@@ -19,6 +19,7 @@ class Forks(enum.Enum):
     Petersburg = 'Petersburg'
     Istanbul = 'Istanbul'
     MuirGlacier = 'MuirGlacier'
+    Berlin = 'Berlin'
 
 
 class CustomFrontierVM(FrontierVM):
@@ -31,7 +32,7 @@ class CustomFrontierVM(FrontierVM):
         (
             tuple(),
             {},
-            ((0, Forks.MuirGlacier),),
+            ((0, Forks.Berlin),),
         ),
         (
             ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
@@ -121,6 +122,7 @@ class CustomFrontierVM(FrontierVM):
                 (5, 'petersburg'),
                 (6, 'istanbul'),
                 (7, 'muir-glacier'),
+                (8, 'berlin'),
             ),
             {},
             (
@@ -131,6 +133,7 @@ class CustomFrontierVM(FrontierVM):
                 (5, Forks.Petersburg),
                 (6, Forks.Istanbul),
                 (7, Forks.MuirGlacier),
+                (8, Forks.Berlin),
             ),
         ),
     ),

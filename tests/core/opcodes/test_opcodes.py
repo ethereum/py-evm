@@ -37,14 +37,16 @@ from eth.vm import (
 )
 from eth.vm.chain_context import ChainContext
 from eth.vm.forks import (
-    IstanbulVM,
-    PetersburgVM,
-    ConstantinopleVM,
-    ByzantiumVM,
-    SpuriousDragonVM,
-    TangerineWhistleVM,
-    HomesteadVM,
     FrontierVM,
+    HomesteadVM,
+    TangerineWhistleVM,
+    SpuriousDragonVM,
+    ByzantiumVM,
+    ConstantinopleVM,
+    PetersburgVM,
+    IstanbulVM,
+    MuirGlacierVM,
+    BerlinVM,
 )
 from eth.vm.message import (
     Message,
@@ -815,6 +817,246 @@ def test_extcodehash(vm_class, address, expected):
             19200,
             1,
         ),
+        # No changes in Muir Glacier
+        (
+            MuirGlacierVM,
+            '0x60006000556000600055',
+            1612,
+            0,
+            0,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60006000556001600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60016000556000600055',
+            20812,
+            19200,
+            0,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60016000556002600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60016000556001600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60006000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60006000556001600055',
+            5812,
+            4200,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60006000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60026000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60026000556003600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60026000556001600055',
+            5812,
+            4200,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60026000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60016000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60016000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x60016000556001600055',
+            1612,
+            0,
+            1,
+        ),
+        (
+            MuirGlacierVM,
+            '0x600160005560006000556001600055',
+            40818,
+            19200,
+            0,
+        ),
+        (
+            MuirGlacierVM,
+            '0x600060005560016000556000600055',
+            10818,
+            19200,
+            1,
+        ),
+        # TODO: update for changes in Berlin EIP-2929
+        (
+            BerlinVM,
+            '0x60006000556000600055',
+            1612,
+            0,
+            0,
+        ),
+        (
+            BerlinVM,
+            '0x60006000556001600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            BerlinVM,
+            '0x60016000556000600055',
+            20812,
+            19200,
+            0,
+        ),
+        (
+            BerlinVM,
+            '0x60016000556002600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            BerlinVM,
+            '0x60016000556001600055',
+            20812,
+            0,
+            0,
+        ),
+        (
+            BerlinVM,
+            '0x60006000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60006000556001600055',
+            5812,
+            4200,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60006000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60026000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60026000556003600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60026000556001600055',
+            5812,
+            4200,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60026000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60016000556000600055',
+            5812,
+            15000,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60016000556002600055',
+            5812,
+            0,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x60016000556001600055',
+            1612,
+            0,
+            1,
+        ),
+        (
+            BerlinVM,
+            '0x600160005560006000556001600055',
+            40818,
+            19200,
+            0,
+        ),
+        (
+            BerlinVM,
+            '0x600060005560016000556000600055',
+            10818,
+            19200,
+            1,
+        ),
     )
 )
 def test_sstore(vm_class, code, gas_used, refund, original):
@@ -875,32 +1117,32 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
     assert comp.get_gas_used() == gas_used
 
 
+@pytest.mark.parametrize('vm_class', (
+    IstanbulVM,
+    MuirGlacierVM,
+    BerlinVM,
+))
 @pytest.mark.parametrize(
     # Testcases from https://eips.ethereum.org/EIPS/eip-1344
-    'vm_class, chain_id, expected_result',
+    'chain_id, expected_result',
     (
         (
-            IstanbulVM,
             86,
             86,
         ),
         (
-            IstanbulVM,
             0,
             0,
         ),
         (
-            IstanbulVM,
             -1,
             ValidationError,
         ),
         (
-            IstanbulVM,
             2 ** 256 - 1,
             2 ** 256 - 1,
         ),
         (
-            IstanbulVM,
             2 ** 256,
             ValidationError,
         ),
@@ -953,6 +1195,42 @@ def test_chainid(vm_class, chain_id, expected_result):
         ),
         (
             IstanbulVM,
+            assemble(
+                opcode_values.SELFBALANCE,
+            ),
+            None,
+            5,
+        ),
+        (
+            MuirGlacierVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+            ),
+            None,
+            3 + 700,  # balance now costs more
+        ),
+        (
+            MuirGlacierVM,
+            assemble(
+                opcode_values.SELFBALANCE,
+            ),
+            None,
+            5,
+        ),
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+            ),
+            None,
+            3 + 700,  # balance now costs more
+        ),
+        (
+            BerlinVM,
             assemble(
                 opcode_values.SELFBALANCE,
             ),
@@ -1018,6 +1296,42 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
         ),
         (
             IstanbulVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_A,
+                opcode_values.EXTCODEHASH,
+            ),
+            3 + 700,
+        ),
+        (
+            MuirGlacierVM,
+            assemble(
+                opcode_values.PUSH1,
+                0x0,
+                opcode_values.SLOAD,
+            ),
+            3 + 800,
+        ),
+        (
+            MuirGlacierVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_A,
+                opcode_values.EXTCODEHASH,
+            ),
+            3 + 700,
+        ),
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH1,
+                0x0,
+                opcode_values.SLOAD,
+            ),
+            3 + 800,
+        ),
+        (
+            BerlinVM,
             assemble(
                 opcode_values.PUSH20,
                 CANONICAL_ADDRESS_A,
