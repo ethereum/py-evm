@@ -196,12 +196,6 @@ INCORRECT_UPSTREAM_TESTS = {
     # but only in Istanbul, not in Constantinople.
     ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d2g0v0_Istanbul'),
     ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d3g0v0_Istanbul'),
-    # It's not clear how or why this test changed. It doesn't make sense that it only tests Istanbul
-    # either. See: https://github.com/ethereum/tests/issues/787
-    # The test seems to claim to test what happens if the uncle timestamp is the same as
-    # the block, but the RLP doesn't encode a matching timestamp.
-    ('InvalidBlocks/bcUncleHeaderValidity/incorrectUncleTimestamp.json', 'incorrectUncleTimestamp_Istanbul'),  # noqa: E501
-    ('InvalidBlocks/bcUncleHeaderValidity/incorrectUncleTimestamp.json', 'incorrectUncleTimestamp_Berlin'),  # noqa: E501
 }
 
 
