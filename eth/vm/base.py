@@ -634,10 +634,10 @@ class VM(Configurable, VirtualMachineAPI):
                 f"Uncle number ({uncle.block_number}) is not one above "
                 f"ancestor's number ({uncle_parent.block_number})"
             )
-        if uncle.timestamp < uncle_parent.timestamp:
+        if uncle.timestamp <= uncle_parent.timestamp:
             raise ValidationError(
-                f"Uncle timestamp ({uncle.timestamp}) is before "
-                f"ancestor's timestamp ({uncle_parent.timestamp})"
+                f"Uncle timestamp ({uncle.timestamp}) is not newer than its "
+                f"parent's timestamp ({uncle_parent.timestamp})"
             )
         if uncle.gas_used > uncle.gas_limit:
             raise ValidationError(
