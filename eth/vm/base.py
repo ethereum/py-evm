@@ -39,6 +39,7 @@ from eth.abc import (
     ReceiptAPI,
     SignedTransactionAPI,
     StateAPI,
+    TransactionBuilderAPI,
     UnsignedTransactionAPI,
     VirtualMachineAPI,
 )
@@ -477,7 +478,7 @@ class VM(Configurable, VirtualMachineAPI):
     # Transactions
     #
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:
-        return self.get_transaction_class()(*args, **kwargs)
+        return self.get_transaction_builder().new_transaction(*args, **kwargs)
 
     @classmethod
     def create_unsigned_transaction(cls,
@@ -488,7 +489,7 @@ class VM(Configurable, VirtualMachineAPI):
                                     to: Address,
                                     value: int,
                                     data: bytes) -> UnsignedTransactionAPI:
-        return cls.get_transaction_class().create_unsigned_transaction(
+        return cls.get_transaction_builder().create_unsigned_transaction(
             nonce=nonce,
             gas_price=gas_price,
             gas=gas,
@@ -498,8 +499,8 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
     @classmethod
-    def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
-        return cls.get_block_class().get_transaction_class()
+    def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
+        return cls.get_block_class().get_transaction_builder()
 
     #
     # Validate

@@ -26,6 +26,7 @@ from eth.abc import (
     ChainDatabaseAPI,
     ReceiptAPI,
     SignedTransactionAPI,
+    TransactionBuilderAPI,
 )
 from eth.constants import (
     EMPTY_UNCLE_HASH,
@@ -50,10 +51,10 @@ from .transactions import (
 
 
 class FrontierBlock(BaseBlock):
-    transaction_class = FrontierTransaction
+    transaction_builder = FrontierTransaction
     fields = [
         ('header', BlockHeader),
-        ('transactions', CountableList(transaction_class)),
+        ('transactions', CountableList(transaction_builder)),
         ('uncles', CountableList(BlockHeader))
     ]
 
@@ -92,8 +93,8 @@ class FrontierBlock(BaseBlock):
     # Transaction class for this block class
     #
     @classmethod
-    def get_transaction_class(cls) -> Type[SignedTransactionAPI]:
-        return cls.transaction_class
+    def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
+        return cls.transaction_builder
 
     #
     # Receipts API
@@ -120,7 +121,7 @@ class FrontierBlock(BaseBlock):
                 raise BlockNotFound(f"Uncles not found in database for {header}: {exc}") from exc
 
         try:
-            transactions = chaindb.get_block_transactions(header, cls.get_transaction_class())
+            transactions = chaindb.get_block_transactions(header, cls.get_transaction_builder())
         except MissingTrieNode as exc:
             raise BlockNotFound(f"Transactions not found in database for {header}: {exc}") from exc
 

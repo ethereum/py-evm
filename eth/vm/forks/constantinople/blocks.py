@@ -14,9 +14,9 @@ from .transactions import (
 
 
 class ConstantinopleBlock(ByzantiumBlock):
-    transaction_class = ConstantinopleTransaction
+    transaction_builder = ConstantinopleTransaction
     fields = [
         ('header', BlockHeader),
-        ('transactions', CountableList(transaction_class)),
+        ('transactions', CountableList(transaction_builder)),
         ('uncles', CountableList(BlockHeader))
     ]

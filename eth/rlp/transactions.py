@@ -19,6 +19,7 @@ from eth.abc import (
     BaseTransactionAPI,
     ComputationAPI,
     SignedTransactionAPI,
+    TransactionBuilderAPI,
     TransactionFieldsAPI,
     UnsignedTransactionAPI,
 )
@@ -60,7 +61,13 @@ class BaseTransactionFields(rlp.Serializable, TransactionFieldsAPI):
         return keccak(rlp.encode(self))
 
 
-class BaseTransaction(BaseTransactionFields, BaseTransactionMethods, SignedTransactionAPI):  # noqa: E501
+class BaseTransaction(BaseTransactionFields, BaseTransactionMethods, SignedTransactionAPI, TransactionBuilderAPI):  # noqa: E501
+    # "Legacy" transactions implemented by BaseTransaction are a combination of
+    # the transaction codec (TransactionBuilderAPI) *and* the transaction
+    # object (SignedTransactionAPI). In a multi-transaction-type world, that
+    # becomes less desirable, and that responsibility splits up. See Berlin
+    # transactions, for example.
+
     # this is duplicated to make the rlp library happy, otherwise it complains
     # about no fields being defined but inheriting from multiple `Serializable`
     # bases.

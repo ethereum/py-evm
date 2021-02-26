@@ -46,6 +46,18 @@ class TransactionNotFound(PyEVMError):
     pass
 
 
+class UnrecognizedTransactionType(PyEVMError):
+    """
+    Raised when an encoded transaction is using a first byte that is valid, but
+    unrecognized. According to EIP 2718, the byte may be in the range [0, 0x7f].
+    As of the Berlin hard fork, all of those versions are undefined, except for
+    0x01 in EIP 2930.
+    """
+    @property
+    def type_int(self) -> int:
+        return self.args[0]
+
+
 class ReceiptNotFound(PyEVMError):
     """
     Raised when the Receipt with the given receipt index does not exist.

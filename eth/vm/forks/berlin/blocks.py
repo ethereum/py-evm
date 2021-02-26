@@ -1,5 +1,11 @@
+from typing import Type
+
 from rlp.sedes import (
     CountableList,
+)
+
+from eth.abc import (
+    TransactionBuilderAPI,
 )
 from eth.rlp.headers import (
     BlockHeader,
@@ -9,14 +15,14 @@ from eth.vm.forks.muir_glacier.blocks import (
 )
 
 from .transactions import (
-    BerlinTransaction,
+    BerlinTransactionBuilder,
 )
 
 
 class BerlinBlock(MuirGlacierBlock):
-    transaction_class = BerlinTransaction
+    transaction_builder: Type[TransactionBuilderAPI] = BerlinTransactionBuilder  # type: ignore
     fields = [
         ('header', BlockHeader),
-        ('transactions', CountableList(transaction_class)),
+        ('transactions', CountableList(transaction_builder)),
         ('uncles', CountableList(BlockHeader))
     ]
