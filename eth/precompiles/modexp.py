@@ -1,10 +1,14 @@
 from typing import (
+    Callable,
     Tuple,
 )
 
 from eth_utils import (
     big_endian_to_int,
     int_to_big_endian,
+)
+from eth_utils.toolz import (
+    curry,
 )
 
 from eth import constants
@@ -23,8 +27,8 @@ from eth.vm.computation import (
 )
 
 
-def _compute_adjusted_exponent_length(exponent_length: int,
-                                      first_32_exponent_bytes: bytes) -> int:
+def compute_adjusted_exponent_length(exponent_length: int,
+                                     first_32_exponent_bytes: bytes) -> int:
     exponent = big_endian_to_int(first_32_exponent_bytes)
 
     if exponent_length <= 32 and exponent == 0:
@@ -50,7 +54,7 @@ def _compute_complexity(length: int) -> int:
         return length ** 2 // 16 + 480 * length - 199680
 
 
-def _extract_lengths(data: bytes) -> Tuple[int, int, int]:
+def extract_lengths(data: bytes) -> Tuple[int, int, int]:
     # extract argument lengths
     base_length_bytes = pad32r(data[:32])
     base_length = big_endian_to_int(base_length_bytes)
@@ -64,14 +68,14 @@ def _extract_lengths(data: bytes) -> Tuple[int, int, int]:
     return base_length, exponent_length, modulus_length
 
 
-def _compute_modexp_gas_fee(data: bytes) -> int:
-    base_length, exponent_length, modulus_length = _extract_lengths(data)
+def _compute_modexp_gas_fee_eip_198(data: bytes) -> int:
+    base_length, exponent_length, modulus_length = extract_lengths(data)
 
     first_32_exponent_bytes = zpad_right(
         data[96 + base_length:96 + base_length + exponent_length],
         to_size=min(exponent_length, 32),
     )[:32]
-    adjusted_exponent_length = _compute_adjusted_exponent_length(
+    adjusted_exponent_length = compute_adjusted_exponent_length(
         exponent_length,
         first_32_exponent_bytes,
     )
@@ -86,7 +90,7 @@ def _compute_modexp_gas_fee(data: bytes) -> int:
 
 
 def _modexp(data: bytes) -> int:
-    base_length, exponent_length, modulus_length = _extract_lengths(data)
+    base_length, exponent_length, modulus_length = extract_lengths(data)
 
     if base_length == 0:
         return 0
@@ -121,18 +125,22 @@ def _modexp(data: bytes) -> int:
     return result
 
 
-def modexp(computation: BaseComputation) -> BaseComputation:
+@curry
+def modexp(
+    computation: BaseComputation,
+    gas_calculator: Callable[[bytes], int] = _compute_modexp_gas_fee_eip_198
+) -> BaseComputation:
     """
     https://github.com/ethereum/EIPs/pull/198
     """
     data = computation.msg.data_as_bytes
 
-    gas_fee = _compute_modexp_gas_fee(data)
+    gas_fee = gas_calculator(data)
     computation.consume_gas(gas_fee, reason='MODEXP Precompile')
 
     result = _modexp(data)
 
-    _, _, modulus_length = _extract_lengths(data)
+    _, _, modulus_length = extract_lengths(data)
 
     # Modulo 0 is undefined, return zero
     # https://math.stackexchange.com/questions/516251/why-is-n-mod-0-undefined
