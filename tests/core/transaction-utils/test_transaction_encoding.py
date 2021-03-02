@@ -1,6 +1,8 @@
 from eth_utils import (
+    ValidationError,
     decode_hex,
     to_bytes,
+    to_int,
 )
 import pytest
 import rlp
@@ -10,14 +12,17 @@ from eth.vm.forks import (
     BerlinVM,
 )
 
+RECOGNIZED_TRANSACTION_TYPES = {1}
+
 UNRECOGNIZED_TRANSACTION_TYPES = tuple(
     (to_bytes(val), UnrecognizedTransactionType)
     for val in range(0, 0x80)
+    if val not in RECOGNIZED_TRANSACTION_TYPES
 )
 
 # These are valid RLP byte-strings, but invalid for EIP-2718
 INVALID_TRANSACTION_TYPES = tuple(
-    (rlp.encode(to_bytes(val)), rlp.exceptions.DeserializationError)
+    (rlp.encode(to_bytes(val)), ValidationError)
     for val in range(0x80, 0x100)
 )
 
@@ -62,3 +67,44 @@ def test_transaction_decode(vm_class, encoded, expected):
         # Check that the encoded bytes decode to the given data
         decoded = rlp.decode(encoded, sedes=sedes)
         assert decoded == expected_txn
+
+
+@pytest.mark.parametrize('is_rlp_encoded', (True, False))
+def test_EIP2930_transaction_decode(typed_txn_fixture, is_rlp_encoded):
+    signed_txn = decode_hex(typed_txn_fixture['signed'])
+    transaction_builder = BerlinVM.get_transaction_builder()
+    if is_rlp_encoded:
+        rlp_encoded = rlp.encode(signed_txn)
+        transaction = rlp.decode(rlp_encoded, sedes=transaction_builder)
+    else:
+        transaction = transaction_builder.decode(signed_txn)
+
+    assert transaction.chain_id == typed_txn_fixture['chainId']
+    assert transaction.nonce == typed_txn_fixture['nonce']
+    assert transaction.gas_price == typed_txn_fixture['gasPrice']
+    assert transaction.gas == typed_txn_fixture['gas']
+    assert transaction.to == decode_hex(typed_txn_fixture['to'])
+    assert transaction.value == typed_txn_fixture['value']
+    assert transaction.data == decode_hex(typed_txn_fixture['data'])
+    assert len(transaction.access_list) == len(typed_txn_fixture['access_list'])
+    access_test_data = zip(transaction.access_list, typed_txn_fixture['access_list'])
+    for ((account, slots), (expected_account, expected_slots)) in access_test_data:
+        assert account == expected_account
+        assert slots == tuple(to_int(expected) for expected in expected_slots)
+
+
+@pytest.mark.parametrize('is_rlp_encoded', (True, False))
+def test_EIP2930_transaction_inferred_attributes(typed_txn_fixture, is_rlp_encoded):
+    signed_txn = decode_hex(typed_txn_fixture['signed'])
+    transaction_builder = BerlinVM.get_transaction_builder()
+    if is_rlp_encoded:
+        double_encoded = rlp.encode(signed_txn)
+        transaction = rlp.decode(double_encoded, sedes=transaction_builder)
+        assert rlp.encode(transaction) == double_encoded
+        assert rlp.encode(transaction, cache=False) == double_encoded
+    else:
+        transaction = transaction_builder.decode(signed_txn)
+
+    assert transaction.hash == decode_hex(typed_txn_fixture['hash'])
+    assert transaction.intrinsic_gas == typed_txn_fixture['intrinsic_gas']
+    assert transaction.get_intrinsic_gas() == typed_txn_fixture['intrinsic_gas']

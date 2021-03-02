@@ -77,7 +77,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         self.vm_state.logger.debug2(
             (
                 "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
-                "gas-price: %s | s: %s | r: %s | v: %s | data-hash: %s"
+                "gas-price: %s | s: %s | r: %s | y_parity: %s | data-hash: %s"
             ),
             encode_hex(transaction.sender),
             encode_hex(transaction.to),
@@ -86,7 +86,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             transaction.gas_price,
             transaction.s,
             transaction.r,
-            transaction.v,
+            transaction.y_parity,
             encode_hex(keccak(transaction.data)),
         )
 

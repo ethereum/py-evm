@@ -154,10 +154,26 @@ class ReceiptAPI(ABC):
     """
     A class to define a receipt to capture the outcome of a transaction.
     """
-    state_root: bytes
-    gas_used: int
-    bloom: int
-    logs: Sequence[LogAPI]
+
+    @property
+    @abstractmethod
+    def state_root(self) -> bytes:
+        ...
+
+    @property
+    @abstractmethod
+    def gas_used(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def bloom(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def logs(self) -> Sequence[LogAPI]:
+        ...
 
     @property
     @abstractmethod
@@ -171,6 +187,80 @@ class ReceiptAPI(ABC):
         """
         # This method isn't marked abstract because derived classes implement it by deriving from
         # rlp.Serializable but mypy won't recognize it as implemented.
+        ...
+
+    @abstractmethod
+    def encode(self) -> bytes:
+        """
+        This encodes a receipt, no matter if it's: a legacy receipt, a
+        typed receipt, or the payload of a typed receipt. See more
+        context in decode.
+        """
+        ...
+
+
+class ReceiptDecoderAPI(ABC):
+    """
+    Responsible for decoding receipts from bytestrings.
+    """
+
+    @classmethod
+    @abstractmethod
+    def decode(cls, encoded: bytes) -> ReceiptAPI:
+        """
+        This decodes a receipt that is encoded to either a typed
+        receipt, a legacy receipt, or the body of a typed receipt. It assumes
+        that typed receipts are *not* rlp-encoded first.
+
+        If dealing with an object that is always rlp encoded, then use this instead:
+
+            rlp.decode(encoded, sedes=ReceiptBuilderAPI)
+
+        For example, you may receive a list of receipts via a devp2p request.
+        Each receipt is either a (legacy) rlp list, or a (new-style)
+        bytestring. Even if the receipt is a bytestring, it's wrapped in an rlp
+        bytestring, in that context. New-style receipts will *not* be wrapped
+        in an RLP bytestring in other contexts. They will just be an EIP-2718
+        type-byte plus payload of concatenated bytes, which cannot be decoded
+        as RLP. This happens for example, when calculating the receipt root
+        hash.
+        """
+        ...
+
+
+class ReceiptBuilderAPI(ReceiptDecoderAPI):
+    """
+    Responsible for encoding and decoding receipts.
+
+    Most simply, the builder is responsible for some pieces of the encoding for
+    RLP. In legacy transactions, this happens using rlp.Serializeable.
+
+    Some VMs support multiple distinct transaction types. In that case, the
+    builder is responsible for dispatching on the different types.
+    """
+
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, encoded: bytes) -> 'ReceiptAPI':
+        """
+        Extract a receipt from an encoded RLP object.
+
+        This method is used by rlp.decode(..., sedes=ReceiptBuilderAPI).
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def serialize(cls, obj: 'ReceiptAPI') -> bytes:
+        """
+        Encode a receipt to a series of bytes used by RLP.
+
+        In the case of legacy receipt, it will actually be a list of
+        bytes. That doesn't show up here, because pyrlp doesn't export type
+        annotations.
+
+        This method is used by rlp.encode(obj).
+        """
         ...
 
 
@@ -224,21 +314,64 @@ class TransactionFieldsAPI(ABC):
     """
     A class to define all common transaction fields.
     """
-    nonce: int
-    gas_price: int
-    gas: int
-    to: Address
-    value: int
-    data: bytes
-    v: int
-    r: int
-    s: int
+    @property
+    @abstractmethod
+    def nonce(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def gas_price(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def gas(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def to(self) -> Address:
+        ...
+
+    @property
+    @abstractmethod
+    def value(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def data(self) -> bytes:
+        ...
+
+    @property
+    @abstractmethod
+    def r(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def s(self) -> int:
+        ...
 
     @property
     @abstractmethod
     def hash(self) -> Hash32:
         """
         Return the hash of the transaction.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def chain_id(self) -> Optional[int]:
+        ...
+
+    @property
+    @abstractmethod
+    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
+        """
+        Get addresses to be accessed by a transaction, and their storage slots.
         """
         ...
 
@@ -267,7 +400,40 @@ class UnsignedTransactionAPI(BaseTransactionAPI):
         ...
 
 
-class TransactionBuilderAPI(ABC):
+class TransactionDecoderAPI(ABC):
+    """
+    Responsible for decoding transactions from bytestrings.
+
+    Some VMs support multiple distinct transaction types. In that case, the
+    decoder is responsible for dispatching on the different types.
+    """
+
+    @classmethod
+    @abstractmethod
+    def decode(cls, encoded: bytes) -> 'SignedTransactionAPI':
+        """
+        This decodes a transaction that is encoded to either a typed
+        transaction or a legacy transaction, or even the payload of one of the
+        transaction types. It assumes that typed transactions are *not*
+        rlp-encoded first.
+
+        If dealing with an object that is rlp encoded first, then use this instead:
+
+            rlp.decode(encoded, sedes=TransactionBuilderAPI)
+
+        For example, you may receive a list of transactions via a devp2p
+        request.  Each transaction is either a (legacy) rlp list, or a
+        (new-style) bytestring. Even if the transaction is a bytestring, it's
+        wrapped in an rlp bytestring, in that context. New-style transactions
+        will *not* be wrapped in an RLP bytestring in other contexts. They will
+        just be an EIP-2718 type-byte plus payload of concatenated bytes, which
+        cannot be decoded as RLP. An example context for this is calculating
+        the transaction root hash.
+        """
+        ...
+
+
+class TransactionBuilderAPI(TransactionDecoderAPI):
     """
     Responsible for creating and encoding transactions.
 
@@ -279,6 +445,7 @@ class TransactionBuilderAPI(ABC):
     Some VMs support multiple distinct transaction types. In that case, the
     builder is responsible for dispatching on the different types.
     """
+
     @classmethod
     @abstractmethod
     def deserialize(cls, encoded: bytes) -> 'SignedTransactionAPI':
@@ -345,19 +512,21 @@ class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
     """
     A class representing a transaction that was signed with a private key.
     """
-    @classmethod
-    @abstractmethod
-    def from_base_transaction(cls, transaction: 'SignedTransactionAPI') -> 'SignedTransactionAPI':
-        """
-        Create a signed transaction from a base transaction.
-        """
-        ...
-
     @property
     @abstractmethod
     def sender(self) -> Address:
         """
         Convenience and performance property for the return value of `get_sender`
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def y_parity(self) -> int:
+        """
+        The bit used to disambiguate elliptic curve signatures.
+
+        The only values this method will return are 0 or 1.
         """
         ...
 
@@ -411,7 +580,7 @@ class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
     @abstractmethod
     def get_message_for_signing(self) -> bytes:
         """
-        Return the bytestring that should be signed in order to create a signed transactions
+        Return the bytestring that should be signed in order to create a signed transaction.
         """
         ...
 
@@ -419,6 +588,35 @@ class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
     def as_dict(self) -> Dict[Hashable, Any]:
         """
         Return a dictionary representation of the transaction.
+        """
+        ...
+
+    @abstractmethod
+    def make_receipt(
+            self,
+            status: bytes,
+            gas_used: int,
+            log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]) -> ReceiptAPI:
+        """
+        Build a receipt for this transaction.
+
+        Transactions have this responsibility because there are different types
+        of transactions, which have different types of receipts. (See
+        access-list transactions, which change the receipt encoding)
+
+        :param status: success or failure (used to be the state root after execution)
+        :param gas_used: cumulative usage of this transaction and the previous
+            ones in the header
+        :param log_entries: logs generated during execution
+        """
+        ...
+
+    @abstractmethod
+    def encode(self) -> bytes:
+        """
+        This encodes a transaction, no matter if it's: a legacy transaction, a
+        typed transaction, or the payload of a typed transaction. See more
+        context in decode.
         """
         ...
 
@@ -430,6 +628,7 @@ class BlockAPI(ABC):
     header: BlockHeaderAPI
     transactions: Tuple[SignedTransactionAPI, ...]
     transaction_builder: Type[TransactionBuilderAPI] = None
+    receipt_builder: Type[ReceiptBuilderAPI] = None
     uncles: Tuple[BlockHeaderAPI, ...]
 
     @abstractmethod
@@ -444,6 +643,14 @@ class BlockAPI(ABC):
     def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
         """
         Return the transaction builder for the block.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def get_receipt_builder(cls) -> Type[ReceiptBuilderAPI]:
+        """
+        Return the receipt builder for the block.
         """
         ...
 
@@ -884,7 +1091,8 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     @abstractmethod
     def get_receipt_by_index(self,
                              block_number: BlockNumber,
-                             receipt_index: int) -> ReceiptAPI:
+                             receipt_index: int,
+                             receipt_builder: Type[ReceiptBuilderAPI]) -> ReceiptAPI:
         """
         Return the receipt of the transaction at specified index
         for the block header obtained by the specified block number
@@ -894,7 +1102,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     @abstractmethod
     def get_receipts(self,
                      header: BlockHeaderAPI,
-                     receipt_class: Type[ReceiptAPI]) -> Tuple[ReceiptAPI, ...]:
+                     receipt_class: Type[ReceiptBuilderAPI]) -> Tuple[ReceiptAPI, ...]:
         """
         Return a tuple of receipts for the block specified by the given
         block header.
@@ -3045,6 +3253,14 @@ class VirtualMachineAPI(ConfigurableAPI):
     def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
         """
         Return the class that this VM uses to build and encode transactions.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def get_receipt_builder(cls) -> Type[ReceiptBuilderAPI]:
+        """
+        Return the class that this VM uses to encode and decode receipts.
         """
         ...
 

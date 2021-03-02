@@ -29,6 +29,7 @@ from eth.abc import (
     DatabaseAPI,
     AtomicDatabaseAPI,
     ReceiptAPI,
+    ReceiptDecoderAPI,
     SignedTransactionAPI,
     TransactionBuilderAPI,
 )
@@ -54,9 +55,6 @@ from eth.db.header import HeaderDB
 from eth.db.schema import SchemaV1
 from eth.rlp.headers import (
     BlockHeader,
-)
-from eth.rlp.receipts import (
-    Receipt
 )
 from eth.rlp.sedes import chain_gaps
 from eth.typing import ChainGaps
@@ -295,7 +293,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                     block_header: BlockHeaderAPI,
                     index_key: int, receipt: ReceiptAPI) -> Hash32:
         receipt_db = HexaryTrie(db=self.db, root_hash=block_header.receipt_root)
-        receipt_db[index_key] = rlp.encode(receipt)
+        receipt_db[index_key] = receipt.encode()
         return receipt_db.root_hash
 
     def add_transaction(self,
@@ -303,7 +301,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                         index_key: int,
                         transaction: SignedTransactionAPI) -> Hash32:
         transaction_db = HexaryTrie(self.db, root_hash=block_header.transaction_root)
-        transaction_db[index_key] = rlp.encode(transaction)
+        transaction_db[index_key] = transaction.encode()
         return transaction_db.root_hash
 
     def get_block_transactions(
@@ -335,13 +333,13 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     @to_tuple
     def get_receipts(self,
                      header: BlockHeaderAPI,
-                     receipt_class: Type[ReceiptAPI]) -> Iterable[ReceiptAPI]:
+                     receipt_decoder: Type[ReceiptDecoderAPI]) -> Iterable[ReceiptAPI]:
         receipt_db = HexaryTrie(db=self.db, root_hash=header.receipt_root)
         for receipt_idx in itertools.count():
             receipt_key = rlp.encode(receipt_idx)
             receipt_data = receipt_db[receipt_key]
             if receipt_data != b'':
-                yield rlp.decode(receipt_data, sedes=receipt_class)
+                yield receipt_decoder.decode(receipt_data)
             else:
                 break
 
@@ -358,7 +356,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         encoded_index = rlp.encode(transaction_index)
         encoded_transaction = transaction_db[encoded_index]
         if encoded_transaction != b'':
-            return rlp.decode(encoded_transaction, sedes=transaction_builder)
+            return transaction_builder.decode(encoded_transaction)
         else:
             raise TransactionNotFound(
                 f"No transaction is at index {transaction_index} of block {block_number}"
@@ -378,7 +376,9 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
 
     def get_receipt_by_index(self,
                              block_number: BlockNumber,
-                             receipt_index: int) -> ReceiptAPI:
+                             receipt_index: int,
+                             receipt_decoder: Type[ReceiptDecoderAPI],
+                             ) -> ReceiptAPI:
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
@@ -388,7 +388,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         receipt_key = rlp.encode(receipt_index)
         receipt_data = receipt_db[receipt_key]
         if receipt_data != b'':
-            return rlp.decode(receipt_data, sedes=Receipt)
+            return receipt_decoder.decode(receipt_data)
         else:
             raise ReceiptNotFound(
                 f"Receipt with index {receipt_index} not found in block"
@@ -418,7 +418,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         Memoizable version of `get_block_transactions`
         """
         for encoded_transaction in self._get_block_transaction_data(self.db, transaction_root):
-            yield rlp.decode(encoded_transaction, sedes=transaction_builder)
+            yield transaction_builder.decode(encoded_transaction)
 
     @staticmethod
     def _remove_transaction_from_canonical_chain(db: DatabaseAPI, transaction_hash: Hash32) -> None:

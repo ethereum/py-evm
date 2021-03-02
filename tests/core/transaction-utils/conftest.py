@@ -38,7 +38,34 @@ TRANSACTION_FIXTURES = [
     },
 ]
 
+# Hand-built for 2930
+TYPED_TRANSACTION_FIXTURES = [
+    {
+        "chainId": 1,
+        "nonce": 3,
+        "gasPrice": 1,
+        "gas": 25000,
+        "to": "b94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+        "value": 10,
+        "data": "5544",
+        "access_list": [
+            [b'\xf0' * 20, [b'\0' * 32, b'\xff' * 32]],
+        ],
+        "key": (b'\0' * 31) + b'\x01',
+        "sender": b'~_ER\t\x1ai\x12]]\xfc\xb7\xb8\xc2e\x90)9[\xdf',
+        "intrinsic_gas": 21000 + 32 + 2400 + 1900 * 2,
+        "for_signing": '01f87a0103018261a894b94f5374fce5edbc8e2a8697c15331677e6ebf0b0a825544f85994f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f842a00000000000000000000000000000000000000000000000000000000000000000a0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',  # noqa: E501
+        "signed": '01f8bf0103018261a894b94f5374fce5edbc8e2a8697c15331677e6ebf0b0a825544f85bf85994f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f842a00000000000000000000000000000000000000000000000000000000000000000a0ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff80a017047e844eef895a876778a828731a33b67863aea7b9591a0001651ee47322faa043b4d0e8d59e8663c813ffa1bb99f020278a139f07c47f3858653071b3cec6b3',  # noqa: E501
+        "hash": "13ab8b6371d8873405db20104705d7fecee2f9083f247250519e4b4c568b17fb",
+    }
+]
+
 
 @pytest.fixture(params=range(len(TRANSACTION_FIXTURES)))
 def txn_fixture(request):
     return TRANSACTION_FIXTURES[request.param]
+
+
+@pytest.fixture(params=range(len(TYPED_TRANSACTION_FIXTURES)))
+def typed_txn_fixture(request):
+    return TYPED_TRANSACTION_FIXTURES[request.param]

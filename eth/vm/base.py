@@ -37,6 +37,7 @@ from eth.abc import (
     ConsensusContextAPI,
     ExecutionContextAPI,
     ReceiptAPI,
+    ReceiptBuilderAPI,
     SignedTransactionAPI,
     StateAPI,
     TransactionBuilderAPI,
@@ -501,6 +502,10 @@ class VM(Configurable, VirtualMachineAPI):
     @classmethod
     def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
         return cls.get_block_class().get_transaction_builder()
+
+    @classmethod
+    def get_receipt_builder(cls) -> Type[ReceiptBuilderAPI]:
+        return cls.get_block_class().get_receipt_builder()
 
     #
     # Validate

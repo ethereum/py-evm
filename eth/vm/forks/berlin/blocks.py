@@ -5,6 +5,7 @@ from rlp.sedes import (
 )
 
 from eth.abc import (
+    ReceiptBuilderAPI,
     TransactionBuilderAPI,
 )
 from eth.rlp.headers import (
@@ -14,6 +15,9 @@ from eth.vm.forks.muir_glacier.blocks import (
     MuirGlacierBlock,
 )
 
+from .receipts import (
+    BerlinReceiptBuilder,
+)
 from .transactions import (
     BerlinTransactionBuilder,
 )
@@ -21,6 +25,7 @@ from .transactions import (
 
 class BerlinBlock(MuirGlacierBlock):
     transaction_builder: Type[TransactionBuilderAPI] = BerlinTransactionBuilder  # type: ignore
+    receipt_builder: Type[ReceiptBuilderAPI] = BerlinReceiptBuilder  # type: ignore
     fields = [
         ('header', BlockHeader),
         ('transactions', CountableList(transaction_builder)),
