@@ -1227,7 +1227,7 @@ def test_chainid(vm_class, chain_id, expected_result):
                 opcode_values.BALANCE,
             ),
             None,
-            3 + 700,  # balance now costs more
+            3 + 2600,  # balance now costs more
         ),
         (
             BerlinVM,
@@ -1338,6 +1338,44 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
                 opcode_values.EXTCODEHASH,
             ),
             3 + 700,
+        ),
+        # querying the same address twice results in a
+        # cold cost and a warm cost
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+            ),
+            3 + 2600 + 3 + 100,
+        ),
+        # querying two different addresses results in two
+        # cold costs
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_A,
+                opcode_values.BALANCE,
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+            ),
+            3 + 2600 + 3 + 2600,
+        ),
+        # precompiles are exempt from cold cost
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                force_bytes_to_address(b'\x05'),
+                opcode_values.BALANCE,
+            ),
+            3 + 100,
         ),
     )
 )
