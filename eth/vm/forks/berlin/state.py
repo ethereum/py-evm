@@ -14,9 +14,6 @@ class BerlinState(MuirGlacierState):
     def is_account_accessed(self, account):
         return account in self.get_access_list()
 
-    def _lock_changes(self):
-        self.lock_changes()
-
     def mark_storage_accessed(self, account, slot):
         pass
 
