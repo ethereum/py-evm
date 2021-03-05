@@ -1,5 +1,6 @@
 import contextlib
 from typing import (
+    Dict,
     Iterator,
     Tuple,
     Type,
@@ -20,6 +21,7 @@ from eth.abc import (
     AccountDatabaseAPI,
     AtomicDatabaseAPI,
     ComputationAPI,
+    DatabaseAPI,
     ExecutionContextAPI,
     MessageAPI,
     SignedTransactionAPI,
@@ -30,6 +32,12 @@ from eth.abc import (
 )
 from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
+)
+from eth.db.accesslog import (
+    KeyAccessLoggerAtomicDB,
+)
+from eth.db.journal import (
+    JournalDB,
 )
 from eth.typing import JournalDBCheckpoint
 from eth._utils.datatypes import (
@@ -56,6 +64,7 @@ class BaseState(Configurable, StateAPI):
         self._db = db
         self.execution_context = execution_context
         self._account_db = self.get_account_db_class()(db, state_root)
+        self._journal_db = JournalDB(KeyAccessLoggerAtomicDB(db, log_missing_keys=False))
 
     #
     # Logging
@@ -256,6 +265,12 @@ class BaseState(Configurable, StateAPI):
             gas_price=transaction.gas_price,
             origin=transaction.sender,
         )
+
+    def get_access_list(self):
+        return self._journal_db.get_accessed_accounts()
+
+    def add_account_accessed(self, account):
+        return self._journal_db.add_account_accessed(account)
 
 
 class BaseTransactionExecutor(TransactionExecutorAPI):

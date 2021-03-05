@@ -317,6 +317,7 @@ class JournalDB(BaseDB):
         self._journal = Journal()
         self.record = self._journal.record_checkpoint
         self.commit = self._journal.commit_checkpoint
+        self._accessed_accounts = set()
         self.reset()
 
     def __getitem__(self, key: bytes) -> bytes:
@@ -442,3 +443,9 @@ class JournalDB(BaseDB):
         These are the changes that would occur if :meth:`persist()` were called.
         """
         return self._journal.diff()
+
+    def add_account_accessed(self, account):
+        self._accessed_accounts.add(account)
+
+    def get_accessed_accounts(self):
+        return self._accessed_accounts

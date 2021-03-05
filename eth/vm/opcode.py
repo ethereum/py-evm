@@ -45,7 +45,7 @@ class Opcode(Configurable, OpcodeAPI):
             @functools.wraps(logic_fn)
             def wrapped_logic_fn(computation: ComputationAPI) -> Any:
                 """
-                Wrapper functionf or the logic function which consumes the base
+                Wrapper function for the logic function which consumes the base
                 opcode gas cost prior to execution.
                 """
                 computation.consume_gas(
