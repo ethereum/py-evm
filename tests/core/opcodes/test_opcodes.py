@@ -1348,6 +1348,18 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             ),
             3 + 2600,
         ),
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+            ),
+            3 + 2600 + 3 + 100,
+        ),
     )
 )
 def test_gas_costs(vm_class, code, expect_gas_used):

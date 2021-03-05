@@ -330,9 +330,6 @@ class AccountDB(AccountDatabaseAPI):
     def account_is_empty(self, address: Address) -> bool:
         return not self.account_has_code_or_nonce(address) and self.get_balance(address) == 0
 
-    def add_account_accessed(self, account):
-        self._accessed_accounts.add(account)
-
     #
     # Internal
     #
@@ -467,6 +464,9 @@ class AccountDB(AccountDatabaseAPI):
         self._root_hash_at_last_persist = new_root_hash
 
         return meta_witness
+
+    def _get_accessed_node_hashes(self) -> Set[Hash32]:
+        return cast(Set[Hash32], self._raw_store_db.keys_read)
 
     @to_dict
     def _get_access_list(self) -> Iterable[Tuple[Address, AccountQueryTracker]]:
