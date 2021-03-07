@@ -41,7 +41,7 @@ and change the ``install_requires`` section as follows.
 
   install_requires=[
       "eth-utils>=1,<2",
-      "py-evm==0.2.0a40",
+      "py-evm==0.3.0a20",
   ],
 
 .. warning::
