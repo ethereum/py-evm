@@ -1,6 +1,5 @@
 import contextlib
 from typing import (
-    Dict,
     Iterator,
     Tuple,
     Type,
@@ -21,7 +20,6 @@ from eth.abc import (
     AccountDatabaseAPI,
     AtomicDatabaseAPI,
     ComputationAPI,
-    DatabaseAPI,
     ExecutionContextAPI,
     MessageAPI,
     SignedTransactionAPI,

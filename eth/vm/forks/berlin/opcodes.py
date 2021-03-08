@@ -11,7 +11,6 @@ from eth.vm.opcode import (
     Opcode,
     as_opcode,
 )
-from eth.vm.forks.berlin import state
 from eth import constants
 
 from eth.vm.forks.muir_glacier.opcodes import (

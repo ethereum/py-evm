@@ -22,6 +22,7 @@ def balance(computation: BaseComputation) -> None:
     addr = force_bytes_to_address(computation.stack_pop1_bytes())
     _push_balance_of_address(addr, computation)
 
+
 def balance_eip_2929(computation: BaseComputation) -> None:
     addr = force_bytes_to_address(computation.stack_pop1_bytes())
     # if computation.msg.to, add to access list,
@@ -33,6 +34,7 @@ def balance_eip_2929(computation: BaseComputation) -> None:
     _push_balance_of_address(addr, computation)
 
     computation.consume_gas(gas_cost, reason="BALANCE")
+
 
 def selfbalance(computation: BaseComputation) -> None:
     _push_balance_of_address(computation.msg.storage_address, computation)
