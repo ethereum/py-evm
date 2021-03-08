@@ -4,6 +4,7 @@ from itertools import (
 )
 from typing import Callable, cast, Dict, List, Set, Union
 
+from eth_typing import Address
 from eth_utils.toolz import (
     first,
     nth,
@@ -317,7 +318,7 @@ class JournalDB(BaseDB):
         self._journal = Journal()
         self.record = self._journal.record_checkpoint
         self.commit = self._journal.commit_checkpoint
-        self._accessed_accounts = set()
+        self._accessed_accounts: Set[Address] = set()
         self.reset()
 
     def __getitem__(self, key: bytes) -> bytes:
@@ -444,8 +445,8 @@ class JournalDB(BaseDB):
         """
         return self._journal.diff()
 
-    def add_account_accessed(self, account):
+    def add_account_accessed(self, account: Address) -> None:
         self._accessed_accounts.add(account)
 
-    def get_accessed_accounts(self):
+    def get_accessed_accounts(self) -> Set[Address]:
         return self._accessed_accounts

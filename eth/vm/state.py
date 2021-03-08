@@ -5,6 +5,7 @@ from typing import (
     Type,
 )
 
+from typing import Set
 from eth_typing import (
     Address,
     BlockNumber,
@@ -264,11 +265,11 @@ class BaseState(Configurable, StateAPI):
             origin=transaction.sender,
         )
 
-    def get_access_list(self):
+    def get_access_list(self) -> Set[Address]:
         return self._journal_db.get_accessed_accounts()
 
-    def add_account_accessed(self, account):
-        return self._journal_db.add_account_accessed(account)
+    def add_account_accessed(self, account: Address) -> None:
+        self._journal_db.add_account_accessed(account)
 
 
 class BaseTransactionExecutor(TransactionExecutorAPI):
