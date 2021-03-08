@@ -1345,20 +1345,32 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
                 opcode_values.PUSH20,
                 CANONICAL_ADDRESS_B,
                 opcode_values.BALANCE,
-            ),
-            3 + 2600,
-        ),
-        (
-            BerlinVM,
-            assemble(
-                opcode_values.PUSH20,
-                CANONICAL_ADDRESS_B,
-                opcode_values.BALANCE,
                 opcode_values.PUSH20,
                 CANONICAL_ADDRESS_B,
                 opcode_values.BALANCE,
             ),
             3 + 2600 + 3 + 100,
+        ),
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_A,
+                opcode_values.BALANCE,
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_B,
+                opcode_values.BALANCE,
+            ),
+            3 + 2600 + 3 + 2600,
+        ),
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                force_bytes_to_address(b'\x05'),
+                opcode_values.BALANCE,
+            ),
+            3 + 100,
         ),
     )
 )

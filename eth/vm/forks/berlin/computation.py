@@ -4,6 +4,11 @@ from eth_utils.toolz import (
     merge,
 )
 
+from eth.abc import (
+    MessageAPI,
+    StateAPI,
+    TransactionContextAPI,
+)
 from eth.precompiles.modexp import (
     compute_adjusted_exponent_length,
     extract_lengths,
@@ -66,3 +71,12 @@ class BerlinComputation(MuirGlacierComputation):
     # Override
     opcodes = BERLIN_OPCODES
     _precompiles = BERLIN_PRECOMPILES
+
+    def __init__(self,
+                 state: StateAPI,
+                 message: MessageAPI,
+                 transaction_context: TransactionContextAPI) -> None:
+        precompile_addresses = self.precompiles.keys()
+        for addr in precompile_addresses:
+            state.add_account_accessed(addr)
+        super().__init__(state, message, transaction_context)
