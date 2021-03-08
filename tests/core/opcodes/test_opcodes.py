@@ -1227,7 +1227,7 @@ def test_chainid(vm_class, chain_id, expected_result):
                 opcode_values.BALANCE,
             ),
             None,
-            3 + 700,  # balance now costs more
+            3 + 2600,  # balance now costs more
         ),
         (
             BerlinVM,
