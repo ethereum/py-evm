@@ -1339,6 +1339,8 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             ),
             3 + 700,
         ),
+        # querying the same address twice results in a
+        # cold cost and a warm cost
         (
             BerlinVM,
             assemble(
@@ -1351,6 +1353,8 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             ),
             3 + 2600 + 3 + 100,
         ),
+        # querying two different addresses results in two
+        # cold costs
         (
             BerlinVM,
             assemble(
@@ -1363,6 +1367,7 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             ),
             3 + 2600 + 3 + 2600,
         ),
+        # precompiles are exempt from cold cost
         (
             BerlinVM,
             assemble(
@@ -1383,6 +1388,30 @@ def test_gas_costs(vm_class, code, expect_gas_used):
     )
     assert comp.is_success
     assert comp.get_gas_used() == expect_gas_used
+
+
+def test_computation_after_revert():
+    code = assemble(opcode_values.PUSH20,
+                    CANONICAL_ADDRESS_A,
+                    opcode_values.BALANCE,
+                    0,
+                    4,
+                    opcode_values.REVERT,
+                    opcode_values.PUSH20,
+                    CANONICAL_ADDRESS_B,
+                    opcode_values.BALANCE)
+
+    computation = setup_computation(BerlinVM, CANONICAL_ADDRESS_B, code)
+    comp = computation.apply_message(
+        computation.state,
+        computation.msg,
+        computation.transaction_context,
+    )
+    actual_access_list = computation.state.get_access_list()
+    expected_access_list = set(computation.precompiles.keys())
+    expected_access_list.add(CANONICAL_ADDRESS_A)
+    assert expected_access_list == actual_access_list
+    assert comp.get_gas_used() == 3 + 2600
 
 
 @pytest.mark.parametrize(
