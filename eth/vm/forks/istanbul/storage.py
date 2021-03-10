@@ -1,3 +1,5 @@
+from eth_utils.toolz import curry
+
 from eth.exceptions import OutOfGas
 from eth.vm.computation import BaseComputation
 from eth.vm.forks.constantinople.storage import (
@@ -7,6 +9,7 @@ from eth.vm.forks.istanbul import (
     constants
 )
 from eth.vm.logic.storage import (
+    NetSStoreGasSchedule,
     net_sstore,
 )
 
@@ -15,7 +18,8 @@ GAS_SCHEDULE_EIP2200 = GAS_SCHEDULE_EIP1283._replace(
 )
 
 
-def sstore_eip2200(computation: BaseComputation) -> None:
+@curry
+def sstore_eip2200_generic(gas_schedule: NetSStoreGasSchedule, computation: BaseComputation) -> int:
     gas_remaining = computation.get_gas_remaining()
     if gas_remaining <= 2300:
         raise OutOfGas(
@@ -23,4 +27,7 @@ def sstore_eip2200(computation: BaseComputation) -> None:
             gas_remaining,
         )
     else:
-        return net_sstore(GAS_SCHEDULE_EIP2200, computation)
+        return net_sstore(gas_schedule, computation)
+
+
+sstore_eip2200 = sstore_eip2200_generic(GAS_SCHEDULE_EIP2200)

@@ -51,6 +51,7 @@ from eth.vm.forks import (
 from eth.vm.message import (
     Message,
 )
+from eth.vm.spoof import SpoofTransaction
 
 
 NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
@@ -61,6 +62,7 @@ ADDRESS_NOT_IN_STATE = NORMALIZED_ADDRESS_B
 ADDRESS_WITH_JUST_BALANCE = "0x0000000000000000000000000000000000000001"
 CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
+CANONICAL_ADDRESS_C = b'\xee' * 20
 GENESIS_HEADER = BlockHeader(
     difficulty=constants.GENESIS_DIFFICULTY,
     block_number=constants.GENESIS_BLOCK_NUMBER,
@@ -75,14 +77,21 @@ def assemble(*codes):
     )
 
 
-def setup_computation(
-        vm_class,
+def setup_vm(vm_class, chain_id=None):
+    db = AtomicDB()
+    chain_context = ChainContext(chain_id)
+    return vm_class(GENESIS_HEADER, ChainDB(db), chain_context, ConsensusContext(db))
+
+
+def run_computation(
+        vm,
         create_address,
         code,
-        chain_id=None,
         gas=1000000,
         to=CANONICAL_ADDRESS_A,
+        transaction_sender=b'\x11' * 20,
         data=b''):
+    executor = vm.state.get_transaction_executor()
 
     message = Message(
         to=to,
@@ -93,36 +102,29 @@ def setup_computation(
         code=code,
         gas=gas,
     )
-
-    chain_context = ChainContext(chain_id)
-
-    tx_context = vm_class._state_class.transaction_context_class(
+    unsigned_transaction = vm.create_unsigned_transaction(
+        nonce=2,
         gas_price=1,
-        origin=CANONICAL_ADDRESS_B,
+        gas=gas,
+        to=to,
+        value=3,
+        data=data,
     )
+    transaction = SpoofTransaction(unsigned_transaction, from_=transaction_sender)
 
-    db = AtomicDB()
-    vm = vm_class(GENESIS_HEADER, ChainDB(db), chain_context, ConsensusContext(db))
-
-    computation = vm_class._state_class.computation_class(
-        state=vm.state,
-        message=message,
-        transaction_context=tx_context,
-    )
-
-    return computation
+    return executor.build_computation(message, transaction)
 
 
-def prepare_general_computation(vm_class, create_address=None, code=b'', chain_id=None):
+def run_general_computation(vm_class, create_address=None, code=b'', chain_id=None):
 
-    computation = setup_computation(vm_class, create_address, code, chain_id)
+    vm = setup_vm(vm_class, chain_id=chain_id)
 
-    computation.state.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
-    computation.state.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
+    vm.state.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
+    vm.state.set_code(decode_hex(ADDRESS_WITH_CODE[0]), ADDRESS_WITH_CODE[1])
 
-    computation.state.set_balance(decode_hex(ADDRESS_WITH_JUST_BALANCE), 1)
+    vm.state.set_balance(decode_hex(ADDRESS_WITH_JUST_BALANCE), 1)
 
-    return computation
+    return run_computation(vm, create_address, code)
 
 
 @pytest.mark.parametrize(
@@ -136,7 +138,7 @@ def prepare_general_computation(vm_class, create_address=None, code=b'', chain_i
     )
 )
 def test_add(vm_class, val1, val2, expected):
-    computation = prepare_general_computation(vm_class)
+    computation = run_general_computation(vm_class)
     computation.stack_push_int(val1)
     computation.stack_push_int(val2)
     computation.opcodes[opcode_values.ADD](computation)
@@ -157,7 +159,7 @@ def test_add(vm_class, val1, val2, expected):
     )
 )
 def test_nullary_opcodes(VM, opcode_value, expected):
-    computation = prepare_general_computation(VM)
+    computation = run_general_computation(VM)
     computation.opcodes[opcode_value](computation)
 
     result = computation.stack_pop1_any()
@@ -175,7 +177,7 @@ def test_nullary_opcodes(VM, opcode_value, expected):
     )
 )
 def test_blockhash(VM, val1, expected):
-    computation = prepare_general_computation(VM)
+    computation = run_general_computation(VM)
     computation.stack_push_int(val1)
     computation.opcodes[opcode_values.BLOCKHASH](computation)
 
@@ -195,7 +197,7 @@ def test_blockhash(VM, val1, expected):
     )
 )
 def test_mul(vm_class, val1, val2, expected):
-    computation = prepare_general_computation(vm_class)
+    computation = run_general_computation(vm_class)
     computation.stack_push_int(val1)
     computation.stack_push_int(val2)
     computation.opcodes[opcode_values.MUL](computation)
@@ -221,7 +223,7 @@ def test_mul(vm_class, val1, val2, expected):
     )
 )
 def test_exp(vm_class, base, exponent, expected):
-    computation = prepare_general_computation(vm_class)
+    computation = run_general_computation(vm_class)
     computation.stack_push_int(exponent)
     computation.stack_push_int(base)
     computation.opcodes[opcode_values.EXP](computation)
@@ -304,7 +306,7 @@ def test_exp(vm_class, base, exponent, expected):
     )
 )
 def test_shl(vm_class, val1, val2, expected):
-    computation = prepare_general_computation(vm_class)
+    computation = run_general_computation(vm_class)
     computation.stack_push_bytes(decode_hex(val1))
     computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SHL](computation)
@@ -387,7 +389,7 @@ def test_shl(vm_class, val1, val2, expected):
     )
 )
 def test_shr(vm_class, val1, val2, expected):
-    computation = prepare_general_computation(vm_class)
+    computation = run_general_computation(vm_class)
     computation.stack_push_bytes(decode_hex(val1))
     computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SHR](computation)
@@ -500,7 +502,7 @@ def test_shr(vm_class, val1, val2, expected):
     )
 )
 def test_sar(vm_class, val1, val2, expected):
-    computation = prepare_general_computation(vm_class)
+    computation = run_general_computation(vm_class)
     computation.stack_push_bytes(decode_hex(val1))
     computation.stack_push_bytes(decode_hex(val2))
     computation.opcodes[opcode_values.SAR](computation)
@@ -536,7 +538,7 @@ def test_sar(vm_class, val1, val2, expected):
     )
 )
 def test_extcodehash(vm_class, address, expected):
-    computation = prepare_general_computation(vm_class)
+    computation = run_general_computation(vm_class)
 
     computation.stack_push_bytes(decode_hex(address))
     computation.opcodes[opcode_values.EXTCODEHASH](computation)
@@ -1060,21 +1062,16 @@ def test_extcodehash(vm_class, address, expected):
     )
 )
 def test_sstore(vm_class, code, gas_used, refund, original):
+    vm = setup_vm(vm_class)
 
-    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
+    vm.state.set_balance(CANONICAL_ADDRESS_B, 100000000000)
+    vm.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
+    assert vm.state.get_storage(CANONICAL_ADDRESS_B, 0) == original
+    vm.state.persist()
+    assert vm.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=True) == original
+    assert vm.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=False) == original
 
-    computation.state.set_balance(CANONICAL_ADDRESS_B, 100000000000)
-    computation.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
-    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0) == original
-    computation.state.persist()
-    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=True) == original
-    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0, from_journal=False) == original
-
-    comp = computation.apply_message(
-        computation.state,
-        computation.msg,
-        computation.transaction_context,
-    )
+    comp = run_computation(vm, CANONICAL_ADDRESS_B, decode_hex(code))
     assert comp.get_gas_refund() == refund
     assert comp.get_gas_used() == gas_used
 
@@ -1092,22 +1089,18 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
     vm_class = IstanbulVM
     hex_code = '0x6000600055'
     original = 0
-    computation = setup_computation(
-        vm_class,
+    vm = setup_vm(vm_class)
+
+    vm.state.set_balance(CANONICAL_ADDRESS_B, 100000000000)
+    vm.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
+    assert vm.state.get_storage(CANONICAL_ADDRESS_B, 0) == original
+    vm.state.persist()
+
+    comp = run_computation(
+        vm,
         CANONICAL_ADDRESS_B,
         decode_hex(hex_code),
         gas=gas_supplied,
-    )
-
-    computation.state.set_balance(CANONICAL_ADDRESS_B, 100000000000)
-    computation.state.set_storage(CANONICAL_ADDRESS_B, 0, original)
-    assert computation.state.get_storage(CANONICAL_ADDRESS_B, 0) == original
-    computation.state.persist()
-
-    comp = computation.apply_message(
-        computation.state,
-        computation.msg,
-        computation.transaction_context,
     )
     if success and not comp.is_success:
         raise comp._error
@@ -1151,10 +1144,10 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
 def test_chainid(vm_class, chain_id, expected_result):
     if not isinstance(expected_result, int):
         with pytest.raises(expected_result):
-            computation = prepare_general_computation(vm_class, chain_id=chain_id)
+            computation = run_general_computation(vm_class, chain_id=chain_id)
         return
 
-    computation = prepare_general_computation(vm_class, chain_id=chain_id)
+    computation = run_general_computation(vm_class, chain_id=chain_id)
 
     computation.opcodes[opcode_values.CHAINID](computation)
     result = computation.stack_pop1_any()
@@ -1241,19 +1234,16 @@ def test_chainid(vm_class, chain_id, expected_result):
 )
 def test_balance(vm_class, code, expect_exception, expect_gas_used):
     sender_balance = 987654321
-    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, code)
+    vm = setup_vm(vm_class)
+
+    vm.state.set_balance(CANONICAL_ADDRESS_B, sender_balance)
+    vm.state.persist()
+
+    comp = run_computation(vm, CANONICAL_ADDRESS_B, code)
 
     # make sure setup is correct
-    assert computation.msg.sender == CANONICAL_ADDRESS_B
+    assert comp.msg.sender == CANONICAL_ADDRESS_B
 
-    computation.state.set_balance(CANONICAL_ADDRESS_B, sender_balance)
-    computation.state.persist()
-
-    comp = computation.apply_message(
-        computation.state,
-        computation.msg,
-        computation.transaction_context,
-    )
     if expect_exception:
         assert isinstance(comp.error, expect_exception)
     else:
@@ -1330,15 +1320,6 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             ),
             3 + 800,
         ),
-        (
-            BerlinVM,
-            assemble(
-                opcode_values.PUSH20,
-                CANONICAL_ADDRESS_A,
-                opcode_values.EXTCODEHASH,
-            ),
-            3 + 700,
-        ),
         # querying the same address twice results in a
         # cold cost and a warm cost
         (
@@ -1359,7 +1340,7 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             BerlinVM,
             assemble(
                 opcode_values.PUSH20,
-                CANONICAL_ADDRESS_A,
+                CANONICAL_ADDRESS_C,
                 opcode_values.BALANCE,
                 opcode_values.PUSH20,
                 CANONICAL_ADDRESS_B,
@@ -1380,12 +1361,46 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
     )
 )
 def test_gas_costs(vm_class, code, expect_gas_used):
-    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, code)
-    comp = computation.apply_message(
-        computation.state,
-        computation.msg,
-        computation.transaction_context,
+    comp = run_computation(setup_vm(vm_class), CANONICAL_ADDRESS_B, code)
+    assert comp.is_success
+    assert comp.get_gas_used() == expect_gas_used
+
+
+# cases from https://gist.github.com/holiman/174548cad102096858583c6fbbb0649a
+# mentioned in EIP-2929
+@pytest.mark.parametrize('vm_class', (BerlinVM, ))
+@pytest.mark.parametrize(
+    'bytecode_hex, expect_gas_used',
+    (
+        (
+            "0x60013f5060023b506003315060f13f5060f23b5060f3315060f23f5060f33b5060f1315032315030315000",  # noqa: E501
+            8653,
+        ),
+        (
+            "0x60006000600060ff3c60006000600060ff3c600060006000303c00",
+            2835,
+        ),
+        (
+            "0x60015450601160015560116002556011600255600254600154",
+            44529,
+        ),
+        (
+            "0x60008080808060046000f15060008080808060ff6000f15060008080808060ff6000fa50",
+            2869,
+        ),
+    ),
+)
+def test_eip2929_gas_by_cache_warmth(vm_class, bytecode_hex, expect_gas_used):
+    recipient = decode_hex('0x000000000000000000000000636F6E7472616374')
+    comp = run_computation(
+        setup_vm(vm_class),
+        recipient,
+        decode_hex(bytecode_hex),
+        gas=18446744073709551615,
+        to=recipient,
+        transaction_sender=b'\0' * 20,  # sender defined as 0 address in these tests
     )
+
     assert comp.is_success
     assert comp.get_gas_used() == expect_gas_used
 
@@ -1457,8 +1472,8 @@ def test_gas_costs(vm_class, code, expect_gas_used):
     )
 )
 def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception):
-    computation = setup_computation(
-        vm_class,
+    comp = run_computation(
+        setup_vm(vm_class),
         CANONICAL_ADDRESS_B,
         code=b'',
         gas=2**32 - 1,
@@ -1466,11 +1481,6 @@ def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception
         data=to_bytes(hexstr=input_hex),
     )
 
-    comp = computation.apply_message(
-        computation.state,
-        computation.msg,
-        computation.transaction_context,
-    )
     if expect_exception:
         assert isinstance(comp.error, expect_exception)
     else:

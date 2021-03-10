@@ -559,6 +559,13 @@ class BaseComputation(Configurable, ComputationAPI):
         else:
             return self._precompiles
 
+    @classmethod
+    def get_precompiles(cls) -> Dict[Address, Callable[[ComputationAPI], Any]]:
+        if cls._precompiles is None:
+            return dict()
+        else:
+            return cls._precompiles
+
     def get_opcode_fn(self, opcode: int) -> OpcodeAPI:
         try:
             return self.opcodes[opcode]

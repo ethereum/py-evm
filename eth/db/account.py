@@ -16,6 +16,7 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
     get_extended_debug_logger,
+    int_to_big_endian,
     to_checksum_address,
     to_dict,
     to_tuple,
@@ -54,6 +55,9 @@ from eth.db.diff import (
 from eth.db.journal import (
     JournalDB,
 )
+from eth.db.backends.memory import (
+    MemoryDB,
+)
 from eth.db.storage import (
     AccountStorageDB,
 )
@@ -78,6 +82,8 @@ from eth.validation import (
 )
 
 from .hash_trie import HashTrie
+
+IS_PRESENT_VALUE = b''
 
 
 class AccountDB(AccountDatabaseAPI):
@@ -135,6 +141,7 @@ class AccountDB(AccountDatabaseAPI):
         self._root_hash_at_last_persist = state_root
         self._accessed_accounts: Set[Address] = set()
         self._accessed_bytecodes: Set[Address] = set()
+        self._reset_access_counters()
 
     @property
     def state_root(self) -> Hash32:
@@ -173,6 +180,22 @@ class AccountDB(AccountDatabaseAPI):
 
         self._set_storage_root(address, BLANK_ROOT_HASH)
         self._wipe_storage(address)
+
+    def is_storage_warm(self, address: Address, slot: int) -> bool:
+        key = self._get_storage_tracker_key(address, slot)
+        return key in self._journal_accessed_state
+
+    def mark_storage_warm(self, address: Address, slot: int) -> None:
+        key = self._get_storage_tracker_key(address, slot)
+        if key not in self._journal_accessed_state:
+            self._journal_accessed_state[key] = IS_PRESENT_VALUE
+
+    def _get_storage_tracker_key(self, address: Address, slot: int) -> bytes:
+        """
+        Get the key used to track whether a storage slot has been accessed
+        during this transaction.
+        """
+        return address + int_to_big_endian(slot)
 
     def _wipe_storage(self, address: Address) -> None:
         """
@@ -330,6 +353,13 @@ class AccountDB(AccountDatabaseAPI):
     def account_is_empty(self, address: Address) -> bool:
         return not self.account_has_code_or_nonce(address) and self.get_balance(address) == 0
 
+    def is_address_warm(self, address: Address) -> bool:
+        return address in self._journal_accessed_state
+
+    def mark_address_warm(self, address: Address) -> None:
+        if address not in self._journal_accessed_state:
+            self._journal_accessed_state[address] = IS_PRESENT_VALUE
+
     #
     # Internal
     #
@@ -364,6 +394,12 @@ class AccountDB(AccountDatabaseAPI):
         rlp_account = rlp.encode(account, sedes=Account)
         self._journaltrie[address] = rlp_account
 
+    def _reset_access_counters(self) -> None:
+        # Account accesses and storage accesses recorded in the same journal
+        # Accounts just use the address as the key (and an empty value as a flag)
+        # Storage use a concatenation of address and slot converted to bytes (and empty value)
+        self._journal_accessed_state = JournalDB(MemoryDB())
+
     #
     # Record and discard API
     #
@@ -391,6 +427,7 @@ class AccountDB(AccountDatabaseAPI):
     def lock_changes(self) -> None:
         for _, store in self._dirty_account_stores():
             store.lock_changes()
+        self._reset_access_counters()
 
     def make_state_root(self) -> Hash32:
         for _, store in self._dirty_account_stores():

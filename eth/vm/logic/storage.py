@@ -63,13 +63,23 @@ def sload(computation: BaseComputation) -> None:
 
 
 class NetSStoreGasSchedule(NamedTuple):
-    sload_gas: int    # the gas cost when nothing changes (eg~ dirty->dirty, clean->clean, etc)
-    sstore_set_gas: int  # a brand new value, where none previously existed, aka init or set
-    sstore_reset_gas: int  # a change to a value when the value was previously unchanged, aka clean, reset
-    sstore_clears_schedule: int  # the refund for removing a value, aka: clear_refund
+    # the gas cost when nothing changes (eg~ dirty->dirty, clean->clean, etc)
+    sload_gas: int
+
+    # a brand new value, where none previously existed, aka init or set
+    sstore_set_gas: int
+
+    # a change to a value when the value was previously unchanged, aka clean, reset
+    sstore_reset_gas: int
+
+    # the refund for removing a value, aka: clear_refund
+    sstore_clears_schedule: int
 
 
-def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: BaseComputation) -> None:
+def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: BaseComputation) -> int:
+    """
+    :return slot: where the new value was stored
+    """
     slot, value = computation.stack_pop_ints(2)
 
     current_value = computation.state.get_storage(
@@ -127,3 +137,4 @@ def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: BaseComputation)
         slot=slot,
         value=value,
     )
+    return slot
