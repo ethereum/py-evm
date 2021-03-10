@@ -25,6 +25,7 @@ from eth.abc import (
     BlockHeaderAPI,
     ChainDatabaseAPI,
     ReceiptAPI,
+    ReceiptBuilderAPI,
     SignedTransactionAPI,
     TransactionBuilderAPI,
 )
@@ -52,6 +53,7 @@ from .transactions import (
 
 class FrontierBlock(BaseBlock):
     transaction_builder = FrontierTransaction
+    receipt_builder = Receipt
     fields = [
         ('header', BlockHeader),
         ('transactions', CountableList(transaction_builder)),
@@ -96,11 +98,15 @@ class FrontierBlock(BaseBlock):
     def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:
         return cls.transaction_builder
 
+    @classmethod
+    def get_receipt_builder(cls) -> Type[ReceiptBuilderAPI]:
+        return cls.receipt_builder
+
     #
     # Receipts API
     #
     def get_receipts(self, chaindb: ChainDatabaseAPI) -> Tuple[ReceiptAPI, ...]:
-        return chaindb.get_receipts(self.header, Receipt)
+        return chaindb.get_receipts(self.header, self.get_receipt_builder())
 
     #
     # Header API

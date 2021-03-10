@@ -39,6 +39,9 @@ from eth.tools.rlp import (
 from eth._utils.address import (
     force_bytes_to_address,
 )
+from eth.vm.forks import (
+    BerlinVM,
+)
 from eth.vm.forks.frontier.blocks import (
     FrontierBlock,
 )
@@ -46,7 +49,8 @@ from eth.vm.forks.homestead.blocks import (
     HomesteadBlock,
 )
 from eth.tools.factories.transaction import (
-    new_transaction
+    new_access_list_transaction,
+    new_transaction,
 )
 
 
@@ -334,10 +338,13 @@ def test_chaindb_get_receipt_and_tx_by_index(chain, funded_address, funded_addre
             actual_tx = block.transactions[REQUIRED_RECEIPT_INDEX]
             tx_class = block.transaction_builder
 
+    receipt_builder = chain.get_vm().get_receipt_builder()
+
     # Check that the receipt retrieved is indeed the actual one
     chaindb_retrieved_receipt = chain.chaindb.get_receipt_by_index(
         REQUIRED_BLOCK_NUMBER,
         REQUIRED_RECEIPT_INDEX,
+        receipt_builder,
     )
     assert chaindb_retrieved_receipt == actual_receipt
 
@@ -350,6 +357,7 @@ def test_chaindb_get_receipt_and_tx_by_index(chain, funded_address, funded_addre
         chain.chaindb.get_receipt_by_index(
             NUMBER_BLOCKS_IN_CHAIN + 1,
             REQUIRED_RECEIPT_INDEX,
+            receipt_builder,
         )
 
     # Raise error if receipt index is out of range
@@ -357,6 +365,87 @@ def test_chaindb_get_receipt_and_tx_by_index(chain, funded_address, funded_addre
         chain.chaindb.get_receipt_by_index(
             NUMBER_BLOCKS_IN_CHAIN,
             TRANSACTIONS_IN_BLOCK + 1,
+            receipt_builder,
+        )
+
+
+def mine_blocks_with_access_list_receipts(
+        chain,
+        num_blocks,
+        num_tx_per_block,
+        funded_address,
+        funded_address_private_key):
+
+    current_vm = chain.get_vm()
+    if not isinstance(current_vm, BerlinVM):
+        pytest.skip("{current_vm} does not support typed transactions")
+
+    for _ in range(num_blocks):
+        block_receipts = []
+        for _ in range(num_tx_per_block):
+            tx = new_access_list_transaction(
+                chain.get_vm(),
+                from_=funded_address,
+                to=force_bytes_to_address(b'\x10\x10'),
+                private_key=funded_address_private_key,
+            )
+            new_block, tx_receipt, computation = chain.apply_transaction(tx)
+            block_receipts.append(tx_receipt)
+            computation.raise_if_error()
+
+        yield chain.mine_block(), block_receipts
+
+
+def test_chaindb_get_access_list_receipt_and_tx_by_index(
+        chain,
+        funded_address,
+        funded_address_private_key):
+
+    NUMBER_BLOCKS_IN_CHAIN = 5
+    TRANSACTIONS_IN_BLOCK = 10
+    REQUIRED_BLOCK_NUMBER = 2
+    REQUIRED_RECEIPT_INDEX = 3
+
+    for (block, receipts) in mine_blocks_with_access_list_receipts(
+            chain,
+            NUMBER_BLOCKS_IN_CHAIN,
+            TRANSACTIONS_IN_BLOCK,
+            funded_address,
+            funded_address_private_key,
+    ):
+        if block.header.block_number == REQUIRED_BLOCK_NUMBER:
+            actual_receipt = receipts[REQUIRED_RECEIPT_INDEX]
+            actual_tx = block.transactions[REQUIRED_RECEIPT_INDEX]
+            tx_class = block.transaction_builder
+
+    receipt_builder = chain.get_vm().get_receipt_builder()
+
+    # Check that the receipt retrieved is indeed the actual one
+    chaindb_retrieved_receipt = chain.chaindb.get_receipt_by_index(
+        REQUIRED_BLOCK_NUMBER,
+        REQUIRED_RECEIPT_INDEX,
+        receipt_builder,
+    )
+    assert chaindb_retrieved_receipt == actual_receipt
+
+    chaindb_retrieved_tx = chain.chaindb.get_transaction_by_index(
+        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class)
+    assert chaindb_retrieved_tx == actual_tx
+
+    # Raise error if block number is not found
+    with pytest.raises(ReceiptNotFound):
+        chain.chaindb.get_receipt_by_index(
+            NUMBER_BLOCKS_IN_CHAIN + 1,
+            REQUIRED_RECEIPT_INDEX,
+            receipt_builder,
+        )
+
+    # Raise error if receipt index is out of range
+    with pytest.raises(ReceiptNotFound):
+        chain.chaindb.get_receipt_by_index(
+            NUMBER_BLOCKS_IN_CHAIN,
+            TRANSACTIONS_IN_BLOCK + 1,
+            receipt_builder,
         )
 
 
@@ -415,10 +504,13 @@ def test_chaindb_persist_unexecuted_block(chain,
         REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class)
     assert chaindb_retrieved_tx == actual_tx
 
+    receipt_builder = chain.get_vm().get_receipt_builder()
+
     # Check that the receipt retrieved is indeed the actual one
     chaindb_retrieved_receipt = second_chain.chaindb.get_receipt_by_index(
         REQUIRED_BLOCK_NUMBER,
         REQUIRED_RECEIPT_INDEX,
+        receipt_builder,
     )
     assert chaindb_retrieved_receipt == actual_receipt
 
@@ -427,6 +519,7 @@ def test_chaindb_persist_unexecuted_block(chain,
         second_chain.chaindb.get_receipt_by_index(
             NUMBER_BLOCKS_IN_CHAIN + 1,
             REQUIRED_RECEIPT_INDEX,
+            receipt_builder,
         )
 
     # Raise error if receipt index is out of range
@@ -434,6 +527,7 @@ def test_chaindb_persist_unexecuted_block(chain,
         second_chain.chaindb.get_receipt_by_index(
             NUMBER_BLOCKS_IN_CHAIN,
             TRANSACTIONS_IN_BLOCK + 1,
+            receipt_builder,
         )
 
 

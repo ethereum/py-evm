@@ -9,7 +9,7 @@ from eth_utils.toolz import (
 )
 
 from eth.constants import (
-    DEFAULT_SPOOF_V,
+    DEFAULT_SPOOF_Y_PARITY,
     DEFAULT_SPOOF_R,
     DEFAULT_SPOOF_S,
 )
@@ -20,7 +20,7 @@ from eth.abc import (
 )
 
 SPOOF_ATTRIBUTES_DEFAULTS = {
-    'v': DEFAULT_SPOOF_V,
+    'y_parity': DEFAULT_SPOOF_Y_PARITY,
     'r': DEFAULT_SPOOF_R,
     's': DEFAULT_SPOOF_S
 }

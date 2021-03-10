@@ -21,7 +21,7 @@ TrieRootAndData = Tuple[Hash32, Dict[Hash32, bytes]]
 
 
 def make_trie_root_and_nodes(items: TransactionsOrReceipts) -> TrieRootAndData:
-    return _make_trie_root_and_nodes(tuple(rlp.encode(item) for item in items))
+    return _make_trie_root_and_nodes(tuple(item.encode() for item in items))
 
 
 # This cache is expected to be useful when importing blocks as we call this once when importing

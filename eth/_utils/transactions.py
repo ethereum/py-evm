@@ -13,7 +13,10 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.abc import UnsignedTransactionAPI
+from eth.abc import (
+    SignedTransactionAPI,
+    UnsignedTransactionAPI,
+)
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
@@ -25,11 +28,11 @@ from eth._utils.numeric import (
     is_even,
 )
 
-
 from eth.rlp.transactions import BaseTransaction
 
 
 EIP155_CHAIN_ID_OFFSET = 35
+# Add this offset to y_parity to get "v" for legacy transactions, from Frontier
 V_OFFSET = 27
 
 
@@ -80,17 +83,11 @@ def create_transaction_signature(unsigned_txn: UnsignedTransactionAPI,
     return VRS((v, r, s))
 
 
-def validate_transaction_signature(transaction: BaseTransaction) -> None:
-    if is_eip_155_signed_transaction(transaction):
-        v = extract_signature_v(transaction.v)
-    else:
-        v = transaction.v
-
-    canonical_v = v - 27
-    vrs = (canonical_v, transaction.r, transaction.s)
-    signature = keys.Signature(vrs=vrs)
+def validate_transaction_signature(transaction: SignedTransactionAPI) -> None:
     message = transaction.get_message_for_signing()
+    vrs = (transaction.y_parity, transaction.r, transaction.s)
     try:
+        signature = keys.Signature(vrs=vrs)
         public_key = signature.recover_public_key_from_msg(message)
     except BadSignature as e:
         raise ValidationError(f"Bad Signature: {str(e)}")
@@ -99,19 +96,8 @@ def validate_transaction_signature(transaction: BaseTransaction) -> None:
         raise ValidationError("Invalid Signature")
 
 
-def extract_transaction_sender(transaction: BaseTransaction) -> Address:
-    if is_eip_155_signed_transaction(transaction):
-        if is_even(transaction.v):
-            v = 28
-        else:
-            v = 27
-    else:
-        v = transaction.v
-
-    r, s = transaction.r, transaction.s
-
-    canonical_v = v - 27
-    vrs = (canonical_v, r, s)
+def extract_transaction_sender(transaction: SignedTransactionAPI) -> Address:
+    vrs = (transaction.y_parity, transaction.r, transaction.s)
     signature = keys.Signature(vrs=vrs)
     message = transaction.get_message_for_signing()
     public_key = signature.recover_public_key_from_msg(message)
@@ -128,7 +114,7 @@ class IntrinsicGasSchedule(NamedTuple):
 
 def calculate_intrinsic_gas(
         gas_schedule: IntrinsicGasSchedule,
-        transaction: BaseTransaction,
+        transaction: SignedTransactionAPI,
 ) -> int:
     num_zero_bytes = transaction.data.count(b'\x00')
     num_non_zero_bytes = len(transaction.data) - num_zero_bytes

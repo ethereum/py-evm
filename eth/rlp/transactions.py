@@ -1,3 +1,9 @@
+from typing import (
+    Optional,
+    Sequence,
+    Tuple,
+)
+
 from cached_property import cached_property
 import rlp
 from rlp.sedes import (
@@ -60,30 +66,19 @@ class BaseTransactionFields(rlp.Serializable, TransactionFieldsAPI):
     def hash(self) -> Hash32:
         return keccak(rlp.encode(self))
 
+    @property
+    def chain_id(self) -> Optional[int]:
+        return None
 
-class BaseTransaction(BaseTransactionFields, BaseTransactionMethods, SignedTransactionAPI, TransactionBuilderAPI):  # noqa: E501
-    # "Legacy" transactions implemented by BaseTransaction are a combination of
-    # the transaction codec (TransactionBuilderAPI) *and* the transaction
-    # object (SignedTransactionAPI). In a multi-transaction-type world, that
-    # becomes less desirable, and that responsibility splits up. See Berlin
-    # transactions, for example.
+    @property
+    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
+        return []
 
-    # this is duplicated to make the rlp library happy, otherwise it complains
-    # about no fields being defined but inheriting from multiple `Serializable`
-    # bases.
-    fields = BASE_TRANSACTION_FIELDS
 
-    @classmethod
-    def from_base_transaction(cls, transaction: SignedTransactionAPI) -> SignedTransactionAPI:
-        return rlp.decode(rlp.encode(transaction), sedes=cls)
-
+class SignedTransactionMethods(BaseTransactionMethods, SignedTransactionAPI):
     @cached_property
     def sender(self) -> Address:
         return self.get_sender()
-
-    # +-------------------------------------------------------------+
-    # | API that must be implemented by all Transaction subclasses. |
-    # +-------------------------------------------------------------+
 
     #
     # Validation
@@ -104,6 +99,26 @@ class BaseTransaction(BaseTransactionFields, BaseTransactionMethods, SignedTrans
             return False
         else:
             return True
+
+
+class BaseTransaction(BaseTransactionFields, SignedTransactionMethods, TransactionBuilderAPI):
+    # "Legacy" transactions implemented by BaseTransaction are a combination of
+    # the transaction codec (TransactionBuilderAPI) *and* the transaction
+    # object (SignedTransactionAPI). In a multi-transaction-type world, that
+    # becomes less desirable, and that responsibility splits up. See Berlin
+    # transactions, for example.
+
+    # this is duplicated to make the rlp library happy, otherwise it complains
+    # about no fields being defined but inheriting from multiple `Serializable`
+    # bases.
+    fields = BASE_TRANSACTION_FIELDS
+
+    @classmethod
+    def decode(cls, encoded: bytes) -> SignedTransactionAPI:
+        return rlp.decode(encoded, sedes=cls)
+
+    def encode(self) -> bytes:
+        return rlp.encode(self)
 
 
 class BaseUnsignedTransaction(BaseTransactionMethods, rlp.Serializable, UnsignedTransactionAPI):

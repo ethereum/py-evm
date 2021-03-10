@@ -1,14 +1,16 @@
 from functools import partial
-
-import rlp
+from typing import (
+    Tuple,
+)
 
 from eth_keys.datatypes import PrivateKey
-
 from eth_typing import (
     Address,
 )
+import rlp
 
 from eth.abc import (
+    ReceiptAPI,
     SignedTransactionAPI,
 )
 from eth.constants import (
@@ -27,12 +29,15 @@ from eth.validation import (
     validate_canonical_address,
 )
 
+from eth.rlp.logs import Log
+from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import (
     BaseTransaction,
     BaseUnsignedTransaction,
 )
 
 from eth._utils.transactions import (
+    V_OFFSET,
     create_transaction_signature,
     extract_transaction_sender,
     validate_transaction_signature,
@@ -55,12 +60,16 @@ frontier_get_intrinsic_gas = partial(calculate_intrinsic_gas, FRONTIER_TX_GAS_SC
 class FrontierTransaction(BaseTransaction):
 
     @property
+    def y_parity(self) -> int:
+        return self.v - V_OFFSET
+
+    @property
     def v_min(self) -> int:
-        return 27
+        return V_OFFSET
 
     @property
     def v_max(self) -> int:
-        return 28
+        return V_OFFSET + 1
 
     def validate(self) -> None:
         validate_uint256(self.nonce, title="Transaction.nonce")
@@ -128,6 +137,26 @@ class FrontierTransaction(BaseTransaction):
             r: int,
             s: int) -> SignedTransactionAPI:
         return cls(nonce, gas_price, gas, to, value, data, v, r, s)
+
+    def make_receipt(
+            self,
+            status: bytes,
+            gas_used: int,
+            log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]) -> ReceiptAPI:
+        # 'status' is a misnomer in Frontier. Until Byzantium, it is the
+        # intermediate state root.
+
+        logs = [
+            Log(address, topics, data)
+            for address, topics, data
+            in log_entries
+        ]
+
+        return Receipt(
+            state_root=status,
+            gas_used=gas_used,
+            logs=logs,
+        )
 
 
 class FrontierUnsignedTransaction(BaseUnsignedTransaction):

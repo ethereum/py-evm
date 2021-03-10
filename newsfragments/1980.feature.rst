@@ -1,0 +1,1 @@
+Implement the new transaction type 1, which supports access lists, and first-class chain_id, which is defined in EIP-2930. The EIP is not quite finished, because it needs to tie in with EIP-2929, which isn't merged yet.

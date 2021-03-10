@@ -17,6 +17,7 @@ from eth.vm.forks.homestead.transactions import (
     HomesteadUnsignedTransaction,
 )
 
+from eth._utils.numeric import is_even
 from eth._utils.transactions import (
     create_transaction_signature,
     extract_chain_id,
@@ -25,6 +26,13 @@ from eth._utils.transactions import (
 
 
 class SpuriousDragonTransaction(HomesteadTransaction):
+    @property
+    def y_parity(self) -> int:
+        if is_eip_155_signed_transaction(self):
+            return int(is_even(self.v))
+        else:
+            return super().y_parity
+
     def get_message_for_signing(self) -> bytes:
         if is_eip_155_signed_transaction(self):
             txn_parts = rlp.decode(rlp.encode(self))

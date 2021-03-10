@@ -1,5 +1,7 @@
 import itertools
+from typing import Iterable
 
+from eth_bloom import BloomFilter
 import rlp
 from rlp.sedes import (
     big_endian_int,
@@ -7,20 +9,19 @@ from rlp.sedes import (
     binary,
 )
 
-from eth_bloom import BloomFilter
+from eth.abc import (
+    ReceiptAPI,
+    ReceiptBuilderAPI,
+)
 
-from typing import Iterable
-
-from eth.abc import ReceiptAPI
-
+from .logs import Log
 from .sedes import (
     uint256,
 )
 
-from .logs import Log
 
-
-class Receipt(rlp.Serializable, ReceiptAPI):
+class Receipt(rlp.Serializable, ReceiptAPI, ReceiptBuilderAPI):
+    type_id = None
 
     fields = [
         ('state_root', binary),
@@ -50,6 +51,9 @@ class Receipt(rlp.Serializable, ReceiptAPI):
     def bloom_filter(self) -> BloomFilter:
         return BloomFilter(self.bloom)
 
-    @bloom_filter.setter
-    def bloom_filter(self, value: BloomFilter) -> None:
-        self.bloom = int(value)
+    @classmethod
+    def decode(cls, encoded: bytes) -> ReceiptAPI:
+        return rlp.decode(encoded, sedes=cls)
+
+    def encode(self) -> bytes:
+        return rlp.encode(self)
