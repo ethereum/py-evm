@@ -17,6 +17,8 @@ from eth.vm.forks.istanbul.storage import (
 )
 from eth.vm.logic.call import (
     CallByzantium,
+    CallCodeEIP150,
+    DelegateCallEIP150,
     StaticCall,
 )
 from eth.vm.logic.context import (
@@ -140,22 +142,20 @@ sstore_eip2929 = sstore_eip2929_generic(GAS_SCHEDULE_EIP2929)
 
 
 class CallEIP2929(CallByzantium):
-    def compute_msg_extra_gas(self,
-                              computation: ComputationAPI,
-                              gas: int,
-                              to: Address,
-                              value: int) -> int:
-        legacy_extra_gas = super().compute_msg_extra_gas(computation, gas, to, value)
-        account_load_cost = _mark_address_warm(computation, to)
-        return legacy_extra_gas + account_load_cost
+    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
+        return _mark_address_warm(computation, code_address)
+
+
+class CallCodeEIP2929(CallCodeEIP150):
+    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
+        return _mark_address_warm(computation, code_address)
+
+
+class DelegateCallEIP2929(DelegateCallEIP150):
+    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
+        return _mark_address_warm(computation, code_address)
 
 
 class StaticCallEIP2929(StaticCall):
-    def compute_msg_extra_gas(self,
-                              computation: ComputationAPI,
-                              gas: int,
-                              to: Address,
-                              value: int) -> int:
-        legacy_extra_gas = super().compute_msg_extra_gas(computation, gas, to, value)
-        account_load_cost = _mark_address_warm(computation, to)
-        return legacy_extra_gas + account_load_cost
+    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
+        return _mark_address_warm(computation, code_address)
