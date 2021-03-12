@@ -1191,6 +1191,7 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             ),
             3 + 700,
         ),
+        # first sload should use the cold cost
         (
             BerlinVM,
             assemble(
@@ -1198,7 +1199,7 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
                 0x0,
                 opcode_values.SLOAD,
             ),
-            3 + 800,
+            3 + 2100,
         ),
         # querying the same address twice results in a
         # cold cost and a warm cost
