@@ -63,10 +63,10 @@ def sload(computation: BaseComputation) -> None:
 
 
 class NetSStoreGasSchedule(NamedTuple):
-    base: int    # the gas cost when nothing changes (eg~ dirty->dirty, clean->clean, etc)
-    create: int  # a brand new value, where none previously existed, aka init or set
-    update: int  # a change to a value when the value was previously unchanged, aka clean, reset
-    remove_refund: int  # the refund for removing a value, aka: clear_refund
+    sload_gas: int    # the gas cost when nothing changes (eg~ dirty->dirty, clean->clean, etc)
+    sstore_set_gas: int  # a brand new value, where none previously existed, aka init or set
+    sstore_reset_gas: int  # a change to a value when the value was previously unchanged, aka clean, reset
+    sstore_clears_schedule: int  # the refund for removing a value, aka: clear_refund
 
 
 def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: BaseComputation) -> None:
@@ -86,30 +86,30 @@ def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: BaseComputation)
     gas_refund = 0
 
     if current_value == value:
-        gas_cost = gas_schedule.base
+        gas_cost = gas_schedule.sload_gas
     else:
         if original_value == current_value:
             if original_value == 0:
-                gas_cost = gas_schedule.create
+                gas_cost = gas_schedule.sstore_set_gas
             else:
-                gas_cost = gas_schedule.update
+                gas_cost = gas_schedule.sstore_reset_gas
 
                 if value == 0:
-                    gas_refund += gas_schedule.remove_refund
+                    gas_refund += gas_schedule.sstore_clears_schedule
         else:
-            gas_cost = gas_schedule.base
+            gas_cost = gas_schedule.sload_gas
 
             if original_value != 0:
                 if current_value == 0:
-                    gas_refund -= gas_schedule.remove_refund
+                    gas_refund -= gas_schedule.sstore_clears_schedule
                 if value == 0:
-                    gas_refund += gas_schedule.remove_refund
+                    gas_refund += gas_schedule.sstore_clears_schedule
 
             if original_value == value:
                 if original_value == 0:
-                    gas_refund += (gas_schedule.create - gas_schedule.base)
+                    gas_refund += (gas_schedule.sstore_set_gas - gas_schedule.sload_gas)
                 else:
-                    gas_refund += (gas_schedule.update - gas_schedule.base)
+                    gas_refund += (gas_schedule.sstore_reset_gas - gas_schedule.sload_gas)
 
     computation.consume_gas(
         gas_cost,

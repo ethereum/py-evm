@@ -10,7 +10,9 @@ from eth.vm.logic.storage import (
     net_sstore,
 )
 
-GAS_SCHEDULE_EIP2200 = GAS_SCHEDULE_EIP1283._replace(base=constants.GAS_SLOAD_EIP1884)
+GAS_SCHEDULE_EIP2200 = GAS_SCHEDULE_EIP1283._replace(
+    sload_gas=constants.GAS_SLOAD_EIP1884,
+)
 
 
 def sstore_eip2200(computation: BaseComputation) -> None:
