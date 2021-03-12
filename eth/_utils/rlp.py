@@ -53,6 +53,30 @@ def diff_rlp_object(left: BaseBlock,
                 continue
 
 
+def _humanized_diff_elements(
+        diff: Iterable[Tuple[str, str, str]],
+        obj_a_name: str,
+        obj_b_name: str) -> Iterable[str]:
+
+    longest_obj_name = max(len(obj_a_name), len(obj_b_name))
+
+    for field_name, a_val, b_val in diff:
+        if isinstance(a_val, int) and isinstance(b_val, int):
+            element_diff = b_val - a_val
+            if element_diff > 0:
+                element_diff_display = f" (+{element_diff})"
+            else:
+                element_diff_display = f" ({element_diff})"
+        else:
+            element_diff_display = ""
+
+        yield (
+            f"{field_name}:\n"
+            f"    ({obj_a_name.ljust(longest_obj_name, ' ')}) : {a_val}\n"
+            f"    ({obj_b_name.ljust(longest_obj_name, ' ')}) : {b_val}{element_diff_display}"
+        )
+
+
 @curry
 def validate_rlp_equal(obj_a: BaseBlock,
                        obj_b: BaseBlock,
@@ -72,16 +96,8 @@ def validate_rlp_equal(obj_a: BaseBlock,
             f"{obj_a_name} ({obj_a!r}) != "
             f"{obj_b_name} ({obj_b!r}) but got an empty diff"
         )
-    longest_field_name = max(len(field_name) for field_name, _, _ in diff)
 
-    err_fields = "\n - ".join(
-        tuple(
-            f"{field_name.ljust(longest_field_name, ' ')}:\n"
-            f"    (actual)  : {actual}\n    (expected): {expected}"
-            for field_name, actual, expected
-            in diff
-        )
-    )
+    err_fields = "\n - ".join(_humanized_diff_elements(diff, obj_a_name, obj_b_name))
     error_message = (
         f"Mismatch between {obj_a_name} and {obj_b_name} "
         f"on {len(diff)} fields:\n - {err_fields}"
