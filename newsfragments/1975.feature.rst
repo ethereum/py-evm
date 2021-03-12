@@ -1,0 +1,2 @@
+EIP-2930: Optional access lists. Implement the new transaction type 1, which pre-warms account &
+storage caches from EIP-2929, and adds first-class chain_id support.
