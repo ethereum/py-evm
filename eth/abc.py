@@ -309,6 +309,14 @@ class BaseTransactionAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
+        """
+        Get addresses to be accessed by a transaction, and their storage slots.
+        """
+        ...
+
 
 class TransactionFieldsAPI(ABC):
     """
@@ -365,14 +373,6 @@ class TransactionFieldsAPI(ABC):
     @property
     @abstractmethod
     def chain_id(self) -> Optional[int]:
-        ...
-
-    @property
-    @abstractmethod
-    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
-        """
-        Get addresses to be accessed by a transaction, and their storage slots.
-        """
         ...
 
 

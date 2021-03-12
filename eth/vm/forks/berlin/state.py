@@ -23,7 +23,12 @@ class BerlinTransactionExecutor(SpuriousDragonTransactionExecutor):
             transaction: SignedTransactionAPI) -> ComputationAPI:
         self.vm_state.mark_address_warm(transaction.to)
         self.vm_state.mark_address_warm(transaction.sender)
-        # TODO mark access list as warm
+
+        for address, slots in transaction.access_list:
+            self.vm_state.mark_address_warm(address)
+            for slot in slots:
+                self.vm_state.mark_storage_warm(address, slot)
+
         return super().build_computation(message, transaction)
 
 

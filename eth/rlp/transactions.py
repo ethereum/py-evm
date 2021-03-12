@@ -45,6 +45,14 @@ class BaseTransactionMethods(BaseTransactionAPI):
     def gas_used_by(self, computation: ComputationAPI) -> int:
         return self.get_intrinsic_gas() + computation.get_gas_used()
 
+    @property
+    def chain_id(self) -> Optional[int]:
+        return None
+
+    @property
+    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
+        return []
+
 
 BASE_TRANSACTION_FIELDS = [
     ('nonce', big_endian_int),
@@ -65,14 +73,6 @@ class BaseTransactionFields(rlp.Serializable, TransactionFieldsAPI):
     @property
     def hash(self) -> Hash32:
         return keccak(rlp.encode(self))
-
-    @property
-    def chain_id(self) -> Optional[int]:
-        return None
-
-    @property
-    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
-        return []
 
 
 class SignedTransactionMethods(BaseTransactionMethods, SignedTransactionAPI):

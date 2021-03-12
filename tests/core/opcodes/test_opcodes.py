@@ -63,6 +63,7 @@ ADDRESS_WITH_JUST_BALANCE = "0x0000000000000000000000000000000000000001"
 CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
 CANONICAL_ADDRESS_C = b'\xee' * 20
+CANONICAL_ZERO_ADDRESS = b'\0' * 20
 GENESIS_HEADER = BlockHeader(
     difficulty=constants.GENESIS_DIFFICULTY,
     block_number=constants.GENESIS_BLOCK_NUMBER,
@@ -90,7 +91,8 @@ def run_computation(
         gas=1000000,
         to=CANONICAL_ADDRESS_A,
         transaction_sender=b'\x11' * 20,
-        data=b''):
+        data=b'',
+        access_list=None):
     executor = vm.state.get_transaction_executor()
 
     message = Message(
@@ -102,14 +104,27 @@ def run_computation(
         code=code,
         gas=gas,
     )
-    unsigned_transaction = vm.create_unsigned_transaction(
-        nonce=2,
-        gas_price=1,
-        gas=gas,
-        to=to,
-        value=3,
-        data=data,
-    )
+    if access_list is not None:
+        txn_builder = vm.get_transaction_builder()
+        unsigned_transaction = txn_builder.new_unsigned_access_list_transaction(
+            vm.chain_context.chain_id,
+            nonce=2,
+            gas_price=1,
+            gas=gas,
+            to=to,
+            value=3,
+            data=data,
+            access_list=access_list,
+        )
+    else:
+        unsigned_transaction = vm.create_unsigned_transaction(
+            nonce=2,
+            gas_price=1,
+            gas=gas,
+            to=to,
+            value=3,
+            data=data,
+        )
     transaction = SpoofTransaction(unsigned_transaction, from_=transaction_sender)
 
     return executor.build_computation(message, transaction)
@@ -1243,6 +1258,61 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
 )
 def test_gas_costs(vm_class, code, expect_gas_used):
     comp = run_computation(setup_vm(vm_class), CANONICAL_ADDRESS_B, code)
+    assert comp.is_success
+    assert comp.get_gas_used() == expect_gas_used
+
+
+@pytest.mark.parametrize(
+    'vm_class, code, expect_gas_used, access_list',
+    (
+        # Empty access list does not affect account cache warmth
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_C,
+                opcode_values.BALANCE,
+            ),
+            3 + 2600,
+            [],
+        ),
+        # Access list pre-warms account cache
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH20,
+                CANONICAL_ADDRESS_C,
+                opcode_values.BALANCE,
+            ),
+            3 + 100,
+            [(CANONICAL_ADDRESS_C, [])],
+        ),
+        # Access list pre-warms storage cache
+        (
+            BerlinVM,
+            assemble(
+                opcode_values.PUSH1,
+                0x0,
+                opcode_values.SLOAD,
+                opcode_values.PUSH1,
+                0x1,
+                opcode_values.SLOAD,
+            ),
+            3 + 100 + 3 + 2100,
+            [(CANONICAL_ZERO_ADDRESS, [0])],
+        ),
+    )
+)
+def test_access_list_gas_costs(vm_class, code, expect_gas_used, access_list):
+    recipient = CANONICAL_ZERO_ADDRESS
+    comp = run_computation(
+        setup_vm(vm_class),
+        recipient,
+        code,
+        to=recipient,
+        access_list=access_list,
+        transaction_sender=CANONICAL_ZERO_ADDRESS,
+    )
     assert comp.is_success
     assert comp.get_gas_used() == expect_gas_used
 
