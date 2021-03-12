@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import pytest
 import rlp
 
@@ -30,7 +31,7 @@ from eth.tools.fixtures import (
 )
 
 
-ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+ROOT_PROJECT_DIR = Path(__file__).parents[3]
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests')
@@ -296,13 +297,13 @@ def test_blockchain_fixtures(fixture_data, fixture):
             continue
 
         if should_be_good_block:
-            (block, mined_block, block_rlp) = apply_fixture_block_to_chain(
+            (original_block, executed_block, block_rlp) = apply_fixture_block_to_chain(
                 block_fixture,
                 chain,
                 perform_validation=False  # we manually validate below
             )
-            assert_mined_block_unchanged(block, mined_block)
-            chain.validate_block(block)
+            assert_mined_block_unchanged(original_block, executed_block)
+            chain.validate_block(original_block)
         else:
             try:
                 apply_fixture_block_to_chain(block_fixture, chain)
