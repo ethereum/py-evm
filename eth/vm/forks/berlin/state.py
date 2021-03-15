@@ -21,8 +21,11 @@ class BerlinTransactionExecutor(SpuriousDragonTransactionExecutor):
             self,
             message: MessageAPI,
             transaction: SignedTransactionAPI) -> ComputationAPI:
-        self.vm_state.mark_address_warm(transaction.to)
+
         self.vm_state.mark_address_warm(transaction.sender)
+
+        # Mark recipient as accessed, or the new contract being created
+        self.vm_state.mark_address_warm(message.storage_address)
 
         for address, slots in transaction.access_list:
             self.vm_state.mark_address_warm(address)

@@ -1115,7 +1115,9 @@ def test_chainid(vm_class, chain_id, expected_result):
                 opcode_values.BALANCE,
             ),
             None,
-            3 + 2600,  # balance now costs more
+            # The balance is cheap because the address is marked as accessed,
+            # as the transaction recipient
+            3 + 100,
         ),
         (
             BerlinVM,
@@ -1222,10 +1224,10 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             BerlinVM,
             assemble(
                 opcode_values.PUSH20,
-                CANONICAL_ADDRESS_B,
+                CANONICAL_ADDRESS_C,
                 opcode_values.BALANCE,
                 opcode_values.PUSH20,
-                CANONICAL_ADDRESS_B,
+                CANONICAL_ADDRESS_C,
                 opcode_values.BALANCE,
             ),
             3 + 2600 + 3 + 100,
@@ -1239,7 +1241,7 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
                 CANONICAL_ADDRESS_C,
                 opcode_values.BALANCE,
                 opcode_values.PUSH20,
-                CANONICAL_ADDRESS_B,
+                CANONICAL_ADDRESS_A,
                 opcode_values.BALANCE,
             ),
             3 + 2600 + 3 + 2600,
