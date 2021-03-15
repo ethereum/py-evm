@@ -348,6 +348,9 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
 
         return TypedReceipt(ACCESS_LIST_TRANSACTION_TYPE, inner_receipt)
 
+    def __hash__(self) -> int:
+        return hash((self.type_id, self._inner))
+
 
 class BerlinTransactionBuilder(TransactionBuilderAPI):
     """
@@ -379,7 +382,10 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
 
     @classmethod
     def serialize(cls, obj: SignedTransactionAPI) -> bytes:
-        return cls.legacy_signed.serialize(obj)
+        if isinstance(obj, TypedTransaction):
+            return TypedTransaction.serialize(obj)
+        else:
+            return cls.legacy_signed.serialize(obj)
 
     @classmethod
     def create_unsigned_transaction(cls,
