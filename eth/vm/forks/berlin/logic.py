@@ -30,6 +30,9 @@ from eth.vm.logic.storage import (
     NetSStoreGasSchedule,
 )
 from eth.vm.logic.system import (
+    Create2,
+    CreateByzantium,
+    CreateOpcodeStackData,
     selfdestruct_eip161_on_address,
 )
 
@@ -185,3 +188,23 @@ def selfdestruct_eip2929(computation: ComputationAPI) -> None:
         )
 
     selfdestruct_eip161_on_address(computation, beneficiary)
+
+
+class CreateEIP2929(CreateByzantium):
+    def generate_contract_address(self,
+                                  stack_data: CreateOpcodeStackData,
+                                  call_data: bytes,
+                                  computation: ComputationAPI) -> Address:
+        address = super().generate_contract_address(stack_data, call_data, computation)
+        computation.state.mark_address_warm(address)
+        return address
+
+
+class Create2EIP2929(Create2):
+    def generate_contract_address(self,
+                                  stack_data: CreateOpcodeStackData,
+                                  call_data: bytes,
+                                  computation: ComputationAPI) -> Address:
+        address = super().generate_contract_address(stack_data, call_data, computation)
+        computation.state.mark_address_warm(address)
+        return address

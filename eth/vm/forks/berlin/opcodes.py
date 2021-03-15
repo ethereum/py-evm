@@ -58,6 +58,11 @@ UPDATED_OPCODES: Dict[int, Opcode] = {
         gas_cost=constants.GAS_NULL,
     ),
     # System opcodes
+    opcode_values.CREATE: logic.CreateEIP2929.configure(
+        __name__='opcode:CREATE',
+        mnemonic=mnemonics.CREATE,
+        gas_cost=constants.GAS_CREATE,
+    )(),
     opcode_values.CALL: logic.CallEIP2929.configure(
         __name__='opcode:CALL',
         mnemonic=mnemonics.CALL,
@@ -72,6 +77,11 @@ UPDATED_OPCODES: Dict[int, Opcode] = {
         __name__='opcode:DELEGATECALL',
         mnemonic=mnemonics.DELEGATECALL,
         gas_cost=constants.GAS_NULL,
+    )(),
+    opcode_values.CREATE2: logic.Create2EIP2929.configure(
+        __name__='opcode:CREATE2',
+        mnemonic=mnemonics.CREATE2,
+        gas_cost=constants.GAS_CREATE,
     )(),
     opcode_values.STATICCALL: logic.StaticCallEIP2929.configure(
         __name__='opcode:STATICCALL',
