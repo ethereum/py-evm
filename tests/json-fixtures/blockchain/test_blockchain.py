@@ -43,6 +43,7 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'BlockchainTests'
 # Then sort alphabetically, to reduce churn (lines just being pushed up/down).
 SLOWEST_TESTS = {
     ('GeneralStateTests/stAttackTest/ContractCreationSpam.json', 'ContractCreationSpam_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stAttackTest/ContractCreationSpam.json', 'ContractCreationSpam_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stCallCreateCallCodeTest/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stCallCreateCallCodeTest/Call1024PreCalls.json', 'Call1024PreCalls_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stCallCreateCallCodeTest/Call1024PreCalls.json', 'Call1024PreCalls_d0g1v0_Istanbul'),  # noqa: E501
@@ -54,7 +55,9 @@ SLOWEST_TESTS = {
     ('GeneralStateTests/stChangedEIP150/Callcode1024BalanceTooLow.json', 'Callcode1024BalanceTooLow_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stCreate2/Create2OnDepth1024.json', 'Create2OnDepth1024_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g1v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g1v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stDelegatecallTestHomestead/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stDelegatecallTestHomestead/Call1024PreCalls.json', 'Call1024PreCalls_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stDelegatecallTestHomestead/Call1024PreCalls.json', 'Call1024PreCalls_d0g1v0_Istanbul'),  # noqa: E501
@@ -68,7 +71,9 @@ SLOWEST_TESTS = {
     ('GeneralStateTests/stRevertTest/LoopCallsDepthThenRevert2.json', 'LoopCallsDepthThenRevert2_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stRevertTest/LoopCallsDepthThenRevert3.json', 'LoopCallsDepthThenRevert3_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stRevertTest/LoopCallsThenRevert.json', 'LoopCallsThenRevert_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/LoopCallsThenRevert.json', 'LoopCallsThenRevert_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stRevertTest/LoopCallsThenRevert.json', 'LoopCallsThenRevert_d0g1v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/LoopCallsThenRevert.json', 'LoopCallsThenRevert_d0g1v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stShift/shiftCombinations.json', 'shiftCombinations_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call1024BalanceTooLow.json', 'static_Call1024BalanceTooLow_d1g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call1024BalanceTooLow2.json', 'static_Call1024BalanceTooLow2_d1g0v0_Istanbul'),  # noqa: E501
@@ -78,15 +83,25 @@ SLOWEST_TESTS = {
     ('GeneralStateTests/stStaticCall/static_Call1024PreCalls3.json', 'static_Call1024PreCalls3_d1g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call1MB1024Calldepth.json', 'static_Call1MB1024Calldepth_d1g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000.json', 'static_Call50000_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000.json', 'static_Call50000_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000.json', 'static_Call50000_d1g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000.json', 'static_Call50000_d1g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000_ecrec.json', 'static_Call50000_ecrec_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_ecrec.json', 'static_Call50000_ecrec_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000_ecrec.json', 'static_Call50000_ecrec_d1g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_ecrec.json', 'static_Call50000_ecrec_d1g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000_identity.json', 'static_Call50000_identity_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_identity.json', 'static_Call50000_identity_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000_identity.json', 'static_Call50000_identity_d1g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_identity.json', 'static_Call50000_identity_d1g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000_identity2.json', 'static_Call50000_identity2_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_identity2.json', 'static_Call50000_identity2_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000_identity2.json', 'static_Call50000_identity2_d1g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_identity2.json', 'static_Call50000_identity2_d1g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000_rip160.json', 'static_Call50000_rip160_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_rip160.json', 'static_Call50000_rip160_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000_rip160.json', 'static_Call50000_rip160_d1g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Call50000_rip160.json', 'static_Call50000_rip160_d1g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_1.json', 'static_Call50000bytesContract50_1_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_1.json', 'static_Call50000bytesContract50_1_d1g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Call50000bytesContract50_2.json', 'static_Call50000bytesContract50_2_d0g0v0_Istanbul'),  # noqa: E501
@@ -94,12 +109,18 @@ SLOWEST_TESTS = {
     ('GeneralStateTests/stStaticCall/static_LoopCallsDepthThenRevert2.json', 'static_LoopCallsDepthThenRevert2_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_LoopCallsDepthThenRevert3.json', 'static_LoopCallsDepthThenRevert3_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json', 'static_LoopCallsThenRevert_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json', 'static_LoopCallsThenRevert_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json', 'static_LoopCallsThenRevert_d0g1v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json', 'static_LoopCallsThenRevert_d0g1v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stStaticCall/static_Return50000_2.json', 'static_Return50000_2_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stStaticCall/static_Return50000_2.json', 'static_Return50000_2_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth.json', 'CallRecursiveBomb0_OOG_atMaxCallDepth_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stTimeConsuming/CALLBlake2f_MaxRounds.json', 'CALLBlake2f_MaxRounds_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stTimeConsuming/CALLBlake2f_MaxRounds.json', 'CALLBlake2f_MaxRounds_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json', 'static_Call50000_sha256_d0g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json', 'static_Call50000_sha256_d0g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json', 'static_Call50000_sha256_d1g0v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json', 'static_Call50000_sha256_d1g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stZeroKnowledge/ecpairing_one_point_fail.json', 'ecpairing_one_point_fail_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stZeroKnowledge/ecpairing_three_point_fail_1.json', 'ecpairing_three_point_fail_1_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stZeroKnowledge/ecpairing_three_point_match_1.json', 'ecpairing_three_point_match_1_d0g0v0_Istanbul'),  # noqa: E501
@@ -143,14 +164,23 @@ SLOWEST_TESTS = {
     ('ValidBlocks/bcStateTests/randomStatetest94.json', 'randomStatetest94_Homestead'),  # noqa: E501
     ('ValidBlocks/bcStateTests/randomStatetest94.json', 'randomStatetest94_Istanbul'),  # noqa: E501
     ('ValidBlocks/VMTests/vmPerformance/loop-add-10M.json', 'loop-add-10M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-add-10M.json', 'loop-add-10M_Berlin'),
     ('ValidBlocks/VMTests/vmPerformance/loop-divadd-10M.json', 'loop-divadd-10M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-divadd-10M.json', 'loop-divadd-10M_Berlin'),
     ('ValidBlocks/VMTests/vmPerformance/loop-divadd-unr100-10M.json', 'loop-divadd-unr100-10M_Istanbul'),  # noqa: E501
+    ('ValidBlocks/VMTests/vmPerformance/loop-divadd-unr100-10M.json', 'loop-divadd-unr100-10M_Berlin'),  # noqa: E501
     ('ValidBlocks/VMTests/vmPerformance/loop-exp-16b-100k.json', 'loop-exp-16b-100k_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-16b-100k.json', 'loop-exp-16b-100k_Berlin'),
     ('ValidBlocks/VMTests/vmPerformance/loop-exp-1b-1M.json', 'loop-exp-1b-1M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-1b-1M.json', 'loop-exp-1b-1M_Berlin'),
     ('ValidBlocks/VMTests/vmPerformance/loop-exp-32b-100k.json', 'loop-exp-32b-100k_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-32b-100k.json', 'loop-exp-32b-100k_Berlin'),
     ('ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json', 'loop-exp-nop-1M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json', 'loop-exp-nop-1M_Berlin'),
     ('ValidBlocks/VMTests/vmPerformance/loop-mul.json', 'loop-mul_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-mul.json', 'loop-mul_Berlin'),
     ('ValidBlocks/VMTests/vmPerformance/loop-mulmod-2M.json', 'loop-mulmod-2M_Istanbul'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-mulmod-2M.json', 'loop-mulmod-2M_Berlin'),
 }
 
 
