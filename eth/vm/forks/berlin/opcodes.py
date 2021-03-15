@@ -13,6 +13,9 @@ from eth.vm.opcode import (
 )
 from eth import constants
 
+from eth.vm.forks.tangerine_whistle.constants import (
+    GAS_SELFDESTRUCT_EIP150,
+)
 from eth.vm.forks.byzantium.opcodes import (
     ensure_no_static,
 )
@@ -75,6 +78,11 @@ UPDATED_OPCODES: Dict[int, Opcode] = {
         mnemonic=mnemonics.STATICCALL,
         gas_cost=constants.GAS_NULL,
     )(),
+    opcode_values.SELFDESTRUCT: as_opcode(
+        logic_fn=ensure_no_static(logic.selfdestruct_eip2929),
+        mnemonic=mnemonics.SELFDESTRUCT,
+        gas_cost=GAS_SELFDESTRUCT_EIP150,
+    ),
 }
 
 

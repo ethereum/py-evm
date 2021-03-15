@@ -29,30 +29,41 @@ from eth.vm.logic.context import (
 from eth.vm.logic.storage import (
     NetSStoreGasSchedule,
 )
+from eth.vm.logic.system import (
+    selfdestruct_eip161_on_address,
+)
 
 from . import constants as berlin_constants
 
 
-def _mark_address_warm(computation: ComputationAPI, address: Address) -> int:
+def _mark_address_warm(computation: ComputationAPI, address: Address) -> bool:
     """
     Mark the given address as warm if it was not previously.
 
-    :return gas_cost: cold cost if account was not previously accessed during
-        this transaction, warm cost otherwise
+    :return was_cold: True if the account was not previously accessed
+        during this transaction
     """
 
     if computation.state.is_address_warm(address):
-        return berlin_constants.WARM_STORAGE_READ_COST
+        return False
     else:
         computation.state.mark_address_warm(address)
+        return True
+
+
+def _account_load_cost(was_cold: bool) -> int:
+    if was_cold:
         return berlin_constants.COLD_ACCOUNT_ACCESS_COST
+    else:
+        return berlin_constants.WARM_STORAGE_READ_COST
 
 
 def _consume_gas_for_account_load(
         computation: ComputationAPI,
         address: Address,
         reason: str) -> None:
-    gas_cost = _mark_address_warm(computation, address)
+    was_cold = _mark_address_warm(computation, address)
+    gas_cost = _account_load_cost(was_cold)
     computation.consume_gas(gas_cost, reason=reason)
 
 
@@ -141,21 +152,36 @@ def sstore_eip2929_generic(gas_schedule: NetSStoreGasSchedule, computation: Comp
 sstore_eip2929 = sstore_eip2929_generic(GAS_SCHEDULE_EIP2929)
 
 
-class CallEIP2929(CallByzantium):
+class LoadFeeByCacheWarmth:
     def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
-        return _mark_address_warm(computation, code_address)
+        was_cold = _mark_address_warm(computation, code_address)
+        return _account_load_cost(was_cold)
 
 
-class CallCodeEIP2929(CallCodeEIP150):
-    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
-        return _mark_address_warm(computation, code_address)
+class CallEIP2929(LoadFeeByCacheWarmth, CallByzantium):
+    pass
 
 
-class DelegateCallEIP2929(DelegateCallEIP150):
-    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
-        return _mark_address_warm(computation, code_address)
+class CallCodeEIP2929(LoadFeeByCacheWarmth, CallCodeEIP150):
+    pass
 
 
-class StaticCallEIP2929(StaticCall):
-    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
-        return _mark_address_warm(computation, code_address)
+class DelegateCallEIP2929(LoadFeeByCacheWarmth, DelegateCallEIP150):
+    pass
+
+
+class StaticCallEIP2929(LoadFeeByCacheWarmth, StaticCall):
+    pass
+
+
+def selfdestruct_eip2929(computation: ComputationAPI) -> None:
+    beneficiary = force_bytes_to_address(computation.stack_pop1_bytes())
+
+    if _mark_address_warm(computation, beneficiary):
+        gas_cost = berlin_constants.COLD_ACCOUNT_ACCESS_COST
+        computation.consume_gas(
+            gas_cost,
+            reason=f"Implicit account load during {mnemonics.SELFDESTRUCT}",
+        )
+
+    selfdestruct_eip161_on_address(computation, beneficiary)

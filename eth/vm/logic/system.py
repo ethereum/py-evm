@@ -62,8 +62,7 @@ def selfdestruct_eip150(computation: ComputationAPI) -> None:
     _selfdestruct(computation, beneficiary)
 
 
-def selfdestruct_eip161(computation: ComputationAPI) -> None:
-    beneficiary = force_bytes_to_address(computation.stack_pop1_bytes())
+def selfdestruct_eip161_on_address(computation: ComputationAPI, beneficiary: Address) -> None:
     is_dead = (
         not computation.state.account_exists(beneficiary)
         or computation.state.account_is_empty(beneficiary)
@@ -74,6 +73,11 @@ def selfdestruct_eip161(computation: ComputationAPI) -> None:
             reason=mnemonics.SELFDESTRUCT,
         )
     _selfdestruct(computation, beneficiary)
+
+
+def selfdestruct_eip161(computation: ComputationAPI) -> None:
+    beneficiary = force_bytes_to_address(computation.stack_pop1_bytes())
+    selfdestruct_eip161_on_address(computation, beneficiary)
 
 
 def _selfdestruct(computation: ComputationAPI, beneficiary: Address) -> None:
