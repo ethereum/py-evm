@@ -141,6 +141,7 @@ class AccountDB(AccountDatabaseAPI):
         self._root_hash_at_last_persist = state_root
         self._accessed_accounts: Set[Address] = set()
         self._accessed_bytecodes: Set[Address] = set()
+        # Track whether an account or slot have been accessed during a given transaction:
         self._reset_access_counters()
 
     @property
@@ -406,6 +407,7 @@ class AccountDB(AccountDatabaseAPI):
     def record(self) -> JournalDBCheckpoint:
         checkpoint = self._journaldb.record()
         self._journaltrie.record(checkpoint)
+        self._journal_accessed_state.record(checkpoint)
 
         for _, store in self._dirty_account_stores():
             store.record(checkpoint)
@@ -414,6 +416,7 @@ class AccountDB(AccountDatabaseAPI):
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
         self._journaldb.discard(checkpoint)
         self._journaltrie.discard(checkpoint)
+        self._journal_accessed_state.discard(checkpoint)
         self._account_cache.clear()
         for _, store in self._dirty_account_stores():
             store.discard(checkpoint)
@@ -421,6 +424,7 @@ class AccountDB(AccountDatabaseAPI):
     def commit(self, checkpoint: JournalDBCheckpoint) -> None:
         self._journaldb.commit(checkpoint)
         self._journaltrie.commit(checkpoint)
+        self._journal_accessed_state.commit(checkpoint)
         for _, store in self._dirty_account_stores():
             store.commit(checkpoint)
 
