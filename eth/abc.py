@@ -309,6 +309,14 @@ class BaseTransactionAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
+        """
+        Get addresses to be accessed by a transaction, and their storage slots.
+        """
+        ...
+
 
 class TransactionFieldsAPI(ABC):
     """
@@ -365,14 +373,6 @@ class TransactionFieldsAPI(ABC):
     @property
     @abstractmethod
     def chain_id(self) -> Optional[int]:
-        ...
-
-    @property
-    @abstractmethod
-    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
-        """
-        Get addresses to be accessed by a transaction, and their storage slots.
-        """
         ...
 
 
@@ -2023,6 +2023,15 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
         """
         ...
 
+    @classmethod
+    @abstractmethod
+    def get_precompiles(cls) -> Dict[Address, Callable[['ComputationAPI'], None]]:
+        """
+        Return a dictionary where the keys are the addresses of precompiles and the values are
+        the precompile functions.
+        """
+        ...
+
     @abstractmethod
     def get_opcode_fn(self, opcode: int) -> OpcodeAPI:
         """
@@ -2198,6 +2207,24 @@ class AccountDatabaseAPI(ABC):
         """
         ...
 
+    @abstractmethod
+    def is_storage_warm(self, address: Address, slot: int) -> bool:
+        """
+        Was the storage slot accessed during this transaction?
+
+        See EIP-2929
+        """
+        ...
+
+    @abstractmethod
+    def mark_storage_warm(self, address: Address, slot: int) -> None:
+        """
+        Mark the storage slot as accessed during this transaction.
+
+        See EIP-2929
+        """
+        ...
+
     #
     # Balance
     #
@@ -2305,6 +2332,24 @@ class AccountDatabaseAPI(ABC):
     def account_is_empty(self, address: Address) -> bool:
         """
         Return ``True`` if an account exists at ``address``.
+        """
+        ...
+
+    @abstractmethod
+    def is_address_warm(self, address: Address) -> bool:
+        """
+        Was the account accessed during this transaction?
+
+        See EIP-2929
+        """
+        ...
+
+    @abstractmethod
+    def mark_address_warm(self, address: Address) -> None:
+        """
+        Mark the account as accessed during this transaction.
+
+        See EIP-2929
         """
         ...
 
@@ -2681,6 +2726,42 @@ class StateAPI(ConfigurableAPI):
     def account_is_empty(self, address: Address) -> bool:
         """
         Return ``True`` if the account at ``address`` is empty, otherwise ``False``.
+        """
+        ...
+
+    @abstractmethod
+    def is_storage_warm(self, address: Address, slot: int) -> bool:
+        """
+        Was the storage slot accessed during this transaction?
+
+        See EIP-2929
+        """
+        ...
+
+    @abstractmethod
+    def mark_storage_warm(self, address: Address, slot: int) -> None:
+        """
+        Mark the storage slot as accessed during this transaction.
+
+        See EIP-2929
+        """
+        ...
+
+    @abstractmethod
+    def is_address_warm(self, address: Address) -> bool:
+        """
+        Was the account accessed during this transaction?
+
+        See EIP-2929
+        """
+        ...
+
+    @abstractmethod
+    def mark_address_warm(self, address: Address) -> None:
+        """
+        Mark the account as accessed during this transaction.
+
+        See EIP-2929
         """
         ...
 

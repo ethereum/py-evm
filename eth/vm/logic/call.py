@@ -55,6 +55,13 @@ class BaseCall(Opcode, ABC):
         child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
         return child_msg_gas, total_fee
 
+    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
+        """
+        Return the gas cost for implicitly loading the account needed to access
+        the bytecode.
+        """
+        return 0
+
     def __call__(self, computation: ComputationAPI) -> None:
         computation.consume_gas(
             self.gas_cost,
@@ -83,6 +90,26 @@ class BaseCall(Opcode, ABC):
         #
         # Message gas allocation and fees
         #
+        if code_address:
+            code_source = code_address
+        else:
+            code_source = to
+        load_account_fee = self.get_account_load_fee(computation, code_source)
+        if load_account_fee > 0:
+            computation.consume_gas(
+                load_account_fee,
+                reason=f"{self.mnemonic} charges implicit account load for reading code",
+            )
+            if self.logger.show_debug2:
+                self.logger.debug2(
+                    "%s is charged %d for invoking code at account 0x%s",
+                    self.mnemonic,
+                    load_account_fee,
+                    code_source.hex(),
+                )
+
+        # This must be computed *after* the load account fee is charged, so
+        # that the 63/64ths rule is applied against the reduced remaining gas.
         child_msg_gas, child_msg_gas_fee = self.compute_msg_gas(computation, gas, to, value)
         computation.consume_gas(child_msg_gas_fee, reason=self.mnemonic)
 

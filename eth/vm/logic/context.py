@@ -1,9 +1,14 @@
+from typing import Tuple
+
 from eth_typing import (
     Address,
 )
 
 from eth import constants
 
+from eth.abc import (
+    ComputationAPI,
+)
 from eth.exceptions import (
     OutOfBoundsRead,
 )
@@ -20,14 +25,14 @@ from eth.vm.computation import BaseComputation
 
 def balance(computation: BaseComputation) -> None:
     addr = force_bytes_to_address(computation.stack_pop1_bytes())
-    _push_balance_of_address(addr, computation)
+    push_balance_of_address(addr, computation)
 
 
 def selfbalance(computation: BaseComputation) -> None:
-    _push_balance_of_address(computation.msg.storage_address, computation)
+    push_balance_of_address(computation.msg.storage_address, computation)
 
 
-def _push_balance_of_address(address: Address, computation: BaseComputation) -> None:
+def push_balance_of_address(address: Address, computation: ComputationAPI) -> None:
     balance = computation.state.get_balance(address)
     computation.stack_push_int(balance)
 
@@ -133,7 +138,12 @@ def extcodesize(computation: BaseComputation) -> None:
     computation.stack_push_int(code_size)
 
 
-def extcodecopy(computation: BaseComputation) -> None:
+def extcodecopy_execute(computation: ComputationAPI) -> Tuple[Address, int]:
+    """
+    Runs the logical component of extcodecopy, without charging gas.
+
+    :return (target_address, copy_size): useful for the caller to determine gas costs
+    """
     account = force_bytes_to_address(computation.stack_pop1_bytes())
     (
         mem_start_position,
@@ -143,20 +153,28 @@ def extcodecopy(computation: BaseComputation) -> None:
 
     computation.extend_memory(mem_start_position, size)
 
-    word_count = ceil32(size) // 32
-    copy_gas_cost = constants.GAS_COPY * word_count
-
-    computation.consume_gas(
-        copy_gas_cost,
-        reason='EXTCODECOPY: word gas cost',
-    )
-
     code = computation.state.get_code(account)
 
     code_bytes = code[code_start_position:code_start_position + size]
     padded_code_bytes = code_bytes.ljust(size, b'\x00')
 
     computation.memory_write(mem_start_position, size, padded_code_bytes)
+
+    return account, size
+
+
+def consume_extcodecopy_word_cost(computation: ComputationAPI, size: int) -> None:
+    word_count = ceil32(size) // 32
+    copy_gas_cost = constants.GAS_COPY * word_count
+    computation.consume_gas(
+        copy_gas_cost,
+        reason='EXTCODECOPY: word gas cost',
+    )
+
+
+def extcodecopy(computation: BaseComputation) -> None:
+    _address, size = extcodecopy_execute(computation)
+    consume_extcodecopy_word_cost(computation, size)
 
 
 def extcodehash(computation: BaseComputation) -> None:

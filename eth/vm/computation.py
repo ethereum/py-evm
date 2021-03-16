@@ -9,6 +9,7 @@ from typing import (
     Tuple,
     Type,
     Union,
+    cast,
 )
 
 from cached_property import cached_property
@@ -532,11 +533,14 @@ class BaseComputation(Configurable, ComputationAPI):
                     opcode_fn = InvalidOpcode(opcode)
 
                 if show_debug2:
+                    # We dig into some internals for debug logs
+                    base_comp = cast(BaseComputation, computation)
                     computation.logger.debug2(
-                        "OPCODE: 0x%x (%s) | pc: %s",
+                        "OPCODE: 0x%x (%s) | pc: %s | stack: %s",
                         opcode,
                         opcode_fn.mnemonic,
                         max(0, computation.code.program_counter - 1),
+                        base_comp._stack,
                     )
 
                 try:
@@ -554,6 +558,13 @@ class BaseComputation(Configurable, ComputationAPI):
             return dict()
         else:
             return self._precompiles
+
+    @classmethod
+    def get_precompiles(cls) -> Dict[Address, Callable[[ComputationAPI], Any]]:
+        if cls._precompiles is None:
+            return dict()
+        else:
+            return cls._precompiles
 
     def get_opcode_fn(self, opcode: int) -> OpcodeAPI:
         try:

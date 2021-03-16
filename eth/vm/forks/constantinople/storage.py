@@ -6,10 +6,10 @@ from eth.vm.logic.storage import (
 )
 
 GAS_SCHEDULE_EIP1283 = NetSStoreGasSchedule(
-    base=200,
-    create=20000,
-    update=5000,
-    remove_refund=15000,
+    sload_gas=200,
+    sstore_set_gas=20000,
+    sstore_reset_gas=5000,
+    sstore_clears_schedule=15000,
 )
 
 

@@ -158,6 +158,26 @@ class BaseState(Configurable, StateAPI):
     def account_is_empty(self, address: Address) -> bool:
         return self._account_db.account_is_empty(address)
 
+    def is_storage_warm(self, address: Address, slot: int) -> bool:
+        return self._account_db.is_storage_warm(address, slot)
+
+    def mark_storage_warm(self, address: Address, slot: int) -> None:
+        return self._account_db.mark_storage_warm(address, slot)
+
+    def is_address_warm(self, address: Address) -> bool:
+        """
+        Was the account accessed during this transaction?
+
+        See EIP-2929
+        """
+        return (
+            self._account_db.is_address_warm(address)
+            or address in self.computation_class.get_precompiles()
+        )
+
+    def mark_address_warm(self, address: Address) -> None:
+        self._account_db.mark_address_warm(address)
+
     #
     # Access self._chaindb
     #

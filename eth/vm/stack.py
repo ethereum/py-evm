@@ -1,9 +1,15 @@
 import logging
+from typing import (
+    Iterable,
+    List,
+    Tuple,
+    Union
+)
 
 from eth_utils import (
+    ValidationError,
     big_endian_to_int,
     int_to_big_endian,
-    ValidationError,
 )
 from eth.exceptions import (
     InsufficientStack,
@@ -12,12 +18,6 @@ from eth.exceptions import (
 from eth.validation import (
     validate_stack_bytes,
     validate_stack_int,
-)
-
-from typing import (
-    List,
-    Tuple,
-    Union
 )
 
 from eth.abc import StackAPI
@@ -209,3 +209,15 @@ class Stack(StackAPI):
             self._append(self.values[peek_index])
         except IndexError:
             raise InsufficientStack(f"Insufficient stack items for DUP{position}")
+
+    def _stack_items_str(self) -> Iterable[str]:
+        for item_type, val in self.values:
+            if isinstance(val, int):
+                yield hex(val)
+            elif isinstance(val, bytes):
+                yield "0x" + val.hex()
+            else:
+                raise RuntimeError(f"Stack items can only be int or bytes, not {val!r}:{item_type}")
+
+    def __str__(self) -> str:
+        return str(list(self._stack_items_str()))

@@ -44,8 +44,8 @@ from .base_benchmark import (
 )
 
 FIRST_TX_GAS_LIMIT = 367724
-SECOND_TX_GAS_LIMIT = 63042
-THIRD_TX_GAS_LIMIT = 105781
+SECOND_TX_GAS_LIMIT = 65642  # Until Berlin, 63042 was sufficient
+THIRD_TX_GAS_LIMIT = 108381  # Until Berlin, 105781 was sufficient
 FORTH_TX_GAS_LIMIT = 21272
 FIFTH_TX_GAS_LIMIT = 21272
 
