@@ -15,7 +15,7 @@ assert_imported_genesis_header_unchanged = replace_exceptions({
 
 assert_mined_block_unchanged = replace_exceptions({
     ValidationError: AssertionError,
-})(validate_rlp_equal(obj_a_name='block', obj_b_name='mined block'))
+})(validate_rlp_equal(obj_a_name='provided block', obj_b_name='executed block'))
 
 
 assert_headers_eq = replace_exceptions({
