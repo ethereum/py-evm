@@ -210,6 +210,7 @@ workflows:
   test:
     jobs:
       - py36-benchmark
+      - py36-native-blockchain-berlin
       - py36-native-blockchain-byzantium
       - py36-native-blockchain-constantinople
       - py36-native-blockchain-frontier

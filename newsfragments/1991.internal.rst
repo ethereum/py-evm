@@ -1,0 +1,1 @@
+py-evm PRs now run Berlin integration tests, indicating Berlin-readiness (except for modexp)
