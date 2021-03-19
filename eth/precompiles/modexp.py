@@ -27,8 +27,8 @@ from eth.vm.computation import (
 )
 
 
-def compute_adjusted_exponent_length(exponent_length: int,
-                                     first_32_exponent_bytes: bytes) -> int:
+def _compute_adjusted_exponent_length(exponent_length: int,
+                                      first_32_exponent_bytes: bytes) -> int:
     exponent = big_endian_to_int(first_32_exponent_bytes)
 
     if exponent_length <= 32 and exponent == 0:
@@ -75,7 +75,7 @@ def _compute_modexp_gas_fee_eip_198(data: bytes) -> int:
         data[96 + base_length:96 + base_length + exponent_length],
         to_size=min(exponent_length, 32),
     )[:32]
-    adjusted_exponent_length = compute_adjusted_exponent_length(
+    adjusted_exponent_length = _compute_adjusted_exponent_length(
         exponent_length,
         first_32_exponent_bytes,
     )
