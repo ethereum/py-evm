@@ -40,16 +40,15 @@ def _calculate_multiplication_complexity(base_length: int, modulus_length: int) 
 
 
 def _calculate_iteration_count(exponent_length: int, first_32_exponent_bytes: bytes) -> int:
-    iteration_count = 0
-    exponent = big_endian_to_int(first_32_exponent_bytes)
+    first_32_exponent = big_endian_to_int(first_32_exponent_bytes)
 
-    if exponent_length <= 32 and exponent == 0:
-        iteration_count = 0
-    elif exponent_length <= 32:
-        iteration_count = get_highest_bit_index(exponent)
+    highest_bit_index = get_highest_bit_index(first_32_exponent)
+
+    if exponent_length <= 32:
+        iteration_count = highest_bit_index
     else:
-        iteration_count = (
-            8 * (exponent_length - 32)) + (get_highest_bit_index(exponent & (2**256 - 1)))
+        iteration_count = highest_bit_index + (8 * (exponent_length - 32))
+
     return max(iteration_count, 1)
 
 
