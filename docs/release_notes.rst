@@ -31,7 +31,7 @@ Bugfixes
 Performance improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Got a >10x speedup of some benchmarks and other tests, by adding a new :meth`MiningChain.mine_all`
+- Got a >10x speedup of some benchmarks and other tests, by adding a new :meth:`eth.chains.base.MiningChain.mine_all`
   API and using it. This is a public API, and should be used whenever all the transactions are known
   up front, to get a significant speedup. (`#1967 <https://github.com/ethereum/py-evm/issues/1967>`__)
 
