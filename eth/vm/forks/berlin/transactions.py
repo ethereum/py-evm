@@ -28,6 +28,7 @@ from rlp.sedes import (
 )
 
 from eth.abc import (
+    DecodedZeroOrOneLayerRLP,
     ReceiptAPI,
     SignedTransactionAPI,
     TransactionBuilderAPI,
@@ -254,12 +255,12 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
         return cls(type_id, inner_transaction)
 
     @classmethod
-    def serialize(cls, obj: 'TypedTransaction') -> bytes:
+    def serialize(cls, obj: 'TypedTransaction') -> DecodedZeroOrOneLayerRLP:
         encoded = obj.encode()
         return cls.rlp_type.serialize(encoded)
 
     @classmethod
-    def deserialize(cls, encoded_unchecked: bytes) -> SignedTransactionAPI:
+    def deserialize(cls, encoded_unchecked: DecodedZeroOrOneLayerRLP) -> SignedTransactionAPI:
         # binary checks a few basics, like the length of the bytes
         encoded = cls.rlp_type.deserialize(encoded_unchecked)
         return cls.decode(encoded)
@@ -374,14 +375,14 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
             return rlp.decode(encoded, sedes=cls.legacy_signed)
 
     @classmethod
-    def deserialize(cls, encoded: bytes) -> SignedTransactionAPI:
+    def deserialize(cls, encoded: DecodedZeroOrOneLayerRLP) -> SignedTransactionAPI:
         if isinstance(encoded, bytes):
             return TypedTransaction.deserialize(encoded)
         else:
             return cls.legacy_signed.deserialize(encoded)
 
     @classmethod
-    def serialize(cls, obj: SignedTransactionAPI) -> bytes:
+    def serialize(cls, obj: SignedTransactionAPI) -> DecodedZeroOrOneLayerRLP:
         if isinstance(obj, TypedTransaction):
             return TypedTransaction.serialize(obj)
         else:

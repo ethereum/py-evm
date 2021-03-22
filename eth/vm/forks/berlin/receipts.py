@@ -17,6 +17,7 @@ from rlp.sedes import (
 )
 
 from eth.abc import (
+    DecodedZeroOrOneLayerRLP,
     LogAPI,
     ReceiptAPI,
     ReceiptBuilderAPI,
@@ -76,13 +77,13 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
             raise ValidationError(f"Cannot build typed receipt with {hex(type_id)} >= 0x80")
 
     @classmethod
-    def deserialize(cls, encoded_unchecked: bytes) -> ReceiptAPI:
+    def deserialize(cls, encoded_unchecked: DecodedZeroOrOneLayerRLP) -> ReceiptAPI:
         # binary checks a few basics, like the length of the bytes
         encoded = cls.rlp_type.deserialize(encoded_unchecked)
         return cls.decode(encoded)
 
     @classmethod
-    def serialize(cls, obj: 'TypedReceipt') -> bytes:
+    def serialize(cls, obj: 'TypedReceipt') -> DecodedZeroOrOneLayerRLP:
         encoded = obj.encode()
         return cls.rlp_type.serialize(encoded)
 
@@ -136,12 +137,12 @@ class BerlinReceiptBuilder(ReceiptBuilderAPI):
             return rlp.decode(encoded, sedes=cls.legacy_sedes)
 
     @classmethod
-    def deserialize(cls, encoded: bytes) -> ReceiptAPI:
+    def deserialize(cls, encoded: DecodedZeroOrOneLayerRLP) -> ReceiptAPI:
         if isinstance(encoded, bytes):
             return TypedReceipt.deserialize(encoded)
         else:
             return cls.legacy_sedes.deserialize(encoded)
 
     @classmethod
-    def serialize(cls, obj: ReceiptAPI) -> bytes:
+    def serialize(cls, obj: ReceiptAPI) -> DecodedZeroOrOneLayerRLP:
         return cls.legacy_sedes.serialize(obj)
