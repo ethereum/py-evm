@@ -3,6 +3,7 @@ from eth_typing import BlockNumber
 from eth_utils import decode_hex
 
 from .constants import (
+    BERLIN_ROPSTEN_BLOCK,
     BYZANTIUM_ROPSTEN_BLOCK,
     CONSTANTINOPLE_ROPSTEN_BLOCK,
     ISTANBUL_ROPSTEN_BLOCK,
@@ -18,6 +19,7 @@ from eth.abc import VirtualMachineAPI
 from eth.chains.base import Chain
 from eth.rlp.headers import BlockHeader
 from eth.vm.forks import (
+    BerlinVM,
     ByzantiumVM,
     ConstantinopleVM,
     IstanbulVM,
@@ -36,7 +38,8 @@ ROPSTEN_VM_CONFIGURATION = (
     (CONSTANTINOPLE_ROPSTEN_BLOCK, ConstantinopleVM),
     (PETERSBURG_ROPSTEN_BLOCK, PetersburgVM),
     (ISTANBUL_ROPSTEN_BLOCK, IstanbulVM),
-    (MUIR_GLACIER_ROPSTEN_BLOCK, MuirGlacierVM)
+    (MUIR_GLACIER_ROPSTEN_BLOCK, MuirGlacierVM),
+    (BERLIN_ROPSTEN_BLOCK, BerlinVM),
 )
 
 
