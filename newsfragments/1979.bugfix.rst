@@ -1,2 +1,0 @@
-Uncles with the same timestamp as their parents are invalid. Reject them, and add the test from
-ethereum/tests.

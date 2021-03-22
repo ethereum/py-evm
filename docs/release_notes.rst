@@ -3,6 +3,46 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.4.0-alpha.1 (2021-03-22)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Berlin Support
+
+  - EIP-2718: Typed Transactions -- no new functionality, really. It is mostly
+    refactoring in preparation for EIP-2930. (which does churn the code a
+    fair bit) (`#1973 <https://github.com/ethereum/py-evm/issues/1973>`__)
+  - EIP-2930: Optional access lists. Implement the new transaction type 1, which pre-warms account &
+    storage caches from EIP-2929, and adds first-class chain_id support. (`#1975 <https://github.com/ethereum/py-evm/issues/1975>`__)
+  - EIP-2929: Gas cost increases for state access opcodes. Charge more for cold-cache access of account
+    and storage. (`#1974 <https://github.com/ethereum/py-evm/issues/1974>`__)
+  - EIP-2565: Update ModExp precompile gas cost calculation (`#1976 <https://github.com/ethereum/py-evm/issues/1976>`__ & `#1989 <https://github.com/ethereum/py-evm/issues/1989>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Uncles with the same timestamp as their parents are invalid. Reject them, and add the test from
+  ethereum/tests. (`#1979 <https://github.com/ethereum/py-evm/issues/1979>`__)
+
+
+Performance improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Got a >10x speedup of some benchmarks and other tests, by adding a new :meth`MiningChain.mine_all`
+  API and using it. This is a public API, and should be used whenever all the transactions are known
+  up front, to get a significant speedup. (`#1967 <https://github.com/ethereum/py-evm/issues/1967>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Upgrade tests fixtures to v8.0.1, with Berlin tests. Skipped several slow tests in Istanbul. Added pytest-timeout to limit annoyance of new slow tests. (`#1971 <https://github.com/ethereum/py-evm/issues/1971>`__, `#1987 <https://github.com/ethereum/py-evm/issues/1987>`__, `#1991 <https://github.com/ethereum/py-evm/issues/1991>`__, `#1989 <https://github.com/ethereum/py-evm/issues/1989>`__)
+- Make sure Berlin is tested across all core tests. (also patched in some missing Muir Glacier ones) (`#1977 <https://github.com/ethereum/py-evm/issues/1977>`__)
+
+
 py-evm 0.3.0-alpha.20 (2020-10-21)
 ----------------------------------
 
