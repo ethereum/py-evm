@@ -1,3 +1,0 @@
-Add Berlin block numbers for Goerli and Ropsten. Correct the type signature for
-TransactionBuilderAPI and ReceiptBuilderAPI, because it can take a list of bytes for the legacy
-types.

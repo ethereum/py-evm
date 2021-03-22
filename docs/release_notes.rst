@@ -3,6 +3,17 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.4.0-alpha.2 (2021-03-22)
+---------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Add Berlin block numbers for Goerli and Ropsten. Correct the type signature for
+  TransactionBuilderAPI and ReceiptBuilderAPI, because deserialize() can take a list of bytes for the legacy
+  types. (`#1993 <https://github.com/ethereum/py-evm/issues/1993>`__)
+
+
 py-evm 0.4.0-alpha.1 (2021-03-22)
 ---------------------------------
 
