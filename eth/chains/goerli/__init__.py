@@ -1,6 +1,7 @@
 from eth_utils import decode_hex
 
 from .constants import (
+    BERLIN_GOERLI_BLOCK,
     ISTANBUL_GOERLI_BLOCK,
     PETERSBURG_GOERLI_BLOCK,
 )
@@ -9,6 +10,7 @@ from eth import constants
 
 from eth.rlp.headers import BlockHeader
 from eth.vm.forks import (
+    BerlinVM,
     IstanbulVM,
     PetersburgVM,
 )
@@ -16,6 +18,7 @@ from eth.vm.forks import (
 GOERLI_VM_CONFIGURATION = (
     (PETERSBURG_GOERLI_BLOCK, PetersburgVM),
     (ISTANBUL_GOERLI_BLOCK, IstanbulVM),
+    (BERLIN_GOERLI_BLOCK, BerlinVM),
 )
 
 

@@ -11,6 +11,7 @@ from typing import (
     FrozenSet,
     Iterable,
     Iterator,
+    List,
     MutableMapping,
     NamedTuple,
     Optional,
@@ -50,6 +51,9 @@ from eth.typing import (
 
 
 T = TypeVar('T')
+
+# A decoded RLP object of unknown interpretation, with a maximum "depth" of 1.
+DecodedZeroOrOneLayerRLP = Union[bytes, List[bytes]]
 
 
 class MiningHeaderAPI(ABC):
@@ -241,7 +245,7 @@ class ReceiptBuilderAPI(ReceiptDecoderAPI):
 
     @classmethod
     @abstractmethod
-    def deserialize(cls, encoded: bytes) -> 'ReceiptAPI':
+    def deserialize(cls, encoded: DecodedZeroOrOneLayerRLP) -> 'ReceiptAPI':
         """
         Extract a receipt from an encoded RLP object.
 
@@ -251,7 +255,7 @@ class ReceiptBuilderAPI(ReceiptDecoderAPI):
 
     @classmethod
     @abstractmethod
-    def serialize(cls, obj: 'ReceiptAPI') -> bytes:
+    def serialize(cls, obj: 'ReceiptAPI') -> DecodedZeroOrOneLayerRLP:
         """
         Encode a receipt to a series of bytes used by RLP.
 
@@ -448,7 +452,7 @@ class TransactionBuilderAPI(TransactionDecoderAPI):
 
     @classmethod
     @abstractmethod
-    def deserialize(cls, encoded: bytes) -> 'SignedTransactionAPI':
+    def deserialize(cls, encoded: DecodedZeroOrOneLayerRLP) -> 'SignedTransactionAPI':
         """
         Extract a transaction from an encoded RLP object.
 
@@ -458,7 +462,7 @@ class TransactionBuilderAPI(TransactionDecoderAPI):
 
     @classmethod
     @abstractmethod
-    def serialize(cls, obj: 'SignedTransactionAPI') -> bytes:
+    def serialize(cls, obj: 'SignedTransactionAPI') -> DecodedZeroOrOneLayerRLP:
         """
         Encode a transaction to a series of bytes used by RLP.
 
