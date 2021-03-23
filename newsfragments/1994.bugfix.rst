@@ -1,0 +1,3 @@
+Fix a crash in :meth:`eth.chains.base.Chain.get_transaction_receipt` and
+:meth:`eth.chains.base.Chain.get_transaction_receipt_by_index` that resulted in this exception:
+``TypeError: get_receipt_by_index() got an unexpected keyword argument 'receipt_builder'``

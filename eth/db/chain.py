@@ -31,7 +31,7 @@ from eth.abc import (
     ReceiptAPI,
     ReceiptDecoderAPI,
     SignedTransactionAPI,
-    TransactionBuilderAPI,
+    TransactionDecoderAPI,
 )
 from eth.constants import (
     EMPTY_UNCLE_HASH,
@@ -307,8 +307,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     def get_block_transactions(
             self,
             header: BlockHeaderAPI,
-            transaction_builder: Type[TransactionBuilderAPI]) -> Tuple[SignedTransactionAPI, ...]:
-        return self._get_block_transactions(header.transaction_root, transaction_builder)
+            transaction_decoder: Type[TransactionDecoderAPI]) -> Tuple[SignedTransactionAPI, ...]:
+        return self._get_block_transactions(header.transaction_root, transaction_decoder)
 
     def get_block_transaction_hashes(self, block_header: BlockHeaderAPI) -> Tuple[Hash32, ...]:
         """
@@ -347,7 +347,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             self,
             block_number: BlockNumber,
             transaction_index: int,
-            transaction_builder: Type[TransactionBuilderAPI]) -> SignedTransactionAPI:
+            transaction_decoder: Type[TransactionDecoderAPI]) -> SignedTransactionAPI:
         try:
             block_header = self.get_canonical_block_header_by_number(block_number)
         except HeaderNotFound:
@@ -356,7 +356,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         encoded_index = rlp.encode(transaction_index)
         encoded_transaction = transaction_db[encoded_index]
         if encoded_transaction != b'':
-            return transaction_builder.decode(encoded_transaction)
+            return transaction_decoder.decode(encoded_transaction)
         else:
             raise TransactionNotFound(
                 f"No transaction is at index {transaction_index} of block {block_number}"
@@ -413,12 +413,12 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     def _get_block_transactions(
             self,
             transaction_root: Hash32,
-            transaction_builder: Type[TransactionBuilderAPI]) -> Iterable[SignedTransactionAPI]:
+            transaction_decoder: Type[TransactionDecoderAPI]) -> Iterable[SignedTransactionAPI]:
         """
         Memoizable version of `get_block_transactions`
         """
         for encoded_transaction in self._get_block_transaction_data(self.db, transaction_root):
-            yield transaction_builder.decode(encoded_transaction)
+            yield transaction_decoder.decode(encoded_transaction)
 
     @staticmethod
     def _remove_transaction_from_canonical_chain(db: DatabaseAPI, transaction_hash: Hash32) -> None:

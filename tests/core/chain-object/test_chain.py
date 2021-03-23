@@ -158,3 +158,45 @@ def test_mainnet_genesis_hash():
 def test_ropsten_genesis_hash():
     assert ROPSTEN_GENESIS_HEADER.hash == decode_hex(
         '0x41941023680923e0fe4d74a34bdac8141f2540e3ae90623718e47d66d1ca4a2d')
+
+
+def test_get_canonical_transaction_by_index(chain, tx):
+    if hasattr(chain, 'apply_transaction'):
+        # working on a Mining chain which can directly apply transactions
+        new_block, _, computation = chain.apply_transaction(tx)
+        computation.raise_if_error()
+    else:
+        # working on a non-mining chain, so we have to build the block to apply manually
+        new_block, receipts, computations = chain.build_block_with_transactions([tx])
+        assert len(computations) == 1
+        computations[0].raise_if_error()
+
+    block_import_result = chain.import_block(new_block)
+    block = block_import_result.imported_block
+
+    assert block.transactions == (tx,)
+    # transaction at block 1, idx 0
+    assert chain.get_canonical_transaction_index(tx.hash) == (1, 0)
+    assert chain.get_canonical_transaction_by_index(1, 0) == tx
+
+
+def test_get_transaction_receipt(chain, tx):
+    if hasattr(chain, 'apply_transaction'):
+        # working on a Mining chain which can directly apply transactions
+        new_block, expected_receipt, computation = chain.apply_transaction(tx)
+        computation.raise_if_error()
+    else:
+        # working on a non-mining chain, so we have to build the block to apply manually
+        new_block, receipts, computations = chain.build_block_with_transactions([tx])
+        assert len(computations) == 1
+        computations[0].raise_if_error()
+        expected_receipt = receipts[0]
+
+    block_import_result = chain.import_block(new_block)
+    block = block_import_result.imported_block
+
+    assert block.transactions == (tx,)
+    # receipt at block 1, idx 0
+    assert chain.get_canonical_transaction_index(tx.hash) == (1, 0)
+    assert chain.get_transaction_receipt_by_index(1, 0) == expected_receipt
+    assert chain.get_transaction_receipt(tx.hash) == expected_receipt

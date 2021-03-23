@@ -427,9 +427,9 @@ class Chain(BaseChain):
         vm = self.get_vm_class_for_block_number(block_number)
 
         receipt = self.chaindb.get_receipt_by_index(
-            block_number=block_number,
-            receipt_index=index,
-            receipt_builder=vm.get_receipt_builder(),
+            block_number,
+            index,
+            vm.get_receipt_builder(),
         )
 
         return receipt
