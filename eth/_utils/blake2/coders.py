@@ -55,6 +55,6 @@ def _get_64_bit_little_endian_words(compact_bytes: bytes) -> Iterable[int]:
             f"{len(remaining_bytes)}"
         )
 
-    while len(remaining_bytes):
+    while remaining_bytes:
         word, remaining_bytes = remaining_bytes[:8], remaining_bytes[8:]
         yield to_int(bytes(reversed(word)))

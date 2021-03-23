@@ -81,7 +81,7 @@ def generate_fixture_tests(metafunc: Any,
         else:
             all_fixtures = cached_fixture_data
 
-        if not len(all_fixtures):
+        if not all_fixtures:
             raise AssertionError(
                 f"Suspiciously found zero fixtures: {base_fixture_path}"
             )

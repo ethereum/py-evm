@@ -37,10 +37,7 @@ V_OFFSET = 27
 
 
 def is_eip_155_signed_transaction(transaction: BaseTransaction) -> bool:
-    if transaction.v >= EIP155_CHAIN_ID_OFFSET:
-        return True
-    else:
-        return False
+    return transaction.v >= EIP155_CHAIN_ID_OFFSET
 
 
 def extract_chain_id(v: int) -> int:

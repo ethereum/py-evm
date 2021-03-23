@@ -104,7 +104,7 @@ def test_database_api_deleted_key_for_deletion(db):
 @pytest.mark.parametrize(
     'db, series_of_diffs, expected',
     (
-        ({b'0': b'0'}, tuple(), {b'0': b'0'}),
+        ({b'0': b'0'}, (), {b'0': b'0'}),
         ({b'0': b'0'}, ({}, {}), {b'0': b'0'}),
         (
             {},
@@ -156,7 +156,7 @@ def test_join_diffs(db, series_of_diffs, expected):
 @pytest.mark.parametrize(
     'series_of_diffs, expected_updates, expected_deletions',
     (
-        (tuple(), {}, []),
+        ((), {}, []),
         (({}, {}), {}, []),
         (
             (
@@ -205,7 +205,7 @@ def test_db_diff_inspection(series_of_diffs, expected_updates, expected_deletion
     if expected_updates:
         expected_keys, _ = zip(*expected_updates.items())
     else:
-        expected_keys = tuple()
+        expected_keys = ()
     assert actual_diff.pending_keys() == expected_keys
     assert actual_diff.pending_items() == tuple(expected_updates.items())
     assert actual_diff.deleted_keys() == tuple(expected_deletions)

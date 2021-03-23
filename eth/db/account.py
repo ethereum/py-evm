@@ -533,12 +533,12 @@ class AccountDB(AccountDatabaseAPI):
 
     def _validate_generated_root(self) -> None:
         db_diff = self._journaldb.diff()
-        if len(db_diff):
+        if db_diff:
             raise ValidationError(
                 f"AccountDB had a dirty db when it needed to be clean: {db_diff!r}"
             )
         trie_diff = self._journaltrie.diff()
-        if len(trie_diff):
+        if trie_diff:
             raise ValidationError(
                 f"AccountDB had a dirty trie when it needed to be clean: {trie_diff!r}"
             )

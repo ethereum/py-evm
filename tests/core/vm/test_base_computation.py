@@ -184,7 +184,7 @@ def test_get_accounts_for_deletion_returns(computation):
 
 
 def test_add_log_entry_starts_empty(computation):
-    assert computation.get_log_entries() == tuple()
+    assert computation.get_log_entries() == ()
 
 
 def test_add_log_entry_raises_if_address_isnt_canonical(computation):

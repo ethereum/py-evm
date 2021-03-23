@@ -30,7 +30,7 @@ def test_chain_get_ancestors_from_genesis_block(chain, limit):
     assert header.block_number == 0
 
     ancestors = chain.get_ancestors(limit, header)
-    assert ancestors == tuple()
+    assert ancestors == ()
 
 
 def test_chain_get_ancestors_from_block_1(chain):
@@ -39,7 +39,7 @@ def test_chain_get_ancestors_from_block_1(chain):
     header = block_1.header
     assert header.block_number == 1
 
-    assert chain.get_ancestors(0, header) == tuple()
+    assert chain.get_ancestors(0, header) == ()
     assert chain.get_ancestors(1, header) == (genesis,)
     assert chain.get_ancestors(2, header) == (genesis,)
     assert chain.get_ancestors(5, header) == (genesis,)
@@ -58,7 +58,7 @@ def test_chain_get_ancestors_from_block_5(chain):
     header = block_5.header
     assert header.block_number == 5
 
-    assert chain.get_ancestors(0, header) == tuple()
+    assert chain.get_ancestors(0, header) == ()
     assert chain.get_ancestors(1, header) == (block_4,)
     assert chain.get_ancestors(2, header) == (block_4, block_3)
     assert chain.get_ancestors(3, header) == (block_4, block_3, block_2)
@@ -103,14 +103,14 @@ def test_chain_get_ancestors_for_fork_chains(chain, fork_chain):
     # import the fork blocks into the main chain (ensuring they don't cause a reorg)
     block_import_result = chain.import_block(f_block_4)
     new_chain = block_import_result.new_canonical_blocks
-    assert new_chain == tuple()
+    assert new_chain == ()
 
     block_import_result = chain.import_block(f_block_5)
     new_chain = block_import_result.new_canonical_blocks
-    assert new_chain == tuple()
+    assert new_chain == ()
 
     # check with a block that has been imported
-    assert chain.get_ancestors(0, f_block_5.header) == tuple()
+    assert chain.get_ancestors(0, f_block_5.header) == ()
     assert chain.get_ancestors(1, f_block_5.header) == (f_block_4,)
     assert chain.get_ancestors(2, f_block_5.header) == (f_block_4, block_3)
     assert chain.get_ancestors(3, f_block_5.header) == (f_block_4, block_3, block_2)
@@ -121,7 +121,7 @@ def test_chain_get_ancestors_for_fork_chains(chain, fork_chain):
     assert chain.get_ancestors(20, f_block_5.header) == (f_block_4, block_3, block_2, block_1, genesis)  # noqa: E501
 
     # check with a block that has NOT been imported
-    assert chain.get_ancestors(0, f_block_6.header) == tuple()
+    assert chain.get_ancestors(0, f_block_6.header) == ()
     assert chain.get_ancestors(1, f_block_6.header) == (f_block_5,)
     assert chain.get_ancestors(2, f_block_6.header) == (f_block_5, f_block_4)
     assert chain.get_ancestors(3, f_block_6.header) == (f_block_5, f_block_4, block_3)

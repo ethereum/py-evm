@@ -30,7 +30,7 @@ class CustomFrontierVM(FrontierVM):
     "args,kwargs,expected",
     (
         (
-            tuple(),
+            (),
             {},
             ((0, Forks.Berlin),),
         ),
