@@ -1078,7 +1078,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     def get_block_transactions(
             self,
             block_header: BlockHeaderAPI,
-            transaction_builder: Type[TransactionBuilderAPI]) -> Tuple[SignedTransactionAPI, ...]:
+            transaction_decoder: Type[TransactionDecoderAPI]) -> Tuple[SignedTransactionAPI, ...]:
         """
         Return an iterable of transactions for the block speficied by the
         given block header.
@@ -1096,7 +1096,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     def get_receipt_by_index(self,
                              block_number: BlockNumber,
                              receipt_index: int,
-                             receipt_builder: Type[ReceiptBuilderAPI]) -> ReceiptAPI:
+                             receipt_decoder: Type[ReceiptDecoderAPI]) -> ReceiptAPI:
         """
         Return the receipt of the transaction at specified index
         for the block header obtained by the specified block number
@@ -1106,7 +1106,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
     @abstractmethod
     def get_receipts(self,
                      header: BlockHeaderAPI,
-                     receipt_class: Type[ReceiptBuilderAPI]) -> Tuple[ReceiptAPI, ...]:
+                     receipt_decoder: Type[ReceiptDecoderAPI]) -> Tuple[ReceiptAPI, ...]:
         """
         Return a tuple of receipts for the block specified by the given
         block header.
@@ -1118,7 +1118,7 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
             self,
             block_number: BlockNumber,
             transaction_index: int,
-            transaction_builder: Type[TransactionBuilderAPI]) -> SignedTransactionAPI:
+            transaction_decoder: Type[TransactionDecoderAPI]) -> SignedTransactionAPI:
         """
         Return the transaction at the specified `transaction_index` from the
         block specified by `block_number` from the canonical chain.
