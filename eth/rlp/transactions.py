@@ -24,6 +24,7 @@ from eth_utils import (
 from eth.abc import (
     BaseTransactionAPI,
     ComputationAPI,
+    LegacyTransactionFieldsAPI,
     SignedTransactionAPI,
     TransactionBuilderAPI,
     TransactionFieldsAPI,
@@ -103,12 +104,20 @@ class SignedTransactionMethods(BaseTransactionMethods, SignedTransactionAPI):
             return True
 
 
-class BaseTransaction(BaseTransactionFields, SignedTransactionMethods, TransactionBuilderAPI):
+class BaseTransaction(
+        LegacyTransactionFieldsAPI,
+        BaseTransactionFields,
+        SignedTransactionMethods,
+        TransactionBuilderAPI):
     # "Legacy" transactions implemented by BaseTransaction are a combination of
     # the transaction codec (TransactionBuilderAPI) *and* the transaction
     # object (SignedTransactionAPI). In a multi-transaction-type world, that
     # becomes less desirable, and that responsibility splits up. See Berlin
     # transactions, for example.
+
+    # Note that it includes at least one legacy field (v) that is not
+    # explicitly accessible in new transaction types. See the v docstring in
+    # LegacyTransactionFieldsAPI for more.
 
     # this is duplicated to make the rlp library happy, otherwise it complains
     # about no fields being defined but inheriting from multiple `Serializable`
