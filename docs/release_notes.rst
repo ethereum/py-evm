@@ -3,6 +3,24 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.4.0-alpha.3 (2021-03-24)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Expose a ``type_id`` on all transactions. It is ``None`` for legacy transactions. (`#1996 <https://github.com/ethereum/py-evm/issues/1996>`__)
+- Add new LegacyTransactionFieldsAPI, with a v field for callers that want to access v directly. (`#1997 <https://github.com/ethereum/py-evm/issues/1997>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Fix a crash in :meth:`eth.chains.base.Chain.get_transaction_receipt` and
+  :meth:`eth.chains.base.Chain.get_transaction_receipt_by_index` that resulted in this exception:
+  ``TypeError: get_receipt_by_index() got an unexpected keyword argument 'receipt_builder'`` (`#1994 <https://github.com/ethereum/py-evm/issues/1994>`__)
+
+
 py-evm 0.4.0-alpha.2 (2021-03-22)
 ---------------------------------
 
