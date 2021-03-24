@@ -1,0 +1,1 @@
+Expose a ``type_id`` on all transactions. It is ``None`` for legacy transactions.

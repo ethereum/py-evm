@@ -76,6 +76,8 @@ class BaseTransactionFields(rlp.Serializable, TransactionFieldsAPI):
 
 
 class SignedTransactionMethods(BaseTransactionMethods, SignedTransactionAPI):
+    type_id: Optional[int] = None
+
     @cached_property
     def sender(self) -> Address:
         return self.get_sender()

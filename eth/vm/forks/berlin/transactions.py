@@ -221,7 +221,6 @@ class AccessListPayloadDecoder(TransactionDecoderAPI):
 
 
 class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, TransactionDecoderAPI):
-    type_id: int
     rlp_type = Binary(min_length=1)  # must have at least one byte for the type
     _inner: SignedTransactionAPI
 

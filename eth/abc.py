@@ -534,6 +534,17 @@ class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
         """
         ...
 
+    type_id: Optional[int]
+    """
+    The type of EIP-2718 transaction
+
+    Each EIP-2718 transaction includes a type id (which is the leading
+    byte, as encoded).
+
+    If this transaction is a legacy transaction, that it has no type. Then,
+    type_id will be None.
+    """
+
     # +-------------------------------------------------------------+
     # | API that must be implemented by all Transaction subclasses. |
     # +-------------------------------------------------------------+
