@@ -1,0 +1,1 @@
+Add new LegacyTransactionFieldsAPI, with a v field for callers that want to access v directly.

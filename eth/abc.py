@@ -380,6 +380,19 @@ class TransactionFieldsAPI(ABC):
         ...
 
 
+class LegacyTransactionFieldsAPI(TransactionFieldsAPI):
+    @property
+    @abstractmethod
+    def v(self) -> int:
+        """
+        In old transactions, this v field combines the y_parity bit and the
+        chain ID. All new usages should prefer accessing those fields directly.
+        But if you must access the original v, then you can cast to this API
+        first (after checking that type_id is None).
+        """
+        ...
+
+
 class UnsignedTransactionAPI(BaseTransactionAPI):
 
     """
