@@ -148,6 +148,24 @@ SLOWEST_TESTS = {
     ('GeneralStateTests/stZeroKnowledge/pairingTest.json', 'pairingTest_d4g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stZeroKnowledge/pairingTest.json', 'pairingTest_d5g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stZeroKnowledge/pairingTest.json', 'pairingTest_d5g3v0_Istanbul'),  # noqa: E501
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d8g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d10g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d11g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d12g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d13g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d14g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d8g0v0_Berlin'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d10g0v0_Berlin'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d11g0v0_Berlin'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d12g0v0_Berlin'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d13g0v0_Berlin'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopExp.json', 'loopExp_d14g0v0_Berlin'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopMul.json', 'loopMul_d0g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopMul.json', 'loopMul_d1g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopMul.json', 'loopMul_d2g0v0_Istanbul'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopMul.json', 'loopMul_d0g0v0_Berlin'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopMul.json', 'loopMul_d1g0v0_Berlin'),
+    ('GeneralStateTests/VMTests/vmPerformance/loopMul.json', 'loopMul_d2g0v0_Berlin'),
     ('InvalidBlocks/bcForgedTest/bcForkBlockTest.json', 'BlockWrongResetGas'),  # noqa: E501
     ('InvalidBlocks/bcForgedTest/bcInvalidRLPTest.json', 'BLOCK_difficulty_TooLarge'),  # noqa: E501
     ('InvalidBlocks/bcMultiChainTest/UncleFromSideChain.json', 'UncleFromSideChain_Constantinople'),  # noqa: E501
