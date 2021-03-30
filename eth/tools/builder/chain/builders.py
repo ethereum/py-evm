@@ -147,7 +147,7 @@ def fork_at(vm_class: Type[VirtualMachineAPI],
     if chain_class.vm_configuration is not None:
         base_configuration = chain_class.vm_configuration
     else:
-        base_configuration = tuple()
+        base_configuration = ()
 
     vm_configuration = base_configuration + ((BlockNumber(at_block), vm_class),)
     validate_vm_configuration(vm_configuration)

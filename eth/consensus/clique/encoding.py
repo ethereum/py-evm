@@ -84,7 +84,7 @@ def encode_snapshot(snapshot: Snapshot) -> bytes:
     return rlp.encode(
         [
             snapshot.block_hash,
-            [signer for signer in snapshot.signers],
+            list(snapshot.signers),
             [encode_vote(vote) for vote in snapshot.votes],
             [
                 encode_address_tally_pair((address, tally))

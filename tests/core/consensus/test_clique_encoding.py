@@ -50,7 +50,7 @@ SNAPSHOT_1 = Snapshot(
 )
 
 
-ADDRESS_TALLY_PAIRS = [(key, val) for key, val in SNAPSHOT_1.tallies.items()]
+ADDRESS_TALLY_PAIRS = list(SNAPSHOT_1.tallies.items())
 
 
 @pytest.mark.parametrize(

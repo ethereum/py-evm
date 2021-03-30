@@ -103,7 +103,7 @@ def test_header_chain_import_block(header_chain, genesis_header):
 
     for header in chain_b:
         res, _ = header_chain.import_header(header)
-        assert res == tuple()
+        assert res == ()
         assert_headers_eq(header_chain.header, chain_a[-1])
 
     for idx, header in enumerate(chain_c, 1):
@@ -111,7 +111,7 @@ def test_header_chain_import_block(header_chain, genesis_header):
         if idx <= 3:
             # prior to passing up `chain_a` each import should not return new
             # canonical headers.
-            assert res == tuple()
+            assert res == ()
             assert_headers_eq(header_chain.header, chain_a[-1])
         elif idx == 4:
             # at the point where `chain_c` passes `chain_a` we should get the

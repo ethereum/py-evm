@@ -410,7 +410,7 @@ class BaseComputation(Configurable, ComputationAPI):
 
     def get_accounts_for_deletion(self) -> Tuple[Tuple[Address, Address], ...]:
         if self.is_error:
-            return tuple()
+            return ()
         else:
             return tuple(dict(itertools.chain(
                 self.accounts_to_delete.items(),
@@ -555,14 +555,14 @@ class BaseComputation(Configurable, ComputationAPI):
     @property
     def precompiles(self) -> Dict[Address, Callable[[ComputationAPI], Any]]:
         if self._precompiles is None:
-            return dict()
+            return {}
         else:
             return self._precompiles
 
     @classmethod
     def get_precompiles(cls) -> Dict[Address, Callable[[ComputationAPI], Any]]:
         if cls._precompiles is None:
-            return dict()
+            return {}
         else:
             return cls._precompiles
 

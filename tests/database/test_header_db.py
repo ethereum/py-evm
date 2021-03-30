@@ -818,14 +818,14 @@ def test_headerdb_persist_header_returns_new_canonical_chain(headerdb, genesis_h
 
     for header in chain_b:
         res, _ = headerdb.persist_header(header)
-        assert res == tuple()
+        assert res == ()
 
     for idx, header in enumerate(chain_c, 1):
         res, _ = headerdb.persist_header(header)
         if idx <= 3:
             # prior to passing up `chain_a` each import should not return new
             # canonical headers.
-            assert res == tuple()
+            assert res == ()
         elif idx == 4:
             # at the point where `chain_c` passes `chain_a` we should get the
             # headers from `chain_c` up through current.

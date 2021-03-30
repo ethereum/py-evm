@@ -358,7 +358,7 @@ class HeaderDB(HeaderDatabaseAPI):
         try:
             first_header = first(headers_iterator)
         except StopIteration:
-            return tuple(), tuple()
+            return (), ()
 
         is_genesis = first_header.parent_hash == genesis_parent_hash
         if not is_genesis and not cls._header_exists(db, first_header.parent_hash):
@@ -410,7 +410,7 @@ class HeaderDB(HeaderDatabaseAPI):
         if score > head_score:
             return cls._set_as_canonical_chain_head(db, curr_chain_head, genesis_parent_hash)
 
-        return tuple(), tuple()
+        return (), ()
 
     @classmethod
     def _handle_gap_change(cls,
@@ -473,10 +473,8 @@ class HeaderDB(HeaderDatabaseAPI):
 
         # Reject if this would make a checkpoint non-canonical
         checkpoints = cls._get_checkpoints(db)
-        attempted_checkpoint_overrides = set(
-            old for old in old_canonical_headers
-            if old.hash in checkpoints
-        )
+        attempted_checkpoint_overrides = {old for old in old_canonical_headers
+                                          if old.hash in checkpoints}
         if len(attempted_checkpoint_overrides):
             raise CheckpointsMustBeCanonical(
                 f"Tried to switch chain away from checkpoint(s) {attempted_checkpoint_overrides!r}"

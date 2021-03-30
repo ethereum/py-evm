@@ -37,7 +37,7 @@ byte = b"\x00"
 @pytest.mark.parametrize(
     "value,is_valid",
     (
-        (tuple(), True),
+        ((), True),
         ([], True),
         ({}, True),
         (set(), True),
@@ -60,7 +60,7 @@ def test_validate_unique(value, is_valid):
 @pytest.mark.parametrize(
     "value,is_valid",
     (
-        (tuple(), False),
+        ((), False),
         ([], False),
         ({}, False),
         (set(), False),
@@ -81,7 +81,7 @@ def test_validate_is_bytes(value, is_valid):
 @pytest.mark.parametrize(
     "value,is_valid",
     (
-        (tuple(), False),
+        ((), False),
         ([], False),
         ({}, False),
         (set(), False),
@@ -101,7 +101,7 @@ def test_validate_is_integer(value, is_valid):
 @pytest.mark.parametrize(
     "value,is_valid",
     (
-        (tuple(), False),
+        ((), False),
         ([], False),
         ({}, False),
         (set(), False),
@@ -122,7 +122,7 @@ def test_validate_is_boolean(value, is_valid):
 @pytest.mark.parametrize(
     "value,length,is_valid",
     (
-        (tuple(), 0, True),
+        ((), 0, True),
         ([1], 1, True),
         ({'A': 'B', 'C': 1}, 3, False),
         ({'A', 'B', 1, 2}, 4, True),
@@ -142,7 +142,7 @@ def test_validate_length(value, length, is_valid):
 @pytest.mark.parametrize(
     "value,maximum_length,is_valid",
     (
-        (tuple(), 0, True),
+        ((), 0, True),
         ([1], 0, False),
         ({'A': 'B', 'C': 1}, 3, True),
         ({'A', 'B', 1, 2}, 2, False),
@@ -280,7 +280,7 @@ def test_validate_word(value, is_valid):
 @pytest.mark.parametrize(
     "value,is_valid",
     (
-        (tuple(), False),
+        ((), False),
         ('a', False),
         (-1, False),
         (0, True),
@@ -371,7 +371,7 @@ def test_validate_lt_secpk1n2(value, is_valid):
 @pytest.mark.parametrize(
     "block_number,is_valid",
     (
-        (tuple(), False),
+        ((), False),
         ([], False),
         ({}, False),
         (set(), False),
