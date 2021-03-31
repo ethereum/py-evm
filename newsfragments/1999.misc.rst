@@ -1,0 +1,1 @@
+Update blake2b-py requirement from >=0.1.2 to >=0.1.4
