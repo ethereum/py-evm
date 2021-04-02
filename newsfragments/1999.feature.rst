@@ -1,1 +1,1 @@
-Add Python 3.9 support
+Adds Python 3.9 support. Update blake2b-py requirement from >=0.1.2 to >=0.1.4
