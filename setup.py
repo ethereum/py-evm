@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 deps = {
     'eth': [
-        "blake2b-py>=0.1.2,<0.2",
+        "blake2b-py>=0.1.4,<0.2",
         "cached-property>=1.5.1,<2",
         "eth-bloom>=1.0.3,<2.0.0",
         "eth-keys>=0.2.1,<0.4.0",

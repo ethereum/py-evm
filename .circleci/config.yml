@@ -1,6 +1,6 @@
 version: 2.0
 
-# heavily inspired by: 
+# heavily inspired by:
 # https://raw.githubusercontent.com/pinax/pinax-wiki/6bd2a99ab6f702e300d708532a6d1d9aa638b9f8/.circleci/config.yml
 
 common: &common
@@ -205,6 +205,37 @@ jobs:
         environment:
           TOXENV: py38-lint
 
+  py39-core:
+    <<: *common
+    docker:
+      - image: circleci/python:3.9
+        environment:
+          TOXENV: py39-core
+  py39-database:
+    <<: *common
+    docker:
+      - image: circleci/python:3.9
+        environment:
+          TOXENV: py39-database
+  py39-transactions:
+    <<: *common
+    docker:
+      - image: circleci/python:3.9
+        environment:
+          TOXENV: py39-transactions
+  py39-vm:
+    <<: *common
+    docker:
+      - image: circleci/python:3.9
+        environment:
+          TOXENV: py39-vm
+  py39-lint:
+    <<: *common
+    docker:
+      - image: circleci/python:3.9
+        environment:
+          TOXENV: py39-lint
+
 workflows:
   version: 2
   test:
@@ -223,16 +254,21 @@ workflows:
       - py36-vm
       - py37-vm
       - py38-vm
+      - py39-vm
       - py36-core
       - py37-core
       - py38-core
+      - py39-core
       - py36-transactions
       - py37-transactions
       - py38-transactions
+      - py39-transactions
       - py36-database
       - py37-database
       - py38-database
+      - py39-database
       - py36-docs
       - py36-lint
       - py37-lint
       - py38-lint
+      - py39-lint
