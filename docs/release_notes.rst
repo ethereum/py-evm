@@ -3,6 +3,27 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.4.0-alpha.4 (2021-04-07)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Add Python 3.9 support (`#1999 <https://github.com/ethereum/py-evm/issues/1999>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Update ethereum/tests fixture to v8.0.2, mark some new tests as too slow for CI. (`#1998 <https://github.com/ethereum/py-evm/issues/1998>`__)
+
+
+Miscellaneous internal changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Update blake2b-py requirement from >=0.1.2 to >=0.1.4 (`#1999 <https://github.com/ethereum/py-evm/issues/1999>`__)
+
+
 py-evm 0.4.0-alpha.3 (2021-03-24)
 ---------------------------------
 

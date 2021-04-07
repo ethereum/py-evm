@@ -1,1 +1,0 @@
-Update ethereum/tests fixture to v8.0.2, mark some new tests as too slow for CI.
