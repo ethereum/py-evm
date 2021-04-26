@@ -28,6 +28,12 @@ we need to install the ``python3-pip`` package through the following command.
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
 
+Then, we need make to sure you have the latest version of ``pip`` so that all dependencies can be installed correctly:
+
+.. code:: sh
+
+  pip3 install -U pip
+
 Finally, we can install the ``py-evm`` package via pip.
 
 .. code:: sh
@@ -46,7 +52,13 @@ First, install Python 3 with brew:
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
 
-Then, install the ``py-evm`` package via pip:
+Then, make sure to have the latest version of ``pip`` so that all dependencies can be installed correctly:
+
+.. code:: sh
+
+  pip3 install -U pip
+
+Finally, install the ``py-evm`` package via pip:
 
 .. code:: sh
 
