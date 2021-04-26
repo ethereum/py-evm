@@ -105,8 +105,8 @@ Next, we'll create a new directory ``app`` and create a file ``main.py`` inside.
   ... )
   The balance of address 0x0000000000000000000000000000000000000000 is 10000000000000000000000 wei
 
-Runing the script
------------------
+Running the script
+------------------
 
 Let's run the script by invoking the following command.
 
