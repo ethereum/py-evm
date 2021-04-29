@@ -15,6 +15,7 @@ from eth.vm.forks import (
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 )
 from eth._utils.address import force_bytes_to_address
 

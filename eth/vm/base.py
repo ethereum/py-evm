@@ -184,6 +184,7 @@ class VM(Configurable, VirtualMachineAPI):
             gas_limit=header.gas_limit,
             prev_hashes=prev_hashes,
             chain_id=chain_context.chain_id,
+            base_gas_fee=header.base_fee_per_gas,
         )
 
     def execute_bytecode(self,
@@ -590,6 +591,7 @@ class VM(Configurable, VirtualMachineAPI):
             validate_length_lte(
                 header.extra_data, cls.extra_data_max_bytes, title="BlockHeader.extra_data")
 
+            # TODO skip for EIP-1559, or override this whole function?
             validate_gas_limit(header.gas_limit, parent_header.gas_limit)
 
             if header.block_number != parent_header.block_number + 1:

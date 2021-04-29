@@ -1,6 +1,7 @@
 from typing import (
     Any,
     Dict,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -152,6 +153,7 @@ class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
         ('r', big_endian_int),
         ('s', big_endian_int),
     ]
+
 
     def get_sender(self) -> Address:
         return extract_transaction_sender(self)

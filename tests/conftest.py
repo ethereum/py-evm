@@ -33,6 +33,7 @@ from eth.vm.forks import (
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 )
 
 #
@@ -93,6 +94,7 @@ def _file_logging(request):
                 IstanbulVM,
                 MuirGlacierVM,
                 BerlinVM,
+                LondonVM,
                 ])
 def VM(request):
     return request.param

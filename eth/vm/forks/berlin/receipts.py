@@ -43,6 +43,7 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
     type_id: int
     rlp_type = Binary(min_length=1)  # must have at least one byte for the type
     _inner: ReceiptAPI
+    codecs = TYPED_RECEIPT_BODY_CODECS
 
     def __init__(self, type_id: int, proxy_target: ReceiptAPI) -> None:
         self.type_id = type_id
@@ -124,6 +125,7 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
 
 class BerlinReceiptBuilder(ReceiptBuilderAPI):
     legacy_sedes = Receipt
+    codecs = TYPED_RECEIPT_BODY_CODECS
 
     @classmethod
     def decode(cls, encoded: bytes) -> ReceiptAPI:
@@ -131,7 +133,7 @@ class BerlinReceiptBuilder(ReceiptBuilderAPI):
             raise ValidationError("Encoded receipt was empty, which makes it invalid")
 
         type_id = to_int(encoded[0])
-        if type_id in TYPED_RECEIPT_BODY_CODECS:
+        if type_id in cls.codecs:
             return TypedReceipt.decode(encoded)
         else:
             return rlp.decode(encoded, sedes=cls.legacy_sedes)

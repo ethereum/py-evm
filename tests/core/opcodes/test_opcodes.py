@@ -47,6 +47,7 @@ from eth.vm.forks import (
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 )
 from eth.vm.message import (
     Message,
@@ -1009,6 +1010,7 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 ))
 @pytest.mark.parametrize(
     # Testcases from https://eips.ethereum.org/EIPS/eip-1344
@@ -1321,7 +1323,7 @@ def test_access_list_gas_costs(vm_class, code, expect_gas_used, access_list):
 
 # cases from https://gist.github.com/holiman/174548cad102096858583c6fbbb0649a
 # mentioned in EIP-2929
-@pytest.mark.parametrize('vm_class', (BerlinVM, ))
+@pytest.mark.parametrize('vm_class', (BerlinVM, LondonVM, ))
 @pytest.mark.parametrize(
     'bytecode_hex, expect_gas_used',
     (

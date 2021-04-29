@@ -74,6 +74,7 @@ class MiningHeaderAPI(ABC):
     gas_used: int
     timestamp: int
     extra_data: bytes
+    base_fee_per_gas: int  # EIP-1559
 
     @property
     @abstractmethod
@@ -326,6 +327,9 @@ class TransactionFieldsAPI(ABC):
     """
     A class to define all common transaction fields.
     """
+    max_fee_per_gas: int
+    max_priority_fee_per_gas: int
+
     @property
     @abstractmethod
     def nonce(self) -> int:
@@ -333,7 +337,7 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def gas_price(self) -> int:
+    def gas_price(self) -> Optional[int]:
         ...
 
     @property
@@ -1684,6 +1688,14 @@ class ExecutionContextAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def base_gas_fee(self) -> Optional[int]:
+        """
+        Return the base gas fee of the block
+        """
+        ...
+
 
 class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     """
@@ -2865,9 +2877,8 @@ class StateAPI(ConfigurableAPI):
     #
     # Transaction context
     #
-    @classmethod
     @abstractmethod
-    def get_transaction_context_class(cls) -> Type[TransactionContextAPI]:
+    def get_transaction_context_class(self) -> Type[TransactionContextAPI]:
         """
         Return the :class:`~eth.vm.transaction_context.BaseTransactionContext` class that the
         state class uses.
@@ -2917,9 +2928,8 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
-    @classmethod
     @abstractmethod
-    def get_transaction_context(cls,
+    def get_transaction_context(self,
                                 transaction: SignedTransactionAPI) -> TransactionContextAPI:
         """
         Return the :class:`~eth.abc.TransactionContextAPI` for the given ``transaction``

@@ -10,6 +10,7 @@ import rlp
 from eth.exceptions import UnrecognizedTransactionType
 from eth.vm.forks import (
     BerlinVM,
+    LondonVM,
 )
 
 RECOGNIZED_TRANSACTION_TYPES = {1}
@@ -27,7 +28,7 @@ INVALID_TRANSACTION_TYPES = tuple(
 )
 
 
-@pytest.mark.parametrize('vm_class', [BerlinVM])
+@pytest.mark.parametrize('vm_class', [BerlinVM, LondonVM])
 @pytest.mark.parametrize(
     'encoded, expected',
     (

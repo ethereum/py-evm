@@ -18,6 +18,7 @@ from eth.tools.builder.chain import (
     homestead_at,
     istanbul_at,
     latest_mainnet_at,
+    london_at,
     muir_glacier_at,
     name,
     petersburg_at,
@@ -35,6 +36,7 @@ from eth.vm.forks import (
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 )
 
 
@@ -88,6 +90,7 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (istanbul_at, IstanbulVM),
         (muir_glacier_at, MuirGlacierVM),
         (berlin_at, BerlinVM),
+        (london_at, LondonVM),
         (latest_mainnet_at, MuirGlacierVM),  # this will change whenever the next upgrade is locked
     )
 )

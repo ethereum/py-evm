@@ -166,7 +166,7 @@ def validate_uint256(value: int, title: str = "Value") -> None:
         )
     if value > UINT_256_MAX:
         raise ValidationError(
-            f"{title} exeeds maximum UINT256 size.  Got: {value}"
+            f"{title} exceeds maximum UINT256 size.  Got: {value}"
         )
 
 

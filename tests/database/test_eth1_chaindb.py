@@ -41,6 +41,7 @@ from eth._utils.address import (
 )
 from eth.vm.forks import (
     BerlinVM,
+    LondonVM,
 )
 from eth.vm.forks.frontier.blocks import (
     FrontierBlock,
@@ -377,7 +378,7 @@ def mine_blocks_with_access_list_receipts(
         funded_address_private_key):
 
     current_vm = chain.get_vm()
-    if not isinstance(current_vm, BerlinVM):
+    if not isinstance(current_vm, (BerlinVM, LondonVM)):
         pytest.skip("{current_vm} does not support typed transactions")
 
     for _ in range(num_blocks):

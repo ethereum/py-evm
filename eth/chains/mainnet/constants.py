@@ -57,3 +57,9 @@ MUIR_GLACIER_MAINNET_BLOCK = BlockNumber(9200000)
 # Berlin Block
 #
 BERLIN_MAINNET_BLOCK = BlockNumber(12244000)
+
+
+#
+# London Block
+#
+LONDON_MAINNET_BLOCK = BlockNumber(12244001)  # TODO change to actual when known
