@@ -74,6 +74,8 @@ class MiningHeaderAPI(ABC):
     gas_used: int
     timestamp: int
     extra_data: bytes
+    gas_target: int  # EIP-1559
+    base_fee_per_gas: int  # EIP-1559
 
     @property
     @abstractmethod

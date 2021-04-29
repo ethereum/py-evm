@@ -590,6 +590,7 @@ class VM(Configurable, VirtualMachineAPI):
             validate_length_lte(
                 header.extra_data, cls.extra_data_max_bytes, title="BlockHeader.extra_data")
 
+            # TODO skip for EIP-1559, or override this whole function?
             validate_gas_limit(header.gas_limit, parent_header.gas_limit)
 
             if header.block_number != parent_header.block_number + 1:
