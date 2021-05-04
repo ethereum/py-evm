@@ -335,7 +335,7 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def gas_price(self) -> int:
+    def gas_price(self) -> Optional[int]:
         ...
 
     @property

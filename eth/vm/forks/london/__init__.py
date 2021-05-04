@@ -1,19 +1,20 @@
-from eth_utils.exceptions import ValidationError
-from eth.vm.forks.london.constants import (
-    BASE_FEE_MAX_CHANGE_DENOMINATOR,
-    ELASTICITY_MULTIPLIER
-)
-from typing import Type
+from eth.vm.forks.london.transactions import LondonTypedTransaction
+from typing import Tuple, Type
 
-from eth.abc import BlockAPI, BlockHeaderAPI
-from eth.rlp.blocks import BaseBlock
 from eth._utils.db import get_parent_header
+from eth.abc import BlockAPI, BlockHeaderAPI, ComputationAPI, ReceiptAPI, SignedTransactionAPI
+from eth_utils.exceptions import ValidationError
+from eth.rlp.blocks import BaseBlock
 from eth.vm.forks.berlin import BerlinVM
 from eth.vm.state import BaseState
 
 from .blocks import LondonBlock
+from .constants import (
+    BASE_FEE_MAX_CHANGE_DENOMINATOR,
+    ELASTICITY_MULTIPLIER
+)
 from .state import LondonState
-
+from .validation import validate_london_transaction_against_header
 
 class LondonVM(BerlinVM):
     # fork name
@@ -24,6 +25,7 @@ class LondonVM(BerlinVM):
     _state_class: Type[BaseState] = LondonState
 
     # Methods
+    validate_transaction_against_header = validate_london_transaction_against_header
     # create_header_from_parent = staticmethod(create_berlin_header_from_parent)  # type: ignore
     # compute_difficulty = staticmethod(compute_berlin_difficulty)    # type: ignore
     # configure_header = configure_berlin_header
@@ -43,6 +45,15 @@ class LondonVM(BerlinVM):
     #         status_code = EIP658_TRANSACTION_STATUS_CODE_SUCCESS
 
     #     return transaction.make_receipt(status_code, gas_used, computation.get_log_entries())
+
+    def apply_transaction(
+        self,
+        header: BlockHeaderAPI,
+        transaction: SignedTransactionAPI,
+    ) -> Tuple[ReceiptAPI, ComputationAPI]:
+
+        self.state.lock_changes()
+        computation = self.state.apply_transaction(transaction, header=)
 
     @staticmethod
     def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:
