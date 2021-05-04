@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
+import os
+import sys 
 import logging
-import sys
 
 from eth._utils.version import (
     construct_evm_runtime_identifier
