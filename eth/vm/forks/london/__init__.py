@@ -25,7 +25,7 @@ class LondonVM(BerlinVM):
     _state_class: Type[BaseState] = LondonState
 
     # Methods
-    validate_transaction_against_header = validate_london_transaction_against_header
+    # validate_transaction_against_header = validate_london_transaction_against_header
     # create_header_from_parent = staticmethod(create_berlin_header_from_parent)  # type: ignore
     # compute_difficulty = staticmethod(compute_berlin_difficulty)    # type: ignore
     # configure_header = configure_berlin_header
@@ -53,7 +53,7 @@ class LondonVM(BerlinVM):
     ) -> Tuple[ReceiptAPI, ComputationAPI]:
 
         self.state.lock_changes()
-        computation = self.state.apply_transaction(transaction, header=)
+        computation = self.state.apply_transaction(transaction, header)
 
     @staticmethod
     def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:
@@ -113,8 +113,6 @@ class LondonVM(BerlinVM):
                 f"Incorrect base fee per gas (got {header.base_fee_per_gas}"
                 f", expected {expected_base_fee_per_gas})"
             )
-
-        # TODO continue validation
 
     def validate_block(self, block: BlockAPI) -> None:
         header = block.header

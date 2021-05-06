@@ -3,30 +3,41 @@ from eth.abc import (
     SignedTransactionAPI,
     StateAPI
 )
-from eth.constants import (
-    CREATE_CONTRACT_ADDRESS,
-)
-from eth.validation import (
-    validate_uint256,
-    validate_is_integer,
-    validate_is_bytes,
-    validate_lt_secpk1n,
-    validate_lt_secpk1n2,
-    validate_lte,
-    validate_gte,
-    validate_canonical_address,
-)
 
 from eth_utils.exceptions import ValidationError
 
 from .transactions import LondonNormalizedTransaction, LondonTypedTransaction
 
 
+class LondonValidatedTransaction(LondonNormalizedTransaction):
+    """
+    A London normalized transaction with additional `effective_gas_price`
+    and `priority_fee_per_gas` attributes for easier processing.
+    """
+    def __init__(
+        self,
+        effective_gas_price: int,
+        priority_fee_per_gas: int,
+        **kwargs
+    ):
+        self.effective_gas_price = effective_gas_price
+        self.priority_fee_per_gas = priority_fee_per_gas
+        super().__init__(**kwargs)
+
+
 def validate_london_normalized_transaction(
     state: StateAPI,
     transaction: LondonNormalizedTransaction,
     header: LondonBlockHeader
-) -> None:
+) -> LondonValidatedTransaction:
+    """
+    Validates a London normalized transaction.
+
+    Raise `eth.exceptions.ValidationError` if the sender cannot
+    afford to send this transaction.
+
+    Returns a LondonValidatedTransaction.
+    """
     if transaction.max_fee_per_gas < header.base_fee_per_gas:
         raise ValidationError(
             f"Sender's max fee per gas ({transaction.max_fee_per_gas}) is "
@@ -54,16 +65,6 @@ def validate_london_normalized_transaction(
             f" (has {sender_balance}, needs {total_transaction_cost})"
         )
 
-
-# def validate_london_normalized_transaction(
-#     state: StateAPI,
-#     transaction: LondonNormalizedTransaction
-# ) -> None:
-#     sender_balance = state.get_balance(transaction.sender)
-#     if transaction.value > sender_balance:
-#         raise ValidationError(
-#             f"Sender {transaction.sender!r} cannot afford txn value"
-#             f"{transaction.value} with account balance {sender_balance}"
-#         )
-
-#     # TODO continue validation
+    return transaction.as_validated_transaction(
+        effective_gas_price, priority_fee_per_gas
+    )

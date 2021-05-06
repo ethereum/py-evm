@@ -1,4 +1,5 @@
-from eth.exceptions import InsufficientStack
+from enum import IntEnum
+from eth.vm.forks.london.validation import LondonValidatedTransaction
 from cached_property import cached_property
 from typing import (
     Dict,
@@ -21,6 +22,8 @@ from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import SignedTransactionMethods
 from eth.rlp.sedes import address
 from eth.vm.forks.berlin.constants import (
+    ACCESS_LIST_ADDRESS_COST_EIP_2930,
+    ACCESS_LIST_STORAGE_KEY_COST_EIP_2930,
     ACCESS_LIST_TRANSACTION_TYPE,
 )
 from eth.vm.forks.berlin.transactions import (
@@ -31,7 +34,12 @@ from eth.vm.forks.berlin.transactions import (
     BerlinUnsignedLegacyTransaction,
     TypedTransaction,
 )
+from eth.vm.forks.istanbul.transactions import (
+    ISTANBUL_TX_GAS_SCHEDULE,
+)
+
 from eth._utils.transactions import (
+    calculate_intrinsic_gas,
     extract_transaction_sender,
     validate_transaction_signature,
 )
@@ -78,7 +86,7 @@ class LondonNormalizedTransaction(BaseTransactionAPI):
                  to: Address,
                  value: int,
                  data: bytes,
-                 access: Sequence[Tuple[Address, Sequence[int]]]):
+                 access_list: Sequence[Tuple[Address, Sequence[int]]]):
         self.signer_address = signer_address
         self.nonce = nonce
         self.gas = gas
@@ -87,10 +95,27 @@ class LondonNormalizedTransaction(BaseTransactionAPI):
         self.to = to
         self.value = value
         self.data = data
-        self.access = access
+        self.access_list = access_list
 
     # TODO maybe add properties and make the above variables private?
-
+    def as_validated_transaction(
+        self,
+        effective_gas_price: int,
+        priority_fee_per_gas: int
+    ) -> LondonValidatedTransaction:
+        return LondonValidatedTransaction(
+            effective_gas_price,
+            priority_fee_per_gas,
+            signer_address=self.signer_address,
+            nonce=self.nonce,
+            gas=self.gas,
+            max_priority_fee_per_gas=self.max_priority_fee_per_gas,
+            max_fee_per_gas=self.max_fee_per_gas,
+            to=self.to,
+            value=self.value,
+            data=self.data,
+            access_list=self.access_list
+        )
 
 class UnsignedBaseGasFeeTransaction(rlp.Serializable):
     _type_id = BASE_GAS_FEE_TRANSACTION_TYPE
@@ -188,8 +213,16 @@ class BaseGasFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
         raise NotImplementedError("Call hash() on the TypedTransaction instead")
 
     def get_intrinsic_gas(self) -> int:
-        # TODO figure out
-        return 1
+        core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, self)
+
+        num_addresses = len(self.access_list)
+        preload_address_costs = ACCESS_LIST_ADDRESS_COST_EIP_2930 * num_addresses
+
+        num_slots = sum(len(slots) for _, slots in self.access_list)
+        preload_slot_costs = ACCESS_LIST_STORAGE_KEY_COST_EIP_2930 * num_slots
+
+        return core_gas + preload_address_costs + preload_slot_costs
+
 
     def encode(self) -> bytes:
         return rlp.encode(self)
