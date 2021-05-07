@@ -40,6 +40,7 @@ from eth.vm.forks.istanbul.transactions import (
 
 from eth._utils.transactions import (
     calculate_intrinsic_gas,
+    create_transaction_signature,
     extract_transaction_sender,
     validate_transaction_signature,
 )
@@ -70,7 +71,22 @@ class LondonLegacyTransaction(BerlinLegacyTransaction):
 
 
 class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
-    pass
+    def as_signed_transaction(self,
+                              private_key: PrivateKey,
+                              chain_id: int = None) -> LondonLegacyTransaction:
+        v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
+        return LondonLegacyTransaction(
+            nonce=self.nonce,
+            gas_price=self.gas_price,
+            gas=self.gas,
+            to=self.to,
+            value=self.value,
+            data=self.data,
+            v=v,
+            r=r,
+            s=s,
+        )
+
 
 
 class LondonNormalizedTransaction():
@@ -244,17 +260,22 @@ class LondonTypedTransaction(TypedTransaction):
 
     def __init__(self, type_id: int, proxy_target: SignedTransactionAPI) -> None:
         super().__init__(type_id, proxy_target)
+        self.max_priority_fee_per_gas = self._inner.max_priority_fee_per_gas
+        self.max_fee_per_gas = self._inner.max_fee_per_gas
 
-    @property
-    def max_priority_fee_per_gas(self) -> int:
-        return self._inner.max_priority_fee_per_gas
+    # @property
+    # def max_priority_fee_per_gas(self) -> int:
+    #     return self._inner.max_priority_fee_per_gas
 
-    @property
-    def max_fee_per_gas(self) -> int:
-        return self._inner.max_fee_per_gas
+    # @property
+    # def max_fee_per_gas(self) -> int:
+    #     return self._inner.max_fee_per_gas
 
 
 class LondonTransactionBuilder(BerlinTransactionBuilder):
+    legacy_signed = LondonLegacyTransaction
+    legacy_unsigned = LondonUnsignedLegacyTransaction
+
     @classmethod
     def new_unsigned_base_gas_price_transaction(
             cls,
@@ -338,6 +359,23 @@ def normalize_transaction(
             elif transaction.type_id != ACCESS_LIST_TRANSACTION_TYPE:
                 raise ValidationError(f"Invalid transaction type_id: {transaction.type_id}")
 
-        return LondonNormalizedTransaction(**fields)
+        return LondonNormalizedTransaction(**fields)  # type: ignore
 
     raise ValidationError(f"Invalid transaction type: {type(transaction)}")
+
+def new_normalize_transaction(
+    transaction: SignedTransactionAPI
+) -> SignedTransactionAPI:
+    if isinstance(transaction, LondonLegacyTransaction):
+        transaction.max_priority_fee_per_gas = transaction.gas_price
+        transaction.max_fee_per_gas = transaction.gas_price
+    elif isinstance(transaction, LondonTypedTransaction):
+        if transaction.type_id == ACCESS_LIST_TRANSACTION_TYPE:
+            transaction.max_priority_fee_per_gas = transaction.gas_price
+            transaction.max_fee_per_gas = transaction.gas_price
+        elif transaction.type_id != BASE_GAS_FEE_TRANSACTION_TYPE:
+            raise ValidationError(f"Invalid transaction type_id: {transaction.type_id}")
+    else:
+        raise ValidationError(f"Invalid transaction type: {type(transaction)}")
+
+    return transaction

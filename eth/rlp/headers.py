@@ -1,6 +1,7 @@
 import time
 from typing import (
     Dict,
+    Optional,
     overload,
 )
 
@@ -202,3 +203,7 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
         # validate_header stops trying to check the current header against a parent header.
         # Can someone trick us into following a high difficulty header with genesis parent hash?
         return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
+
+    @property
+    def base_fee_per_gas(self) -> Optional[int]:
+        return None

@@ -74,7 +74,6 @@ class MiningHeaderAPI(ABC):
     gas_used: int
     timestamp: int
     extra_data: bytes
-    gas_target: int  # EIP-1559
     base_fee_per_gas: int  # EIP-1559
 
     @property
@@ -323,27 +322,14 @@ class BaseTransactionAPI(ABC):
         """
         ...
 
-    @property
-    @abstractmethod
-    def max_priority_fee_per_gas(self) -> int:
-        """
-        Get the maximum priority gas fee the sender wants to pay to the miner
-        """
-        ...
-
-    @property
-    @abstractmethod
-    def max_fee_per_gas(self) -> int:
-        """
-        Get the maximum total gas fee the sender wants to pay to the miner
-        """
-        ...
-
 
 class TransactionFieldsAPI(ABC):
     """
     A class to define all common transaction fields.
     """
+    max_fee_per_gas: int
+    max_priority_fee_per_gas: int
+
     @property
     @abstractmethod
     def nonce(self) -> int:
@@ -396,12 +382,6 @@ class TransactionFieldsAPI(ABC):
     @abstractmethod
     def chain_id(self) -> Optional[int]:
         ...
-
-    # TODO is this needed?
-    # @property
-    # @abstractmethod
-    # def max_priority_fee_per_gas(self) -> Optional[int]:
-    #     ...
 
 
 class LegacyTransactionFieldsAPI(TransactionFieldsAPI):

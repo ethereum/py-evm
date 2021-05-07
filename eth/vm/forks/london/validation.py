@@ -11,7 +11,7 @@ from .transactions import LondonNormalizedTransaction
 
 def validate_london_normalized_transaction(
     state: StateAPI,
-    transaction: LondonNormalizedTransaction,
+    transaction: SignedTransactionAPI,
     base_fee_per_gas: int
 ) -> None:
     """
@@ -19,8 +19,6 @@ def validate_london_normalized_transaction(
 
     Raise `eth.exceptions.ValidationError` if the sender cannot
     afford to send this transaction.
-
-    Returns the effective gas price of the transaction (before refunds).
     """
     if transaction.max_fee_per_gas < base_fee_per_gas:
         raise ValidationError(

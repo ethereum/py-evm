@@ -29,7 +29,7 @@ class LondonVM(BerlinVM):
 
     # Methods
     # skip header validation: validate everything in the executor as we need state access
-    validate_transaction_against_header = lambda header, transaction: None  # type: ignore
+    validate_transaction_against_header = lambda *_: None  # type: ignore
     create_header_from_parent = staticmethod(create_london_header_from_parent)  # type: ignore
     compute_difficulty = staticmethod(compute_london_difficulty)    # type: ignore
     # configure_header = configure_berlin_header
@@ -37,6 +37,8 @@ class LondonVM(BerlinVM):
     @staticmethod
     def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:
         parent_base_fee_per_gas = parent_header.base_fee_per_gas
+        if parent_base_fee_per_gas is None:  # TODO parent header is non-London
+            parent_base_fee_per_gas = 0
         parent_gas_target = parent_header.gas_limit
         parent_gas_used = parent_header.gas_used
 

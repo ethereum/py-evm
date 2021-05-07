@@ -96,9 +96,9 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         ('gas_used', big_endian_int),
         ('timestamp', big_endian_int),
         ('extra_data', binary),
+        ('base_fee_per_gas', big_endian_int),
         ('mix_hash', binary),
         ('nonce', Binary(8, allow_empty=True)),
-        ('base_fee_per_gas', big_endian_int),
     ]
     def __init__(self,              # type: ignore  # noqa: F811
                  difficulty: int,
@@ -162,9 +162,9 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
                     parent: 'BlockHeaderAPI',
                     difficulty: int,
                     timestamp: int,
-                    gas_limit: int,  # for first London block from legacy parent
+                    gas_limit: int,
                     coinbase: Address = ZERO_ADDRESS,
-                    base_fee_per_gas: int = 0,  # TODO validate
+                    base_fee_per_gas: int = 0,  # TODO is this correct?
                     nonce: bytes = None,
                     extra_data: bytes = None,
                     transaction_root: bytes = None,
@@ -192,7 +192,7 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         if receipt_root is not None:
             header_kwargs['receipt_root'] = receipt_root
 
-        header = cls(**header_kwargs)
+        header = cls(**header_kwargs)  # type: ignore
         return header
 
     @property

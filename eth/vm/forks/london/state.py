@@ -36,7 +36,7 @@ from eth._utils.address import (
 )
 
 from .computation import LondonComputation
-from .transactions import LondonLegacyTransaction, LondonTypedTransaction, normalize_transaction
+from .transactions import LondonLegacyTransaction, LondonTypedTransaction, new_normalize_transaction, normalize_transaction
 from .validation import validate_london_normalized_transaction
 
 
@@ -162,7 +162,7 @@ class LondonState(BerlinState):
         if transaction.s > SECPK1_N // 2 or transaction.s == 0:
             raise ValidationError("Invalid signature S value")
 
-        normalized_transaction = normalize_transaction(transaction)
+        normalized_transaction = new_normalize_transaction(transaction)
         validate_london_normalized_transaction(
             state=self,
             transaction=normalized_transaction,
