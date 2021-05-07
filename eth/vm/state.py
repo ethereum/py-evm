@@ -237,10 +237,10 @@ class BaseState(Configurable, StateAPI):
     # Transaction context
     #
     @classmethod
-    def get_transaction_context_class(cls) -> Type[TransactionContextAPI]:
-        if cls.transaction_context_class is None:
+    def get_transaction_context_class(self) -> Type[TransactionContextAPI]:
+        if self.transaction_context_class is None:
             raise AttributeError("No `transaction_context_class` has been set for this State")
-        return cls.transaction_context_class
+        return self.transaction_context_class
 
     #
     # Execution
@@ -269,10 +269,9 @@ class BaseState(Configurable, StateAPI):
         finally:
             self.get_transaction_context = original_context     # type: ignore # Remove ignore if https://github.com/python/mypy/issues/708 is fixed. # noqa: E501
 
-    @classmethod
-    def get_transaction_context(cls,
+    def get_transaction_context(self,
                                 transaction: SignedTransactionAPI) -> TransactionContextAPI:
-        return cls.get_transaction_context_class()(
+        return self.get_transaction_context_class()(
             gas_price=transaction.gas_price,
             origin=transaction.sender,
         )

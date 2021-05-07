@@ -1,5 +1,7 @@
+from eth.vm.logic.context import origin
+from eth.vm.forks.london.transaction_context import LondonTransactionContext
 from eth.vm.forks.frontier.constants import REFUND_SELFDESTRUCT
-from typing import Type
+from typing import Type, Union
 
 from eth_hash.auto import keccak
 from eth_utils.exceptions import ValidationError
@@ -12,6 +14,8 @@ from eth.abc import (
     ComputationAPI,
     MessageAPI,
     SignedTransactionAPI,
+    StateAPI,
+    TransactionContextAPI,
     TransactionExecutorAPI,
 )
 from eth.constants import (
@@ -28,43 +32,25 @@ from eth.vm.forks.berlin.state import (
     BerlinState,
     BerlinTransactionExecutor,
 )
-from eth.vm.forks.london.blocks import (
-    LondonBlockHeader,
-)
-
 from eth._utils.address import (
     generate_contract_address,
 )
 
 from .computation import LondonComputation
-from .transactions import LondonNormalizedTransaction, LondonTypedTransaction, normalize_transaction
-from .validation import LondonValidatedTransaction, validate_london_normalized_transaction
+from .transactions import LondonLegacyTransaction, LondonTypedTransaction, normalize_transaction
+from .validation import validate_london_normalized_transaction
 
 
 class LondonTransactionExecutor(BerlinTransactionExecutor):
-    def __call__(
-        self,
-        transaction: SignedTransactionAPI,
-        effective_gas_price: int
-    ) -> ComputationAPI:
-        # unlike other VMs, don't validate tx here -- we need access to both header and state
-        message = self.build_evm_message(transaction, effective_gas_price)
-        computation = self.build_computation(message, transaction)
-        finalized_computation = self.finalize_computation(
-            transaction, computation, effective_gas_price
-        )
-
-        return finalized_computation
-
     def build_evm_message(
         self,
-        transaction: LondonValidatedTransaction
+        transaction: SignedTransactionAPI,
     ) -> MessageAPI:
+        transaction_context = self.vm_state.get_transaction_context(transaction)
+        gas_fee = transaction.gas * transaction_context.gas_price
+
         # Buy Gas
-        self.vm_state.delta_balance(
-            transaction.sender,
-            -1 * transaction.gas * transaction.effective_gas_price
-        )
+        self.vm_state.delta_balance(transaction.sender, -1 * gas_fee)
 
         # Increment Nonce
         self.vm_state.increment_nonce(transaction.sender)
@@ -115,9 +101,11 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
 
     def finalize_computation(
             self,
-            transaction: LondonValidatedTransaction,
+            transaction: SignedTransactionAPI,
             computation: ComputationAPI
     ) -> ComputationAPI:
+        transaction_context = self.vm_state.get_transaction_context(transaction)
+
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -128,7 +116,7 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
         gas_refunded = computation.get_gas_refund()
         gas_used = transaction.gas - gas_remaining
         gas_refund = min(gas_refunded, gas_used // 2)
-        gas_refund_amount = (gas_refund + gas_remaining) * transaction.effective_gas_price
+        gas_refund_amount = (gas_refund + gas_remaining) * transaction_context.gas_price
 
         if gas_refund_amount:
             self.vm_state.logger.debug2(
@@ -141,7 +129,7 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
 
         # Miner Fees
         transaction_fee = \
-            (transaction.gas - gas_remaining - gas_refund) * transaction.priority_fee_per_gas
+            (transaction.gas - gas_remaining - gas_refund) * transaction.max_priority_fee_per_gas
         self.vm_state.logger.debug2(
             'TRANSACTION FEE: %s -> %s',
             transaction_fee,
@@ -160,41 +148,42 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
             self.vm_state.set_balance(account, 0)
             self.vm_state.delete_account(account)
 
-
-
         return computation
 
 class LondonState(BerlinState):
     account_db_class: Type[AccountDatabaseAPI] = AccountDB
     computation_class = LondonComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = LondonTransactionExecutor
-
-    def apply_transaction(
-            self,
-            transaction: SignedTransactionAPI,
-            header: LondonBlockHeader
-        ) -> ComputationAPI:
-
-        validated_transaction = self.validate_transaction(transaction, header)
-        executor = self.get_transaction_executor()
-        return executor(validated_transaction)
+    transaction_context_class: Type[TransactionContextAPI] = LondonTransactionContext
 
     def validate_transaction(
         self,
-        transaction: SignedTransactionAPI,
-        header: LondonBlockHeader
-    ) -> LondonValidatedTransaction:
-
+        transaction: SignedTransactionAPI
+    ) -> None:
         # homestead validation
         if transaction.s > SECPK1_N // 2 or transaction.s == 0:
             raise ValidationError("Invalid signature S value")
 
         normalized_transaction = normalize_transaction(transaction)
-        validated_transaction = validate_london_normalized_transaction(
-            state=self, transaction=normalized_transaction, header=header
+        validate_london_normalized_transaction(
+            state=self,
+            transaction=normalized_transaction,
+            base_fee_per_gas=self.execution_context.base_gas_fee
         )
-        return validated_transaction
 
-    def get_transaction_context(cls,
-                                transaction: LondonNormalizedTransaction) -> TransactionContextAPI:
-        
+    def get_transaction_context(self: StateAPI,
+                                transaction: SignedTransactionAPI) -> TransactionContextAPI:
+        """
+        London-specific transaction context creation,
+        where gas_price includes the block base fee
+        """
+        priority_fee_per_gas = min(
+            transaction.max_priority_fee_per_gas,
+            transaction.max_fee_per_gas - self.execution_context.base_gas_fee
+        )
+
+        effective_gas_price = self.execution_context.base_gas_fee + priority_fee_per_gas
+        return self.get_transaction_context_class()(
+            gas_price=effective_gas_price,
+            origin=transaction.sender
+        )

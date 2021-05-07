@@ -323,6 +323,22 @@ class BaseTransactionAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def max_priority_fee_per_gas(self) -> int:
+        """
+        Get the maximum priority gas fee the sender wants to pay to the miner
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def max_fee_per_gas(self) -> int:
+        """
+        Get the maximum total gas fee the sender wants to pay to the miner
+        """
+        ...
+
 
 class TransactionFieldsAPI(ABC):
     """
@@ -380,6 +396,12 @@ class TransactionFieldsAPI(ABC):
     @abstractmethod
     def chain_id(self) -> Optional[int]:
         ...
+
+    # TODO is this needed?
+    # @property
+    # @abstractmethod
+    # def max_priority_fee_per_gas(self) -> Optional[int]:
+    #     ...
 
 
 class LegacyTransactionFieldsAPI(TransactionFieldsAPI):
@@ -1686,6 +1708,14 @@ class ExecutionContextAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def base_gas_fee(self) -> Optional[int]:
+        """
+        Return the base gas fee of the block
+        """
+        ...
+
 
 class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     """
@@ -2867,9 +2897,8 @@ class StateAPI(ConfigurableAPI):
     #
     # Transaction context
     #
-    @classmethod
     @abstractmethod
-    def get_transaction_context_class(cls) -> Type[TransactionContextAPI]:
+    def get_transaction_context_class(self) -> Type[TransactionContextAPI]:
         """
         Return the :class:`~eth.vm.transaction_context.BaseTransactionContext` class that the
         state class uses.
@@ -2919,9 +2948,8 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
-    @classmethod
     @abstractmethod
-    def get_transaction_context(cls,
+    def get_transaction_context(self,
                                 transaction: SignedTransactionAPI) -> TransactionContextAPI:
         """
         Return the :class:`~eth.abc.TransactionContextAPI` for the given ``transaction``

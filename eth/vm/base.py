@@ -184,6 +184,7 @@ class VM(Configurable, VirtualMachineAPI):
             gas_limit=header.gas_limit,
             prev_hashes=prev_hashes,
             chain_id=chain_context.chain_id,
+            base_gas_fee=header.base_fee_per_gas,
         )
 
     def execute_bytecode(self,

@@ -1,12 +1,12 @@
-from enum import IntEnum
-from eth.vm.forks.london.validation import LondonValidatedTransaction
 from cached_property import cached_property
 from typing import (
+    Any,
     Dict,
+    Optional,
     Sequence,
     Tuple,
     Type,
-    Union,
+    overload,
 )
 from eth_keys.datatypes import PrivateKey
 from eth_utils.exceptions import ValidationError
@@ -73,12 +73,12 @@ class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
     pass
 
 
-class LondonNormalizedTransaction(BaseTransactionAPI):
+class LondonNormalizedTransaction():
     """
     A normalized transaction, used for validation purposes
     """
     def __init__(self,
-                 signer_address: Address,
+                 sender: Address,
                  nonce: int,
                  gas: int,
                  max_priority_fee_per_gas: int,
@@ -86,8 +86,9 @@ class LondonNormalizedTransaction(BaseTransactionAPI):
                  to: Address,
                  value: int,
                  data: bytes,
-                 access_list: Sequence[Tuple[Address, Sequence[int]]]):
-        self.signer_address = signer_address
+                 access_list: Sequence[Tuple[Address, Sequence[int]]],
+                 gas_price: Optional[int] = None):  # EIP-1559 effective gas price
+        self.sender = sender
         self.nonce = nonce
         self.gas = gas
         self.max_priority_fee_per_gas = max_priority_fee_per_gas
@@ -96,26 +97,9 @@ class LondonNormalizedTransaction(BaseTransactionAPI):
         self.value = value
         self.data = data
         self.access_list = access_list
+        if gas_price is not None:
+            self.gas_price = gas_price
 
-    # TODO maybe add properties and make the above variables private?
-    def as_validated_transaction(
-        self,
-        effective_gas_price: int,
-        priority_fee_per_gas: int
-    ) -> LondonValidatedTransaction:
-        return LondonValidatedTransaction(
-            effective_gas_price,
-            priority_fee_per_gas,
-            signer_address=self.signer_address,
-            nonce=self.nonce,
-            gas=self.gas,
-            max_priority_fee_per_gas=self.max_priority_fee_per_gas,
-            max_fee_per_gas=self.max_fee_per_gas,
-            to=self.to,
-            value=self.value,
-            data=self.data,
-            access_list=self.access_list
-        )
 
 class UnsignedBaseGasFeeTransaction(rlp.Serializable):
     _type_id = BASE_GAS_FEE_TRANSACTION_TYPE
@@ -329,12 +313,12 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
 
 
 def normalize_transaction(
-        transaction: Union[LondonLegacyTransaction, LondonTypedTransaction]
+        transaction: SignedTransactionAPI
     ) -> LondonNormalizedTransaction:
 
     # fields common to all transactions
     fields = {
-        "signer_address": transaction.sender,
+        "sender": transaction.sender,
         "nonce": transaction.nonce,
         "gas": transaction.gas,
         "to": transaction.to,

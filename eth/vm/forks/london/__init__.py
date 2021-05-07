@@ -1,8 +1,7 @@
-from eth.vm.forks.london.transactions import LondonTypedTransaction
-from typing import Tuple, Type
+from typing import Type
 
 from eth._utils.db import get_parent_header
-from eth.abc import BlockAPI, BlockHeaderAPI, ComputationAPI, ReceiptAPI, SignedTransactionAPI
+from eth.abc import BlockAPI, BlockHeaderAPI
 from eth_utils.exceptions import ValidationError
 from eth.rlp.blocks import BaseBlock
 from eth.vm.forks.berlin import BerlinVM
@@ -13,8 +12,12 @@ from .constants import (
     BASE_FEE_MAX_CHANGE_DENOMINATOR,
     ELASTICITY_MULTIPLIER
 )
+from .headers import (
+    compute_london_difficulty,
+    create_london_header_from_parent,
+)
 from .state import LondonState
-from .validation import validate_london_transaction_against_header
+
 
 class LondonVM(BerlinVM):
     # fork name
@@ -25,35 +28,11 @@ class LondonVM(BerlinVM):
     _state_class: Type[BaseState] = LondonState
 
     # Methods
-    # validate_transaction_against_header = validate_london_transaction_against_header
-    # create_header_from_parent = staticmethod(create_berlin_header_from_parent)  # type: ignore
-    # compute_difficulty = staticmethod(compute_berlin_difficulty)    # type: ignore
+    # skip header validation: validate everything in the executor as we need state access
+    validate_transaction_against_header = lambda header, transaction: None  # type: ignore
+    create_header_from_parent = staticmethod(create_london_header_from_parent)  # type: ignore
+    compute_difficulty = staticmethod(compute_london_difficulty)    # type: ignore
     # configure_header = configure_berlin_header
-
-    # @staticmethod
-    # def make_receipt(
-    #         base_header: BlockHeaderAPI,
-    #         transaction: SignedTransactionAPI,
-    #         computation: ComputationAPI,
-    #         state: StateAPI) -> ReceiptAPI:
-
-    #     gas_used = base_header.gas_used + finalize_gas_used(transaction, computation)
-
-    #     if computation.is_error:
-    #         status_code = EIP658_TRANSACTION_STATUS_CODE_FAILURE
-    #     else:
-    #         status_code = EIP658_TRANSACTION_STATUS_CODE_SUCCESS
-
-    #     return transaction.make_receipt(status_code, gas_used, computation.get_log_entries())
-
-    def apply_transaction(
-        self,
-        header: BlockHeaderAPI,
-        transaction: SignedTransactionAPI,
-    ) -> Tuple[ReceiptAPI, ComputationAPI]:
-
-        self.state.lock_changes()
-        computation = self.state.apply_transaction(transaction, header)
 
     @staticmethod
     def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:

@@ -18,7 +18,7 @@ from .constants import BASE_GAS_FEE_TRANSACTION_TYPE
 
 
 class LondonReceiptBuilder(BerlinReceiptBuilder):
-    codecs: Dict[int, Type[ReceiptAPI]] = {
+    codecs: Dict[int, Type[Receipt]] = {
         ACCESS_LIST_TRANSACTION_TYPE: Receipt,
         BASE_GAS_FEE_TRANSACTION_TYPE: Receipt,
     }

@@ -6,42 +6,27 @@ from eth.abc import (
 
 from eth_utils.exceptions import ValidationError
 
+from .transaction_context import LondonTransactionContext
 from .transactions import LondonNormalizedTransaction, LondonTypedTransaction
-
-
-class LondonValidatedTransaction(LondonNormalizedTransaction):
-    """
-    A London normalized transaction with additional `effective_gas_price`
-    and `priority_fee_per_gas` attributes for easier processing.
-    """
-    def __init__(
-        self,
-        effective_gas_price: int,
-        priority_fee_per_gas: int,
-        **kwargs
-    ):
-        self.effective_gas_price = effective_gas_price
-        self.priority_fee_per_gas = priority_fee_per_gas
-        super().__init__(**kwargs)
 
 
 def validate_london_normalized_transaction(
     state: StateAPI,
     transaction: LondonNormalizedTransaction,
-    header: LondonBlockHeader
-) -> LondonValidatedTransaction:
+    base_fee_per_gas: int
+) -> None:
     """
     Validates a London normalized transaction.
 
     Raise `eth.exceptions.ValidationError` if the sender cannot
     afford to send this transaction.
 
-    Returns a LondonValidatedTransaction.
+    Returns the effective gas price of the transaction (before refunds).
     """
-    if transaction.max_fee_per_gas < header.base_fee_per_gas:
+    if transaction.max_fee_per_gas < base_fee_per_gas:
         raise ValidationError(
             f"Sender's max fee per gas ({transaction.max_fee_per_gas}) is "
-            f"lower than block's base fee per gas ({header.base_fee_per_gas})"
+            f"lower than block's base fee per gas ({base_fee_per_gas})"
         )
 
     sender_balance = state.get_balance(transaction.sender)
@@ -53,10 +38,10 @@ def validate_london_normalized_transaction(
 
     priority_fee_per_gas = min(
         transaction.max_priority_fee_per_gas,
-        transaction.max_fee_per_gas - header.base_fee_per_gas
+        transaction.max_fee_per_gas - base_fee_per_gas
     )
 
-    effective_gas_price = priority_fee_per_gas + header.base_fee_per_gas
+    effective_gas_price = priority_fee_per_gas + base_fee_per_gas
     total_transaction_cost = transaction.value + effective_gas_price
 
     if sender_balance - total_transaction_cost < 0:
@@ -64,7 +49,3 @@ def validate_london_normalized_transaction(
             f"Sender does not have enough balance to cover transaction value and gas "
             f" (has {sender_balance}, needs {total_transaction_cost})"
         )
-
-    return transaction.as_validated_transaction(
-        effective_gas_price, priority_fee_per_gas
-    )

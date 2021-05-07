@@ -3,6 +3,7 @@ import time
 from typing import (
     Dict,
     Type,
+    overload,
 )
 
 import rlp
@@ -97,7 +98,31 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         ('nonce', Binary(8, allow_empty=True)),
         ('base_fee_per_gas', big_endian_int),
     ]
+    @overload
+    def __init__(self, **kwargs: HeaderParams) -> None:
+        ...
 
+    @overload
+    def __init__(self,              # type: ignore  # noqa: F811
+                 difficulty: int,
+                 block_number: BlockNumber,
+                 gas_target: int,
+                 timestamp: int = None,
+                 coinbase: Address = ZERO_ADDRESS,
+                 parent_hash: Hash32 = ZERO_HASH32,
+                 uncles_hash: Hash32 = EMPTY_UNCLE_HASH,
+                 state_root: Hash32 = BLANK_ROOT_HASH,
+                 transaction_root: Hash32 = BLANK_ROOT_HASH,
+                 receipt_root: Hash32 = BLANK_ROOT_HASH,
+                 bloom: int = 0,
+                 gas_used: int = 0,
+                 extra_data: bytes = b'',
+                 mix_hash: Hash32 = ZERO_HASH32,
+                 nonce: bytes = GENESIS_NONCE,
+                 base_fee_per_gas: int = 0) -> None:
+        ...
+
+    @overload
     def __init__(self,              # type: ignore  # noqa: F811
                  difficulty: int,
                  block_number: BlockNumber,
@@ -157,16 +182,16 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
 
     @classmethod
     def from_parent(cls,
-                    parent: 'LondonBlockHeader',
+                    parent: 'BlockHeaderAPI',
                     gas_target: int,
                     difficulty: int,
                     timestamp: int,
                     coinbase: Address = ZERO_ADDRESS,
-                    base_fee_per_gas: int = 0,
+                    base_fee_per_gas: int = 0,  # TODO validate
                     nonce: bytes = None,
                     extra_data: bytes = None,
                     transaction_root: bytes = None,
-                    receipt_root: bytes = None) -> 'LondonBlockHeader':
+                    receipt_root: bytes = None) -> 'BlockHeaderAPI':
         """
         Initialize a new block header with the `parent` header as the block's
         parent hash.
