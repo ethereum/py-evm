@@ -1,4 +1,3 @@
-from eth.vm.forks.london.blocks import LondonBlockHeader
 from eth.abc import (
     SignedTransactionAPI,
     StateAPI
@@ -6,8 +5,8 @@ from eth.abc import (
 
 from eth_utils.exceptions import ValidationError
 
-from .transaction_context import LondonTransactionContext
-from .transactions import LondonNormalizedTransaction, LondonTypedTransaction
+from .blocks import LondonBlockHeader
+from .transactions import LondonNormalizedTransaction
 
 
 def validate_london_normalized_transaction(

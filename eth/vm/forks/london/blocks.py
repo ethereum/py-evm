@@ -2,9 +2,11 @@ import time
 
 from typing import (
     Dict,
+    Optional,
     Type,
     overload,
 )
+from eth_utils.exceptions import ValidationError
 
 import rlp
 
@@ -71,7 +73,7 @@ class LondonMiningHeader(rlp.Serializable, MiningHeaderAPI):
         ('bloom', uint256),
         ('difficulty', big_endian_int),
         ('block_number', big_endian_int),
-        ('gas_target', big_endian_int),
+        ('gas_limit', big_endian_int),
         ('gas_used', big_endian_int),
         ('timestamp', big_endian_int),
         ('extra_data', binary),
@@ -90,7 +92,7 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         ('bloom', uint256),
         ('difficulty', big_endian_int),
         ('block_number', big_endian_int),
-        ('gas_target', big_endian_int),
+        ('gas_limit', big_endian_int),
         ('gas_used', big_endian_int),
         ('timestamp', big_endian_int),
         ('extra_data', binary),
@@ -98,35 +100,10 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         ('nonce', Binary(8, allow_empty=True)),
         ('base_fee_per_gas', big_endian_int),
     ]
-    @overload
-    def __init__(self, **kwargs: HeaderParams) -> None:
-        ...
-
-    @overload
     def __init__(self,              # type: ignore  # noqa: F811
                  difficulty: int,
                  block_number: BlockNumber,
-                 gas_target: int,
-                 timestamp: int = None,
-                 coinbase: Address = ZERO_ADDRESS,
-                 parent_hash: Hash32 = ZERO_HASH32,
-                 uncles_hash: Hash32 = EMPTY_UNCLE_HASH,
-                 state_root: Hash32 = BLANK_ROOT_HASH,
-                 transaction_root: Hash32 = BLANK_ROOT_HASH,
-                 receipt_root: Hash32 = BLANK_ROOT_HASH,
-                 bloom: int = 0,
-                 gas_used: int = 0,
-                 extra_data: bytes = b'',
-                 mix_hash: Hash32 = ZERO_HASH32,
-                 nonce: bytes = GENESIS_NONCE,
-                 base_fee_per_gas: int = 0) -> None:
-        ...
-
-    @overload
-    def __init__(self,              # type: ignore  # noqa: F811
-                 difficulty: int,
-                 block_number: BlockNumber,
-                 gas_target: int,
+                 gas_limit: int,
                  timestamp: int = None,
                  coinbase: Address = ZERO_ADDRESS,
                  parent_hash: Hash32 = ZERO_HASH32,
@@ -152,7 +129,7 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
             bloom=bloom,
             difficulty=difficulty,
             block_number=block_number,
-            gas_target=gas_target,
+            gas_limit=gas_limit,
             gas_used=gas_used,
             timestamp=timestamp,
             extra_data=extra_data,
@@ -183,9 +160,9 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
     @classmethod
     def from_parent(cls,
                     parent: 'BlockHeaderAPI',
-                    gas_target: int,
                     difficulty: int,
                     timestamp: int,
+                    gas_limit: int,  # for first London block from legacy parent
                     coinbase: Address = ZERO_ADDRESS,
                     base_fee_per_gas: int = 0,  # TODO validate
                     nonce: bytes = None,
@@ -200,7 +177,7 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
             'parent_hash': parent.hash,
             'coinbase': coinbase,
             'state_root': parent.state_root,
-            'gas_target': gas_target,
+            'gas_limit': gas_limit,
             'base_fee_per_gas': base_fee_per_gas,
             'difficulty': difficulty,
             'block_number': parent.block_number + 1,

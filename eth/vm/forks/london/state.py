@@ -1,5 +1,4 @@
 from eth.vm.logic.context import origin
-from eth.vm.forks.london.transaction_context import LondonTransactionContext
 from eth.vm.forks.frontier.constants import REFUND_SELFDESTRUCT
 from typing import Type, Union
 
@@ -154,7 +153,6 @@ class LondonState(BerlinState):
     account_db_class: Type[AccountDatabaseAPI] = AccountDB
     computation_class = LondonComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = LondonTransactionExecutor
-    transaction_context_class: Type[TransactionContextAPI] = LondonTransactionContext
 
     def validate_transaction(
         self,

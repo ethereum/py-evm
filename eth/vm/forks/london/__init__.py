@@ -37,7 +37,7 @@ class LondonVM(BerlinVM):
     @staticmethod
     def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:
         parent_base_fee_per_gas = parent_header.base_fee_per_gas
-        parent_gas_target = parent_header.gas_target
+        parent_gas_target = parent_header.gas_limit
         parent_gas_used = parent_header.gas_used
 
         if parent_gas_used == parent_gas_target:
@@ -65,25 +65,26 @@ class LondonVM(BerlinVM):
                         header: BlockHeaderAPI,
                         parent_header: BlockHeaderAPI) -> None:
 
-        parent_gas_target = parent_header.gas_target
+        header_gas_target = header.gas_limit
+        parent_gas_target = parent_header.gas_limit
 
-        max_usable_gas = header.gas_target * ELASTICITY_MULTIPLIER
+        max_usable_gas = header_gas_target * ELASTICITY_MULTIPLIER
         if header.gas_used > max_usable_gas:
             raise ValidationError(
                 f"Block used too much gas: {header.gas_used} "
                 f"(max: {max_usable_gas})"
             )
 
-        if header.gas_target > parent_gas_target + (parent_gas_target // 1024):
+        if header_gas_target > parent_gas_target + (parent_gas_target // 1024):
             raise ValidationError(
                 f"Gas target increased too much (from {parent_gas_target} "
-                f"to {header.gas_target})"
+                f"to {header_gas_target})"
             )
 
-        if header.gas_target < parent_gas_target - (parent_gas_target // 1024):
+        if header_gas_target < parent_gas_target - (parent_gas_target // 1024):
             raise ValidationError(
                 f"Gas target decreased too much (from {parent_gas_target} "
-                f"to {header.gas_target})"
+                f"to {header_gas_target})"
             )
 
         expected_base_fee_per_gas = LondonVM.calculate_expected_base_fee_per_gas(parent_header)
