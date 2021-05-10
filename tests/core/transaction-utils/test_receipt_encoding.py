@@ -10,6 +10,7 @@ from eth.exceptions import UnrecognizedTransactionType
 from eth.rlp.receipts import Receipt
 from eth.vm.forks import (
     BerlinVM,
+    LondonVM,
 )
 from eth.vm.forks.berlin.receipts import (
     TypedReceipt,
@@ -30,7 +31,7 @@ INVALID_TRANSACTION_TYPES = tuple(
 )
 
 
-@pytest.mark.parametrize('vm_class', [BerlinVM])
+@pytest.mark.parametrize('vm_class', [BerlinVM, LondonVM])
 @pytest.mark.parametrize(
     'encoded, expected',
     (
@@ -70,7 +71,7 @@ def test_transaction_decode(vm_class, encoded, expected):
     assert decoded == expected
 
 
-@pytest.mark.parametrize('vm_class', [BerlinVM])
+@pytest.mark.parametrize('vm_class', [BerlinVM, LondonVM])
 @pytest.mark.parametrize(
     'encoded, expected_failure',
     (

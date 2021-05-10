@@ -73,6 +73,7 @@ from eth.vm.forks import (
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 )
 
 
@@ -237,6 +238,7 @@ petersburg_at = fork_at(PetersburgVM)
 istanbul_at = fork_at(IstanbulVM)
 muir_glacier_at = fork_at(MuirGlacierVM)
 berlin_at = fork_at(BerlinVM)
+london_at = fork_at(LondonVM)
 
 latest_mainnet_at = muir_glacier_at
 
