@@ -206,4 +206,4 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
 
     @property
     def base_fee_per_gas(self) -> Optional[int]:
-        return None
+        return 0

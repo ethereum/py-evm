@@ -56,7 +56,13 @@ from eth.validation import (
     validate_block_number,
     validate_word,
 )
+from eth.vm.forks.london.blocks import (
+    LondonBlockHeader
+)
 
+from rlp.exceptions import (
+    ObjectDeserializationError
+)
 
 class HeaderDB(HeaderDatabaseAPI):
     def __init__(self, db: AtomicDatabaseAPI) -> None:
@@ -619,4 +625,8 @@ class HeaderDB(HeaderDatabaseAPI):
 # be looking up recent blocks.
 @functools.lru_cache(128)
 def _decode_block_header(header_rlp: bytes) -> BlockHeaderAPI:
-    return rlp.decode(header_rlp, sedes=BlockHeader)
+    try:
+        return rlp.decode(header_rlp, sedes=BlockHeader)
+    except ObjectDeserializationError:
+        # could be a new >=London block header
+        return rlp.decode(header_rlp, sedes=LondonBlockHeader)

@@ -54,23 +54,6 @@ class BaseTransactionMethods(BaseTransactionAPI):
     def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
         return []
 
-    # @property
-    # def max_priority_fee_per_gas(self) -> Optional[int]:
-    #     return None
-
-    # @max_priority_fee_per_gas.setter
-    # def max_priority_fee_per_gas(self, value: int) -> None:
-    #     self.max_priority_fee_per_gas = value
-
-    # @property
-    # def max_fee_per_gas(self) -> Optional[int]:
-    #     return None
-
-    # @max_fee_per_gas.setter
-    # def max_fee_per_gas(self, value: int) -> None:
-    #     self.max_fee_per_gas = value
-
-
 
 BASE_TRANSACTION_FIELDS = [
     ('nonce', big_endian_int),

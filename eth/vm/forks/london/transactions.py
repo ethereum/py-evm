@@ -12,7 +12,6 @@ from eth_keys.datatypes import PrivateKey
 from eth_utils.exceptions import ValidationError
 
 from eth.abc import (
-    BaseTransactionAPI,
     ReceiptAPI,
     SignedTransactionAPI,
     TransactionDecoderAPI,
@@ -36,6 +35,9 @@ from eth.vm.forks.berlin.transactions import (
 )
 from eth.vm.forks.istanbul.transactions import (
     ISTANBUL_TX_GAS_SCHEDULE,
+)
+from eth.vm.spoof import (
+    SpoofTransaction,
 )
 
 from eth._utils.transactions import (
@@ -332,41 +334,10 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
         )
         return LondonTypedTransaction(BASE_GAS_FEE_TRANSACTION_TYPE, transaction)
 
-
 def normalize_transaction(
-        transaction: SignedTransactionAPI
-    ) -> LondonNormalizedTransaction:
-
-    # fields common to all transactions
-    fields = {
-        "sender": transaction.sender,
-        "nonce": transaction.nonce,
-        "gas": transaction.gas,
-        "to": transaction.to,
-        "value": transaction.value,
-        "data": transaction.data,
-        "access_list": [],
-    }
-
-    if isinstance(transaction, (LondonLegacyTransaction, LondonTypedTransaction)):
-        fields["max_priority_fee_per_gas"] = transaction.gas_price
-        fields["max_fee_per_gas"] = transaction.gas_price
-        if isinstance(transaction, LondonTypedTransaction):
-            fields["access_list"] = transaction.access_list
-            if transaction.type_id == BASE_GAS_FEE_TRANSACTION_TYPE:
-                fields["max_priority_fee_per_gas"] = transaction.max_priority_fee_per_gas
-                fields["max_fee_per_gas"] = transaction.max_fee_per_gas
-            elif transaction.type_id != ACCESS_LIST_TRANSACTION_TYPE:
-                raise ValidationError(f"Invalid transaction type_id: {transaction.type_id}")
-
-        return LondonNormalizedTransaction(**fields)  # type: ignore
-
-    raise ValidationError(f"Invalid transaction type: {type(transaction)}")
-
-def new_normalize_transaction(
     transaction: SignedTransactionAPI
 ) -> SignedTransactionAPI:
-    if isinstance(transaction, LondonLegacyTransaction):
+    if isinstance(transaction, (LondonLegacyTransaction, SpoofTransaction)):
         transaction.max_priority_fee_per_gas = transaction.gas_price
         transaction.max_fee_per_gas = transaction.gas_price
     elif isinstance(transaction, LondonTypedTransaction):

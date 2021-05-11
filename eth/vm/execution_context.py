@@ -22,7 +22,7 @@ class ExecutionContext(ExecutionContextAPI):
     _gas_limit = None
     _prev_hashes = None
     _chain_id = None
-    _base_gas_fee = None
+    _base_gas_fee = 0  # TODO check if valid
 
     def __init__(
             self,
@@ -41,7 +41,8 @@ class ExecutionContext(ExecutionContextAPI):
         self._gas_limit = gas_limit
         self._prev_hashes = CachedIterable(prev_hashes)
         self._chain_id = chain_id
-        self._base_gas_fee = base_gas_fee
+        if base_gas_fee is not None:
+            self._base_gas_fee = base_gas_fee
 
     @property
     def coinbase(self) -> Address:

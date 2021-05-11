@@ -36,7 +36,7 @@ from eth._utils.address import (
 )
 
 from .computation import LondonComputation
-from .transactions import LondonLegacyTransaction, LondonTypedTransaction, new_normalize_transaction, normalize_transaction
+from .transactions import LondonLegacyTransaction, LondonTypedTransaction, LondonUnsignedLegacyTransaction, normalize_transaction
 from .validation import validate_london_normalized_transaction
 
 
@@ -162,7 +162,7 @@ class LondonState(BerlinState):
         if transaction.s > SECPK1_N // 2 or transaction.s == 0:
             raise ValidationError("Invalid signature S value")
 
-        normalized_transaction = new_normalize_transaction(transaction)
+        normalized_transaction = normalize_transaction(transaction)
         validate_london_normalized_transaction(
             state=self,
             transaction=normalized_transaction,
@@ -175,10 +175,16 @@ class LondonState(BerlinState):
         London-specific transaction context creation,
         where gas_price includes the block base fee
         """
-        priority_fee_per_gas = min(
-            transaction.max_priority_fee_per_gas,
-            transaction.max_fee_per_gas - self.execution_context.base_gas_fee
-        )
+        if isinstance(transaction, LondonTypedTransaction):  # TODO probably do this somewhere else
+            priority_fee_per_gas = min(
+                transaction.max_priority_fee_per_gas,
+                transaction.max_fee_per_gas - self.execution_context.base_gas_fee
+            )
+        else:
+            priority_fee_per_gas = min(
+                transaction.gas_price,
+                transaction.gas_price - self.execution_context.base_gas_fee
+            )
 
         effective_gas_price = self.execution_context.base_gas_fee + priority_fee_per_gas
         return self.get_transaction_context_class()(
