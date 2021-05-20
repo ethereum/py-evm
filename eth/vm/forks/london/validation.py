@@ -5,10 +5,6 @@ from eth.abc import (
 
 from eth_utils.exceptions import ValidationError
 
-from .blocks import LondonBlockHeader
-from .transactions import LondonNormalizedTransaction
-
-
 def validate_london_normalized_transaction(
     state: StateAPI,
     transaction: SignedTransactionAPI,

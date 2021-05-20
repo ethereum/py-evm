@@ -10,7 +10,10 @@ from eth.vm.state import BaseState
 from .blocks import LondonBlock
 from .constants import (
     BASE_FEE_MAX_CHANGE_DENOMINATOR,
-    ELASTICITY_MULTIPLIER
+    ELASTICITY_MULTIPLIER,
+    INITIAL_BASE_FEE,
+    INITIAL_FORK_BLOCK_NUMBER,
+    MINIMUM_GAS_LIMIT
 )
 from .headers import (
     compute_london_difficulty,
@@ -37,8 +40,9 @@ class LondonVM(BerlinVM):
     @staticmethod
     def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:
         parent_base_fee_per_gas = parent_header.base_fee_per_gas
-        if parent_base_fee_per_gas is None:  # TODO parent header is non-London
-            parent_base_fee_per_gas = 0
+        if parent_header.block_number + 1 == INITIAL_FORK_BLOCK_NUMBER:
+            return INITIAL_BASE_FEE
+
         parent_gas_target = parent_header.gas_limit
         parent_gas_used = parent_header.gas_used
 
@@ -67,26 +71,35 @@ class LondonVM(BerlinVM):
                         header: BlockHeaderAPI,
                         parent_header: BlockHeaderAPI) -> None:
 
-        header_gas_target = header.gas_limit
-        parent_gas_target = parent_header.gas_limit
+        parent_gas_target = parent_header.gas_limit // ELASTICITY_MULTIPLIER
 
-        max_usable_gas = header_gas_target * ELASTICITY_MULTIPLIER
-        if header.gas_used > max_usable_gas:
+        # On the fork block, don't account for the ELASTICITY_MULTIPLIER
+        # to avoid unduly halving the gas target.
+        if INITIAL_FORK_BLOCK_NUMBER == header.block_number:
+            parent_gas_target = parent_header.gas_limit
+            parent_gas_limit = parent_header.gas_limit * ELASTICITY_MULTIPLIER
+
+        if header.gas_used > header.gas_limit:
             raise ValidationError(
                 f"Block used too much gas: {header.gas_used} "
-                f"(max: {max_usable_gas})"
+                f"(max: {header.gas_limit})"
             )
 
-        if header_gas_target > parent_gas_target + (parent_gas_target // 1024):
+        if header.gas_limit > parent_gas_limit + (parent_gas_limit // 1024):
             raise ValidationError(
-                f"Gas target increased too much (from {parent_gas_target} "
-                f"to {header_gas_target})"
+                f"Gas limit increased too much (from {parent_gas_limit} "
+                f"to {header.gas_limit})"
             )
 
-        if header_gas_target < parent_gas_target - (parent_gas_target // 1024):
+        if header.gas_limit < parent_gas_target - (parent_gas_target // 1024):
             raise ValidationError(
-                f"Gas target decreased too much (from {parent_gas_target} "
-                f"to {header_gas_target})"
+                f"Gas limit decreased too much (from {parent_gas_target} "
+                f"to {header.gas_limit})"
+            )
+
+        if header.gas_limit < MINIMUM_GAS_LIMIT:
+            raise ValidationError(
+                f"Gas limit is lower than the minimum ({header.gas_limit} < {MINIMUM_GAS_LIMIT})"
             )
 
         expected_base_fee_per_gas = LondonVM.calculate_expected_base_fee_per_gas(parent_header)
