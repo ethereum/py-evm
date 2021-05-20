@@ -91,34 +91,6 @@ class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
 
 
 
-class LondonNormalizedTransaction():
-    """
-    A normalized transaction, used for validation purposes
-    """
-    def __init__(self,
-                 sender: Address,
-                 nonce: int,
-                 gas: int,
-                 max_priority_fee_per_gas: int,
-                 max_fee_per_gas: int,
-                 to: Address,
-                 value: int,
-                 data: bytes,
-                 access_list: Sequence[Tuple[Address, Sequence[int]]],
-                 gas_price: Optional[int] = None):  # EIP-1559 effective gas price
-        self.sender = sender
-        self.nonce = nonce
-        self.gas = gas
-        self.max_priority_fee_per_gas = max_priority_fee_per_gas
-        self.max_fee_per_gas = max_fee_per_gas
-        self.to = to
-        self.value = value
-        self.data = data
-        self.access_list = access_list
-        if gas_price is not None:
-            self.gas_price = gas_price
-
-
 class UnsignedBaseGasFeeTransaction(rlp.Serializable):
     _type_id = BASE_GAS_FEE_TRANSACTION_TYPE
     fields = [
