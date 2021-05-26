@@ -161,7 +161,6 @@ class BaseChain(Configurable, ChainAPI):
                     f"Invalid header chain; {child} has parent {encode_hex(child.parent_hash)},"
                     f" but expected {encode_hex(parent.hash)}"
                 )
-            should_check_seal = index in indices_to_check_seal
             vm = self.get_vm(child)
             try:
                 vm.validate_header(child, parent)
@@ -170,7 +169,7 @@ class BaseChain(Configurable, ChainAPI):
                     f"{child} is not a valid child of {parent}: {exc}"
                 ) from exc
 
-            if should_check_seal:
+            if index in indices_to_check_seal:
                 vm.validate_seal(child)
 
     def validate_chain_extension(self, headers: Tuple[BlockHeaderAPI, ...]) -> None:
