@@ -77,7 +77,6 @@ deps = {
 deps['dev'] = (
     deps['dev'] +
     deps['eth'] +
-    deps['eth-extra'] +
     deps['test'] +
     deps['doc'] +
     deps['lint']
