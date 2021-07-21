@@ -1,4 +1,3 @@
-import blake2b
 from eth_utils import (
     ValidationError,
 )
@@ -10,6 +9,11 @@ from eth.exceptions import (
 from eth.vm.computation import (
     BaseComputation,
 )
+
+try:
+    from blake2b import compress as blake2b_compress
+except ModuleNotFoundError:
+    from eth._utils.blake2.compression import blake2b_compress
 
 GAS_COST_PER_ROUND = 1
 
@@ -25,5 +29,5 @@ def blake2b_fcompress(computation: BaseComputation) -> BaseComputation:
 
     computation.consume_gas(gas_cost, reason=f"Blake2b Compress Precompile w/ {num_rounds} rounds")
 
-    computation.output = blake2b.compress(*parameters)
+    computation.output = blake2b_compress(*parameters)
     return computation
