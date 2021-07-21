@@ -5,7 +5,6 @@ from setuptools import setup, find_packages
 
 deps = {
     'eth': [
-        "blake2b-py>=0.1.4,<0.2",
         "cached-property>=1.5.1,<2",
         "eth-bloom>=1.0.3,<2.0.0",
         "eth-keys>=0.2.1,<0.4.0",
@@ -23,6 +22,7 @@ deps = {
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
     'eth-extra': [
+        "blake2b-py>=0.1.4,<0.2",
         "coincurve>=13.0.0,<14.0.0",
         "eth-hash[pysha3];implementation_name=='cpython'",
         "eth-hash[pycryptodome];implementation_name=='pypy'",
