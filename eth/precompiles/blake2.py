@@ -12,7 +12,7 @@ from eth.vm.computation import (
 
 try:
     from blake2b import compress as blake2b_compress
-except ModuleNotFoundError:
+except ImportError:
     from eth._utils.blake2.compression import blake2b_compress
 
 GAS_COST_PER_ROUND = 1
