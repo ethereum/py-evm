@@ -24,11 +24,11 @@ from eth_utils.toolz import functoolz
 
 from eth_utils.toolz import itertoolz
 
+from eth._utils.headers import (
+    compute_gas_limit_bounds,
+)
 from eth.abc import VirtualMachineAPI
 from eth.constants import (
-    GAS_LIMIT_ADJUSTMENT_FACTOR,
-    GAS_LIMIT_MAXIMUM,
-    GAS_LIMIT_MINIMUM,
     SECPK1_N,
     UINT_256_MAX,
     UINT_64_MAX,
@@ -229,14 +229,14 @@ def validate_vm_configuration(vm_configuration: Tuple[Tuple[int, Type[VirtualMac
 
 
 def validate_gas_limit(gas_limit: int, parent_gas_limit: int) -> None:
-    if gas_limit < GAS_LIMIT_MINIMUM:
-        raise ValidationError(f"Gas limit {gas_limit} is below minimum {GAS_LIMIT_MINIMUM}")
-    if gas_limit > GAS_LIMIT_MAXIMUM:
-        raise ValidationError(f"Gas limit {gas_limit} is above maximum {GAS_LIMIT_MAXIMUM}")
-    diff = gas_limit - parent_gas_limit
-    if diff > (parent_gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR):
+    low_bound, high_bound = compute_gas_limit_bounds(parent_gas_limit)
+    if gas_limit < low_bound:
         raise ValidationError(
-            f"Gas limit {gas_limit} difference to parent {parent_gas_limit} is too big {diff}"
+            f"The gas limit {gas_limit} is too low. It must be at least {low_bound}"
+        )
+    elif gas_limit > high_bound:
+        raise ValidationError(
+            f"The gas limit {gas_limit} is too high. It must be at most {high_bound}"
         )
 
 

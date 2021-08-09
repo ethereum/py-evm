@@ -23,7 +23,9 @@ def validate_london_normalized_transaction(
         )
 
     sender_balance = state.get_balance(transaction.sender)
-    if transaction.value > sender_balance:
+    if sender_balance < transaction.value:
+        # This check is redundant to the later total_transaction_cost check,
+        #   but is helpful for clear error messages.
         raise ValidationError(
             f"Sender {transaction.sender!r} cannot afford txn value"
             f"{transaction.value} with account balance {sender_balance}"
@@ -31,13 +33,13 @@ def validate_london_normalized_transaction(
 
     priority_fee_per_gas = min(
         transaction.max_priority_fee_per_gas,
-        transaction.max_fee_per_gas - base_fee_per_gas
+        transaction.max_fee_per_gas - base_fee_per_gas,
     )
 
     effective_gas_price = priority_fee_per_gas + base_fee_per_gas
     total_transaction_cost = transaction.value + effective_gas_price
 
-    if sender_balance - total_transaction_cost < 0:
+    if sender_balance < total_transaction_cost:
         raise ValidationError(
             f"Sender does not have enough balance to cover transaction value and gas "
             f" (has {sender_balance}, needs {total_transaction_cost})"

@@ -56,9 +56,7 @@ from eth.validation import (
     validate_block_number,
     validate_word,
 )
-from eth.vm.forks.london.blocks import (
-    LondonBlockHeader
-)
+from eth.vm.header import HeaderSedes
 
 from rlp.exceptions import (
     ObjectDeserializationError
@@ -625,8 +623,9 @@ class HeaderDB(HeaderDatabaseAPI):
 # be looking up recent blocks.
 @functools.lru_cache(128)
 def _decode_block_header(header_rlp: bytes) -> BlockHeaderAPI:
-    try:
-        return rlp.decode(header_rlp, sedes=BlockHeader)
-    except ObjectDeserializationError:
-        # could be a new >=London block header
-        return rlp.decode(header_rlp, sedes=LondonBlockHeader)
+    # Use a deserialization class that can handle any type of header.
+    # This feels a little hack-y, but we don't know the shape of the header
+    # at this point. It could be a pre-London header, or a post-London
+    # header, which includes the base fee. So we use a class that knows how to
+    # decode both.
+    return rlp.decode(header_rlp, sedes=HeaderSedes)

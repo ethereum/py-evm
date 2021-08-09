@@ -69,9 +69,6 @@ from eth._utils.db import (
     get_parent_header,
     get_block_header_by_hash,
 )
-from eth._utils.headers import (
-    generate_header_from_parent_header,
-)
 from eth.validation import (
     validate_length_lte,
     validate_gas_limit,
@@ -176,16 +173,29 @@ class VM(Configurable, VirtualMachineAPI):
                                  prev_hashes: Iterable[Hash32],
                                  chain_context: ChainContextAPI) -> ExecutionContextAPI:
         fee_recipient = cls.consensus_class.get_fee_recipient(header)
-        return ExecutionContext(
-            coinbase=fee_recipient,
-            timestamp=header.timestamp,
-            block_number=header.block_number,
-            difficulty=header.difficulty,
-            gas_limit=header.gas_limit,
-            prev_hashes=prev_hashes,
-            chain_id=chain_context.chain_id,
-            base_gas_fee=header.base_fee_per_gas,
-        )
+        try:
+            base_fee = header.base_fee_per_gas
+        except AttributeError:
+            return ExecutionContext(
+                coinbase=fee_recipient,
+                timestamp=header.timestamp,
+                block_number=header.block_number,
+                difficulty=header.difficulty,
+                gas_limit=header.gas_limit,
+                prev_hashes=prev_hashes,
+                chain_id=chain_context.chain_id,
+            )
+        else:
+            return ExecutionContext(
+                coinbase=fee_recipient,
+                timestamp=header.timestamp,
+                block_number=header.block_number,
+                difficulty=header.difficulty,
+                gas_limit=header.gas_limit,
+                prev_hashes=prev_hashes,
+                chain_id=chain_context.chain_id,
+                base_fee_per_gas=base_fee,
+            )
 
     def execute_bytecode(self,
                          origin: Address,
@@ -436,12 +446,7 @@ class VM(Configurable, VirtualMachineAPI):
     def generate_block_from_parent_header_and_coinbase(cls,
                                                        parent_header: BlockHeaderAPI,
                                                        coinbase: Address) -> BlockAPI:
-        block_header = generate_header_from_parent_header(
-            cls.compute_difficulty,
-            parent_header,
-            coinbase,
-            timestamp=parent_header.timestamp + 1,
-        )
+        block_header = cls.create_header_from_parent(parent_header, coinbase=coinbase)
         block = cls.get_block_class()(
             block_header,
             transactions=[],
@@ -591,8 +596,7 @@ class VM(Configurable, VirtualMachineAPI):
             validate_length_lte(
                 header.extra_data, cls.extra_data_max_bytes, title="BlockHeader.extra_data")
 
-            # TODO skip for EIP-1559, or override this whole function?
-            validate_gas_limit(header.gas_limit, parent_header.gas_limit)
+            cls.validate_gas(header, parent_header)
 
             if header.block_number != parent_header.block_number + 1:
                 raise ValidationError(
@@ -609,6 +613,13 @@ class VM(Configurable, VirtualMachineAPI):
                     f"- child  : {header.timestamp}\n"
                     f"- parent : {parent_header.timestamp}. "
                 )
+
+    @classmethod
+    def validate_gas(
+            cls,
+            header: BlockHeaderAPI,
+            parent_header: BlockHeaderAPI) -> None:
+        validate_gas_limit(header.gas_limit, parent_header.gas_limit)
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         try:
@@ -664,13 +675,19 @@ class VM(Configurable, VirtualMachineAPI):
         return cls._state_class
 
     @contextlib.contextmanager
-    def state_in_temp_block(self) -> Iterator[StateAPI]:
+    def in_costless_state(self) -> Iterator[StateAPI]:
         header = self.get_header()
+
         temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
         prev_hashes = itertools.chain((header.hash,), self.previous_hashes)
 
+        if hasattr(temp_block.header, 'base_fee_per_gas'):
+            free_header = temp_block.header.copy(base_fee_per_gas=0)
+        else:
+            free_header = temp_block.header
+
         state = self.build_state(self.chaindb.db,
-                                 temp_block.header,
+                                 free_header,
                                  self.chain_context,
                                  prev_hashes)
 

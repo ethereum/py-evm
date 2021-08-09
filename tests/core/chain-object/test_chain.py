@@ -2,11 +2,17 @@ import pytest
 import rlp
 
 from eth_utils import decode_hex
+from eth_utils.toolz import sliding_window
 
 from eth import constants
 from eth.abc import MiningChainAPI
-from eth.chains.mainnet import MAINNET_GENESIS_HEADER
+from eth.chains.base import MiningChain
+from eth.chains.mainnet import (
+    MAINNET_GENESIS_HEADER,
+    MAINNET_VMS,
+)
 from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
+from eth.consensus.noproof import NoProofConsensus
 from eth.exceptions import (
     TransactionNotFound,
 )
@@ -23,6 +29,30 @@ from tests.core.fixtures import (
 @pytest.fixture
 def chain(chain_without_block_validation):
     return chain_without_block_validation
+
+
+VM_PAIRS = sliding_window(2, MAINNET_VMS)
+
+
+@pytest.fixture(params=VM_PAIRS)
+def vm_crossover_chain(request, base_db, genesis_state):
+    start_vm, end_vm = request.param
+    klass = MiningChain.configure(
+        __name__='CrossoverTestChain',
+        vm_configuration=(
+            (
+                constants.GENESIS_BLOCK_NUMBER,
+                start_vm.configure(consensus_class=NoProofConsensus),
+            ),
+            # Can mine one block of the first VM, then the next block with be the next VM
+            (
+                constants.GENESIS_BLOCK_NUMBER + 2,
+                end_vm.configure(consensus_class=NoProofConsensus),
+            ),
+        ),
+        chain_id=1337,
+    )
+    return klass.from_genesis(base_db, dict(difficulty=1), genesis_state)
 
 
 @pytest.fixture
@@ -98,7 +128,7 @@ def test_mine_all(chain, tx, tx2, funded_address):
         assert chain.get_canonical_transaction(tx.hash) == tx
 
         end_balance = chain.get_vm().state.get_balance(funded_address)
-        expected_spend = 2 * (100 + 21000 * 10)  # sent + gas * gasPrice
+        expected_spend = 2 * (100 + 21000 * 10**10)  # sent + gas * gasPrice
 
         assert start_balance - end_balance == expected_spend
     elif isinstance(chain, MiningChainAPI):
@@ -200,3 +230,37 @@ def test_get_transaction_receipt(chain, tx):
     assert chain.get_canonical_transaction_index(tx.hash) == (1, 0)
     assert chain.get_transaction_receipt_by_index(1, 0) == expected_receipt
     assert chain.get_transaction_receipt(tx.hash) == expected_receipt
+
+
+def _mine_result_to_header(mine_all_result):
+    block_import_result, _, _ = mine_all_result
+    return block_import_result.imported_block.header
+
+
+def test_uncles_across_VMs(vm_crossover_chain):
+    chain = vm_crossover_chain
+
+    genesis = chain.get_canonical_block_header_by_number(0)
+
+    # Mine in 1st VM
+    uncle_header1 = chain.mine_block(extra_data=b'uncle1').header
+    canon_header1 = _mine_result_to_header(
+        chain.mine_all([], parent_header=genesis)
+    )
+
+    # Mine in 2nd VM
+    uncle_header2 = chain.mine_block(extra_data=b'uncle2').header
+    canon_header2 = _mine_result_to_header(
+        chain.mine_all([], parent_header=canon_header1)
+    )
+
+    # Mine block with uncles from both VMs
+    canon_block3 = chain.mine_block(uncles=[uncle_header1, uncle_header2])
+
+    assert canon_header2.hash == canon_block3.header.parent_hash
+
+    assert canon_block3.uncles == (uncle_header1, uncle_header2)
+
+    deserialized_block3 = chain.get_canonical_block_by_number(3)
+
+    assert deserialized_block3.uncles == (uncle_header1, uncle_header2)

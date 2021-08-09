@@ -1,7 +1,5 @@
 import time
 from typing import (
-    Dict,
-    Optional,
     overload,
 )
 
@@ -161,42 +159,6 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
     def hex_hash(self) -> str:
         return encode_hex(self.hash)
 
-    @classmethod
-    def from_parent(cls,
-                    parent: BlockHeaderAPI,
-                    gas_limit: int,
-                    difficulty: int,
-                    timestamp: int,
-                    coinbase: Address = ZERO_ADDRESS,
-                    nonce: bytes = None,
-                    extra_data: bytes = None,
-                    transaction_root: bytes = None,
-                    receipt_root: bytes = None) -> 'BlockHeader':
-        """
-        Initialize a new block header with the `parent` header as the block's
-        parent hash.
-        """
-        header_kwargs: Dict[str, HeaderParams] = {
-            'parent_hash': parent.hash,
-            'coinbase': coinbase,
-            'state_root': parent.state_root,
-            'gas_limit': gas_limit,
-            'difficulty': difficulty,
-            'block_number': parent.block_number + 1,
-            'timestamp': timestamp,
-        }
-        if nonce is not None:
-            header_kwargs['nonce'] = nonce
-        if extra_data is not None:
-            header_kwargs['extra_data'] = extra_data
-        if transaction_root is not None:
-            header_kwargs['transaction_root'] = transaction_root
-        if receipt_root is not None:
-            header_kwargs['receipt_root'] = receipt_root
-
-        header = cls(**header_kwargs)
-        return header
-
     @property
     def is_genesis(self) -> bool:
         # if removing the block_number == 0 test, consider the validation consequences.
@@ -205,5 +167,5 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
         return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
 
     @property
-    def base_fee_per_gas(self) -> Optional[int]:
-        return 0
+    def base_fee_per_gas(self) -> int:
+        raise AttributeError("Base fee per gas not available until London fork")

@@ -91,7 +91,7 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (muir_glacier_at, MuirGlacierVM),
         (berlin_at, BerlinVM),
         (london_at, LondonVM),
-        (latest_mainnet_at, MuirGlacierVM),  # this will change whenever the next upgrade is locked
+        (latest_mainnet_at, LondonVM),  # this will change whenever the next upgrade is locked
     )
 )
 def test_chain_builder_construct_chain_fork_specific_helpers(fork_fn, vm_class):

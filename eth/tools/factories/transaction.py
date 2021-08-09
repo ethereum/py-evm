@@ -12,7 +12,7 @@ def new_transaction(
         to,
         amount=0,
         private_key=None,
-        gas_price=10,
+        gas_price=10**10,  # 10 gwei, to easily cover the initial London fee of 1 gwei
         gas=100000,
         data=b'',
         nonce=None,
@@ -49,7 +49,7 @@ def new_access_list_transaction(
         to,
         private_key,
         amount=0,
-        gas_price=10,
+        gas_price=10**10,
         gas=100000,
         data=b'',
         nonce=None,

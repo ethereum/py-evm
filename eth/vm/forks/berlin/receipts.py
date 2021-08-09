@@ -43,7 +43,6 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
     type_id: int
     rlp_type = Binary(min_length=1)  # must have at least one byte for the type
     _inner: ReceiptAPI
-    codecs = TYPED_RECEIPT_BODY_CODECS
 
     def __init__(self, type_id: int, proxy_target: ReceiptAPI) -> None:
         self.type_id = type_id

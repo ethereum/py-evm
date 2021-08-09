@@ -74,7 +74,7 @@ class MiningHeaderAPI(ABC):
     gas_used: int
     timestamp: int
     extra_data: bytes
-    base_fee_per_gas: int  # EIP-1559
+    base_fee_per_gas: int  # EIP-1559, set to None in pre-London header
 
     @property
     @abstractmethod
@@ -337,7 +337,10 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def gas_price(self) -> Optional[int]:
+    def gas_price(self) -> int:
+        """
+        Will raise :cls:`AttributeError` if get or set on a 1559 transaction.
+        """
         ...
 
     @property
@@ -1690,9 +1693,9 @@ class ExecutionContextAPI(ABC):
 
     @property
     @abstractmethod
-    def base_gas_fee(self) -> Optional[int]:
+    def base_fee_per_gas(self) -> Optional[int]:
         """
-        Return the base gas fee of the block
+        Return the base fee per gas of the block
         """
         ...
 
@@ -2877,8 +2880,9 @@ class StateAPI(ConfigurableAPI):
     #
     # Transaction context
     #
+    @classmethod
     @abstractmethod
-    def get_transaction_context_class(self) -> Type[TransactionContextAPI]:
+    def get_transaction_context_class(cls) -> Type[TransactionContextAPI]:
         """
         Return the :class:`~eth.vm.transaction_context.BaseTransactionContext` class that the
         state class uses.
@@ -2986,6 +2990,36 @@ class ConsensusAPI(ABC):
     def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
         """
         Return the address that should receive rewards for creating the block.
+        """
+        ...
+
+
+
+class BlockHeaderSedesAPI(ABC):
+    """
+    Serialize and deserialize RLP for a header.
+
+    The header may be one of several definitions, like a London (EIP-1559) or
+    pre-London header.
+    """
+
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, encoded: List[bytes]) -> BlockHeaderAPI:
+        """
+        Extract a header from an encoded RLP object.
+
+        This method is used by rlp.decode(..., sedes=TransactionBuilderAPI).
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def serialize(cls, obj: BlockHeaderAPI) -> List[bytes]:
+        """
+        Encode a header to a series of bytes used by RLP.
+
+        This method is used by rlp.encode(obj).
         """
         ...
 
@@ -3466,10 +3500,10 @@ class VirtualMachineAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def state_in_temp_block(self) -> ContextManager[StateAPI]:
+    def in_costless_state(self) -> ContextManager[StateAPI]:
         """
         Return a :class:`~typing.ContextManager` with the current state wrapped in a temporary
-        block.
+        block. In this state, the ability to pay gas costs is ignored.
         """
         ...
 
@@ -3929,13 +3963,6 @@ class ChainAPI(ConfigurableAPI):
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         """
         Validate the seal on the given ``header``.
-        """
-        ...
-
-    @abstractmethod
-    def validate_gaslimit(self, header: BlockHeaderAPI) -> None:
-        """
-        Validate the gas limit on the given ``header``.
         """
         ...
 

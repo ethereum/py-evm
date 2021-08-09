@@ -21,6 +21,7 @@ from eth._utils.db import (
 )
 from eth._utils.headers import (
     compute_gas_limit,
+    fill_header_params_from_parent,
 )
 from eth.rlp.headers import BlockHeader
 
@@ -85,12 +86,11 @@ def create_frontier_header_from_parent(parent_header: BlockHeaderAPI,
     if 'gas_limit' not in header_params:
         header_params['gas_limit'] = compute_gas_limit(
             parent_header,
-            gas_limit_floor=GENESIS_GAS_LIMIT,
+            genesis_gas_limit=GENESIS_GAS_LIMIT,
         )
 
-    header = BlockHeader.from_parent(parent=parent_header, **header_params)
-
-    return header
+    all_fields = fill_header_params_from_parent(parent_header, **header_params)
+    return BlockHeader(**all_fields)
 
 
 def configure_frontier_header(vm: "FrontierVM", **header_params: Any) -> BlockHeader:

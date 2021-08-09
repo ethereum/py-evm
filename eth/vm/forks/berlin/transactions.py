@@ -1,7 +1,6 @@
 from typing import (
     Any,
     Dict,
-    Optional,
     Sequence,
     Tuple,
     Type,
@@ -137,6 +136,15 @@ class UnsignedAccessListTransaction(rlp.Serializable):
         )
         return TypedTransaction(self._type_id, signed_transaction)
 
+    # Old transactions are treated as setting both max-fees as the gas price
+    @property
+    def max_priority_fee_per_gas(self) -> int:
+        return self.gas_price
+
+    @property
+    def max_fee_per_gas(self) -> int:
+        return self.gas_price
+
 
 class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI):
     _type_id = ACCESS_LIST_TRANSACTION_TYPE
@@ -153,7 +161,6 @@ class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
         ('r', big_endian_int),
         ('s', big_endian_int),
     ]
-
 
     def get_sender(self) -> Address:
         return extract_transaction_sender(self)
@@ -214,6 +221,15 @@ class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
             gas_used=gas_used,
             logs=logs,
         )
+
+    # Old transactions are treated as setting both max-fees as the gas price
+    @property
+    def max_priority_fee_per_gas(self) -> int:
+        return self.gas_price
+
+    @property
+    def max_fee_per_gas(self) -> int:
+        return self.gas_price
 
 
 class AccessListPayloadDecoder(TransactionDecoderAPI):
@@ -281,6 +297,14 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
     @property
     def gas_price(self) -> int:
         return self._inner.gas_price
+
+    @property
+    def max_priority_fee_per_gas(self) -> int:
+        return self._inner.max_priority_fee_per_gas
+
+    @property
+    def max_fee_per_gas(self) -> int:
+        return self._inner.max_fee_per_gas
 
     @property
     def gas(self) -> int:

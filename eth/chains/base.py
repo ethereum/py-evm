@@ -22,6 +22,7 @@ from eth_utils import (
 )
 from eth_utils.toolz import (
     concatv,
+    keyfilter,
     sliding_window,
 )
 
@@ -30,9 +31,6 @@ from eth._utils.db import (
 )
 from eth._utils.datatypes import (
     Configurable,
-)
-from eth._utils.headers import (
-    compute_gas_limit_bounds,
 )
 from eth._utils.rlp import (
     validate_imported_block_unchanged,
@@ -249,7 +247,7 @@ class Chain(BaseChain):
                 f"Expected {genesis_params['state_root']!r}"
             )
 
-        genesis_header = BlockHeader(**genesis_params)
+        genesis_header = genesis_vm_class.create_header_from_parent(None, **genesis_params)
         return cls.from_genesis_header(base_db, genesis_header)
 
     @classmethod
@@ -442,7 +440,7 @@ class Chain(BaseChain):
             transaction: SignedTransactionAPI,
             at_header: BlockHeaderAPI) -> bytes:
 
-        with self.get_vm(at_header).state_in_temp_block() as state:
+        with self.get_vm(at_header).in_costless_state() as state:
             computation = state.costless_execute_transaction(transaction)
 
         computation.raise_if_error()
@@ -454,7 +452,7 @@ class Chain(BaseChain):
             at_header: BlockHeaderAPI = None) -> int:
         if at_header is None:
             at_header = self.get_canonical_head()
-        with self.get_vm(at_header).state_in_temp_block() as state:
+        with self.get_vm(at_header).in_costless_state() as state:
             return self.gas_estimator(state, transaction)
 
     def import_block(self,
@@ -497,6 +495,7 @@ class Chain(BaseChain):
         if perform_validation:
             self.validate_block(block)
 
+        vm = self.get_vm(block.header)
         (
             new_canonical_hashes,
             old_canonical_hashes,
@@ -541,27 +540,10 @@ class Chain(BaseChain):
         vm.validate_seal(block.header)
         vm.validate_seal_extension(block.header, ())
         self.validate_uncles(block)
-        self.validate_gaslimit(block.header)
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         vm = self.get_vm(header)
         vm.validate_seal(header)
-
-    def validate_gaslimit(self, header: BlockHeaderAPI) -> None:
-        parent_header = self.get_block_header_by_hash(header.parent_hash)
-        low_bound, high_bound = compute_gas_limit_bounds(parent_header)
-        if header.gas_limit < low_bound:
-            raise ValidationError(
-                f"The gas limit on block {encode_hex(header.hash)} "
-                f"is too low: {header.gas_limit}. "
-                f"It must be at least {low_bound}"
-            )
-        elif header.gas_limit > high_bound:
-            raise ValidationError(
-                f"The gas limit on block {encode_hex(header.hash)} "
-                f"is too high: {header.gas_limit}. "
-                f"It must be at most {high_bound}"
-            )
 
     def validate_uncles(self, block: BlockAPI) -> None:
         has_uncles = len(block.uncles) > 0

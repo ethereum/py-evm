@@ -305,20 +305,3 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
             s,
         )
         return LondonTypedTransaction(BASE_GAS_FEE_TRANSACTION_TYPE, transaction)
-
-def normalize_transaction(
-    transaction: SignedTransactionAPI
-) -> SignedTransactionAPI:
-    if isinstance(transaction, (LondonLegacyTransaction, SpoofTransaction)):
-        transaction.max_priority_fee_per_gas = transaction.gas_price
-        transaction.max_fee_per_gas = transaction.gas_price
-    elif isinstance(transaction, LondonTypedTransaction):
-        if transaction.type_id == ACCESS_LIST_TRANSACTION_TYPE:
-            transaction.max_priority_fee_per_gas = transaction.gas_price
-            transaction.max_fee_per_gas = transaction.gas_price
-        elif transaction.type_id != BASE_GAS_FEE_TRANSACTION_TYPE:
-            raise ValidationError(f"Invalid transaction type_id: {transaction.type_id}")
-    else:
-        raise ValidationError(f"Invalid transaction type: {type(transaction)}")
-
-    return transaction

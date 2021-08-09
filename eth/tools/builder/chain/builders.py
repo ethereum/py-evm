@@ -240,7 +240,7 @@ muir_glacier_at = fork_at(MuirGlacierVM)
 berlin_at = fork_at(BerlinVM)
 london_at = fork_at(LondonVM)
 
-latest_mainnet_at = muir_glacier_at
+latest_mainnet_at = london_at
 
 GENESIS_DEFAULTS = cast(
     Tuple[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]], ...],

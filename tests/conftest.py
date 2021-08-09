@@ -134,21 +134,22 @@ def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
     importing arbitrarily constructe, not finalized blocks, use the
     chain_without_block_validation fixture instead.
     """
+    # values that are the same as the default are commented out
     genesis_params = {
-        "bloom": 0,
+        # "bloom": 0,
         "coinbase": to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
         "difficulty": 131072,
         "extra_data": b"B",
         "gas_limit": 3141592,
-        "gas_used": 0,
+        # "gas_used": 0,
         "mix_hash": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
         "nonce": decode_hex("0102030405060708"),
-        "block_number": 0,
-        "parent_hash": decode_hex("0000000000000000000000000000000000000000000000000000000000000000"),  # noqa: E501
+        # "block_number": 0,
+        # "parent_hash": decode_hex("0000000000000000000000000000000000000000000000000000000000000000"),  # noqa: E501
         "receipt_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
         "timestamp": 1422494849,
         "transaction_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
-        "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
+        # "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
     }
 
     klass = chain_cls.configure(

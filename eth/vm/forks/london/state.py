@@ -36,17 +36,18 @@ from eth._utils.address import (
 )
 
 from .computation import LondonComputation
-from .transactions import LondonLegacyTransaction, LondonTypedTransaction, LondonUnsignedLegacyTransaction, normalize_transaction
 from .validation import validate_london_normalized_transaction
 
 
 class LondonTransactionExecutor(BerlinTransactionExecutor):
-    def build_evm_message(
-        self,
-        transaction: SignedTransactionAPI,
-    ) -> MessageAPI:
-        transaction_context = self.vm_state.get_transaction_context(transaction)
-        gas_fee = transaction.gas * transaction_context.gas_price
+    def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
+        # Use vm_state.get_gas_price instead of transaction_context.gas_price so
+        #   that we can run get_transaction_result (aka~ eth_call) and estimate_gas.
+        #   Both work better if the GASPRICE opcode returns the original real price,
+        #   but the sender's balance doesn't actually deduct the gas. This get_gas_price()
+        #   will return 0 for eth_call, but transaction_context.gas_price will return
+        #   the same value as the GASPRICE opcode.
+        gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
 
         # Buy Gas
         self.vm_state.delta_balance(transaction.sender, -1 * gas_fee)
@@ -158,15 +159,21 @@ class LondonState(BerlinState):
         self,
         transaction: SignedTransactionAPI
     ) -> None:
+        # frontier validation (without the gas price checks)
+        sender_nonce = self.get_nonce(transaction.sender)
+        if sender_nonce != transaction.nonce:
+            raise ValidationError(
+                f"Invalid transaction nonce: Expected {sender_nonce}, but got {transaction.nonce}"
+            )
+
         # homestead validation
         if transaction.s > SECPK1_N // 2 or transaction.s == 0:
             raise ValidationError("Invalid signature S value")
 
-        normalized_transaction = normalize_transaction(transaction)
         validate_london_normalized_transaction(
             state=self,
-            transaction=normalized_transaction,
-            base_fee_per_gas=self.execution_context.base_gas_fee
+            transaction=transaction,
+            base_fee_per_gas=self.execution_context.base_fee_per_gas
         )
 
     def get_transaction_context(self: StateAPI,
@@ -175,18 +182,18 @@ class LondonState(BerlinState):
         London-specific transaction context creation,
         where gas_price includes the block base fee
         """
-        if isinstance(transaction, LondonTypedTransaction):  # TODO probably do this somewhere else
-            priority_fee_per_gas = min(
-                transaction.max_priority_fee_per_gas,
-                transaction.max_fee_per_gas - self.execution_context.base_gas_fee
-            )
-        else:
-            priority_fee_per_gas = min(
-                transaction.gas_price,
-                transaction.gas_price - self.execution_context.base_gas_fee
-            )
+        effective_gas_price = min(
+            transaction.max_priority_fee_per_gas + self.execution_context.base_fee_per_gas,
+            transaction.max_fee_per_gas,
+        )
+        # See how this reduces in a pre-1559 transaction:
+        # 1. effective_gas_price = min(
+        #     transaction.gas_price + self.execution_context.base_fee_per_gas,
+        #     transaction.gas_price,
+        # )
+        # base_fee_per_gas is non-negative, so:
+        # 2. effective_gas_price = transaction.gas_price
 
-        effective_gas_price = self.execution_context.base_gas_fee + priority_fee_per_gas
         return self.get_transaction_context_class()(
             gas_price=effective_gas_price,
             origin=transaction.sender

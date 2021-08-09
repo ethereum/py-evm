@@ -22,7 +22,7 @@ class ExecutionContext(ExecutionContextAPI):
     _gas_limit = None
     _prev_hashes = None
     _chain_id = None
-    _base_gas_fee = 0  # TODO check if valid
+    _base_fee_per_gas = None
 
     def __init__(
             self,
@@ -33,7 +33,7 @@ class ExecutionContext(ExecutionContextAPI):
             gas_limit: int,
             prev_hashes: Iterable[Hash32],
             chain_id: int,
-            base_gas_fee: Optional[int]) -> None:
+            base_fee_per_gas: Optional[int] = None) -> None:
         self._coinbase = coinbase
         self._timestamp = timestamp
         self._block_number = block_number
@@ -41,8 +41,7 @@ class ExecutionContext(ExecutionContextAPI):
         self._gas_limit = gas_limit
         self._prev_hashes = CachedIterable(prev_hashes)
         self._chain_id = chain_id
-        if base_gas_fee is not None:
-            self._base_gas_fee = base_gas_fee
+        self._base_fee_per_gas = base_fee_per_gas
 
     @property
     def coinbase(self) -> Address:
@@ -73,5 +72,8 @@ class ExecutionContext(ExecutionContextAPI):
         return self._chain_id
 
     @property
-    def base_gas_fee(self) -> Optional[int]:
-        return self._base_gas_fee
+    def base_fee_per_gas(self) -> int:
+        if self._base_fee_per_gas is None:
+            raise AttributeError(f"This header at Block #{self.block_number} does not have a base gas fee")
+        else:
+            return self._base_fee_per_gas

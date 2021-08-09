@@ -50,8 +50,13 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         self.vm_state.validate_transaction(transaction)
 
     def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
-
-        gas_fee = transaction.gas * transaction.gas_price
+        # Use vm_state.get_gas_price instead of transaction_context.gas_price so
+        #   that we can run get_transaction_result (aka~ eth_call) and estimate_gas.
+        #   Both work better if the GASPRICE opcode returns the original real price,
+        #   but the sender's balance doesn't actually deduct the gas. This get_gas_price()
+        #   will return 0 for eth_call, but transaction_context.gas_price will return
+        #   the same value as the GASPRICE opcode.
+        gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
 
         # Buy Gas
         self.vm_state.delta_balance(transaction.sender, -1 * gas_fee)

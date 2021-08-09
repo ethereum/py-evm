@@ -1,8 +1,7 @@
 import time
 
 from typing import (
-    Dict,
-    Optional,
+    List,
     Type,
     overload,
 )
@@ -19,6 +18,7 @@ from rlp.sedes import (
 
 from eth.abc import (
     BlockHeaderAPI,
+    BlockHeaderSedesAPI,
     MiningHeaderAPI,
     ReceiptBuilderAPI,
     TransactionBuilderAPI,
@@ -27,9 +27,13 @@ from eth.constants import (
     ZERO_ADDRESS,
     ZERO_HASH32,
     EMPTY_UNCLE_HASH,
+    GENESIS_BLOCK_NUMBER,
     GENESIS_NONCE,
     GENESIS_PARENT_HASH,
     BLANK_ROOT_HASH,
+)
+from eth.rlp.headers import (
+    BlockHeader,
 )
 from eth.rlp.sedes import (
     address,
@@ -61,42 +65,30 @@ from .transactions import (
     LondonTransactionBuilder,
 )
 
+UNMINED_LONDON_HEADER_FIELDS = [
+    ('parent_hash', hash32),
+    ('uncles_hash', hash32),
+    ('coinbase', address),
+    ('state_root', trie_root),
+    ('transaction_root', trie_root),
+    ('receipt_root', trie_root),
+    ('bloom', uint256),
+    ('difficulty', big_endian_int),
+    ('block_number', big_endian_int),
+    ('gas_limit', big_endian_int),
+    ('gas_used', big_endian_int),
+    ('timestamp', big_endian_int),
+    ('extra_data', binary),
+    ('base_fee_per_gas', big_endian_int),
+]
+
 
 class LondonMiningHeader(rlp.Serializable, MiningHeaderAPI):
-    fields = [
-        ('parent_hash', hash32),
-        ('uncles_hash', hash32),
-        ('coinbase', address),
-        ('state_root', trie_root),
-        ('transaction_root', trie_root),
-        ('receipt_root', trie_root),
-        ('bloom', uint256),
-        ('difficulty', big_endian_int),
-        ('block_number', big_endian_int),
-        ('gas_limit', big_endian_int),
-        ('gas_used', big_endian_int),
-        ('timestamp', big_endian_int),
-        ('extra_data', binary),
-        ('base_fee_per_gas', big_endian_int),
-    ]
+    fields = UNMINED_LONDON_HEADER_FIELDS
 
 
 class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
-    fields = [
-        ('parent_hash', hash32),
-        ('uncles_hash', hash32),
-        ('coinbase', address),
-        ('state_root', trie_root),
-        ('transaction_root', trie_root),
-        ('receipt_root', trie_root),
-        ('bloom', uint256),
-        ('difficulty', big_endian_int),
-        ('block_number', big_endian_int),
-        ('gas_limit', big_endian_int),
-        ('gas_used', big_endian_int),
-        ('timestamp', big_endian_int),
-        ('extra_data', binary),
-        ('base_fee_per_gas', big_endian_int),
+    fields = UNMINED_LONDON_HEADER_FIELDS + [
         ('mix_hash', binary),
         ('nonce', Binary(8, allow_empty=True)),
     ]
@@ -139,7 +131,7 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         )
 
     def __str__(self) -> str:
-        return f'<BlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
+        return f'<LondonBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
 
     _hash = None
 
@@ -157,44 +149,6 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
     def hex_hash(self) -> str:
         return encode_hex(self.hash)
 
-    @classmethod
-    def from_parent(cls,
-                    parent: 'BlockHeaderAPI',
-                    difficulty: int,
-                    timestamp: int,
-                    gas_limit: int,
-                    coinbase: Address = ZERO_ADDRESS,
-                    base_fee_per_gas: int = 0,  # TODO is this correct?
-                    nonce: bytes = None,
-                    extra_data: bytes = None,
-                    transaction_root: bytes = None,
-                    receipt_root: bytes = None) -> 'BlockHeaderAPI':
-        """
-        Initialize a new block header with the `parent` header as the block's
-        parent hash.
-        """
-        header_kwargs: Dict[str, HeaderParams] = {
-            'parent_hash': parent.hash,
-            'coinbase': coinbase,
-            'state_root': parent.state_root,
-            'gas_limit': gas_limit,
-            'base_fee_per_gas': base_fee_per_gas,
-            'difficulty': difficulty,
-            'block_number': parent.block_number + 1,
-            'timestamp': timestamp,
-        }
-        if nonce is not None:
-            header_kwargs['nonce'] = nonce
-        if extra_data is not None:
-            header_kwargs['extra_data'] = extra_data
-        if transaction_root is not None:
-            header_kwargs['transaction_root'] = transaction_root
-        if receipt_root is not None:
-            header_kwargs['receipt_root'] = receipt_root
-
-        header = cls(**header_kwargs)  # type: ignore
-        return header
-
     @property
     def is_genesis(self) -> bool:
         # if removing the block_number == 0 test, consider the validation consequences.
@@ -203,11 +157,36 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
 
 
+class LondonBackwardsHeader(BlockHeaderSedesAPI):
+    """
+    An rlp sedes class for block headers.
+
+    It can serialize and deserialize *both* London and pre-London headers.
+    """
+
+    @classmethod
+    def serialize(cls, obj: BlockHeaderAPI) -> List[bytes]:
+        return obj.serialize(obj)
+
+    @classmethod
+    def deserialize(cls, encoded: List[bytes]) -> BlockHeaderAPI:
+        num_fields = len(encoded)
+        if num_fields == 16:
+            return LondonBlockHeader.deserialize(encoded)
+        elif num_fields == 15:
+            return BlockHeader.deserialize(encoded)
+        else:
+            raise ValueError(
+                "London & earlier can only handle headers of 15 or 16 fields. "
+                f"Got {num_fields} in {encoded!r}"
+            )
+
+
 class LondonBlock(BerlinBlock):
     transaction_builder: Type[TransactionBuilderAPI] = LondonTransactionBuilder  # type: ignore
     receipt_builder: Type[ReceiptBuilderAPI] = LondonReceiptBuilder  # type: ignore
     fields = [
         ('header', LondonBlockHeader),
         ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(LondonBlockHeader))
+        ('uncles', CountableList(LondonBackwardsHeader))
     ]
