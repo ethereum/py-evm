@@ -115,13 +115,12 @@ def test_validate_header_succeeds_but_pow_fails(pow_consensus_chain, noproof_con
 
 def test_validate_header_fails_on_invalid_parent(noproof_consensus_chain):
     block1 = noproof_consensus_chain.mine_block()
-    noproof_consensus_chain.mine_block()
-    block3 = noproof_consensus_chain.mine_block()
+    block2 = noproof_consensus_chain.mine_block()
 
-    vm = noproof_consensus_chain.get_vm(block3.header)
+    vm = noproof_consensus_chain.get_vm(block2.header)
 
     with pytest.raises(ValidationError, match="Blocks must be numbered consecutively"):
-        vm.validate_header(block3.header, block1.header)
+        vm.validate_header(block2.header.copy(block_number=3), block1.header)
 
 
 def test_validate_gas_limit_almost_too_low(noproof_consensus_chain):

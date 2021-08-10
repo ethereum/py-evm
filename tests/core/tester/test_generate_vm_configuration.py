@@ -33,7 +33,7 @@ class CustomFrontierVM(FrontierVM):
         (
             (),
             {},
-            ((0, Forks.Berlin),),
+            ((0, Forks.London),),
         ),
         (
             ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
