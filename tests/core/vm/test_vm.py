@@ -17,19 +17,25 @@ from eth.tools.factories.transaction import (
 
 
 @pytest.fixture(params=MAINNET_VMS)
-def pow_consensus_chain(request):
+def vm_class(request):
+    return request.param
+
+
+@pytest.fixture
+def pow_consensus_chain(vm_class):
     return api.build(
         MiningChain,
-        api.fork_at(request.param, 0),
+        api.fork_at(vm_class, 0),
         api.genesis(),
     )
 
 
-@pytest.fixture(params=MAINNET_VMS)
-def noproof_consensus_chain(request):
+@pytest.fixture
+def noproof_consensus_chain(vm_class):
+    # This will always have the same vm configuration as the POW chain
     return api.build(
         MiningChain,
-        api.fork_at(request.param, 0),
+        api.fork_at(vm_class, 0),
         api.disable_pow_check(),
         api.genesis(params=dict(gas_limit=100000)),
     )
@@ -100,7 +106,7 @@ def test_import_block(chain, funded_address, funded_address_private_key):
 
 
 def test_validate_header_succeeds_but_pow_fails(pow_consensus_chain, noproof_consensus_chain):
-    # Create to "structurally valid" blocks that are not backed by PoW
+    # Create two "structurally valid" blocks that are not backed by PoW
     block1 = noproof_consensus_chain.mine_block()
     block2 = noproof_consensus_chain.mine_block()
 
