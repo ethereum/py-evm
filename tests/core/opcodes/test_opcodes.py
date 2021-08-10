@@ -65,11 +65,6 @@ CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
 CANONICAL_ADDRESS_C = b'\xee' * 20
 CANONICAL_ZERO_ADDRESS = b'\0' * 20
-GENESIS_HEADER = BlockHeader(
-    difficulty=constants.GENESIS_DIFFICULTY,
-    block_number=constants.GENESIS_BLOCK_NUMBER,
-    gas_limit=constants.GENESIS_GAS_LIMIT,
-)
 
 
 def assemble(*codes):
@@ -82,7 +77,11 @@ def assemble(*codes):
 def setup_vm(vm_class, chain_id=None):
     db = AtomicDB()
     chain_context = ChainContext(chain_id)
-    return vm_class(GENESIS_HEADER, ChainDB(db), chain_context, ConsensusContext(db))
+    genesis_header = vm_class.create_genesis_header(
+        difficulty=constants.GENESIS_DIFFICULTY,
+        timestamp=0,
+    )
+    return vm_class(genesis_header, ChainDB(db), chain_context, ConsensusContext(db))
 
 
 def run_computation(

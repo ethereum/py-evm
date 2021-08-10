@@ -247,7 +247,7 @@ class Chain(BaseChain):
                 f"Expected {genesis_params['state_root']!r}"
             )
 
-        genesis_header = genesis_vm_class.create_header_from_parent(None, **genesis_params)
+        genesis_header = genesis_vm_class.create_genesis_header(**genesis_params)
         return cls.from_genesis_header(base_db, genesis_header)
 
     @classmethod

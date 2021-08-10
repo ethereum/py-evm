@@ -455,6 +455,11 @@ class VM(Configurable, VirtualMachineAPI):
         return block
 
     @classmethod
+    def create_genesis_header(cls, **genesis_params) -> BlockHeaderAPI:
+        # Create genesis header by setting the parent to None
+        return cls.create_header_from_parent(None, **genesis_params)
+
+    @classmethod
     def get_block_class(cls) -> Type[BlockAPI]:
         if cls.block_class is None:
             raise AttributeError("No `block_class` has been set for this VM")

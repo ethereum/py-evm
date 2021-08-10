@@ -3317,6 +3317,16 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @classmethod
     @abstractmethod
+    def create_genesis_header(cls, **genesis_params: Any) -> BlockHeaderAPI:
+        """
+        Create a genesis header using this VM's rules.
+
+        This is currently equivalent to create_header_from_parent(None, **genesis_params)
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
     def get_block_class(cls) -> Type[BlockAPI]:
         """
         Return the :class:`~eth.rlp.blocks.Block` class that this VM uses for blocks.

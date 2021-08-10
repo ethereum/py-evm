@@ -8,11 +8,6 @@ from eth._utils.rlp import (
 )
 
 
-assert_imported_genesis_header_unchanged = replace_exceptions({
-    ValidationError: AssertionError,
-})(validate_rlp_equal(obj_a_name='genesis header', obj_b_name='imported header'))
-
-
 assert_mined_block_unchanged = replace_exceptions({
     ValidationError: AssertionError,
 })(validate_rlp_equal(obj_a_name='provided block', obj_b_name='executed block'))
