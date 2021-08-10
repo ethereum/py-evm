@@ -146,17 +146,9 @@ Let's start off by defining the ``GENESIS_PARAMS``.
   from eth import constants
 
   GENESIS_PARAMS = {
-        'parent_hash': constants.GENESIS_PARENT_HASH,
-        'uncles_hash': constants.EMPTY_UNCLE_HASH,
-        'coinbase': constants.ZERO_ADDRESS,
-        'transaction_root': constants.BLANK_ROOT_HASH,
-        'receipt_root': constants.BLANK_ROOT_HASH,
         'difficulty': 1,
-        'block_number': constants.GENESIS_BLOCK_NUMBER,
         'gas_limit': 3141592,
         'timestamp': 1514764800,
-        'extra_data': constants.GENESIS_EXTRA_DATA,
-        'nonce': constants.GENESIS_NONCE
     }
 
 Next, we'll create the chain itself using the defined ``GENESIS_PARAMS`` and the latest
@@ -327,17 +319,11 @@ zero value transfer transaction.
 
 
   >>> GENESIS_PARAMS = {
-  ...     'parent_hash': constants.GENESIS_PARENT_HASH,
-  ...     'uncles_hash': constants.EMPTY_UNCLE_HASH,
-  ...     'coinbase': constants.ZERO_ADDRESS,
-  ...     'transaction_root': constants.BLANK_ROOT_HASH,
-  ...     'receipt_root': constants.BLANK_ROOT_HASH,
   ...     'difficulty': 1,
-  ...     'block_number': constants.GENESIS_BLOCK_NUMBER,
   ...     'gas_limit': 3141592,
+  ...     # We set the timestamp, just to make this documented example reproducible.
+  ...     # In common usage, we remove the field to let py-evm choose a reasonable default.
   ...     'timestamp': 1514764800,
-  ...     'extra_data': constants.GENESIS_EXTRA_DATA,
-  ...     'nonce': constants.GENESIS_NONCE
   ... }
 
   >>> SENDER_PRIVATE_KEY = keys.PrivateKey(

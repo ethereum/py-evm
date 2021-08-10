@@ -96,7 +96,10 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int
 
     if 'difficulty' not in header_params:
         if parent_header is None:
-            raise ValueError("Must set difficulty when creating a new genesis header (no parent)")
+            raise ValueError(
+                "Must set difficulty when creating a new genesis header (no parent)."
+                " Consider 1 for easy mining or eth.constants.GENESIS_DIFFICULTY for consistency."
+            )
         else:
             header_params['difficulty'] = difficulty_fn(
                 parent_header,

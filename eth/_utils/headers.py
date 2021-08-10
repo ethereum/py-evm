@@ -44,7 +44,7 @@ def fill_header_params_from_parent(
             parent_hash = GENESIS_PARENT_HASH
             block_number = GENESIS_BLOCK_NUMBER
             if state_root is None:
-                raise ValueError(f"Must set state root on genesis block")
+                state_root = BLANK_ROOT_HASH
         else:
             parent_hash = parent.hash
             block_number = parent.block_number + 1

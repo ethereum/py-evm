@@ -244,18 +244,19 @@ latest_mainnet_at = london_at
 
 GENESIS_DEFAULTS = cast(
     Tuple[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]], ...],
+    # values that will automatically be default are commented out
     (
         ('difficulty', 1),
         ('extra_data', constants.GENESIS_EXTRA_DATA),
         ('gas_limit', constants.GENESIS_GAS_LIMIT),
-        ('gas_used', 0),
-        ('bloom', 0),
+        # ('gas_used', 0),
+        # ('bloom', 0),
         ('mix_hash', constants.ZERO_HASH32),
         ('nonce', constants.GENESIS_NONCE),
-        ('block_number', constants.GENESIS_BLOCK_NUMBER),
-        ('parent_hash', constants.GENESIS_PARENT_HASH),
+        # ('block_number', constants.GENESIS_BLOCK_NUMBER),
+        # ('parent_hash', constants.GENESIS_PARENT_HASH),
         ('receipt_root', constants.BLANK_ROOT_HASH),
-        ('uncles_hash', constants.EMPTY_UNCLE_HASH),
+        # ('uncles_hash', constants.EMPTY_UNCLE_HASH),
         ('state_root', constants.BLANK_ROOT_HASH),
         ('transaction_root', constants.BLANK_ROOT_HASH),
     )

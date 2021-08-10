@@ -71,14 +71,15 @@ PARAGON_GENESIS_HEADER = sign_block_header(
 )
 
 # Genesis params are dervived from the genesis header
+# values that are not yet customizeable (and will automatically be default) are commented out
 PARAGON_GENESIS_PARAMS = {
-    'parent_hash': PARAGON_GENESIS_HEADER.parent_hash,
-    'uncles_hash': PARAGON_GENESIS_HEADER.uncles_hash,
+    # 'parent_hash': PARAGON_GENESIS_HEADER.parent_hash,
+    # 'uncles_hash': PARAGON_GENESIS_HEADER.uncles_hash,
     'coinbase': PARAGON_GENESIS_HEADER.coinbase,
-    'transaction_root': PARAGON_GENESIS_HEADER.transaction_root,
-    'receipt_root': PARAGON_GENESIS_HEADER.receipt_root,
+    # 'transaction_root': PARAGON_GENESIS_HEADER.transaction_root,
+    # 'receipt_root': PARAGON_GENESIS_HEADER.receipt_root,
     'difficulty': PARAGON_GENESIS_HEADER.difficulty,
-    'block_number': PARAGON_GENESIS_HEADER.block_number,
+    # 'block_number': PARAGON_GENESIS_HEADER.block_number,
     'timestamp': PARAGON_GENESIS_HEADER.timestamp,
     'gas_limit': PARAGON_GENESIS_HEADER.gas_limit,
     'extra_data': PARAGON_GENESIS_HEADER.extra_data,

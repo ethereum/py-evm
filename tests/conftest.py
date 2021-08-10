@@ -122,6 +122,27 @@ def funded_address_initial_balance():
     return to_wei(1000, 'ether')
 
 
+# wrapped in a method so that different callers aren't using (and modifying) the same dict
+def _get_genesis_defaults():
+    # values that are not yet customizeable (and will automatically be default) are commented out
+    return {
+        'difficulty': constants.GENESIS_DIFFICULTY,
+        'gas_limit': 3141592,
+        'coinbase': constants.GENESIS_COINBASE,
+        'nonce': constants.GENESIS_NONCE,
+        'mix_hash': constants.GENESIS_MIX_HASH,
+        'extra_data': constants.GENESIS_EXTRA_DATA,
+        'timestamp': 1501851927,
+        # 'block_number': constants.GENESIS_BLOCK_NUMBER,
+        # 'parent_hash': constants.GENESIS_PARENT_HASH,
+        # "bloom": 0,
+        # "gas_used": 0,
+        # "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
+        # "receipt_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
+        # "transaction_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
+    }
+
+
 def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
     """
     Return a Chain object containing just the genesis block.
@@ -134,24 +155,6 @@ def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
     importing arbitrarily constructe, not finalized blocks, use the
     chain_without_block_validation fixture instead.
     """
-    # values that are the same as the default are commented out
-    genesis_params = {
-        # "bloom": 0,
-        "coinbase": to_canonical_address("8888f1f195afa192cfee860698584c030f4c9db1"),
-        "difficulty": 131072,
-        "extra_data": b"B",
-        "gas_limit": 3141592,
-        # "gas_used": 0,
-        "mix_hash": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
-        "nonce": decode_hex("0102030405060708"),
-        # "block_number": 0,
-        # "parent_hash": decode_hex("0000000000000000000000000000000000000000000000000000000000000000"),  # noqa: E501
-        "receipt_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
-        "timestamp": 1422494849,
-        "transaction_root": decode_hex("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421"),  # noqa: E501
-        # "uncles_hash": decode_hex("1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347")  # noqa: E501
-    }
-
     klass = chain_cls.configure(
         __name__='TestChain',
         vm_configuration=(
@@ -159,7 +162,7 @@ def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
         ),
         chain_id=1337,
     )
-    chain = klass.from_genesis(base_db, genesis_params, genesis_state)
+    chain = klass.from_genesis(base_db, _get_genesis_defaults(), genesis_state)
     return chain
 
 
@@ -225,18 +228,7 @@ def _chain_without_block_validation(request, VM, base_db, genesis_state):
         chain_id=1337,
         **overrides,
     )
-    genesis_params = {
-        'block_number': constants.GENESIS_BLOCK_NUMBER,
-        'difficulty': constants.GENESIS_DIFFICULTY,
-        'gas_limit': 3141592,
-        'parent_hash': constants.GENESIS_PARENT_HASH,
-        'coinbase': constants.GENESIS_COINBASE,
-        'nonce': constants.GENESIS_NONCE,
-        'mix_hash': constants.GENESIS_MIX_HASH,
-        'extra_data': constants.GENESIS_EXTRA_DATA,
-        'timestamp': 1501851927,
-    }
-    chain = klass.from_genesis(base_db, genesis_params, genesis_state)
+    chain = klass.from_genesis(base_db, _get_genesis_defaults(), genesis_state)
     return chain
 
 
