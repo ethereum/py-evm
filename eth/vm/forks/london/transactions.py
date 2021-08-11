@@ -224,7 +224,7 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
     legacy_unsigned = LondonUnsignedLegacyTransaction
 
     @classmethod
-    def new_unsigned_base_gas_price_transaction(
+    def new_unsigned_fee_burn_transaction(
             cls,
             chain_id: int,
             nonce: int,
@@ -249,7 +249,7 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
         return transaction
 
     @classmethod
-    def new_base_gas_price_transaction(
+    def new_fee_burn_transaction(
             cls,
             chain_id: int,
             nonce: int,

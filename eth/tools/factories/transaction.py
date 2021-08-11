@@ -77,3 +77,42 @@ def new_access_list_transaction(
     )
 
     return tx.as_signed_transaction(private_key)
+
+
+@curry
+def new_fee_burn_transaction(
+        vm,
+        from_,
+        to,
+        private_key,
+        amount=0,
+        max_priority_fee_per_gas=1,
+        max_fee_per_gas=10**10,
+        gas=100000,
+        data=b'',
+        nonce=None,
+        chain_id=1,
+        access_list=None):
+    """
+    Create and return a transaction sending amount from <from_> to <to>.
+
+    The transaction will be signed with the given private key.
+    """
+    if nonce is None:
+        nonce = vm.state.get_nonce(from_)
+    if access_list is None:
+        access_list = []
+
+    tx = vm.get_transaction_builder().new_unsigned_fee_burn_transaction(
+        chain_id=chain_id,
+        nonce=nonce,
+        max_priority_fee_per_gas=max_priority_fee_per_gas,
+        max_fee_per_gas=max_fee_per_gas,
+        gas=gas,
+        to=to,
+        value=amount,
+        data=data,
+        access_list=access_list,
+    )
+
+    return tx.as_signed_transaction(private_key)

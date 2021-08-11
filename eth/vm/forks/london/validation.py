@@ -38,7 +38,7 @@ def validate_london_normalized_transaction(
     )
 
     effective_gas_price = priority_fee_per_gas + base_fee_per_gas
-    total_transaction_cost = transaction.value + effective_gas_price
+    total_transaction_cost = transaction.value + effective_gas_price * transaction.gas
 
     if sender_balance < total_transaction_cost:
         raise ValidationError(
