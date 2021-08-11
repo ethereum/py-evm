@@ -20,6 +20,9 @@ from eth.constants import (
 from eth._utils.db import (
     get_parent_header,
 )
+from eth._utils.headers import (
+    new_timestamp_from_parent,
+)
 from eth.validation import (
     validate_gt,
     validate_header_params_for_configuration,
@@ -77,9 +80,10 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int
                               parent_header: BlockHeaderAPI,
                               **header_params: Any) -> BlockHeaderAPI:
 
-    if 'difficulty' not in header_params:
-        header_params.setdefault('timestamp', parent_header.timestamp + 1)
+    if 'timestamp' not in header_params:
+        header_params['timestamp'] = new_timestamp_from_parent(parent_header)
 
+    if 'difficulty' not in header_params:
         header_params['difficulty'] = difficulty_fn(
             parent_header,
             header_params['timestamp'],

@@ -341,6 +341,7 @@ zero value transfer transaction.
   ...     ))
 
   >>> chain = klass.from_genesis(AtomicDB(), GENESIS_PARAMS)
+  >>> genesis = chain.get_canonical_block_header_by_number(0)
   >>> vm = chain.get_vm()
 
   >>> nonce = vm.state.get_nonce(SENDER)
@@ -358,6 +359,12 @@ zero value transfer transaction.
 
   >>> chain.apply_transaction(signed_tx)
   (<ByzantiumBlock(#Block #1...)
+
+  >>> # Normally, we can let the timestamp be chosen automatically, but
+  >>> # for the sake of reproducing exactly the same block every time,
+  >>> # we will set it manually here:
+  >>> chain.set_header_timestamp(genesis.timestamp + 1)
+
   >>> # We have to finalize the block first in order to be able read the
   >>> # attributes that are important for the PoW algorithm
   >>> block_result = chain.get_vm().finalize_block(chain.get_block())

@@ -793,6 +793,7 @@ def test_headerdb_persist_header_disallows_unknown_parent(headerdb):
         block_number=GENESIS_BLOCK_NUMBER,
         gas_limit=GENESIS_GAS_LIMIT,
         parent_hash=b'\x0f' * 32,
+        timestamp=0,
     )
     with pytest.raises(ParentNotFound, match="unknown parent"):
         headerdb.persist_header(header)

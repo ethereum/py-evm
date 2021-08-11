@@ -4055,6 +4055,16 @@ class MiningChainAPI(ChainAPI):
         ...
 
     @abstractmethod
+    def set_header_timestamp(self, timestamp: int) -> None:
+        """
+        Set the timestamp of the pending header to mine.
+
+        This is mostly useful for testing, as the timestamp will be chosen
+        automatically if this method is not called.
+        """
+        ...
+
+    @abstractmethod
     def mine_all(
             self,
             transactions: Sequence[SignedTransactionAPI],

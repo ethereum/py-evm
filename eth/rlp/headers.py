@@ -1,4 +1,3 @@
-import time
 from typing import (
     cast,
     overload,
@@ -23,6 +22,9 @@ from eth_utils import (
     encode_hex,
 )
 
+from eth._utils.headers import (
+    new_timestamp_from_parent,
+)
 from eth.abc import (
     BlockHeaderAPI,
     MiningHeaderAPI,
@@ -122,7 +124,12 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
                  mix_hash: Hash32 = ZERO_HASH32,
                  nonce: bytes = GENESIS_NONCE) -> None:
         if timestamp is None:
-            timestamp = int(time.time())
+            if parent_hash == ZERO_HASH32:
+                timestamp = new_timestamp_from_parent(None)
+            else:
+                # without access to the parent header, we cannot select a new timestamp correctly
+                raise ValueError("Must set timestamp explicitly if this is not a genesis header")
+
         super().__init__(
             parent_hash=parent_hash,
             uncles_hash=uncles_hash,

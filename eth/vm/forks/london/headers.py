@@ -13,6 +13,7 @@ from toolz.functoolz import curry
 from eth._utils.headers import (
     compute_gas_limit,
     fill_header_params_from_parent,
+    new_timestamp_from_parent,
 )
 from eth.abc import (
     BlockHeaderAPI,
@@ -90,11 +91,7 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int
 
     # byzantium
     if 'timestamp' not in header_params:
-        if parent_header is None:
-            timestamp = 0
-        else:
-            timestamp = parent_header.timestamp + 1
-        header_params['timestamp'] = timestamp
+        header_params['timestamp'] = new_timestamp_from_parent(parent_header)
 
     if 'difficulty' not in header_params:
         if parent_header is None:

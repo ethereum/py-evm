@@ -22,6 +22,7 @@ from eth._utils.db import (
 from eth._utils.headers import (
     compute_gas_limit,
     fill_header_params_from_parent,
+    new_timestamp_from_parent,
 )
 from eth.rlp.headers import BlockHeader
 
@@ -75,10 +76,12 @@ def compute_frontier_difficulty(parent_header: BlockHeaderAPI, timestamp: int) -
 
 def create_frontier_header_from_parent(parent_header: BlockHeaderAPI,
                                        **header_params: Any) -> BlockHeader:
+    if 'timestamp' not in header_params:
+        header_params['timestamp'] = new_timestamp_from_parent(parent_header)
+
     if 'difficulty' not in header_params:
         # Use setdefault to ensure the new header has the same timestamp we use to calculate its
         # difficulty.
-        header_params.setdefault('timestamp', parent_header.timestamp + 1)
         header_params['difficulty'] = compute_frontier_difficulty(
             parent_header,
             header_params['timestamp'],

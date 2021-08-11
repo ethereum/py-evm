@@ -275,7 +275,13 @@ def test_chaindb_get_score(chaindb):
     assert genesis_score == 1
     assert chaindb.get_score(genesis.hash) == 1
 
-    block1 = BlockHeader(difficulty=10, block_number=1, gas_limit=0, parent_hash=genesis.hash)
+    block1 = BlockHeader(
+        difficulty=10,
+        block_number=1,
+        gas_limit=0,
+        parent_hash=genesis.hash,
+        timestamp=genesis.timestamp + 1,
+    )
     chaindb.persist_header(block1)
 
     block1_score_key = SchemaV1.make_block_hash_to_score_lookup_key(block1.hash)

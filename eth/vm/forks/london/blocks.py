@@ -1,4 +1,3 @@
-import time
 from typing import (
     List,
     Type,
@@ -24,6 +23,9 @@ from rlp.sedes import (
     binary
 )
 
+from eth._utils.headers import (
+    new_timestamp_from_parent,
+)
 from eth.abc import (
     BlockHeaderAPI,
     BlockHeaderSedesAPI,
@@ -105,7 +107,11 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
                  nonce: bytes = GENESIS_NONCE,
                  base_fee_per_gas: int = 0) -> None:
         if timestamp is None:
-            timestamp = int(time.time())
+            if parent_hash == ZERO_HASH32:
+                timestamp = new_timestamp_from_parent(None)
+            else:
+                # without access to the parent header, we cannot select a new timestamp correctly
+                raise ValueError("Must set timestamp explicitly if this is not a genesis header")
         super().__init__(
             parent_hash=parent_hash,
             uncles_hash=uncles_hash,

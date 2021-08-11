@@ -660,6 +660,9 @@ class MiningChain(Chain, MiningChainAPI):
         self.header = self.ensure_header()
         return result
 
+    def set_header_timestamp(self, timestamp: int) -> None:
+        self.header = self.header.copy(timestamp=timestamp)
+
     def mine_all(
             self,
             transactions: Sequence[SignedTransactionAPI],

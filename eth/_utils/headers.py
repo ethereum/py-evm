@@ -1,3 +1,4 @@
+import datetime
 from typing import (
     Dict,
     Tuple,
@@ -24,6 +25,31 @@ from eth.typing import (
     BlockNumber,
     HeaderParams,
 )
+
+
+def eth_now() -> int:
+    """
+    The timestamp is in UTC.
+    """
+    return int(datetime.datetime.utcnow().timestamp())
+
+
+def new_timestamp_from_parent(parent: BlockHeaderAPI) -> int:
+    """
+    Generate a timestamp to use on a new header.
+
+    Generally, attempt to use the current time. If timestamp is too old (equal
+    or less than parent), return `parent.timestamp + 1`. If parent is None,
+    then consider this a genesis block.
+    """
+    if parent is None:
+        return eth_now()
+    else:
+        # header timestamps must increment
+        return max(
+            parent.timestamp + 1,
+            eth_now(),
+        )
 
 
 def fill_header_params_from_parent(
