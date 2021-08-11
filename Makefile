@@ -23,7 +23,7 @@ clean-pyc:
 	find . -name '__pycache__' -exec rm -rf {} +
 
 lint:
-	tox -epy3{6,5}-lint
+	tox -epy38-lint
 
 test:
 	py.test --tb native tests
