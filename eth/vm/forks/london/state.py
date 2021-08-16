@@ -71,19 +71,11 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
 
         self.vm_state.logger.debug2(
             (
-                "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
-                "max_priority_fee_per_gas: %s | max_fee_per_gas: %s | s: %s | "
-                "r: %s | y_parity: %s | data-hash: %s"
+                "TRANSACTION: %r; sender: %s | to: %s | data-hash: %s"
             ),
+            transaction,
             encode_hex(transaction.sender),
             encode_hex(transaction.to),
-            transaction.value,
-            transaction.gas,
-            transaction.max_priority_fee_per_gas,
-            transaction.max_fee_per_gas,
-            transaction.s,
-            transaction.r,
-            transaction.y_parity,
             encode_hex(keccak(transaction.data)),
         )
 
