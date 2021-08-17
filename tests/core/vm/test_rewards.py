@@ -25,7 +25,7 @@ from eth.tools.builder.chain import (
     london_at,
     genesis,
 )
-from eth.tools.factories.transaction import new_fee_burn_transaction
+from eth.tools.factories.transaction import new_dynamic_fee_transaction
 
 
 @pytest.mark.parametrize(
@@ -348,7 +348,7 @@ def test_eip1559_txn_rewards(
         ),
     )
     vm = chain.get_vm()
-    txn = new_fee_burn_transaction(
+    txn = new_dynamic_fee_transaction(
         vm,
         from_=funded_address,
         to=funded_address,

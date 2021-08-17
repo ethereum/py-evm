@@ -53,7 +53,7 @@ from eth.vm.forks.istanbul.transactions import (
     ISTANBUL_TX_GAS_SCHEDULE,
 )
 
-from .constants import BASE_GAS_FEE_TRANSACTION_TYPE
+from .constants import DYNAMIC_FEE_TRANSACTION_TYPE
 
 
 class LondonLegacyTransaction(BerlinLegacyTransaction):
@@ -78,8 +78,8 @@ class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
         )
 
 
-class UnsignedBaseGasFeeTransaction(rlp.Serializable):
-    _type_id = BASE_GAS_FEE_TRANSACTION_TYPE
+class UnsignedDynamicFeeTransaction(rlp.Serializable):
+    _type_id = DYNAMIC_FEE_TRANSACTION_TYPE
     fields = [
         ('chain_id', big_endian_int),
         ('nonce', big_endian_int),
@@ -105,7 +105,7 @@ class UnsignedBaseGasFeeTransaction(rlp.Serializable):
         signature = private_key.sign_msg(message)
         y_parity, r, s = signature.vrs
 
-        signed_transaction = BaseGasFeeTransaction(
+        signed_transaction = DynamicFeeTransaction(
             self.chain_id,
             self.nonce,
             self.max_priority_fee_per_gas,
@@ -122,8 +122,8 @@ class UnsignedBaseGasFeeTransaction(rlp.Serializable):
         return LondonTypedTransaction(self._type_id, signed_transaction)
 
 
-class BaseGasFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI):
-    _type_id = BASE_GAS_FEE_TRANSACTION_TYPE
+class DynamicFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI):
+    _type_id = DYNAMIC_FEE_TRANSACTION_TYPE
     fields = [
         ('chain_id', big_endian_int),
         ('nonce', big_endian_int),
@@ -141,14 +141,15 @@ class BaseGasFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
 
     @property
     def gas_price(self) -> None:
-        # maybe add a warning, or raise an exception instead?
-        return None
+        raise AttributeError(
+            "Gas price is no longer available. See max_priority_fee_per_gas or max_fee_per_gas"
+        )
 
     def get_sender(self) -> Address:
         return extract_transaction_sender(self)
 
     def get_message_for_signing(self) -> bytes:
-        unsigned = UnsignedBaseGasFeeTransaction(
+        unsigned = UnsignedDynamicFeeTransaction(
             self.chain_id,
             self.nonce,
             self.max_priority_fee_per_gas,
@@ -206,16 +207,16 @@ class BaseGasFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
         )
 
 
-class BaseGasFeePayloadDecoder(TransactionDecoderAPI):
+class DynamicFeePayloadDecoder(TransactionDecoderAPI):
     @classmethod
     def decode(cls, payload: bytes) -> SignedTransactionAPI:
-        return rlp.decode(payload, sedes=BaseGasFeeTransaction)
+        return rlp.decode(payload, sedes=DynamicFeeTransaction)
 
 
 class LondonTypedTransaction(TypedTransaction):
     decoders: Dict[int, Type[TransactionDecoderAPI]] = {
         ACCESS_LIST_TRANSACTION_TYPE: AccessListPayloadDecoder,
-        BASE_GAS_FEE_TRANSACTION_TYPE: BaseGasFeePayloadDecoder,
+        DYNAMIC_FEE_TRANSACTION_TYPE: DynamicFeePayloadDecoder,
     }
 
 
@@ -225,7 +226,7 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
     typed_transaction = LondonTypedTransaction
 
     @classmethod
-    def new_unsigned_fee_burn_transaction(
+    def new_unsigned_dynamic_fee_transaction(
             cls,
             chain_id: int,
             nonce: int,
@@ -236,7 +237,7 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
             value: int,
             data: bytes,
             access_list: Sequence[Tuple[Address, Sequence[int]]],) -> LondonTypedTransaction:
-        transaction = UnsignedBaseGasFeeTransaction(
+        transaction = UnsignedDynamicFeeTransaction(
             chain_id,
             nonce,
             max_priority_fee_per_gas,
@@ -250,7 +251,7 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
         return transaction
 
     @classmethod
-    def new_fee_burn_transaction(
+    def new_dynamic_fee_transaction(
             cls,
             chain_id: int,
             nonce: int,
@@ -264,7 +265,7 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
             y_parity: int,
             r: int,
             s: int) -> LondonTypedTransaction:
-        transaction = BaseGasFeeTransaction(
+        transaction = DynamicFeeTransaction(
             chain_id,
             nonce,
             max_priority_fee_per_gas,
@@ -278,4 +279,4 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
             r,
             s,
         )
-        return LondonTypedTransaction(BASE_GAS_FEE_TRANSACTION_TYPE, transaction)
+        return LondonTypedTransaction(DYNAMIC_FEE_TRANSACTION_TYPE, transaction)

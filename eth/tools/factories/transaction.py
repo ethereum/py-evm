@@ -80,7 +80,7 @@ def new_access_list_transaction(
 
 
 @curry
-def new_fee_burn_transaction(
+def new_dynamic_fee_transaction(
         vm,
         from_,
         to,
@@ -103,7 +103,7 @@ def new_fee_burn_transaction(
     if access_list is None:
         access_list = []
 
-    tx = vm.get_transaction_builder().new_unsigned_fee_burn_transaction(
+    tx = vm.get_transaction_builder().new_unsigned_dynamic_fee_transaction(
         chain_id=chain_id,
         nonce=nonce,
         max_priority_fee_per_gas=max_priority_fee_per_gas,
