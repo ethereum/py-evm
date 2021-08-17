@@ -145,6 +145,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
     def finalize_computation(self,
                              transaction: SignedTransactionAPI,
                              computation: ComputationAPI) -> ComputationAPI:
+        transaction_context = self.vm_state.get_transaction_context(transaction)
+
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -155,7 +157,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         gas_refunded = computation.get_gas_refund()
         gas_used = transaction.gas - gas_remaining
         gas_refund = min(gas_refunded, gas_used // 2)
-        gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
+        gas_refund_amount = (gas_refund + gas_remaining) * transaction_context.gas_price
 
         if gas_refund_amount:
             self.vm_state.logger.debug2(
@@ -167,8 +169,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             self.vm_state.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Miner Fees
-        transaction_fee = \
-            (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+        gas_used = transaction.gas - gas_remaining - gas_refund
+        transaction_fee = gas_used * self.vm_state.get_tip(transaction)
         self.vm_state.logger.debug2(
             'TRANSACTION FEE: %s -> %s',
             transaction_fee,

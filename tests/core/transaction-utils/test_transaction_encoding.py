@@ -13,7 +13,10 @@ from eth.vm.forks import (
     LondonVM,
 )
 
-RECOGNIZED_TRANSACTION_TYPES = {1}
+# Add recognized types here if any fork knows about it. Then,
+#   add manual unrecognized types for older forks. For example,
+#   (BerlinVM, to_bytes(2), UnrecognizedTransactionType) should be added explicitly.
+RECOGNIZED_TRANSACTION_TYPES = {1, 2}
 
 UNRECOGNIZED_TRANSACTION_TYPES = tuple(
     (to_bytes(val), UnrecognizedTransactionType)
@@ -68,6 +71,22 @@ def test_transaction_decode(vm_class, encoded, expected):
         # Check that the encoded bytes decode to the given data
         decoded = rlp.decode(encoded, sedes=sedes)
         assert decoded == expected_txn
+
+
+@pytest.mark.parametrize(
+    'vm_class, encoded, expected_failure',
+    (
+        (
+            BerlinVM,
+            to_bytes(2),
+            UnrecognizedTransactionType,
+        ),
+    )
+)
+def test_transaction_decode_failure_by_vm(vm_class, encoded, expected_failure):
+    sedes = vm_class.get_transaction_builder()
+    with pytest.raises(expected_failure):
+        rlp.decode(encoded, sedes=sedes)
 
 
 @pytest.mark.parametrize('is_rlp_encoded', (True, False))

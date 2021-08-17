@@ -388,6 +388,7 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
     """
     legacy_signed = BerlinLegacyTransaction
     legacy_unsigned = BerlinUnsignedLegacyTransaction
+    typed_transaction = TypedTransaction
 
     @classmethod
     def decode(cls, encoded: bytes) -> SignedTransactionAPI:
@@ -396,21 +397,21 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
 
         type_id = to_int(encoded[0])
         if type_id in VALID_TRANSACTION_TYPES:
-            return TypedTransaction.decode(encoded)
+            return cls.typed_transaction.decode(encoded)
         else:
             return rlp.decode(encoded, sedes=cls.legacy_signed)
 
     @classmethod
     def deserialize(cls, encoded: DecodedZeroOrOneLayerRLP) -> SignedTransactionAPI:
         if isinstance(encoded, bytes):
-            return TypedTransaction.deserialize(encoded)
+            return cls.typed_transaction.deserialize(encoded)
         else:
             return cls.legacy_signed.deserialize(encoded)
 
     @classmethod
     def serialize(cls, obj: SignedTransactionAPI) -> DecodedZeroOrOneLayerRLP:
-        if isinstance(obj, TypedTransaction):
-            return TypedTransaction.serialize(obj)
+        if isinstance(obj, cls.typed_transaction):
+            return cls.typed_transaction.serialize(obj)
         else:
             return cls.legacy_signed.serialize(obj)
 
@@ -489,4 +490,4 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
             r,
             s,
         )
-        return TypedTransaction(ACCESS_LIST_TRANSACTION_TYPE, transaction)
+        return cls.typed_transaction(ACCESS_LIST_TRANSACTION_TYPE, transaction)

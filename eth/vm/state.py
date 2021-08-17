@@ -88,18 +88,11 @@ class BaseState(Configurable, StateAPI):
     def gas_limit(self) -> int:
         return self.execution_context.gas_limit
 
+    def get_tip(self, transaction: SignedTransactionAPI) -> int:
+        return transaction.gas_price
+
     def get_gas_price(self, transaction: SignedTransactionAPI) -> int:
-        execution_context = self.execution_context
-        try:
-            base_gas_price = execution_context.base_fee_per_gas
-        except AttributeError:
-            return transaction.gas_price
-        else:
-            effective_price = min(
-                transaction.max_fee_per_gas,
-                transaction.max_priority_fee_per_gas + base_gas_price,
-            )
-            return effective_price
+        return transaction.gas_price
 
     #
     # Access to account db

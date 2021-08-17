@@ -21,8 +21,11 @@ from eth.tools.builder.chain import (
     tangerine_whistle_at,
     constantinople_at,
     petersburg_at,
+    berlin_at,
+    london_at,
     genesis,
 )
+from eth.tools.factories.transaction import new_fee_burn_transaction
 
 
 @pytest.mark.parametrize(
@@ -311,3 +314,53 @@ def test_rewards_nephew_uncle_different_vm(
     # But we also ensure the balance matches the numbers that we calculated on paper
     assert coinbase_balance == to_wei(miner_1_balance, 'ether')
     assert other_miner_balance == to_wei(miner_2_balance, 'ether')
+
+
+@pytest.mark.parametrize(
+    'max_total_price, max_priority_price, expected_miner_tips',
+    (
+        # none of the tip makes it to the miner when the base price matches the txn max price
+        (10 ** 9, 1, 0),
+        # half of this tip makes it to the miner because the base price squeezes the tip
+        (10 ** 9 + 1, 2, 21000),
+        # the full tip makes it to the miner because the txn max price is exactly big enough
+        (10 ** 9 + 1, 1, 21000),
+        # the full tip makes it to the miner, and no more, because the txn max
+        #   price is larger than the sum of the base burn fee and the max tip
+        (10 ** 9 + 2, 1, 21000),
+    ),
+)
+def test_eip1559_txn_rewards(
+        max_total_price,
+        max_priority_price,
+        expected_miner_tips,
+        funded_address,
+        funded_address_private_key):
+
+    chain = build(
+        MiningChain,
+        berlin_at(0),
+        london_at(1),  # Start London at block one to get easy 1gwei base fee
+        disable_pow_check(),
+        genesis(
+            params=dict(gas_limit=10**7),
+            state={funded_address: dict(balance=10**20)},
+        ),
+    )
+    vm = chain.get_vm()
+    txn = new_fee_burn_transaction(
+        vm,
+        from_=funded_address,
+        to=funded_address,
+        private_key=funded_address_private_key,
+        max_priority_fee_per_gas=max_priority_price,
+        max_fee_per_gas=max_total_price,
+    )
+
+    MINER = b'\x0f' * 20
+    original_balance = vm.state.get_balance(MINER)
+    chain.mine_all([txn], coinbase=MINER)
+    new_balance = chain.get_vm().state.get_balance(MINER)
+
+    BLOCK_REWARD = 2 * (10 ** 18)
+    assert original_balance + BLOCK_REWARD + expected_miner_tips == new_balance

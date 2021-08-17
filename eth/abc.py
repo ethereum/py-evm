@@ -2679,6 +2679,18 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
+    @abstractmethod
+    def get_tip(self, transaction: SignedTransactionAPI) -> int:
+        """
+        Return the gas price that gets allocated to the miner/validator.
+
+        Pre-EIP-1559 that would be the full transaction gas price. After, it
+        would be the tip price (potentially reduced, if the base fee is so high
+        that it surpasses the transaction's maximum gas price after adding the
+        tip).
+        """
+        ...
+
     #
     # Access to account db
     #

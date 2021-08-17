@@ -663,6 +663,12 @@ class MiningChain(Chain, MiningChainAPI):
     def set_header_timestamp(self, timestamp: int) -> None:
         self.header = self.header.copy(timestamp=timestamp)
 
+    @staticmethod
+    def _custom_header(base_header: BlockHeaderAPI, **kwargs: Any) -> BlockHeaderAPI:
+        header_fields = {'coinbase'}
+        header_params = {k: v for k, v in kwargs.items() if k in header_fields}
+        return base_header.copy(**header_params)
+
     def mine_all(
             self,
             transactions: Sequence[SignedTransactionAPI],
@@ -676,7 +682,8 @@ class MiningChain(Chain, MiningChainAPI):
         else:
             base_header = self.create_header_from_parent(parent_header)
 
-        vm = self.get_vm(base_header)
+        custom_header = self._custom_header(base_header, **kwargs)
+        vm = self.get_vm(custom_header)
 
         new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
         filled_block = vm.set_block_transactions(vm.get_block(), new_header, transactions, receipts)
@@ -697,7 +704,8 @@ class MiningChain(Chain, MiningChainAPI):
         return self.mine_block_extended(*args, **kwargs).block
 
     def mine_block_extended(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
-        vm = self.get_vm(self.header)
+        custom_header = self._custom_header(self.header, **kwargs)
+        vm = self.get_vm(custom_header)
         current_block = vm.get_block()
         mine_result = vm.mine_block(current_block, *args, **kwargs)
         mined_block = mine_result.block

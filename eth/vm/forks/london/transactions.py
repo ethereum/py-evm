@@ -222,6 +222,7 @@ class LondonTypedTransaction(TypedTransaction):
 class LondonTransactionBuilder(BerlinTransactionBuilder):
     legacy_signed = LondonLegacyTransaction
     legacy_unsigned = LondonUnsignedLegacyTransaction
+    typed_transaction = LondonTypedTransaction
 
     @classmethod
     def new_unsigned_fee_burn_transaction(
