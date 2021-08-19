@@ -7,6 +7,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    cast,
 )
 
 from eth_typing import (
@@ -53,14 +54,12 @@ from eth.exceptions import (
 )
 from eth.db.header import HeaderDB
 from eth.db.schema import SchemaV1
-from eth.rlp.headers import (
-    BlockHeader,
-)
 from eth.rlp.sedes import chain_gaps
 from eth.typing import ChainGaps
 from eth.validation import (
     validate_word,
 )
+from eth.vm.header import HeaderSedes
 from eth._warnings import catch_and_ignore_import_warning
 with catch_and_ignore_import_warning():
     import rlp
@@ -165,7 +164,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                 f"No uncles found for hash {uncles_hash!r}"
             ) from exc
         else:
-            return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
+            return tuple(rlp.decode(encoded_uncles, sedes=rlp.sedes.CountableList(HeaderSedes)))
 
     @classmethod
     def _decanonicalize_old_headers(
@@ -275,16 +274,21 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         cls._update_chain_gaps(db, block)
         return new_canonical_hashes, old_canonical_hashes
 
-    def persist_uncles(self, uncles: Tuple[BlockHeaderAPI]) -> Hash32:
+    def persist_uncles(
+            self,
+            uncles: Tuple[BlockHeaderAPI]) -> Hash32:
         return self._persist_uncles(self.db, uncles)
 
     @staticmethod
-    def _persist_uncles(db: DatabaseAPI, uncles: Tuple[BlockHeaderAPI, ...]) -> Hash32:
+    def _persist_uncles(
+            db: DatabaseAPI,
+            uncles: Tuple[BlockHeaderAPI, ...]) -> Hash32:
+
         uncles_hash = keccak(rlp.encode(uncles))
         db.set(
             uncles_hash,
-            rlp.encode(uncles, sedes=rlp.sedes.CountableList(BlockHeader)))
-        return uncles_hash
+            rlp.encode(uncles, sedes=rlp.sedes.CountableList(HeaderSedes)))
+        return cast(Hash32, uncles_hash)
 
     #
     # Transaction API
@@ -328,7 +332,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             block_header.transaction_root,
         )
         for encoded_transaction in all_encoded_transactions:
-            yield keccak(encoded_transaction)
+            yield cast(Hash32, keccak(encoded_transaction))
 
     @to_tuple
     def get_receipts(self,

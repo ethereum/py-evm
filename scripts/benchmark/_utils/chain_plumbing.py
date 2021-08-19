@@ -60,13 +60,10 @@ SECOND_ADDRESS_PRIVATE_KEY = keys.PrivateKey(
 SECOND_ADDRESS = Address(SECOND_ADDRESS_PRIVATE_KEY.public_key.to_canonical_address())
 
 GENESIS_PARAMS = {
-    'parent_hash': constants.GENESIS_PARENT_HASH,
-    'uncles_hash': constants.EMPTY_UNCLE_HASH,
     'coinbase': constants.ZERO_ADDRESS,
     'transaction_root': constants.BLANK_ROOT_HASH,
     'receipt_root': constants.BLANK_ROOT_HASH,
     'difficulty': 1,
-    'block_number': constants.GENESIS_BLOCK_NUMBER,
     'gas_limit': 3141592,
     'extra_data': constants.GENESIS_EXTRA_DATA,
     'nonce': constants.GENESIS_NONCE

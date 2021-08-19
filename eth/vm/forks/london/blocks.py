@@ -1,25 +1,26 @@
 from typing import (
+    List,
+    Type,
     cast,
-    overload,
-)
-
-import rlp
-from rlp.sedes import (
-    big_endian_int,
-    Binary,
-    binary,
-)
-
-from eth_typing import (
-    Address,
-    BlockNumber,
-    Hash32,
 )
 
 from eth_hash.auto import keccak
-
+from eth_typing import (
+    BlockNumber,
+)
+from eth_typing.evm import (
+    Address,
+    Hash32
+)
 from eth_utils import (
     encode_hex,
+)
+import rlp
+from rlp.sedes import (
+    Binary,
+    CountableList,
+    big_endian_int,
+    binary
 )
 
 from eth._utils.headers import (
@@ -27,7 +28,10 @@ from eth._utils.headers import (
 )
 from eth.abc import (
     BlockHeaderAPI,
+    BlockHeaderSedesAPI,
     MiningHeaderAPI,
+    ReceiptBuilderAPI,
+    TransactionBuilderAPI,
 )
 from eth.constants import (
     ZERO_ADDRESS,
@@ -37,58 +41,54 @@ from eth.constants import (
     GENESIS_PARENT_HASH,
     BLANK_ROOT_HASH,
 )
-from eth.typing import HeaderParams
-
-from .sedes import (
+from eth.rlp.headers import (
+    BlockHeader,
+)
+from eth.rlp.sedes import (
     address,
     hash32,
-    uint256,
     trie_root,
+    uint256,
+)
+from eth.vm.forks.berlin.blocks import (
+    BerlinBlock,
 )
 
+from .receipts import (
+    LondonReceiptBuilder,
+)
+from .transactions import (
+    LondonTransactionBuilder,
+)
 
-class MiningHeader(rlp.Serializable, MiningHeaderAPI):
-    fields = [
-        ('parent_hash', hash32),
-        ('uncles_hash', hash32),
-        ('coinbase', address),
-        ('state_root', trie_root),
-        ('transaction_root', trie_root),
-        ('receipt_root', trie_root),
-        ('bloom', uint256),
-        ('difficulty', big_endian_int),
-        ('block_number', big_endian_int),
-        ('gas_limit', big_endian_int),
-        ('gas_used', big_endian_int),
-        ('timestamp', big_endian_int),
-        ('extra_data', binary),
-    ]
+UNMINED_LONDON_HEADER_FIELDS = [
+    ('parent_hash', hash32),
+    ('uncles_hash', hash32),
+    ('coinbase', address),
+    ('state_root', trie_root),
+    ('transaction_root', trie_root),
+    ('receipt_root', trie_root),
+    ('bloom', uint256),
+    ('difficulty', big_endian_int),
+    ('block_number', big_endian_int),
+    ('gas_limit', big_endian_int),
+    ('gas_used', big_endian_int),
+    ('timestamp', big_endian_int),
+    ('extra_data', binary),
+    ('base_fee_per_gas', big_endian_int),
+]
 
 
-class BlockHeader(rlp.Serializable, BlockHeaderAPI):
-    fields = [
-        ('parent_hash', hash32),
-        ('uncles_hash', hash32),
-        ('coinbase', address),
-        ('state_root', trie_root),
-        ('transaction_root', trie_root),
-        ('receipt_root', trie_root),
-        ('bloom', uint256),
-        ('difficulty', big_endian_int),
-        ('block_number', big_endian_int),
-        ('gas_limit', big_endian_int),
-        ('gas_used', big_endian_int),
-        ('timestamp', big_endian_int),
-        ('extra_data', binary),
+class LondonMiningHeader(rlp.Serializable, MiningHeaderAPI):
+    fields = UNMINED_LONDON_HEADER_FIELDS
+
+
+class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
+    fields = UNMINED_LONDON_HEADER_FIELDS + [
         ('mix_hash', binary),
-        ('nonce', Binary(8, allow_empty=True))
+        ('nonce', Binary(8, allow_empty=True)),
     ]
 
-    @overload
-    def __init__(self, **kwargs: HeaderParams) -> None:
-        ...
-
-    @overload  # noqa: F811
     def __init__(self,
                  difficulty: int,
                  block_number: BlockNumber,
@@ -104,32 +104,14 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
                  gas_used: int = 0,
                  extra_data: bytes = b'',
                  mix_hash: Hash32 = ZERO_HASH32,
-                 nonce: bytes = GENESIS_NONCE) -> None:
-        ...
-
-    def __init__(self,              # type: ignore  # noqa: F811
-                 difficulty: int,
-                 block_number: BlockNumber,
-                 gas_limit: int,
-                 timestamp: int = None,
-                 coinbase: Address = ZERO_ADDRESS,
-                 parent_hash: Hash32 = ZERO_HASH32,
-                 uncles_hash: Hash32 = EMPTY_UNCLE_HASH,
-                 state_root: Hash32 = BLANK_ROOT_HASH,
-                 transaction_root: Hash32 = BLANK_ROOT_HASH,
-                 receipt_root: Hash32 = BLANK_ROOT_HASH,
-                 bloom: int = 0,
-                 gas_used: int = 0,
-                 extra_data: bytes = b'',
-                 mix_hash: Hash32 = ZERO_HASH32,
-                 nonce: bytes = GENESIS_NONCE) -> None:
+                 nonce: bytes = GENESIS_NONCE,
+                 base_fee_per_gas: int = 0) -> None:
         if timestamp is None:
             if parent_hash == ZERO_HASH32:
                 timestamp = new_timestamp_from_parent(None)
             else:
                 # without access to the parent header, we cannot select a new timestamp correctly
                 raise ValueError("Must set timestamp explicitly if this is not a genesis header")
-
         super().__init__(
             parent_hash=parent_hash,
             uncles_hash=uncles_hash,
@@ -146,10 +128,11 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
             extra_data=extra_data,
             mix_hash=mix_hash,
             nonce=nonce,
+            base_fee_per_gas=base_fee_per_gas,
         )
 
     def __str__(self) -> str:
-        return f'<BlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
+        return f'<LondonBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
 
     _hash = None
 
@@ -161,7 +144,7 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
 
     @property
     def mining_hash(self) -> Hash32:
-        result = keccak(rlp.encode(self[:-2], MiningHeader))
+        result = keccak(rlp.encode(self[:-2], LondonMiningHeader))
         return cast(Hash32, result)
 
     @property
@@ -175,6 +158,37 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
         # Can someone trick us into following a high difficulty header with genesis parent hash?
         return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
 
-    @property
-    def base_fee_per_gas(self) -> int:
-        raise AttributeError("Base fee per gas not available until London fork")
+
+class LondonBackwardsHeader(BlockHeaderSedesAPI):
+    """
+    An rlp sedes class for block headers.
+
+    It can serialize and deserialize *both* London and pre-London headers.
+    """
+
+    @classmethod
+    def serialize(cls, obj: BlockHeaderAPI) -> List[bytes]:
+        return obj.serialize(obj)
+
+    @classmethod
+    def deserialize(cls, encoded: List[bytes]) -> BlockHeaderAPI:
+        num_fields = len(encoded)
+        if num_fields == 16:
+            return LondonBlockHeader.deserialize(encoded)
+        elif num_fields == 15:
+            return BlockHeader.deserialize(encoded)
+        else:
+            raise ValueError(
+                "London & earlier can only handle headers of 15 or 16 fields. "
+                f"Got {num_fields} in {encoded!r}"
+            )
+
+
+class LondonBlock(BerlinBlock):
+    transaction_builder: Type[TransactionBuilderAPI] = LondonTransactionBuilder
+    receipt_builder: Type[ReceiptBuilderAPI] = LondonReceiptBuilder
+    fields = [
+        ('header', LondonBlockHeader),
+        ('transactions', CountableList(transaction_builder)),
+        ('uncles', CountableList(LondonBackwardsHeader))
+    ]

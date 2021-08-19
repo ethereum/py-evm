@@ -50,8 +50,13 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         self.vm_state.validate_transaction(transaction)
 
     def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
-
-        gas_fee = transaction.gas * transaction.gas_price
+        # Use vm_state.get_gas_price instead of transaction_context.gas_price so
+        #   that we can run get_transaction_result (aka~ eth_call) and estimate_gas.
+        #   Both work better if the GASPRICE opcode returns the original real price,
+        #   but the sender's balance doesn't actually deduct the gas. This get_gas_price()
+        #   will return 0 for eth_call, but transaction_context.gas_price will return
+        #   the same value as the GASPRICE opcode.
+        gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
 
         # Buy Gas
         self.vm_state.delta_balance(transaction.sender, -1 * gas_fee)
@@ -140,6 +145,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
     def finalize_computation(self,
                              transaction: SignedTransactionAPI,
                              computation: ComputationAPI) -> ComputationAPI:
+        transaction_context = self.vm_state.get_transaction_context(transaction)
+
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -150,7 +157,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         gas_refunded = computation.get_gas_refund()
         gas_used = transaction.gas - gas_remaining
         gas_refund = min(gas_refunded, gas_used // 2)
-        gas_refund_amount = (gas_refund + gas_remaining) * transaction.gas_price
+        gas_refund_amount = (gas_refund + gas_remaining) * transaction_context.gas_price
 
         if gas_refund_amount:
             self.vm_state.logger.debug2(
@@ -162,8 +169,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             self.vm_state.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Miner Fees
-        transaction_fee = \
-            (transaction.gas - gas_remaining - gas_refund) * transaction.gas_price
+        gas_used = transaction.gas - gas_remaining - gas_refund
+        transaction_fee = gas_used * self.vm_state.get_tip(transaction)
         self.vm_state.logger.debug2(
             'TRANSACTION FEE: %s -> %s',
             transaction_fee,

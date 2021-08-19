@@ -1,4 +1,3 @@
-import time
 from typing import (
     Iterable,
 )
@@ -15,6 +14,7 @@ from eth_utils import (
     ValidationError,
 )
 
+from eth._utils.headers import eth_now
 from eth.abc import (
     BlockHeaderAPI,
 )
@@ -127,7 +127,7 @@ def is_checkpoint(block_number: int, epoch_length: int) -> bool:
 
 def validate_header_integrity(header: BlockHeaderAPI, epoch_length: int) -> None:
 
-    if header.timestamp > int(time.time()):
+    if header.timestamp > eth_now():
         raise ValidationError(f"Invalid future timestamp: {header.timestamp}")
 
     at_checkpoint = is_checkpoint(header.block_number, epoch_length)

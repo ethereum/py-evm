@@ -36,5 +36,9 @@ def fill_block(chain, from_, key, gas, data):
                 break
             else:
                 raise exc
+        else:
+            new_header = chain.get_vm().get_block().header
+            assert new_header.gas_used > 0
+            assert new_header.gas_used <= new_header.gas_limit
 
     assert chain.get_vm().get_block().header.gas_used > 0

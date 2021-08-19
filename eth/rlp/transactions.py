@@ -2,6 +2,7 @@ from typing import (
     Optional,
     Sequence,
     Tuple,
+    cast,
 )
 
 from cached_property import cached_property
@@ -73,7 +74,7 @@ class BaseTransactionFields(rlp.Serializable, TransactionFieldsAPI):
 
     @property
     def hash(self) -> Hash32:
-        return keccak(rlp.encode(self))
+        return cast(Hash32, keccak(rlp.encode(self)))
 
 
 class SignedTransactionMethods(BaseTransactionMethods, SignedTransactionAPI):

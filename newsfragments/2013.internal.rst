@@ -1,0 +1,5 @@
+- some test_vm fixes:
+  - use the correctly paired VMs in PoW test
+  - make sure *only* the block number is invalid in block number validity test
+- more robust test fixture name generation
+- run a newer version of the lint test from `make lint`

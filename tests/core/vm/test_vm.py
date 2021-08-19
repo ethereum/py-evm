@@ -17,21 +17,27 @@ from eth.tools.factories.transaction import (
 
 
 @pytest.fixture(params=MAINNET_VMS)
-def pow_consensus_chain(request):
+def vm_class(request):
+    return request.param
+
+
+@pytest.fixture
+def pow_consensus_chain(vm_class):
     return api.build(
         MiningChain,
-        api.fork_at(request.param, 0),
+        api.fork_at(vm_class, 0),
         api.genesis(),
     )
 
 
-@pytest.fixture(params=MAINNET_VMS)
-def noproof_consensus_chain(request):
+@pytest.fixture
+def noproof_consensus_chain(vm_class):
+    # This will always have the same vm configuration as the POW chain
     return api.build(
         MiningChain,
-        api.fork_at(request.param, 0),
+        api.fork_at(vm_class, 0),
         api.disable_pow_check(),
-        api.genesis(),
+        api.genesis(params=dict(gas_limit=100000)),
     )
 
 
@@ -100,7 +106,7 @@ def test_import_block(chain, funded_address, funded_address_private_key):
 
 
 def test_validate_header_succeeds_but_pow_fails(pow_consensus_chain, noproof_consensus_chain):
-    # Create to "structurally valid" blocks that are not backed by PoW
+    # Create two "structurally valid" blocks that are not backed by PoW
     block1 = noproof_consensus_chain.mine_block()
     block2 = noproof_consensus_chain.mine_block()
 
@@ -115,10 +121,63 @@ def test_validate_header_succeeds_but_pow_fails(pow_consensus_chain, noproof_con
 
 def test_validate_header_fails_on_invalid_parent(noproof_consensus_chain):
     block1 = noproof_consensus_chain.mine_block()
-    noproof_consensus_chain.mine_block()
-    block3 = noproof_consensus_chain.mine_block()
+    block2 = noproof_consensus_chain.mine_block()
 
-    vm = noproof_consensus_chain.get_vm(block3.header)
+    vm = noproof_consensus_chain.get_vm(block2.header)
 
     with pytest.raises(ValidationError, match="Blocks must be numbered consecutively"):
-        vm.validate_header(block3.header, block1.header)
+        vm.validate_header(block2.header.copy(block_number=3), block1.header)
+
+
+def test_validate_gas_limit_almost_too_low(noproof_consensus_chain):
+    block1 = noproof_consensus_chain.mine_block()
+    block2 = noproof_consensus_chain.mine_block()
+
+    max_reduction = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
+    barely_valid_low_gas_limit = block1.header.gas_limit - max_reduction
+    barely_valid_header = block2.header.copy(gas_limit=barely_valid_low_gas_limit)
+
+    vm = noproof_consensus_chain.get_vm(block2.header)
+
+    vm.validate_header(barely_valid_header, block1.header)
+
+
+def test_validate_gas_limit_too_low(noproof_consensus_chain):
+    block1 = noproof_consensus_chain.mine_block()
+    block2 = noproof_consensus_chain.mine_block()
+
+    max_reduction = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
+    invalid_low_gas_limit = block1.header.gas_limit - max_reduction - 1
+    invalid_header = block2.header.copy(gas_limit=invalid_low_gas_limit)
+
+    vm = noproof_consensus_chain.get_vm(block2.header)
+
+    with pytest.raises(ValidationError, match="[Gg]as limit"):
+        vm.validate_header(invalid_header, block1.header)
+
+
+def test_validate_gas_limit_almost_too_high(noproof_consensus_chain):
+    block1 = noproof_consensus_chain.mine_block()
+    block2 = noproof_consensus_chain.mine_block()
+
+    max_increase = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
+    barely_valid_high_gas_limit = block1.header.gas_limit + max_increase
+    barely_valid_header = block2.header.copy(gas_limit=barely_valid_high_gas_limit)
+
+    vm = noproof_consensus_chain.get_vm(block2.header)
+
+    vm.validate_header(barely_valid_header, block1.header)
+
+
+def test_validate_gas_limit_too_high(noproof_consensus_chain):
+    block1 = noproof_consensus_chain.mine_block()
+    block2 = noproof_consensus_chain.mine_block()
+
+    max_increase = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
+    invalid_high_gas_limit = block1.header.gas_limit + max_increase + 1
+    invalid_header = block2.header.copy(gas_limit=invalid_high_gas_limit)
+
+    vm = noproof_consensus_chain.get_vm(block2.header)
+
+    with pytest.raises(ValidationError, match="[Gg]as limit"):
+        vm.validate_header(invalid_header, block1.header)

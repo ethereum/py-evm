@@ -45,8 +45,11 @@ from eth.exceptions import (
     ParentNotFound,
 )
 from eth.db.header import HeaderDB
-from eth.rlp.headers import (
-    BlockHeader,
+from eth.vm.forks.london import (
+    LondonVM,
+)
+from eth.vm.forks.london.blocks import (
+    LondonBlockHeader as BlockHeader,
 )
 from eth.tools.rlp import (
     assert_headers_eq,
@@ -71,8 +74,10 @@ def genesis_header():
 def mk_header_chain(base_header, length):
     previous_header = base_header
     for _ in range(length):
-        next_header = BlockHeader.from_parent(
-            parent=previous_header,
+        # TODO test a variety of chain configs, where transitions to london
+        # happen during "interesting" times of the tests
+        next_header = LondonVM.create_header_from_parent(
+            previous_header,
             timestamp=previous_header.timestamp + 1,
             gas_limit=previous_header.gas_limit,
             difficulty=previous_header.difficulty,
@@ -788,6 +793,7 @@ def test_headerdb_persist_header_disallows_unknown_parent(headerdb):
         block_number=GENESIS_BLOCK_NUMBER,
         gas_limit=GENESIS_GAS_LIMIT,
         parent_hash=b'\x0f' * 32,
+        timestamp=0,
     )
     with pytest.raises(ParentNotFound, match="unknown parent"):
         headerdb.persist_header(header)

@@ -49,13 +49,13 @@ from eth.exceptions import (
     ParentNotFound,
 )
 from eth.db.schema import SchemaV1
-from eth.rlp.headers import BlockHeader
 from eth.rlp.sedes import chain_gaps
 from eth.typing import ChainGaps
 from eth.validation import (
     validate_block_number,
     validate_word,
 )
+from eth.vm.header import HeaderSedes
 
 
 class HeaderDB(HeaderDatabaseAPI):
@@ -619,4 +619,9 @@ class HeaderDB(HeaderDatabaseAPI):
 # be looking up recent blocks.
 @functools.lru_cache(128)
 def _decode_block_header(header_rlp: bytes) -> BlockHeaderAPI:
-    return rlp.decode(header_rlp, sedes=BlockHeader)
+    # Use a deserialization class that can handle any type of header.
+    # This feels a little hack-y, but we don't know the shape of the header
+    # at this point. It could be a pre-London header, or a post-London
+    # header, which includes the base fee. So we use a class that knows how to
+    # decode both.
+    return rlp.decode(header_rlp, sedes=HeaderSedes)

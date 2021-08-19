@@ -79,16 +79,7 @@ state.
   ... }
 
   >>> GENESIS_PARAMS = {
-  ...     'parent_hash': constants.GENESIS_PARENT_HASH,
-  ...     'uncles_hash': constants.EMPTY_UNCLE_HASH,
-  ...     'coinbase': constants.ZERO_ADDRESS,
-  ...     'transaction_root': constants.BLANK_ROOT_HASH,
-  ...     'receipt_root': constants.BLANK_ROOT_HASH,
   ...     'difficulty': constants.GENESIS_DIFFICULTY,
-  ...     'block_number': constants.GENESIS_BLOCK_NUMBER,
-  ...     'gas_limit': constants.GENESIS_GAS_LIMIT,
-  ...     'extra_data': constants.GENESIS_EXTRA_DATA,
-  ...     'nonce': constants.GENESIS_NONCE
   ... }
 
   >>> chain = MainnetChain.from_genesis(AtomicDB(), GENESIS_PARAMS, GENESIS_STATE)

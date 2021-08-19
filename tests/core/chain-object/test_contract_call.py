@@ -29,6 +29,7 @@ from eth.vm.forks import (
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 )
 
 
@@ -93,23 +94,23 @@ def uint256_to_bytes(uint):
     (
         (
             'getMeaningOfLife()',
-            0,
+            10 ** 10,  # In order to work with >=EIP-1559, the minimum gas should be >1 gwei
             uint256_to_bytes(42),
         ),
         (
             'getGasPrice()',
-            0,
-            uint256_to_bytes(0),
+            10 ** 10,
+            uint256_to_bytes(10 ** 10),
         ),
         (
             'getGasPrice()',
-            9,
-            uint256_to_bytes(9),
+            10 ** 11,
+            uint256_to_bytes(10 ** 11),
         ),
         (
             # make sure that whatever voodoo is used to execute a call, the balance is not inflated
             'getBalance()',
-            1,
+            10 ** 10,
             uint256_to_bytes(0),
         ),
     ),
@@ -242,6 +243,16 @@ def test_get_transaction_result(
         ),
         (
             BerlinVM,
+            'useLotsOfGas()',
+            OutOfGas,
+        ),
+        (
+            LondonVM,
+            'doRevert()',
+            Revert,
+        ),
+        (
+            LondonVM,
             'useLotsOfGas()',
             OutOfGas,
         ),

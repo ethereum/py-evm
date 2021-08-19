@@ -146,17 +146,9 @@ Let's start off by defining the ``GENESIS_PARAMS``.
   from eth import constants
 
   GENESIS_PARAMS = {
-        'parent_hash': constants.GENESIS_PARENT_HASH,
-        'uncles_hash': constants.EMPTY_UNCLE_HASH,
-        'coinbase': constants.ZERO_ADDRESS,
-        'transaction_root': constants.BLANK_ROOT_HASH,
-        'receipt_root': constants.BLANK_ROOT_HASH,
         'difficulty': 1,
-        'block_number': constants.GENESIS_BLOCK_NUMBER,
         'gas_limit': 3141592,
         'timestamp': 1514764800,
-        'extra_data': constants.GENESIS_EXTRA_DATA,
-        'nonce': constants.GENESIS_NONCE
     }
 
 Next, we'll create the chain itself using the defined ``GENESIS_PARAMS`` and the latest
@@ -327,17 +319,11 @@ zero value transfer transaction.
 
 
   >>> GENESIS_PARAMS = {
-  ...     'parent_hash': constants.GENESIS_PARENT_HASH,
-  ...     'uncles_hash': constants.EMPTY_UNCLE_HASH,
-  ...     'coinbase': constants.ZERO_ADDRESS,
-  ...     'transaction_root': constants.BLANK_ROOT_HASH,
-  ...     'receipt_root': constants.BLANK_ROOT_HASH,
   ...     'difficulty': 1,
-  ...     'block_number': constants.GENESIS_BLOCK_NUMBER,
   ...     'gas_limit': 3141592,
+  ...     # We set the timestamp, just to make this documented example reproducible.
+  ...     # In common usage, we remove the field to let py-evm choose a reasonable default.
   ...     'timestamp': 1514764800,
-  ...     'extra_data': constants.GENESIS_EXTRA_DATA,
-  ...     'nonce': constants.GENESIS_NONCE
   ... }
 
   >>> SENDER_PRIVATE_KEY = keys.PrivateKey(
@@ -355,6 +341,7 @@ zero value transfer transaction.
   ...     ))
 
   >>> chain = klass.from_genesis(AtomicDB(), GENESIS_PARAMS)
+  >>> genesis = chain.get_canonical_block_header_by_number(0)
   >>> vm = chain.get_vm()
 
   >>> nonce = vm.state.get_nonce(SENDER)
@@ -372,6 +359,12 @@ zero value transfer transaction.
 
   >>> chain.apply_transaction(signed_tx)
   (<ByzantiumBlock(#Block #1...)
+
+  >>> # Normally, we can let the timestamp be chosen automatically, but
+  >>> # for the sake of reproducing exactly the same block every time,
+  >>> # we will set it manually here:
+  >>> chain.set_header_timestamp(genesis.timestamp + 1)
+
   >>> # We have to finalize the block first in order to be able read the
   >>> # attributes that are important for the PoW algorithm
   >>> block_result = chain.get_vm().finalize_block(chain.get_block())

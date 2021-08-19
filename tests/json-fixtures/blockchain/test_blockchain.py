@@ -8,12 +8,7 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.rlp.headers import (
-    BlockHeader,
-)
-
 from eth.tools.rlp import (
-    assert_imported_genesis_header_unchanged,
     assert_mined_block_unchanged,
 )
 from eth.tools._utils.normalization import (
@@ -23,7 +18,7 @@ from eth.tools.fixtures import (
     apply_fixture_block_to_chain,
     filter_fixtures,
     generate_fixture_tests,
-    genesis_params_from_fixture,
+    genesis_fields_from_fixture,
     load_fixture,
     new_chain_from_fixture,
     should_run_slow_tests,
@@ -315,23 +310,31 @@ def fixture(fixture_data):
     return fixture
 
 
+def assert_imported_genesis_header_unchanged(genesis_fields, genesis_header):
+    for field, expected_val in genesis_fields.items():
+        actual_val = getattr(genesis_header, field)
+        if actual_val != expected_val:
+            raise ValidationError(
+                f"Genesis header field {field} doesn't match {expected_val}, was {actual_val}"
+            )
+
+
 def test_blockchain_fixtures(fixture_data, fixture):
     try:
         chain = new_chain_from_fixture(fixture)
     except ValueError as e:
         raise AssertionError(f"could not load chain for {fixture_data}") from e
 
-    genesis_params = genesis_params_from_fixture(fixture)
-    expected_genesis_header = BlockHeader(**genesis_params)
-
     # TODO: find out if this is supposed to pass?
     # if 'genesisRLP' in fixture:
     #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
 
+    genesis_fields = genesis_fields_from_fixture(fixture)
+
     genesis_block = chain.get_canonical_block_by_number(0)
     genesis_header = genesis_block.header
 
-    assert_imported_genesis_header_unchanged(expected_genesis_header, genesis_header)
+    assert_imported_genesis_header_unchanged(genesis_fields, genesis_header)
 
     # 1 - mine the genesis block
     # 2 - loop over blocks:

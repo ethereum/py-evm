@@ -31,9 +31,6 @@ from eth._utils.db import (
 from eth._utils.datatypes import (
     Configurable,
 )
-from eth._utils.headers import (
-    compute_gas_limit_bounds,
-)
 from eth._utils.rlp import (
     validate_imported_block_unchanged,
 )
@@ -249,7 +246,7 @@ class Chain(BaseChain):
                 f"Expected {genesis_params['state_root']!r}"
             )
 
-        genesis_header = BlockHeader(**genesis_params)
+        genesis_header = genesis_vm_class.create_genesis_header(**genesis_params)
         return cls.from_genesis_header(base_db, genesis_header)
 
     @classmethod
@@ -442,7 +439,7 @@ class Chain(BaseChain):
             transaction: SignedTransactionAPI,
             at_header: BlockHeaderAPI) -> bytes:
 
-        with self.get_vm(at_header).state_in_temp_block() as state:
+        with self.get_vm(at_header).in_costless_state() as state:
             computation = state.costless_execute_transaction(transaction)
 
         computation.raise_if_error()
@@ -454,7 +451,7 @@ class Chain(BaseChain):
             at_header: BlockHeaderAPI = None) -> int:
         if at_header is None:
             at_header = self.get_canonical_head()
-        with self.get_vm(at_header).state_in_temp_block() as state:
+        with self.get_vm(at_header).in_costless_state() as state:
             return self.gas_estimator(state, transaction)
 
     def import_block(self,
@@ -541,27 +538,10 @@ class Chain(BaseChain):
         vm.validate_seal(block.header)
         vm.validate_seal_extension(block.header, ())
         self.validate_uncles(block)
-        self.validate_gaslimit(block.header)
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         vm = self.get_vm(header)
         vm.validate_seal(header)
-
-    def validate_gaslimit(self, header: BlockHeaderAPI) -> None:
-        parent_header = self.get_block_header_by_hash(header.parent_hash)
-        low_bound, high_bound = compute_gas_limit_bounds(parent_header)
-        if header.gas_limit < low_bound:
-            raise ValidationError(
-                f"The gas limit on block {encode_hex(header.hash)} "
-                f"is too low: {header.gas_limit}. "
-                f"It must be at least {low_bound}"
-            )
-        elif header.gas_limit > high_bound:
-            raise ValidationError(
-                f"The gas limit on block {encode_hex(header.hash)} "
-                f"is too high: {header.gas_limit}. "
-                f"It must be at most {high_bound}"
-            )
 
     def validate_uncles(self, block: BlockAPI) -> None:
         has_uncles = len(block.uncles) > 0
@@ -680,6 +660,15 @@ class MiningChain(Chain, MiningChainAPI):
         self.header = self.ensure_header()
         return result
 
+    def set_header_timestamp(self, timestamp: int) -> None:
+        self.header = self.header.copy(timestamp=timestamp)
+
+    @staticmethod
+    def _custom_header(base_header: BlockHeaderAPI, **kwargs: Any) -> BlockHeaderAPI:
+        header_fields = {'coinbase'}
+        header_params = {k: v for k, v in kwargs.items() if k in header_fields}
+        return base_header.copy(**header_params)
+
     def mine_all(
             self,
             transactions: Sequence[SignedTransactionAPI],
@@ -693,7 +682,8 @@ class MiningChain(Chain, MiningChainAPI):
         else:
             base_header = self.create_header_from_parent(parent_header)
 
-        vm = self.get_vm(base_header)
+        custom_header = self._custom_header(base_header, **kwargs)
+        vm = self.get_vm(custom_header)
 
         new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
         filled_block = vm.set_block_transactions(vm.get_block(), new_header, transactions, receipts)
@@ -714,7 +704,8 @@ class MiningChain(Chain, MiningChainAPI):
         return self.mine_block_extended(*args, **kwargs).block
 
     def mine_block_extended(self, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
-        vm = self.get_vm(self.header)
+        custom_header = self._custom_header(self.header, **kwargs)
+        vm = self.get_vm(custom_header)
         current_block = vm.get_block()
         mine_result = vm.mine_block(current_block, *args, **kwargs)
         mined_block = mine_result.block

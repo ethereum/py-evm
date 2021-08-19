@@ -158,6 +158,15 @@ class FrontierTransaction(BaseTransaction):
             logs=logs,
         )
 
+    # Old transactions are treated as setting both max-fees as the gas price
+    @property
+    def max_priority_fee_per_gas(self) -> int:
+        return self.gas_price
+
+    @property
+    def max_fee_per_gas(self) -> int:
+        return self.gas_price
+
 
 class FrontierUnsignedTransaction(BaseUnsignedTransaction):
 
@@ -187,3 +196,12 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
 
     def get_intrinsic_gas(self) -> int:
         return frontier_get_intrinsic_gas(self)
+
+    # Old transactions are treated as setting both max-fees as the gas price
+    @property
+    def max_priority_fee_per_gas(self) -> int:
+        return self.gas_price
+
+    @property
+    def max_fee_per_gas(self) -> int:
+        return self.gas_price

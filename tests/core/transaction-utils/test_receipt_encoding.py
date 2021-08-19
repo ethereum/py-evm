@@ -10,12 +10,18 @@ from eth.exceptions import UnrecognizedTransactionType
 from eth.rlp.receipts import Receipt
 from eth.vm.forks import (
     BerlinVM,
+    LondonVM,
 )
 from eth.vm.forks.berlin.receipts import (
     TypedReceipt,
 )
 
-RECOGNIZED_TRANSACTION_TYPES = {1}
+# The type of receipt is based on the type of the transaction. So we are
+#   checking the type of the receipt against known transaction types.
+# Add recognized types here if any fork knows about it. Then,
+#   add manual unrecognized types for older forks. For example,
+#   (BerlinVM, to_bytes(2), UnrecognizedTransactionType) should be added explicitly.
+RECOGNIZED_TRANSACTION_TYPES = {1, 2}
 
 UNRECOGNIZED_TRANSACTION_TYPES = tuple(
     (to_bytes(val), UnrecognizedTransactionType)
@@ -30,7 +36,7 @@ INVALID_TRANSACTION_TYPES = tuple(
 )
 
 
-@pytest.mark.parametrize('vm_class', [BerlinVM])
+@pytest.mark.parametrize('vm_class', [BerlinVM, LondonVM])
 @pytest.mark.parametrize(
     'encoded, expected',
     (
@@ -61,7 +67,7 @@ INVALID_TRANSACTION_TYPES = tuple(
         ),
     )
 )
-def test_transaction_decode(vm_class, encoded, expected):
+def test_receipt_decode(vm_class, encoded, expected):
     expected_encoding = expected.encode()
     assert encoded == expected_encoding
 
@@ -70,7 +76,7 @@ def test_transaction_decode(vm_class, encoded, expected):
     assert decoded == expected
 
 
-@pytest.mark.parametrize('vm_class', [BerlinVM])
+@pytest.mark.parametrize('vm_class', [BerlinVM, LondonVM])
 @pytest.mark.parametrize(
     'encoded, expected_failure',
     (
@@ -82,8 +88,24 @@ def test_transaction_decode(vm_class, encoded, expected):
     + UNRECOGNIZED_TRANSACTION_TYPES
     + INVALID_TRANSACTION_TYPES
 )
-def test_transaction_decode_failure(vm_class, encoded, expected_failure):
-    sedes = vm_class.get_transaction_builder()
+def test_receipt_decode_failure(vm_class, encoded, expected_failure):
+    sedes = vm_class.get_receipt_builder()
+    with pytest.raises(expected_failure):
+        rlp.decode(encoded, sedes=sedes)
+
+
+@pytest.mark.parametrize(
+    'vm_class, encoded, expected_failure',
+    (
+        (
+            BerlinVM,
+            to_bytes(2),
+            UnrecognizedTransactionType,
+        ),
+    )
+)
+def test_receipt_decode_failure_by_vm(vm_class, encoded, expected_failure):
+    sedes = vm_class.get_receipt_builder()
     with pytest.raises(expected_failure):
         rlp.decode(encoded, sedes=sedes)
 

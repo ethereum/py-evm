@@ -41,6 +41,7 @@ from eth._utils.address import (
 )
 from eth.vm.forks import (
     BerlinVM,
+    LondonVM,
 )
 from eth.vm.forks.frontier.blocks import (
     FrontierBlock,
@@ -274,7 +275,13 @@ def test_chaindb_get_score(chaindb):
     assert genesis_score == 1
     assert chaindb.get_score(genesis.hash) == 1
 
-    block1 = BlockHeader(difficulty=10, block_number=1, gas_limit=0, parent_hash=genesis.hash)
+    block1 = BlockHeader(
+        difficulty=10,
+        block_number=1,
+        gas_limit=0,
+        parent_hash=genesis.hash,
+        timestamp=genesis.timestamp + 1,
+    )
     chaindb.persist_header(block1)
 
     block1_score_key = SchemaV1.make_block_hash_to_score_lookup_key(block1.hash)
@@ -377,7 +384,7 @@ def mine_blocks_with_access_list_receipts(
         funded_address_private_key):
 
     current_vm = chain.get_vm()
-    if not isinstance(current_vm, BerlinVM):
+    if not isinstance(current_vm, (BerlinVM, LondonVM)):
         pytest.skip("{current_vm} does not support typed transactions")
 
     for _ in range(num_blocks):

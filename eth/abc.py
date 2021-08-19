@@ -122,8 +122,47 @@ class MiningHeaderAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def base_fee_per_gas(self) -> Optional[int]:
+        """
+        Return the base fee per gas of the block.
 
-class BlockHeaderAPI(MiningHeaderAPI):
+        Set to None in pre-EIP-1559 (London) header.
+        """
+        ...
+
+
+class BlockHeaderSedesAPI(ABC):
+    """
+    Serialize and deserialize RLP for a header.
+
+    The header may be one of several definitions, like a London (EIP-1559) or
+    pre-London header.
+    """
+
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, encoded: List[bytes]) -> 'BlockHeaderAPI':
+        """
+        Extract a header from an encoded RLP object.
+
+        This method is used by rlp.decode(..., sedes=TransactionBuilderAPI).
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def serialize(cls, obj: 'BlockHeaderAPI') -> List[bytes]:
+        """
+        Encode a header to a series of bytes used by RLP.
+
+        This method is used by rlp.encode(obj).
+        """
+        ...
+
+
+class BlockHeaderAPI(MiningHeaderAPI, BlockHeaderSedesAPI):
     """
     A class derived from :class:`~eth.abc.MiningHeaderAPI` to define a block header after it is
     sealed.
@@ -334,6 +373,25 @@ class TransactionFieldsAPI(ABC):
     @property
     @abstractmethod
     def gas_price(self) -> int:
+        """
+        Will raise :class:`AttributeError` if get or set on a 1559 transaction.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def max_fee_per_gas(self) -> int:
+        """
+        Will default to gas_price if this is a pre-1559 transaction.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def max_priority_fee_per_gas(self) -> int:
+        """
+        Will default to gas_price if this is a pre-1559 transaction.
+        """
         ...
 
     @property
@@ -1684,6 +1742,14 @@ class ExecutionContextAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def base_fee_per_gas(self) -> Optional[int]:
+        """
+        Return the base fee per gas of the block
+        """
+        ...
+
 
 class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
     """
@@ -2604,6 +2670,27 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
+    @abstractmethod
+    def get_gas_price(self, transaction: SignedTransactionAPI) -> int:
+        """
+        Return the gas price of the given transaction.
+
+        Factor in the current block's base gase price, if appropriate. (See EIP-1559)
+        """
+        ...
+
+    @abstractmethod
+    def get_tip(self, transaction: SignedTransactionAPI) -> int:
+        """
+        Return the gas price that gets allocated to the miner/validator.
+
+        Pre-EIP-1559 that would be the full transaction gas price. After, it
+        would be the tip price (potentially reduced, if the base fee is so high
+        that it surpasses the transaction's maximum gas price after adding the
+        tip).
+        """
+        ...
+
     #
     # Access to account db
     #
@@ -2917,9 +3004,8 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
-    @classmethod
     @abstractmethod
-    def get_transaction_context(cls,
+    def get_transaction_context(self,
                                 transaction: SignedTransactionAPI) -> TransactionContextAPI:
         """
         Return the :class:`~eth.abc.TransactionContextAPI` for the given ``transaction``
@@ -3273,6 +3359,17 @@ class VirtualMachineAPI(ConfigurableAPI):
 
     @classmethod
     @abstractmethod
+    def create_genesis_header(cls, **genesis_params: Any) -> BlockHeaderAPI:
+        """
+        Create a genesis header using this VM's rules.
+
+        This is equivalent to calling :meth:`create_header_from_parent`
+        with ``parent_header`` set to None.
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
     def get_block_class(cls) -> Type[BlockAPI]:
         """
         Return the :class:`~eth.rlp.blocks.Block` class that this VM uses for blocks.
@@ -3456,10 +3553,10 @@ class VirtualMachineAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def state_in_temp_block(self) -> ContextManager[StateAPI]:
+    def in_costless_state(self) -> ContextManager[StateAPI]:
         """
         Return a :class:`~typing.ContextManager` with the current state wrapped in a temporary
-        block.
+        block. In this state, the ability to pay gas costs is ignored.
         """
         ...
 
@@ -3923,13 +4020,6 @@ class ChainAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def validate_gaslimit(self, header: BlockHeaderAPI) -> None:
-        """
-        Validate the gas limit on the given ``header``.
-        """
-        ...
-
-    @abstractmethod
     def validate_uncles(self, block: BlockAPI) -> None:
         """
         Validate the uncles for the given ``block``.
@@ -3973,6 +4063,16 @@ class MiningChainAPI(ChainAPI):
     def __init__(self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None) -> None:
         """
         Initialize the chain.
+        """
+        ...
+
+    @abstractmethod
+    def set_header_timestamp(self, timestamp: int) -> None:
+        """
+        Set the timestamp of the pending header to mine.
+
+        This is mostly useful for testing, as the timestamp will be chosen
+        automatically if this method is not called.
         """
         ...
 

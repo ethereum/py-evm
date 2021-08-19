@@ -24,6 +24,7 @@ from eth.abc import (
     StateAPI,
     VirtualMachineAPI,
 )
+from eth import constants
 from eth.db.atomic import AtomicDB
 from eth.chains.mainnet import (
     MainnetDAOValidatorVM,
@@ -165,7 +166,11 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
         raise ValueError(f"Network {network} does not match any known VM rules")
 
 
-def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
+def genesis_fields_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert all genesis fields in a fixture to a dictionary of header fields and values.
+    """
+
     return {
         'parent_hash': fixture['genesisBlockHeader']['parentHash'],
         'uncles_hash': fixture['genesisBlockHeader']['uncleHash'],
@@ -183,6 +188,34 @@ def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
         'mix_hash': fixture['genesisBlockHeader']['mixHash'],
         'nonce': fixture['genesisBlockHeader']['nonce'],
     }
+
+
+def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert a genesis fixture into a dict of the configurable header fields and values.
+
+    Some fields cannot be explicitly set when creating a new header, like
+    parent_hash, which is automatically set to the empty hash.
+    """
+
+    params = genesis_fields_from_fixture(fixture)
+
+    # Confirm that (currently) non-configurable defaults are set correctly,
+    #   then remove them because they cannot be configured on the header.
+    defaults = (
+        ('parent_hash', constants.GENESIS_PARENT_HASH),
+        ('uncles_hash', constants.EMPTY_UNCLE_HASH),
+        ('bloom', constants.GENESIS_BLOOM),
+        ('block_number', constants.GENESIS_BLOCK_NUMBER),
+        ('gas_used', constants.GENESIS_GAS_USED),
+    )
+
+    for key, default_val in defaults:
+        supplied_val = params.pop(key)
+        if supplied_val != default_val:
+            raise ValueError(f"Unexpected genesis {key}: {supplied_val}, expected: {default_val}")
+
+    return params
 
 
 def new_chain_from_fixture(fixture: Dict[str, Any],

@@ -84,7 +84,8 @@ def normalize_int(value: IntConvertible) -> int:
         return cast(int, value)
     elif is_bytes(value):
         return big_endian_to_int(cast(bytes, value))
-    elif is_hex(value) and is_0x_prefixed(value):
+    elif is_hex(value) and is_0x_prefixed(value):  # type: ignore
+        # mypy doesn't recognize that is_hex() forces value to be a str
         value = cast(str, value)
         if len(value) == 2:
             return 0

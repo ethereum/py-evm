@@ -25,7 +25,11 @@ def idfn(fixture_params: Iterable[Any]) -> str:
     """
     Function for pytest to produce uniform names for fixtures.
     """
-    return ":".join(str(item) for item in fixture_params)
+    try:
+        return ":".join(str(item) for item in fixture_params)
+    except TypeError:
+        # In case params are not iterable for some reason...
+        return str(fixture_params)
 
 
 def get_fixtures_file_hash(all_fixture_paths: Iterable[str]) -> str:

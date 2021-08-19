@@ -1,35 +1,116 @@
-import time
-from typing import Callable, Tuple, Optional
+import datetime
+from typing import (
+    Dict,
+    Tuple,
+)
 
 from eth_typing import (
-    Address
+    Address,
 )
 
 from eth.abc import BlockHeaderAPI
 from eth.constants import (
-    GENESIS_GAS_LIMIT,
+    BLANK_ROOT_HASH,
+    GENESIS_BLOCK_NUMBER,
+    GENESIS_PARENT_HASH,
     GAS_LIMIT_EMA_DENOMINATOR,
     GAS_LIMIT_ADJUSTMENT_FACTOR,
+    GAS_LIMIT_MAXIMUM,
     GAS_LIMIT_MINIMUM,
     GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR,
     GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR,
+    ZERO_ADDRESS,
 )
-from eth.rlp.headers import (
-    BlockHeader,
+from eth.typing import (
+    BlockNumber,
+    HeaderParams,
 )
 
 
-def compute_gas_limit_bounds(parent: BlockHeaderAPI) -> Tuple[int, int]:
+def eth_now() -> int:
+    """
+    The timestamp is in UTC.
+    """
+    return int(datetime.datetime.utcnow().timestamp())
+
+
+def new_timestamp_from_parent(parent: BlockHeaderAPI) -> int:
+    """
+    Generate a timestamp to use on a new header.
+
+    Generally, attempt to use the current time. If timestamp is too old (equal
+    or less than parent), return `parent.timestamp + 1`. If parent is None,
+    then consider this a genesis block.
+    """
+    if parent is None:
+        return eth_now()
+    else:
+        # header timestamps must increment
+        return max(
+            parent.timestamp + 1,
+            eth_now(),
+        )
+
+
+def fill_header_params_from_parent(
+        parent: BlockHeaderAPI,
+        gas_limit: int,
+        difficulty: int,
+        timestamp: int,
+        coinbase: Address = ZERO_ADDRESS,
+        nonce: bytes = None,
+        extra_data: bytes = None,
+        transaction_root: bytes = None,
+        state_root: bytes = None,
+        mix_hash: bytes = None,
+        receipt_root: bytes = None) -> Dict[str, HeaderParams]:
+
+    if parent is None:
+        parent_hash = GENESIS_PARENT_HASH
+        block_number = GENESIS_BLOCK_NUMBER
+        if state_root is None:
+            state_root = BLANK_ROOT_HASH
+    else:
+        parent_hash = parent.hash
+        block_number = BlockNumber(parent.block_number + 1)
+
+        if state_root is None:
+            state_root = parent.state_root
+
+    header_kwargs: Dict[str, HeaderParams] = {
+        'parent_hash': parent_hash,
+        'coinbase': coinbase,
+        'state_root': state_root,
+        'gas_limit': gas_limit,
+        'difficulty': difficulty,
+        'block_number': block_number,
+        'timestamp': timestamp,
+    }
+    if nonce is not None:
+        header_kwargs['nonce'] = nonce
+    if extra_data is not None:
+        header_kwargs['extra_data'] = extra_data
+    if transaction_root is not None:
+        header_kwargs['transaction_root'] = transaction_root
+    if receipt_root is not None:
+        header_kwargs['receipt_root'] = receipt_root
+    if mix_hash is not None:
+        header_kwargs['mix_hash'] = mix_hash
+
+    return header_kwargs
+
+
+def compute_gas_limit_bounds(previous_limit: int) -> Tuple[int, int]:
     """
     Compute the boundaries for the block gas limit based on the parent block.
     """
-    boundary_range = parent.gas_limit // GAS_LIMIT_ADJUSTMENT_FACTOR
-    upper_bound = parent.gas_limit + boundary_range
-    lower_bound = max(GAS_LIMIT_MINIMUM, parent.gas_limit - boundary_range)
+    boundary_range = previous_limit // GAS_LIMIT_ADJUSTMENT_FACTOR
+    upper_bound = min(GAS_LIMIT_MAXIMUM, previous_limit + boundary_range)
+    lower_bound = max(GAS_LIMIT_MINIMUM, previous_limit - boundary_range)
     return lower_bound, upper_bound
 
 
-def compute_gas_limit(parent_header: BlockHeaderAPI, gas_limit_floor: int) -> int:
+def compute_gas_limit(parent_header: BlockHeaderAPI, genesis_gas_limit: int) -> int:
     """
     A simple strategy for adjusting the gas limit.
 
@@ -38,7 +119,7 @@ def compute_gas_limit(parent_header: BlockHeaderAPI, gas_limit_floor: int) -> in
     - decrease by 1/1024th of the gas limit from the previous block
     - increase by 50% of the total gas used by the previous block
 
-    If the value is less than the given `gas_limit_floor`:
+    If the value is less than the given `genesis_gas_limit`:
 
     - increase the gas limit by 1/1024th of the gas limit from the previous block.
 
@@ -46,12 +127,15 @@ def compute_gas_limit(parent_header: BlockHeaderAPI, gas_limit_floor: int) -> in
 
     - use the GAS_LIMIT_MINIMUM as the new gas limit.
     """
-    if gas_limit_floor < GAS_LIMIT_MINIMUM:
+    if genesis_gas_limit < GAS_LIMIT_MINIMUM:
         raise ValueError(
-            "The `gas_limit_floor` value must be greater than the "
-            f"GAS_LIMIT_MINIMUM.  Got {gas_limit_floor}.  Must be greater than "
+            "The `genesis_gas_limit` value must be greater than the "
+            f"GAS_LIMIT_MINIMUM.  Got {genesis_gas_limit}.  Must be greater than "
             f"{GAS_LIMIT_MINIMUM}"
         )
+
+    if parent_header is None:
+        return genesis_gas_limit
 
     decay = parent_header.gas_limit // GAS_LIMIT_EMA_DENOMINATOR
 
@@ -73,40 +157,7 @@ def compute_gas_limit(parent_header: BlockHeaderAPI, gas_limit_floor: int) -> in
 
     if gas_limit < GAS_LIMIT_MINIMUM:
         return GAS_LIMIT_MINIMUM
-    elif gas_limit < gas_limit_floor:
+    elif gas_limit < genesis_gas_limit:
         return parent_header.gas_limit + decay
     else:
         return gas_limit
-
-
-def generate_header_from_parent_header(
-        compute_difficulty_fn: Callable[[BlockHeaderAPI, int], int],
-        parent_header: BlockHeaderAPI,
-        coinbase: Address,
-        timestamp: Optional[int] = None,
-        extra_data: bytes = b'') -> BlockHeader:
-    """
-    Generate BlockHeader from state_root and parent_header
-    """
-    if timestamp is None:
-        timestamp = max(int(time.time()), parent_header.timestamp + 1)
-    elif timestamp <= parent_header.timestamp:
-        raise ValueError(
-            f"header.timestamp ({timestamp}) should be higher than"
-            f"parent_header.timestamp ({parent_header.timestamp})"
-        )
-    header = BlockHeader(
-        difficulty=compute_difficulty_fn(parent_header, timestamp),
-        block_number=(parent_header.block_number + 1),
-        gas_limit=compute_gas_limit(
-            parent_header,
-            gas_limit_floor=GENESIS_GAS_LIMIT,
-        ),
-        timestamp=timestamp,
-        parent_hash=parent_header.hash,
-        state_root=parent_header.state_root,
-        coinbase=coinbase,
-        extra_data=extra_data,
-    )
-
-    return header

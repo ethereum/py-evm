@@ -26,9 +26,6 @@ from eth.exceptions import (
     InvalidInstruction,
     VMError,
 )
-from eth.rlp.headers import (
-    BlockHeader,
-)
 from eth._utils.padding import (
     pad32
 )
@@ -47,6 +44,7 @@ from eth.vm.forks import (
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 )
 from eth.vm.message import (
     Message,
@@ -64,11 +62,6 @@ CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
 CANONICAL_ADDRESS_C = b'\xee' * 20
 CANONICAL_ZERO_ADDRESS = b'\0' * 20
-GENESIS_HEADER = BlockHeader(
-    difficulty=constants.GENESIS_DIFFICULTY,
-    block_number=constants.GENESIS_BLOCK_NUMBER,
-    gas_limit=constants.GENESIS_GAS_LIMIT,
-)
 
 
 def assemble(*codes):
@@ -81,7 +74,11 @@ def assemble(*codes):
 def setup_vm(vm_class, chain_id=None):
     db = AtomicDB()
     chain_context = ChainContext(chain_id)
-    return vm_class(GENESIS_HEADER, ChainDB(db), chain_context, ConsensusContext(db))
+    genesis_header = vm_class.create_genesis_header(
+        difficulty=constants.GENESIS_DIFFICULTY,
+        timestamp=0,
+    )
+    return vm_class(genesis_header, ChainDB(db), chain_context, ConsensusContext(db))
 
 
 def run_computation(
@@ -1009,6 +1006,7 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 ))
 @pytest.mark.parametrize(
     # Testcases from https://eips.ethereum.org/EIPS/eip-1344
@@ -1321,7 +1319,7 @@ def test_access_list_gas_costs(vm_class, code, expect_gas_used, access_list):
 
 # cases from https://gist.github.com/holiman/174548cad102096858583c6fbbb0649a
 # mentioned in EIP-2929
-@pytest.mark.parametrize('vm_class', (BerlinVM, ))
+@pytest.mark.parametrize('vm_class', (BerlinVM, LondonVM, ))
 @pytest.mark.parametrize(
     'bytecode_hex, expect_gas_used',
     (

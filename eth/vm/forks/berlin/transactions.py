@@ -4,6 +4,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    cast,
 )
 
 from cached_property import cached_property
@@ -136,6 +137,15 @@ class UnsignedAccessListTransaction(rlp.Serializable):
         )
         return TypedTransaction(self._type_id, signed_transaction)
 
+    # Old transactions are treated as setting both max-fees as the gas price
+    @property
+    def max_priority_fee_per_gas(self) -> int:
+        return self.gas_price
+
+    @property
+    def max_fee_per_gas(self) -> int:
+        return self.gas_price
+
 
 class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI):
     _type_id = ACCESS_LIST_TRANSACTION_TYPE
@@ -213,6 +223,15 @@ class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
             logs=logs,
         )
 
+    # Old transactions are treated as setting both max-fees as the gas price
+    @property
+    def max_priority_fee_per_gas(self) -> int:
+        return self.gas_price
+
+    @property
+    def max_fee_per_gas(self) -> int:
+        return self.gas_price
+
 
 class AccessListPayloadDecoder(TransactionDecoderAPI):
     @classmethod
@@ -281,6 +300,14 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
         return self._inner.gas_price
 
     @property
+    def max_priority_fee_per_gas(self) -> int:
+        return self._inner.max_priority_fee_per_gas
+
+    @property
+    def max_fee_per_gas(self) -> int:
+        return self._inner.max_fee_per_gas
+
+    @property
     def gas(self) -> int:
         return self._inner.gas
 
@@ -323,7 +350,7 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
 
     @cached_property
     def hash(self) -> Hash32:
-        return keccak(self.encode())
+        return cast(Hash32, keccak(self.encode()))
 
     def get_intrinsic_gas(self) -> int:
         return self._inner.get_intrinsic_gas()
@@ -361,6 +388,7 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
     """
     legacy_signed = BerlinLegacyTransaction
     legacy_unsigned = BerlinUnsignedLegacyTransaction
+    typed_transaction = TypedTransaction
 
     @classmethod
     def decode(cls, encoded: bytes) -> SignedTransactionAPI:
@@ -369,21 +397,21 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
 
         type_id = to_int(encoded[0])
         if type_id in VALID_TRANSACTION_TYPES:
-            return TypedTransaction.decode(encoded)
+            return cls.typed_transaction.decode(encoded)
         else:
             return rlp.decode(encoded, sedes=cls.legacy_signed)
 
     @classmethod
     def deserialize(cls, encoded: DecodedZeroOrOneLayerRLP) -> SignedTransactionAPI:
         if isinstance(encoded, bytes):
-            return TypedTransaction.deserialize(encoded)
+            return cls.typed_transaction.deserialize(encoded)
         else:
             return cls.legacy_signed.deserialize(encoded)
 
     @classmethod
     def serialize(cls, obj: SignedTransactionAPI) -> DecodedZeroOrOneLayerRLP:
-        if isinstance(obj, TypedTransaction):
-            return TypedTransaction.serialize(obj)
+        if isinstance(obj, cls.typed_transaction):
+            return cls.typed_transaction.serialize(obj)
         else:
             return cls.legacy_signed.serialize(obj)
 
@@ -462,4 +490,4 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
             r,
             s,
         )
-        return TypedTransaction(ACCESS_LIST_TRANSACTION_TYPE, transaction)
+        return cls.typed_transaction(ACCESS_LIST_TRANSACTION_TYPE, transaction)

@@ -71,14 +71,15 @@ PARAGON_GENESIS_HEADER = sign_block_header(
 )
 
 # Genesis params are dervived from the genesis header
+# values that are not yet customizeable (and will automatically be default) are commented out
 PARAGON_GENESIS_PARAMS = {
-    'parent_hash': PARAGON_GENESIS_HEADER.parent_hash,
-    'uncles_hash': PARAGON_GENESIS_HEADER.uncles_hash,
+    # 'parent_hash': PARAGON_GENESIS_HEADER.parent_hash,
+    # 'uncles_hash': PARAGON_GENESIS_HEADER.uncles_hash,
     'coinbase': PARAGON_GENESIS_HEADER.coinbase,
-    'transaction_root': PARAGON_GENESIS_HEADER.transaction_root,
-    'receipt_root': PARAGON_GENESIS_HEADER.receipt_root,
+    # 'transaction_root': PARAGON_GENESIS_HEADER.transaction_root,
+    # 'receipt_root': PARAGON_GENESIS_HEADER.receipt_root,
     'difficulty': PARAGON_GENESIS_HEADER.difficulty,
-    'block_number': PARAGON_GENESIS_HEADER.block_number,
+    # 'block_number': PARAGON_GENESIS_HEADER.block_number,
     'timestamp': PARAGON_GENESIS_HEADER.timestamp,
     'gas_limit': PARAGON_GENESIS_HEADER.gas_limit,
     'extra_data': PARAGON_GENESIS_HEADER.extra_data,
@@ -134,50 +135,51 @@ def has_vote_from(signer, votes):
     return any(vote.signer == signer for vote in votes)
 
 
-def make_next_header(previous_header,
+def make_next_header(chain,
+                     previous_header,
                      signer_private_key,
                      coinbase=ZERO_ADDRESS,
                      nonce=NONCE_DROP,
                      difficulty=2):
-    next_header = sign_block_header(BlockHeader.from_parent(
+    unsigned_header = chain.create_header_from_parent(
+        previous_header,
         coinbase=coinbase,
         nonce=nonce,
-        parent=previous_header,
         timestamp=previous_header.timestamp + 1,
         gas_limit=previous_header.gas_limit,
         difficulty=difficulty,
         # FIXME: I think our sign_block_header is wrong
         extra_data=VANITY_LENGTH * b'0' + SIGNATURE_LENGTH * b'0',
-    ), signer_private_key)
-    return next_header
+    )
+    return sign_block_header(unsigned_header, signer_private_key)
 
 
 @to_tuple
-def alice_nominates_bob_and_ron_then_they_kick_her():
+def alice_nominates_bob_and_ron_then_they_kick_her(chain):
     header = PARAGON_GENESIS_HEADER
 
-    header = make_next_header(header, ALICE_PK)
+    header = make_next_header(chain, header, ALICE_PK)
 
     yield header
 
-    header = make_next_header(header, ALICE_PK, BOB, NONCE_AUTH)
+    header = make_next_header(chain, header, ALICE_PK, BOB, NONCE_AUTH)
     yield header
     # At this point, we have a new signer because it just needed a single vote to win at this point
 
-    header = make_next_header(header, BOB_PK, RON, NONCE_AUTH)
+    header = make_next_header(chain, header, BOB_PK, RON, NONCE_AUTH)
     yield header
 
-    header = make_next_header(header, ALICE_PK, RON, NONCE_AUTH)
+    header = make_next_header(chain, header, ALICE_PK, RON, NONCE_AUTH)
     yield header
     # But we needed two votes to get a third signer approvoved (+ 50 % signers)
 
-    header = make_next_header(header, BOB_PK, ALICE, NONCE_DROP)
+    header = make_next_header(chain, header, BOB_PK, ALICE, NONCE_DROP)
     yield header
 
-    header = make_next_header(header, RON_PK, ALICE, NONCE_DROP)
+    header = make_next_header(chain, header, RON_PK, ALICE, NONCE_DROP)
     yield header
 
-    header = make_next_header(header, BOB_PK)
+    header = make_next_header(chain, header, BOB_PK)
     yield header
 
 
@@ -222,7 +224,7 @@ def test_can_retrieve_root_snapshot(paragon_chain):
 
 def test_raises_unknown_ancestor_error(paragon_chain):
     head = paragon_chain.get_canonical_head()
-    next_header = make_next_header(head, ALICE_PK, RON, NONCE_AUTH)
+    next_header = make_next_header(paragon_chain, head, ALICE_PK, RON, NONCE_AUTH)
 
     clique = get_clique(paragon_chain, head)
     with pytest.raises(ValidationError, match='Unknown ancestor'):
@@ -230,7 +232,7 @@ def test_raises_unknown_ancestor_error(paragon_chain):
 
 
 def test_validate_chain_works_across_forks(paragon_chain):
-    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
+    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her(paragon_chain)
 
     paragon_chain.validate_chain_extension((PARAGON_GENESIS_HEADER,) + voting_chain)
 
@@ -238,7 +240,7 @@ def test_validate_chain_works_across_forks(paragon_chain):
 def test_import_block(paragon_chain):
 
     vm = paragon_chain.get_vm()
-    tx = new_transaction(vm, ALICE, BOB, 10, ALICE_PK)
+    tx = new_transaction(vm, ALICE, BOB, 10, ALICE_PK, gas_price=10)
     assert vm.state.get_balance(ALICE) == ALICE_INITIAL_BALANCE
     assert vm.state.get_balance(BOB) == BOB_INITIAL_BALANCE
     assert vm.state.get_balance(vm.get_block().header.coinbase) == 0
@@ -270,7 +272,7 @@ def test_import_block(paragon_chain):
 
 
 def test_reapplies_headers_without_snapshots(paragon_chain):
-    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
+    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her(paragon_chain)
 
     # We save the headers but we do not create intermediate snapshots
     # to proof that the SnapshotManager re-applies all needed headers
@@ -297,16 +299,18 @@ def test_revert_previous_nominate(paragon_chain):
     clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, head)
     assert len(snapshot.tallies) == 0
-    alice_votes_bob = make_next_header(head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
+    alice_votes_bob = make_next_header(
+        paragon_chain, head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_bob)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
-    alice_votes_ron = make_next_header(alice_votes_bob, ALICE_PK, coinbase=RON, nonce=NONCE_AUTH)
+    alice_votes_ron = make_next_header(
+        paragon_chain, alice_votes_bob, ALICE_PK, coinbase=RON, nonce=NONCE_AUTH)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_ron)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
     assert snapshot.tallies[RON].action == VoteAction.NOMINATE
     assert snapshot.tallies[RON].votes == 1
     alice_votes_against_ron = make_next_header(
-        alice_votes_ron, ALICE_PK, coinbase=RON, nonce=NONCE_DROP, difficulty=1)
+        paragon_chain, alice_votes_ron, ALICE_PK, coinbase=RON, nonce=NONCE_DROP, difficulty=1)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_against_ron)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
     # RON doesn't have a Tally anymore because Alice simple voted against her previous nomination
@@ -319,16 +323,18 @@ def test_revert_previous_kick(paragon_chain):
     clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, head)
     assert len(snapshot.tallies) == 0
-    alice_votes_bob = make_next_header(head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
+    alice_votes_bob = make_next_header(
+        paragon_chain, head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_bob)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
-    alice_kicks_bob = make_next_header(alice_votes_bob, ALICE_PK, coinbase=BOB, nonce=NONCE_DROP)
+    alice_kicks_bob = make_next_header(
+        paragon_chain, alice_votes_bob, ALICE_PK, coinbase=BOB, nonce=NONCE_DROP)
     snapshot = validate_seal_and_get_snapshot(clique, alice_kicks_bob)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
     assert snapshot.tallies[BOB].action == VoteAction.KICK
     assert snapshot.tallies[BOB].votes == 1
     alice_votes_bob = make_next_header(
-        alice_kicks_bob, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH, difficulty=1)
+        paragon_chain, alice_kicks_bob, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH, difficulty=1)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_bob)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
     # RON doesn't have a Tally anymore because Alice simple voted against her previous kick
@@ -342,16 +348,18 @@ def test_does_not_count_multiple_kicks(paragon_chain):
     clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, head)
     assert len(snapshot.tallies) == 0
-    alice_votes_bob = make_next_header(head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
+    alice_votes_bob = make_next_header(
+        paragon_chain, head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_bob)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
-    alice_kicks_bob = make_next_header(alice_votes_bob, ALICE_PK, coinbase=BOB, nonce=NONCE_DROP)
+    alice_kicks_bob = make_next_header(
+        paragon_chain, alice_votes_bob, ALICE_PK, coinbase=BOB, nonce=NONCE_DROP)
     snapshot = validate_seal_and_get_snapshot(clique, alice_kicks_bob)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
     assert snapshot.tallies[BOB].action == VoteAction.KICK
     assert snapshot.tallies[BOB].votes == 1
     alice_kicks_bob_again = make_next_header(
-        alice_kicks_bob, ALICE_PK, coinbase=BOB, nonce=NONCE_DROP, difficulty=1)
+        paragon_chain, alice_kicks_bob, ALICE_PK, coinbase=BOB, nonce=NONCE_DROP, difficulty=1)
     snapshot = validate_seal_and_get_snapshot(clique, alice_kicks_bob_again)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
     assert snapshot.tallies[BOB].action == VoteAction.KICK
@@ -363,16 +371,18 @@ def test_does_not_count_multiple_nominates(paragon_chain):
     clique = get_clique(paragon_chain)
     snapshot = validate_seal_and_get_snapshot(clique, head)
     assert len(snapshot.tallies) == 0
-    alice_votes_bob = make_next_header(head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
+    alice_votes_bob = make_next_header(
+        paragon_chain, head, ALICE_PK, coinbase=BOB, nonce=NONCE_AUTH)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_bob)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
-    alice_votes_ron = make_next_header(alice_votes_bob, ALICE_PK, coinbase=RON, nonce=NONCE_AUTH)
+    alice_votes_ron = make_next_header(
+        paragon_chain, alice_votes_bob, ALICE_PK, coinbase=RON, nonce=NONCE_AUTH)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_ron)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
     assert snapshot.tallies[RON].action == VoteAction.NOMINATE
     assert snapshot.tallies[RON].votes == 1
     alice_votes_ron_again = make_next_header(
-        alice_votes_ron, ALICE_PK, coinbase=RON, nonce=NONCE_AUTH, difficulty=1)
+        paragon_chain, alice_votes_ron, ALICE_PK, coinbase=RON, nonce=NONCE_AUTH, difficulty=1)
     snapshot = validate_seal_and_get_snapshot(clique, alice_votes_ron_again)
     assert snapshot.get_sorted_signers() == [ALICE, BOB]
     assert snapshot.tallies[RON].action == VoteAction.NOMINATE
@@ -382,7 +392,7 @@ def test_does_not_count_multiple_nominates(paragon_chain):
 def test_alice_votes_in_bob_and_ron_then_gets_kicked(paragon_chain):
     clique = get_clique(paragon_chain)
 
-    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
+    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her(paragon_chain)
 
     snapshot = validate_seal_and_get_snapshot(clique, voting_chain[0])
     assert snapshot.signers == {ALICE}
@@ -412,7 +422,7 @@ def test_alice_votes_in_bob_and_ron_then_gets_kicked(paragon_chain):
 def test_removes_all_pending_votes_after_nomination(paragon_chain):
     clique = get_clique(paragon_chain)
 
-    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
+    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her(paragon_chain)
 
     # Fast forward to the point where we have Alice and Bob as signers
     snapshot = None
@@ -440,7 +450,7 @@ def test_removes_all_pending_votes_after_kick(paragon_chain):
 
     ALICE_FRIEND = PublicKeyFactory().to_canonical_address()
 
-    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her()
+    voting_chain = alice_nominates_bob_and_ron_then_they_kick_her(paragon_chain)
 
     # Fast forward to the point where we have Alice, Bob and Ron as signers
     snapshot = None
@@ -451,6 +461,7 @@ def test_removes_all_pending_votes_after_kick(paragon_chain):
 
     # Alice nominates a weird friend that Bob and Ron have never heard of
     alices_nominates_friend = make_next_header(
+        paragon_chain,
         voting_chain[3], ALICE_PK, coinbase=ALICE_FRIEND, nonce=NONCE_AUTH, difficulty=1)
     snapshot = validate_seal_and_get_snapshot(clique, alices_nominates_friend)
 
@@ -460,11 +471,12 @@ def test_removes_all_pending_votes_after_kick(paragon_chain):
 
     # Bob and Ron get upset and kick Alice
     bob_kicks_alice = make_next_header(
+        paragon_chain,
         alices_nominates_friend, BOB_PK, coinbase=ALICE, nonce=NONCE_DROP, difficulty=1)
     snapshot = validate_seal_and_get_snapshot(clique, bob_kicks_alice)
 
     ron_kicks_alice = make_next_header(
-        bob_kicks_alice, RON_PK, coinbase=ALICE, nonce=NONCE_DROP, difficulty=1)
+        paragon_chain, bob_kicks_alice, RON_PK, coinbase=ALICE, nonce=NONCE_DROP, difficulty=1)
     snapshot = validate_seal_and_get_snapshot(clique, ron_kicks_alice)
 
     # As Alice was kicked, her pending votes regarding her friend and his tally were removed

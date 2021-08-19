@@ -1,5 +1,6 @@
 from typing import (
     Iterable,
+    Optional,
 )
 
 from eth_typing import (
@@ -21,6 +22,7 @@ class ExecutionContext(ExecutionContextAPI):
     _gas_limit = None
     _prev_hashes = None
     _chain_id = None
+    _base_fee_per_gas = None
 
     def __init__(
             self,
@@ -30,7 +32,8 @@ class ExecutionContext(ExecutionContextAPI):
             difficulty: int,
             gas_limit: int,
             prev_hashes: Iterable[Hash32],
-            chain_id: int) -> None:
+            chain_id: int,
+            base_fee_per_gas: Optional[int] = None) -> None:
         self._coinbase = coinbase
         self._timestamp = timestamp
         self._block_number = block_number
@@ -38,6 +41,7 @@ class ExecutionContext(ExecutionContextAPI):
         self._gas_limit = gas_limit
         self._prev_hashes = CachedIterable(prev_hashes)
         self._chain_id = chain_id
+        self._base_fee_per_gas = base_fee_per_gas
 
     @property
     def coinbase(self) -> Address:
@@ -66,3 +70,12 @@ class ExecutionContext(ExecutionContextAPI):
     @property
     def chain_id(self) -> int:
         return self._chain_id
+
+    @property
+    def base_fee_per_gas(self) -> int:
+        if self._base_fee_per_gas is None:
+            raise AttributeError(
+                f"This header at Block #{self.block_number} does not have a base gas fee"
+            )
+        else:
+            return self._base_fee_per_gas

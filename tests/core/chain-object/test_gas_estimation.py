@@ -15,6 +15,7 @@ from eth.vm.forks import (
     IstanbulVM,
     MuirGlacierVM,
     BerlinVM,
+    LondonVM,
 )
 from eth._utils.address import force_bytes_to_address
 
@@ -754,6 +755,78 @@ ADDR_1010 = force_bytes_to_address(b'\x10\x10')
             22272,
             id='sha3 precompile 32 bytes 1000_tolerance binary pending for BerlinVM',
         ),
+        pytest.param(
+            b'',
+            None,
+            ADDR_1010,
+            True,
+            LondonVM,
+            21000,
+            id='simple default pending for LondonVM',
+        ),
+        pytest.param(
+            b'',
+            None,
+            ADDR_1010,
+            False,
+            LondonVM,
+            21000,
+            id='simple default for LondonVM',
+        ),
+        pytest.param(
+            b'\xff' * 10,
+            None,
+            ADDR_1010,
+            True,
+            LondonVM,
+            21160,
+            id='10 bytes default pending for LondonVM',
+        ),
+        pytest.param(
+            b'\xff' * 10,
+            None,
+            ADDR_1010,
+            False,
+            LondonVM,
+            21160,
+            id='10 bytes default for LondonVM',
+        ),
+        pytest.param(
+            b'\xff' * 32,
+            None,
+            ADDRESS_2,
+            True,
+            LondonVM,
+            33675,
+            id='sha3 precompile 32 bytes default pending for LondonVM',
+        ),
+        pytest.param(
+            b'\xff' * 32,
+            None,
+            ADDRESS_2,
+            False,
+            LondonVM,
+            33687,
+            id='sha3 precompile 32 bytes default for LondonVM',
+        ),
+        pytest.param(
+            b'\xff' * 320,
+            None,
+            ADDRESS_2,
+            True,
+            LondonVM,
+            38265,
+            id='sha3 precompile 320 bytes default pending for LondonVM',
+        ),
+        pytest.param(
+            b'\xff' * 32,
+            binary_gas_search_1000_tolerance,
+            ADDRESS_2,
+            True,
+            LondonVM,
+            22272,
+            id='sha3 precompile 32 bytes 1000_tolerance binary pending for LondonVM',
+        ),
     ),
 )
 def test_estimate_gas(
@@ -815,6 +888,7 @@ def test_estimate_gas(
         (IstanbulVM, 186120),
         (MuirGlacierVM, 186120),
         (BerlinVM, 186120),
+        (LondonVM, 186120),
     )
 )
 def test_estimate_gas_on_full_block(

@@ -1,15 +1,14 @@
-from eth_hash.auto import keccak
-
-import rlp
-
 from typing import (
     Iterable,
     Tuple,
+    cast,
 )
 
+from eth_hash.auto import keccak
 from eth_typing import (
     Hash32,
 )
+import rlp
 
 from eth.rlp.logs import Log
 
@@ -22,4 +21,4 @@ def hash_log_entries(log_entries: Iterable[Tuple[bytes, Tuple[int, ...], bytes]]
     logs = [Log(*entry) for entry in log_entries]
     encoded_logs = rlp.encode(logs)
     logs_hash = keccak(encoded_logs)
-    return logs_hash
+    return cast(Hash32, logs_hash)

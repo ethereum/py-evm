@@ -88,6 +88,12 @@ class BaseState(Configurable, StateAPI):
     def gas_limit(self) -> int:
         return self.execution_context.gas_limit
 
+    def get_tip(self, transaction: SignedTransactionAPI) -> int:
+        return transaction.gas_price
+
+    def get_gas_price(self, transaction: SignedTransactionAPI) -> int:
+        return transaction.gas_price
+
     #
     # Access to account db
     #
@@ -269,10 +275,9 @@ class BaseState(Configurable, StateAPI):
         finally:
             self.get_transaction_context = original_context     # type: ignore # Remove ignore if https://github.com/python/mypy/issues/708 is fixed. # noqa: E501
 
-    @classmethod
-    def get_transaction_context(cls,
+    def get_transaction_context(self,
                                 transaction: SignedTransactionAPI) -> TransactionContextAPI:
-        return cls.get_transaction_context_class()(
+        return self.get_transaction_context_class()(
             gas_price=transaction.gas_price,
             origin=transaction.sender,
         )
