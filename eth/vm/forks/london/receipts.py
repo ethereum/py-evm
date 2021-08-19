@@ -5,7 +5,6 @@ from typing import (
 
 from eth.rlp.receipts import (
     Receipt,
-    ReceiptAPI,
 )
 from eth.vm.forks.berlin.receipts import (
     BerlinReceiptBuilder

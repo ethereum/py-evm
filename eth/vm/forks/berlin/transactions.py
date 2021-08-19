@@ -4,6 +4,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    cast,
 )
 
 from cached_property import cached_property
@@ -349,7 +350,7 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
 
     @cached_property
     def hash(self) -> Hash32:
-        return keccak(self.encode())
+        return cast(Hash32, keccak(self.encode()))
 
     def get_intrinsic_gas(self) -> int:
         return self._inner.get_intrinsic_gas()

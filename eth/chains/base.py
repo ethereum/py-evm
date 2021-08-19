@@ -22,7 +22,6 @@ from eth_utils import (
 )
 from eth_utils.toolz import (
     concatv,
-    keyfilter,
     sliding_window,
 )
 
@@ -495,7 +494,6 @@ class Chain(BaseChain):
         if perform_validation:
             self.validate_block(block)
 
-        vm = self.get_vm(block.header)
         (
             new_canonical_hashes,
             old_canonical_hashes,

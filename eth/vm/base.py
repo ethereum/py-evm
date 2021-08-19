@@ -455,7 +455,7 @@ class VM(Configurable, VirtualMachineAPI):
         return block
 
     @classmethod
-    def create_genesis_header(cls, **genesis_params) -> BlockHeaderAPI:
+    def create_genesis_header(cls, **genesis_params: Any) -> BlockHeaderAPI:
         # Create genesis header by setting the parent to None
         return cls.create_header_from_parent(None, **genesis_params)
 

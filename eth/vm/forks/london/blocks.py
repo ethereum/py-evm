@@ -1,14 +1,22 @@
 import time
-
 from typing import (
     List,
     Type,
-    overload,
+    cast,
 )
-from eth_utils.exceptions import ValidationError
 
+from eth_hash.auto import keccak
+from eth_typing import (
+    BlockNumber,
+)
+from eth_typing.evm import (
+    Address,
+    Hash32
+)
+from eth_utils import (
+    encode_hex,
+)
 import rlp
-
 from rlp.sedes import (
     Binary,
     CountableList,
@@ -27,7 +35,6 @@ from eth.constants import (
     ZERO_ADDRESS,
     ZERO_HASH32,
     EMPTY_UNCLE_HASH,
-    GENESIS_BLOCK_NUMBER,
     GENESIS_NONCE,
     GENESIS_PARENT_HASH,
     BLANK_ROOT_HASH,
@@ -41,21 +48,8 @@ from eth.rlp.sedes import (
     trie_root,
     uint256,
 )
-from eth.typing import HeaderParams
 from eth.vm.forks.berlin.blocks import (
     BerlinBlock,
-)
-from eth_hash.auto import keccak
-
-from eth_typing import (
-    BlockNumber,
-)
-from eth_typing.evm import (
-    Address,
-    Hash32
-)
-from eth_utils import (
-    encode_hex,
 )
 
 from .receipts import (
@@ -92,7 +86,8 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         ('mix_hash', binary),
         ('nonce', Binary(8, allow_empty=True)),
     ]
-    def __init__(self,              # type: ignore  # noqa: F811
+
+    def __init__(self,
                  difficulty: int,
                  block_number: BlockNumber,
                  gas_limit: int,
@@ -139,11 +134,12 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
     def hash(self) -> Hash32:
         if self._hash is None:
             self._hash = keccak(rlp.encode(self))
-        return self._hash
+        return cast(Hash32, self._hash)
 
     @property
     def mining_hash(self) -> Hash32:
-        return keccak(rlp.encode(self[:-2], LondonMiningHeader))
+        result = keccak(rlp.encode(self[:-2], LondonMiningHeader))
+        return cast(Hash32, result)
 
     @property
     def hex_hash(self) -> str:
@@ -183,8 +179,8 @@ class LondonBackwardsHeader(BlockHeaderSedesAPI):
 
 
 class LondonBlock(BerlinBlock):
-    transaction_builder: Type[TransactionBuilderAPI] = LondonTransactionBuilder  # type: ignore
-    receipt_builder: Type[ReceiptBuilderAPI] = LondonReceiptBuilder  # type: ignore
+    transaction_builder: Type[TransactionBuilderAPI] = LondonTransactionBuilder
+    receipt_builder: Type[ReceiptBuilderAPI] = LondonReceiptBuilder
     fields = [
         ('header', LondonBlockHeader),
         ('transactions', CountableList(transaction_builder)),

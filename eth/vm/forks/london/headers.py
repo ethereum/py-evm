@@ -1,6 +1,7 @@
 from typing import (
     Any,
     Callable,
+    List,
     Optional,
 )
 
@@ -15,10 +16,11 @@ from eth._utils.headers import (
 )
 from eth.abc import (
     BlockHeaderAPI,
+    BlockHeaderSedesAPI,
 )
 from eth.constants import GENESIS_GAS_LIMIT
+from eth.rlp.headers import BlockHeader
 from eth.vm.forks.berlin.headers import (
-    configure_header,
     compute_berlin_difficulty,
     configure_header,
 )
@@ -118,7 +120,8 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int
     else:
         all_fields['base_fee_per_gas'] = base_fee_per_gas
 
-    return LondonBlockHeader(**all_fields)
+    new_header = LondonBlockHeader(**all_fields)  # type:ignore
+    return new_header
 
 
 compute_london_difficulty = compute_berlin_difficulty

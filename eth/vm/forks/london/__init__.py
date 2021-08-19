@@ -2,11 +2,8 @@ from typing import Type
 
 from eth_utils.exceptions import ValidationError
 
-from eth._utils.db import get_parent_header
 from eth.abc import (
-    BlockAPI,
     BlockHeaderAPI,
-    BlockHeaderSedesAPI,
 )
 from eth.rlp.blocks import BaseBlock
 from eth.validation import validate_gas_limit

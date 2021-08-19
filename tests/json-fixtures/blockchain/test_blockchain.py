@@ -19,7 +19,6 @@ from eth.tools.fixtures import (
     filter_fixtures,
     generate_fixture_tests,
     genesis_fields_from_fixture,
-    genesis_params_from_fixture,
     load_fixture,
     new_chain_from_fixture,
     should_run_slow_tests,

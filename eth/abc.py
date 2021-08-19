@@ -74,7 +74,6 @@ class MiningHeaderAPI(ABC):
     gas_used: int
     timestamp: int
     extra_data: bytes
-    base_fee_per_gas: int  # EIP-1559, set to None in pre-London header
 
     @property
     @abstractmethod
@@ -123,8 +122,47 @@ class MiningHeaderAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def base_fee_per_gas(self) -> Optional[int]:
+        """
+        Return the base fee per gas of the block.
 
-class BlockHeaderAPI(MiningHeaderAPI):
+        Set to None in pre-EIP-1559 (London) header.
+        """
+        ...
+
+
+class BlockHeaderSedesAPI(ABC):
+    """
+    Serialize and deserialize RLP for a header.
+
+    The header may be one of several definitions, like a London (EIP-1559) or
+    pre-London header.
+    """
+
+    @classmethod
+    @abstractmethod
+    def deserialize(cls, encoded: List[bytes]) -> 'BlockHeaderAPI':
+        """
+        Extract a header from an encoded RLP object.
+
+        This method is used by rlp.decode(..., sedes=TransactionBuilderAPI).
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def serialize(cls, obj: 'BlockHeaderAPI') -> List[bytes]:
+        """
+        Encode a header to a series of bytes used by RLP.
+
+        This method is used by rlp.encode(obj).
+        """
+        ...
+
+
+class BlockHeaderAPI(MiningHeaderAPI, BlockHeaderSedesAPI):
     """
     A class derived from :class:`~eth.abc.MiningHeaderAPI` to define a block header after it is
     sealed.
@@ -327,9 +365,6 @@ class TransactionFieldsAPI(ABC):
     """
     A class to define all common transaction fields.
     """
-    max_fee_per_gas: int
-    max_priority_fee_per_gas: int
-
     @property
     @abstractmethod
     def nonce(self) -> int:
@@ -339,7 +374,23 @@ class TransactionFieldsAPI(ABC):
     @abstractmethod
     def gas_price(self) -> int:
         """
-        Will raise :cls:`AttributeError` if get or set on a 1559 transaction.
+        Will raise :class:`AttributeError` if get or set on a 1559 transaction.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def max_fee_per_gas(self) -> int:
+        """
+        Will default to gas_price if this is a pre-1559 transaction.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def max_priority_fee_per_gas(self) -> int:
+        """
+        Will default to gas_price if this is a pre-1559 transaction.
         """
         ...
 
@@ -2619,6 +2670,15 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
+    @abstractmethod
+    def get_gas_price(self, transaction: SignedTransactionAPI) -> int:
+        """
+        Return the gas price of the given transaction.
+
+        Factor in the current block's base gase price, if appropriate. (See EIP-1559)
+        """
+        ...
+
     #
     # Access to account db
     #
@@ -2994,36 +3054,6 @@ class ConsensusAPI(ABC):
         ...
 
 
-
-class BlockHeaderSedesAPI(ABC):
-    """
-    Serialize and deserialize RLP for a header.
-
-    The header may be one of several definitions, like a London (EIP-1559) or
-    pre-London header.
-    """
-
-    @classmethod
-    @abstractmethod
-    def deserialize(cls, encoded: List[bytes]) -> BlockHeaderAPI:
-        """
-        Extract a header from an encoded RLP object.
-
-        This method is used by rlp.decode(..., sedes=TransactionBuilderAPI).
-        """
-        ...
-
-    @classmethod
-    @abstractmethod
-    def serialize(cls, obj: BlockHeaderAPI) -> List[bytes]:
-        """
-        Encode a header to a series of bytes used by RLP.
-
-        This method is used by rlp.encode(obj).
-        """
-        ...
-
-
 class VirtualMachineAPI(ConfigurableAPI):
     """
     The :class:`~eth.abc.VirtualMachineAPI` class represents the Chain rules for a
@@ -3321,7 +3351,8 @@ class VirtualMachineAPI(ConfigurableAPI):
         """
         Create a genesis header using this VM's rules.
 
-        This is currently equivalent to create_header_from_parent(None, **genesis_params)
+        This is equivalent to calling :meth:`create_header_from_parent`
+        with ``parent_header`` set to None.
         """
         ...
 

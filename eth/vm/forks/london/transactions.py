@@ -1,16 +1,32 @@
 from cached_property import cached_property
 from typing import (
-    Any,
     Dict,
-    Optional,
     Sequence,
     Tuple,
     Type,
-    overload,
 )
-from eth_keys.datatypes import PrivateKey
-from eth_utils.exceptions import ValidationError
 
+from eth_keys.datatypes import PrivateKey
+from eth_typing import (
+    Address,
+    Hash32,
+)
+from eth_utils import (
+    to_bytes,
+)
+import rlp
+from rlp.sedes import (
+    CountableList,
+    big_endian_int,
+    binary,
+)
+
+from eth._utils.transactions import (
+    calculate_intrinsic_gas,
+    create_transaction_signature,
+    extract_transaction_sender,
+    validate_transaction_signature,
+)
 from eth.abc import (
     ReceiptAPI,
     SignedTransactionAPI,
@@ -36,34 +52,6 @@ from eth.vm.forks.berlin.transactions import (
 from eth.vm.forks.istanbul.transactions import (
     ISTANBUL_TX_GAS_SCHEDULE,
 )
-from eth.vm.spoof import (
-    SpoofTransaction,
-)
-
-from eth._utils.transactions import (
-    calculate_intrinsic_gas,
-    create_transaction_signature,
-    extract_transaction_sender,
-    validate_transaction_signature,
-)
-
-from .constants import (
-    BASE_GAS_FEE_TRANSACTION_TYPE,
-)
-
-import rlp
-from eth_typing import (
-    Address,
-    Hash32,
-)
-from eth_utils import (
-    to_bytes,
-)
-from rlp.sedes import (
-    CountableList,
-    big_endian_int,
-    binary,
-)
 
 from .constants import BASE_GAS_FEE_TRANSACTION_TYPE
 
@@ -88,7 +76,6 @@ class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
             r=r,
             s=s,
         )
-
 
 
 class UnsignedBaseGasFeeTransaction(rlp.Serializable):
@@ -197,7 +184,6 @@ class BaseGasFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
 
         return core_gas + preload_address_costs + preload_slot_costs
 
-
     def encode(self) -> bytes:
         return rlp.encode(self)
 
@@ -231,19 +217,6 @@ class LondonTypedTransaction(TypedTransaction):
         ACCESS_LIST_TRANSACTION_TYPE: AccessListPayloadDecoder,
         BASE_GAS_FEE_TRANSACTION_TYPE: BaseGasFeePayloadDecoder,
     }
-
-    def __init__(self, type_id: int, proxy_target: SignedTransactionAPI) -> None:
-        super().__init__(type_id, proxy_target)
-        self.max_priority_fee_per_gas = self._inner.max_priority_fee_per_gas
-        self.max_fee_per_gas = self._inner.max_fee_per_gas
-
-    # @property
-    # def max_priority_fee_per_gas(self) -> int:
-    #     return self._inner.max_priority_fee_per_gas
-
-    # @property
-    # def max_fee_per_gas(self) -> int:
-    #     return self._inner.max_fee_per_gas
 
 
 class LondonTransactionBuilder(BerlinTransactionBuilder):

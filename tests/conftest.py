@@ -4,7 +4,6 @@ import pytest
 
 from eth_utils import (
     decode_hex,
-    to_canonical_address,
     to_tuple,
     to_wei,
     setup_DEBUG2_logging,

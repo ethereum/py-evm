@@ -74,6 +74,8 @@ class ExecutionContext(ExecutionContextAPI):
     @property
     def base_fee_per_gas(self) -> int:
         if self._base_fee_per_gas is None:
-            raise AttributeError(f"This header at Block #{self.block_number} does not have a base gas fee")
+            raise AttributeError(
+                f"This header at Block #{self.block_number} does not have a base gas fee"
+            )
         else:
             return self._base_fee_per_gas

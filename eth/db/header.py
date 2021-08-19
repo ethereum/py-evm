@@ -49,7 +49,6 @@ from eth.exceptions import (
     ParentNotFound,
 )
 from eth.db.schema import SchemaV1
-from eth.rlp.headers import BlockHeader
 from eth.rlp.sedes import chain_gaps
 from eth.typing import ChainGaps
 from eth.validation import (
@@ -58,9 +57,6 @@ from eth.validation import (
 )
 from eth.vm.header import HeaderSedes
 
-from rlp.exceptions import (
-    ObjectDeserializationError
-)
 
 class HeaderDB(HeaderDatabaseAPI):
     def __init__(self, db: AtomicDatabaseAPI) -> None:

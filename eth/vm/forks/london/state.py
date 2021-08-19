@@ -1,6 +1,5 @@
-from eth.vm.logic.context import origin
 from eth.vm.forks.frontier.constants import REFUND_SELFDESTRUCT
-from typing import Type, Union
+from typing import Type
 
 from eth_hash.auto import keccak
 from eth_utils.exceptions import ValidationError
@@ -149,6 +148,7 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
             self.vm_state.delete_account(account)
 
         return computation
+
 
 class LondonState(BerlinState):
     account_db_class: Type[AccountDatabaseAPI] = AccountDB

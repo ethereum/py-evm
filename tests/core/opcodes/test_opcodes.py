@@ -26,9 +26,6 @@ from eth.exceptions import (
     InvalidInstruction,
     VMError,
 )
-from eth.rlp.headers import (
-    BlockHeader,
-)
 from eth._utils.padding import (
     pad32
 )

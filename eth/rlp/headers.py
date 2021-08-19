@@ -1,5 +1,6 @@
 import time
 from typing import (
+    cast,
     overload,
 )
 
@@ -149,11 +150,12 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
     def hash(self) -> Hash32:
         if self._hash is None:
             self._hash = keccak(rlp.encode(self))
-        return self._hash
+        return cast(Hash32, self._hash)
 
     @property
     def mining_hash(self) -> Hash32:
-        return keccak(rlp.encode(self[:-2], MiningHeader))
+        result = keccak(rlp.encode(self[:-2], MiningHeader))
+        return cast(Hash32, result)
 
     @property
     def hex_hash(self) -> str:

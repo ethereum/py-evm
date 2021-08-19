@@ -5,6 +5,7 @@ from eth.abc import (
 
 from eth_utils.exceptions import ValidationError
 
+
 def validate_london_normalized_transaction(
     state: StateAPI,
     transaction: SignedTransactionAPI,

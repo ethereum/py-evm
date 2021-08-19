@@ -13,7 +13,7 @@ from eth.db.keymap import (
 
 
 class HashTrie(KeyMapDB):
-    keymap = keccak
+    keymap = keccak  # type: ignore  # mypy doesn't like that keccak accepts bytearray
 
     @contextlib.contextmanager
     def squash_changes(self) -> Iterator['HashTrie']:

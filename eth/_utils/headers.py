@@ -1,17 +1,16 @@
-import time
-from typing import Callable, Tuple, Optional
+from typing import (
+    Dict,
+    Tuple,
+)
 
 from eth_typing import (
-    Address
+    Address,
 )
 
 from eth.abc import BlockHeaderAPI
 from eth.constants import (
     BLANK_ROOT_HASH,
-    EMPTY_UNCLE_HASH,
     GENESIS_BLOCK_NUMBER,
-    GENESIS_GAS_LIMIT,
-    GENESIS_NONCE,
     GENESIS_PARENT_HASH,
     GAS_LIMIT_EMA_DENOMINATOR,
     GAS_LIMIT_ADJUSTMENT_FACTOR,
@@ -20,10 +19,10 @@ from eth.constants import (
     GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR,
     GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR,
     ZERO_ADDRESS,
-    ZERO_HASH32,
 )
-from eth.rlp.headers import (
-    BlockHeader,
+from eth.typing import (
+    BlockNumber,
+    HeaderParams,
 )
 
 
@@ -38,41 +37,41 @@ def fill_header_params_from_parent(
         transaction_root: bytes = None,
         state_root: bytes = None,
         mix_hash: bytes = None,
-        receipt_root: bytes = None) -> 'BlockHeaderAPI':
+        receipt_root: bytes = None) -> Dict[str, HeaderParams]:
 
-        if parent is None:
-            parent_hash = GENESIS_PARENT_HASH
-            block_number = GENESIS_BLOCK_NUMBER
-            if state_root is None:
-                state_root = BLANK_ROOT_HASH
-        else:
-            parent_hash = parent.hash
-            block_number = parent.block_number + 1
+    if parent is None:
+        parent_hash = GENESIS_PARENT_HASH
+        block_number = GENESIS_BLOCK_NUMBER
+        if state_root is None:
+            state_root = BLANK_ROOT_HASH
+    else:
+        parent_hash = parent.hash
+        block_number = BlockNumber(parent.block_number + 1)
 
-            if state_root is None:
-                state_root = parent.state_root
+        if state_root is None:
+            state_root = parent.state_root
 
-        header_kwargs: Dict[str, HeaderParams] = {
-            'parent_hash': parent_hash,
-            'coinbase': coinbase,
-            'state_root': state_root,
-            'gas_limit': gas_limit,
-            'difficulty': difficulty,
-            'block_number': block_number,
-            'timestamp': timestamp,
-        }
-        if nonce is not None:
-            header_kwargs['nonce'] = nonce
-        if extra_data is not None:
-            header_kwargs['extra_data'] = extra_data
-        if transaction_root is not None:
-            header_kwargs['transaction_root'] = transaction_root
-        if receipt_root is not None:
-            header_kwargs['receipt_root'] = receipt_root
-        if mix_hash is not None:
-            header_kwargs['mix_hash'] = mix_hash
+    header_kwargs: Dict[str, HeaderParams] = {
+        'parent_hash': parent_hash,
+        'coinbase': coinbase,
+        'state_root': state_root,
+        'gas_limit': gas_limit,
+        'difficulty': difficulty,
+        'block_number': block_number,
+        'timestamp': timestamp,
+    }
+    if nonce is not None:
+        header_kwargs['nonce'] = nonce
+    if extra_data is not None:
+        header_kwargs['extra_data'] = extra_data
+    if transaction_root is not None:
+        header_kwargs['transaction_root'] = transaction_root
+    if receipt_root is not None:
+        header_kwargs['receipt_root'] = receipt_root
+    if mix_hash is not None:
+        header_kwargs['mix_hash'] = mix_hash
 
-        return header_kwargs
+    return header_kwargs
 
 
 def compute_gas_limit_bounds(previous_limit: int) -> Tuple[int, int]:
