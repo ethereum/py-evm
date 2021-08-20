@@ -2674,7 +2674,7 @@ class StateAPI(ConfigurableAPI):
     @abstractmethod
     def basefee(self) -> int:
         """
-        Return the current ``base_fee_per_gas`` from the current :attr:`~execution_context`
+        Return the current ``basefee`` from the current :attr:`~execution_context`
         """
         ...
 
