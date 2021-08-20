@@ -164,7 +164,7 @@ def test_base_fee():
     computation = run_general_computation(LondonVM)
     computation.opcodes[opcode_values.BASEFEE](computation)
 
-    result = computation.stack_pop1_int()
+    result = computation.stack_pop1_any()
 
     assert result == 10 ** 9  # 1 gwei
 
