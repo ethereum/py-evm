@@ -465,10 +465,9 @@ def normalize_vmtest_fixture(fixture: Dict[str, Any]) -> Iterable[Tuple[str, Any
 
 
 def normalize_signed_transaction(transaction: Dict[str, Any]) -> Dict[str, Any]:
-    return {
+    normalized_universal_transaction = {
         'data': robust_decode_hex(transaction['data']),
         'gasLimit': to_int(transaction['gasLimit']),
-        'gasPrice': to_int(transaction['gasPrice']),
         'nonce': to_int(transaction['nonce']),
         'r': to_int(transaction['r']),
         's': to_int(transaction['s']),
@@ -476,6 +475,29 @@ def normalize_signed_transaction(transaction: Dict[str, Any]) -> Dict[str, Any]:
         'to': decode_hex(transaction['to']),
         'value': to_int(transaction['value']),
     }
+    if 'type' in transaction:
+        type_id = to_int(transaction['type'])
+        if type_id == 1:
+            custom_fields = {
+                'type': type_id,
+                'gasPrice': to_int(transaction['gasPrice']),
+                'chainId': to_int(transaction['chainId']),
+            }
+        elif type_id == 2:
+            custom_fields = {
+                'type': type_id,
+                'chainId': to_int(transaction['chainId']),
+                'maxFeePerGas': to_int(transaction['maxFeePerGas']),
+                'maxPriorityFeePerGas': to_int(transaction['maxPriorityFeePerGas']),
+            }
+        else:
+            raise ValidationError(f"Did not recognize transaction type {type_id}")
+    else:
+        custom_fields = {
+            'gasPrice': to_int(transaction['gasPrice']),
+        }
+
+    return merge(normalized_universal_transaction, custom_fields)
 
 
 @curry
