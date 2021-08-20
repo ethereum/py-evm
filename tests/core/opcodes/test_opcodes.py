@@ -160,7 +160,7 @@ def test_add(vm_class, val1, val2, expected):
     assert result == expected
 
 
-def test_basefee():
+def test_base_fee():
     computation = run_general_computation(LondonVM)
     computation.opcodes[opcode_values.BASEFEE](computation)
 

@@ -30,4 +30,4 @@ def gaslimit(computation: BaseComputation) -> None:
 
 
 def basefee(computation: BaseComputation) -> None:
-    computation.stack_push_int(computation.state.basefee)
+    computation.stack_push_int(computation.state.base_fee)

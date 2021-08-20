@@ -2672,9 +2672,9 @@ class StateAPI(ConfigurableAPI):
 
     @property
     @abstractmethod
-    def basefee(self) -> int:
+    def base_fee(self) -> int:
         """
-        Return the current ``basefee`` from the current :attr:`~execution_context`
+        Return the current ``base_fee`` from the current :attr:`~execution_context`
         """
         ...
 

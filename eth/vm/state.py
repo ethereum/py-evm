@@ -89,7 +89,7 @@ class BaseState(Configurable, StateAPI):
         return self.execution_context.gas_limit
 
     @property
-    def basefee(self) -> int:
+    def base_fee(self) -> int:
         raise NotImplementedError("Basefee opcode is not implemented until London")
 
     def get_tip(self, transaction: SignedTransactionAPI) -> int:

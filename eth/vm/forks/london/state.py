@@ -137,5 +137,5 @@ class LondonState(BerlinState):
         )
 
     @property
-    def basefee(self: StateAPI) -> int:
+    def base_fee(self: StateAPI) -> int:
         return self.execution_context.base_fee_per_gas
