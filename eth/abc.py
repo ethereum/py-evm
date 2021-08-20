@@ -2675,6 +2675,9 @@ class StateAPI(ConfigurableAPI):
     def base_fee(self) -> int:
         """
         Return the current ``base_fee`` from the current :attr:`~execution_context`
+
+        Raises a ``NotImplementedError`` if called in an execution context
+        prior to the London hard fork.
         """
         ...
 

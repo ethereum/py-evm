@@ -90,7 +90,7 @@ class BaseState(Configurable, StateAPI):
 
     @property
     def base_fee(self) -> int:
-        raise NotImplementedError("Basefee opcode is not implemented until London")
+        raise NotImplementedError("Basefee opcode is not implemented prior to London hard fork")
 
     def get_tip(self, transaction: SignedTransactionAPI) -> int:
         return transaction.gas_price
