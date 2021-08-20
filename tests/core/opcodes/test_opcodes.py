@@ -160,6 +160,15 @@ def test_add(vm_class, val1, val2, expected):
     assert result == expected
 
 
+def test_basefee():
+    computation = run_general_computation(LondonVM)
+    computation.opcodes[opcode_values.BASEFEE](computation)
+
+    result = computation.stack_pop1_int()
+
+    assert result == 10 ** 9  # 1 gwei
+
+
 @pytest.mark.parametrize(
     'opcode_value, expected',
     (

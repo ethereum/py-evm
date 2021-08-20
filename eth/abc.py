@@ -2670,6 +2670,14 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
+    @property
+    @abstractmethod
+    def basefee(self) -> int:
+        """
+        Return the current ``base_fee_per_gas`` from the current :attr:`~execution_context`
+        """
+        ...
+
     @abstractmethod
     def get_gas_price(self, transaction: SignedTransactionAPI) -> int:
         """
