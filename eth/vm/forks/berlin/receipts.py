@@ -43,6 +43,7 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
     type_id: int
     rlp_type = Binary(min_length=1)  # must have at least one byte for the type
     _inner: ReceiptAPI
+    codecs = TYPED_RECEIPT_BODY_CODECS
 
     def __init__(self, type_id: int, proxy_target: ReceiptAPI) -> None:
         self.type_id = type_id
@@ -69,8 +70,8 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
 
     @classmethod
     def get_payload_codec(cls, type_id: int) -> Type[ReceiptDecoderAPI]:
-        if type_id in TYPED_RECEIPT_BODY_CODECS:
-            return TYPED_RECEIPT_BODY_CODECS[type_id]
+        if type_id in cls.codecs:
+            return cls.codecs[type_id]
         elif type_id in VALID_TRANSACTION_TYPES:
             raise UnrecognizedTransactionType(type_id, "Unknown receipt type")
         else:
@@ -124,7 +125,7 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
 
 class BerlinReceiptBuilder(ReceiptBuilderAPI):
     legacy_sedes = Receipt
-    codecs = TYPED_RECEIPT_BODY_CODECS
+    typed_receipt_class = TypedReceipt
 
     @classmethod
     def decode(cls, encoded: bytes) -> ReceiptAPI:
@@ -132,15 +133,15 @@ class BerlinReceiptBuilder(ReceiptBuilderAPI):
             raise ValidationError("Encoded receipt was empty, which makes it invalid")
 
         type_id = to_int(encoded[0])
-        if type_id in cls.codecs:
-            return TypedReceipt.decode(encoded)
+        if type_id in cls.typed_receipt_class.codecs:
+            return cls.typed_receipt_class.decode(encoded)
         else:
             return rlp.decode(encoded, sedes=cls.legacy_sedes)
 
     @classmethod
     def deserialize(cls, encoded: DecodedZeroOrOneLayerRLP) -> ReceiptAPI:
         if isinstance(encoded, bytes):
-            return TypedReceipt.deserialize(encoded)
+            return cls.typed_receipt_class.deserialize(encoded)
         else:
             return cls.legacy_sedes.deserialize(encoded)
 

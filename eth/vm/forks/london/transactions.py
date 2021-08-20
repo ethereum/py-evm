@@ -54,6 +54,7 @@ from eth.vm.forks.istanbul.transactions import (
 )
 
 from .constants import DYNAMIC_FEE_TRANSACTION_TYPE
+from .receipts import LondonReceiptBuilder
 
 
 class LondonLegacyTransaction(BerlinLegacyTransaction):
@@ -218,6 +219,7 @@ class LondonTypedTransaction(TypedTransaction):
         ACCESS_LIST_TRANSACTION_TYPE: AccessListPayloadDecoder,
         DYNAMIC_FEE_TRANSACTION_TYPE: DynamicFeePayloadDecoder,
     }
+    receipt_builder = LondonReceiptBuilder
 
 
 class LondonTransactionBuilder(BerlinTransactionBuilder):

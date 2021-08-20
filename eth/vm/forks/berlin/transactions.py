@@ -63,7 +63,7 @@ from .constants import (
     VALID_TRANSACTION_TYPES,
 )
 from .receipts import (
-    TypedReceipt,
+    BerlinReceiptBuilder,
 )
 
 
@@ -246,6 +246,7 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
     decoders: Dict[int, Type[TransactionDecoderAPI]] = {
         ACCESS_LIST_TRANSACTION_TYPE: AccessListPayloadDecoder,
     }
+    receipt_builder = BerlinReceiptBuilder
 
     def __init__(self, type_id: int, proxy_target: SignedTransactionAPI) -> None:
         self.type_id = type_id
@@ -373,7 +374,7 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
 
         inner_receipt = self._inner.make_receipt(status, gas_used, log_entries)
 
-        return TypedReceipt(ACCESS_LIST_TRANSACTION_TYPE, inner_receipt)
+        return self.receipt_builder.typed_receipt_class(self.type_id, inner_receipt)
 
     def __hash__(self) -> int:
         return hash((self.type_id, self._inner))

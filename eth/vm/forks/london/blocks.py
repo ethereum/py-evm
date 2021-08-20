@@ -144,7 +144,8 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
 
     @property
     def mining_hash(self) -> Hash32:
-        result = keccak(rlp.encode(self[:-2], LondonMiningHeader))
+        non_pow_fields = self[:-3] + self[-1:]
+        result = keccak(rlp.encode(non_pow_fields, LondonMiningHeader))
         return cast(Hash32, result)
 
     @property
