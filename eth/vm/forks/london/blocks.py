@@ -84,10 +84,10 @@ class LondonMiningHeader(rlp.Serializable, MiningHeaderAPI):
 
 
 class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
-    fields = UNMINED_LONDON_HEADER_FIELDS + [
+    fields = UNMINED_LONDON_HEADER_FIELDS[:-1] + [
         ('mix_hash', binary),
         ('nonce', Binary(8, allow_empty=True)),
-    ]
+    ] + UNMINED_LONDON_HEADER_FIELDS[-1:]
 
     def __init__(self,
                  difficulty: int,
