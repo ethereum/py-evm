@@ -63,6 +63,7 @@ EXTCODEHASH = 0x3f
 # These opcodes seem to belong in the environment block, but we are out of opcode space in 0x3*
 CHAINID = 0x46
 SELFBALANCE = 0x47
+BASEFEE = 0x48
 
 #
 # Block Information

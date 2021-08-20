@@ -135,3 +135,7 @@ class LondonState(BerlinState):
             gas_price=effective_gas_price,
             origin=transaction.sender
         )
+
+    @property
+    def base_fee(self: StateAPI) -> int:
+        return self.execution_context.base_fee_per_gas

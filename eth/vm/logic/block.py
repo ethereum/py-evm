@@ -27,3 +27,7 @@ def difficulty(computation: BaseComputation) -> None:
 
 def gaslimit(computation: BaseComputation) -> None:
     computation.stack_push_int(computation.state.gas_limit)
+
+
+def basefee(computation: BaseComputation) -> None:
+    computation.stack_push_int(computation.state.base_fee)

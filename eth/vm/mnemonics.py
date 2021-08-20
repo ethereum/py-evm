@@ -64,6 +64,7 @@ TIMESTAMP = 'TIMESTAMP'
 NUMBER = 'NUMBER'
 DIFFICULTY = 'DIFFICULTY'
 GASLIMIT = 'GASLIMIT'
+BASEFEE = 'BASEFEE'
 #
 # Stack, Memory, Storage and Flow Operations
 #

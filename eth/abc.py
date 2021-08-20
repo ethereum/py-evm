@@ -2670,6 +2670,17 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
+    @property
+    @abstractmethod
+    def base_fee(self) -> int:
+        """
+        Return the current ``base_fee`` from the current :attr:`~execution_context`
+
+        Raises a ``NotImplementedError`` if called in an execution context
+        prior to the London hard fork.
+        """
+        ...
+
     @abstractmethod
     def get_gas_price(self, transaction: SignedTransactionAPI) -> int:
         """
