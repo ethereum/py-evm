@@ -1,7 +1,6 @@
 import pytest
 
 from eth_utils import (
-    to_canonical_address,
     ValidationError,
 )
 
@@ -18,12 +17,7 @@ from eth.vm.computation import (
 from eth.vm.transaction_context import (
     BaseTransactionContext,
 )
-
-
-NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
-NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"
-CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
-CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
+from tests.core.vm.conftest import CANONICAL_ADDRESS_A, CANONICAL_ADDRESS_B, NORMALIZED_ADDRESS_A
 
 
 class DummyComputation(BaseComputation):
@@ -39,15 +33,6 @@ class DummyComputation(BaseComputation):
 class DummyTransactionContext(BaseTransactionContext):
     def get_intrinsic_gas(self):
         return 0
-
-
-@pytest.fixture
-def transaction_context():
-    tx_context = DummyTransactionContext(
-        gas_price=1,
-        origin=CANONICAL_ADDRESS_B,
-    )
-    return tx_context
 
 
 @pytest.fixture
