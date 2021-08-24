@@ -50,7 +50,13 @@ from eth.vm.transaction_context import (
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'VMTests')
+BASE_FIXTURE_PATH = os.path.join(
+    ROOT_PROJECT_DIR,
+    'fixtures',
+    'LegacyTests',
+    'Constantinople',
+    'VMTests',
+)
 
 
 def vm_fixture_mark_fn(fixture_path, fixture_name):

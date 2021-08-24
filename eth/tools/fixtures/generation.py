@@ -1,5 +1,4 @@
 import hashlib
-import os
 
 from typing import (
     Any,
@@ -14,7 +13,6 @@ from eth_utils.toolz import (
 
 from .loading import (
     find_fixtures,
-    find_fixture_files,
 )
 
 
@@ -59,31 +57,8 @@ def generate_fixture_tests(metafunc: Any,
        fixtures (such as expanding the statetest fixtures to be multiple tests for
        each fork.
     """
-    fixture_namespace = os.path.basename(base_fixture_path)
-
     if 'fixture_data' in metafunc.fixturenames:
-        all_fixture_paths = find_fixture_files(base_fixture_path)
-        current_file_hash = get_fixtures_file_hash(all_fixture_paths)
-
-        data_cache_key = f'pyevm/statetest/fixtures/{fixture_namespace}/data'
-        file_hash_cache_key = f'pyevm/statetest/fixtures/{fixture_namespace}/data-hash'
-
-        cached_file_hash = metafunc.config.cache.get(file_hash_cache_key, None)
-        cached_fixture_data = metafunc.config.cache.get(data_cache_key, None)
-
-        bust_cache = any((
-            cached_file_hash is None,
-            cached_fixture_data is None,
-            cached_file_hash != current_file_hash,
-        ))
-
-        if bust_cache:
-            all_fixtures = find_fixtures(base_fixture_path)
-
-            metafunc.config.cache.set(data_cache_key, all_fixtures)
-            metafunc.config.cache.set(file_hash_cache_key, current_file_hash)
-        else:
-            all_fixtures = cached_fixture_data
+        all_fixtures = find_fixtures(base_fixture_path)
 
         if not all_fixtures:
             raise AssertionError(

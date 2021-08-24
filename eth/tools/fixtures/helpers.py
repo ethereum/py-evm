@@ -48,6 +48,7 @@ from eth.vm.forks import (
     SpuriousDragonVM,
     IstanbulVM,
     BerlinVM,
+    LondonVM,
 )
 
 
@@ -161,6 +162,11 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
         return (
             (0, ByzantiumVM),
             (5, PetersburgVM),
+        )
+    elif network == 'BerlinToLondonAt5':
+        return (
+            (0, BerlinVM),
+            (5, LondonVM),
         )
     else:
         raise ValueError(f"Network {network} does not match any known VM rules")
