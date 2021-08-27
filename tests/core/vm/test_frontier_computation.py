@@ -6,21 +6,20 @@ from eth.vm.message import (
 from eth.vm.forks.frontier.computation import (
     FrontierComputation,
 )
-from tests.core.vm.conftest import CANONICAL_ADDRESS_A, CANONICAL_ADDRESS_B
 
 
 @pytest.fixture
-def state(chain_without_block_validation):
+def state(chain_without_block_validation, canonical_address_a):
     state = chain_without_block_validation.get_vm().state
-    state.set_balance(CANONICAL_ADDRESS_A, 1000)
+    state.set_balance(canonical_address_a, 1000)
     return state
 
 
 @pytest.fixture
-def message():
+def message(canonical_address_a, canonical_address_b):
     message = Message(
-        to=CANONICAL_ADDRESS_A,
-        sender=CANONICAL_ADDRESS_B,
+        to=canonical_address_a,
+        sender=canonical_address_b,
         value=100,
         data=b'',
         code=b'',
@@ -40,10 +39,10 @@ def computation(message, transaction_context, state):
 
 
 @pytest.fixture
-def child_message(computation):
+def child_message(computation, canonical_address_b):
     child_message = computation.prepare_child_message(
         gas=100,
-        to=CANONICAL_ADDRESS_B,
+        to=canonical_address_b,
         value=200,
         data=b'',
         code=b''
