@@ -1,47 +1,25 @@
 import pytest
 
-from eth_utils import (
-    to_canonical_address,
-)
-
 from eth.vm.message import (
     Message,
 )
 from eth.vm.forks.frontier.computation import (
     FrontierComputation,
 )
-from eth.vm.transaction_context import (
-    BaseTransactionContext,
-)
-
-
-NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
-NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"
-CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
-CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
 
 
 @pytest.fixture
-def state(chain_without_block_validation):
+def state(chain_without_block_validation, canonical_address_a):
     state = chain_without_block_validation.get_vm().state
-    state.set_balance(CANONICAL_ADDRESS_A, 1000)
+    state.set_balance(canonical_address_a, 1000)
     return state
 
 
 @pytest.fixture
-def transaction_context():
-    tx_context = BaseTransactionContext(
-        gas_price=1,
-        origin=CANONICAL_ADDRESS_B,
-    )
-    return tx_context
-
-
-@pytest.fixture
-def message():
+def message(canonical_address_a, canonical_address_b):
     message = Message(
-        to=CANONICAL_ADDRESS_A,
-        sender=CANONICAL_ADDRESS_B,
+        to=canonical_address_a,
+        sender=canonical_address_b,
         value=100,
         data=b'',
         code=b'',
@@ -61,10 +39,10 @@ def computation(message, transaction_context, state):
 
 
 @pytest.fixture
-def child_message(computation):
+def child_message(computation, canonical_address_b):
     child_message = computation.prepare_child_message(
         gas=100,
-        to=CANONICAL_ADDRESS_B,
+        to=canonical_address_b,
         value=200,
         data=b'',
         code=b''

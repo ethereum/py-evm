@@ -1,7 +1,6 @@
 import pytest
 
 from eth_utils import (
-    to_canonical_address,
     ValidationError,
 )
 
@@ -20,12 +19,6 @@ from eth.vm.transaction_context import (
 )
 
 
-NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
-NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"
-CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
-CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
-
-
 class DummyComputation(BaseComputation):
     @classmethod
     def apply_message(cls, *args):
@@ -42,19 +35,10 @@ class DummyTransactionContext(BaseTransactionContext):
 
 
 @pytest.fixture
-def transaction_context():
-    tx_context = DummyTransactionContext(
-        gas_price=1,
-        origin=CANONICAL_ADDRESS_B,
-    )
-    return tx_context
-
-
-@pytest.fixture
-def message():
+def message(canonical_address_a, canonical_address_b):
     message = Message(
-        to=CANONICAL_ADDRESS_A,
-        sender=CANONICAL_ADDRESS_B,
+        to=canonical_address_a,
+        sender=canonical_address_b,
         value=100,
         data=b'',
         code=b'',
@@ -74,10 +58,10 @@ def computation(message, transaction_context):
 
 
 @pytest.fixture
-def child_message(computation):
+def child_message(computation, canonical_address_b):
     child_message = computation.prepare_child_message(
         gas=100,
-        to=CANONICAL_ADDRESS_B,
+        to=canonical_address_b,
         value=200,
         data=b'',
         code=b''
@@ -85,12 +69,12 @@ def child_message(computation):
     return child_message
 
 
-def test_is_origin_computation(computation, transaction_context):
+def test_is_origin_computation(computation, transaction_context, canonical_address_a):
     assert computation.is_origin_computation
     message2 = Message(
-        to=CANONICAL_ADDRESS_A,
+        to=canonical_address_a,
         # Different sender than the tx context origin
-        sender=CANONICAL_ADDRESS_A,
+        sender=canonical_address_a,
         value=100,
         data=b'',
         code=b'',
@@ -147,87 +131,91 @@ def test_extend_memory_doesnt_increase_until_32_bytes_are_used(computation):
     assert computation._gas_meter.gas_remaining == 94
 
 
-def test_register_accounts_for_deletion_raises_if_address_isnt_canonical(computation):
+def test_register_accounts_for_deletion_raises_if_address_isnt_canonical(
+    computation, normalized_address_a
+):
     with pytest.raises(ValidationError):
-        computation.register_account_for_deletion(NORMALIZED_ADDRESS_A)
+        computation.register_account_for_deletion(normalized_address_a)
 
 
-def test_register_accounts_for_deletion_cannot_register_the_same_address_twice(computation):
-    computation.register_account_for_deletion(CANONICAL_ADDRESS_A)
+def test_register_accounts_for_deletion_cannot_register_the_same_address_twice(
+    computation, canonical_address_a
+):
+    computation.register_account_for_deletion(canonical_address_a)
     with pytest.raises(ValueError):
-        computation.register_account_for_deletion(CANONICAL_ADDRESS_A)
+        computation.register_account_for_deletion(canonical_address_a)
 
 
-def test_register_accounts_for_deletion(computation):
-    computation.register_account_for_deletion(CANONICAL_ADDRESS_A)
-    assert computation.accounts_to_delete[computation.msg.storage_address] == CANONICAL_ADDRESS_A
+def test_register_accounts_for_deletion(computation, canonical_address_a, canonical_address_b):
+    computation.register_account_for_deletion(canonical_address_a)
+    assert computation.accounts_to_delete[computation.msg.storage_address] == canonical_address_a
     # Another account can be registered for deletion
-    computation.msg.storage_address = CANONICAL_ADDRESS_B
-    computation.register_account_for_deletion(CANONICAL_ADDRESS_A)
+    computation.msg.storage_address = canonical_address_b
+    computation.register_account_for_deletion(canonical_address_a)
 
 
 def test_get_accounts_for_deletion_starts_empty(computation):
     assert computation.get_accounts_for_deletion() == ()
 
 
-def test_get_accounts_for_deletion_returns(computation):
-    computation.register_account_for_deletion(CANONICAL_ADDRESS_A)
+def test_get_accounts_for_deletion_returns(computation, canonical_address_a, canonical_address_b):
+    computation.register_account_for_deletion(canonical_address_a)
     # Get accounts for deletion returns the correct account
-    assert computation.get_accounts_for_deletion() == ((CANONICAL_ADDRESS_A, CANONICAL_ADDRESS_A),)
+    assert computation.get_accounts_for_deletion() == ((canonical_address_a, canonical_address_a),)
     # Get accounts for deletion can return multiple accounts
-    computation.msg.storage_address = CANONICAL_ADDRESS_B
-    computation.register_account_for_deletion(CANONICAL_ADDRESS_B)
+    computation.msg.storage_address = canonical_address_b
+    computation.register_account_for_deletion(canonical_address_b)
     accounts_for_deletion = sorted(computation.get_accounts_for_deletion(),
                                    key=lambda item: item[0])
-    assert CANONICAL_ADDRESS_A == accounts_for_deletion[0][0]
-    assert CANONICAL_ADDRESS_B == accounts_for_deletion[1][0]
+    assert canonical_address_a == accounts_for_deletion[0][0]
+    assert canonical_address_b == accounts_for_deletion[1][0]
 
 
 def test_add_log_entry_starts_empty(computation):
     assert computation.get_log_entries() == ()
 
 
-def test_add_log_entry_raises_if_address_isnt_canonical(computation):
+def test_add_log_entry_raises_if_address_isnt_canonical(computation, normalized_address_a):
     with pytest.raises(ValidationError):
-        computation.add_log_entry(NORMALIZED_ADDRESS_A, [1, 2, 3], b'')
+        computation.add_log_entry(normalized_address_a, [1, 2, 3], b'')
 
 
-def test_add_log_entry_raises_if_topic_elements_arent_uint256(computation):
+def test_add_log_entry_raises_if_topic_elements_arent_uint256(computation, canonical_address_a):
     with pytest.raises(ValidationError):
-        computation.add_log_entry(CANONICAL_ADDRESS_A, [-1, 2, 3], b'')
+        computation.add_log_entry(canonical_address_a, [-1, 2, 3], b'')
     with pytest.raises(ValidationError):
-        computation.add_log_entry(CANONICAL_ADDRESS_A, ['1', 2, 3], b'')
+        computation.add_log_entry(canonical_address_a, ['1', 2, 3], b'')
 
 
-def test_add_log_entry_raises_if_data_isnt_in_bytes(computation):
+def test_add_log_entry_raises_if_data_isnt_in_bytes(computation, canonical_address_a):
     with pytest.raises(ValidationError):
-        computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], 1)
+        computation.add_log_entry(canonical_address_a, [1, 2, 3], 1)
     with pytest.raises(ValidationError):
-        computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], '')
+        computation.add_log_entry(canonical_address_a, [1, 2, 3], '')
 
 
-def test_add_log_entry(computation):
+def test_add_log_entry(computation, canonical_address_a):
     # Adds log entry to log entries
-    computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
+    computation.add_log_entry(canonical_address_a, [1, 2, 3], b'')
     assert computation.get_log_entries() == tuple(
         [(b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l\x7b^\xc6', [1, 2, 3], b'')])
     # Can add multiple entries
-    computation.add_log_entry(CANONICAL_ADDRESS_A, [4, 5, 6], b'2')
-    computation.add_log_entry(CANONICAL_ADDRESS_A, [7, 8, 9], b'3')
+    computation.add_log_entry(canonical_address_a, [4, 5, 6], b'2')
+    computation.add_log_entry(canonical_address_a, [7, 8, 9], b'3')
 
     assert len(computation.get_log_entries()) == 3
 
 
-def test_get_log_entries(computation):
-    computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
+def test_get_log_entries(computation, canonical_address_a):
+    computation.add_log_entry(canonical_address_a, [1, 2, 3], b'')
     assert computation.get_log_entries() == (
         (b'\x0fW.R\x95\xc5\x7f\x15\x88o\x9b&>/m-l\x7b^\xc6', [1, 2, 3], b''),)
 
 
-def test_get_log_entries_order_with_children(computation, child_message):
-    parent_log = (CANONICAL_ADDRESS_A, [1, 2, 3], b'')
-    parent_log2 = (CANONICAL_ADDRESS_A, [4, 5, 6], b'2')
-    child_log = (CANONICAL_ADDRESS_A, [1, 2, 3], b'child')
+def test_get_log_entries_order_with_children(computation, child_message, canonical_address_a):
+    parent_log = (canonical_address_a, [1, 2, 3], b'')
+    parent_log2 = (canonical_address_a, [4, 5, 6], b'2')
+    child_log = (canonical_address_a, [1, 2, 3], b'child')
     computation.add_log_entry(*parent_log)
     child_computation = computation.apply_child_computation(child_message)
     # Pretend the child computation logged something.
@@ -243,18 +231,18 @@ def test_get_log_entries_order_with_children(computation, child_message):
     assert logs[2] == parent_log2
 
 
-def test_get_log_entries_with_vmerror(computation):
+def test_get_log_entries_with_vmerror(computation, canonical_address_a):
     # Trigger an out of gas error causing get log entries to be ()
-    computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
+    computation.add_log_entry(canonical_address_a, [1, 2, 3], b'')
     with computation:
         raise VMError('Triggered VMError for tests')
     assert computation.is_error
     assert computation.get_log_entries() == ()
 
 
-def test_get_log_entries_with_revert(computation):
+def test_get_log_entries_with_revert(computation, canonical_address_a):
     # Trigger an out of gas error causing get log entries to be ()
-    computation.add_log_entry(CANONICAL_ADDRESS_A, [1, 2, 3], b'')
+    computation.add_log_entry(canonical_address_a, [1, 2, 3], b'')
     with computation:
         raise Revert('Triggered VMError for tests')
     assert computation.is_error

@@ -195,3 +195,11 @@ class OutOfBoundsRead(VMError):
     boundaries of the buffer (such as with RETURNDATACOPY)
     """
     pass
+
+
+class ReservedBytesInCode(VMError):
+    """
+    Raised when bytes for the code to be deployed are reserved
+    for a particular reason.
+    """
+    pass

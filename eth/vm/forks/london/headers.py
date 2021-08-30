@@ -22,9 +22,12 @@ from eth.abc import (
 from eth.constants import GENESIS_GAS_LIMIT
 from eth.rlp.headers import BlockHeader
 from eth.vm.forks.berlin.headers import (
-    compute_berlin_difficulty,
     configure_header,
 )
+from eth.vm.forks.muir_glacier.headers import (
+    compute_difficulty,
+)
+
 
 from .blocks import LondonBlockHeader
 from .constants import (
@@ -121,7 +124,7 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int
     return new_header
 
 
-compute_london_difficulty = compute_berlin_difficulty
+compute_london_difficulty = compute_difficulty(9700000)
 
 create_london_header_from_parent = create_header_from_parent(
     compute_london_difficulty
