@@ -1,4 +1,5 @@
 from eth_hash.auto import keccak
+
 from eth_utils import (
     encode_hex,
 )
@@ -12,12 +13,13 @@ from eth.abc import (
 )
 from eth.exceptions import (
     OutOfGas,
+    VMError,
 )
 from eth.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
 
-from .constants import EIP170_CODE_SIZE_LIMIT
+from ..spurious_dragon.constants import EIP170_CODE_SIZE_LIMIT
 from .opcodes import SPURIOUS_DRAGON_OPCODES
 
 
@@ -68,6 +70,12 @@ class SpuriousDragonComputation(HomesteadComputation):
                     computation.error = err
                     state.revert(snapshot)
                 else:
+                    try:
+                        cls.validate_new_contract_code(contract_code)
+                    except VMError as err:
+                        state.revert(snapshot)
+                        raise err
+
                     if cls.logger:
                         cls.logger.debug2(
                             "SETTING CODE: %s -> length: %s | hash: %s",
@@ -81,3 +89,8 @@ class SpuriousDragonComputation(HomesteadComputation):
             else:
                 state.commit(snapshot)
             return computation
+
+    @classmethod
+    def validate_new_contract_code(cls, contract_code: bytes) -> None:
+        # helps facilitate EIP-3541 validation in LondonComputation
+        pass
