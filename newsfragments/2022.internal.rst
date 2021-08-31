@@ -1,0 +1,1 @@
+During fixture tests, verify that the generated genesis block matches the fixture's RLP-encoding.
