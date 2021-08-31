@@ -542,6 +542,8 @@ def normalize_block_header(header: Dict[str, Any]) -> Dict[str, Any]:
     }
     if 'blocknumber' in header:
         normalized_header['blocknumber'] = to_int(header['blocknumber'])
+    if 'baseFeePerGas' in header:
+        normalized_header['baseFeePerGas'] = to_int(header['baseFeePerGas'])
     if 'chainname' in header:
         normalized_header['chainname'] = header['chainname']
     if 'chainnetwork' in header:
