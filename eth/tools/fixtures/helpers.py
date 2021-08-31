@@ -133,6 +133,10 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
         return (
             (0, BerlinVM),
         )
+    elif network == 'London':
+        return (
+            (0, LondonVM),
+        )
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
