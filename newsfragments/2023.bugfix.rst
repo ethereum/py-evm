@@ -1,0 +1,1 @@
+Erase return data for exceptions with `erases_return_data` flag set to True

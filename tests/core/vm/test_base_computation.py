@@ -346,31 +346,39 @@ def test_get_gas_used_with_revert(computation):
 
 def test_should_burn_gas_with_vm_error(computation):
     assert computation.get_gas_remaining() == 100
-    # Trigger an out of gas error causing get gas remaining to be 0
+    # Trigger an out of gas error causing remaining gas to be 0
     with computation:
         raise VMError('Triggered VMError for tests')
     assert computation.should_burn_gas
+    assert computation.get_gas_used() == 100
+    assert computation.get_gas_remaining() == 0
 
 
 def test_should_burn_gas_with_revert(computation):
     assert computation.get_gas_remaining() == 100
-    # Trigger an out of gas error causing get gas remaining to be 0
+    # Trigger a Revert which should not burn gas
     with computation:
         raise Revert('Triggered VMError for tests')
     assert not computation.should_burn_gas
+    assert computation.get_gas_used() == 0
+    assert computation.get_gas_remaining() == 100
 
 
 def test_should_erase_return_data_with_vm_error(computation):
     assert computation.get_gas_remaining() == 100
-    # Trigger an out of gas error causing get gas remaining to be 0
+    computation.return_data = b'\x1337'
+    # Trigger a VMError which should erase the return data
     with computation:
         raise VMError('Triggered VMError for tests')
     assert computation.should_erase_return_data
+    assert computation.return_data == b''
 
 
 def test_should_erase_return_data_with_revert(computation):
     assert computation.get_gas_remaining() == 100
-    # Trigger an out of gas error causing get gas remaining to be 0
+    computation.return_data = b'\x1337'
+    # Trigger a Revert which should not erase return data
     with computation:
         raise Revert('Triggered VMError for tests')
     assert not computation.should_erase_return_data
+    assert computation.return_data == b'\x1337'
