@@ -108,17 +108,25 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int
                 header_params['timestamp'],
             )
 
+    # The general fill function doesn't recognize this custom field, so remove it
+    configured_fee_per_gas = header_params.pop('base_fee_per_gas', None)
+
     all_fields = fill_header_params_from_parent(parent_header, **header_params)
 
-    # must add the new field *after* filling, because the general fill function doesn't recognize it
-    base_fee_per_gas = calculate_expected_base_fee_per_gas(parent_header)
-    if 'base_fee_per_gas' in header_params and all_fields['base_fee_per_gas'] != base_fee_per_gas:
-        raise ValidationError(
-            f"Cannot select an invalid base_fee_per_gas of:"
-            f" {all_fields['base_fee_per_gas']!r}, expected: {base_fee_per_gas}"
-        )
+    calculated_fee_per_gas = calculate_expected_base_fee_per_gas(parent_header)
+    if configured_fee_per_gas is None:
+        all_fields['base_fee_per_gas'] = calculated_fee_per_gas
     else:
-        all_fields['base_fee_per_gas'] = base_fee_per_gas
+        # Must not configure an invalid base fee. So verify that either:
+        #   1. This is the genesis header, or
+        #   2. The configured value matches the calculated value from the parent
+        if parent_header is None or configured_fee_per_gas == calculated_fee_per_gas:
+            all_fields['base_fee_per_gas'] = configured_fee_per_gas
+        else:
+            raise ValidationError(
+                f"Cannot select an invalid base_fee_per_gas of:"
+                f" {configured_fee_per_gas}, expected: {calculated_fee_per_gas}"
+            )
 
     new_header = LondonBlockHeader(**all_fields)  # type:ignore
     return new_header

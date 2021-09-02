@@ -11,7 +11,10 @@ from typing import (
     Type,
 )
 
-from eth_utils.toolz import first
+from eth_utils.toolz import (
+    assoc,
+    first,
+)
 
 from eth_utils import (
     to_normalized_address,
@@ -133,6 +136,10 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
         return (
             (0, BerlinVM),
         )
+    elif network == 'London':
+        return (
+            (0, LondonVM),
+        )
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
@@ -177,23 +184,28 @@ def genesis_fields_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
     Convert all genesis fields in a fixture to a dictionary of header fields and values.
     """
 
-    return {
-        'parent_hash': fixture['genesisBlockHeader']['parentHash'],
-        'uncles_hash': fixture['genesisBlockHeader']['uncleHash'],
-        'coinbase': fixture['genesisBlockHeader']['coinbase'],
-        'state_root': fixture['genesisBlockHeader']['stateRoot'],
-        'transaction_root': fixture['genesisBlockHeader']['transactionsTrie'],
-        'receipt_root': fixture['genesisBlockHeader']['receiptTrie'],
-        'bloom': fixture['genesisBlockHeader']['bloom'],
-        'difficulty': fixture['genesisBlockHeader']['difficulty'],
-        'block_number': fixture['genesisBlockHeader']['number'],
-        'gas_limit': fixture['genesisBlockHeader']['gasLimit'],
-        'gas_used': fixture['genesisBlockHeader']['gasUsed'],
-        'timestamp': fixture['genesisBlockHeader']['timestamp'],
-        'extra_data': fixture['genesisBlockHeader']['extraData'],
-        'mix_hash': fixture['genesisBlockHeader']['mixHash'],
-        'nonce': fixture['genesisBlockHeader']['nonce'],
+    header_fields = fixture['genesisBlockHeader']
+    base_fields = {
+        'parent_hash': header_fields['parentHash'],
+        'uncles_hash': header_fields['uncleHash'],
+        'coinbase': header_fields['coinbase'],
+        'state_root': header_fields['stateRoot'],
+        'transaction_root': header_fields['transactionsTrie'],
+        'receipt_root': header_fields['receiptTrie'],
+        'bloom': header_fields['bloom'],
+        'difficulty': header_fields['difficulty'],
+        'block_number': header_fields['number'],
+        'gas_limit': header_fields['gasLimit'],
+        'gas_used': header_fields['gasUsed'],
+        'timestamp': header_fields['timestamp'],
+        'extra_data': header_fields['extraData'],
+        'mix_hash': header_fields['mixHash'],
+        'nonce': header_fields['nonce'],
     }
+    if 'baseFeePerGas' in header_fields:
+        return assoc(base_fields, 'base_fee_per_gas', header_fields['baseFeePerGas'])
+    else:
+        return base_fields
 
 
 def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:

@@ -10,6 +10,7 @@ from eth_utils import (
 
 from eth.tools.rlp import (
     assert_mined_block_unchanged,
+    assert_headers_eq,
 )
 from eth.tools._utils.normalization import (
     normalize_blockchain_fixtures,
@@ -24,6 +25,7 @@ from eth.tools.fixtures import (
     should_run_slow_tests,
     verify_state,
 )
+from eth.vm.header import HeaderSedes
 
 
 ROOT_PROJECT_DIR = Path(__file__).parents[3]
@@ -325,14 +327,21 @@ def test_blockchain_fixtures(fixture_data, fixture):
     except ValueError as e:
         raise AssertionError(f"could not load chain for {fixture_data}") from e
 
-    # TODO: find out if this is supposed to pass?
-    # if 'genesisRLP' in fixture:
-    #     assert rlp.encode(genesis_header) == fixture['genesisRLP']
-
     genesis_fields = genesis_fields_from_fixture(fixture)
 
     genesis_block = chain.get_canonical_block_by_number(0)
     genesis_header = genesis_block.header
+
+    # Validate the genesis header RLP against the generated header
+    if 'genesisRLP' in fixture:
+        # Super hacky, but better than nothing: extract the header, then re-decode it
+        fixture_decoded_block = rlp.decode(fixture['genesisRLP'])
+        fixture_encoded_header = rlp.encode(fixture_decoded_block[0])
+        fixture_header = rlp.decode(fixture_encoded_header, sedes=HeaderSedes)
+        # Error message with pretty output if header doesn't match
+        assert_headers_eq(fixture_header, genesis_header)
+        # Last gut check that transactions & receipts are valid, too
+        assert rlp.encode(genesis_block) == fixture['genesisRLP']
 
     assert_imported_genesis_header_unchanged(genesis_fields, genesis_header)
 
