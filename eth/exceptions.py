@@ -203,3 +203,10 @@ class ReservedBytesInCode(VMError):
     for a particular reason.
     """
     pass
+
+
+class InvalidDataLength(VMError):
+    """
+    Raised when a message length is different than required length
+    """
+    pass

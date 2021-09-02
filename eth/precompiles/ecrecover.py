@@ -15,6 +15,9 @@ from eth._utils.padding import (
     pad32r,
 )
 
+from eth.exceptions import (
+    InvalidDataLength,
+)
 from eth.validation import (
     validate_lt_secpk1n,
     validate_gte,
@@ -25,9 +28,20 @@ from eth.vm.computation import (
 )
 
 
+def validate_data_length(data, length):
+    if len(data) != length:
+        raise InvalidDataLength(f"Expected data length of {length}. Got {len(data)} instead.")
+
+
 def ecrecover(computation: BaseComputation) -> BaseComputation:
     computation.consume_gas(constants.GAS_ECRECOVER, reason="ECRecover Precompile")
     data = computation.msg.data_as_bytes
+
+    try:
+        validate_data_length(data, 128)
+    except InvalidDataLength:
+        return computation
+
     raw_message_hash = data[:32]
     message_hash = pad32r(raw_message_hash)
 
