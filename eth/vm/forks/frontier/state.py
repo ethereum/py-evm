@@ -142,21 +142,28 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         return computation
 
-    def finalize_computation(self,
-                             transaction: SignedTransactionAPI,
-                             computation: ComputationAPI) -> ComputationAPI:
-        transaction_context = self.vm_state.get_transaction_context(transaction)
-
+    @classmethod
+    def calculate_gas_refund(cls,
+                             computation: ComputationAPI,
+                             gas_used: int) -> int:
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
             computation.refund_gas(REFUND_SELFDESTRUCT * num_deletions)
 
         # Gas Refunds
-        gas_remaining = computation.get_gas_remaining()
         gas_refunded = computation.get_gas_refund()
+
+        return min(gas_refunded, gas_used // 2)
+
+    def finalize_computation(self,
+                             transaction: SignedTransactionAPI,
+                             computation: ComputationAPI) -> ComputationAPI:
+        transaction_context = self.vm_state.get_transaction_context(transaction)
+
+        gas_remaining = computation.get_gas_remaining()
         gas_used = transaction.gas - gas_remaining
-        gas_refund = min(gas_refunded, gas_used // 2)
+        gas_refund = self.calculate_gas_refund(computation, gas_used)
         gas_refund_amount = (gas_refund + gas_remaining) * transaction_context.gas_price
 
         if gas_refund_amount:
