@@ -7,9 +7,7 @@ from eth_utils import (
 from eth import constants
 from eth.exceptions import (
     Halt,
-    InsufficientFunds,
     Revert,
-    StackDepthLimit,
     WriteProtection,
 )
 
@@ -163,12 +161,13 @@ class Create(Opcode):
 
         if insufficient_funds or stack_too_deep:
             computation.stack_push_int(0)
+            computation.return_data = b''
             if insufficient_funds:
-                raise InsufficientFunds(
-                    f"Insufficient funds: {storage_address_balance} < {stack_data.endowment}"
-                )
+                err_msg = f"Insufficient Funds: {storage_address_balance} < {stack_data.endowment}"
             elif stack_too_deep:
-                raise StackDepthLimit("Stack depth limit reached")
+                err_msg = "Stack limit reached"
+            self.logger.debug2("%s failure: %s", self.mnemonic, err_msg,)
+            return
 
         call_data = computation.memory_read_bytes(
             stack_data.memory_start, stack_data.memory_length
