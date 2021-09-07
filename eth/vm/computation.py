@@ -489,6 +489,10 @@ class BaseComputation(Configurable, ComputationAPI):
                     )),
                 )
 
+            # When we raise an exception that erases return data, erase the return data.
+            if self.should_erase_return_data:
+                self.return_data = b''
+
             # suppress VM exceptions
             return True
         elif exc_type is None and self.logger.show_debug2:

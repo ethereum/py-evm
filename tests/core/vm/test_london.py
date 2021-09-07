@@ -14,7 +14,6 @@ from eth.vm.forks import BerlinVM
 from eth.tools.factories.transaction import (
     new_dynamic_fee_transaction, new_transaction,
 )
-from eth.vm.message import Message
 
 FOUR_TXN_GAS_LIMIT = 21000 * 4
 
@@ -57,17 +56,17 @@ EIP_3541_CREATE_AND_CREATE2_REVERT_TEST_CASES = (
 )
 
 
-def _configure_mining_chain(name, request):
+def _configure_mining_chain(name, genesis_vm, vm_under_test):
     return MiningChain.configure(
         __name__=name,
         vm_configuration=(
             (
                 constants.GENESIS_BLOCK_NUMBER,
-                BerlinVM.configure(consensus_class=NoProofConsensus),
+                genesis_vm.configure(consensus_class=NoProofConsensus),
             ),
             (
                 constants.GENESIS_BLOCK_NUMBER + 1,
-                request.param.configure(consensus_class=NoProofConsensus),
+                vm_under_test.configure(consensus_class=NoProofConsensus),
             ),
         ),
         chain_id=1337,
@@ -77,7 +76,9 @@ def _configure_mining_chain(name, request):
 # VMs starting at London
 @pytest.fixture(params=MAINNET_VMS[9:])
 def london_plus_miner(request, base_db, genesis_state):
-    klass = _configure_mining_chain('LondonAt1', request)
+    vm_under_test = request.param
+
+    klass = _configure_mining_chain('LondonAt1', BerlinVM, vm_under_test)
     header_fields = dict(
         difficulty=1,
         gas_limit=21000 * 2,  # block limit is hit with two transactions
@@ -90,7 +91,9 @@ def london_plus_miner(request, base_db, genesis_state):
 # VMs up to, but not including, London
 @pytest.fixture(params=MAINNET_VMS[0:9])
 def pre_london_miner(request, base_db, genesis_state):
-    klass = _configure_mining_chain('EndsBeforeLondon', request)
+    vm_under_test = request.param
+
+    klass = _configure_mining_chain('EndsBeforeLondon', MAINNET_VMS[0], vm_under_test)
     header_fields = dict(
         difficulty=1,
         gas_limit=100000,  # arbitrary, just enough for testing
@@ -145,41 +148,37 @@ def test_base_fee_evolution(
     EIP_3541_CREATE_AND_CREATE2_REVERT_TEST_CASES
 )
 def test_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_post_london(
-    london_plus_miner, transaction_context, funded_address, code, data,
+    london_plus_miner, funded_address, code, data,
 ):
     chain = london_plus_miner
-    state = chain.get_vm().state
+    vm = chain.get_vm()
 
     # test positive case from https://eips.ethereum.org/EIPS/eip-3541#test-cases
-    create_message = Message(
+    successful_create_computation = vm.execute_bytecode(
+        origin=funded_address,
         to=funded_address,
         sender=funded_address,
         value=0,
         code=code,
         data=decode_hex("0x60fe60005360016000f3"),
         gas=400000,
-    )
-
-    successful_create_computation = state.computation_class.apply_create_message(
-        state, create_message, transaction_context
+        gas_price=1,
     )
 
     assert successful_create_computation.is_success
-    # gas used varies between 32261 and 32270 depending on test case
+    # assert only the appropriate gas is consumed, not all the gas. This falls within a range
     assert 32261 <= successful_create_computation.get_gas_used() <= 32270
 
     # test parameterized negative cases
-    reverted_create_message = Message(
+    revert_create_computation = vm.execute_bytecode(
+        origin=funded_address,
         to=funded_address,
         sender=funded_address,
         value=0,
         code=code,
         data=data,
         gas=40000,
-    )
-
-    revert_create_computation = state.computation_class.apply_create_message(
-        state, reverted_create_message, transaction_context
+        gas_price=1,
     )
 
     assert revert_create_computation.is_error
@@ -275,8 +274,9 @@ def test_state_revert_on_reserved_0xEF_byte_for_create_transaction_post_london(
         assert "0xef" in repr(reverted_computation.error).lower()
 
         assert reverted_computation.get_nonce(funded_address) == 1  # assert nonce is still 1
-        # reverted txn only consumes gas:
-        assert end_balance == new_balance - mined_header.gas_used
+        # reverted txn consumes the gas:
+        assert mined_header.gas_used == 60000
+        assert end_balance == new_balance - 60000
 
 
 @pytest.mark.parametrize(
@@ -284,23 +284,20 @@ def test_state_revert_on_reserved_0xEF_byte_for_create_transaction_post_london(
     EIP_3541_CREATE_AND_CREATE2_REVERT_TEST_CASES
 )
 def test_state_does_not_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_pre_london(
-    pre_london_miner, transaction_context, funded_address, code, data,
+    pre_london_miner, funded_address, code, data,
 ):
     chain = pre_london_miner
     vm = chain.get_vm()
-    state = vm.state
 
-    create_message = Message(
+    computation = vm.execute_bytecode(
+        origin=funded_address,
         to=funded_address,
         sender=funded_address,
         value=0,
         code=code,
         data=data,
         gas=40000,
-    )
-
-    computation = state.computation_class.apply_create_message(
-        state, create_message, transaction_context
+        gas_price=1,
     )
 
     if computation.is_error:
@@ -311,7 +308,7 @@ def test_state_does_not_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_pre_
 
     else:
         assert computation.is_success
-        # gas used varies between 32670 and 38470 depending on test case
+        # assert only the appropriate gas is consumed, not all the gas. This falls within a range
         assert 32261 <= computation.get_gas_used() <= 38470
         assert computation.get_gas_refund() == 0
 

@@ -154,13 +154,19 @@ class Create(Opcode):
 
         computation.extend_memory(stack_data.memory_start, stack_data.memory_length)
 
-        insufficient_funds = computation.state.get_balance(
-            computation.msg.storage_address
-        ) < stack_data.endowment
+        storage_address_balance = computation.state.get_balance(computation.msg.storage_address)
+
+        insufficient_funds = storage_address_balance < stack_data.endowment
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
 
         if insufficient_funds or stack_too_deep:
             computation.stack_push_int(0)
+            computation.return_data = b''
+            if insufficient_funds:
+                err_msg = f"Insufficient Funds: {storage_address_balance} < {stack_data.endowment}"
+            elif stack_too_deep:
+                err_msg = "Stack limit reached"
+            self.logger.debug2("%s failure: %s", self.mnemonic, err_msg,)
             return
 
         call_data = computation.memory_read_bytes(
