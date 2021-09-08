@@ -28,7 +28,7 @@ from eth.vm.computation import (
 )
 
 
-def validate_data_length(data, length):
+def validate_data_length(data: bytes, length: int) -> None:
     if len(data) != length:
         raise InvalidDataLength(f"Expected data length of {length}. Got {len(data)} instead.")
 
