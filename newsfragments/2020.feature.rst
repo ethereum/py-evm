@@ -1,0 +1,4 @@
+Implement EIP-3529:
+- Remove self destruct refunds
+- Change max gas refund from gas_used // 2 -> gas_used // 5
+- Replace sstore_clears_schedule with sstore_reset_gas + access_list_storage_key_cost
