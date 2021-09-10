@@ -7,6 +7,7 @@ from eth_utils import (
 
 from eth.abc import (
     AccountDatabaseAPI,
+    ComputationAPI,
     MessageAPI,
     SignedTransactionAPI,
     StateAPI,
@@ -32,6 +33,7 @@ from eth._utils.address import (
 
 from .computation import LondonComputation
 from .validation import validate_london_normalized_transaction
+from .constants import EIP3529_MAX_REFUND_QUOTIENT
 
 
 class LondonTransactionExecutor(BerlinTransactionExecutor):
@@ -85,6 +87,16 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
             create_address=contract_address,
         )
         return message
+
+    @classmethod
+    def calculate_gas_refund(cls,
+                             computation: ComputationAPI,
+                             gas_used: int) -> int:
+        # Self destruct refunds were added in Frontier
+        # London removes them in EIP-3529
+        gas_refunded = computation.get_gas_refund()
+
+        return min(gas_refunded, gas_used // EIP3529_MAX_REFUND_QUOTIENT)
 
 
 class LondonState(BerlinState):
