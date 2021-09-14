@@ -12,6 +12,7 @@ from eth.vm.state import BaseState
 
 from .blocks import LondonBlock
 from .constants import (
+    EIP3529_MAX_REFUND_QUOTIENT,
     ELASTICITY_MULTIPLIER,
 )
 from .headers import (
@@ -59,3 +60,8 @@ class LondonVM(BerlinVM):
                 f"Header has invalid base fee per gas (has {header.base_fee_per_gas}"
                 f", expected {expected_base_fee_per_gas})"
             )
+
+    @classmethod
+    def calculate_net_gas_refund(cls, consumed_gas: int, gross_refund: int) -> int:
+        max_refund = consumed_gas // EIP3529_MAX_REFUND_QUOTIENT
+        return min(max_refund, gross_refund)

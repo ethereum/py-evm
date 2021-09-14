@@ -100,14 +100,17 @@ class ByzantiumVM(SpuriousDragonVM):
             gas_used=receipt.gas_used,
         )
 
-    @staticmethod
+    @classmethod
     def make_receipt(
+            cls,
             base_header: BlockHeaderAPI,
             transaction: SignedTransactionAPI,
             computation: ComputationAPI,
             state: StateAPI) -> ReceiptAPI:
 
-        receipt_without_state_root = make_frontier_receipt(base_header, transaction, computation)
+        gas_used = base_header.gas_used + cls.finalize_gas_used(transaction, computation)
+
+        receipt_without_state_root = make_frontier_receipt(computation, gas_used)
 
         if computation.is_error:
             status_code = EIP658_TRANSACTION_STATUS_CODE_FAILURE

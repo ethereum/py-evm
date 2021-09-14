@@ -13,7 +13,9 @@ from eth.abc import (
     TransactionContextAPI,
     TransactionExecutorAPI,
 )
-from eth.constants import CREATE_CONTRACT_ADDRESS
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
 from eth.db.account import (
     AccountDB,
 )
@@ -35,7 +37,10 @@ from eth.vm.state import (
 
 
 from .computation import FrontierComputation
-from .constants import REFUND_SELFDESTRUCT
+from .constants import (
+    REFUND_SELFDESTRUCT,
+    MAX_REFUND_QUOTIENT,
+)
 from .transaction_context import (
     FrontierTransactionContext
 )
@@ -154,7 +159,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # Gas Refunds
         gas_refunded = computation.get_gas_refund()
 
-        return min(gas_refunded, gas_used // 2)
+        return min(gas_refunded, gas_used // MAX_REFUND_QUOTIENT)
 
     def finalize_computation(self,
                              transaction: SignedTransactionAPI,

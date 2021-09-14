@@ -79,7 +79,6 @@ GAS_CODEDEPOSIT = 200
 
 GAS_MEMORY_QUADRATIC_DENOMINATOR = 512
 
-
 #
 # Pre-compile contract gas costs
 #
