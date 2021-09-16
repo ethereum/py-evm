@@ -28,7 +28,6 @@ from eth.validation import (
     validate_lte,
 )
 from eth.vm.forks.spurious_dragon import SpuriousDragonVM
-from eth.vm.forks.frontier import make_frontier_receipt
 
 from .blocks import ByzantiumBlock
 from .constants import (
@@ -110,11 +109,9 @@ class ByzantiumVM(SpuriousDragonVM):
 
         gas_used = base_header.gas_used + cls.finalize_gas_used(transaction, computation)
 
-        receipt_without_state_root = make_frontier_receipt(computation, gas_used)
-
         if computation.is_error:
             status_code = EIP658_TRANSACTION_STATUS_CODE_FAILURE
         else:
             status_code = EIP658_TRANSACTION_STATUS_CODE_SUCCESS
 
-        return receipt_without_state_root.copy(state_root=status_code)
+        return transaction.make_receipt(status_code, gas_used, computation.get_log_entries())

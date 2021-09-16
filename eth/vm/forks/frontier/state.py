@@ -13,9 +13,7 @@ from eth.abc import (
     TransactionContextAPI,
     TransactionExecutorAPI,
 )
-from eth.constants import (
-    CREATE_CONTRACT_ADDRESS,
-)
+from eth.constants import CREATE_CONTRACT_ADDRESS
 from eth.db.account import (
     AccountDB,
 )
