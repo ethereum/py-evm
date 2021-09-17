@@ -51,31 +51,22 @@ class SpuriousDragonComputation(HomesteadComputation):
         else:
             contract_code = computation.output
 
-            if contract_code and len(contract_code) >= EIP170_CODE_SIZE_LIMIT:
-                computation.error = OutOfGas(
-                    f"Contract code size exceeds EIP170 limit of {EIP170_CODE_SIZE_LIMIT}."
-                    f"  Got code of size: {len(contract_code)}"
-                )
-                state.revert(snapshot)
-            elif contract_code:
-                contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
+            if contract_code:
                 try:
+                    cls.validate_contract_code(contract_code)
+
+                    contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
                     computation.consume_gas(
                         contract_code_gas_cost,
                         reason="Write contract code for CREATE",
                     )
-                except OutOfGas as err:
+                except VMError as err:
                     # Different from Frontier: reverts state on gas failure while
                     # writing contract code.
                     computation.error = err
                     state.revert(snapshot)
+                    cls.logger.debug2(f"VMError setting contract code: {err}")
                 else:
-                    try:
-                        cls.validate_new_contract_code(contract_code)
-                    except VMError as err:
-                        state.revert(snapshot)
-                        raise err
-
                     if cls.logger:
                         cls.logger.debug2(
                             "SETTING CODE: %s -> length: %s | hash: %s",
@@ -91,6 +82,9 @@ class SpuriousDragonComputation(HomesteadComputation):
             return computation
 
     @classmethod
-    def validate_new_contract_code(cls, contract_code: bytes) -> None:
-        # helps facilitate EIP-3541 validation in LondonComputation
-        pass
+    def validate_contract_code(cls, contract_code: bytes) -> None:
+        if len(contract_code) >= EIP170_CODE_SIZE_LIMIT:
+            raise OutOfGas(
+                f"Contract code size exceeds EIP170 limit of {EIP170_CODE_SIZE_LIMIT}."
+                f"  Got code of size: {len(contract_code)}"
+            )
