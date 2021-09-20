@@ -15,7 +15,9 @@ class LondonComputation(BerlinComputation):
     opcodes = LONDON_OPCODES
 
     @classmethod
-    def validate_new_contract_code(cls, contract_code: bytes) -> None:
+    def validate_contract_code(cls, contract_code: bytes) -> None:
+        super().validate_contract_code(contract_code)
+
         if contract_code[:1] == EIP3541_RESERVED_STARTING_BYTE:
             raise ReservedBytesInCode(
                 "Contract code begins with EIP3541 reserved byte '0xEF'."
