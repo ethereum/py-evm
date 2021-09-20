@@ -258,6 +258,7 @@ INCORRECT_UPSTREAM_TESTS = {
     ('GeneralStateTests/stRevertTest/RevertInCreateInInit_d0g0v0.json', 'RevertInCreateInInit_d0g0v0_ConstantinopleFix'),  # noqa: E501
     ('GeneralStateTests/stRevertTest/RevertInCreateInInit.json', 'RevertInCreateInInit_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stRevertTest/RevertInCreateInInit.json', 'RevertInCreateInInit_d0g0v0_Berlin'),  # noqa: E501
+    ('GeneralStateTests/stRevertTest/RevertInCreateInInit.json', 'RevertInCreateInInit_d0g0v0_London'),  # noqa: E501
 
     # The CREATE2 variant seems to have been derived from the one above - it, too,
     # has a "synthetic" state, on which py-evm flips.
@@ -266,6 +267,7 @@ INCORRECT_UPSTREAM_TESTS = {
     ('GeneralStateTests/stCreate2/RevertInCreateInInitCreate2_d0g0v0.json', 'RevertInCreateInInitCreate2_d0g0v0_ConstantinopleFix'),  # noqa: E501
     ('GeneralStateTests/stCreate2/RevertInCreateInInitCreate2.json', 'RevertInCreateInInitCreate2_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stCreate2/RevertInCreateInInitCreate2.json', 'RevertInCreateInInitCreate2_d0g0v0_Berlin'),  # noqa: E501
+    ('GeneralStateTests/stCreate2/RevertInCreateInInitCreate2.json', 'RevertInCreateInInitCreate2_d0g0v0_London'),  # noqa: E501
 
     # Four variants have been specifically added to test a collision type
     # like the above; therefore, they fail in the same manner.
@@ -289,6 +291,10 @@ INCORRECT_UPSTREAM_TESTS = {
     ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d1g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d2g0v0_Berlin'),  # noqa: E501
     ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d3g0v0_Berlin'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d0g0v0_London'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d1g0v0_London'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d2g0v0_London'),  # noqa: E501
+    ('GeneralStateTests/stSStoreTest/InitCollision.json', 'InitCollision_d3g0v0_London'),  # noqa: E501
 }
 
 
