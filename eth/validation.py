@@ -230,11 +230,11 @@ def validate_vm_configuration(vm_configuration: Tuple[Tuple[int, Type[VirtualMac
 
 def validate_gas_limit(gas_limit: int, parent_gas_limit: int) -> None:
     low_bound, high_bound = compute_gas_limit_bounds(parent_gas_limit)
-    if gas_limit < low_bound:
+    if gas_limit <= low_bound:
         raise ValidationError(
             f"The gas limit {gas_limit} is too low. It must be at least {low_bound}"
         )
-    elif gas_limit > high_bound:
+    elif gas_limit >= high_bound:
         raise ValidationError(
             f"The gas limit {gas_limit} is too high. It must be at most {high_bound}"
         )

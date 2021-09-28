@@ -321,6 +321,11 @@ def assert_imported_genesis_header_unchanged(genesis_fields, genesis_header):
             )
 
 
+EXPECTED_BAD_BLOCK_EXCEPTIONS = (
+    TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError, AssertionError
+)
+
+
 def test_blockchain_fixtures(fixture_data, fixture):
     try:
         chain = new_chain_from_fixture(fixture)
@@ -353,7 +358,7 @@ def test_blockchain_fixtures(fixture_data, fixture):
     # 4 - check that all previous blocks were valid
 
     for block_fixture in fixture['blocks']:
-        should_be_good_block = 'blockHeader' in block_fixture
+        should_be_good_block = 'expectException' not in block_fixture
 
         if 'rlp_error' in block_fixture:
             assert not should_be_good_block
@@ -370,7 +375,7 @@ def test_blockchain_fixtures(fixture_data, fixture):
         else:
             try:
                 apply_fixture_block_to_chain(block_fixture, chain)
-            except (TypeError, rlp.DecodingError, rlp.DeserializationError, ValidationError):
+            except EXPECTED_BAD_BLOCK_EXCEPTIONS:
                 # failure is expected on this bad block
                 pass
             else:
