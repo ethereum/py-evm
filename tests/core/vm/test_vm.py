@@ -133,7 +133,7 @@ def test_validate_gas_limit_almost_too_low(noproof_consensus_chain):
     block1 = noproof_consensus_chain.mine_block()
     block2 = noproof_consensus_chain.mine_block()
 
-    max_reduction = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
+    max_reduction = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR - 1
     barely_valid_low_gas_limit = block1.header.gas_limit - max_reduction
     barely_valid_header = block2.header.copy(gas_limit=barely_valid_low_gas_limit)
 
@@ -146,8 +146,8 @@ def test_validate_gas_limit_too_low(noproof_consensus_chain):
     block1 = noproof_consensus_chain.mine_block()
     block2 = noproof_consensus_chain.mine_block()
 
-    max_reduction = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
-    invalid_low_gas_limit = block1.header.gas_limit - max_reduction - 1
+    exclusive_decrease_limit = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
+    invalid_low_gas_limit = block1.header.gas_limit - exclusive_decrease_limit
     invalid_header = block2.header.copy(gas_limit=invalid_low_gas_limit)
 
     vm = noproof_consensus_chain.get_vm(block2.header)
@@ -160,7 +160,7 @@ def test_validate_gas_limit_almost_too_high(noproof_consensus_chain):
     block1 = noproof_consensus_chain.mine_block()
     block2 = noproof_consensus_chain.mine_block()
 
-    max_increase = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
+    max_increase = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR - 1
     barely_valid_high_gas_limit = block1.header.gas_limit + max_increase
     barely_valid_header = block2.header.copy(gas_limit=barely_valid_high_gas_limit)
 
@@ -173,8 +173,8 @@ def test_validate_gas_limit_too_high(noproof_consensus_chain):
     block1 = noproof_consensus_chain.mine_block()
     block2 = noproof_consensus_chain.mine_block()
 
-    max_increase = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
-    invalid_high_gas_limit = block1.header.gas_limit + max_increase + 1
+    exclusive_increase_limit = block1.header.gas_limit // constants.GAS_LIMIT_ADJUSTMENT_FACTOR
+    invalid_high_gas_limit = block1.header.gas_limit + exclusive_increase_limit
     invalid_header = block2.header.copy(gas_limit=invalid_high_gas_limit)
 
     vm = noproof_consensus_chain.get_vm(block2.header)

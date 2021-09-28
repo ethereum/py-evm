@@ -222,7 +222,7 @@ def test_state_revert_on_reserved_0xEF_byte_for_create_transaction_post_london(
 
     block_import, _, computations = chain.mine_all(
         [create_successful_contract_transaction],
-        gas_limit=84082,
+        gas_limit=84081,
     )
     successful_create_computation = computations[0]
     successful_create_computation_state = successful_create_computation.state
@@ -336,7 +336,7 @@ def test_state_does_not_revert_on_reserved_0xEF_byte_for_create_transaction_pre_
 
     block_import, _, computations = chain.mine_all(
         [create_contract_txn_0xef_byte],
-        gas_limit=99903
+        gas_limit=99904
     )
 
     computation = computations[0]

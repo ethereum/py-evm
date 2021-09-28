@@ -668,6 +668,7 @@ class VM(Configurable, VirtualMachineAPI):
                 f"Uncle's gas usage ({uncle.gas_used}) is above "
                 f"the limit ({uncle.gas_limit})"
             )
+        validate_gas_limit(uncle.gas_limit, uncle_parent.gas_limit)
 
     #
     # State
