@@ -105,9 +105,12 @@ def compute_gas_limit_bounds(previous_limit: int) -> Tuple[int, int]:
     Compute the boundaries for the block gas limit based on the parent block.
     """
     boundary_range = previous_limit // GAS_LIMIT_ADJUSTMENT_FACTOR
-    upper_bound = min(GAS_LIMIT_MAXIMUM, previous_limit + boundary_range)
-    lower_bound = max(GAS_LIMIT_MINIMUM, previous_limit - boundary_range)
-    return lower_bound, upper_bound
+
+    # the boundary range is the exclusive limit, therefore the inclusive bounds are
+    # (boundary_range - 1) and (boundary_range + 1) for upper and lower bounds, respectively
+    upper_bound_inclusive = min(GAS_LIMIT_MAXIMUM, previous_limit + boundary_range - 1)
+    lower_bound_inclusive = max(GAS_LIMIT_MINIMUM, previous_limit - boundary_range + 1)
+    return lower_bound_inclusive, upper_bound_inclusive
 
 
 def compute_gas_limit(parent_header: BlockHeaderAPI, genesis_gas_limit: int) -> int:
@@ -152,12 +155,14 @@ def compute_gas_limit(parent_header: BlockHeaderAPI, genesis_gas_limit: int) -> 
 
     gas_limit = max(
         GAS_LIMIT_MINIMUM,
-        parent_header.gas_limit - decay + usage_increase
+        # + 1 because the decay is an exclusive limit we have to remain inside of
+        (parent_header.gas_limit - decay + 1) + usage_increase
     )
 
     if gas_limit < GAS_LIMIT_MINIMUM:
         return GAS_LIMIT_MINIMUM
     elif gas_limit < genesis_gas_limit:
-        return parent_header.gas_limit + decay
+        # - 1 because the decay is an exclusive limit we have to remain inside of
+        return parent_header.gas_limit + decay - 1
     else:
         return gas_limit
