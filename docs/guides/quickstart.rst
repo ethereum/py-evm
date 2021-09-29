@@ -8,8 +8,8 @@ This guide teaches how to use Py-EVM as a library. For contributors, please chec
 :doc:`Contributing Guide </contributing>` which explains how to set everything up for development.
 
 
-Installing on Ubuntu
---------------------
+Installing Python on Ubuntu
+---------------------------
 
 Py-EVM requires Python 3.6 as well as some tools to compile its dependencies. On Ubuntu, the
 ``python3.6-dev`` package contains everything we need. Run the following command to install it.
@@ -25,29 +25,18 @@ we need to install the ``python3-pip`` package through the following command.
 
   apt-get install python3-pip
 
-.. note::
-  .. include:: /fragments/virtualenv_explainer.rst
 
-Then, we need make to sure you have the latest version of ``pip`` so that all dependencies can be installed correctly:
-
-.. code:: sh
-
-  pip3 install -U pip
-
-Finally, we can install the ``py-evm`` package via pip.
-
-.. code:: sh
-
-  pip3 install -U py-evm
-
-Installing on macOS
--------------------
+Installing Python on macOS
+--------------------------
 
 First, install Python 3 with brew:
 
 .. code:: sh
 
   brew install python3
+
+Installing py-evm
+-----------------
 
 .. note::
   .. include:: /fragments/virtualenv_explainer.rst
