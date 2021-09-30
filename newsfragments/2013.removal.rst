@@ -1,3 +1,0 @@
-- Can no longer supply some fields to the genesis, like bloom and parent_hash.
-- :meth:`eth.rlp.headers.BlockHeader.from_parent()` is gone, because you should
-  always use the VM to create a header (to make sure you get the correct type).

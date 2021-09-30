@@ -1,2 +1,0 @@
-- Use UTC timestamp instead of local time zone, when creating a header.
-- Use UTC for clique validation.

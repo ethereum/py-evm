@@ -1,2 +1,0 @@
-- Make header gas limit more restrictive. Was too permissive by one gas. Tightened the bounds.
-- Validate uncle gas limits are within bounds. This was previously not validated at all.

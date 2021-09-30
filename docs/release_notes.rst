@@ -3,6 +3,68 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.5.0-alpha.0 (2021-09-30)
+---------------------------------
+
+Features
+~~~~~~~~
+
+**London Support**
+
+- Pass all London tests from the ethereum/tests repo (`#2017 <https://github.com/ethereum/py-evm/issues/2017>`__)
+- Implement `EIP-1559 <https://eips.ethereum.org/EIPS/eip-1559>`_ for London support. (`#2013 <https://github.com/ethereum/py-evm/issues/2013>`__)
+- Implement `EIP-3198 <https://eips.ethereum.org/EIPS/eip-3198>`_ for London support. (`#2015 <https://github.com/ethereum/py-evm/issues/2015>`__)
+- Implement `EIP-3554 <https://eips.ethereum.org/EIPS/eip-3554>`_ for London support. (`#2018 <https://github.com/ethereum/py-evm/issues/2018>`__)
+- Implement `EIP-3541 <https://eips.ethereum.org/EIPS/eip-3541>`_ for London support. (`#2018 <https://github.com/ethereum/py-evm/issues/2018>`__)
+- Implement `EIP-3529 <https://eips.ethereum.org/EIPS/eip-3529>`_ for London support. (`#2020 <https://github.com/ethereum/py-evm/issues/2020>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Replace local timestamps with UTC timestamps (`#2013 <https://github.com/ethereum/py-evm/issues/2013>`__)
+
+  - Use UTC timestamp instead of local time zone, when creating a header.
+  - Use UTC for clique validation.
+
+- Was overly permissive on the header gas limit by one gas. (`#2021 <https://github.com/ethereum/py-evm/issues/2021>`__)
+
+  - Make header gas limit more restrictive by one, in various places.
+  - Validate uncle gas limits are within bounds of parent. This was previously not validated at all.
+- Erase return data for exceptions with `erases_return_data` flag set to True and for CREATE / CREATE2 computations with insufficient funds (`#2023 <https://github.com/ethereum/py-evm/issues/2023>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Removed old options and methods for creating a header, now that headers vary by fork. (`#2013 <https://github.com/ethereum/py-evm/issues/2013>`__)
+
+  - :meth:`eth.rlp.headers.BlockHeader.from_parent()` is gone, because you should
+    always use the VM to create a header (to make sure you get the correct type).
+  - Can no longer supply some fields to the genesis, like bloom and parent_hash.
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Misc test improvements (`#2013 <https://github.com/ethereum/py-evm/issues/2013>`__)
+
+  - some test_vm fixes:
+
+    - use the correctly paired VMs in PoW test
+    - make sure *only* the block number is invalid in block number validity test
+  - more robust test fixture name generation
+  - run a newer version of the lint test from `make lint`
+- Various upgrades and related updates (`#2016 <https://github.com/ethereum/py-evm/issues/2016>`__)
+
+  - Upgrade pytest and pytest-xdist. Caching was causing very slow test runs locally in pytest v5
+  - Update ethereum/tests (Updated in various PRs. At release time, checked out at v10.0)
+  - Remove json-fixture caching to resolve stale cache issues that caused test
+    failures (at some expense to speed)
+  - Make xdist failures show up correctly in the transition tests
+- During fixture tests, verify that the generated genesis block matches the fixture's RLP-encoding. (`#2022 <https://github.com/ethereum/py-evm/issues/2022>`__)
+- Squash sphinx warnings with a small documentation reorg. (`#2021 <https://github.com/ethereum/py-evm/issues/2021>`__)
+
+
 py-evm 0.4.0-alpha.4 (2021-04-07)
 ---------------------------------
 

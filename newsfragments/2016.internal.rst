@@ -1,5 +1,0 @@
-- Upgrade pytest and pytest-xdist. Caching was causing very slow test runs locally in pytest v5.
-- Update ethereum/tests to v9.0.4 (with most London tests disabled)
-- Remove json-fixture caching to resolve stale cache issues that caused test failures (at some
-  expense to speed)
-- Make xdist failures show up correctly in the transition tests
