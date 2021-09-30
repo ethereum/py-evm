@@ -1,0 +1,1 @@
+Squash sphinx warnings with a small documentation reorg.
