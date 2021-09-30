@@ -669,6 +669,13 @@ class VM(Configurable, VirtualMachineAPI):
                 f"the limit ({uncle.gas_limit})"
             )
 
+        uncle_parent_gas_limit = uncle_parent.gas_limit
+        if not hasattr(uncle_parent, 'base_fee_per_gas') and hasattr(uncle, 'base_fee_per_gas'):
+            # if Berlin -> London transition, double the parent limit for validation
+            uncle_parent_gas_limit *= 2
+
+        validate_gas_limit(uncle.gas_limit, uncle_parent_gas_limit)
+
     #
     # State
     #

@@ -106,6 +106,6 @@ def validate_rlp_equal(obj_a: BaseBlock,
 
 
 validate_imported_block_unchanged = validate_rlp_equal(
-    obj_a_name="block",
-    obj_b_name="imported block",
+    obj_a_name="locally executed block",
+    obj_b_name="proposed block",
 )

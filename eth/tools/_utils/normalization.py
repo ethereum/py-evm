@@ -567,6 +567,8 @@ def normalize_block(block: Dict[str, Any]) -> Dict[str, Any]:
             for transaction
             in block['transactions']
         ]
+    if 'expectException' in block:
+        normalized_block['expectException'] = block['expectException']
     return normalized_block
 
 

@@ -163,10 +163,15 @@ class Create(Opcode):
             computation.stack_push_int(0)
             computation.return_data = b''
             if insufficient_funds:
-                err_msg = f"Insufficient Funds: {storage_address_balance} < {stack_data.endowment}"
+                self.logger.debug2(
+                    "%s failure: %s",
+                    self.mnemonic,
+                    f"Insufficient Funds: {storage_address_balance} < {stack_data.endowment}"
+                )
             elif stack_too_deep:
-                err_msg = "Stack limit reached"
-            self.logger.debug2("%s failure: %s", self.mnemonic, err_msg,)
+                self.logger.debug2("%s failure: %s", self.mnemonic, "Stack limit reached")
+            else:
+                raise RuntimeError("Invariant: error must be insufficient funds or stack too deep")
             return
 
         call_data = computation.memory_read_bytes(
@@ -183,11 +188,12 @@ class Create(Opcode):
         is_collision = computation.state.has_code_or_nonce(contract_address)
 
         if is_collision:
+            computation.stack_push_int(0)
+            computation.return_data = b''
             self.logger.debug2(
                 "Address collision while creating contract: %s",
                 encode_hex(contract_address),
             )
-            computation.stack_push_int(0)
             return
 
         child_msg = computation.prepare_child_message(
