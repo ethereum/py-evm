@@ -1,0 +1,1 @@
+Updated the reference to the project template in the docs to https://github.com/ethereum/ethereum-python-project-template and changed the location in the git clone command accordingly.

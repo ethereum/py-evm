@@ -15,14 +15,14 @@ Setting up the application
 
 Let's get started by setting up a new application. Often, that process involves lots of repetitive
 boilerplate code, so instead of doing it all by hand, let's just clone the
-`Ethereum Python Project Template <https://github.com/carver/ethereum-python-project-template>`_
+`Ethereum Python Project Template <https://github.com/ethereum/ethereum-python-project-template>`_
 which contains all the typical things that we want.
 
 To clone this into a new directory ``demo-app`` run:
 
 .. code:: sh
 
-  git clone https://github.com/carver/ethereum-python-project-template.git demo-app
+  git clone https://github.com/ethereum/ethereum-python-project-template.git demo-app
 
 Then, change into the directory
 
