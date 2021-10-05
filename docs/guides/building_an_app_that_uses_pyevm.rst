@@ -41,7 +41,7 @@ and change the ``install_requires`` section as follows.
 
   install_requires=[
       "eth-utils>=1,<2",
-      "py-evm==0.3.0a20",
+      "py-evm==0.5.0a0",
   ],
 
 .. warning::
@@ -59,7 +59,7 @@ To install the dependencies, run:
 
 .. code:: sh
 
-  pip install -e .[dev]
+  pip install -e ".[dev]"
 
 Congrats! We're now ready to build our application!
 

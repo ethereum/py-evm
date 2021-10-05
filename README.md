@@ -1,12 +1,12 @@
 # Python Implementation of the Ethereum protocol
 
-[![Join the chat at https://gitter.im/ethereum/py-evm](https://badges.gitter.im/ethereum/py-evm.svg)](https://gitter.im/ethereum/py-evm)
+[![Join the conversation on Discord](https://img.shields.io/discord/809793915578089484?color=blue&label=chat&logo=discord&logoColor=white)](https://discord.gg/GHryRvPB84)
 [![Documentation Status](https://readthedocs.org/projects/py-evm/badge/?version=latest)](https://py-evm.readthedocs.io/en/latest/?badge=latest)
 
 
 ## Py-EVM
 
-Py-EVM is a new implementation of the Ethereum protocol in Python. It contains the low level
+Py-EVM is an implementation of the Ethereum protocol in Python. It contains the low level
 primitives for the existing Ethereum 1.0 chain as well as emerging support for the upcoming
 Ethereum 2.0 / Serenity spec.
 

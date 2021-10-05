@@ -16,11 +16,12 @@ First we need to clone the Py-EVM repository. Py-EVM depends on a submodule of t
 
 .. include:: /fragments/virtualenv_explainer.rst
 
-After we have activated our virtual environment, installing all dependencies that are needed to run, develop and test all code in this repository is as easy as:
+After we have activated our virtual environment, we need to install all dependencies that are needed to run, develop, and test.
+This is as easy as navigating to the py-evm directory and running:
 
 .. code:: sh
 
-    pip install -e .[dev]
+    pip install -e ".[dev]"
 
 
 Running the tests
