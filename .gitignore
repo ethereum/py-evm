@@ -65,6 +65,9 @@ venv*
 # vscode
 .vscode/**
 
+# ctags
+tags
+
 # monkeytype
 monkeytype.sqlite3
 

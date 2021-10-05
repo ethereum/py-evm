@@ -4066,7 +4066,7 @@ class ChainAPI(ConfigurableAPI):
 
 class MiningChainAPI(ChainAPI):
     """
-    Like :class:`~eth.abc.ChainAPI` but with APIs to create blocks incrementially.
+    Like :class:`~eth.abc.ChainAPI` but with APIs to create blocks incrementally.
     """
     header: BlockHeaderAPI
 

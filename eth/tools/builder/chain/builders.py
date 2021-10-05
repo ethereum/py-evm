@@ -160,7 +160,7 @@ def _is_homestead(vm_class: Type[VirtualMachineAPI]) -> bool:
         # It isn't a subclass of the HomesteadVM
         return False
     elif issubclass(vm_class, TangerineWhistleVM):
-        # It is a subclass of on of the subsequent forks
+        # It is a subclass of one of the subsequent forks
         return False
     else:
         return True
@@ -357,7 +357,7 @@ def genesis(chain_class: ChainAPI,
 
 
 #
-# Builders (build actual block chain)
+# Builders (build actual blockchain)
 #
 @curry
 def mine_block(chain: MiningChainAPI, **kwargs: Any) -> MiningChainAPI:
