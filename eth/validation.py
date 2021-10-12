@@ -17,6 +17,7 @@ from eth_typing import (
 )
 
 from eth_utils import (
+    is_list_like,
     ValidationError,
 )
 from eth_utils.toolz import dicttoolz
@@ -226,10 +227,8 @@ def validate_is_transaction_access_list(
 
 
 def validate_is_list_like(obj: Sequence[Any], title: str = "Value",) -> None:
-    if isinstance(obj, (str, bytes, bytearray)) or not isinstance(obj, Sequence):
-        raise ValidationError(
-            f"{title} not list like: {repr(obj)}"
-        )
+    if not is_list_like(obj):
+        raise ValidationError(f"{title} is not list like: {repr(obj)}")
 
 
 def validate_block_number(block_number: int, title: str = "Block Number") -> None:
