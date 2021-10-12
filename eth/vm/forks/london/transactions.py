@@ -32,10 +32,17 @@ from eth.abc import (
     SignedTransactionAPI,
     TransactionDecoderAPI,
 )
+from eth.constants import CREATE_CONTRACT_ADDRESS
 from eth.rlp.logs import Log
 from eth.rlp.receipts import Receipt
 from eth.rlp.transactions import SignedTransactionMethods
 from eth.rlp.sedes import address
+from eth.validation import (
+    validate_canonical_address,
+    validate_is_bytes,
+    validate_is_transaction_access_list,
+    validate_uint256,
+)
 from eth.vm.forks.berlin.constants import (
     ACCESS_LIST_ADDRESS_COST_EIP_2930,
     ACCESS_LIST_STORAGE_KEY_COST_EIP_2930,
@@ -121,6 +128,35 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable):
             s
         )
         return LondonTypedTransaction(self._type_id, signed_transaction)
+
+    def validate(self) -> None:
+        validate_uint256(self.chain_id, title="Transaction.chain_id")
+        validate_uint256(self.nonce, title="Transaction.nonce")
+        validate_uint256(self.max_fee_per_gas, title="Transaction.max_fee_per_gas")
+        validate_uint256(
+            self.max_priority_fee_per_gas, title="Transaction.max_priority_fee_per_gas"
+        )
+        validate_uint256(self.gas, title="Transaction.gas")
+        if self.to != CREATE_CONTRACT_ADDRESS:
+            validate_canonical_address(self.to, title="Transaction.to")
+        validate_uint256(self.value, title="Transaction.value")
+        validate_is_bytes(self.data, title="Transaction.data")
+        validate_is_transaction_access_list(self.access_list)
+
+    @property
+    def intrinsic_gas(self) -> int:
+        return self.get_intrinsic_gas()
+
+    def get_intrinsic_gas(self) -> int:
+        core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, self)
+
+        num_addresses = len(self.access_list)
+        preload_address_costs = ACCESS_LIST_ADDRESS_COST_EIP_2930 * num_addresses
+
+        num_slots = sum(len(slots) for _, slots in self.access_list)
+        preload_slot_costs = ACCESS_LIST_STORAGE_KEY_COST_EIP_2930 * num_slots
+
+        return core_gas + preload_address_costs + preload_slot_costs
 
 
 class DynamicFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI):

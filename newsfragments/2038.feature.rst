@@ -1,0 +1,1 @@
+Add ``validate`` and ``intrinsic_gas`` properties to ``UnsignedAccessListTransaction`` and ``UnsignedDynamicFeeTransaction``

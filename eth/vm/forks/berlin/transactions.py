@@ -36,11 +36,18 @@ from eth.abc import (
     TransactionDecoderAPI,
     UnsignedTransactionAPI,
 )
+from eth.constants import CREATE_CONTRACT_ADDRESS
 from eth.exceptions import UnrecognizedTransactionType
 from eth.rlp.logs import Log
 from eth.rlp.receipts import Receipt
 from eth.rlp.sedes import address
 from eth.rlp.transactions import SignedTransactionMethods
+from eth.validation import (
+    validate_canonical_address,
+    validate_is_bytes,
+    validate_is_transaction_access_list,
+    validate_uint256,
+)
 from eth.vm.forks.istanbul.transactions import (
     ISTANBUL_TX_GAS_SCHEDULE,
 )
@@ -136,6 +143,32 @@ class UnsignedAccessListTransaction(rlp.Serializable):
             s
         )
         return TypedTransaction(self._type_id, signed_transaction)
+
+    def validate(self) -> None:
+        validate_uint256(self.chain_id, title="Transaction.chain_id")
+        validate_uint256(self.nonce, title="Transaction.nonce")
+        validate_uint256(self.gas_price, title="Transaction.gas_price")
+        validate_uint256(self.gas, title="Transaction.gas")
+        if self.to != CREATE_CONTRACT_ADDRESS:
+            validate_canonical_address(self.to, title="Transaction.to")
+        validate_uint256(self.value, title="Transaction.value")
+        validate_is_bytes(self.data, title="Transaction.data")
+        validate_is_transaction_access_list(self.access_list)
+
+    @property
+    def intrinsic_gas(self) -> int:
+        return self.get_intrinsic_gas()
+
+    def get_intrinsic_gas(self) -> int:
+        core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, self)
+
+        num_addresses = len(self.access_list)
+        preload_address_costs = ACCESS_LIST_ADDRESS_COST_EIP_2930 * num_addresses
+
+        num_slots = sum(len(slots) for _, slots in self.access_list)
+        preload_slot_costs = ACCESS_LIST_STORAGE_KEY_COST_EIP_2930 * num_slots
+
+        return core_gas + preload_address_costs + preload_slot_costs
 
     # Old transactions are treated as setting both max-fees as the gas price
     @property
