@@ -5,6 +5,7 @@ from typing import (
     Tuple,
     Type,
     cast,
+    Union,
 )
 
 from cached_property import cached_property
@@ -155,20 +156,12 @@ class UnsignedAccessListTransaction(rlp.Serializable):
         validate_is_bytes(self.data, title="Transaction.data")
         validate_is_transaction_access_list(self.access_list)
 
+    def get_intrinsic_gas(self) -> int:
+        return _get_access_list_txn_intrinsic_gas(self)
+
     @property
     def intrinsic_gas(self) -> int:
         return self.get_intrinsic_gas()
-
-    def get_intrinsic_gas(self) -> int:
-        core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, self)
-
-        num_addresses = len(self.access_list)
-        preload_address_costs = ACCESS_LIST_ADDRESS_COST_EIP_2930 * num_addresses
-
-        num_slots = sum(len(slots) for _, slots in self.access_list)
-        preload_slot_costs = ACCESS_LIST_STORAGE_KEY_COST_EIP_2930 * num_slots
-
-        return core_gas + preload_address_costs + preload_slot_costs
 
     # Old transactions are treated as setting both max-fees as the gas price
     @property
@@ -225,15 +218,7 @@ class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
         raise NotImplementedError("Call hash() on the TypedTransaction instead")
 
     def get_intrinsic_gas(self) -> int:
-        core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, self)
-
-        num_addresses = len(self.access_list)
-        preload_address_costs = ACCESS_LIST_ADDRESS_COST_EIP_2930 * num_addresses
-
-        num_slots = sum(len(slots) for _, slots in self.access_list)
-        preload_slot_costs = ACCESS_LIST_STORAGE_KEY_COST_EIP_2930 * num_slots
-
-        return core_gas + preload_address_costs + preload_slot_costs
+        return _get_access_list_txn_intrinsic_gas(self)
 
     def encode(self) -> bytes:
         return rlp.encode(self)
@@ -525,3 +510,17 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
             s,
         )
         return cls.typed_transaction(ACCESS_LIST_TRANSACTION_TYPE, transaction)
+
+
+def _get_access_list_txn_intrinsic_gas(
+    klass: Union[UnsignedAccessListTransaction, AccessListTransaction]
+) -> int:
+    core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, klass)
+
+    num_addresses = len(klass.access_list)
+    preload_address_costs = ACCESS_LIST_ADDRESS_COST_EIP_2930 * num_addresses
+
+    num_slots = sum(len(slots) for _, slots in klass.access_list)
+    preload_slot_costs = ACCESS_LIST_STORAGE_KEY_COST_EIP_2930 * num_slots
+
+    return core_gas + preload_address_costs + preload_slot_costs
