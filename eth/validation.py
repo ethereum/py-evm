@@ -2,6 +2,7 @@ import functools
 
 from typing import (
     Any,
+    cast,
     Dict,
     Iterable,
     Sequence,
@@ -204,6 +205,30 @@ def validate_unique(values: Iterable[Any], title: str = "Value") -> None:
         raise ValidationError(
             f"{title} does not contain unique items.  Duplicates: "
             f"{', '.join((str(value) for value in duplicates))}"
+        )
+
+
+def validate_is_transaction_access_list(
+    access_list: Sequence[Sequence[Union[Address, Sequence[int]]]]
+) -> None:
+    validate_is_list_like(access_list, "Transaction.access_list")
+    for entry in access_list:
+        validate_is_list_like(entry, "Transaction.access_list entry")
+        if len(entry) != 2:
+            raise ValidationError(
+                "Transaction.access_list entry does not have 2 values. "
+                "Needs address value and storage key list."
+            )
+        validate_canonical_address(cast(Address, entry[0]), "Transaction.access_list entry address")
+        validate_is_list_like(entry[1], "Transaction.access_list entry storage keys")
+        for k in entry[1]:
+            validate_is_integer(k, "Transaction.access_list entry storage key")
+
+
+def validate_is_list_like(obj: Sequence[Any], title: str = "Value",) -> None:
+    if isinstance(obj, (str, bytes, bytearray)) or not isinstance(obj, Sequence):
+        raise ValidationError(
+            f"{title} not list like: {repr(obj)}"
         )
 
 

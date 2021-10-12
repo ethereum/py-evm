@@ -14,6 +14,8 @@ from eth.validation import (
     validate_is_boolean,
     validate_is_bytes,
     validate_is_integer,
+    validate_is_list_like,
+    validate_is_transaction_access_list,
     validate_length,
     validate_length_lte,
     validate_lt,
@@ -330,6 +332,75 @@ def test_validate_stack_bytes(value, is_valid):
     else:
         with pytest.raises(ValidationError):
             validate_stack_bytes(value)
+
+
+@pytest.mark.parametrize(
+    "value,is_valid",
+    (
+        ([], True),
+        (['list', 'of', 4, 'items'], True),
+        (['list', 'of', 'just', 'strings'], True),
+        ([1, 2, 3, 4, 5, 6, 7, 8, 9, 0], True),
+        ([1], True),
+        ((), True),
+        (('tuple', 'of', 4, 'items'), True),
+        (('tuple', 'of', 'just', 'strings'), True),
+        ((1, 2, 3, 4, 5, 6, 7, 8, 9, 0), True),
+        ((1,), True),
+        ({'set', 'of', 4, 'items'}, False),
+        ({'set', 'of', 'just', 'strings'}, False),
+        ({1, 2, 3, 4, 5, 6, 7, 8, 9, 0}, False),
+        ({1}, False),
+        ({'dict': 0, 'of': 'items'}, False),
+        (b'', False),
+        (b'a', False),
+        (b'101010', False),
+        (b'\xfd\xf2\xfc', False),
+        ('', False),
+        ('string', False),
+        ('1', False),
+        (u'', False),
+        (u'unicode string', False),
+        (1, False),
+        (1.1, False),
+    )
+)
+def test_validate_is_list_like(value, is_valid):
+    if is_valid:
+        # True for tuples and lists
+        validate_is_list_like(value)
+    else:
+        with pytest.raises(ValidationError):
+            validate_is_list_like(value)
+
+
+@pytest.mark.parametrize(
+    "value,is_valid",
+    (
+        (((b'\xf0' * 20, (1,)),), True),
+        ([[b'\xf0' * 20, [1]]], True),
+        (((b'\xf0' * 20, (0, 2)),), True),
+        (((b'\xef' * 20, (1, 2, 3)),), True),
+        (((b'\xf0' * 20, (1, 2, 3)), (b'\xef' * 20, ()),), True),
+        (((b'\xf0' * 20, ()),), True),
+        ((), True),
+        ([], True),
+        (((b'\xf0' * 19, (0, 2)),), False),
+        ((('\xf0' * 20, (0, 2)),), False),
+        (((b'', (0, 2)),), False),
+        (((b'\xf0' * 20, (0, '2')),), False),
+        (((b'\xf0' * 20, (0, b'\xf0')),), False),
+        (((b'\xf0' * 20, (0, (1, 2))),), False),
+        (((b'\xf0' * 20,),), False),  # just one value in entry, an address
+        ((((1, 2),),), False),  # just one value in entry, a list of valid storage keys
+    )
+)
+def test_validate_is_transaction_access_list(value, is_valid):
+    if is_valid:
+        validate_is_transaction_access_list(value)
+    else:
+        with pytest.raises(ValidationError):
+            validate_is_transaction_access_list(value)
 
 
 @pytest.mark.parametrize(
