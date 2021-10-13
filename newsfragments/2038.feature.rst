@@ -1,3 +1,0 @@
-- Add :meth:`~eth.vm.forks.london.transactions.UnsignedDynamicFeeTransaction.validate` method and `intrinsic_gas` property to `UnsignedDynamicFeeTransaction`
-
-- Add :meth:`~eth.vm.forks.london.transactions.UnsignedAccessListTransaction.validate` method and `intrinsic_gas` property to `UnsignedAccessListTransaction`

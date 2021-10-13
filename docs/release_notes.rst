@@ -3,6 +3,25 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.5.0-alpha.1 (2021-10-13)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- (`#2038 <https://github.com/ethereum/py-evm/issues/2038>`__)
+
+    - Add :meth:`~eth.vm.forks.berlin.transactions.UnsignedAccessListTransaction.validate` method and `intrinsic_gas` property to `UnsignedAccessListTransaction`
+    - Add :meth:`~eth.vm.forks.london.transactions.UnsignedDynamicFeeTransaction.validate` method and `intrinsic_gas` property to `UnsignedDynamicFeeTransaction`
+
+
+Improved Documentation
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Updated the reference to the project template in the docs to https://github.com/ethereum/ethereum-python-project-template and changed the location in the git clone command accordingly. (`#2032 <https://github.com/ethereum/py-evm/issues/2032>`__)
+- Documentation updates to use latest py-evm version, grammar updates, python version updates, replace Gitter link with Discord link, and change [.dev] -> ".[dev]" in docs for better compatibility across shells (`#2036 <https://github.com/ethereum/py-evm/issues/2036>`__)
+
+
 py-evm 0.5.0-alpha.0 (2021-09-30)
 ---------------------------------
 
