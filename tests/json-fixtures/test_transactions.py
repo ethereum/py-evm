@@ -4,6 +4,7 @@ import pytest
 
 import rlp
 
+from eth.exceptions import UnrecognizedTransactionType
 from eth_utils import (
     is_same_address,
     to_tuple,
@@ -36,6 +37,9 @@ from eth.vm.forks.petersburg.transactions import (
 )
 from eth.vm.forks.istanbul.transactions import (
     IstanbulTransaction
+)
+from eth.vm.forks.berlin.constants import (
+    VALID_TRANSACTION_TYPES,
 )
 from eth.vm.forks.berlin.transactions import (
     BerlinTransactionBuilder
@@ -123,7 +127,6 @@ def fixture_transaction_class(fixture_data):
 
 
 def test_transaction_fixtures(fixture, fixture_transaction_class):
-
     TransactionClass = fixture_transaction_class
 
     try:
@@ -139,6 +142,14 @@ def test_transaction_fixtures(fixture, fixture_transaction_class):
     # fixture normalization changes the fixture key from rlp to rlpHex
     except KeyError:
         assert fixture['rlpHex']
+        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+    except ValidationError as err:
+        err_matchers = ("Cannot build typed transaction with", ">= 0x80")
+        assert all(_ in err.args[0] for _ in err_matchers)
+        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+    except UnrecognizedTransactionType as err:
+        assert err.args[1] == "Unknown transaction type"
+        assert hex(err.args[0]) not in VALID_TRANSACTION_TYPES
         assert 'hash' not in fixture, "Transaction was supposed to be valid"
     else:
         # check parameter correctness
