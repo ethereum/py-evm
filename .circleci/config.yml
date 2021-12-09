@@ -40,12 +40,6 @@ common: &common
         key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 jobs:
-  py36-benchmark:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-benchmark
   py36-native-blockchain-berlin:
     <<: *common
     docker:
@@ -246,7 +240,6 @@ workflows:
   version: 2
   test:
     jobs:
-      - py36-benchmark
       - py36-native-blockchain-berlin
       - py36-native-blockchain-byzantium
       - py36-native-blockchain-constantinople
