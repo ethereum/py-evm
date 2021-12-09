@@ -62,3 +62,8 @@ BERLIN_MAINNET_BLOCK = BlockNumber(12244000)
 # London Block
 #
 LONDON_MAINNET_BLOCK = BlockNumber(12965000)
+
+#
+# Arrow Glacier Block
+#
+ARROW_GLACIER_MAINNET_BLOCK = BlockNumber(13773000)

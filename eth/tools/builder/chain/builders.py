@@ -74,6 +74,7 @@ from eth.vm.forks import (
     MuirGlacierVM,
     BerlinVM,
     LondonVM,
+    ArrowGlacierVM,
 )
 
 
@@ -143,6 +144,10 @@ def fork_at(vm_class: Type[VirtualMachineAPI],
     * :func:`~eth.tools.builder.chain.constantinople_at`
     * :func:`~eth.tools.builder.chain.petersburg_at`
     * :func:`~eth.tools.builder.chain.istanbul_at`
+    * :func:`~eth.tools.builder.chain.muir_glacier_at`
+    * :func:`~eth.tools.builder.chain.berlin_at`
+    * :func:`~eth.tools.builder.chain.london_at`
+    * :func:`~eth.tools.builder.chain.arrow_glacier_at`
     * :func:`~eth.tools.builder.chain.latest_mainnet_at` - whatever the latest mainnet VM is
     """
     if chain_class.vm_configuration is not None:
@@ -239,8 +244,9 @@ istanbul_at = fork_at(IstanbulVM)
 muir_glacier_at = fork_at(MuirGlacierVM)
 berlin_at = fork_at(BerlinVM)
 london_at = fork_at(LondonVM)
+arrow_glacier_at = fork_at(ArrowGlacierVM)
 
-latest_mainnet_at = london_at
+latest_mainnet_at = arrow_glacier_at
 
 GENESIS_DEFAULTS = cast(
     Tuple[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]], ...],
