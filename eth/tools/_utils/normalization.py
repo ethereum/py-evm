@@ -505,12 +505,12 @@ def normalize_transactiontest_fixture(fixture: Dict[str, Any], fork: str) -> Dic
 
     normalized_fixture = {}
 
-    fork_data = fixture[fork]
+    fork_data = fixture['result'][fork]
 
     try:
-        normalized_fixture['rlp'] = decode_hex(fixture['rlp'])
+        normalized_fixture['txbytes'] = decode_hex(fixture['txbytes'])
     except binascii.Error:
-        normalized_fixture['rlpHex'] = fixture['rlp']
+        normalized_fixture['rlpHex'] = fixture['txbytes']
 
     if "sender" in fork_data:
         normalized_fixture['sender'] = fork_data['sender']

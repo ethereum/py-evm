@@ -4,6 +4,7 @@ import pytest
 
 import rlp
 
+from eth.exceptions import UnrecognizedTransactionType
 from eth_utils import (
     is_same_address,
     to_tuple,
@@ -37,6 +38,15 @@ from eth.vm.forks.petersburg.transactions import (
 from eth.vm.forks.istanbul.transactions import (
     IstanbulTransaction
 )
+from eth.vm.forks.berlin.constants import (
+    VALID_TRANSACTION_TYPES,
+)
+from eth.vm.forks.berlin.transactions import (
+    BerlinTransactionBuilder
+)
+from eth.vm.forks.london.transactions import (
+    LondonTransactionBuilder
+)
 
 from eth_typing.enums import (
     ForkName
@@ -50,7 +60,7 @@ BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests
 
 
 # Fixtures have an `_info` key at their root which we need to skip over.
-FIXTURE_FORK_SKIPS = {'_info', 'rlp'}
+FIXTURE_FORK_SKIPS = {'_info', 'txbytes'}
 
 
 @to_tuple
@@ -62,7 +72,7 @@ def expand_fixtures_forks(all_fixtures):
     """
     for fixture_path, fixture_key in all_fixtures:
         fixture = load_fixture(fixture_path, fixture_key)
-        for fixture_fork, _ in fixture.items():
+        for fixture_fork, _ in fixture['result'].items():
             if fixture_fork not in FIXTURE_FORK_SKIPS:
                 yield fixture_path, fixture_key, fixture_fork
 
@@ -105,7 +115,11 @@ def fixture_transaction_class(fixture_data):
     elif fork_name == ForkName.ConstantinopleFix:
         return PetersburgTransaction
     elif fork_name == ForkName.Istanbul:
-        return IstanbulTransaction  # There seem to be no new transaction tests since Istanbul
+        return IstanbulTransaction
+    elif fork_name == ForkName.Berlin:
+        return BerlinTransactionBuilder
+    elif fork_name == ForkName.London:
+        return LondonTransactionBuilder
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis Transaction class has not been implemented")
     else:
@@ -113,11 +127,10 @@ def fixture_transaction_class(fixture_data):
 
 
 def test_transaction_fixtures(fixture, fixture_transaction_class):
-
     TransactionClass = fixture_transaction_class
 
     try:
-        txn = rlp.decode(fixture['rlp'], sedes=TransactionClass)
+        txn = rlp.decode(fixture['txbytes'], sedes=TransactionClass)
     except (rlp.DeserializationError, rlp.exceptions.DecodingError):
         assert 'hash' not in fixture, "Transaction was supposed to be valid"
     except TypeError as err:
@@ -129,6 +142,14 @@ def test_transaction_fixtures(fixture, fixture_transaction_class):
     # fixture normalization changes the fixture key from rlp to rlpHex
     except KeyError:
         assert fixture['rlpHex']
+        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+    except ValidationError as err:
+        err_matchers = ("Cannot build typed transaction with", ">= 0x80")
+        assert all(_ in err.args[0] for _ in err_matchers)
+        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+    except UnrecognizedTransactionType as err:
+        assert err.args[1] == "Unknown transaction type"
+        assert hex(err.args[0]) not in VALID_TRANSACTION_TYPES
         assert 'hash' not in fixture, "Transaction was supposed to be valid"
     else:
         # check parameter correctness
