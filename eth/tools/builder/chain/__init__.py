@@ -28,6 +28,7 @@ from .builders import (  # noqa: F401
     muir_glacier_at,
     berlin_at,
     london_at,
+    arrow_glacier_at,
     latest_mainnet_at,
 )
 
@@ -40,6 +41,10 @@ mainnet_fork_at_fns = (
     tangerine_whistle_at,
     petersburg_at,
     istanbul_at,
+    muir_glacier_at,
+    berlin_at,
+    london_at,
+    arrow_glacier_at,
 )
 
 
@@ -68,6 +73,10 @@ class API:
     byzantium_at = staticmethod(byzantium_at)
     constantinople_at = staticmethod(constantinople_at)
     istanbul_at = staticmethod(istanbul_at)
+    muir_glacier_at = staticmethod(muir_glacier_at)
+    berlin_at = staticmethod(berlin_at)
+    london_at = staticmethod(london_at)
+    arrow_glacier_at = staticmethod(arrow_glacier_at)
 
     # iterable of the fork specific functions
     mainnet_fork_at_fns = mainnet_fork_at_fns

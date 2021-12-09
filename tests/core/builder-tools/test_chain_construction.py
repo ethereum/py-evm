@@ -5,6 +5,7 @@ from eth_utils import ValidationError
 from eth.chains.base import MiningChain
 from eth.consensus.pow import check_pow
 from eth.tools.builder.chain import (
+    arrow_glacier_at,
     berlin_at,
     build,
     byzantium_at,
@@ -37,6 +38,7 @@ from eth.vm.forks import (
     MuirGlacierVM,
     BerlinVM,
     LondonVM,
+    ArrowGlacierVM,
 )
 
 
@@ -91,7 +93,8 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (muir_glacier_at, MuirGlacierVM),
         (berlin_at, BerlinVM),
         (london_at, LondonVM),
-        (latest_mainnet_at, LondonVM),  # this will change whenever the next upgrade is locked
+        (arrow_glacier_at, ArrowGlacierVM),
+        (latest_mainnet_at, ArrowGlacierVM),  # this will change whenever the next upgrade is locked
     )
 )
 def test_chain_builder_construct_chain_fork_specific_helpers(fork_fn, vm_class):

@@ -29,5 +29,8 @@ from .berlin import (  # noqa: F401
     BerlinVM,
 )
 from .london import (  # noqa: F401
-    LondonVM
+    LondonVM,
+)
+from .arrow_glacier import (  # noqa: F401
+    ArrowGlacierVM,
 )
