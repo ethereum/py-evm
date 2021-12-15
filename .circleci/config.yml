@@ -155,6 +155,12 @@ jobs:
       - image: circleci/python:3.7
         environment:
           TOXENV: py37-database
+  py37-difficulty:
+    <<: *common
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          TOXENV: py37-difficulty
   py37-transactions:
     <<: *common
     docker:
@@ -186,6 +192,12 @@ jobs:
       - image: circleci/python:3.8
         environment:
           TOXENV: py38-database
+  py38-difficulty:
+    <<: *common
+    docker:
+      - image: circleci/python:3.8
+        environment:
+          TOXENV: py38-difficulty
   py38-transactions:
     <<: *common
     docker:
@@ -217,6 +229,12 @@ jobs:
       - image: circleci/python:3.9
         environment:
           TOXENV: py39-database
+  py39-difficulty:
+    <<: *common
+    docker:
+      - image: circleci/python:3.9
+        environment:
+          TOXENV: py39-difficulty
   py39-transactions:
     <<: *common
     docker:
@@ -263,6 +281,9 @@ workflows:
       - py37-transactions
       - py38-transactions
       - py39-transactions
+      - py37-difficulty
+      - py38-difficulty
+      - py39-difficulty
       - py36-database
       - py37-database
       - py38-database
