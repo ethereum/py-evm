@@ -1,3 +1,0 @@
-- Update ethereum/tests to v10.2
-
-- Implement a `/json-fixtures` test for `ethereum/tests/DifficultyTests` which includes newly added tests for Arrow Glacier hard fork

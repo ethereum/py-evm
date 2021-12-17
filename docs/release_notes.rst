@@ -3,6 +3,25 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.5.0-alpha.2 (2021-12-16)
+---------------------------------
+Eth 0.5.0-alpha.2 (2021-12-16)
+------------------------------
+
+Features
+~~~~~~~~
+
+- Arrow Glacier Support
+
+  - Implement `EIP-4345 <https://eips.ethereum.org/EIPS/eip-4345>`_ for Arrow Glacier support. (`#2045 <https://github.com/ethereum/py-evm/issues/2045>`__)
+
+
+Miscellaneous internal changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- `#2040 <https://github.com/ethereum/py-evm/issues/2040>`__, `#2045 <https://github.com/ethereum/py-evm/issues/2045>`__, `#2048 <https://github.com/ethereum/py-evm/issues/2048>`__
+
+
 py-evm 0.5.0-alpha.1 (2021-10-13)
 ---------------------------------
 

@@ -1,1 +1,0 @@
-Upgrade py-ecc requirement to allow for v6.0+
