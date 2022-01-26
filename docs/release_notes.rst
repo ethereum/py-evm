@@ -3,6 +3,18 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.5.0-alpha.3 (2022-01-26)
+---------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Downgrade upstream dependencies to allow only non-breaking changes. Once
+  we're ready to cut web3.py v6 branch, we can pull in breaking changes from
+  upstream dependencies. Namely, dropping Python 3.5 and 3.6. (`#2050
+  <https://github.com/ethereum/py-evm/issues/2050>`__)
+
+
 py-evm 0.5.0-alpha.2 (2021-12-16)
 ---------------------------------
 Eth 0.5.0-alpha.2 (2021-12-16)
