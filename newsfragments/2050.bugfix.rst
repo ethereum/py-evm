@@ -1,0 +1,1 @@
+Downgrade upstream dependencies to allow only non-breaking changes. Once we're ready to cut web3.py v6 branch, we can pull in breaking changes from upstream dependencies. Namely, dropping Python 3.5 and 3.6.
