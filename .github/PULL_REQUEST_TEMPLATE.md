@@ -1,16 +1,13 @@
 ### What was wrong?
 
 
-
 ### How was it fixed?
 
 
-### To-Do
+### Todo:
 
 [//]: # (Stay ahead of things, add list items here!)
 - [ ] Clean up commit history
-
-[//]: # (For important changes that should go into the release notes please add a newsfragment file as explained here: https://github.com/ethereum/py-evm/blob/master/newsfragments/README.md)
 
 [//]: # (See: https://py-evm.readthedocs.io/en/latest/contributing.html#pull-requests)
 - [ ] Add entry to the [release notes](https://github.com/ethereum/py-evm/blob/master/newsfragments/README.md)
