@@ -1,5 +1,7 @@
 from abc import ABC
+from typing import Type
 
+from eth.abc import TransactionBuilderAPI
 from eth_utils import (
     encode_hex,
 )
@@ -7,15 +9,18 @@ from eth_utils import (
 from rlp.sedes import (
     CountableList,
 )
-from eth.rlp.headers import (
-    BlockHeader,
-)
 
 from .transactions import (
     ArrowGlacierTransactionBuilder,
 )
-from ..london import LondonBlock
-from ..london.blocks import LondonBlockHeader, LondonMiningHeader
+from ..london import (
+    LondonBlock,
+)
+from ..london.blocks import (
+    LondonBackwardsHeader,
+    LondonBlockHeader,
+    LondonMiningHeader,
+)
 
 
 class ArrowGlacierMiningHeader(LondonMiningHeader, ABC):
@@ -28,9 +33,9 @@ class ArrowGlacierBlockHeader(LondonBlockHeader, ABC):
 
 
 class ArrowGlacierBlock(LondonBlock):
-    transaction_builder = ArrowGlacierTransactionBuilder
+    transaction_builder: Type[TransactionBuilderAPI] = ArrowGlacierTransactionBuilder
     fields = [
-        ('header', BlockHeader),
+        ('header', ArrowGlacierBlockHeader),
         ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(BlockHeader))
+        ('uncles', CountableList(LondonBackwardsHeader))
     ]

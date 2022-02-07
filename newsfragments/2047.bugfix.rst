@@ -1,0 +1,1 @@
+Arrow Glacier header serialization fixed to properly inherit from LondonBlockHeader
