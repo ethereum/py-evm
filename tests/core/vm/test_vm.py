@@ -1,5 +1,6 @@
 import pytest
 
+import rlp
 from eth_utils import (
     decode_hex,
     ValidationError,
@@ -67,6 +68,15 @@ def test_apply_transaction(
     assert state.get_balance(recipient) == amount
 
     assert new_header.gas_used == constants.GAS_TX
+
+
+def test_block_serialization(chain):
+    if not isinstance(chain, MiningChain):
+        pytest.skip("Only test mining on a MiningChain")
+        return
+
+    block = chain.mine_block()
+    rlp.encode(block)
 
 
 def test_mine_block_issues_block_reward(chain):
