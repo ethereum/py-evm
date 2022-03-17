@@ -48,11 +48,15 @@ from eth.consensus.pow import (
     PowConsensus,
 )
 from eth.constants import (
-    ELASTICITY_MULTIPLIER,
     GENESIS_PARENT_HASH,
     MAX_PREV_HEADER_DEPTH,
     MAX_UNCLES,
 )
+
+from eth.vm.forks.london.constants import (
+    ELASTICITY_MULTIPLIER
+)
+
 from eth.db.trie import make_trie_root_and_nodes
 from eth.exceptions import (
     HeaderNotFound,
