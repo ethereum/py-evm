@@ -15,7 +15,7 @@ from eth.tools.builder.chain import api
 from eth.tools.factories.transaction import (
     new_transaction
 )
-from eth_typing import BlockNumber, Hash32
+from eth_typing import Hash32
 from eth._utils.headers import fill_header_params_from_parent
 
 
