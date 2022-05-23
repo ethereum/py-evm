@@ -15,7 +15,7 @@ from eth.tools.builder.chain import api
 from eth.tools.factories.transaction import (
     new_transaction
 )
-from eth_typing import BlockNumber
+from eth_typing import BlockNumber, Hash32
 from eth._utils.headers import fill_header_params_from_parent
 
 
@@ -195,21 +195,35 @@ def test_validate_gas_limit_too_high(noproof_consensus_chain):
         vm.validate_header(invalid_header, block1.header)
 
 
-def test_fill_header_params_from_parent(noproof_consensus_chain):
+@pytest.mark.parametrize(
+    "custom_header_params",
+    (
+        {
+            'gas_limit': 1,
+            'difficulty': 10,
+            'timestamp': 100,
+        },
+        {
+            'gas_limit': 1,
+            'difficulty': 10,
+            'timestamp': 100,
+            'block_number': 1000,
+            'parent_hash': Hash32(100)
+        }
+    )
+)
+def test_fill_header_params_from_parent(custom_header_params,
+                                        noproof_consensus_chain):
     block = noproof_consensus_chain.mine_block()
-    new_fields = {
-        'gas_limit': 1,
-        'difficulty': 10,
-        'timestamp': 100,
-        'block_number': 1000
-    }
-
     new_header_params = fill_header_params_from_parent(block.header,
-                                                       **new_fields)
-    # Make sure default is set to genesis block number
-    if block.header is None:
-        new_fields['block_number'] = constants.GENESIS_BLOCK_NUMBER
-    else:
-        new_fields['block_number'] = BlockNumber(block.header.block_number + 1)
-    for field in new_fields:
-        assert new_header_params[field] == new_fields[field]
+                                                       **custom_header_params)
+    for field in custom_header_params:
+        assert new_header_params[field] == custom_header_params[field]
+
+    if 'block_number' not in new_header_params:
+        if block.header is not None:
+            assert new_header_params['block_number'] == block.header.block_number
+            assert new_header_params['parent_hash'] == block.header.hash
+        else:
+            assert new_header_params['block_number'] == constants.GENESIS_BLOCK_NUMBER
+            assert new_header_params['parent_hash'] == constants.GENESIS_PARENT_HASH
