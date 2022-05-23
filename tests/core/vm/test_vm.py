@@ -15,6 +15,8 @@ from eth.tools.builder.chain import api
 from eth.tools.factories.transaction import (
     new_transaction
 )
+from eth_typing import BlockNumber
+from eth._utils.headers import fill_header_params_from_parent
 
 
 @pytest.fixture(params=MAINNET_VMS)
@@ -191,3 +193,23 @@ def test_validate_gas_limit_too_high(noproof_consensus_chain):
 
     with pytest.raises(ValidationError, match="[Gg]as limit"):
         vm.validate_header(invalid_header, block1.header)
+
+
+def test_fill_header_params_from_parent(noproof_consensus_chain):
+    block = noproof_consensus_chain.mine_block()
+    new_fields = {
+        'gas_limit': 1,
+        'difficulty': 10,
+        'timestamp': 100,
+        'block_number': 1000
+    }
+
+    new_header_params = fill_header_params_from_parent(block.header,
+                                                       **new_fields)
+    # Make sure default is set to genesis block number
+    if block.header is None:
+        new_fields['block_number'] = constants.GENESIS_BLOCK_NUMBER
+    else:
+        new_fields['block_number'] = BlockNumber(block.header.block_number + 1)
+    for field in new_fields:
+        assert new_header_params[field] == new_fields[field]

@@ -57,6 +57,7 @@ def fill_header_params_from_parent(
         gas_limit: int,
         difficulty: int,
         timestamp: int,
+        block_number: int = GENESIS_BLOCK_NUMBER,
         coinbase: Address = ZERO_ADDRESS,
         nonce: bytes = None,
         extra_data: bytes = None,
@@ -67,7 +68,7 @@ def fill_header_params_from_parent(
 
     if parent is None:
         parent_hash = GENESIS_PARENT_HASH
-        block_number = GENESIS_BLOCK_NUMBER
+        block_number = block_number
         if state_root is None:
             state_root = BLANK_ROOT_HASH
     else:
