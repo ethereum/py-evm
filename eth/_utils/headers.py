@@ -22,6 +22,7 @@ from eth.constants import (
     GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR,
     ZERO_ADDRESS,
 )
+from eth.exceptions import PyEVMError
 from eth.typing import (
     BlockNumber,
     HeaderParams,
@@ -59,7 +60,6 @@ def fill_header_params_from_parent(
         difficulty: int,
         timestamp: int,
         block_number: int = None,
-        parent_hash: Hash32 = None,
         coinbase: Address = ZERO_ADDRESS,
         nonce: bytes = None,
         extra_data: bytes = None,
@@ -68,18 +68,19 @@ def fill_header_params_from_parent(
         mix_hash: bytes = None,
         receipt_root: bytes = None) -> Dict[str, HeaderParams]:
 
-    if block_number is None:
-        if parent is None:
-            parent_hash = GENESIS_PARENT_HASH
-            block_number = GENESIS_BLOCK_NUMBER
-            if state_root is None:
-                state_root = BLANK_ROOT_HASH
-        else:
-            parent_hash = parent.hash
-            block_number = BlockNumber(parent.block_number + 1)
+    if parent is None:
+        parent_hash = GENESIS_PARENT_HASH
+        block_number = block_number if block_number else GENESIS_BLOCK_NUMBER
+        if state_root is None:
+            state_root = BLANK_ROOT_HASH
+    else:
+        parent_hash = parent.hash
+        if block_number:
+            raise PyEVMError("block_number cannot be configured if a parent header exists.")
+        block_number = BlockNumber(parent.block_number + 1)
 
-            if state_root is None:
-                state_root = parent.state_root
+        if state_root is None:
+            state_root = parent.state_root
 
     header_kwargs: Dict[str, HeaderParams] = {
         'parent_hash': parent_hash,
