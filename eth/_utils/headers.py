@@ -4,11 +4,7 @@ from typing import (
     Tuple,
 )
 
-from eth_typing import (
-    Address,
-    Hash32,
-)
-
+from eth_typing import Address
 from eth.abc import BlockHeaderAPI
 from eth.constants import (
     BLANK_ROOT_HASH,
