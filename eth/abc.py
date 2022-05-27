@@ -190,6 +190,9 @@ class LogAPI(ABC):
     @property
     @abstractmethod
     def bloomables(self) -> Tuple[bytes, ...]:
+        """
+        Return a general aggregation of log contents that can be added to a Bloom filter.
+        """
         ...
 
 
@@ -206,21 +209,33 @@ class ReceiptAPI(ABC):
     @property
     @abstractmethod
     def gas_used(self) -> int:
+        """
+        Return the total value of the gas used in the transaction.
+        """
         ...
 
     @property
     @abstractmethod
     def bloom(self) -> int:
+        """
+        Return the bloom value of the receipt.
+        """
         ...
 
     @property
     @abstractmethod
     def logs(self) -> Sequence[LogAPI]:
+        """
+        Return logs generated during execution of the transaction.
+        """
         ...
 
     @property
     @abstractmethod
     def bloom_filter(self) -> BloomFilter:
+        """
+        Return a BloomFilter of the receipt.
+        """
         ...
 
     # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
@@ -368,6 +383,9 @@ class TransactionFieldsAPI(ABC):
     @property
     @abstractmethod
     def nonce(self) -> int:
+        """
+        Return the transaction nonce.
+        """
         ...
 
     @property
@@ -397,31 +415,49 @@ class TransactionFieldsAPI(ABC):
     @property
     @abstractmethod
     def gas(self) -> int:
+        """
+        Return the amount of gas specified for the execution of the transaction.
+        """
         ...
 
     @property
     @abstractmethod
     def to(self) -> Address:
+        """
+        Return transaction receiver address.
+        """
         ...
 
     @property
     @abstractmethod
     def value(self) -> int:
+        """
+        Return the transaction value (how many wei was sent to the 'to' address).
+        """
         ...
 
     @property
     @abstractmethod
     def data(self) -> bytes:
+        """
+        Return the transaction data.
+        """
         ...
 
     @property
     @abstractmethod
     def r(self) -> int:
+        """
+        Return the 'r' value of the transaction's signature.
+        """
         ...
 
     @property
     @abstractmethod
     def s(self) -> int:
+        """
+        Return the 's' value of the transaction's signature.
+        """
         ...
 
     @property
@@ -435,10 +471,19 @@ class TransactionFieldsAPI(ABC):
     @property
     @abstractmethod
     def chain_id(self) -> Optional[int]:
+        """
+        Return the chain id of the transaction (on which blockchain was the
+        transaction executed, ETH, ETC, ...).
+        """
         ...
 
 
 class LegacyTransactionFieldsAPI(TransactionFieldsAPI):
+    """
+    A class giving access to legacy transaction fields
+    (these fields are accessed differently or not accessed at all
+    in new usages).
+    """
     @property
     @abstractmethod
     def v(self) -> int:
@@ -580,13 +625,13 @@ class TransactionBuilderAPI(TransactionDecoderAPI):
 
 
 class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
+    """
+    A class representing a transaction that was signed with a private key.
+    """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         ...
 
-    """
-    A class representing a transaction that was signed with a private key.
-    """
     @property
     @abstractmethod
     def sender(self) -> Address:
@@ -799,15 +844,25 @@ class MetaWitnessAPI(ABC):
     @property
     @abstractmethod
     def accounts_queried(self) -> FrozenSet[Address]:
+        """
+        Return the set of addresses of the accounts queried.
+        """
         ...
 
     @property
     @abstractmethod
     def account_bytecodes_queried(self) -> FrozenSet[Address]:
+        """
+        Return the set of addresses of the accounts of which the bytecodes were queried.
+        """
         ...
 
     @abstractmethod
     def get_slots_queried(self, address: Address) -> FrozenSet[int]:
+        """
+        Return the slots queried for a given address.
+        Return an empty set if the address was not queried.
+        """
         ...
 
     @property
@@ -1313,21 +1368,37 @@ class MessageAPI(ABC):
     @property
     @abstractmethod
     def code_address(self) -> Address:
+        """
+        Return the address of the code to be executed.
+        It is usually the same as the 'to' address except when an alternative
+        accounts code needs to be executed.
+        """
         ...
 
     @property
     @abstractmethod
     def storage_address(self) -> Address:
+        """
+        Return the address of the storage space.
+        It is usually the same as the 'to' address except when an alternative
+        storage address needs to be used.
+        """
         ...
 
     @property
     @abstractmethod
     def is_create(self) -> bool:
+        """
+        Return whether the message refers to a contract creation or not.
+        """
         ...
 
     @property
     @abstractmethod
     def data_as_bytes(self) -> bytes:
+        """
+        Return the bytes representation of the message data.
+        """
         ...
 
 
@@ -1623,6 +1694,9 @@ class CodeStreamAPI(ABC):
 
 
 class StackManipulationAPI(ABC):
+    """
+    A class representing various operations on the stack.
+    """
     @abstractmethod
     def stack_pop_ints(self, num_items: int) -> Tuple[int, ...]:
         """
