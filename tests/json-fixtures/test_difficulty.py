@@ -17,6 +17,7 @@ from eth.vm.forks import (
     ConstantinopleVM,
     BerlinVM,
     ArrowGlacierVM,
+    GrayGlacierVM,
 )
 from eth_typing.enums import ForkName
 
@@ -57,6 +58,7 @@ VM_FORK_MAP = {
     ForkName.Constantinople: ConstantinopleVM,
     ForkName.Berlin: BerlinVM,
     ForkName.ArrowGlacier: ArrowGlacierVM,
+    ForkName.GrayGlacier: GrayGlacierVM,
 }
 
 
