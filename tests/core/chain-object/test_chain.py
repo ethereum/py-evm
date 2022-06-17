@@ -44,7 +44,7 @@ def vm_crossover_chain(request, base_db, genesis_state):
                 constants.GENESIS_BLOCK_NUMBER,
                 start_vm.configure(consensus_class=NoProofConsensus),
             ),
-            # Can mine one block of the first VM, then the next block with be the next VM
+            # Can mine one block of the first VM, then the next block with the next VM
             (
                 constants.GENESIS_BLOCK_NUMBER + 2,
                 end_vm.configure(consensus_class=NoProofConsensus),

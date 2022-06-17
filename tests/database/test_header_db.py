@@ -45,11 +45,11 @@ from eth.exceptions import (
     ParentNotFound,
 )
 from eth.db.header import HeaderDB
-from eth.vm.forks.arrow_glacier import (
-    ArrowGlacierVM,
+from eth.vm.forks.gray_glacier import (
+    GrayGlacierVM,
 )
-from eth.vm.forks.arrow_glacier.blocks import (
-    ArrowGlacierBlockHeader as BlockHeader,
+from eth.vm.forks.gray_glacier.blocks import (
+    GrayGlacierBlockHeader as BlockHeader,
 )
 from eth.tools.rlp import (
     assert_headers_eq,
@@ -76,7 +76,7 @@ def mk_header_chain(base_header, length):
     for _ in range(length):
         # TODO test a variety of chain configs, where transitions to london
         # happen during "interesting" times of the tests
-        next_header = ArrowGlacierVM.create_header_from_parent(
+        next_header = GrayGlacierVM.create_header_from_parent(
             previous_header,
             timestamp=previous_header.timestamp + 1,
             gas_limit=previous_header.gas_limit,

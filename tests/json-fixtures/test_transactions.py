@@ -122,6 +122,8 @@ def fixture_transaction_class(fixture_data):
         return LondonTransactionBuilder
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis Transaction class has not been implemented")
+    elif fork_name == "Merge":
+        pytest.skip("Merge transaction class has not been implemented")
     else:
         raise ValueError(f"Unknown Fork Name: {fork_name}")
 
