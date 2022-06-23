@@ -23,8 +23,8 @@ extras_require = {
     # explicitly need to function and hence should not depend on.
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
-    "eth-extra": [
-        "blake2b-py>=0.1.4,<0.2",
+    'eth-extra': [
+        "blake2b-py>=0.2.0,<0.3.0",
         "coincurve>=13.0.0,<14.0.0",
         "plyvel>=1.2.0,<2",
     ],
@@ -35,9 +35,9 @@ extras_require = {
         "pytest>=6.2.4,<7",
         "pytest-asyncio>=0.10.0,<0.11",
         "pytest-cov==2.5.1",
-        "pytest-timeout>=1.4.2,<2",
+        "pytest-timeout>=2.0.0,<3",
         "pytest-watch>=4.1.0,<5",
-        "pytest-xdist==2.3.0",
+        "pytest-xdist>=3.0",
         "importlib-metadata<5.0;python_version<'3.8'",
     ],
     "lint": [
@@ -118,5 +118,6 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
 )

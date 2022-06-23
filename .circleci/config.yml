@@ -256,38 +256,82 @@ jobs:
         environment:
           TOXENV: py39-lint
 
+  py310-core:
+    <<: *common
+    docker:
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310-core
+  py310-database:
+    <<: *common
+    docker:
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310-database
+  py310-difficulty:
+    <<: *common
+    docker:
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310-difficulty
+  py310-transactions:
+    <<: *common
+    docker:
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310-transactions
+  py310-vm:
+    <<: *common
+    docker:
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310-vm
+  py310-lint:
+    <<: *common
+    docker:
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310-lint
+
 workflows:
   version: 2
   test:
     jobs:
       - docs
-      - py39-native-blockchain-berlin
-      - py39-native-blockchain-byzantium
-      - py39-native-blockchain-constantinople
-      - py39-native-blockchain-frontier
-      - py39-native-blockchain-homestead
-      - py39-native-blockchain-istanbul
-      - py39-native-blockchain-london
-      - py39-native-blockchain-merge
-      - py39-native-blockchain-petersburg
-      - py39-native-blockchain-tangerine_whistle
-      - py39-native-blockchain-spurious_dragon
-      - py39-native-blockchain-transition
-      - py39-native-blockchain-shanghai
+      - py310-native-blockchain-shanghai
+      - py310-native-blockchain-merge
+      - py310-native-blockchain-london
+      - py310-native-blockchain-berlin
+      - py310-native-blockchain-byzantium
+      - py310-native-blockchain-constantinople
+      - py310-native-blockchain-frontier
+      - py310-native-blockchain-homestead
+      - py310-native-blockchain-istanbul
+      - py310-native-blockchain-petersburg
+      - py310-native-blockchain-tangerine_whistle
+      - py310-native-blockchain-spurious_dragon
+      - py310-native-blockchain-transition
       - py37-vm
       - py38-vm
       - py39-vm
+      - py310-vm
       - py37-core
       - py38-core
       - py39-core
+      - py310-core
       - py37-transactions
       - py38-transactions
       - py39-transactions
+      - py310-transactions
       - py37-difficulty
       - py38-difficulty
       - py39-difficulty
+      - py310-difficulty
       - py37-database
       - py38-database
       - py39-database
+      - py310-database
+      - py37-lint
       - py38-lint
       - py39-lint
+      - py310-lint
