@@ -88,7 +88,7 @@ class VM(Configurable, VirtualMachineAPI):
     block_class: Type[BlockAPI] = None
     consensus_class: Type[ConsensusAPI] = PowConsensus
     extra_data_max_bytes: ClassVar[int] = 32
-    fork: str = None  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
+    fork: str = None
     chaindb: ChainDatabaseAPI = None
     _state_class: Type[StateAPI] = None
 

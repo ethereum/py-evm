@@ -13,7 +13,7 @@ from .state import SpuriousDragonState
 
 class SpuriousDragonVM(TangerineWhistleVM):
     # fork name
-    fork: str = 'spurious-dragon'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
+    fork: str = 'spurious-dragon'
 
     # classes
     block_class: Type[BlockAPI] = SpuriousDragonBlock

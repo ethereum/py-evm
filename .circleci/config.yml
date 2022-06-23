@@ -40,217 +40,188 @@ common: &common
         key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 jobs:
-  py36-native-blockchain-berlin:
+  py39-native-blockchain-berlin:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-berlin
-  py36-native-blockchain-byzantium:
+          TOXENV: py39-native-blockchain-berlin
+  py39-native-blockchain-byzantium:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-byzantium
-  py36-native-blockchain-constantinople:
+          TOXENV: py39-native-blockchain-byzantium
+  py39-native-blockchain-constantinople:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-constantinople
-  py36-native-blockchain-frontier:
+          TOXENV: py39-native-blockchain-constantinople
+  py39-native-blockchain-frontier:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-frontier
-  py36-native-blockchain-homestead:
+          TOXENV: py39-native-blockchain-frontier
+  py39-native-blockchain-homestead:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-homestead
-  py36-native-blockchain-istanbul:
+          TOXENV: py39-native-blockchain-homestead
+  py39-native-blockchain-istanbul:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-istanbul
-  py36-native-blockchain-london:
+          TOXENV: py39-native-blockchain-istanbul
+  py39-native-blockchain-london:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-london
-  py36-native-blockchain-petersburg:
+          TOXENV: py39-native-blockchain-london
+  py39-native-blockchain-petersburg:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-petersburg
-  py36-native-blockchain-tangerine_whistle:
+          TOXENV: py39-native-blockchain-petersburg
+  py39-native-blockchain-tangerine_whistle:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-tangerine_whistle
-  py36-native-blockchain-spurious_dragon:
+          TOXENV: py39-native-blockchain-tangerine_whistle
+  py39-native-blockchain-spurious_dragon:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-spurious_dragon
-  py36-native-blockchain-transition:
+          TOXENV: py39-native-blockchain-spurious_dragon
+  py39-native-blockchain-transition:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-native-blockchain-transition
-  py36-core:
+          TOXENV: py39-native-blockchain-transition
+
+  py39-docs:
     <<: *common
     docker:
-      - image: circleci/python:3.6
+      - image: cimg/python:3.9
         environment:
-          TOXENV: py36-core
-  py36-database:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-database
-  py36-transactions:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-transactions
-  py36-vm:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-vm
-  py36-lint:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-lint
-  py36-docs:
-    <<: *common
-    docker:
-      - image: circleci/python:3.6
-        environment:
-          TOXENV: py36-docs
+          TOXENV: py39-docs
 
   py37-core:
     <<: *common
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
         environment:
           TOXENV: py37-core
   py37-database:
     <<: *common
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
         environment:
           TOXENV: py37-database
   py37-difficulty:
     <<: *common
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
         environment:
           TOXENV: py37-difficulty
   py37-transactions:
     <<: *common
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
         environment:
           TOXENV: py37-transactions
   py37-vm:
     <<: *common
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
         environment:
           TOXENV: py37-vm
   py37-lint:
     <<: *common
     docker:
-      - image: circleci/python:3.7
+      - image: cimg/python:3.7
         environment:
           TOXENV: py37-lint
 
   py38-core:
     <<: *common
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
         environment:
           TOXENV: py38-core
   py38-database:
     <<: *common
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
         environment:
           TOXENV: py38-database
   py38-difficulty:
     <<: *common
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
         environment:
           TOXENV: py38-difficulty
   py38-transactions:
     <<: *common
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
         environment:
           TOXENV: py38-transactions
   py38-vm:
     <<: *common
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
         environment:
           TOXENV: py38-vm
   py38-lint:
     <<: *common
     docker:
-      - image: circleci/python:3.8
+      - image: cimg/python:3.8
         environment:
           TOXENV: py38-lint
 
   py39-core:
     <<: *common
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
         environment:
           TOXENV: py39-core
   py39-database:
     <<: *common
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
         environment:
           TOXENV: py39-database
   py39-difficulty:
     <<: *common
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
         environment:
           TOXENV: py39-difficulty
   py39-transactions:
     <<: *common
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
         environment:
           TOXENV: py39-transactions
   py39-vm:
     <<: *common
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
         environment:
           TOXENV: py39-vm
   py39-lint:
     <<: *common
     docker:
-      - image: circleci/python:3.9
+      - image: cimg/python:3.9
         environment:
           TOXENV: py39-lint
 
@@ -258,38 +229,33 @@ workflows:
   version: 2
   test:
     jobs:
-      - py36-native-blockchain-berlin
-      - py36-native-blockchain-byzantium
-      - py36-native-blockchain-constantinople
-      - py36-native-blockchain-frontier
-      - py36-native-blockchain-homestead
-      - py36-native-blockchain-istanbul
-      - py36-native-blockchain-london
-      - py36-native-blockchain-petersburg
-      - py36-native-blockchain-tangerine_whistle
-      - py36-native-blockchain-spurious_dragon
-      - py36-native-blockchain-transition
-      - py36-vm
+      - py39-native-blockchain-berlin
+      - py39-native-blockchain-byzantium
+      - py39-native-blockchain-constantinople
+      - py39-native-blockchain-frontier
+      - py39-native-blockchain-homestead
+      - py39-native-blockchain-istanbul
+      - py39-native-blockchain-london
+      - py39-native-blockchain-petersburg
+      - py39-native-blockchain-tangerine_whistle
+      - py39-native-blockchain-spurious_dragon
+      - py39-native-blockchain-transition
       - py37-vm
       - py38-vm
       - py39-vm
-      - py36-core
       - py37-core
       - py38-core
       - py39-core
-      - py36-transactions
       - py37-transactions
       - py38-transactions
       - py39-transactions
       - py37-difficulty
       - py38-difficulty
       - py39-difficulty
-      - py36-database
       - py37-database
       - py38-database
       - py39-database
-      - py36-docs
-      - py36-lint
+      - py39-docs
       - py37-lint
       - py38-lint
       - py39-lint
