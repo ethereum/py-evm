@@ -22,7 +22,7 @@ deps = {
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
     'eth-extra': [
-        "blake2b-py>=0.1.4,<0.2",
+        "blake2b-py>=0.1.4,<0.2;python_version<'3.9'",
         "coincurve>=13.0.0,<14.0.0",
         "eth-hash[pysha3];implementation_name=='cpython'",
         "eth-hash[pycryptodome];implementation_name=='pypy'",
@@ -42,7 +42,8 @@ deps = {
     'lint': [
         "flake8==3.8.2",
         "flake8-bugbear==20.1.4",
-        "mypy==0.782",
+        "mypy==0.910",
+        "types-setuptools",
     ],
     'benchmark': [
         "termcolor>=1.1.0,<2.0.0",
@@ -114,5 +115,8 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
 )

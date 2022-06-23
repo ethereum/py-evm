@@ -254,6 +254,43 @@ jobs:
         environment:
           TOXENV: py39-lint
 
+  py310-core:
+    <<: *common
+    docker:
+      - image: circleci/python:3.10
+        environment:
+          TOXENV: py310-core
+  py310-database:
+    <<: *common
+    docker:
+      - image: circleci/python:3.10
+        environment:
+          TOXENV: py310-database
+  py310-difficulty:
+    <<: *common
+    docker:
+      - image: circleci/python:3.10
+        environment:
+          TOXENV: py310-difficulty
+  py310-transactions:
+    <<: *common
+    docker:
+      - image: circleci/python:3.10
+        environment:
+          TOXENV: py310-transactions
+  py310-vm:
+    <<: *common
+    docker:
+      - image: circleci/python:3.10
+        environment:
+          TOXENV: py310-vm
+  py310-lint:
+    <<: *common
+    docker:
+      - image: circleci/python:3.10
+        environment:
+          TOXENV: py310-lint
+
 workflows:
   version: 2
   test:
