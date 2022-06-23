@@ -101,7 +101,7 @@ def filter_fixtures(all_fixtures: Iterable[Any],
             if mark:
                 yield pytest.param(
                     (fixture_path, *fixture_data[1:]),
-                    marks=mark,  # type: ignore  # we don't annotate the test code that calls this
+                    marks=mark,
                 )
                 continue
 
