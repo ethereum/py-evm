@@ -310,23 +310,29 @@ workflows:
       - py37-vm
       - py38-vm
       - py39-vm
+      - py310-vm
       - py36-core
       - py37-core
       - py38-core
       - py39-core
+      - py310-core
       - py36-transactions
       - py37-transactions
       - py38-transactions
       - py39-transactions
+      - py310-transactions
       - py37-difficulty
       - py38-difficulty
       - py39-difficulty
+      - py310-difficulty
       - py36-database
       - py37-database
       - py38-database
       - py39-database
+      - py310-database
       - py36-docs
       - py36-lint
       - py37-lint
       - py38-lint
       - py39-lint
+      - py310-lint
