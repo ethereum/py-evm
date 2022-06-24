@@ -58,7 +58,7 @@ def make_frontier_receipt(computation: ComputationAPI,
 
 class FrontierVM(VM):
     # fork name
-    fork: str = 'frontier'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
+    fork: str = 'frontier'
 
     # classes
     block_class: Type[BlockAPI] = FrontierBlock

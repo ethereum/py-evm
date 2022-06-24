@@ -53,10 +53,10 @@ deps = {
         "py-evm>=0.2.0-alpha.14",
         # We need to have pysha for autodoc to be able to extract API docs
         "pysha3>=1.0.0,<2.0.0",
-        # Sphinx pined to `<1.8.0`: https://github.com/sphinx-doc/sphinx/issues/3494
-        "Sphinx>=1.5.5,<1.8.0",
+        "Sphinx>=1.5.5,<2",
+        "jinja2>=3.0.0,<3.1.0",  # jinja2<3.0 or >=3.1.0 cause doc build failures.
         "sphinx_rtd_theme>=0.1.9",
-        "sphinxcontrib-asyncio>=0.2.0,<0.3",
+        "sphinxcontrib-asyncio>=0.2.0,<0.4",
         "towncrier>=19.2.0, <20",
     ],
     'dev': [
@@ -113,7 +113,8 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
 )

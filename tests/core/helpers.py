@@ -1,5 +1,3 @@
-import sys
-
 import pytest
 
 from eth_utils import (
@@ -9,11 +7,6 @@ from eth_utils import (
 
 from eth.chains.base import MiningChain
 from eth.tools.factories.transaction import new_transaction
-
-greater_equal_python36 = pytest.mark.skipif(
-    sys.version_info < (3, 6),
-    reason="requires python3.6 or higher"
-)
 
 
 def fill_block(chain, from_, key, gas, data):

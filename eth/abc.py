@@ -3090,7 +3090,7 @@ class VirtualMachineAPI(ConfigurableAPI):
         - ``_state_class``: The :class:`~eth.abc.StateAPI` class used by this VM for execution.
     """
 
-    fork: str  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
+    fork: str
     chaindb: ChainDatabaseAPI
     extra_data_max_bytes: ClassVar[int]
     consensus_class: Type[ConsensusAPI]

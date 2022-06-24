@@ -30,7 +30,7 @@ class MetaHomesteadVM(FrontierVM):
 
 class HomesteadVM(MetaHomesteadVM):
     # fork name
-    fork: str = 'homestead'  # noqa: E701  # flake8 bug that's fixed in 3.6.0+
+    fork: str = 'homestead'
 
     # classes
     block_class: Type[BlockAPI] = HomesteadBlock
