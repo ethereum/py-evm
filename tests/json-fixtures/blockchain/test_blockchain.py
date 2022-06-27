@@ -311,6 +311,15 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
         return pytest.mark.xfail(reason="Listed in INCORRECT_UPSTREAM_TESTS.")
     elif 'stTransactionTest/zeroSigTransa' in fixture_path:
         return pytest.mark.skip("EIP-86 not supported.")
+    elif "HighNonce" in fixture_name:
+        # TODO: Turn these tests on and implement the relevant changes to pass them
+        # https://github.com/ethereum/EIPs/pull/4784
+        return pytest.mark.skip(
+            "EIP-2681 update not implemented. HighNonce tests turned off for now."
+        )
+    elif "Merge" in fixture_name:
+        # TODO: Implement changes for the Merge and turn these tests on
+        return pytest.mark.skip("The Merge has not yet been implemented.")
     elif fixture_id in SLOWEST_TESTS:
         if should_run_slow_tests():
             return
