@@ -268,7 +268,7 @@ def test_get_transaction_result(
             'useLotsOfGas()',
             OutOfGas,
         ),
-(
+        (
             GrayGlacierVM,
             'doRevert()',
             Revert,
