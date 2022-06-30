@@ -54,14 +54,16 @@ class CodeStream(CodeStreamAPI):
         return self._raw_code_bytes[i]
 
     def __iter__(self) -> Iterator[int]:
-        # a very performance-sensitive method
-        pc = self.program_counter
-        while pc < self._length_cache:
-            opcode = self._raw_code_bytes[pc]
-            self.program_counter = pc + 1
+        # a performance-sensitive method
+        while True:
+            try:
+                opcode = self._raw_code_bytes[self.program_counter]
+            except IndexError:
+                break
+
+            self.program_counter += 1
             yield opcode
-            # a read might have adjusted the pc during the last yield
-            pc = self.program_counter
+            # note: a read might have adjusted the pc during the yield
 
         yield STOP
 
