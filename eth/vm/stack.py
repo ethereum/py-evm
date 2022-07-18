@@ -25,7 +25,8 @@ from eth.validation import (
 )
 
 
-def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
+def _busted_type(value: Union[int, bytes]) -> ValidationError:
+    item_type = type(value)
     return ValidationError(
         f"Stack must always be bytes or int, got {item_type!r} type, val {value!r}"
     )
@@ -53,7 +54,7 @@ class Stack(StackAPI):
         # caching optimizations to avoid an attribute lookup on self.values
         # This doesn't use `cached_property`, because it doesn't play nice with slots
         self._append = values.append
-        self._pop_typed = values.pop
+        self._pop = values.pop
         self.__len__ = values.__len__
 
     def push_int(self, value: int) -> None:
@@ -62,7 +63,7 @@ class Stack(StackAPI):
 
         validate_stack_int(value)
 
-        self._append((int, value))
+        self._append(value)
 
     def push_bytes(self, value: bytes) -> None:
         if len(self.values) > 1023:
@@ -70,7 +71,7 @@ class Stack(StackAPI):
 
         validate_stack_bytes(value)
 
-        self._append((bytes, value))
+        self._append(value)
 
     def pop1_bytes(self) -> bytes:
         #
@@ -78,41 +79,22 @@ class Stack(StackAPI):
         # Knowing the popped type means that we can pop *very* quickly
         # when the popped type matches the pushed type.
         #
-        if not self.values:
-            raise InsufficientStack("Wanted 1 stack item as bytes, had none")
-        else:
-            item_type, popped = self._pop_typed()
-            if item_type is int:
-                return int_to_big_endian(popped)  # type: ignore
-            elif item_type is bytes:
-                return popped  # type: ignore
-            else:
-                raise _busted_type(item_type, popped)
+        return to_bytes(self.pop1_any())
 
     def pop1_int(self) -> int:
         #
         # Note: This function is optimized for speed over readability.
         #
-        if not self.values:
-            raise InsufficientStack("Wanted 1 stack item as int, had none")
-        else:
-            item_type, popped = self._pop_typed()
-            if item_type is int:
-                return popped  # type: ignore
-            elif item_type is bytes:
-                return big_endian_to_int(popped)  # type: ignore
-            else:
-                raise _busted_type(item_type, popped)
+        return to_int(self.pop1_any())
 
     def pop1_any(self) -> Union[int, bytes]:
         #
         # Note: This function is optimized for speed over readability.
         #
-        if not self.values:
+        try:
+            return self._pop()
+        except IndexError:
             raise InsufficientStack("Wanted 1 stack item, had none")
-        else:
-            _, popped = self._pop_typed()
-            return popped
 
     def pop_any(self, num_items: int) -> Tuple[Union[int, bytes], ...]:
         #
@@ -124,76 +106,18 @@ class Stack(StackAPI):
                 num_items,
                 len(self.values),
             )
-        else:
-            neg_num_items = -1 * num_items
 
-            # Quickest way to pop off multiple values from the end, in place
-            all_popped = reversed(self.values[neg_num_items:])
-            del self.values[neg_num_items:]
+        # Quickest way to pop off multiple values from the end, in place
+        ret = reversed(self.values[-num_items:])
+        del self.values[-num_items:]
 
-            # This doesn't use the @to_tuple(generator) pattern, for added performance
-            return tuple(val for _, val in all_popped)
+        return tuple(ret)
 
     def pop_ints(self, num_items: int) -> Tuple[int, ...]:
-        #
-        # Note: This function is optimized for speed over readability.
-        #
-        if num_items > len(self.values):
-            raise InsufficientStack(
-                "Wanted %d stack items, only had %d",
-                num_items,
-                len(self.values),
-            )
-        else:
-            neg_num_items = -1 * num_items
-
-            # Quickest way to pop off multiple values from the end, in place
-            all_popped = reversed(self.values[neg_num_items:])
-            del self.values[neg_num_items:]
-
-            type_cast_popped = []
-
-            # Convert any non-matching types to the requested type (int)
-            # This doesn't use the @to_tuple(generator) pattern, for added performance
-            for item_type, popped in all_popped:
-                if item_type is int:
-                    type_cast_popped.append(popped)
-                elif item_type is bytes:
-                    type_cast_popped.append(big_endian_to_int(popped))  # type: ignore
-                else:
-                    raise _busted_type(item_type, popped)
-
-            return tuple(type_cast_popped)  # type: ignore
+        return tuple(to_int(x) for x in self.pop_any(num_items))
 
     def pop_bytes(self, num_items: int) -> Tuple[bytes, ...]:
-        #
-        # Note: This function is optimized for speed over readability.
-        #
-        if num_items > len(self.values):
-            raise InsufficientStack(
-                "Wanted %d stack items, only had %d",
-                num_items,
-                len(self.values),
-            )
-        else:
-            neg_num_items = -1 * num_items
-
-            all_popped = reversed(self.values[neg_num_items:])
-            del self.values[neg_num_items:]
-
-            type_cast_popped = []
-
-            # Convert any non-matching types to the requested type (int)
-            # This doesn't use the @to_tuple(generator) pattern, for added performance
-            for item_type, popped in all_popped:
-                if item_type is int:
-                    type_cast_popped.append(int_to_big_endian(popped))  # type: ignore
-                elif item_type is bytes:
-                    type_cast_popped.append(popped)  # type: ignore
-                else:
-                    raise _busted_type(item_type, popped)
-
-            return tuple(type_cast_popped)
+        return tuple(to_bytes(x) for x in self.pop_any(num_items))
 
     def swap(self, position: int) -> None:
         idx = -1 * position - 1
@@ -206,9 +130,8 @@ class Stack(StackAPI):
         if len(self.values) > 1023:
             raise FullStack("Stack limit reached")
 
-        peek_index = -1 * position
         try:
-            self._append(self.values[peek_index])
+            self._append(self.values[-position])
         except IndexError:
             raise InsufficientStack(f"Insufficient stack items for DUP{position}")
 
@@ -225,3 +148,18 @@ class Stack(StackAPI):
 
     def __str__(self) -> str:
         return str(list(self._stack_items_str()))
+
+
+def to_int(x):
+    if isinstance(x, int):
+        return x
+    if isinstance(x, bytes):
+        return big_endian_to_int(x)
+    raise _busted_type(x)
+
+def to_bytes(x):
+    if isinstance(x, bytes):
+        return x
+    if isinstance(x, int):
+        return int_to_big_endian(x)
+    raise _busted_type(x)

@@ -63,7 +63,7 @@ class Opcode(Configurable, OpcodeAPI):
             "gas_cost": gas_cost,
         }
         opcode_cls = type(f"opcode:{mnemonic}", (cls,), props)
-        return opcode_cls()
+        return wrapped_logic_fn
 
     def __copy__(self) -> "Opcode":
         return type(self)()

@@ -24,36 +24,67 @@ def push_XX(computation: ComputationAPI, size: int) -> None:
         computation.stack_push_bytes(padded_value)
 
 
-push0 = functools.partial(push_XX, size=0)
-push1 = functools.partial(push_XX, size=1)
-push2 = functools.partial(push_XX, size=2)
-push3 = functools.partial(push_XX, size=3)
-push4 = functools.partial(push_XX, size=4)
-push5 = functools.partial(push_XX, size=5)
-push6 = functools.partial(push_XX, size=6)
-push7 = functools.partial(push_XX, size=7)
-push8 = functools.partial(push_XX, size=8)
-push9 = functools.partial(push_XX, size=9)
-push10 = functools.partial(push_XX, size=10)
-push11 = functools.partial(push_XX, size=11)
-push12 = functools.partial(push_XX, size=12)
-push13 = functools.partial(push_XX, size=13)
-push14 = functools.partial(push_XX, size=14)
-push15 = functools.partial(push_XX, size=15)
-push16 = functools.partial(push_XX, size=16)
-push17 = functools.partial(push_XX, size=17)
-push18 = functools.partial(push_XX, size=18)
-push19 = functools.partial(push_XX, size=19)
-push20 = functools.partial(push_XX, size=20)
-push21 = functools.partial(push_XX, size=21)
-push22 = functools.partial(push_XX, size=22)
-push23 = functools.partial(push_XX, size=23)
-push24 = functools.partial(push_XX, size=24)
-push25 = functools.partial(push_XX, size=25)
-push26 = functools.partial(push_XX, size=26)
-push27 = functools.partial(push_XX, size=27)
-push28 = functools.partial(push_XX, size=28)
-push29 = functools.partial(push_XX, size=29)
-push30 = functools.partial(push_XX, size=30)
-push31 = functools.partial(push_XX, size=31)
-push32 = functools.partial(push_XX, size=32)
+def push1(computation):
+    return push_XX(computation, 1)
+def push2(computation):
+    return push_XX(computation, 2)
+def push3(computation):
+    return push_XX(computation, 3)
+def push4(computation):
+    return push_XX(computation, 4)
+def push5(computation):
+    return push_XX(computation, 5)
+def push6(computation):
+    return push_XX(computation, 6)
+def push7(computation):
+    return push_XX(computation, 7)
+def push8(computation):
+    return push_XX(computation, 8)
+def push9(computation):
+    return push_XX(computation, 9)
+def push10(computation):
+    return push_XX(computation, 10)
+def push11(computation):
+    return push_XX(computation, 11)
+def push12(computation):
+    return push_XX(computation, 12)
+def push13(computation):
+    return push_XX(computation, 13)
+def push14(computation):
+    return push_XX(computation, 14)
+def push15(computation):
+    return push_XX(computation, 15)
+def push16(computation):
+    return push_XX(computation, 16)
+def push17(computation):
+    return push_XX(computation, 17)
+def push18(computation):
+    return push_XX(computation, 18)
+def push19(computation):
+    return push_XX(computation, 19)
+def push20(computation):
+    return push_XX(computation, 20)
+def push21(computation):
+    return push_XX(computation, 21)
+def push22(computation):
+    return push_XX(computation, 22)
+def push23(computation):
+    return push_XX(computation, 23)
+def push24(computation):
+    return push_XX(computation, 24)
+def push25(computation):
+    return push_XX(computation, 25)
+def push26(computation):
+    return push_XX(computation, 26)
+def push27(computation):
+    return push_XX(computation, 27)
+def push28(computation):
+    return push_XX(computation, 28)
+def push29(computation):
+    return push_XX(computation, 29)
+def push30(computation):
+    return push_XX(computation, 30)
+def push31(computation):
+    return push_XX(computation, 31)
+def push32(computation):
+    return push_XX(computation, 32)
