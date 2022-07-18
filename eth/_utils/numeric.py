@@ -30,16 +30,12 @@ def int_to_bytes32(value: Union[int, bool]) -> Hash32:
     return Hash32(value_bytes)
 
 
-def ceilXX(value: int, ceiling: int) -> int:
-    remainder = value % ceiling
-    if remainder == 0:
-        return value
-    else:
-        return value + ceiling - remainder
+# hotspot, optimized
+def ceil32(x):
+    return (x + 31) & ~31
 
-
-ceil32 = functools.partial(ceilXX, ceiling=32)
-ceil8 = functools.partial(ceilXX, ceiling=8)
+def ceil8(x):
+    return (x + 7) & ~7
 
 
 def unsigned_to_signed(value: int) -> int:
