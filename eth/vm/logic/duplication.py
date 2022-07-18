@@ -11,20 +11,35 @@ def dup_XX(computation: ComputationAPI, position: int) -> None:
     """
     computation.stack_dup(position)
 
-
-dup1 = functools.partial(dup_XX, position=1)
-dup2 = functools.partial(dup_XX, position=2)
-dup3 = functools.partial(dup_XX, position=3)
-dup4 = functools.partial(dup_XX, position=4)
-dup5 = functools.partial(dup_XX, position=5)
-dup6 = functools.partial(dup_XX, position=6)
-dup7 = functools.partial(dup_XX, position=7)
-dup8 = functools.partial(dup_XX, position=8)
-dup9 = functools.partial(dup_XX, position=9)
-dup10 = functools.partial(dup_XX, position=10)
-dup11 = functools.partial(dup_XX, position=11)
-dup12 = functools.partial(dup_XX, position=12)
-dup13 = functools.partial(dup_XX, position=13)
-dup14 = functools.partial(dup_XX, position=14)
-dup15 = functools.partial(dup_XX, position=15)
-dup16 = functools.partial(dup_XX, position=16)
+def dup1(computation):
+    dup_XX(computation, 1)
+def dup2(computation):
+    dup_XX(computation, 2)
+def dup3(computation):
+    dup_XX(computation, 3)
+def dup4(computation):
+    dup_XX(computation, 4)
+def dup5(computation):
+    dup_XX(computation, 5)
+def dup6(computation):
+    dup_XX(computation, 6)
+def dup7(computation):
+    dup_XX(computation, 7)
+def dup8(computation):
+    dup_XX(computation, 8)
+def dup9(computation):
+    dup_XX(computation, 9)
+def dup10(computation):
+    dup_XX(computation, 10)
+def dup11(computation):
+    dup_XX(computation, 11)
+def dup12(computation):
+    dup_XX(computation, 12)
+def dup13(computation):
+    dup_XX(computation, 13)
+def dup14(computation):
+    dup_XX(computation, 14)
+def dup15(computation):
+    dup_XX(computation, 15)
+def dup16(computation):
+    dup_XX(computation, 16)
