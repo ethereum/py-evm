@@ -1,4 +1,3 @@
-import functools
 from typing import (
     Any,
     Callable,
@@ -22,6 +21,30 @@ from eth.abc import (
 T = TypeVar("T")
 
 
+class _FastOpcode(OpcodeAPI):
+    __slots__ = ("logic_fn", "mnemonic", "gas_cost")
+
+    def __init__(
+        self, logic_fn: Callable[..., Any], mnemonic: str, gas_cost: int
+    ) -> None:
+        self.logic_fn = logic_fn
+        self.mnemonic = mnemonic
+        self.gas_cost = gas_cost
+
+    def __call__(self, computation: ComputationAPI) -> None:
+        computation.consume_gas(self.gas_cost, self.mnemonic)
+        return self.logic_fn(computation)
+
+    @classmethod
+    def as_opcode(
+        cls: Type["_FastOpcode"],
+        logic_fn: Callable[..., Any],
+        mnemonic: str,
+        gas_cost: int,
+    ) -> OpcodeAPI:
+        return cls(logic_fn, mnemonic, gas_cost)
+
+
 class Opcode(Configurable, OpcodeAPI):
     mnemonic: str = None
     gas_cost: int = None
@@ -39,37 +62,8 @@ class Opcode(Configurable, OpcodeAPI):
     @classmethod
     def as_opcode(
         cls: Type[T], logic_fn: Callable[..., Any], mnemonic: str, gas_cost: int
-    ) -> T:
-        if gas_cost:
-
-            @functools.wraps(logic_fn)
-            def wrapped_logic_fn(computation: ComputationAPI) -> Any:
-                """
-                Wrapper function for the logic function which consumes the base
-                opcode gas cost prior to execution.
-                """
-                computation.consume_gas(
-                    gas_cost,
-                    mnemonic,
-                )
-                return logic_fn(computation)
-
-        else:
-            wrapped_logic_fn = logic_fn
-
-        props = {
-            "__call__": staticmethod(wrapped_logic_fn),
-            "mnemonic": mnemonic,
-            "gas_cost": gas_cost,
-        }
-        opcode_cls = type(f"opcode:{mnemonic}", (cls,), props)
-        return wrapped_logic_fn
-
-    def __copy__(self) -> "Opcode":
-        return type(self)()
-
-    def __deepcopy__(self, memo: Any) -> "Opcode":
-        return type(self)()
+    ) -> OpcodeAPI:
+        return _FastOpcode(logic_fn, mnemonic, gas_cost)
 
 
 as_opcode = Opcode.as_opcode

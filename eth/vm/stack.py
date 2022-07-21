@@ -1,5 +1,6 @@
 import logging
 from typing import (
+    Any,
     Iterable,
     List,
     Tuple,
@@ -49,7 +50,7 @@ class Stack(StackAPI):
     #
 
     def __init__(self) -> None:
-        values: List[Tuple[type, Union[int, bytes]]] = []
+        values: List[Union[int, bytes]] = []
         self.values = values
         # caching optimizations to avoid an attribute lookup on self.values
         # This doesn't use `cached_property`, because it doesn't play nice with slots
@@ -136,28 +137,29 @@ class Stack(StackAPI):
             raise InsufficientStack(f"Insufficient stack items for DUP{position}")
 
     def _stack_items_str(self) -> Iterable[str]:
-        for item_type, val in self.values:
+        for val in self.values:
             if isinstance(val, int):
                 yield hex(val)
             elif isinstance(val, bytes):
                 yield "0x" + val.hex()
             else:
                 raise RuntimeError(
-                    f"Stack items can only be int or bytes, not {val!r}:{item_type}"
+                    f"Stack items can only be int or bytes, not {val!r}:{type(val)}"
                 )
 
     def __str__(self) -> str:
         return str(list(self._stack_items_str()))
 
 
-def to_int(x):
+def to_int(x: Any) -> int:
     if isinstance(x, int):
         return x
     if isinstance(x, bytes):
         return big_endian_to_int(x)
     raise _busted_type(x)
 
-def to_bytes(x):
+
+def to_bytes(x: Any) -> bytes:
     if isinstance(x, bytes):
         return x
     if isinstance(x, int):
