@@ -1,5 +1,4 @@
 import decimal
-import functools
 import itertools
 from typing import (
     Union,
@@ -31,10 +30,11 @@ def int_to_bytes32(value: Union[int, bool]) -> Hash32:
 
 
 # hotspot, optimized
-def ceil32(x):
+def ceil32(x: int) -> int:
     return (x + 31) & ~31
 
-def ceil8(x):
+
+def ceil8(x: int) -> int:
     return (x + 7) & ~7
 
 

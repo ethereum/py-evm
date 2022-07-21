@@ -10,6 +10,9 @@ from eth_utils.toolz import (
 from eth import (
     constants,
 )
+from eth.abc import (
+    OpcodeAPI,
+)
 from eth.vm import (
     mnemonics,
     opcode_values,
@@ -24,7 +27,6 @@ from eth.vm.logic import (
     block,
 )
 from eth.vm.opcode import (
-    Opcode,
     as_opcode,
 )
 
@@ -32,7 +34,7 @@ from . import (
     storage,
 )
 
-UPDATED_OPCODES: Dict[int, Opcode] = {
+UPDATED_OPCODES: Dict[int, OpcodeAPI] = {
     opcode_values.BASEFEE: as_opcode(
         gas_cost=constants.GAS_BASE,
         logic_fn=block.basefee,

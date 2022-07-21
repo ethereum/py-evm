@@ -1507,23 +1507,9 @@ class OpcodeAPI(ABC):
         logic_fn: Callable[["ComputationAPI"], None],
         mnemonic: str,
         gas_cost: int,
-    ) -> T:
+    ) -> "OpcodeAPI":
         """
         Class factory method for turning vanilla functions into Opcodes.
-        """
-        ...
-
-    @abstractmethod
-    def __copy__(self) -> "OpcodeAPI":
-        """
-        Return a copy of the opcode.
-        """
-        ...
-
-    @abstractmethod
-    def __deepcopy__(self, memo: Any) -> "OpcodeAPI":
-        """
-        Return a deep copy of the opcode.
         """
         ...
 
