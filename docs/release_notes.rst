@@ -3,6 +3,28 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.6.0-alpha.1 (2022-08-22)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Gray glacier support without ``Merge`` transition since ``Merge`` is not yet supported (`#2072 <https://github.com/ethereum/py-evm/issues/2072>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Arrow Glacier header serialization fixed to properly inherit from LondonBlockHeader (`#2047 <https://github.com/ethereum/py-evm/issues/2047>`__)
+
+
+Deprecations and Removals
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Upgrade dependencies: eth-keys, eth-typing, eth-utils, py-ecc, rlp, trie (`#2068 <https://github.com/ethereum/py-evm/issues/2068>`__)
+- Drop python 3.6 support (`#2070 <https://github.com/ethereum/py-evm/issues/2070>`__)
+
+
 py-evm 0.5.0-alpha.3 (2022-01-26)
 ---------------------------------
 
@@ -17,8 +39,6 @@ Bugfixes
 
 py-evm 0.5.0-alpha.2 (2021-12-16)
 ---------------------------------
-Eth 0.5.0-alpha.2 (2021-12-16)
-------------------------------
 
 Features
 ~~~~~~~~

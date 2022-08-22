@@ -1,1 +1,0 @@
-Upgrade dependencies: eth-keys, eth-typing, eth-utils, py-ecc, rlp, trie
