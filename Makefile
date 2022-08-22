@@ -45,7 +45,7 @@ doctest:
 
 validate-docs: build-docs doctest
 	./newsfragments/validate_files.py
-	towncrier --draft
+	towncrier build --draft
 
 docs: build-docs
 	open docs/_build/html/index.html
@@ -61,7 +61,7 @@ notes:
 	# Let UPCOMING_VERSION be the version that is used for the current bump
 	$(eval UPCOMING_VERSION=$(shell bumpversion $(bump) --dry-run --list | grep new_version= | sed 's/new_version=//g'))
 	# Now generate the release notes to have them included in the release commit
-	towncrier --yes --version $(UPCOMING_VERSION)
+	towncrier build --yes --version $(UPCOMING_VERSION)
 	# Before we bump the version, make sure that the towncrier-generated docs will build
 	make build-docs
 	git commit -m "Compile release notes"
