@@ -23,6 +23,7 @@ from eth.tools.builder.chain import (
     london_at,
     muir_glacier_at,
     name,
+    paris_at,
     petersburg_at,
     spurious_dragon_at,
     tangerine_whistle_at,
@@ -30,7 +31,7 @@ from eth.tools.builder.chain import (
 from eth.vm.forks import (
     FrontierVM,
     HomesteadVM,
-    TangerineWhistleVM,
+    ParisVM, TangerineWhistleVM,
     SpuriousDragonVM,
     ByzantiumVM,
     ConstantinopleVM,
@@ -97,7 +98,8 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (london_at, LondonVM),
         (arrow_glacier_at, ArrowGlacierVM),
         (gray_glacier_at, GrayGlacierVM),
-        (latest_mainnet_at, GrayGlacierVM),  # this will change whenever the next upgrade is locked
+        (paris_at, ParisVM),
+        (latest_mainnet_at, ParisVM),  # this will change whenever the next upgrade is locked
     )
 )
 def test_chain_builder_construct_chain_fork_specific_helpers(fork_fn, vm_class):
