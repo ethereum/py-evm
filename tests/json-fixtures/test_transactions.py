@@ -47,6 +47,9 @@ from eth.vm.forks.berlin.transactions import (
 from eth.vm.forks.london.transactions import (
     LondonTransactionBuilder
 )
+from eth.vm.forks.paris.transactions import (
+    ParisTransactionBuilder
+)
 
 from eth_typing.enums import (
     ForkName
@@ -101,15 +104,12 @@ def fixture(fixture_data):
 def fixture_transaction_class(fixture_data):
     _, test_name, fork_name = fixture_data
 
-    # TODO: Address these accessList test issues in London and Berlin
+    # TODO: Address these test issues in London, Berlin, and Paris / Merge
     if test_name in (
         "GasLimitPriceProductOverflowtMinusOne",
         "accessListStorage32Bytes",
     ):
-        pytest.skip(
-            "Failing tests that need to be fixed. Skipping for now as unrelated to "
-            "Gray Glacier changes."
-        )
+        pytest.skip("Failing tests that need to be addressed.")
 
     if fork_name == ForkName.Frontier:
         return FrontierTransaction
@@ -134,7 +134,8 @@ def fixture_transaction_class(fixture_data):
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis Transaction class has not been implemented")
     elif fork_name == "Merge":
-        pytest.skip("Merge Transaction class has not been implemented")
+        # EL fork name is Paris, `ethereum/tests` calls the Network "Merge"
+        return ParisTransactionBuilder
     else:
         raise ValueError(f"Unknown Fork Name: {fork_name}")
 

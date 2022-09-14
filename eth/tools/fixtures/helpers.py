@@ -52,6 +52,7 @@ from eth.vm.forks import (
     IstanbulVM,
     BerlinVM,
     LondonVM,
+    ParisVM,
 )
 
 
@@ -139,6 +140,10 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
     elif network == 'London':
         return (
             (0, LondonVM),
+        )
+    elif network == 'Merge':
+        return (
+            (0, ParisVM),
         )
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
@@ -260,9 +265,10 @@ def new_chain_from_fixture(fixture: Dict[str, Any],
 def apply_fixture_block_to_chain(
         block_fixture: Dict[str, Any],
         chain: ChainAPI,
-        perform_validation: bool = True) -> Tuple[BlockAPI, BlockAPI, bytes]:
+        perform_validation: bool = True
+) -> Tuple[BlockAPI, BlockAPI, bytes]:
     """
-    :return: (premined_block, mined_block, rlp_encoded_mined_block)
+    :return: (provided_block, imported_block, rlp_encoded_imported_block)
     """
     # The block to import may be in a different block-class-range than the
     # chain's current one, so we use the block number specified in the
@@ -276,11 +282,11 @@ def apply_fixture_block_to_chain(
     block = rlp.decode(block_fixture['rlp'], sedes=block_class)
 
     import_result = chain.import_block(block, perform_validation=perform_validation)
-    mined_block = import_result.imported_block
+    imported_block = import_result.imported_block
 
-    rlp_encoded_mined_block = rlp.encode(mined_block, sedes=block_class)
+    rlp_encoded_imported_block = rlp.encode(imported_block, sedes=block_class)
 
-    return (block, mined_block, rlp_encoded_mined_block)
+    return (block, imported_block, rlp_encoded_imported_block)
 
 
 def should_run_slow_tests() -> bool:

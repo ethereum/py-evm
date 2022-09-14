@@ -8,7 +8,7 @@ from eth._utils.rlp import (
 )
 
 
-assert_mined_block_unchanged = replace_exceptions({
+assert_imported_block_unchanged = replace_exceptions({
     ValidationError: AssertionError,
 })(validate_rlp_equal(obj_a_name='provided block', obj_b_name='executed block'))
 

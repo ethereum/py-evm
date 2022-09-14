@@ -105,6 +105,12 @@ jobs:
       - image: cimg/python:3.9
         environment:
           TOXENV: py39-native-blockchain-london
+  py39-native-blockchain-merge:
+    <<: *common
+    docker:
+      - image: cimg/python:3.9
+        environment:
+          TOXENV: py39-native-blockchain-merge
   py39-native-blockchain-petersburg:
     <<: *common
     docker:
@@ -259,6 +265,7 @@ workflows:
       - py39-native-blockchain-homestead
       - py39-native-blockchain-istanbul
       - py39-native-blockchain-london
+      - py39-native-blockchain-merge
       - py39-native-blockchain-petersburg
       - py39-native-blockchain-tangerine_whistle
       - py39-native-blockchain-spurious_dragon
