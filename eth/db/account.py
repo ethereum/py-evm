@@ -352,7 +352,10 @@ class AccountDB(AccountDatabaseAPI):
         self._set_account(address, account)
 
     def account_is_empty(self, address: Address) -> bool:
-        return not self.account_has_code_or_nonce(address) and self.get_balance(address) == 0
+        return (
+            not self.account_has_code_or_nonce(address)
+            and self.get_balance(address) == 0
+        )
 
     def is_address_warm(self, address: Address) -> bool:
         return address in self._journal_accessed_state
@@ -434,16 +437,16 @@ class AccountDB(AccountDatabaseAPI):
         self._reset_access_counters()
 
     def make_state_root(self) -> Hash32:
-        for _, store in self._dirty_account_stores():
+        for _address, store in self._dirty_account_stores():
             store.make_storage_root()
 
         for address, storage_root in self._get_changed_roots():
-            self.logger.debug2(
-                "Updating account 0x%s to storage root 0x%s",
-                address.hex(),
-                storage_root.hex(),
-            )
             if self.account_exists(address) or storage_root != BLANK_ROOT_HASH:
+                self.logger.debug2(
+                    "Updating account 0x%s to storage root 0x%s",
+                    address.hex(),
+                    storage_root.hex(),
+                )
                 self._set_storage_root(address, storage_root)
 
         self._journaldb.persist()

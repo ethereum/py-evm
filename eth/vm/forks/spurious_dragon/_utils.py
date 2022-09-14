@@ -17,8 +17,10 @@ THREE = force_bytes_to_address(b'\x03')
 
 
 @to_set
-def collect_touched_accounts(computation: BaseComputation,
-                             ancestor_had_error: bool = False) -> Iterable[Address]:
+def collect_touched_accounts(
+    computation: BaseComputation,
+    ancestor_had_error: bool = False
+) -> Iterable[Address]:
     """
     Collect all of the accounts that *may* need to be deleted based on
     `EIP-161 <https://eips.ethereum.org/EIPS/eip-161>`_.
@@ -27,9 +29,11 @@ def collect_touched_accounts(computation: BaseComputation,
 
     See also: https://github.com/ethereum/EIPs/issues/716
     """
-    # collect the coinbase account if it was touched via zero-fee transfer
-    if computation.is_origin_computation and computation.transaction_context.gas_price == 0:
-        yield computation.state.coinbase
+    # collect the coinbase account if it is in a zero-state. The coinbase is always
+    # touched via block transaction fee.
+    coinbase = computation.state.coinbase
+    if computation.state.account_is_empty(coinbase):
+        yield coinbase
 
     # collect those explicitly marked for deletion ("beneficiary" is of SELFDESTRUCT)
     for beneficiary in sorted(set(computation.accounts_to_delete.values())):
