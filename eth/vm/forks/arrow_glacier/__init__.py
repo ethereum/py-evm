@@ -25,7 +25,7 @@ class ArrowGlacierVM(LondonVM):
 
     # Methods
     create_header_from_parent = staticmethod(  # type: ignore
-        create_arrow_glacier_header_from_parent
+        create_arrow_glacier_header_from_parent(compute_arrow_glacier_difficulty)
     )
     compute_difficulty = staticmethod(compute_arrow_glacier_difficulty)  # type: ignore
     configure_header = configure_arrow_glacier_header

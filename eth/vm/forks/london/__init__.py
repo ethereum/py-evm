@@ -33,7 +33,9 @@ class LondonVM(BerlinVM):
     _state_class: Type[BaseState] = LondonState
 
     # Methods
-    create_header_from_parent = staticmethod(create_london_header_from_parent)  # type: ignore
+    create_header_from_parent = staticmethod(  # type: ignore
+        create_london_header_from_parent(compute_london_difficulty)
+    )
     compute_difficulty = staticmethod(compute_london_difficulty)    # type: ignore
     configure_header = configure_london_header
 

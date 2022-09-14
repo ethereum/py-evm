@@ -76,10 +76,11 @@ def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:
 
 
 @curry
-def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int],
-                              parent_header: Optional[BlockHeaderAPI],
-                              **header_params: Any) -> BlockHeaderAPI:
-
+def create_london_header_from_parent(
+    difficulty_fn: Callable[[BlockHeaderAPI, int], int],
+    parent_header: Optional[BlockHeaderAPI],
+    **header_params: Any
+) -> BlockHeaderAPI:
     if 'gas_limit' not in header_params:
         if parent_header is not None and not hasattr(parent_header, 'base_fee_per_gas'):
             # If the previous block was not a London block,
@@ -133,11 +134,6 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int
 
 
 compute_london_difficulty = compute_difficulty(9700000)
-
-create_london_header_from_parent = create_header_from_parent(
-    compute_london_difficulty
-)
-
 configure_london_header = configure_header(compute_london_difficulty)
 
 

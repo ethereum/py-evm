@@ -6,7 +6,6 @@ from eth_utils import (
 )
 
 from eth.abc import (
-    AccountDatabaseAPI,
     ComputationAPI,
     MessageAPI,
     SignedTransactionAPI,
@@ -16,9 +15,6 @@ from eth.abc import (
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
-)
-from eth.db.account import (
-    AccountDB
 )
 from eth.vm.message import (
     Message,
@@ -100,7 +96,6 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
 
 
 class LondonState(BerlinState):
-    account_db_class: Type[AccountDatabaseAPI] = AccountDB
     computation_class = LondonComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = LondonTransactionExecutor
 
