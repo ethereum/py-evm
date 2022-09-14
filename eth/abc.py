@@ -91,6 +91,7 @@ class MiningHeaderAPI(ABC):
         """
 
     @property
+    @abstractmethod
     def hex_hash(self) -> str:
         """
         Return the hash as a hex string.
@@ -1720,6 +1721,14 @@ class ExecutionContextAPI(ABC):
 
     @property
     @abstractmethod
+    def mix_hash(self) -> Hash32:
+        """
+        Return the mix hash of the block
+        """
+        ...
+
+    @property
+    @abstractmethod
     def gas_limit(self) -> int:
         """
         Return the gas limit of the block.
@@ -2664,6 +2673,14 @@ class StateAPI(ConfigurableAPI):
 
     @property
     @abstractmethod
+    def mix_hash(self) -> Hash32:
+        """
+        Return the current ``mix_hash`` from the current :attr:`~execution_context`
+        """
+        ...
+
+    @property
+    @abstractmethod
     def gas_limit(self) -> int:
         """
         Return the current ``gas_limit`` from the current :attr:`~transaction_context`
@@ -2686,7 +2703,7 @@ class StateAPI(ConfigurableAPI):
         """
         Return the gas price of the given transaction.
 
-        Factor in the current block's base gase price, if appropriate. (See EIP-1559)
+        Factor in the current block's base gas price, if appropriate. (See EIP-1559)
         """
         ...
 

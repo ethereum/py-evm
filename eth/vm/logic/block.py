@@ -31,3 +31,7 @@ def gaslimit(computation: BaseComputation) -> None:
 
 def basefee(computation: BaseComputation) -> None:
     computation.stack_push_int(computation.state.base_fee)
+
+
+def mixhash(computation: BaseComputation) -> None:
+    computation.stack_push_bytes(computation.state.mix_hash)

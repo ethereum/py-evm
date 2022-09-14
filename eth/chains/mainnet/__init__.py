@@ -12,6 +12,7 @@ from eth_utils import (
 
 from .constants import (
     MAINNET_CHAIN_ID,
+    PARIS_MAINNET_BLOCK,
     GRAY_GLACIER_MAINNET_BLOCK,
     ARROW_GLACIER_MAINNET_BLOCK,
     LONDON_MAINNET_BLOCK,
@@ -46,6 +47,7 @@ from eth.vm.forks import (
     IstanbulVM,
     LondonVM,
     MuirGlacierVM,
+    ParisVM,
     PetersburgVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
@@ -106,8 +108,9 @@ MAINNET_FORK_BLOCKS = (
     LONDON_MAINNET_BLOCK,
     ARROW_GLACIER_MAINNET_BLOCK,
     GRAY_GLACIER_MAINNET_BLOCK,
+    PARIS_MAINNET_BLOCK,
 )
-MAINNET_VMS = (
+MINING_MAINNET_VMS = (
     FrontierVM,
     MainnetHomesteadVM,
     TangerineWhistleVM,
@@ -121,7 +124,11 @@ MAINNET_VMS = (
     ArrowGlacierVM,
     GrayGlacierVM,
 )
+POS_MAINNET_VMS = (
+    ParisVM,
+)
 
+MAINNET_VMS = MINING_MAINNET_VMS + POS_MAINNET_VMS
 MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
 
 

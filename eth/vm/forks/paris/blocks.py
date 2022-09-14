@@ -1,0 +1,42 @@
+from abc import ABC
+from typing import Type
+
+from eth.abc import TransactionBuilderAPI
+
+from eth_utils import (
+    encode_hex,
+)
+
+from rlp.sedes import (
+    CountableList,
+)
+
+from .transactions import (
+    ParisTransactionBuilder,
+)
+from eth.vm.forks.gray_glacier.blocks import (
+    GrayGlacierBlock,
+    GrayGlacierBlockHeader,
+    GrayGlacierMiningHeader,
+)
+from ..london.blocks import (
+    LondonBackwardsHeader,
+)
+
+
+class ParisMiningHeader(GrayGlacierMiningHeader, ABC):
+    pass
+
+
+class ParisBlockHeader(GrayGlacierBlockHeader, ABC):
+    def __str__(self) -> str:
+        return f'<ParisBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
+
+
+class ParisBlock(GrayGlacierBlock):
+    transaction_builder: Type[TransactionBuilderAPI] = ParisTransactionBuilder
+    fields = [
+        ('header', ParisBlockHeader),
+        ('transactions', CountableList(transaction_builder)),
+        ('uncles', CountableList(LondonBackwardsHeader)),
+    ]

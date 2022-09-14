@@ -1,7 +1,11 @@
 from eth_typing import (
     Address,
     BlockNumber,
-    Hash32
+    Hash32,
+)
+from typing import (
+    List,
+    Optional,
 )
 
 from eth._warnings import catch_and_ignore_import_warning
@@ -184,3 +188,13 @@ MAX_PREV_HEADER_DEPTH = 256
 DEFAULT_SPOOF_Y_PARITY = 1
 DEFAULT_SPOOF_R = 1
 DEFAULT_SPOOF_S = 1
+
+
+#
+# Merge / EIP-3675 constants
+#
+POST_MERGE_OMMERS_HASH = EMPTY_UNCLE_HASH
+POST_MERGE_DIFFICULTY = 0
+POST_MERGE_MIX_HASH = ZERO_HASH32
+POST_MERGE_NONCE = b"\x00\x00\x00\x00\x00\x00\x00\x00"
+POST_MERGE_OMMERS: List[Optional[Hash32]] = []
