@@ -25,7 +25,7 @@ class GrayGlacierVM(ArrowGlacierVM):
 
     # Methods
     create_header_from_parent = staticmethod(  # type: ignore
-        create_gray_glacier_header_from_parent
+        create_gray_glacier_header_from_parent(compute_gray_glacier_difficulty)
     )
     compute_difficulty = staticmethod(compute_gray_glacier_difficulty)  # type: ignore
     configure_header = configure_gray_glacier_header
