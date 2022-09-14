@@ -22,6 +22,7 @@ from eth_typing import (
 )
 from eth_utils import (
     ValidationError,
+    encode_hex,
 )
 import rlp
 
@@ -259,8 +260,8 @@ class VM(Configurable, VirtualMachineAPI):
         result_header = base_header
 
         for transaction_index, transaction in enumerate(transactions):
+            snapshot = self.state.snapshot()
             try:
-                snapshot = self.state.snapshot()
                 receipt, computation = self.apply_transaction(
                     previous_header,
                     transaction,
@@ -376,7 +377,7 @@ class VM(Configurable, VirtualMachineAPI):
             self.logger.debug(
                 "BLOCK REWARD: %s -> %s",
                 block_reward,
-                block.header.coinbase,
+                encode_hex(block.header.coinbase),
             )
         else:
             self.logger.debug("No block reward given to %s", block.header.coinbase)
@@ -389,7 +390,7 @@ class VM(Configurable, VirtualMachineAPI):
                 self.logger.debug(
                     "UNCLE REWARD REWARD: %s -> %s",
                     uncle_reward,
-                    uncle.coinbase,
+                    encode_hex(uncle.coinbase),
                 )
             else:
                 self.logger.debug("No uncle reward given to %s", uncle.coinbase)

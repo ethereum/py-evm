@@ -159,9 +159,11 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         return min(gas_refunded, gas_used // MAX_REFUND_QUOTIENT)
 
-    def finalize_computation(self,
-                             transaction: SignedTransactionAPI,
-                             computation: ComputationAPI) -> ComputationAPI:
+    def finalize_computation(
+        self,
+        transaction: SignedTransactionAPI,
+        computation: ComputationAPI
+    ) -> ComputationAPI:
         transaction_context = self.vm_state.get_transaction_context(transaction)
 
         gas_remaining = computation.get_gas_remaining()
@@ -175,7 +177,6 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 gas_refund_amount,
                 encode_hex(computation.msg.sender),
             )
-
             self.vm_state.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Beneficiary Fees

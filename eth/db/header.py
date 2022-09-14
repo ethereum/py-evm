@@ -206,7 +206,11 @@ class HeaderDB(HeaderDatabaseAPI):
             header: BlockHeaderAPI,
             score: int
     ) -> int:
-        new_score = score + header.difficulty
+        difficulty = header.difficulty
+        new_score = (
+            # In PoS, difficulty = 0 and score values do not need to work the same way
+            score + difficulty if difficulty != 0 else score + header.block_number
+        )
 
         db.set(
             SchemaV1.make_block_hash_to_score_lookup_key(header.hash),
@@ -235,7 +239,11 @@ class HeaderDB(HeaderDatabaseAPI):
             b''.join(new_checkpoints),
         )
 
-        previous_score = score - header.difficulty
+        difficulty = header.difficulty
+        previous_score = (
+            # In PoS, difficulty = 0 and score values do not need to work the same way
+            score - difficulty if difficulty != 0 else score - header.block_number
+        )
         cls._set_hash_scores_to_db(db, header, previous_score)
         cls._set_as_canonical_chain_head(db, header, GENESIS_PARENT_HASH)
         _, gaps = cls._update_header_chain_gaps(db, header)
