@@ -178,7 +178,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
             self.vm_state.delta_balance(computation.msg.sender, gas_refund_amount)
 
-        # Miner Fees
+        # Beneficiary Fees
         gas_used = transaction.gas - gas_remaining - gas_refund
         transaction_fee = gas_used * self.vm_state.get_tip(transaction)
         self.vm_state.logger.debug2(
@@ -190,13 +190,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         # Process Self Destructs
         for account, _ in computation.get_accounts_for_deletion():
-            # TODO: need to figure out how we prevent multiple selfdestructs from
-            # the same account and if this is the right place to put this.
             self.vm_state.logger.debug2('DELETING ACCOUNT: %s', encode_hex(account))
-
-            # TODO: this balance setting is likely superflous and can be
-            # removed since `delete_account` does this.
-            self.vm_state.set_balance(account, 0)
             self.vm_state.delete_account(account)
 
         return computation

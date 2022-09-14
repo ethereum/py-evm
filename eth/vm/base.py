@@ -97,11 +97,13 @@ class VM(Configurable, VirtualMachineAPI):
 
     cls_logger = logging.getLogger('eth.vm.base.VM')
 
-    def __init__(self,
-                 header: BlockHeaderAPI,
-                 chaindb: ChainDatabaseAPI,
-                 chain_context: ChainContextAPI,
-                 consensus_context: ConsensusContextAPI) -> None:
+    def __init__(
+        self,
+        header: BlockHeaderAPI,
+        chaindb: ChainDatabaseAPI,
+        chain_context: ChainContextAPI,
+        consensus_context: ConsensusContextAPI
+    ) -> None:
         self.chaindb = chaindb
         self.chain_context = chain_context
         self.consensus_context = consensus_context
@@ -168,10 +170,12 @@ class VM(Configurable, VirtualMachineAPI):
         return receipt, computation
 
     @classmethod
-    def create_execution_context(cls,
-                                 header: BlockHeaderAPI,
-                                 prev_hashes: Iterable[Hash32],
-                                 chain_context: ChainContextAPI) -> ExecutionContextAPI:
+    def create_execution_context(
+        cls,
+        header: BlockHeaderAPI,
+        prev_hashes: Iterable[Hash32],
+        chain_context: ChainContextAPI
+    ) -> ExecutionContextAPI:
         fee_recipient = cls.consensus_class.get_fee_recipient(header)
         try:
             base_fee = header.base_fee_per_gas
@@ -181,6 +185,7 @@ class VM(Configurable, VirtualMachineAPI):
                 timestamp=header.timestamp,
                 block_number=header.block_number,
                 difficulty=header.difficulty,
+                mix_hash=header.mix_hash,
                 gas_limit=header.gas_limit,
                 prev_hashes=prev_hashes,
                 chain_id=chain_context.chain_id,
@@ -191,6 +196,7 @@ class VM(Configurable, VirtualMachineAPI):
                 timestamp=header.timestamp,
                 block_number=header.block_number,
                 difficulty=header.difficulty,
+                mix_hash=header.mix_hash,
                 gas_limit=header.gas_limit,
                 prev_hashes=prev_hashes,
                 chain_id=chain_context.chain_id,
@@ -283,7 +289,7 @@ class VM(Configurable, VirtualMachineAPI):
         return result_header, receipts_tuple, computations_tuple
 
     #
-    # Mining
+    # Importing blocks
     #
     def import_block(self, block: BlockAPI) -> BlockAndMetaWitness:
         if self.get_block().number != block.number:
@@ -307,7 +313,8 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         execution_context = self.create_execution_context(
-            block.header, self.previous_hashes, self.chain_context)
+            block.header, self.previous_hashes, self.chain_context
+        )
 
         # Zero out the gas_used before applying transactions. Each applied transaction will
         #   increase the gas used in the final new_header.
@@ -329,7 +336,6 @@ class VM(Configurable, VirtualMachineAPI):
 
     def mine_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
         packed_block = self.pack_block(block, *args, **kwargs)
-
         block_result = self.finalize_block(packed_block)
 
         # Perform validation

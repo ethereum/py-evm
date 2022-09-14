@@ -72,3 +72,8 @@ ARROW_GLACIER_MAINNET_BLOCK = BlockNumber(13773000)
 # Gray Glacier Block
 #
 GRAY_GLACIER_MAINNET_BLOCK = BlockNumber(15050000)
+
+#
+# Paris Block (block height at which TTD was reached)
+#
+PARIS_MAINNET_BLOCK = BlockNumber(15537394)
