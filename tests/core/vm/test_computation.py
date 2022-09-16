@@ -5,7 +5,7 @@ from eth_typing import Address
 from eth_utils import decode_hex
 
 from eth.chains.base import MiningChain
-from eth.chains.mainnet import MAINNET_VMS
+from eth.chains.mainnet import MINING_MAINNET_VMS
 
 from eth import constants
 from eth.consensus import NoProofConsensus
@@ -32,9 +32,9 @@ def _configure_mining_chain(starting_vm, vm_under_test):
 
 
 # CREATE, RETURNDATASIZE, and RETURNDATACOPY opcodes not added until Byzantium
-@pytest.fixture(params=MAINNET_VMS[4:])
+@pytest.fixture(params=MINING_MAINNET_VMS[4:])
 def byzantium_plus_miner(request, base_db, genesis_state):
-    byzantium_vm = MAINNET_VMS[4]
+    byzantium_vm = MINING_MAINNET_VMS[4]
     vm_under_test = request.param
 
     klass = _configure_mining_chain(byzantium_vm, vm_under_test)

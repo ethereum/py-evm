@@ -35,7 +35,7 @@ from .builders import (  # noqa: F401
 )
 
 
-mainnet_fork_at_fns = (
+mining_mainnet_fork_at_fns = (
     byzantium_at,
     frontier_at,
     homestead_at,
@@ -48,8 +48,11 @@ mainnet_fork_at_fns = (
     london_at,
     arrow_glacier_at,
     gray_glacier_at,
+)
+pos_mainnet_fork_at_fns = (
     paris_at,
 )
+mainnet_fork_at_fns = mining_mainnet_fork_at_fns + pos_mainnet_fork_at_fns
 
 
 class API:
@@ -86,6 +89,7 @@ class API:
 
     # iterable of the fork specific functions
     mainnet_fork_at_fns = mainnet_fork_at_fns
+    mining_mainnet_fork_at_fns = mining_mainnet_fork_at_fns
 
     # DAO Fork specific
     dao_fork_at = staticmethod(dao_fork_at)

@@ -9,7 +9,7 @@ from eth.abc import MiningChainAPI
 from eth.chains.base import MiningChain
 from eth.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
-    MAINNET_VMS,
+    MINING_MAINNET_VMS,
 )
 from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
 from eth.consensus.noproof import NoProofConsensus
@@ -31,11 +31,14 @@ def chain(chain_without_block_validation):
     return chain_without_block_validation
 
 
-VM_PAIRS = sliding_window(2, MAINNET_VMS)
+MINING_VM_PAIRS = sliding_window(2, MINING_MAINNET_VMS)
 
 
-@pytest.fixture(params=VM_PAIRS)
+@pytest.fixture(params=MINING_VM_PAIRS)
 def vm_crossover_chain(request, base_db, genesis_state):
+    # This fixture is thus far only used to test uncles so test against mining
+    # mainnet VMs only since there are no uncles in PoS / post-merge.
+
     start_vm, end_vm = request.param
     klass = MiningChain.configure(
         __name__='CrossoverTestChain',
