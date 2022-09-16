@@ -5,8 +5,8 @@ from eth.chains.base import MiningChain
 from eth.tools.builder.chain import api
 
 
-@pytest.fixture(params=api.mainnet_fork_at_fns)
-def base_chain(request):
+@pytest.fixture(params=api.mining_mainnet_fork_at_fns)
+def mining_base_chain(request):
     if request.param is api.homestead_at:
         fork_fns = (request.param(0), api.dao_fork_at(0))
     else:
@@ -23,26 +23,26 @@ def base_chain(request):
 
 
 @pytest.fixture
-def chain(base_chain):
+def mining_chain(mining_base_chain):
     chain = api.build(
-        base_chain,
+        mining_base_chain,
         api.mine_blocks(3),
     )
     assert chain.get_canonical_head().block_number == 3
     return chain
 
 
-def test_import_block_with_reorg(chain, funded_address_private_key):
+def test_import_block_with_reorg(mining_chain, funded_address_private_key):
     # mine ahead 3 blocks on the fork chain
     fork_chain = api.build(
-        chain,
+        mining_chain,
         api.copy(),
         api.mine_block(extra_data=b'fork-it'),
         api.mine_blocks(2),
     )
     # mine ahead 2 blocks on the main chain
     main_chain = api.build(
-        chain,
+        mining_chain,
         api.mine_blocks(2)
     )
 
@@ -81,14 +81,15 @@ def test_import_block_with_reorg(chain, funded_address_private_key):
 
 
 def test_import_block_with_reorg_with_current_head_as_uncle(
-        chain,
-        funded_address_private_key):
+        mining_chain,
+        funded_address_private_key
+):
     """
     https://github.com/ethereum/py-evm/issues/1185
     """
 
     main_chain, fork_chain = api.build(
-        chain,
+        mining_chain,
         api.chain_split(
             (api.mine_block(),),  # this will be the 'uncle'
             (api.mine_block(extra_data=b'fork-it'),),

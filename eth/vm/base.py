@@ -583,10 +583,12 @@ class VM(Configurable, VirtualMachineAPI):
             )
 
         if not self.chaindb.exists(block.header.state_root):
-            raise ValidationError(
-                "`state_root` was not found in the db.\n"
-                f"- state_root: {block.header.state_root!r}"
-            )
+            if not self.state.make_state_root() == block.header.state_root:
+                raise ValidationError(
+                    "`state_root` was not found in the db.\n"
+                    f"- state_root: {block.header.state_root!r}"
+                )
+
         local_uncle_hash = keccak(rlp.encode(block.uncles))
         if local_uncle_hash != block.header.uncles_hash:
             raise ValidationError(

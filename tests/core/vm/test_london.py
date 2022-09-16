@@ -7,7 +7,7 @@ from eth import constants
 from eth.consensus.noproof import NoProofConsensus
 from eth.chains.base import MiningChain
 from eth.chains.mainnet import (
-    MAINNET_VMS,
+    MINING_MAINNET_VMS,
 )
 from eth.exceptions import InvalidInstruction
 from eth.vm.forks import BerlinVM
@@ -73,8 +73,8 @@ def _configure_mining_chain(name, genesis_vm, vm_under_test):
     )
 
 
-# VMs starting at London
-@pytest.fixture(params=MAINNET_VMS[9:])
+# Mining VMs starting at London
+@pytest.fixture(params=MINING_MAINNET_VMS[9:])
 def london_plus_miner(request, base_db, genesis_state):
     vm_under_test = request.param
 
@@ -88,12 +88,12 @@ def london_plus_miner(request, base_db, genesis_state):
     return klass.from_genesis(base_db, header_fields, genesis_state)
 
 
-# VMs up to, but not including, London
-@pytest.fixture(params=MAINNET_VMS[0:9])
+# Mining VMs up to, but not including, London
+@pytest.fixture(params=MINING_MAINNET_VMS[0:9])
 def pre_london_miner(request, base_db, genesis_state):
     vm_under_test = request.param
 
-    klass = _configure_mining_chain('EndsBeforeLondon', MAINNET_VMS[0], vm_under_test)
+    klass = _configure_mining_chain('EndsBeforeLondon', MINING_MAINNET_VMS[0], vm_under_test)
     header_fields = dict(
         difficulty=1,
         gas_limit=100000,  # arbitrary, just enough for testing
@@ -296,7 +296,7 @@ def test_state_does_not_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_pre_
         assert isinstance(computation.error, InvalidInstruction)
         # pre-CREATE2 vms will not recognize the CREATE2 opcode:
         assert "0xf5" in repr(computation.error).lower()
-        assert vm.fork in (_.fork for _ in MAINNET_VMS[:5])
+        assert vm.fork in (_.fork for _ in MINING_MAINNET_VMS[:5])
 
     else:
         assert computation.is_success

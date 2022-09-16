@@ -10,35 +10,55 @@ from eth import constants
 from eth.chains.base import (
     MiningChain,
 )
-from eth.chains.mainnet import MAINNET_VMS
+from eth.chains.mainnet import (
+    MAINNET_VMS,
+    MINING_MAINNET_VMS,
+)
 from eth.tools.builder.chain import api
 from eth.tools.factories.transaction import (
     new_transaction
 )
 
 
-@pytest.fixture(params=MAINNET_VMS)
-def vm_class(request):
+@pytest.fixture(params=MINING_MAINNET_VMS)
+def mining_vm_class(request):
     return request.param
 
 
 @pytest.fixture
-def pow_consensus_chain(vm_class):
+def pow_consensus_chain(mining_vm_class):
     return api.build(
         MiningChain,
-        api.fork_at(vm_class, 0),
+        api.fork_at(mining_vm_class, 0),
         api.genesis(),
     )
 
 
 @pytest.fixture
-def noproof_consensus_chain(vm_class):
+def noproof_consensus_mining_chain(mining_vm_class):
     # This will always have the same vm configuration as the POW chain
     return api.build(
         MiningChain,
-        api.fork_at(vm_class, 0),
+        api.fork_at(mining_vm_class, 0),
         api.disable_pow_check(),
         api.genesis(params=dict(gas_limit=100000)),
+    )
+
+
+@pytest.fixture(params=MAINNET_VMS)
+def noproof_consensus_chain(request):
+    # PoW and PoS forks
+    vm_class = request.param
+    return api.build(
+        # TODO: Use a more general base chain class that encompasses PoS as well
+        MiningChain,
+        api.fork_at(vm_class, 0),
+        api.disable_pow_check(),
+        api.genesis(params=dict(
+            gas_limit=100000,
+            difficulty=0,
+            nonce=b"\x00" * 8,
+        )),
     )
 
 
@@ -115,10 +135,13 @@ def test_import_block(chain, funded_address, funded_address_private_key):
     assert block.transactions == (tx, )
 
 
-def test_validate_header_succeeds_but_pow_fails(pow_consensus_chain, noproof_consensus_chain):
+def test_validate_header_succeeds_but_pow_fails(
+    pow_consensus_chain,
+    noproof_consensus_mining_chain,
+):
     # Create two "structurally valid" blocks that are not backed by PoW
-    block1 = noproof_consensus_chain.mine_block()
-    block2 = noproof_consensus_chain.mine_block()
+    block1 = noproof_consensus_mining_chain.mine_block()
+    block2 = noproof_consensus_mining_chain.mine_block()
 
     vm = pow_consensus_chain.get_vm(block2.header)
 

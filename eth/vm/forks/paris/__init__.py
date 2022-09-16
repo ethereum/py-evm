@@ -2,7 +2,8 @@ from typing import (
     Type,
 )
 
-from eth.abc import BlockAPI, BlockHeaderAPI
+from eth.abc import BlockAPI, BlockHeaderAPI, ConsensusAPI
+from eth.consensus.pos import PosConsensus
 from eth.constants import (
     POST_MERGE_DIFFICULTY,
     POST_MERGE_NONCE,
@@ -30,6 +31,7 @@ class ParisVM(GrayGlacierVM):
     # classes
     block_class: Type[BaseBlock] = ParisBlock
     _state_class: Type[BaseState] = ParisState
+    consensus_class: Type[ConsensusAPI] = PosConsensus
 
     # Methods
     create_header_from_parent = staticmethod(  # type: ignore

@@ -4,7 +4,7 @@ import threading
 import time
 
 from eth.chains.base import MiningChain
-from eth.chains.mainnet import MAINNET_VMS
+from eth.chains.mainnet import MINING_MAINNET_VMS
 from eth.consensus.pow import (
     CACHE_MAX_ITEMS,
     EPOCH_LENGTH,
@@ -65,7 +65,7 @@ def test_pow_across_epochs(ropsten_epoch_headers):
 
 @pytest.mark.parametrize(
     'base_vm_class',
-    MAINNET_VMS,
+    MINING_MAINNET_VMS,
 )
 def test_mining_tools_proof_of_work_mining(base_vm_class):
     vm_class = type(base_vm_class.__name__, (POWMiningMixin, base_vm_class), {})
