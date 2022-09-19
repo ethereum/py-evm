@@ -52,6 +52,7 @@ from eth.vm.forks import (
     IstanbulVM,
     BerlinVM,
     LondonVM,
+    GrayGlacierVM,
     ParisVM,
 )
 
@@ -180,6 +181,16 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
             (0, BerlinVM),
             (5, LondonVM),
         )
+    elif network == "ArrowGlacierToMergeAtDiffC0000":
+        # Transition expected at 6 for all tests written thus far
+        return (
+            # These tests were written before Gray Glacier was a thing. Use
+            # GrayGlacierVM instead since that's when PoW -> PoS transition happens.
+            # They should both pass but this is the more logical transition to test.
+            (0, GrayGlacierVM),
+            (6, ParisVM),
+        )
+
     else:
         raise ValueError(f"Network {network} does not match any known VM rules")
 
