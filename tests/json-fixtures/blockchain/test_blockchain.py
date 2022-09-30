@@ -63,6 +63,7 @@ SLOWEST_TESTS = {
     ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g0v0_Merge'),  # noqa: E501
     ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g1v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g1v0_Berlin'),  # noqa: E501
+    ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g1v0_London'),  # noqa: E501
     ('GeneralStateTests/stCreate2/Create2Recursive.json', 'Create2Recursive_d0g1v0_Merge'),  # noqa: E501
     ('GeneralStateTests/stDelegatecallTestHomestead/Call1024BalanceTooLow.json', 'Call1024BalanceTooLow_d0g0v0_Istanbul'),  # noqa: E501
     ('GeneralStateTests/stDelegatecallTestHomestead/Call1024PreCalls.json', 'Call1024PreCalls_d0g0v0_Istanbul'),  # noqa: E501
@@ -272,6 +273,7 @@ SLOWEST_TESTS = {
     ('ValidBlocks/VMTests/vmPerformance/loop-exp-32b-100k.json', 'loop-exp-32b-100k_Merge'),
     ('ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json', 'loop-exp-nop-1M_Istanbul'),
     ('ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json', 'loop-exp-nop-1M_Berlin'),
+    ('ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json', 'loop-exp-nop-1M_London'),
     ('ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json', 'loop-exp-nop-1M_Merge'),
     ('ValidBlocks/VMTests/vmPerformance/loop-mul.json', 'loop-mul_Istanbul'),
     ('ValidBlocks/VMTests/vmPerformance/loop-mul.json', 'loop-mul_Berlin'),
