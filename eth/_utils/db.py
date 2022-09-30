@@ -28,15 +28,9 @@ def get_block_header_by_hash(block_hash: Hash32, db: ChainDatabaseAPI) -> BlockH
 
 def apply_state_dict(state: StateAPI, state_dict: AccountState) -> None:
     for account, account_data in state_dict.items():
-        balance, nonce, code, storage = (
-            account_data["balance"],
-            account_data["nonce"],
-            account_data["code"],
-            account_data["storage"],
-        )
-        state.set_balance(account, balance)
-        state.set_nonce(account, nonce)
-        state.set_code(account, code)
+        state.set_balance(account, account_data["balance"])
+        state.set_nonce(account, account_data["nonce"])
+        state.set_code(account, account_data["code"])
 
-        for slot, value in storage.items():
+        for slot, value in account_data["storage"].items():
             state.set_storage(account, slot, value)

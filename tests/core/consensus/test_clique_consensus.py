@@ -247,7 +247,7 @@ def test_import_block(paragon_chain):
 
     signed_header = sign_block_header(vm.get_block().header.copy(
         extra_data=VANITY_LENGTH * b'0' + SIGNATURE_LENGTH * b'0',
-        state_root=b'\x99\xaa\xf5CF^\x95_\xce~\xe4)\x00\xb1zr\x1dr\xd6\x00N^\xa6\xdc\xc41\x90~\xb7te\x00',  # noqa: E501
+        state_root=b'\x02g\xd5{\xf9\x9f\x9e\xab)\x06\x1eY\x9a\xb7W\x95\xfd\xae\x9a:\x83m%\xbb\xcc\xe1\xca\xe3\x85d\xa7\x05',  # noqa: E501
         transaction_root=b'\xd1\t\xc4\x150\x9f\xb0\xb4H{\xfd$?Q\x16\x90\xac\xb2L[f\x98\xdd\xc6*\xf7\n\x84f\xafg\xb3',  # noqa: E501
         nonce=NONCE_DROP,
         gas_used=21000,

@@ -182,6 +182,12 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # Beneficiary Fees
         gas_used = transaction.gas - gas_remaining - gas_refund
         transaction_fee = gas_used * self.vm_state.get_tip(transaction)
+
+        # EIP-161:
+        # Even if the txn fee is zero, the coinbase is still touched here. Post-merge,
+        # with no block reward, in the cases where the txn fee is also zero, the
+        # coinbase may end up zeroed after the computation and thus should be marked
+        # for deletion since it was touched.
         self.vm_state.logger.debug2(
             'TRANSACTION FEE: %s -> %s',
             transaction_fee,
