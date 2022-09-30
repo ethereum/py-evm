@@ -581,9 +581,10 @@ class VM(Configurable, VirtualMachineAPI):
             )
 
         if not self.chaindb.exists(block.header.state_root):
+            # If not in the db, check if the current state root matches.
             if not self.state.make_state_root() == block.header.state_root:
                 raise ValidationError(
-                    "`state_root` was not found in the db.\n"
+                    "`state_root` does not match or was not found in the db.\n"
                     f"- state_root: {block.header.state_root!r}"
                 )
 

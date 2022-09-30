@@ -31,7 +31,7 @@ from eth.tools.builder.chain import (
 from eth.vm.forks import (
     FrontierVM,
     HomesteadVM,
-    ParisVM, TangerineWhistleVM,
+    TangerineWhistleVM,
     SpuriousDragonVM,
     ByzantiumVM,
     ConstantinopleVM,
@@ -42,6 +42,7 @@ from eth.vm.forks import (
     LondonVM,
     ArrowGlacierVM,
     GrayGlacierVM,
+    ParisVM,
 )
 
 

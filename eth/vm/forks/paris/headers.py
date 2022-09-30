@@ -24,7 +24,9 @@ def _validate_and_return_paris_header_param(
     actual: Any,
     constant_value: Any,
 ) -> Any:
-    if actual and actual != constant_value:
+    # if a value is passed into `header_params`, validate it's correct; else, set to
+    # the defined EIP-3675 constant value for the `header_param`.
+    if actual is not None and actual != constant_value:
         raise ValidationError(
             f"Header param '{header_param}' must always be "
             f"{constant_value}, got: {actual}"
@@ -38,33 +40,18 @@ def create_paris_header_from_parent(
     parent_header: Optional[BlockHeaderAPI],
     **header_params: Any,
 ) -> BlockHeaderAPI:
-    if parent_header is None:
-        if "mix_hash" not in header_params:
-            header_params["mix_hash"] = POST_MERGE_MIX_HASH
-        if "nonce" not in header_params:
-            header_params["nonce"] = POST_MERGE_NONCE
-        if "difficulty" not in header_params:
-            header_params["difficulty"] = POST_MERGE_DIFFICULTY
+    # `mix_hash` is not strictly validated; take the value from the `header_params`,
+    # if present; else, set to the EIP-3675-defined constant value.
+    header_params["mix_hash"] = header_params.get("mix_hash", POST_MERGE_MIX_HASH)
 
-    header_params["mix_hash"] = (
-        header_params["mix_hash"] if "mix_hash" in header_params
-        else parent_header.mix_hash
+    # for `difficulty` and `nonce`, if present in `header_params`, validate the value
+    # is the expected EIP-3675 value; else, set to the EIP-3675-defined constant value.
+    header_params["difficulty"] = _validate_and_return_paris_header_param(
+        "difficulty", header_params.get("difficulty"), POST_MERGE_DIFFICULTY
     )
-
-    if parent_header is not None:
-        if "difficulty" in header_params:
-            header_params["difficulty"] = _validate_and_return_paris_header_param(
-                "difficulty", header_params["difficulty"], POST_MERGE_DIFFICULTY
-            )
-        else:
-            header_params["difficulty"] = POST_MERGE_DIFFICULTY
-
-        if "nonce" in header_params:
-            header_params["nonce"] = _validate_and_return_paris_header_param(
-                "nonce", header_params["nonce"], POST_MERGE_NONCE
-            )
-        else:
-            header_params["nonce"] = POST_MERGE_NONCE
+    header_params["nonce"] = _validate_and_return_paris_header_param(
+        "nonce", header_params.get("nonce"), POST_MERGE_NONCE
+    )
 
     gray_glacier_validated_header = create_gray_glacier_header_from_parent(
         compute_gray_glacier_difficulty, parent_header, **header_params
