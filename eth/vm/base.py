@@ -372,28 +372,26 @@ class VM(Configurable, VirtualMachineAPI):
             len(block.uncles) * self.get_nephew_reward()
         )
 
-        if block_reward != 0:
-            self.state.delta_balance(block.header.coinbase, block_reward)
-            self.logger.debug(
-                "BLOCK REWARD: %s -> %s",
-                block_reward,
-                encode_hex(block.header.coinbase),
-            )
-        else:
-            self.logger.debug("No block reward given to %s", block.header.coinbase)
+        # EIP-161:
+        # Even if block reward is zero, the coinbase is still touched here. This was
+        # not likely to ever happen in PoW, except maybe in some very niche cases, but
+        # happens now in PoS. In these cases, the coinbase may end up zeroed after the
+        # computation and thus should be marked for deletion since it was touched.
+        self.state.delta_balance(block.header.coinbase, block_reward)
+        self.logger.debug(
+            "BLOCK REWARD: %s -> %s",
+            block_reward,
+            encode_hex(block.header.coinbase),
+        )
 
         for uncle in block.uncles:
             uncle_reward = self.get_uncle_reward(block.number, uncle)
-
-            if uncle_reward != 0:
-                self.state.delta_balance(uncle.coinbase, uncle_reward)
-                self.logger.debug(
-                    "UNCLE REWARD REWARD: %s -> %s",
-                    uncle_reward,
-                    encode_hex(uncle.coinbase),
-                )
-            else:
-                self.logger.debug("No uncle reward given to %s", uncle.coinbase)
+            self.logger.debug(
+                "UNCLE REWARD REWARD: %s -> %s",
+                uncle_reward,
+                encode_hex(uncle.coinbase),
+            )
+            self.state.delta_balance(uncle.coinbase, uncle_reward)
 
     def finalize_block(self, block: BlockAPI) -> BlockAndMetaWitness:
         if block.number > 0:

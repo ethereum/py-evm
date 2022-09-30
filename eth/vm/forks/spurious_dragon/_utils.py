@@ -29,11 +29,10 @@ def collect_touched_accounts(
 
     See also: https://github.com/ethereum/EIPs/issues/716
     """
-    # collect the coinbase account if it is in a zero-state. The coinbase is always
-    # touched via block transaction fee.
-    coinbase = computation.state.coinbase
-    if computation.state.account_is_empty(coinbase):
-        yield coinbase
+    # EIP-161:
+    # The coinbase is always touched via block transaction fee and block rewards
+    # (pre-merge).
+    yield computation.state.coinbase
 
     # collect those explicitly marked for deletion ("beneficiary" is of SELFDESTRUCT)
     for beneficiary in sorted(set(computation.accounts_to_delete.values())):
