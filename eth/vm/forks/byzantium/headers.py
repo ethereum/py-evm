@@ -60,7 +60,7 @@ def compute_difficulty(
     )
     difficulty = max(
         parent_difficulty + offset * adj_factor,
-        min(parent_header.difficulty, DIFFICULTY_MINIMUM)
+        DIFFICULTY_MINIMUM
     )
     num_bomb_periods = (
         max(

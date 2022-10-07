@@ -46,13 +46,16 @@ def compute_homestead_difficulty(parent_header: BlockHeaderAPI, timestamp: int) 
     offset = parent_header.difficulty // DIFFICULTY_ADJUSTMENT_DENOMINATOR
     sign = max(
         1 - (timestamp - parent_tstamp) // HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF,
-        -99)
-    difficulty = int(max(
+        -99,
+    )
+    difficulty = max(
         parent_header.difficulty + offset * sign,
-        min(parent_header.difficulty, DIFFICULTY_MINIMUM)))
+        DIFFICULTY_MINIMUM
+    )
     num_bomb_periods = (
         (parent_header.block_number + 1) // BOMB_EXPONENTIAL_PERIOD
     ) - BOMB_EXPONENTIAL_FREE_PERIODS
+
     if num_bomb_periods >= 0:
         return max(difficulty + 2**num_bomb_periods, DIFFICULTY_MINIMUM)
     else:
