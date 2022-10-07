@@ -1,0 +1,1 @@
+Use the ``DIFFICULTY_MINIMUM`` more appropriately as the lower limit in all difficulty calculations.
