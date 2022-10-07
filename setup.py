@@ -38,12 +38,14 @@ deps = {
         "pytest-timeout>=1.4.2,<2",
         "pytest-watch>=4.1.0,<5",
         "pytest-xdist==2.3.0",
+        "importlib-metadata<5.0;python_version<'3.8'",
     ],
     'lint': [
         "flake8==3.8.2",
         "flake8-bugbear==20.1.4",
         "mypy==0.910",
-        "types-setuptools"
+        "types-setuptools",
+        "importlib-metadata<5.0;python_version<'3.8'",
     ],
     'benchmark': [
         "termcolor>=1.1.0,<2.0.0",
