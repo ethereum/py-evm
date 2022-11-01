@@ -38,5 +38,7 @@ class ParisBlock(GrayGlacierBlock):
     fields = [
         ('header', ParisBlockHeader),
         ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(LondonBackwardsHeader)),
+
+        # no uncles in pos, max_length=0
+        ('uncles', CountableList(LondonBackwardsHeader, max_length=0)),
     ]
