@@ -8,6 +8,26 @@ common: &common
   steps:
     - checkout
     - run:
+        # this is necessary until circleci images begin using openssl>=3.0.7
+        name: update openssl.cnf for ripemd160
+        command: |
+          sudo tee -a /etc/ssl/openssl.cnf >/dev/null <<'EOF'
+
+          [openssl_init]
+          providers = provider_sect
+
+          [provider_sect]
+          default = default_sect
+          legacy = legacy_sect
+
+          [default_sect]
+          activate = 1
+
+          [legacy_sect]
+          activate = 1
+
+          EOF
+    - run:
         name: checkout fixtures submodule
         command: git submodule update --init --recursive
     - run:

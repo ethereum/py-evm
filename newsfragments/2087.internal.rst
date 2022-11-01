@@ -1,0 +1,1 @@
+Update openssl config on circleci builds to re-introduce ``ripemd160`` function by default.
