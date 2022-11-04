@@ -4,10 +4,7 @@ from typing import (
     Tuple,
 )
 
-from eth_typing import (
-    Address,
-)
-
+from eth_typing import Address
 from eth.abc import BlockHeaderAPI
 from eth.constants import (
     BLANK_ROOT_HASH,
@@ -21,6 +18,7 @@ from eth.constants import (
     GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR,
     ZERO_ADDRESS,
 )
+from eth.exceptions import PyEVMError
 from eth.typing import (
     BlockNumber,
     HeaderParams,
@@ -57,6 +55,7 @@ def fill_header_params_from_parent(
         gas_limit: int,
         difficulty: int,
         timestamp: int,
+        block_number: int = None,
         coinbase: Address = ZERO_ADDRESS,
         nonce: bytes = None,
         extra_data: bytes = None,
@@ -67,11 +66,13 @@ def fill_header_params_from_parent(
 
     if parent is None:
         parent_hash = GENESIS_PARENT_HASH
-        block_number = GENESIS_BLOCK_NUMBER
+        block_number = block_number if block_number else GENESIS_BLOCK_NUMBER
         if state_root is None:
             state_root = BLANK_ROOT_HASH
     else:
         parent_hash = parent.hash
+        if block_number:
+            raise PyEVMError("block_number cannot be configured if a parent header exists.")
         block_number = BlockNumber(parent.block_number + 1)
 
         if state_root is None:

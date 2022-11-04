@@ -11,10 +11,13 @@ from eth.chains.base import (
     MiningChain,
 )
 from eth.chains.mainnet import MAINNET_VMS
+from eth.exceptions import PyEVMError
 from eth.tools.builder.chain import api
 from eth.tools.factories.transaction import (
     new_transaction
 )
+from eth_typing import BlockNumber
+from eth._utils.headers import fill_header_params_from_parent
 
 
 @pytest.fixture(params=MAINNET_VMS)
@@ -191,3 +194,55 @@ def test_validate_gas_limit_too_high(noproof_consensus_chain):
 
     with pytest.raises(ValidationError, match="[Gg]as limit"):
         vm.validate_header(invalid_header, block1.header)
+
+
+@pytest.mark.parametrize(
+    "custom_header_params,null_parent",
+    (
+        ({
+            'gas_limit': 1,
+            'difficulty': 10,
+            'timestamp': 100,
+            'block_number': 1000
+        }, True),
+        ({
+            'gas_limit': 1,
+            'difficulty': 10,
+            'timestamp': 100,
+        }, False),
+        ({
+            'gas_limit': 1,
+            'difficulty': 10,
+            'timestamp': 100,
+            'block_number': 1000,
+        }, False)
+    )
+)
+def test_fill_header_params_from_parent(custom_header_params, null_parent,
+                                        noproof_consensus_chain):
+    # Handle cases which want to specify a null parent.
+    block = noproof_consensus_chain.mine_block()
+    header = block.header if null_parent is False else None
+
+    # Cannot specify block number and a parent.
+    if 'block_number' in custom_header_params and header is not None:
+        with pytest.raises(PyEVMError, match="block_number cannot be configured if a parent header exists."):
+            new_header_params = fill_header_params_from_parent(header, **custom_header_params)
+        return
+    new_header_params = fill_header_params_from_parent(header, **custom_header_params)
+
+    # Compare fields which are copied no matter what.
+    trivial_fields = ['gas_limit', 'difficulty', 'timestamp']
+    for field in trivial_fields:
+        assert new_header_params[field] == custom_header_params[field]
+
+    # Check `block_number` and `parent_hash` cases.
+    if 'block_number' in custom_header_params:
+        assert new_header_params['block_number'] == custom_header_params['block_number']
+        assert new_header_params['parent_hash'] == constants.GENESIS_PARENT_HASH
+    elif header is None:
+        assert new_header_params['block_number'] == constants.GENESIS_BLOCK_NUMBER
+        assert new_header_params['parent_hash'] == constants.GENESIS_PARENT_HASH
+    else:
+        assert new_header_params['block_number'] == BlockNumber(header['block_number'] + 1)
+        assert new_header_params['parent_hash'] == header.hash
