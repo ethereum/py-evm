@@ -8,6 +8,9 @@ common: &common
   steps:
     - checkout
     - run:
+        name: check openssl version
+        command: dpkg -l | grep " openssl "
+    - run:
         # this is necessary until circleci images begin using openssl>=3.0.7
         name: update openssl.cnf for ripemd160
         command: |
