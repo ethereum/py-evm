@@ -3,6 +3,34 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.6.1-alpha.1 (2022-11-14)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Support for the ``paris`` fork a.k.a. "the merge". (`#2080 <https://github.com/ethereum/py-evm/issues/2080>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Use the ``DIFFICULTY_MINIMUM`` more appropriately as the lower limit in all difficulty calculations. (`#2084 <https://github.com/ethereum/py-evm/issues/2084>`__)
+
+
+Internal Changes - for Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Update towncrier version to remove double headers. (`#2077 <https://github.com/ethereum/py-evm/issues/2077>`__)
+- Update openssl config on circleci builds to re-introduce ``ripemd160`` function by default. (`#2087 <https://github.com/ethereum/py-evm/issues/2087>`__)
+
+
+Miscellaneous internal changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- `#2078 <https://github.com/ethereum/py-evm/issues/2078>`__, `#2082 <https://github.com/ethereum/py-evm/issues/2082>`__, `#2085 <https://github.com/ethereum/py-evm/issues/2085>`__
+
+
 py-evm 0.6.0-alpha.1 (2022-08-22)
 ---------------------------------
 
