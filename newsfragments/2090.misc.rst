@@ -1,1 +1,0 @@
-Remove upper pin on eth-bloom, minor updates to get tox running

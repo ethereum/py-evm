@@ -3,6 +3,15 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.6.1-alpha.2 (2022-12-16)
+---------------------------------
+
+Miscellaneous internal changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- `#2090 <https://github.com/ethereum/py-evm/issues/2090>`__
+
+
 py-evm 0.6.1-alpha.1 (2022-11-14)
 ---------------------------------
 
