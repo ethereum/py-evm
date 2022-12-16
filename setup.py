@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 deps = {
     'eth': [
         "cached-property>=1.5.1,<2",
-        "eth-bloom>=1.0.3,<2.0.0",
+        "eth-bloom>=1.0.3",
         "eth-keys>=0.4.0,<0.5.0",
         "eth-typing>=3.2.0,<4.0.0",
         "eth-utils>=2.0.0,<3.0.0",
@@ -52,7 +52,7 @@ deps = {
         "web3>=4.1.0,<5.0.0",
     ],
     'doc': [
-        "py-evm>=0.2.0-alpha.14",
+        "py-evm>=0.2.0-a.14",
         # We need to have pysha for autodoc to be able to extract API docs
         "pysha3>=1.0.0,<2.0.0",
         "Sphinx>=1.5.5,<2",
