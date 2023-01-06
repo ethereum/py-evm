@@ -72,6 +72,9 @@ from eth.vm.message import (
 from eth.vm.stack import (
     Stack,
 )
+from eth.vm.rstack import (
+    RStack,
+)
 
 
 def NO_RESULT(computation: ComputationAPI) -> None:
@@ -141,6 +144,7 @@ class BaseComputation(Configurable, ComputationAPI):
 
         self._memory = Memory()
         self._stack = Stack()
+        self._rstack = RStack()
         self._gas_meter = self.get_gas_meter()
 
         self.children = []
@@ -321,6 +325,17 @@ class BaseComputation(Configurable, ComputationAPI):
     @cached_property
     def stack_push_bytes(self) -> Callable[[bytes], None]:
         return self._stack.push_bytes
+
+    #
+    # Return Stack Management
+    #
+    @cached_property
+    def rstack_push_int(self) -> Callable[[int], None]:
+        return self._rstack.push_int
+
+    @cached_property
+    def rstack_pop1_int(self) -> Callable[[], int]:
+        return self._rstack.pop1_int
 
     #
     # Computation result

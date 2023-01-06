@@ -25,6 +25,9 @@ from eth.db.chain import (
 from eth.exceptions import (
     InvalidInstruction,
     VMError,
+    InvalidJumpDestination,
+    InsufficientStack,
+    OutOfGas,
 )
 from eth._utils.padding import (
     pad32
@@ -1571,3 +1574,75 @@ def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception
         comp.raise_if_error()
         result = comp.output
         assert result.hex() == output_hex
+
+
+@pytest.mark.parametrize(
+    'vm_class, code, expect_gas_used',
+    (
+        (
+            BerlinVM,
+            '0x60045e005c5d',
+            18,
+        ),
+        (
+            BerlinVM,
+            '0x6800000000000000000c5e005c60115e5d5c5d',
+            36,
+        ),
+        (
+            BerlinVM,
+            '0x6005565c5d5b60035e',
+            30,
+        ),
+    )
+)
+def test_jumpsub(vm_class, code, expect_gas_used):
+    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
+    comp = computation.apply_message(
+        computation.state,
+        computation.msg,
+        computation.transaction_context,
+    )
+    assert comp.is_success
+    assert comp.get_gas_used() == expect_gas_used
+
+
+@pytest.mark.parametrize(
+    'vm_class, code, expected_exception',
+    (
+        (
+            BerlinVM,
+            '0x5d5858',
+            InsufficientStack,
+        ),
+        (
+            BerlinVM,
+            '0x6801000000000000000c5e005c60115e5d5c5d',
+            InvalidJumpDestination,
+        ),
+        (
+            BerlinVM,
+            '0x5c5d00',
+            OutOfGas,
+        ),
+        (  # tests if the opcode raises error when trying to jump to BEGINSUB into pushdata
+            BerlinVM,
+            '0x60055e61005c58',
+            InvalidJumpDestination,
+        ),
+        (  # tests if the opcode raises error when trying to jump to an opcode other than BEGINGSUB
+            BerlinVM,
+            '0x6100055e0058',
+            InvalidJumpDestination,
+        )
+    )
+)
+def test_failing_jumpsub(vm_class, code, expected_exception):
+    computation = setup_computation(vm_class, CANONICAL_ADDRESS_B, decode_hex(code))
+    comp = computation.apply_message(
+        computation.state,
+        computation.msg,
+        computation.transaction_context,
+    )
+    with pytest.raises(expected_exception):
+        comp.raise_if_error()

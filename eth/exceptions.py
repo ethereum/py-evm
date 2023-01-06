@@ -117,7 +117,7 @@ class OutOfGas(VMError):
 
 class InsufficientStack(VMError):
     """
-    Raised when the stack is empty.
+    Raised when the stack or the return stack is empty.
     """
     pass
 
@@ -131,7 +131,7 @@ class FullStack(VMError):
 
 class InvalidJumpDestination(VMError):
     """
-    Raised when the jump destination for a JUMPDEST operation is invalid.
+    Raised when the jump destination for a JUMPDEST or JUMPSUB operation is invalid.
     """
     pass
 

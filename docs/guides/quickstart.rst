@@ -29,11 +29,11 @@ we need to install the ``python3-pip`` package through the following command.
 Installing Python on macOS
 --------------------------
 
-First, install Python 3 with brew:
+First, install Python 3 and LevelDB with brew:
 
 .. code:: sh
 
-  brew install python3
+  brew install python3 leveldb
 
 Installing py-evm
 -----------------

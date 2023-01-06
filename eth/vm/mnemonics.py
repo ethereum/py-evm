@@ -164,6 +164,12 @@ LOG2 = 'LOG2'
 LOG3 = 'LOG3'
 LOG4 = 'LOG4'
 #
+# Subroutines
+#
+BEGINSUB = 'BEGINSUB'
+JUMPSUB = 'JUMPSUB'
+RETURNSUB = 'RETURNSUB'
+#
 # System
 #
 CREATE = 'CREATE'

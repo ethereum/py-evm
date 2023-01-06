@@ -1967,6 +1967,21 @@ class ComputationAPI(ContextManager['ComputationAPI'], StackManipulationAPI):
         ...
 
     #
+    # Return Stack Managemement
+    #
+    @abstractmethod
+    def rstack_push_int(self) -> Callable[[int], None]:
+        """
+        Push integer onto the return stack.
+        """
+
+    @abstractmethod
+    def rstack_pop1_int(self) -> Callable[[int], None]:
+        """
+        Pop integer off the return stack and return it.
+        """
+
+    #
     # Computation result
     #
     @property

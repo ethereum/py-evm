@@ -6,7 +6,10 @@ Thank you for your interest in contributing! We welcome all contributions no mat
 Setting the stage
 ~~~~~~~~~~~~~~~~~
 
-First we need to clone the Py-EVM repository. Py-EVM depends on a submodule of the common tests across all clients, so we need to clone the repo with the ``--recursive`` flag. Example:
+.. note::
+    If it is the first time you install py-evm on macOS, check https://py-evm.readthedocs.io/en/latest/guides/quickstart.html#installing-on-macos
+
+We need to clone the Py-EVM repository. Py-EVM depends on a submodule of the common tests across all clients, so we need to clone the repo with the ``--recursive`` flag. Example:
 
 .. code:: sh
 
