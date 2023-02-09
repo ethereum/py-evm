@@ -75,81 +75,88 @@ jobs:
   py39-native-blockchain-berlin:
     <<: *common
     docker:
-      - image: cimg/python:3.9
+      - image: cimg/python:3.10
         environment:
-          TOXENV: py39-native-blockchain-berlin
-  py39-native-blockchain-byzantium:
+          TOXENV: py310-docs
+
+  py310-native-blockchain-berlin:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-byzantium
-  py39-native-blockchain-constantinople:
+          TOXENV: py310-native-blockchain-berlin
+  py310-native-blockchain-byzantium:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-constantinople
-  py39-native-blockchain-frontier:
+          TOXENV: py310-native-blockchain-byzantium
+  py310-native-blockchain-constantinople:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-frontier
-  py39-native-blockchain-homestead:
+          TOXENV: py310-native-blockchain-constantinople
+  py310-native-blockchain-frontier:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-homestead
-  py39-native-blockchain-istanbul:
+          TOXENV: py310-native-blockchain-frontier
+  py310-native-blockchain-homestead:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-istanbul
-  py39-native-blockchain-london:
+          TOXENV: py310-native-blockchain-homestead
+  py310-native-blockchain-istanbul:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-london
-  py39-native-blockchain-merge:
+          TOXENV: py310-native-blockchain-istanbul
+  py310-native-blockchain-london:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-merge
-  py39-native-blockchain-petersburg:
+          TOXENV: py310-native-blockchain-london
+  py310-native-blockchain-merge:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-petersburg
-  py39-native-blockchain-tangerine_whistle:
+          TOXENV: py310-native-blockchain-merge
+  py310-native-blockchain-petersburg:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-tangerine_whistle
-  py39-native-blockchain-spurious_dragon:
+          TOXENV: py310-native-blockchain-petersburg
+  py310-native-blockchain-tangerine_whistle:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-spurious_dragon
-  py39-native-blockchain-transition:
+          TOXENV: py310-native-blockchain-tangerine_whistle
+  py310-native-blockchain-spurious_dragon:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-transition
-  py39-native-blockchain-shanghai:
+          TOXENV: py310-native-blockchain-spurious_dragon
+  py310-native-blockchain-transition:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-native-blockchain-shanghai
+          TOXENV: py310-native-blockchain-transition
+  py310-native-blockchain-shanghai:
+    <<: *common
+    docker:
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310-native-blockchain-shanghai
 
   py37-core:
     <<: *common
