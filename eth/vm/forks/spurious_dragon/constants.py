@@ -4,4 +4,4 @@ GAS_EXPBYTE_EIP160 = 50
 
 
 # https://github.com/ethereum/EIPs/issues/170
-EIP170_CODE_SIZE_LIMIT = 24577
+EIP170_CODE_SIZE_LIMIT = 24576  # 2**14 + 2**13
