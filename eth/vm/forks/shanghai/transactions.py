@@ -5,25 +5,24 @@ from eth_keys.datatypes import PrivateKey
 from eth._utils.transactions import (
     create_transaction_signature,
 )
-from eth.vm.forks.gray_glacier.transactions import (
-    GrayGlacierLegacyTransaction,
-    GrayGlacierTransactionBuilder,
-    GrayGlacierUnsignedLegacyTransaction,
+from eth.vm.forks.paris.transactions import (
+    ParisLegacyTransaction,
+    ParisTransactionBuilder, ParisUnsignedLegacyTransaction,
 )
 
 
-class ParisLegacyTransaction(GrayGlacierLegacyTransaction, ABC):
+class ShanghaiLegacyTransaction(ParisLegacyTransaction, ABC):
     pass
 
 
-class ParisUnsignedLegacyTransaction(GrayGlacierUnsignedLegacyTransaction):
+class ShanghaiUnsignedLegacyTransaction(ParisUnsignedLegacyTransaction):
     def as_signed_transaction(
         self,
         private_key: PrivateKey,
         chain_id: int = None
     ) -> ParisLegacyTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
-        return ParisLegacyTransaction(
+        return ShanghaiLegacyTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,
             gas=self.gas,
@@ -36,6 +35,6 @@ class ParisUnsignedLegacyTransaction(GrayGlacierUnsignedLegacyTransaction):
         )
 
 
-class ParisTransactionBuilder(GrayGlacierTransactionBuilder):
-    legacy_signed = ParisLegacyTransaction
-    legacy_unsigned = ParisUnsignedLegacyTransaction
+class ShanghaiTransactionBuilder(ParisTransactionBuilder):
+    legacy_signed = ShanghaiLegacyTransaction
+    legacy_unsigned = ShanghaiUnsignedLegacyTransaction

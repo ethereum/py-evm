@@ -11,6 +11,7 @@ from typing import (
     Type,
 )
 
+from eth.vm.forks.shanghai import ShanghaiVM
 from eth_utils.toolz import (
     assoc,
     first,
@@ -145,6 +146,10 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
     elif network == 'Merge':
         return (
             (0, ParisVM),
+        )
+    elif network == "Shanghai":
+        return (
+            (0, ShanghaiVM),
         )
     elif network == 'FrontierToHomesteadAt5':
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)

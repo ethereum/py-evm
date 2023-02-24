@@ -29,7 +29,7 @@ class ShanghaiComputation(ParisComputation):
         self.state.mark_address_warm(self.state.coinbase)
 
     @classmethod
-    def validate_initcode(cls, message):
+    def validate_initcode(cls, message: MessageAPI) -> None:
         initcode_length = len(message.code)
 
         if initcode_length > MAX_INITCODE_SIZE:
@@ -39,7 +39,7 @@ class ShanghaiComputation(ParisComputation):
             )
 
     @classmethod
-    def assess_initcode_gas_cost(cls, computation: ComputationAPI):
+    def assess_initcode_gas_cost(cls, computation: ComputationAPI) -> None:
         initcode_length = len(computation.msg.code)
 
         initcode_gas_cost = INITCODE_WORD_COST * ceil32(initcode_length) // 32

@@ -314,6 +314,7 @@ class Chain(BaseChain):
         # We construct a temporary block object
         vm_class = self.get_vm_class_for_block_number(header.block_number)
         block_class = vm_class.get_block_class()
+
         block = block_class(header=header, uncles=[], transactions=[])
 
         ancestor_generator = iterate(compose(

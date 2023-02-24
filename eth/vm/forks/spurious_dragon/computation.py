@@ -84,12 +84,12 @@ class SpuriousDragonComputation(HomesteadComputation):
             return computation
 
     @classmethod
-    def validate_initcode(cls, message):
+    def validate_initcode(cls, message: MessageAPI) -> None:
         # initcode is not validated until Shanghai hard fork
         pass
 
     @classmethod
-    def assess_initcode_gas_cost(cls, computation):
+    def assess_initcode_gas_cost(cls, computation: ComputationAPI) -> None:
         # initcode does not consume gas until Shanghai hard fork
         pass
 

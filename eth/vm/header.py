@@ -1,6 +1,6 @@
-from eth.vm.forks.london.blocks import LondonBackwardsHeader
+from eth.vm.forks.shanghai.blocks import ShanghaiBackwardsHeader
 
-HeaderSedes = LondonBackwardsHeader
+HeaderSedes = ShanghaiBackwardsHeader
 """
 An RLP codec that can decode *all* known header types.
 

@@ -10,6 +10,7 @@ from typing import (
     cast,
 )
 
+from eth.vm.forks.shanghai.withdrawals import Withdrawal
 from eth_typing import (
     BlockNumber,
     Hash32
@@ -32,7 +33,7 @@ from eth.abc import (
     ReceiptAPI,
     ReceiptDecoderAPI,
     SignedTransactionAPI,
-    TransactionDecoderAPI,
+    TransactionDecoderAPI, WithdrawalAPI,
 )
 from eth.constants import (
     EMPTY_UNCLE_HASH,
@@ -72,7 +73,8 @@ with catch_and_ignore_import_warning():
     )
 
 
-class TransactionKey(rlp.Serializable):
+class BlockDataKey(rlp.Serializable):
+    # used for transactions and withdrawals
     fields = [
         ('block_number', rlp.sedes.big_endian_int),
         ('index', rlp.sedes.big_endian_int),
@@ -259,6 +261,19 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             for index, transaction_hash in enumerate(tx_hashes):
                 cls._add_transaction_to_canonical_chain(db, transaction_hash, header, index)
 
+            # post-shanghai, look for withdrawals
+            if hasattr(block, "withdrawals") and block.withdrawals not in (None, ()):
+                withdrawal_hashes = tuple(
+                    withdrawal.hash for withdrawal in block.withdrawals
+                )
+                for index, withdrawal_hash in enumerate(withdrawal_hashes):
+                    cls._add_withdrawal_to_canonical_chain(
+                        db,
+                        withdrawal_hash,
+                        header,
+                        index,
+                    )
+
         if block.uncles:
             uncles_hash = cls._persist_uncles(db, block.uncles)
         else:
@@ -287,8 +302,31 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         uncles_hash = keccak(rlp.encode(uncles))
         db.set(
             uncles_hash,
-            rlp.encode(uncles, sedes=rlp.sedes.CountableList(HeaderSedes)))
+            rlp.encode(uncles, sedes=rlp.sedes.CountableList(HeaderSedes)),
+        )
         return cast(Hash32, uncles_hash)
+
+    #
+    # Block Data API (Transactions, Receipts, and Withdrawals)
+    #
+    @staticmethod
+    def _get_block_data_from_root_hash(
+        db: DatabaseAPI,
+        block_root_hash: Hash32,
+    ) -> Iterable[Hash32]:
+        """
+        Returns iterable of the encoded items from a root hash in a block. This can be
+        useful for retrieving encoded transactions or withdrawals from the
+        transaction_root or withdrawals_root of a black.
+        """
+        item_db = HexaryTrie(db, root_hash=block_root_hash)
+        for item_idx in itertools.count():
+            item_key = rlp.encode(item_idx)
+            encoded = item_db[item_key]
+            if encoded != b'':
+                yield encoded
+            else:
+                break
 
     #
     # Transaction API
@@ -327,7 +365,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             cls,
             db: DatabaseAPI,
             block_header: BlockHeaderAPI) -> Iterable[Hash32]:
-        all_encoded_transactions = cls._get_block_transaction_data(
+        all_encoded_transactions = cls._get_block_data_from_root_hash(
             db,
             block_header.transaction_root,
         )
@@ -375,7 +413,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                 f"Transaction {encode_hex(transaction_hash)} not found in canonical chain"
             )
 
-        transaction_key = rlp.decode(encoded_key, sedes=TransactionKey)
+        transaction_key = rlp.decode(encoded_key, sedes=BlockDataKey)
         return (transaction_key.block_number, transaction_key.index)
 
     def get_receipt_by_index(self,
@@ -398,20 +436,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                 f"Receipt with index {receipt_index} not found in block"
             )
 
-    @staticmethod
-    def _get_block_transaction_data(db: DatabaseAPI, transaction_root: Hash32) -> Iterable[Hash32]:
-        """
-        Returns iterable of the encoded transactions for the given block header
-        """
-        transaction_db = HexaryTrie(db, root_hash=transaction_root)
-        for transaction_idx in itertools.count():
-            transaction_key = rlp.encode(transaction_idx)
-            encoded = transaction_db[transaction_key]
-            if encoded != b'':
-                yield encoded
-            else:
-                break
-
     @functools.lru_cache(maxsize=32)
     @to_tuple
     def _get_block_transactions(
@@ -421,7 +445,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         """
         Memoizable version of `get_block_transactions`
         """
-        for encoded_transaction in self._get_block_transaction_data(self.db, transaction_root):
+        for encoded_transaction in self._get_block_data_from_root_hash(self.db, transaction_root):
             yield transaction_decoder.decode(encoded_transaction)
 
     @staticmethod
@@ -444,10 +468,79 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         - add lookup from transaction hash to the block number and index that the body is stored at
         - remove transaction hash to body lookup in the pending pool
         """
-        transaction_key = TransactionKey(block_header.block_number, index)
+        transaction_key = BlockDataKey(block_header.block_number, index)
         db.set(
             SchemaV1.make_transaction_hash_to_block_lookup_key(transaction_hash),
             rlp.encode(transaction_key),
+        )
+
+    #
+    # Withdrawals API
+    #
+
+    def persist_withdrawals(
+            self,
+            withdrawals: Tuple[WithdrawalAPI]) -> Hash32:
+        return self._persist_withdrawals(self.db, withdrawals)
+
+    @staticmethod
+    def _persist_withdrawals(
+            db: DatabaseAPI,
+            withdrawals: Tuple[WithdrawalAPI, ...]) -> Hash32:
+
+        withdrawals_root = keccak(rlp.encode(withdrawals))
+        db.set(
+            withdrawals_root,
+            rlp.encode(withdrawals, sedes=rlp.sedes.CountableList(Withdrawal)),
+        )
+        return cast(Hash32, withdrawals_root)
+
+    def get_block_withdrawals(
+        self,
+        header: BlockHeaderAPI,
+    ) -> Tuple[WithdrawalAPI, ...]:
+        return self._get_block_withdrawals(header.withdrawals_root)
+
+    @functools.lru_cache(maxsize=32)
+    @to_tuple
+    def _get_block_withdrawals(
+        self,
+        withdrawals_root: Hash32,
+    ) -> Iterable[WithdrawalAPI]:
+        """
+        Memoizable version of `get_block_withdrawals`
+        """
+        for encoded_withdrawal in self._get_block_data_from_root_hash(
+            self.db,
+            withdrawals_root,
+        ):
+            yield rlp.decode(encoded_withdrawal, sedes=Withdrawal)
+
+    @classmethod
+    @to_tuple
+    def _get_block_withdrawal_hashes(
+        cls,
+        db: DatabaseAPI,
+        block_header: BlockHeaderAPI
+    ) -> Iterable[Hash32]:
+        all_encoded_withdrawals = cls._get_block_data_from_root_hash(
+            db,
+            block_header.withdrawals_root,
+        )
+        for encoded_withdrawal in all_encoded_withdrawals:
+            yield cast(Hash32, keccak(encoded_withdrawal))
+
+    @staticmethod
+    def _add_withdrawal_to_canonical_chain(
+        db: DatabaseAPI,
+        withdrawal_hash: Hash32,
+        block_header: BlockHeaderAPI,
+        index: int
+    ) -> None:
+        withdrawal_key = BlockDataKey(block_header.block_number, index)
+        db.set(
+            SchemaV1.make_withdrawal_hash_to_block_lookup_key(withdrawal_hash),
+            rlp.encode(withdrawal_key),
         )
 
     #

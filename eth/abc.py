@@ -133,6 +133,16 @@ class MiningHeaderAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def withdrawals_root(self) -> Optional[Hash32]:
+        """
+        Return the withdrawals root of the block.
+
+        Set to None in pre-Shanghai header.
+        """
+        ...
+
 
 class BlockHeaderSedesAPI(ABC):
     """
@@ -708,21 +718,81 @@ class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
         ...
 
 
+class WithdrawalAPI(ABC):
+    """
+    A class to define a withdrawal.
+    """
+
+    @property
+    @abstractmethod
+    def index(self) -> int:
+        """
+        A monotonically increasing index, starting from 0, that increments by 1 per
+        withdrawal to uniquely identify each withdrawal.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def validator_index(self) -> int:
+        """
+        The index for the validator on the consensus layer the withdrawal corresponds
+        to.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def address(self) -> Address:
+        """
+        The recipient address for the withdrawn ether.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def amount(self) -> int:
+        """
+        The nonzero amount of ether to withdraw, given in gwei (10**9 wei).
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def hash(self) -> Hash32:
+        """
+        Return the hash of the withdrawal.
+        """
+        ...
+
+    @abstractmethod
+    def encode(self) -> bytes:
+        """
+        Return the encoded withdrawal.
+        """
+        ...
+
+
 class BlockAPI(ABC):
     """
     A class to define a block.
     """
     header: BlockHeaderAPI
     transactions: Tuple[SignedTransactionAPI, ...]
+    uncles: Tuple[BlockHeaderAPI, ...]
+    withdrawals: Tuple[WithdrawalAPI, ...]
+
     transaction_builder: Type[TransactionBuilderAPI] = None
     receipt_builder: Type[ReceiptBuilderAPI] = None
-    uncles: Tuple[BlockHeaderAPI, ...]
 
     @abstractmethod
-    def __init__(self,
-                 header: BlockHeaderAPI,
-                 transactions: Sequence[SignedTransactionAPI],
-                 uncles: Sequence[BlockHeaderAPI]):
+    def __init__(
+        self,
+        header: BlockHeaderAPI,
+        transactions: Sequence[SignedTransactionAPI],
+        uncles: Sequence[BlockHeaderAPI],
+        withdrawals: Sequence[WithdrawalAPI] = None,  # only present post-Shanghai
+    ) -> None:
         ...
 
     @classmethod
@@ -891,6 +961,14 @@ class SchemaAPI(ABC):
     def make_transaction_hash_to_block_lookup_key(transaction_hash: Hash32) -> bytes:
         """
         Return the lookup key to retrieve a transaction key from a transaction hash.
+        """
+        ...
+
+    @staticmethod
+    @abstractmethod
+    def make_withdrawal_hash_to_block_lookup_key(withdrawal_hash: Hash32) -> bytes:
+        """
+        Return the lookup key to retrieve a withdrawal key from a withdrawal hash.
         """
         ...
 
@@ -1219,6 +1297,21 @@ class ChainDatabaseAPI(HeaderDatabaseAPI):
 
         Raise ``TransactionNotFound`` if the transaction_hash is not found in the
         canonical chain.
+        """
+        ...
+
+    #
+    # Withdrawals API
+    #
+
+    @abstractmethod
+    def get_block_withdrawals(
+        self,
+        block_header: BlockHeaderAPI,
+    ) -> Tuple[WithdrawalAPI, ...]:
+        """
+        Return an iterable of withdrawals for the block specified by the
+        given block header.
         """
         ...
 
@@ -3038,6 +3131,19 @@ class StateAPI(ConfigurableAPI):
         """
         Return the :class:`~eth.abc.TransactionContextAPI` for the given ``transaction``
         """
+        ...
+
+    #
+    # Withdrawals
+    #
+    def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:
+        ...
+
+    def apply_all_withdrawals(
+        self,
+        withdrawals: Sequence[WithdrawalAPI],
+        base_header: BlockHeaderAPI,
+    ) -> None:
         ...
 
 

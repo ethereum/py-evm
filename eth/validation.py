@@ -275,6 +275,7 @@ ALLOWED_HEADER_FIELDS = {
     'uncles_hash',
     'transaction_root',
     'receipt_root',
+    'withdrawals_root',
 }
 
 

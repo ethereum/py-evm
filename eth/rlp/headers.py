@@ -1,4 +1,5 @@
 from typing import (
+    Optional,
     cast,
     overload,
 )
@@ -178,3 +179,7 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
     @property
     def base_fee_per_gas(self) -> int:
         raise AttributeError("Base fee per gas not available until London fork")
+
+    @property
+    def withdrawals_root(self) -> Optional[Hash32]:
+        raise AttributeError("Withdrawals root not available until Shanghai fork")
