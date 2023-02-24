@@ -65,6 +65,13 @@ class ReceiptNotFound(PyEVMError):
     pass
 
 
+class WithdrawalNotFound(PyEVMError):
+    """
+    Raised when the withdrawal with the given hash or block index does not exist.
+    """
+    pass
+
+
 class ParentNotFound(HeaderNotFound):
     """
     Raised when the parent of a given block does not exist.

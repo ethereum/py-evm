@@ -43,7 +43,7 @@ from eth.abc import (
     StateAPI,
     TransactionBuilderAPI,
     UnsignedTransactionAPI,
-    VirtualMachineAPI,
+    VirtualMachineAPI, WithdrawalAPI,
 )
 from eth.consensus.pow import (
     PowConsensus,
@@ -242,17 +242,25 @@ class VM(Configurable, VirtualMachineAPI):
             transaction_context,
         )
 
+    def _validate_header_before_apply(
+        self,
+        base_header: BlockHeaderAPI,
+        vm_header: BlockHeaderAPI,
+    ) -> None:
+        if base_header.block_number != vm_header.block_number:
+            raise ValidationError(
+                "This VM instance must only work on block "
+                f"#{self.get_header().block_number}, but the target header has block "
+                f"#{base_header.block_number}"
+            )
+
     def apply_all_transactions(
         self,
         transactions: Sequence[SignedTransactionAPI],
         base_header: BlockHeaderAPI
     ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         vm_header = self.get_header()
-        if base_header.block_number != vm_header.block_number:
-            raise ValidationError(
-                f"This VM instance must only work on block #{self.get_header().block_number}, "
-                f"but the target header has block #{base_header.block_number}"
-            )
+        self._validate_header_before_apply(base_header, vm_header)
 
         receipts = []
         computations = []
@@ -290,6 +298,26 @@ class VM(Configurable, VirtualMachineAPI):
         return result_header, receipts_tuple, computations_tuple
 
     #
+    # Withdrawals
+    #
+    def apply_withdrawal(
+        self,
+        withdrawal: WithdrawalAPI,
+    ) -> None:
+        self.state.apply_withdrawal(withdrawal)
+
+    def apply_all_withdrawals(
+        self,
+        withdrawals: Sequence[WithdrawalAPI],
+        base_header: BlockHeaderAPI,
+    ) -> None:
+        vm_header = self.get_header()
+        self._validate_header_before_apply(base_header, vm_header)
+
+        for withdrawal in withdrawals:
+            self.apply_withdrawal(withdrawal)
+
+    #
     # Importing blocks
     #
     def import_block(self, block: BlockAPI) -> BlockAndMetaWitness:
@@ -299,27 +327,36 @@ class VM(Configurable, VirtualMachineAPI):
                 f" the attempted block was #{block.number}"
             )
 
-        self._block = self.get_block().copy(
-            header=self.configure_header(
-                coinbase=block.header.coinbase,
-                difficulty=block.header.difficulty,
-                gas_limit=block.header.gas_limit,
-                timestamp=block.header.timestamp,
-                extra_data=block.header.extra_data,
-                mix_hash=block.header.mix_hash,
-                nonce=block.header.nonce,
-                uncles_hash=keccak(rlp.encode(block.uncles)),
-            ),
-            uncles=block.uncles,
-        )
+        header_params = {
+            "coinbase": block.header.coinbase,
+            "difficulty": block.header.difficulty,
+            "gas_limit": block.header.gas_limit,
+            "timestamp": block.header.timestamp,
+            "extra_data": block.header.extra_data,
+            "mix_hash": block.header.mix_hash,
+            "nonce": block.header.nonce,
+            "uncles_hash": keccak(rlp.encode(block.uncles)),
+        }
+
+        block_params = {
+            "header": self.configure_header(**header_params),
+            "uncles": block.uncles,
+        }
+
+        if hasattr(block, "withdrawals"):
+            # post-shanghai blocks
+            block_params["withdrawals"] = block.withdrawals
+
+        self._block = self.get_block().copy(**block_params)
 
         execution_context = self.create_execution_context(
             block.header, self.previous_hashes, self.chain_context
         )
 
-        # Zero out the gas_used before applying transactions. Each applied transaction will
-        #   increase the gas used in the final new_header.
+        # Zero out the gas_used before applying transactions. Each applied transaction
+        # will increase the gas used in the final new_header.
         header = self.get_header().copy(gas_used=0)
+
         # we need to re-initialize the `state` to update the execution context.
         self._state = self.get_state_class()(self.chaindb.db, execution_context, header.state_root)
 
@@ -332,6 +369,22 @@ class VM(Configurable, VirtualMachineAPI):
             block.transactions,
             receipts,
         )
+
+        if hasattr(block, "withdrawals") and block.withdrawals not in (None, ()):
+            self.apply_all_withdrawals(block_with_transactions.withdrawals, header)
+
+            withdrawals_root_hash, withdrawal_kv_nodes = make_trie_root_and_nodes(
+                block.withdrawals
+            )
+            self.chaindb.persist_trie_data_dict(withdrawal_kv_nodes)
+
+            block_with_withdrawals = block_with_transactions.copy(
+                withdrawals=block.withdrawals,
+                header=block_with_transactions.header.copy(
+                    withdrawals_root=withdrawals_root_hash,
+                ),
+            )
+            return self.mine_block(block_with_withdrawals)
 
         return self.mine_block(block_with_transactions)
 
@@ -440,6 +493,7 @@ class VM(Configurable, VirtualMachineAPI):
             )
 
         header: BlockHeaderAPI = block.header.copy(**kwargs)
+
         packed_block = block.copy(uncles=uncles, header=header)
 
         return packed_block

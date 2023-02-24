@@ -5,6 +5,7 @@ import pytest
 import rlp
 
 from eth.exceptions import UnrecognizedTransactionType
+from eth.vm.forks.shanghai.transactions import ShanghaiTransactionBuilder
 from eth_utils import (
     is_same_address,
     to_tuple,
@@ -136,6 +137,8 @@ def fixture_transaction_class(fixture_data):
     elif fork_name == "Merge":
         # EL fork name is Paris, `ethereum/tests` calls the Network "Merge"
         return ParisTransactionBuilder
+    elif fork_name == "Shanghai":
+        return ShanghaiTransactionBuilder
     else:
         raise ValueError(f"Unknown Fork Name: {fork_name}")
 

@@ -1,6 +1,7 @@
 import datetime
 from typing import (
     Dict,
+    Optional,
     Tuple,
 )
 
@@ -34,7 +35,7 @@ def eth_now() -> int:
     return int(datetime.datetime.utcnow().timestamp())
 
 
-def new_timestamp_from_parent(parent: BlockHeaderAPI) -> int:
+def new_timestamp_from_parent(parent: Optional[BlockHeaderAPI]) -> int:
     """
     Generate a timestamp to use on a new header.
 

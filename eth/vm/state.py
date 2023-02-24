@@ -1,7 +1,7 @@
 import contextlib
 from typing import (
     Iterator,
-    Tuple,
+    Sequence, Tuple,
     Type,
 )
 
@@ -19,14 +19,14 @@ from eth_utils.toolz import nth
 from eth.abc import (
     AccountDatabaseAPI,
     AtomicDatabaseAPI,
-    ComputationAPI,
+    BlockHeaderAPI, ComputationAPI,
     ExecutionContextAPI,
     MessageAPI,
     SignedTransactionAPI,
     StateAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
-    MetaWitnessAPI,
+    MetaWitnessAPI, WithdrawalAPI,
 )
 from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
@@ -289,6 +289,26 @@ class BaseState(Configurable, StateAPI):
             gas_price=transaction.gas_price,
             origin=transaction.sender,
         )
+
+    #
+    # Withdrawals
+    #
+
+    def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:
+        pass
+        # raise NotImplementedError(
+        #     "Withdrawals not implemented until the Shanghai hard fork."
+        # )
+
+    def apply_all_withdrawals(
+        self,
+        withdrawals: Sequence[WithdrawalAPI],
+        base_header: BlockHeaderAPI,
+    ) -> None:
+        pass
+        # raise NotImplementedError(
+        #     "Withdrawals not implemented until the Shanghai hard fork."
+        # )
 
 
 class BaseTransactionExecutor(TransactionExecutorAPI):

@@ -10,17 +10,19 @@ from eth_typing import Hash32
 
 from eth.abc import (
     ReceiptAPI,
-    SignedTransactionAPI,
+    SignedTransactionAPI, WithdrawalAPI,
 )
 from eth.constants import (
     BLANK_ROOT_HASH,
 )
 
-TransactionsOrReceipts = Union[Sequence[ReceiptAPI], Sequence[SignedTransactionAPI]]
+BlockRootData = Union[
+    Sequence[ReceiptAPI], Sequence[SignedTransactionAPI], Sequence[WithdrawalAPI]
+]
 TrieRootAndData = Tuple[Hash32, Dict[Hash32, bytes]]
 
 
-def make_trie_root_and_nodes(items: TransactionsOrReceipts) -> TrieRootAndData:
+def make_trie_root_and_nodes(items: BlockRootData) -> TrieRootAndData:
     return _make_trie_root_and_nodes(tuple(item.encode() for item in items))
 
 
