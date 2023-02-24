@@ -43,7 +43,9 @@ class SpuriousDragonComputation(HomesteadComputation):
         # EIP161 nonce incrementation
         state.increment_nonce(message.storage_address)
 
+        cls.validate_initcode(message)
         computation = cls.apply_message(state, message, transaction_context)
+        cls.assess_initcode_gas_cost(computation)
 
         if computation.is_error:
             state.revert(snapshot)
@@ -82,8 +84,18 @@ class SpuriousDragonComputation(HomesteadComputation):
             return computation
 
     @classmethod
+    def validate_initcode(cls, message):
+        # initcode is not validated until Shanghai hard fork
+        pass
+
+    @classmethod
+    def assess_initcode_gas_cost(cls, computation):
+        # initcode does not consume gas until Shanghai hard fork
+        pass
+
+    @classmethod
     def validate_contract_code(cls, contract_code: bytes) -> None:
-        if len(contract_code) >= EIP170_CODE_SIZE_LIMIT:
+        if len(contract_code) > EIP170_CODE_SIZE_LIMIT:
             raise OutOfGas(
                 f"Contract code size exceeds EIP170 limit of {EIP170_CODE_SIZE_LIMIT}."
                 f"  Got code of size: {len(contract_code)}"

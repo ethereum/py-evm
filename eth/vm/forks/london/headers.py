@@ -134,7 +134,7 @@ def create_london_header_from_parent(
 
 
 compute_london_difficulty = compute_difficulty(9700000)
-configure_london_header = configure_header(compute_london_difficulty)
+configure_london_header = configure_header(difficulty_fn=compute_london_difficulty)
 
 
 class LondonBackwardsHeader(BlockHeaderSedesAPI):

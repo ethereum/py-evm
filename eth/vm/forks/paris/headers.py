@@ -36,7 +36,6 @@ def _validate_and_return_paris_header_param(
 
 @curry
 def create_paris_header_from_parent(
-    _difficulty_fn: Callable[[BlockHeaderAPI, int], int],
     parent_header: Optional[BlockHeaderAPI],
     **header_params: Any,
 ) -> BlockHeaderAPI:
@@ -63,4 +62,4 @@ def create_paris_header_from_parent(
     return ParisBlockHeader(**all_fields)
 
 
-configure_paris_header = configure_header(POST_MERGE_DIFFICULTY)
+configure_paris_header = configure_header()

@@ -85,6 +85,7 @@ REVERT = 'REVERT'
 #
 # Push Operations
 #
+PUSH0 = 'PUSH0'
 PUSH1 = 'PUSH1'
 PUSH2 = 'PUSH2'
 PUSH3 = 'PUSH3'
