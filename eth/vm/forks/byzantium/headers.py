@@ -92,9 +92,11 @@ def create_header_from_parent(difficulty_fn: Callable[[BlockHeaderAPI, int], int
 
 
 @curry
-def configure_header(difficulty_fn: Callable[[BlockHeaderAPI, int], int],
-                     vm: VirtualMachineAPI,
-                     **header_params: Any) -> BlockHeaderAPI:
+def configure_header(
+    vm: VirtualMachineAPI,
+    difficulty_fn: Callable[[BlockHeaderAPI, int], int] = None,
+    **header_params: Any,
+) -> BlockHeaderAPI:
     validate_header_params_for_configuration(header_params)
 
     with vm.get_header().build_changeset(**header_params) as changeset:
@@ -102,8 +104,8 @@ def configure_header(difficulty_fn: Callable[[BlockHeaderAPI, int], int],
             'timestamp' in header_params
             and changeset.block_number > 0
 
-            # check that we are pre-PoS and not using a constant for the difficulty
-            and not isinstance(difficulty_fn, int)
+            # post-POS does not use difficulty_fn
+            and difficulty_fn is not None
         ):
             parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
             changeset.difficulty = difficulty_fn(
@@ -117,4 +119,4 @@ def configure_header(difficulty_fn: Callable[[BlockHeaderAPI, int], int],
 
 compute_byzantium_difficulty = compute_difficulty(3000000)
 create_byzantium_header_from_parent = create_header_from_parent(compute_byzantium_difficulty)
-configure_byzantium_header = configure_header(compute_byzantium_difficulty)
+configure_byzantium_header = configure_header(difficulty_fn=compute_byzantium_difficulty)

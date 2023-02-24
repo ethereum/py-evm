@@ -17,7 +17,7 @@ from eth.vm.forks.byzantium.headers import (
 )
 
 compute_arrow_glacier_difficulty = compute_difficulty(10_700_000)
-configure_arrow_glacier_header = configure_header(compute_arrow_glacier_difficulty)
+configure_arrow_glacier_header = configure_header(difficulty_fn=compute_arrow_glacier_difficulty)
 
 
 @curry

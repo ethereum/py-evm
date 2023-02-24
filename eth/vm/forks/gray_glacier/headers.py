@@ -19,7 +19,7 @@ from eth.vm.forks.byzantium.headers import (
 )
 
 compute_gray_glacier_difficulty = compute_difficulty(11_400_000)
-configure_gray_glacier_header = configure_header(compute_gray_glacier_difficulty)
+configure_gray_glacier_header = configure_header(difficulty_fn=compute_gray_glacier_difficulty)
 
 
 @curry

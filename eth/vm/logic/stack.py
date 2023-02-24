@@ -22,6 +22,7 @@ def push_XX(computation: BaseComputation, size: int) -> None:
         computation.stack_push_bytes(padded_value)
 
 
+push0 = functools.partial(push_XX, size=0)
 push1 = functools.partial(push_XX, size=1)
 push2 = functools.partial(push_XX, size=2)
 push3 = functools.partial(push_XX, size=3)

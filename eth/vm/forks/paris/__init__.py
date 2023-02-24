@@ -35,7 +35,7 @@ class ParisVM(GrayGlacierVM):
 
     # Methods
     create_header_from_parent = staticmethod(  # type: ignore
-        create_paris_header_from_parent(POST_MERGE_DIFFICULTY)
+        create_paris_header_from_parent()
     )
     configure_header = configure_paris_header
 
