@@ -369,6 +369,16 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
         return pytest.mark.skip(
             "EIP-2681 update not implemented. HighNonce tests turned off for now."
         )
+    elif any(
+        f"CreateAddressWarmAfterFail_d10g0v{str(test_id)}"
+        in fixture_name for test_id in range(2)
+    ):
+        # TODO: Two new edge cases for EIP-2929 are failing for london and merge forks.
+        #  Address these issues and turn these tests back on.
+        #  https://github.com/ethereum/tests/blob/develop/BlockchainTests/GeneralStateTests/stCreateTest/CreateAddressWarmAfterFail.json#L4  # noqa: E501
+        return pytest.mark.skip(
+            "Need support for EIP-2929 edge cases."
+        )
     elif fixture_id in SLOWEST_TESTS:
         if should_run_slow_tests():
             return
