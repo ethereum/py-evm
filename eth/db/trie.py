@@ -10,7 +10,8 @@ from eth_typing import Hash32
 
 from eth.abc import (
     ReceiptAPI,
-    SignedTransactionAPI, WithdrawalAPI,
+    SignedTransactionAPI,
+    WithdrawalAPI,
 )
 from eth.constants import (
     BLANK_ROOT_HASH,

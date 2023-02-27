@@ -1,6 +1,7 @@
 from typing import (
     List,
-    Optional, Type,
+    Optional,
+    Type,
     cast,
 )
 
