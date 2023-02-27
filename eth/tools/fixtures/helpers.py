@@ -195,6 +195,12 @@ def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[
             (0, GrayGlacierVM),
             (6, ParisVM),
         )
+    elif network == "MergeToShanghaiAtTime15k":
+        # Transition expected at 5 (timestamp==15000) for all tests written thus far
+        return (
+            (0, ParisVM),
+            (5, ShanghaiVM),
+        )
 
     else:
         raise ValueError(f"Network {network} does not match any known VM rules")
