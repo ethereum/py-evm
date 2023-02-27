@@ -10,7 +10,9 @@ from typing import (
     cast,
 )
 
-from eth.vm.forks.shanghai.withdrawals import Withdrawal
+from eth.vm.forks.shanghai.withdrawals import (
+    Withdrawal,
+)
 from eth_typing import (
     BlockNumber,
     Hash32
@@ -33,7 +35,8 @@ from eth.abc import (
     ReceiptAPI,
     ReceiptDecoderAPI,
     SignedTransactionAPI,
-    TransactionDecoderAPI, WithdrawalAPI,
+    TransactionDecoderAPI,
+    WithdrawalAPI,
 )
 from eth.constants import (
     EMPTY_UNCLE_HASH,
@@ -317,7 +320,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
         """
         Returns iterable of the encoded items from a root hash in a block. This can be
         useful for retrieving encoded transactions or withdrawals from the
-        transaction_root or withdrawals_root of a black.
+        transaction_root or withdrawals_root of a block.
         """
         item_db = HexaryTrie(db, root_hash=block_root_hash)
         for item_idx in itertools.count():
@@ -477,24 +480,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     #
     # Withdrawals API
     #
-
-    def persist_withdrawals(
-            self,
-            withdrawals: Tuple[WithdrawalAPI]) -> Hash32:
-        return self._persist_withdrawals(self.db, withdrawals)
-
-    @staticmethod
-    def _persist_withdrawals(
-            db: DatabaseAPI,
-            withdrawals: Tuple[WithdrawalAPI, ...]) -> Hash32:
-
-        withdrawals_root = keccak(rlp.encode(withdrawals))
-        db.set(
-            withdrawals_root,
-            rlp.encode(withdrawals, sedes=rlp.sedes.CountableList(Withdrawal)),
-        )
-        return cast(Hash32, withdrawals_root)
-
     def get_block_withdrawals(
         self,
         header: BlockHeaderAPI,
@@ -515,20 +500,6 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             withdrawals_root,
         ):
             yield rlp.decode(encoded_withdrawal, sedes=Withdrawal)
-
-    @classmethod
-    @to_tuple
-    def _get_block_withdrawal_hashes(
-        cls,
-        db: DatabaseAPI,
-        block_header: BlockHeaderAPI
-    ) -> Iterable[Hash32]:
-        all_encoded_withdrawals = cls._get_block_data_from_root_hash(
-            db,
-            block_header.withdrawals_root,
-        )
-        for encoded_withdrawal in all_encoded_withdrawals:
-            yield cast(Hash32, keccak(encoded_withdrawal))
 
     @staticmethod
     def _add_withdrawal_to_canonical_chain(

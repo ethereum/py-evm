@@ -43,7 +43,8 @@ from eth.abc import (
     StateAPI,
     TransactionBuilderAPI,
     UnsignedTransactionAPI,
-    VirtualMachineAPI, WithdrawalAPI,
+    VirtualMachineAPI,
+    WithdrawalAPI,
 )
 from eth.consensus.pow import (
     PowConsensus,
