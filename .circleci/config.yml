@@ -135,6 +135,12 @@ jobs:
       - image: cimg/python:3.9
         environment:
           TOXENV: py39-native-blockchain-transition
+  py39-native-blockchain-shanghai:
+    <<: *common
+    docker:
+      - image: cimg/python:3.9
+        environment:
+          TOXENV: py39-native-blockchain-shanghai
 
   py39-docs:
     <<: *common
@@ -270,6 +276,7 @@ workflows:
       - py39-native-blockchain-tangerine_whistle
       - py39-native-blockchain-spurious_dragon
       - py39-native-blockchain-transition
+      - py39-native-blockchain-shanghai
       - py37-vm
       - py38-vm
       - py39-vm
