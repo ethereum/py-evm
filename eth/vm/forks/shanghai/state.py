@@ -22,9 +22,5 @@ class ShanghaiState(ParisState):
         amount_in_wei = withdrawal.amount * 10 ** 9
         self.delta_balance(withdrawal.address, amount_in_wei)
 
-        # delete account if it is empty
-        if (
-            self.get_balance(withdrawal.address) == 0
-            and self.get_code(withdrawal.address) == b''
-        ):
+        if self.account_is_empty(withdrawal.address):
             self.delete_account(withdrawal.address)
