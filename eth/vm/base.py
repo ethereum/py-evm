@@ -316,6 +316,9 @@ class VM(Configurable, VirtualMachineAPI):
         self._validate_header_before_apply(base_header, vm_header)
 
         for withdrawal in withdrawals:
+            # validate withdrawal fields
+            withdrawal.validate()
+
             self.apply_withdrawal(withdrawal)
 
     #

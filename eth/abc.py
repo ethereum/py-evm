@@ -766,6 +766,13 @@ class WithdrawalAPI(ABC):
         ...
 
     @abstractmethod
+    def validate(self) -> None:
+        """
+        Validate withdrawal fields.
+        """
+        ...
+
+    @abstractmethod
     def encode(self) -> bytes:
         """
         Return the encoded withdrawal.
