@@ -31,6 +31,7 @@ from .builders import (  # noqa: F401
     arrow_glacier_at,
     gray_glacier_at,
     paris_at,
+    shanghai_at,
     latest_mainnet_at,
 )
 
@@ -51,6 +52,7 @@ mining_mainnet_fork_at_fns = (
 )
 pos_mainnet_fork_at_fns = (
     paris_at,
+    shanghai_at,
 )
 mainnet_fork_at_fns = mining_mainnet_fork_at_fns + pos_mainnet_fork_at_fns
 
@@ -86,6 +88,7 @@ class API:
     arrow_glacier_at = staticmethod(arrow_glacier_at)
     gray_glacier_at = staticmethod(gray_glacier_at)
     paris_at = staticmethod(paris_at)
+    shanghai_at = staticmethod(shanghai_at)
 
     # iterable of the fork specific functions
     mainnet_fork_at_fns = mainnet_fork_at_fns

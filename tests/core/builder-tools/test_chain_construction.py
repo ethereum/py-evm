@@ -25,6 +25,7 @@ from eth.tools.builder.chain import (
     name,
     paris_at,
     petersburg_at,
+    shanghai_at,
     spurious_dragon_at,
     tangerine_whistle_at,
 )
@@ -43,6 +44,7 @@ from eth.vm.forks import (
     ArrowGlacierVM,
     GrayGlacierVM,
     ParisVM,
+    ShanghaiVM,
 )
 
 
@@ -100,7 +102,8 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (arrow_glacier_at, ArrowGlacierVM),
         (gray_glacier_at, GrayGlacierVM),
         (paris_at, ParisVM),
-        (latest_mainnet_at, ParisVM),  # this will change whenever the next upgrade is locked
+        (shanghai_at, ShanghaiVM),
+        (latest_mainnet_at, ShanghaiVM),  # this will change whenever the next upgrade is locked
     )
 )
 def test_chain_builder_construct_chain_fork_specific_helpers(fork_fn, vm_class):
