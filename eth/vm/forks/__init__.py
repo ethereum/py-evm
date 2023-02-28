@@ -40,3 +40,6 @@ from .gray_glacier import (  # noqa: F401
 from .paris import (  # noqa: F401
     ParisVM,
 )
+from .shanghai import (  # noqa: F401
+    ShanghaiVM,
+)

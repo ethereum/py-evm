@@ -49,6 +49,7 @@ from eth.vm.forks import (
     MuirGlacierVM,
     ParisVM,
     PetersburgVM,
+    ShanghaiVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
 )
@@ -126,6 +127,7 @@ MINING_MAINNET_VMS = (
 )
 POS_MAINNET_VMS = (
     ParisVM,
+    ShanghaiVM,
 )
 
 MAINNET_VMS = MINING_MAINNET_VMS + POS_MAINNET_VMS

@@ -11,7 +11,6 @@ from typing import (
     Type,
 )
 
-from eth.vm.forks.shanghai import ShanghaiVM
 from eth_utils.toolz import (
     assoc,
     first,
@@ -55,6 +54,7 @@ from eth.vm.forks import (
     LondonVM,
     GrayGlacierVM,
     ParisVM,
+    ShanghaiVM,
 )
 
 
