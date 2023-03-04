@@ -7,7 +7,8 @@ from eth._utils.transactions import (
 )
 from eth.vm.forks.paris.transactions import (
     ParisLegacyTransaction,
-    ParisTransactionBuilder, ParisUnsignedLegacyTransaction,
+    ParisTransactionBuilder,
+    ParisUnsignedLegacyTransaction,
 )
 
 
@@ -20,7 +21,7 @@ class ShanghaiUnsignedLegacyTransaction(ParisUnsignedLegacyTransaction):
         self,
         private_key: PrivateKey,
         chain_id: int = None
-    ) -> ParisLegacyTransaction:
+    ) -> ShanghaiLegacyTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return ShanghaiLegacyTransaction(
             nonce=self.nonce,

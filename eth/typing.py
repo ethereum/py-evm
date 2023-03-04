@@ -26,7 +26,12 @@ from mypy_extensions import (
 )
 
 if TYPE_CHECKING:
-    from eth.abc import VirtualMachineAPI  # noqa: F401
+    from eth.abc import (  # noqa: F401
+        BlockHeaderAPI,
+        SignedTransactionAPI,
+        VirtualMachineAPI,
+        WithdrawalAPI,
+    )
 
 
 JournalDBCheckpoint = NewType('JournalDBCheckpoint', int)
@@ -38,8 +43,15 @@ AccountDetails = TypedDict('AccountDetails',
                             'storage': Dict[int, int]
                             })
 AccountState = Dict[Address, AccountDetails]
-
 AccountDiff = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
+
+
+class Block(TypedDict, total=False):
+    header: "BlockHeaderAPI"
+    transactions: Sequence["SignedTransactionAPI"]
+    uncles: Sequence["BlockHeaderAPI"]
+    withdrawals: Sequence["WithdrawalAPI"]
+
 
 BlockRange = Tuple[BlockNumber, BlockNumber]
 

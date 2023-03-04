@@ -20,7 +20,6 @@ from eth_utils.toolz import nth
 from eth.abc import (
     AccountDatabaseAPI,
     AtomicDatabaseAPI,
-    BlockHeaderAPI,
     ComputationAPI,
     ExecutionContextAPI,
     MessageAPI,
@@ -301,11 +300,7 @@ class BaseState(Configurable, StateAPI):
         # withdrawals not implemented until the Shanghai hard fork
         pass
 
-    def apply_all_withdrawals(
-        self,
-        withdrawals: Sequence[WithdrawalAPI],
-        base_header: BlockHeaderAPI,
-    ) -> None:
+    def apply_all_withdrawals(self, withdrawals: Sequence[WithdrawalAPI]) -> None:
         # withdrawals not implemented until the Shanghai hard fork
         pass
 

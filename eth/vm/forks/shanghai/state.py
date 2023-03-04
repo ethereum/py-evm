@@ -21,6 +21,3 @@ class ShanghaiState(ParisState):
         # withdrawal amount is in gwei, convert to wei
         amount_in_wei = withdrawal.amount * 10 ** 9
         self.delta_balance(withdrawal.address, amount_in_wei)
-
-        if self.account_is_empty(withdrawal.address):
-            self.delete_account(withdrawal.address)
