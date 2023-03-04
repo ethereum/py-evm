@@ -2,6 +2,7 @@ import contextlib
 import itertools
 import logging
 from typing import (
+    List, TYPE_CHECKING,
     Any,
     ClassVar,
     Iterable,
@@ -84,6 +85,11 @@ from eth.vm.interrupt import (
 from eth.vm.message import (
     Message,
 )
+
+if TYPE_CHECKING:
+    from eth.typing import (  # noqa: F401
+        Block,
+    )
 
 
 class VM(Configurable, VirtualMachineAPI):
@@ -243,25 +249,17 @@ class VM(Configurable, VirtualMachineAPI):
             transaction_context,
         )
 
-    def _validate_header_before_apply(
-        self,
-        base_header: BlockHeaderAPI,
-        vm_header: BlockHeaderAPI,
-    ) -> None:
-        if base_header.block_number != vm_header.block_number:
-            raise ValidationError(
-                "This VM instance must only work on block "
-                f"#{self.get_header().block_number}, but the target header has block "
-                f"#{base_header.block_number}"
-            )
-
     def apply_all_transactions(
         self,
         transactions: Sequence[SignedTransactionAPI],
         base_header: BlockHeaderAPI
     ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         vm_header = self.get_header()
-        self._validate_header_before_apply(base_header, vm_header)
+        if base_header.block_number != vm_header.block_number:
+            raise ValidationError(
+                f"This VM instance must only work on block #{self.get_header().block_number}, "
+                f"but the target header has block #{base_header.block_number}"
+            )
 
         receipts = []
         computations = []
@@ -307,19 +305,23 @@ class VM(Configurable, VirtualMachineAPI):
     ) -> None:
         self.state.apply_withdrawal(withdrawal)
 
-    def apply_all_withdrawals(
-        self,
-        withdrawals: Sequence[WithdrawalAPI],
-        base_header: BlockHeaderAPI,
-    ) -> None:
-        vm_header = self.get_header()
-        self._validate_header_before_apply(base_header, vm_header)
+    def apply_all_withdrawals(self, withdrawals: Sequence[WithdrawalAPI]) -> None:
+        touched_addresses: List[Address] = []
 
         for withdrawal in withdrawals:
             # validate withdrawal fields
             withdrawal.validate()
 
             self.apply_withdrawal(withdrawal)
+
+            # collect all touched addresses
+            if withdrawal.address not in touched_addresses:
+                touched_addresses.append(withdrawal.address)
+
+        for address in touched_addresses:
+            # if account is empty after applying all withdrawals, delete it
+            if self.state.account_is_empty(address):
+                self.state.delete_account(address)
 
     #
     # Importing blocks
@@ -367,30 +369,21 @@ class VM(Configurable, VirtualMachineAPI):
         # run all of the transactions.
         new_header, receipts, _ = self.apply_all_transactions(block.transactions, header)
 
-        block_with_transactions = self.set_block_transactions(
+        withdrawals = block.withdrawals if hasattr(block, "withdrawals") else None
+
+        if withdrawals:
+            # post-shanghai blocks
+            self.apply_all_withdrawals(block.withdrawals)
+
+        filled_block = self.set_block_transactions_and_withdrawals(
             self.get_block(),
             new_header,
             block.transactions,
             receipts,
+            withdrawals=withdrawals,
         )
 
-        if hasattr(block, "withdrawals") and block.withdrawals not in (None, ()):
-            self.apply_all_withdrawals(block_with_transactions.withdrawals, header)
-
-            withdrawals_root_hash, withdrawal_kv_nodes = make_trie_root_and_nodes(
-                block.withdrawals
-            )
-            self.chaindb.persist_trie_data_dict(withdrawal_kv_nodes)
-
-            block_with_withdrawals = block_with_transactions.copy(
-                withdrawals=block.withdrawals,
-                header=block_with_transactions.header.copy(
-                    withdrawals_root=withdrawals_root_hash,
-                ),
-            )
-            return self.mine_block(block_with_withdrawals)
-
-        return self.mine_block(block_with_transactions)
+        return self.mine_block(filled_block)
 
     def mine_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
         packed_block = self.pack_block(block, *args, **kwargs)
@@ -401,11 +394,14 @@ class VM(Configurable, VirtualMachineAPI):
 
         return block_result
 
-    def set_block_transactions(self,
-                               base_block: BlockAPI,
-                               new_header: BlockHeaderAPI,
-                               transactions: Sequence[SignedTransactionAPI],
-                               receipts: Sequence[ReceiptAPI]) -> BlockAPI:
+    def set_block_transactions_and_withdrawals(
+        self,
+        base_block: BlockAPI,
+        new_header: BlockHeaderAPI,
+        transactions: Sequence[SignedTransactionAPI],
+        receipts: Sequence[ReceiptAPI],
+        withdrawals: Sequence[WithdrawalAPI] = None,
+    ) -> BlockAPI:
 
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(transactions)
         self.chaindb.persist_trie_data_dict(tx_kv_nodes)
@@ -413,13 +409,24 @@ class VM(Configurable, VirtualMachineAPI):
         receipt_root_hash, receipt_kv_nodes = make_trie_root_and_nodes(receipts)
         self.chaindb.persist_trie_data_dict(receipt_kv_nodes)
 
-        return base_block.copy(
-            transactions=transactions,
-            header=new_header.copy(
-                transaction_root=tx_root_hash,
-                receipt_root=receipt_root_hash,
-            ),
-        )
+        block_fields: "Block" = {"transactions": transactions}
+        block_header_fields = {
+            "transaction_root": tx_root_hash,
+            "receipt_root": receipt_root_hash,
+        }
+
+        if withdrawals:
+            withdrawals_root_hash, withdrawal_kv_nodes = make_trie_root_and_nodes(
+                withdrawals,
+            )
+            self.chaindb.persist_trie_data_dict(withdrawal_kv_nodes)
+
+            block_fields["withdrawals"] = withdrawals
+            block_header_fields["withdrawals_root"] = withdrawals_root_hash
+
+        block_fields["header"] = new_header.copy(**block_header_fields)
+
+        return base_block.copy(**block_fields)
 
     #
     # Finalization

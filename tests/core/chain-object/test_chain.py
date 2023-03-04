@@ -105,7 +105,9 @@ def test_import_block(chain, tx):
         computation.raise_if_error()
     else:
         # working on a non-mining chain, so we have to build the block to apply manually
-        new_block, receipts, computations = chain.build_block_with_transactions([tx])
+        new_block, receipts, computations = (
+            chain.build_block_with_transactions_and_withdrawals([tx])
+        )
         assert len(computations) == 1
         computations[0].raise_if_error()
 
@@ -200,7 +202,9 @@ def test_get_canonical_transaction_by_index(chain, tx):
         computation.raise_if_error()
     else:
         # working on a non-mining chain, so we have to build the block to apply manually
-        new_block, receipts, computations = chain.build_block_with_transactions([tx])
+        new_block, receipts, computations = (
+            chain.build_block_with_transactions_and_withdrawals([tx])
+        )
         assert len(computations) == 1
         computations[0].raise_if_error()
 
@@ -220,7 +224,9 @@ def test_get_transaction_receipt(chain, tx):
         computation.raise_if_error()
     else:
         # working on a non-mining chain, so we have to build the block to apply manually
-        new_block, receipts, computations = chain.build_block_with_transactions([tx])
+        new_block, receipts, computations = (
+            chain.build_block_with_transactions_and_withdrawals([tx])
+        )
         assert len(computations) == 1
         computations[0].raise_if_error()
         expected_receipt = receipts[0]

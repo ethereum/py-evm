@@ -121,7 +121,7 @@ def test_import_block(chain, funded_address, funded_address_private_key):
         new_block, _, computation = chain.apply_transaction(tx)
     else:
         # Have to manually build the block for the import_block test
-        new_block, _, computations = chain.build_block_with_transactions([tx])
+        new_block, _, computations = chain.build_block_with_transactions_and_withdrawals([tx])
         computation = computations[0]
 
         # Generate the pending header to import the new block on

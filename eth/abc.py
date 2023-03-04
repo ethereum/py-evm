@@ -3146,11 +3146,7 @@ class StateAPI(ConfigurableAPI):
     def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:
         ...
 
-    def apply_all_withdrawals(
-        self,
-        withdrawals: Sequence[WithdrawalAPI],
-        base_header: BlockHeaderAPI,
-    ) -> None:
+    def apply_all_withdrawals(self, withdrawals: Sequence[WithdrawalAPI]) -> None:
         ...
 
 
@@ -3365,6 +3361,15 @@ class VirtualMachineAPI(ConfigurableAPI):
         """
         ...
 
+    def apply_all_withdrawals(self, withdrawals: Sequence[WithdrawalAPI]) -> None:
+        """
+        Updates the state by applying all withdrawals.
+        This does *not* update the current block or header of the VM.
+
+        :param withdrawals: an iterable of all withdrawals to apply
+        """
+        ...
+
     @abstractmethod
     def make_receipt(self,
                      base_header: BlockHeaderAPI,
@@ -3401,13 +3406,16 @@ class VirtualMachineAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def set_block_transactions(self,
-                               base_block: BlockAPI,
-                               new_header: BlockHeaderAPI,
-                               transactions: Sequence[SignedTransactionAPI],
-                               receipts: Sequence[ReceiptAPI]) -> BlockAPI:
+    def set_block_transactions_and_withdrawals(
+        self,
+        base_block: BlockAPI,
+        new_header: BlockHeaderAPI,
+        transactions: Sequence[SignedTransactionAPI],
+        receipts: Sequence[ReceiptAPI],
+        withdrawals: Sequence[WithdrawalAPI] = None,
+    ) -> BlockAPI:
         """
-        Create a new block with the given ``transactions``.
+        Create a new block with the given ``transactions`` and/or ``withdrawals``.
         """
         ...
 
@@ -3995,18 +4003,20 @@ class ChainAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def build_block_with_transactions(
+    def build_block_with_transactions_and_withdrawals(
             self,
             transactions: Tuple[SignedTransactionAPI, ...],
-            parent_header: BlockHeaderAPI = None
+            parent_header: BlockHeaderAPI = None,
+            withdrawals: Tuple[WithdrawalAPI, ...] = None,
     ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         """
         Generate a block with the provided transactions. This does *not* import
         that block into your chain. If you want this new block in your chain,
         run :meth:`~import_block` with the result block from this method.
 
-        :param transactions: an iterable of transactions to insert to the block
+        :param transactions: an iterable of transactions to insert int the block
         :param parent_header: parent of the new block -- or canonical head if ``None``
+        :param withdrawals: an iterable of withdrawals to insert intto the block
         :return: (new block, receipts, computations)
         """
         ...

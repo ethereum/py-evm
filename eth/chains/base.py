@@ -51,6 +51,7 @@ from eth.abc import (
     StateAPI,
     SignedTransactionAPI,
     UnsignedTransactionAPI,
+    WithdrawalAPI,
 )
 from eth.consensus import (
     ConsensusContext,
@@ -314,7 +315,6 @@ class Chain(BaseChain):
         # We construct a temporary block object
         vm_class = self.get_vm_class_for_block_number(header.block_number)
         block_class = vm_class.get_block_class()
-
         block = block_class(header=header, uncles=[], transactions=[])
 
         ancestor_generator = iterate(compose(
@@ -347,16 +347,30 @@ class Chain(BaseChain):
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         return self.chaindb.get_canonical_block_hash(block_number)
 
-    def build_block_with_transactions(
+    def build_block_with_transactions_and_withdrawals(
             self,
             transactions: Sequence[SignedTransactionAPI],
-            parent_header: BlockHeaderAPI = None
+            parent_header: BlockHeaderAPI = None,
+            withdrawals: Sequence[WithdrawalAPI] = None,
     ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         base_header = self.ensure_header(parent_header)
         vm = self.get_vm(base_header)
 
-        new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
-        new_block = vm.set_block_transactions(vm.get_block(), new_header, transactions, receipts)
+        new_header, receipts, computations = vm.apply_all_transactions(
+            transactions,
+            base_header,
+        )
+
+        if withdrawals:
+            vm.apply_all_withdrawals(withdrawals)
+
+        new_block = vm.set_block_transactions_and_withdrawals(
+            vm.get_block(),
+            new_header,
+            transactions,
+            receipts,
+            withdrawals=withdrawals,
+        )
 
         return new_block, receipts, computations
 
@@ -628,9 +642,10 @@ class MiningChain(Chain, MiningChainAPI):
         super().__init__(base_db)
         self.header = self.ensure_header(header)
 
-    def apply_transaction(self,
-                          transaction: SignedTransactionAPI
-                          ) -> Tuple[BlockAPI, ReceiptAPI, ComputationAPI]:
+    def apply_transaction(
+        self,
+        transaction: SignedTransactionAPI,
+    ) -> Tuple[BlockAPI, ReceiptAPI, ComputationAPI]:
         vm = self.get_vm(self.header)
         base_block = vm.get_block()
 
@@ -644,7 +659,12 @@ class MiningChain(Chain, MiningChainAPI):
         transactions = base_block.transactions + (transaction, )
         receipts = base_block.get_receipts(self.chaindb) + (receipt, )
 
-        new_block = vm.set_block_transactions(base_block, new_header, transactions, receipts)
+        new_block = vm.set_block_transactions_and_withdrawals(
+            base_block,
+            new_header,
+            transactions,
+            receipts,
+        )
 
         self.header = new_block.header
 
@@ -674,6 +694,7 @@ class MiningChain(Chain, MiningChainAPI):
             transactions: Sequence[SignedTransactionAPI],
             *args: Any,
             parent_header: BlockHeaderAPI = None,
+            withdrawals: Sequence[WithdrawalAPI] = None,
             **kwargs: Any,
     ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
 
@@ -686,13 +707,26 @@ class MiningChain(Chain, MiningChainAPI):
         vm = self.get_vm(custom_header)
 
         new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
-        filled_block = vm.set_block_transactions(vm.get_block(), new_header, transactions, receipts)
+
+        if withdrawals:
+            vm.apply_all_withdrawals(withdrawals)
+
+        filled_block = vm.set_block_transactions_and_withdrawals(
+            vm.get_block(),
+            new_header,
+            transactions,
+            receipts,
+            withdrawals=withdrawals,
+        )
 
         block_result = vm.mine_block(filled_block, *args, **kwargs)
         imported_block = block_result.block
 
         block_persist_result = self.persist_block(imported_block)
-        block_import_result = BlockImportResult(*block_persist_result, block_result.meta_witness)
+        block_import_result = BlockImportResult(
+            *block_persist_result,
+            block_result.meta_witness,
+        )
 
         self.header = self.create_header_from_parent(imported_block.header)
         return (block_import_result, receipts, computations)
