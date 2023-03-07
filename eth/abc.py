@@ -4014,9 +4014,9 @@ class ChainAPI(ConfigurableAPI):
         that block into your chain. If you want this new block in your chain,
         run :meth:`~import_block` with the result block from this method.
 
-        :param transactions: an iterable of transactions to insert int the block
+        :param transactions: an iterable of transactions to insert into the block
         :param parent_header: parent of the new block -- or canonical head if ``None``
-        :param withdrawals: an iterable of withdrawals to insert intto the block
+        :param withdrawals: an iterable of withdrawals to insert into the block
         :return: (new block, receipts, computations)
         """
         ...
