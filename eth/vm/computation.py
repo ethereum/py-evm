@@ -1,5 +1,4 @@
 import itertools
-import warnings
 from types import TracebackType
 from typing import (
     Any,
@@ -14,8 +13,6 @@ from typing import (
 )
 
 from cached_property import cached_property
-
-from eth.vm import mnemonics, opcode_values
 from eth_typing import (
     Address,
 )
@@ -551,16 +548,6 @@ class BaseComputation(Configurable, ComputationAPI):
                     )
 
                 try:
-                    # EIP-6049 - deprecate SELFDESTRUCT
-                    if opcode == opcode_values.SELFDESTRUCT:
-                        warnings.warn(
-                            category=DeprecationWarning,
-                            message=f"{mnemonics.SELFDESTRUCT} opcode present in "
-                                    "computation. This opcode is deprecated and a "
-                                    "breaking change to its functionality is likely to "
-                                    "come in the future."
-                        )
-
                     opcode_fn(computation=computation)
                 except Halt:
                     break

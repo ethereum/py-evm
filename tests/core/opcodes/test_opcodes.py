@@ -1,5 +1,14 @@
+import warnings
+
 import pytest
 
+from eth.chains.mainnet import (
+    MAINNET_VMS,
+    POS_MAINNET_VMS,
+)
+from eth.vm.forks.shanghai.computation import (
+    ShanghaiComputation,
+)
 from eth_utils import (
     decode_hex,
     encode_hex,
@@ -45,6 +54,7 @@ from eth.vm.forks import (
     MuirGlacierVM,
     BerlinVM,
     LondonVM,
+    ShanghaiVM,
 )
 from eth.vm.message import (
     Message,
@@ -75,7 +85,9 @@ def setup_vm(vm_class, chain_id=None):
     db = AtomicDB()
     chain_context = ChainContext(chain_id)
     genesis_header = vm_class.create_genesis_header(
-        difficulty=constants.GENESIS_DIFFICULTY,
+        difficulty=(
+            constants.GENESIS_DIFFICULTY if vm_class not in POS_MAINNET_VMS else 0
+        ),
         timestamp=0,
     )
     return vm_class(genesis_header, ChainDB(db), chain_context, ConsensusContext(db))
@@ -1571,3 +1583,46 @@ def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception
         comp.raise_if_error()
         result = comp.output
         assert result.hex() == output_hex
+
+
+@pytest.mark.parametrize('vm_class', MAINNET_VMS[:13])  # vms up to Shanghai
+def test_selfdestruct_does_not_issue_deprecation_warning_pre_shanghai(vm_class):
+    # assert no warning without selfdestruct
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+
+        run_computation(
+            setup_vm(vm_class),
+            CANONICAL_ADDRESS_B,
+            code=assemble(opcode_values.SELFDESTRUCT),
+        )
+
+
+def test_selfdestruct_issues_deprecation_warning_for_shanghai():
+    available_vm_opcodes = ShanghaiComputation.opcodes
+
+    vm_opcodes_without_selfdestruct = {
+        k: available_vm_opcodes[k] for k in available_vm_opcodes.keys()
+        if k != opcode_values.SELFDESTRUCT
+    }
+    code_without_self_destruct = assemble(
+        *[opc for opc in vm_opcodes_without_selfdestruct.keys()]
+    )
+
+    # assert no warning using every opcode except selfdestruct
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+
+        run_computation(
+            setup_vm(ShanghaiVM),
+            CANONICAL_ADDRESS_B,
+            code=code_without_self_destruct,
+        )
+
+    # assert warning with just selfdestruct opcode
+    with pytest.warns(DeprecationWarning):
+        run_computation(
+            setup_vm(ShanghaiVM),
+            CANONICAL_ADDRESS_B,
+            code=assemble(opcode_values.SELFDESTRUCT),
+        )
