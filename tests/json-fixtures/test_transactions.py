@@ -137,7 +137,7 @@ def fixture_transaction_class(fixture_data):
     elif fork_name == "Merge":
         # EL fork name is Paris, `ethereum/tests` calls the Network "Merge"
         return ParisTransactionBuilder
-    elif fork_name == "Shanghai":
+    elif fork_name == ForkName.Shanghai:
         return ShanghaiTransactionBuilder
     else:
         raise ValueError(f"Unknown Fork Name: {fork_name}")
