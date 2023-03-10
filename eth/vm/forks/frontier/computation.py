@@ -50,10 +50,11 @@ class FrontierComputation(BaseComputation):
 
     @classmethod
     def apply_message(
-            cls,
-            state: StateAPI,
-            message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> ComputationAPI:
+        cls,
+        state: StateAPI,
+        message: MessageAPI,
+        transaction_context: TransactionContextAPI,
+    ) -> ComputationAPI:
 
         snapshot = state.snapshot()
 

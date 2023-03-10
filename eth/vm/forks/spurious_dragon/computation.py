@@ -43,9 +43,9 @@ class SpuriousDragonComputation(HomesteadComputation):
         # EIP161 nonce incrementation
         state.increment_nonce(message.storage_address)
 
-        cls.validate_initcode(message)
+        cls.validate_create_message(message)
+
         computation = cls.apply_message(state, message, transaction_context)
-        cls.assess_initcode_gas_cost(computation)
 
         if computation.is_error:
             state.revert(snapshot)
@@ -84,13 +84,11 @@ class SpuriousDragonComputation(HomesteadComputation):
             return computation
 
     @classmethod
-    def validate_initcode(cls, message: MessageAPI) -> None:
-        # initcode is not validated until Shanghai hard fork
-        pass
-
-    @classmethod
-    def assess_initcode_gas_cost(cls, computation: ComputationAPI) -> None:
-        # initcode does not consume gas until Shanghai hard fork
+    def validate_create_message(cls, message: MessageAPI) -> None:
+        # this method does not become relevant until the Shanghai hard fork
+        """
+        Class method for validating a create message.
+        """
         pass
 
     @classmethod

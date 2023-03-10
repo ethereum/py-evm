@@ -1,6 +1,10 @@
 import copy
 from typing import Dict
 
+from .logic import (
+    CreateEIP3860,
+    Create2EIP3860,
+)
 from eth.tools._utils.deprecation import deprecate_method
 from eth.vm.opcode import as_opcode
 from eth_utils.toolz import merge
@@ -16,12 +20,17 @@ from eth.vm.logic import (
 from eth.vm.forks.paris.opcodes import PARIS_OPCODES
 
 
-NEW_OPCODES = {
-    opcode_values.PUSH0: as_opcode(
-        logic_fn=stack.push0,
-        mnemonic=mnemonics.PUSH0,
-        gas_cost=constants.GAS_BASE,
-    ),
+UPDATED_OPCODES: Dict[int, OpcodeAPI] = {
+    opcode_values.CREATE: CreateEIP3860.configure(
+        __name__="CreateEIP3860",
+        mnemonic=mnemonics.CREATE,
+        gas_cost=constants.GAS_CREATE,
+    )(),
+    opcode_values.CREATE2: Create2EIP3860.configure(
+        __name__="Create2EIP3860",
+        mnemonic=mnemonics.CREATE2,
+        gas_cost=constants.GAS_CREATE,
+    )(),
     opcode_values.SELFDESTRUCT: deprecate_method(
         PARIS_OPCODES[opcode_values.SELFDESTRUCT],
         message=(
@@ -32,7 +41,16 @@ NEW_OPCODES = {
     ),
 }
 
+NEW_OPCODES: Dict[int, OpcodeAPI] = {
+    opcode_values.PUSH0: as_opcode(
+        logic_fn=stack.push0,
+        mnemonic=mnemonics.PUSH0,
+        gas_cost=constants.GAS_BASE,
+    ),
+}
+
 SHANGHAI_OPCODES: Dict[int, OpcodeAPI] = merge(
     copy.deepcopy(PARIS_OPCODES),
+    UPDATED_OPCODES,
     NEW_OPCODES,
 )

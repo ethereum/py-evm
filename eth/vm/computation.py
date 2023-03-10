@@ -278,6 +278,14 @@ class BaseComputation(Configurable, ComputationAPI):
         else:
             return self._gas_meter.gas_remaining
 
+    @classmethod
+    def consume_initcode_gas_cost(cls, computation: ComputationAPI) -> None:
+        # this method does not become relevant until the Shanghai hard fork
+        """
+        Before starting the computation, consume initcode gas cost.
+        """
+        pass
+
     #
     # Stack management
     #
@@ -516,11 +524,20 @@ class BaseComputation(Configurable, ComputationAPI):
     # State Transition
     #
     @classmethod
-    def apply_computation(cls,
-                          state: StateAPI,
-                          message: MessageAPI,
-                          transaction_context: TransactionContextAPI) -> ComputationAPI:
+    def apply_computation(
+        cls,
+        state: StateAPI,
+        message: MessageAPI,
+        transaction_context: TransactionContextAPI
+    ) -> ComputationAPI:
+
         with cls(state, message, transaction_context) as computation:
+            if message.is_create and computation.is_origin_computation:
+                # If computation is from a create transaction, consume initcode gas if
+                # >= Shanghai. CREATE and CREATE2 are handled in the opcode
+                # implementations.
+                cls.consume_initcode_gas_cost(computation)
+
             # Early exit on pre-compiles
             precompile = computation.precompiles.get(message.code_address, NO_RESULT)
             if precompile is not NO_RESULT:
@@ -551,6 +568,7 @@ class BaseComputation(Configurable, ComputationAPI):
                     opcode_fn(computation=computation)
                 except Halt:
                     break
+
         return computation
 
     #
