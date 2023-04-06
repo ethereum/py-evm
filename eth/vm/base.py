@@ -2,11 +2,12 @@ import contextlib
 import itertools
 import logging
 from typing import (
-    List, TYPE_CHECKING,
+    TYPE_CHECKING,
     Any,
     ClassVar,
     Iterable,
     Iterator,
+    List,
     Optional,
     Sequence,
     Set,
