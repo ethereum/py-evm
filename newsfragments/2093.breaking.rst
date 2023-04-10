@@ -1,1 +1,0 @@
-``configure_header()`` now accepts a difficulty function as a ``kwarg`` rather than positional ``arg`` due to POS priority.

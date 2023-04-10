@@ -3,6 +3,21 @@ Release notes
 
 .. towncrier release notes start
 
+py-evm 0.7.0-alpha.1 (2023-04-10)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Add ``Shanghai`` hard fork support. (`#2093 <https://github.com/ethereum/py-evm/issues/2093>`__)
+
+
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+- ``configure_header()`` now accepts a difficulty function as a ``kwarg`` rather than positional ``arg`` due to POS priority. (`#2093 <https://github.com/ethereum/py-evm/issues/2093>`__)
+
+
 py-evm 0.6.1-alpha.2 (2022-12-16)
 ---------------------------------
 
