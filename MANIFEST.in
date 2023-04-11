@@ -1,7 +1,9 @@
 include LICENSE
-include VERSION
 include README.md
-include requirements.txt
+
+global-include *.pyi
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+prune .tox
+prune venv*
