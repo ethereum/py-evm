@@ -44,6 +44,7 @@ deps = {
         "flake8==3.8.2",
         "flake8-bugbear==20.1.4",
         "mypy==0.910",
+        "pydocstyle>=6.0.0",
         "types-setuptools",
         "importlib-metadata<5.0;python_version<'3.8'",
     ],

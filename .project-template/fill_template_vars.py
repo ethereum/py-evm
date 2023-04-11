@@ -22,17 +22,20 @@ def _find_files(project_root):
 def _replace(pattern, replacement, project_root):
     print(f"Replacing values: {pattern}")
     for file in _find_files(project_root):
-        with open(file) as f:
-            content = f.read()
-        content = re.sub(pattern, replacement, content)
-        with open(file, "w") as f:
-            f.write(content)
+        try:
+            with open(file) as f:
+                content = f.read()
+            content = re.sub(pattern, replacement, content)
+            with open(file, "w") as f:
+                f.write(content)
+        except UnicodeDecodeError:
+            pass
 
 
 def main():
     project_root = Path(os.path.realpath(sys.argv[0])).parent.parent
 
-    module_name = input("What is your python module name? ")
+    module_name = input("What is your python module name (ex: What would you import (no dashes)? ")
 
     pypi_input = input(f"What is your pypi package name? (default: {module_name}) ")
     pypi_name = pypi_input or module_name

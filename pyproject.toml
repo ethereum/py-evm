@@ -1,11 +1,11 @@
 [tool.towncrier]
-# Read https://github.com/ethereum/<REPO_NAME>/newsfragments/README.md for instructions
-package = "<MODULE_NAME>"
+# Read https://github.com/ethereum/py-evm/newsfragments/README.md for instructions
+package = "eth"
 filename = "docs/release_notes.rst"
 directory = "newsfragments"
 underlines = ["-", "~", "^"]
-title_format = "<PROJECT_NAME> v{version} ({project_date})"
-issue_format = "`#{issue} <https://github.com/ethereum/<REPO_NAME>/issues/{issue}>`__"
+title_format = "py-evm v{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/ethereum/py-evm/issues/{issue}>`__"
 
 [[tool.towncrier.type]]
 directory = "feature"
@@ -34,7 +34,7 @@ showcontent = true
 
 [[tool.towncrier.type]]
 directory = "internal"
-name = "Internal Changes - for <PROJECT_NAME> Contributors"
+name = "Internal Changes - For py-evm Contributors"
 showcontent = true
 
 [[tool.towncrier.type]]
