@@ -4,7 +4,7 @@ package = "eth"
 filename = "docs/release_notes.rst"
 directory = "newsfragments"
 underlines = ["-", "~", "^"]
-title_format = "py-evm {version} ({project_date})"
+title_format = "py-evm v{version} ({project_date})"
 issue_format = "`#{issue} <https://github.com/ethereum/py-evm/issues/{issue}>`__"
 
 [[tool.towncrier.type]]
@@ -34,7 +34,7 @@ showcontent = true
 
 [[tool.towncrier.type]]
 directory = "internal"
-name = "Internal Changes - For Contributors"
+name = "Internal Changes - For py-evm Contributors"
 showcontent = true
 
 [[tool.towncrier.type]]

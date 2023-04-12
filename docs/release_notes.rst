@@ -1,4 +1,4 @@
-Release notes
+Release Notes
 =============
 
 .. towncrier release notes start
