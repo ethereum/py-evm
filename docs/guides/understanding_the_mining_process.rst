@@ -38,7 +38,7 @@ block first because, after all, one primary use case for the Ethereum blockchain
 For the sake of simplicity though, we'll mine an empty block as a first example (meaning the block
 will not contain any transactions)
 
-As a refresher, he's how we create a chain as demonstrated in the
+As a refresher, here is how we create a chain as demonstrated in the
 :ref:`Using the chain object recipe<evm_cookbook_recipe_using_the_chain_object>` from the
 cookbook.
 
