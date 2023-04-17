@@ -17,7 +17,7 @@ from eth.exceptions import (
 )
 from eth.vm import mnemonics
 from eth.vm import opcode_values
-from eth.vm.computation import BaseComputation
+from eth.vm.computation import MessageComputation
 from eth.vm.forks.tangerine_whistle.constants import (
     GAS_CALL_EIP150,
     GAS_SELFDESTRUCT_EIP150
@@ -36,7 +36,7 @@ from eth.vm.forks.spurious_dragon.opcodes import SPURIOUS_DRAGON_OPCODES
 
 def ensure_no_static(opcode_fn: Callable[..., Any]) -> Callable[..., Any]:
     @functools.wraps(opcode_fn)
-    def inner(computation: BaseComputation) -> Callable[..., Any]:
+    def inner(computation: MessageComputation) -> Callable[..., Any]:
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
         return opcode_fn(computation)

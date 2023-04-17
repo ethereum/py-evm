@@ -1,7 +1,7 @@
 from typing import Type
 
 from eth.abc import (
-    ComputationAPI,
+    MessageComputationAPI,
     SignedTransactionAPI,
 )
 from eth.vm.forks.frontier.state import (
@@ -9,12 +9,12 @@ from eth.vm.forks.frontier.state import (
     FrontierTransactionExecutor,
 )
 
-from .computation import HomesteadComputation
+from .computation import HomesteadMessageComputation
 from .validation import validate_homestead_transaction
 
 
 class HomesteadState(FrontierState):
-    computation_class: Type[ComputationAPI] = HomesteadComputation
+    message_computation_class: Type[MessageComputationAPI] = HomesteadMessageComputation
 
     def validate_transaction(self, transaction: SignedTransactionAPI) -> None:
         validate_homestead_transaction(self, transaction)

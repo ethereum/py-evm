@@ -5,10 +5,10 @@ from eth._utils.numeric import (
     unsigned_to_signed,
 )
 
-from eth.vm.computation import BaseComputation
+from eth.vm.computation import MessageComputation
 
 
-def lt(computation: BaseComputation) -> None:
+def lt(computation: MessageComputation) -> None:
     """
     Lesser Comparison
     """
@@ -22,7 +22,7 @@ def lt(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def gt(computation: BaseComputation) -> None:
+def gt(computation: MessageComputation) -> None:
     """
     Greater Comparison
     """
@@ -36,7 +36,7 @@ def gt(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def slt(computation: BaseComputation) -> None:
+def slt(computation: MessageComputation) -> None:
     """
     Signed Lesser Comparison
     """
@@ -53,7 +53,7 @@ def slt(computation: BaseComputation) -> None:
     computation.stack_push_int(signed_to_unsigned(result))
 
 
-def sgt(computation: BaseComputation) -> None:
+def sgt(computation: MessageComputation) -> None:
     """
     Signed Greater Comparison
     """
@@ -70,7 +70,7 @@ def sgt(computation: BaseComputation) -> None:
     computation.stack_push_int(signed_to_unsigned(result))
 
 
-def eq(computation: BaseComputation) -> None:
+def eq(computation: MessageComputation) -> None:
     """
     Equality
     """
@@ -84,7 +84,7 @@ def eq(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def iszero(computation: BaseComputation) -> None:
+def iszero(computation: MessageComputation) -> None:
     """
     Not
     """
@@ -98,7 +98,7 @@ def iszero(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def and_op(computation: BaseComputation) -> None:
+def and_op(computation: MessageComputation) -> None:
     """
     Bitwise And
     """
@@ -109,7 +109,7 @@ def and_op(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def or_op(computation: BaseComputation) -> None:
+def or_op(computation: MessageComputation) -> None:
     """
     Bitwise Or
     """
@@ -120,7 +120,7 @@ def or_op(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def xor(computation: BaseComputation) -> None:
+def xor(computation: MessageComputation) -> None:
     """
     Bitwise XOr
     """
@@ -131,7 +131,7 @@ def xor(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def not_op(computation: BaseComputation) -> None:
+def not_op(computation: MessageComputation) -> None:
     """
     Not
     """
@@ -142,7 +142,7 @@ def not_op(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def byte_op(computation: BaseComputation) -> None:
+def byte_op(computation: MessageComputation) -> None:
     """
     Bitwise And
     """

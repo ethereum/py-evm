@@ -27,14 +27,14 @@ from eth._utils.padding import (
 )
 
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 
 @curry
 def ecadd(
-        computation: BaseComputation,
-        gas_cost: int = constants.GAS_ECADD) -> BaseComputation:
+        computation: MessageComputation,
+        gas_cost: int = constants.GAS_ECADD) -> MessageComputation:
 
     computation.consume_gas(gas_cost, reason='ECADD Precompile')
 

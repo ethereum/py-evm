@@ -7,7 +7,7 @@ from eth._utils.address import (
     force_bytes_to_address,
 )
 from eth.vm.forks.frontier.computation import FRONTIER_PRECOMPILES
-from eth.vm.forks.spurious_dragon.computation import SpuriousDragonComputation
+from eth.vm.forks.spurious_dragon.computation import SpuriousDragonMessageComputation
 
 from .opcodes import BYZANTIUM_OPCODES
 
@@ -22,10 +22,11 @@ BYZANTIUM_PRECOMPILES = merge(
 )
 
 
-class ByzantiumComputation(SpuriousDragonComputation):
+class ByzantiumMessageComputation(SpuriousDragonMessageComputation):
     """
-    A class for all execution computations in the ``Byzantium`` fork.
-    Inherits from :class:`~eth.vm.forks.spurious_dragon.computation.SpuriousDragonComputation`
+    A class for all execution *message* computations in the ``Byzantium`` fork.
+    Inherits from
+    :class:`~eth.vm.forks.spurious_dragon.computation.SpuriousDragonMessageComputation`
     """
     # Override
     opcodes = BYZANTIUM_OPCODES

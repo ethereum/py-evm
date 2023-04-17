@@ -27,7 +27,7 @@ from eth.vm.forks.muir_glacier.computation import (
     MUIR_GLACIER_PRECOMPILES
 )
 from eth.vm.forks.muir_glacier.computation import (
-    MuirGlacierComputation,
+    MuirGlacierMessageComputation,
 )
 
 from .opcodes import BERLIN_OPCODES
@@ -79,10 +79,10 @@ BERLIN_PRECOMPILES = merge(
 )
 
 
-class BerlinComputation(MuirGlacierComputation):
+class BerlinMessageComputation(MuirGlacierMessageComputation):
     """
-    A class for all execution computations in the ``Berlin`` fork.
-    Inherits from :class:`~eth.vm.forks.muir_glacier.MuirGlacierComputation`
+    A class for all execution *message* computations in the ``Berlin`` fork.
+    Inherits from :class:`~eth.vm.forks.muir_glacier.MuirGlacierMessageComputation`
     """
     # Override
     opcodes = BERLIN_OPCODES

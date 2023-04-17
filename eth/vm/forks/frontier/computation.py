@@ -14,7 +14,7 @@ from eth._utils.address import (
     force_bytes_to_address,
 )
 from eth.abc import (
-    ComputationAPI,
+    MessageComputationAPI,
     MessageAPI,
     StateAPI,
     TransactionContextAPI,
@@ -25,7 +25,7 @@ from eth.exceptions import (
     StackDepthLimit,
 )
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 from .opcodes import FRONTIER_OPCODES
@@ -39,10 +39,10 @@ FRONTIER_PRECOMPILES = {
 }
 
 
-class FrontierComputation(BaseComputation):
+class FrontierMessageComputation(MessageComputation):
     """
-    A class for all execution computations in the ``Frontier`` fork.
-    Inherits from :class:`~eth.vm.computation.BaseComputation`
+    A class for all execution message computations in the ``Frontier`` fork.
+    Inherits from :class:`~eth.vm.computation.MessageComputation`
     """
     # Override
     opcodes = FRONTIER_OPCODES
@@ -54,7 +54,7 @@ class FrontierComputation(BaseComputation):
         state: StateAPI,
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
-    ) -> ComputationAPI:
+    ) -> MessageComputationAPI:
 
         snapshot = state.snapshot()
 
@@ -99,7 +99,7 @@ class FrontierComputation(BaseComputation):
             cls,
             state: StateAPI,
             message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> ComputationAPI:
+            transaction_context: TransactionContextAPI) -> MessageComputationAPI:
 
         computation = cls.apply_message(state, message, transaction_context)
 

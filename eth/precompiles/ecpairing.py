@@ -31,7 +31,7 @@ from eth._utils.padding import (
 )
 
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 
@@ -41,9 +41,9 @@ EXPONENT = bn128.FQ12.one()
 
 @curry
 def ecpairing(
-        computation: BaseComputation,
+        computation: MessageComputation,
         gas_cost_base: int = constants.GAS_ECPAIRING_BASE,
-        gas_cost_per_point: int = constants.GAS_ECPAIRING_PER_POINT) -> BaseComputation:
+        gas_cost_per_point: int = constants.GAS_ECPAIRING_PER_POINT) -> MessageComputation:
 
     if len(computation.msg.data) % 192:
         # data length must be an exact multiple of 192

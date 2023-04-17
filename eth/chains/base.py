@@ -47,7 +47,7 @@ from eth.abc import (
     ConsensusContextAPI,
     VirtualMachineAPI,
     ReceiptAPI,
-    ComputationAPI,
+    MessageComputationAPI,
     StateAPI,
     SignedTransactionAPI,
     UnsignedTransactionAPI,
@@ -352,7 +352,7 @@ class Chain(BaseChain):
             transactions: Sequence[SignedTransactionAPI],
             parent_header: BlockHeaderAPI = None,
             withdrawals: Sequence[WithdrawalAPI] = None,
-    ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
+    ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[MessageComputationAPI, ...]]:
         base_header = self.ensure_header(parent_header)
         vm = self.get_vm(base_header)
 
@@ -645,7 +645,7 @@ class MiningChain(Chain, MiningChainAPI):
     def apply_transaction(
         self,
         transaction: SignedTransactionAPI,
-    ) -> Tuple[BlockAPI, ReceiptAPI, ComputationAPI]:
+    ) -> Tuple[BlockAPI, ReceiptAPI, MessageComputationAPI]:
         vm = self.get_vm(self.header)
         base_block = vm.get_block()
 
@@ -696,7 +696,7 @@ class MiningChain(Chain, MiningChainAPI):
             parent_header: BlockHeaderAPI = None,
             withdrawals: Sequence[WithdrawalAPI] = None,
             **kwargs: Any,
-    ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
+    ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[MessageComputationAPI, ...]]:
 
         if parent_header is None:
             base_header = self.header

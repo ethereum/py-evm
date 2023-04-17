@@ -14,7 +14,7 @@ from eth_utils import (
 
 from eth._utils.datatypes import Configurable
 from eth.abc import (
-    ComputationAPI,
+    MessageComputationAPI,
     OpcodeAPI,
 )
 
@@ -43,7 +43,7 @@ class Opcode(Configurable, OpcodeAPI):
                   gas_cost: int) -> T:
         if gas_cost:
             @functools.wraps(logic_fn)
-            def wrapped_logic_fn(computation: ComputationAPI) -> Any:
+            def wrapped_logic_fn(computation: MessageComputationAPI) -> Any:
                 """
                 Wrapper function for the logic function which consumes the base
                 opcode gas cost prior to execution.

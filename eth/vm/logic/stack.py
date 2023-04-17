@@ -1,13 +1,13 @@
 import functools
 
-from eth.vm.computation import BaseComputation
+from eth.vm.computation import MessageComputation
 
 
-def pop(computation: BaseComputation) -> None:
+def pop(computation: MessageComputation) -> None:
     computation.stack_pop1_any()
 
 
-def push_XX(computation: BaseComputation, size: int) -> None:
+def push_XX(computation: MessageComputation, size: int) -> None:
     raw_value = computation.code.read(size)
 
     # This is a performance-sensitive area.

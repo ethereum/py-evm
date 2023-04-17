@@ -2,8 +2,8 @@ from eth.vm.forks.istanbul.state import (
     IstanbulState
 )
 
-from .computation import MuirGlacierComputation
+from .computation import MuirGlacierMessageComputation
 
 
 class MuirGlacierState(IstanbulState):
-    computation_class = MuirGlacierComputation
+    message_computation_class = MuirGlacierMessageComputation

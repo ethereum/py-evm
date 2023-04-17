@@ -20,7 +20,7 @@ from eth._utils.numeric import (
     ceil32,
 )
 from eth.abc import (
-    ComputationAPI,
+    MessageComputationAPI,
     MessageAPI,
 )
 from eth.vm import mnemonics
@@ -29,7 +29,7 @@ from eth.vm.opcode import Opcode
 from .call import max_child_gas_eip150
 
 
-def return_op(computation: ComputationAPI) -> None:
+def return_op(computation: MessageComputationAPI) -> None:
     start_position, size = computation.stack_pop_ints(2)
 
     computation.extend_memory(start_position, size)
@@ -38,7 +38,7 @@ def return_op(computation: ComputationAPI) -> None:
     raise Halt('RETURN')
 
 
-def revert(computation: ComputationAPI) -> None:
+def revert(computation: MessageComputationAPI) -> None:
     start_position, size = computation.stack_pop_ints(2)
 
     computation.extend_memory(start_position, size)
@@ -47,12 +47,12 @@ def revert(computation: ComputationAPI) -> None:
     raise Revert(computation.output)
 
 
-def selfdestruct(computation: ComputationAPI) -> None:
+def selfdestruct(computation: MessageComputationAPI) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop1_bytes())
     _selfdestruct(computation, beneficiary)
 
 
-def selfdestruct_eip150(computation: ComputationAPI) -> None:
+def selfdestruct_eip150(computation: MessageComputationAPI) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop1_bytes())
     if not computation.state.account_exists(beneficiary):
         computation.consume_gas(
@@ -62,7 +62,10 @@ def selfdestruct_eip150(computation: ComputationAPI) -> None:
     _selfdestruct(computation, beneficiary)
 
 
-def selfdestruct_eip161_on_address(computation: ComputationAPI, beneficiary: Address) -> None:
+def selfdestruct_eip161_on_address(
+    computation: MessageComputationAPI,
+    beneficiary: Address,
+) -> None:
     is_dead = (
         not computation.state.account_exists(beneficiary)
         or computation.state.account_is_empty(beneficiary)
@@ -75,12 +78,12 @@ def selfdestruct_eip161_on_address(computation: ComputationAPI, beneficiary: Add
     _selfdestruct(computation, beneficiary)
 
 
-def selfdestruct_eip161(computation: ComputationAPI) -> None:
+def selfdestruct_eip161(computation: MessageComputationAPI) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop1_bytes())
     selfdestruct_eip161_on_address(computation, beneficiary)
 
 
-def _selfdestruct(computation: ComputationAPI, beneficiary: Address) -> None:
+def _selfdestruct(computation: MessageComputationAPI, beneficiary: Address) -> None:
     local_balance = computation.state.get_balance(computation.msg.storage_address)
     beneficiary_balance = computation.state.get_balance(beneficiary)
 
@@ -128,7 +131,7 @@ class Create(Opcode):
     def generate_contract_address(self,
                                   stack_data: CreateOpcodeStackData,
                                   call_data: bytes,
-                                  computation: ComputationAPI) -> Address:
+                                  computation: MessageComputationAPI) -> Address:
 
         creation_nonce = computation.state.get_nonce(computation.msg.storage_address)
         computation.state.increment_nonce(computation.msg.storage_address)
@@ -140,12 +143,12 @@ class Create(Opcode):
 
         return contract_address
 
-    def get_stack_data(self, computation: ComputationAPI) -> CreateOpcodeStackData:
+    def get_stack_data(self, computation: MessageComputationAPI) -> CreateOpcodeStackData:
         endowment, memory_start, memory_length = computation.stack_pop_ints(3)
 
         return CreateOpcodeStackData(endowment, memory_start, memory_length)
 
-    def __call__(self, computation: ComputationAPI) -> None:
+    def __call__(self, computation: MessageComputationAPI) -> None:
 
         stack_data = self.get_stack_data(computation)
 
@@ -206,8 +209,12 @@ class Create(Opcode):
         )
         self.apply_create_message(computation, child_msg)
 
-    def apply_create_message(self, computation: ComputationAPI, child_msg: MessageAPI) -> None:
-        child_computation = computation.apply_child_computation(child_msg)
+    def apply_create_message(
+        self,
+        computation: MessageComputationAPI,
+        child_msg: MessageAPI,
+    ) -> None:
+        child_computation = computation.apply_child_message_computation(child_msg)
 
         if child_computation.is_error:
             computation.stack_push_int(0)
@@ -223,7 +230,7 @@ class CreateEIP150(Create):
 
 
 class CreateByzantium(CreateEIP150):
-    def __call__(self, computation: ComputationAPI) -> None:
+    def __call__(self, computation: MessageComputationAPI) -> None:
         if computation.msg.is_static:
             raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
         return super().__call__(computation)
@@ -231,7 +238,7 @@ class CreateByzantium(CreateEIP150):
 
 class Create2(CreateByzantium):
 
-    def get_stack_data(self, computation: ComputationAPI) -> CreateOpcodeStackData:
+    def get_stack_data(self, computation: MessageComputationAPI) -> CreateOpcodeStackData:
         endowment, memory_start, memory_length, salt = computation.stack_pop_ints(4)
 
         return CreateOpcodeStackData(endowment, memory_start, memory_length, salt)
@@ -242,7 +249,7 @@ class Create2(CreateByzantium):
     def generate_contract_address(self,
                                   stack_data: CreateOpcodeStackData,
                                   call_data: bytes,
-                                  computation: ComputationAPI) -> Address:
+                                  computation: MessageComputationAPI) -> Address:
 
         computation.state.increment_nonce(computation.msg.storage_address)
         return generate_safe_contract_address(
@@ -251,7 +258,11 @@ class Create2(CreateByzantium):
             call_data
         )
 
-    def apply_create_message(self, computation: ComputationAPI, child_msg: MessageAPI) -> None:
+    def apply_create_message(
+        self,
+        computation: MessageComputationAPI,
+        child_msg: MessageAPI,
+    ) -> None:
         # We need to ensure that creation operates on empty storage **and**
         # that if the initialization code fails that we revert the account back
         # to its original state root.
@@ -259,7 +270,7 @@ class Create2(CreateByzantium):
 
         computation.state.delete_storage(child_msg.storage_address)
 
-        child_computation = computation.apply_child_computation(child_msg)
+        child_computation = computation.apply_child_message_computation(child_msg)
 
         if child_computation.is_error:
             computation.state.revert(snapshot)

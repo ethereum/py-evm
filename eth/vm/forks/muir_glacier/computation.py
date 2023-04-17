@@ -2,7 +2,7 @@ from eth.vm.forks.istanbul.computation import (
     ISTANBUL_PRECOMPILES
 )
 from eth.vm.forks.istanbul.computation import (
-    IstanbulComputation,
+    IstanbulMessageComputation,
 )
 
 from .opcodes import MUIR_GLACIER_OPCODES
@@ -10,10 +10,11 @@ from .opcodes import MUIR_GLACIER_OPCODES
 MUIR_GLACIER_PRECOMPILES = ISTANBUL_PRECOMPILES
 
 
-class MuirGlacierComputation(IstanbulComputation):
+class MuirGlacierMessageComputation(IstanbulMessageComputation):
     """
-    A class for all execution computations in the ``MuirGlacier`` fork.
-    Inherits from :class:`~eth.vm.forks.constantinople.istanbul.IstanbulComputation`
+    A class for all execution *message* computations in the ``MuirGlacier`` fork.
+    Inherits from
+    :class:`~eth.vm.forks.constantinople.istanbul.IstanbulMessageComputation`
     """
     # Override
     opcodes = MUIR_GLACIER_OPCODES

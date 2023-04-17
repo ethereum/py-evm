@@ -10,10 +10,10 @@ from eth._utils.numeric import (
     ceil8,
 )
 
-from eth.vm.computation import BaseComputation
+from eth.vm.computation import MessageComputation
 
 
-def add(computation: BaseComputation) -> None:
+def add(computation: MessageComputation) -> None:
     """
     Addition
     """
@@ -24,7 +24,7 @@ def add(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def addmod(computation: BaseComputation) -> None:
+def addmod(computation: MessageComputation) -> None:
     """
     Modulo Addition
     """
@@ -38,7 +38,7 @@ def addmod(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def sub(computation: BaseComputation) -> None:
+def sub(computation: MessageComputation) -> None:
     """
     Subtraction
     """
@@ -49,7 +49,7 @@ def sub(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def mod(computation: BaseComputation) -> None:
+def mod(computation: MessageComputation) -> None:
     """
     Modulo
     """
@@ -63,7 +63,7 @@ def mod(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def smod(computation: BaseComputation) -> None:
+def smod(computation: MessageComputation) -> None:
     """
     Signed Modulo
     """
@@ -82,7 +82,7 @@ def smod(computation: BaseComputation) -> None:
     computation.stack_push_int(signed_to_unsigned(result))
 
 
-def mul(computation: BaseComputation) -> None:
+def mul(computation: MessageComputation) -> None:
     """
     Multiplication
     """
@@ -93,7 +93,7 @@ def mul(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def mulmod(computation: BaseComputation) -> None:
+def mulmod(computation: MessageComputation) -> None:
     """
     Modulo Multiplication
     """
@@ -106,7 +106,7 @@ def mulmod(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def div(computation: BaseComputation) -> None:
+def div(computation: MessageComputation) -> None:
     """
     Division
     """
@@ -120,7 +120,7 @@ def div(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def sdiv(computation: BaseComputation) -> None:
+def sdiv(computation: MessageComputation) -> None:
     """
     Signed Division
     """
@@ -140,7 +140,7 @@ def sdiv(computation: BaseComputation) -> None:
 
 
 @curry
-def exp(computation: BaseComputation, gas_per_byte: int) -> None:
+def exp(computation: MessageComputation, gas_per_byte: int) -> None:
     """
     Exponentiation
     """
@@ -164,7 +164,7 @@ def exp(computation: BaseComputation, gas_per_byte: int) -> None:
     computation.stack_push_int(result)
 
 
-def signextend(computation: BaseComputation) -> None:
+def signextend(computation: MessageComputation) -> None:
     """
     Signed Extend
     """
@@ -183,7 +183,7 @@ def signextend(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def shl(computation: BaseComputation) -> None:
+def shl(computation: MessageComputation) -> None:
     """
     Bitwise left shift
     """
@@ -197,7 +197,7 @@ def shl(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def shr(computation: BaseComputation) -> None:
+def shr(computation: MessageComputation) -> None:
     """
     Bitwise right shift
     """
@@ -211,7 +211,7 @@ def shr(computation: BaseComputation) -> None:
     computation.stack_push_int(result)
 
 
-def sar(computation: BaseComputation) -> None:
+def sar(computation: MessageComputation) -> None:
     """
     Arithmetic bitwise right shift
     """

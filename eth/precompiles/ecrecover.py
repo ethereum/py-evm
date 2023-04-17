@@ -21,11 +21,11 @@ from eth.validation import (
     validate_lte,
 )
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 
-def ecrecover(computation: BaseComputation) -> BaseComputation:
+def ecrecover(computation: MessageComputation) -> MessageComputation:
     computation.consume_gas(constants.GAS_ECRECOVER, reason="ECRecover Precompile")
     data = computation.msg.data_as_bytes
     raw_message_hash = data[:32]

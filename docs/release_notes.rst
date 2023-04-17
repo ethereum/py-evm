@@ -423,8 +423,8 @@ Internal Changes - for Contributors
 - Fix for creating a duplicate "ghost" Computation that was never used. It didn't
   break anything, but was inelegant and surprising to get extra objects created
   that were mostly useless. This was achieved by changing
-  :meth:`eth.abc.ComputationAPI.apply_message` and
-  :meth:`eth.abc.ComputationAPI.apply_create_message` to be class methods. (`#1921 <https://github.com/ethereum/py-evm/issues/1921>`__)
+  :meth:`eth.abc.MessageComputationAPI.apply_message` and
+  :meth:`eth.abc.MessageComputationAPI.apply_create_message` to be class methods. (`#1921 <https://github.com/ethereum/py-evm/issues/1921>`__)
 
 
 py-evm 0.3.0-alpha.14 (2020-02-10)
