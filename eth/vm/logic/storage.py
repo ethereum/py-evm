@@ -5,10 +5,10 @@ from eth_utils import (
 )
 from eth import constants
 
-from eth.vm.computation import BaseComputation
+from eth.vm.computation import MessageComputation
 
 
-def sstore(computation: BaseComputation) -> None:
+def sstore(computation: MessageComputation) -> None:
     slot, value = computation.stack_pop_ints(2)
 
     current_value = computation.state.get_storage(
@@ -52,7 +52,7 @@ def sstore(computation: BaseComputation) -> None:
     )
 
 
-def sload(computation: BaseComputation) -> None:
+def sload(computation: MessageComputation) -> None:
     slot = computation.stack_pop1_int()
 
     value = computation.state.get_storage(
@@ -76,7 +76,7 @@ class NetSStoreGasSchedule(NamedTuple):
     sstore_clears_schedule: int
 
 
-def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: BaseComputation) -> int:
+def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: MessageComputation) -> int:
     """
     :return slot: where the new value was stored
     """

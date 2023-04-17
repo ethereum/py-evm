@@ -1,11 +1,10 @@
 from .opcodes import PARIS_OPCODES
-from eth.vm.forks.gray_glacier.computation import GrayGlacierComputation
+from eth.vm.forks.gray_glacier.computation import GrayGlacierMessageComputation
 
 
-class ParisComputation(GrayGlacierComputation):
+class ParisMessageComputation(GrayGlacierMessageComputation):
     """
-    A class for all execution computations in the ``Paris`` hard fork
-    (a.k.a. "The Merge").
-    Inherits from :class:`~eth.vm.forks.gray_glacier.GrayGlacierComputation`
+    A class for all execution *message* computations in the ``Paris`` hard fork
+    Inherits from :class:`~eth.vm.forks.gray_glacier.GrayGlacierMessageComputation`
     """
     opcodes = PARIS_OPCODES

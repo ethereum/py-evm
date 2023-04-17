@@ -12,14 +12,14 @@ from eth.vm.message import (
     Message,
 )
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 from eth.vm.transaction_context import (
     BaseTransactionContext,
 )
 
 
-class DummyComputation(BaseComputation):
+class DummyComputation(MessageComputation):
     @classmethod
     def apply_message(cls, *args):
         return cls(*args)
@@ -217,7 +217,7 @@ def test_get_log_entries_order_with_children(computation, child_message, canonic
     parent_log2 = (canonical_address_a, [4, 5, 6], b'2')
     child_log = (canonical_address_a, [1, 2, 3], b'child')
     computation.add_log_entry(*parent_log)
-    child_computation = computation.apply_child_computation(child_message)
+    child_computation = computation.apply_child_message_computation(child_message)
     # Pretend the child computation logged something.
     child_computation.add_log_entry(*child_log)
     computation.add_log_entry(*parent_log2)

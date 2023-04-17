@@ -23,7 +23,7 @@ from eth._utils.padding import (
 )
 
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 
@@ -127,9 +127,9 @@ def _modexp(data: bytes) -> int:
 
 @curry
 def modexp(
-    computation: BaseComputation,
+    computation: MessageComputation,
     gas_calculator: Callable[[bytes], int] = _compute_modexp_gas_fee_eip_198
-) -> BaseComputation:
+) -> MessageComputation:
     """
     https://github.com/ethereum/EIPs/pull/198
     """

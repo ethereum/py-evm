@@ -6,7 +6,7 @@ from eth_utils import (
 )
 
 from eth.abc import (
-    ComputationAPI,
+    MessageComputationAPI,
     MessageAPI,
     SignedTransactionAPI,
     StateAPI,
@@ -27,7 +27,7 @@ from eth._utils.address import (
     generate_contract_address,
 )
 
-from .computation import LondonComputation
+from .computation import LondonMessageComputation
 from .validation import validate_london_normalized_transaction
 from .constants import EIP3529_MAX_REFUND_QUOTIENT
 
@@ -86,7 +86,7 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
 
     @classmethod
     def calculate_gas_refund(cls,
-                             computation: ComputationAPI,
+                             computation: MessageComputationAPI,
                              gas_used: int) -> int:
         # Self destruct refunds were added in Frontier
         # London removes them in EIP-3529
@@ -96,7 +96,7 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
 
 
 class LondonState(BerlinState):
-    computation_class = LondonComputation
+    message_computation_class = LondonMessageComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = LondonTransactionExecutor
 
     def get_tip(self, transaction: SignedTransactionAPI) -> int:

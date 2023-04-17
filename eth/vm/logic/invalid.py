@@ -1,4 +1,4 @@
-from eth.abc import ComputationAPI
+from eth.abc import MessageComputationAPI
 from eth.exceptions import InvalidInstruction
 from eth.vm.opcode import Opcode
 
@@ -11,7 +11,7 @@ class InvalidOpcode(Opcode):
         self.value = value
         super().__init__()
 
-    def __call__(self, computation: ComputationAPI) -> None:
+    def __call__(self, computation: MessageComputationAPI) -> None:
         raise InvalidInstruction(
             f"Invalid opcode 0x{self.value:x} @ {computation.code.program_counter - 1}"
         )

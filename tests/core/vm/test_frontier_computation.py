@@ -4,7 +4,7 @@ from eth.vm.message import (
     Message,
 )
 from eth.vm.forks.frontier.computation import (
-    FrontierComputation,
+    FrontierMessageComputation,
 )
 
 
@@ -30,7 +30,7 @@ def message(canonical_address_a, canonical_address_b):
 
 @pytest.fixture
 def computation(message, transaction_context, state):
-    computation = FrontierComputation(
+    computation = FrontierMessageComputation(
         state=state,
         message=message,
         transaction_context=transaction_context,
@@ -52,7 +52,7 @@ def child_message(computation, canonical_address_b):
 
 @pytest.fixture
 def child_computation(computation, child_message):
-    child_computation = computation.generate_child_computation(child_message)
+    child_computation = computation.generate_child_message_computation(child_message)
     return child_computation
 
 

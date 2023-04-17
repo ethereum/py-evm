@@ -12,7 +12,7 @@ from eth.abc import (
     ReceiptAPI,
     StateAPI,
     SignedTransactionAPI,
-    ComputationAPI,
+    MessageComputationAPI,
 )
 from eth.constants import (
     BLOCK_REWARD,
@@ -35,7 +35,7 @@ from .headers import (
 from .validation import validate_frontier_transaction_against_header
 
 
-def make_frontier_receipt(computation: ComputationAPI,
+def make_frontier_receipt(computation: MessageComputationAPI,
                           new_cumulative_gas_used: int) -> ReceiptAPI:
     # Reusable for other forks
     # This skips setting the state root (set to 0 instead). The logic for making a state root
@@ -101,7 +101,7 @@ class FrontierVM(VM):
     @classmethod
     def finalize_gas_used(cls,
                           transaction: SignedTransactionAPI,
-                          computation: ComputationAPI) -> int:
+                          computation: MessageComputationAPI) -> int:
 
         gas_remaining = computation.get_gas_remaining()
         consumed_gas = transaction.gas - gas_remaining
@@ -116,7 +116,7 @@ class FrontierVM(VM):
             cls,
             base_header: BlockHeaderAPI,
             transaction: SignedTransactionAPI,
-            computation: ComputationAPI,
+            computation: MessageComputationAPI,
             state: StateAPI) -> ReceiptAPI:
 
         gas_used = base_header.gas_used + cls.finalize_gas_used(transaction, computation)

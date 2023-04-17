@@ -1,9 +1,9 @@
 Computation
 ===========
 
-BaseComputation
+MessageComputation
 ---------------
 
-.. autoclass:: eth.vm.computation.BaseComputation
+.. autoclass:: eth.vm.computation.MessageComputation
   :members:
 

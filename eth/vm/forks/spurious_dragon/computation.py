@@ -6,7 +6,7 @@ from eth_utils import (
 
 from eth import constants
 from eth.abc import (
-    ComputationAPI,
+    MessageComputationAPI,
     MessageAPI,
     StateAPI,
     TransactionContextAPI,
@@ -16,17 +16,18 @@ from eth.exceptions import (
     VMError,
 )
 from eth.vm.forks.homestead.computation import (
-    HomesteadComputation,
+    HomesteadMessageComputation,
 )
 
 from ..spurious_dragon.constants import EIP170_CODE_SIZE_LIMIT
 from .opcodes import SPURIOUS_DRAGON_OPCODES
 
 
-class SpuriousDragonComputation(HomesteadComputation):
+class SpuriousDragonMessageComputation(HomesteadMessageComputation):
     """
-    A class for all execution computations in the ``SpuriousDragon`` fork.
-    Inherits from :class:`~eth.vm.forks.homestead.computation.HomesteadComputation`
+    A class for all execution *message* computations in the ``SpuriousDragon`` fork.
+    Inherits from
+    :class:`~eth.vm.forks.homestead.computation.HomesteadMessageComputation`
     """
     # Override
     opcodes = SPURIOUS_DRAGON_OPCODES
@@ -36,7 +37,7 @@ class SpuriousDragonComputation(HomesteadComputation):
             cls,
             state: StateAPI,
             message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> ComputationAPI:
+            transaction_context: TransactionContextAPI) -> MessageComputationAPI:
 
         snapshot = state.snapshot()
 

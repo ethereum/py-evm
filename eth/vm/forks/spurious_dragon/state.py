@@ -5,7 +5,7 @@ from eth_utils import (
 )
 
 from eth.abc import (
-    ComputationAPI,
+    MessageComputationAPI,
     SignedTransactionAPI,
     TransactionExecutorAPI,
 )
@@ -14,14 +14,14 @@ from eth.vm.forks.homestead.state import (
     HomesteadTransactionExecutor,
 )
 
-from .computation import SpuriousDragonComputation
+from .computation import SpuriousDragonMessageComputation
 from ._utils import collect_touched_accounts
 
 
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
     def finalize_computation(self,
                              transaction: SignedTransactionAPI,
-                             computation: ComputationAPI) -> ComputationAPI:
+                             computation: MessageComputationAPI) -> MessageComputationAPI:
         computation = super().finalize_computation(transaction, computation)
 
         #
@@ -45,5 +45,5 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
 
 
 class SpuriousDragonState(HomesteadState):
-    computation_class: Type[ComputationAPI] = SpuriousDragonComputation
+    message_computation_class: Type[MessageComputationAPI] = SpuriousDragonMessageComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = SpuriousDragonTransactionExecutor

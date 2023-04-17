@@ -1,9 +1,9 @@
 import functools
 
-from eth.vm.computation import BaseComputation
+from eth.vm.computation import MessageComputation
 
 
-def swap_XX(computation: BaseComputation, position: int) -> None:
+def swap_XX(computation: MessageComputation, position: int) -> None:
     """
     Stack item swapping
     """

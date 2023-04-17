@@ -27,14 +27,14 @@ from eth._utils.padding import (
 )
 
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 
 @curry
 def ecmul(
-        computation: BaseComputation,
-        gas_cost: int = constants.GAS_ECMUL) -> BaseComputation:
+        computation: MessageComputation,
+        gas_cost: int = constants.GAS_ECMUL) -> MessageComputation:
 
     computation.consume_gas(gas_cost, reason='ECMUL Precompile')
 

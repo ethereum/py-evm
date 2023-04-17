@@ -157,10 +157,10 @@ ExecutionContextAPI
   :members:
 
 
-ComputationAPI
+MessageComputationAPI
 --------------
 
-.. autoclass:: eth.abc.ComputationAPI
+.. autoclass:: eth.abc.MessageComputationAPI
   :members:
 
 

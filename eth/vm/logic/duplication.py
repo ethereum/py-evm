@@ -1,9 +1,9 @@
 import functools
 
-from eth.vm.computation import BaseComputation
+from eth.vm.computation import MessageComputation
 
 
-def dup_XX(computation: BaseComputation, position: int) -> None:
+def dup_XX(computation: MessageComputation, position: int) -> None:
     """
     Stack item duplication.
     """

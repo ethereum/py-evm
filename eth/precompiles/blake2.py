@@ -7,7 +7,7 @@ from eth.exceptions import (
     VMError,
 )
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 try:
@@ -18,7 +18,7 @@ except ImportError:
 GAS_COST_PER_ROUND = 1
 
 
-def blake2b_fcompress(computation: BaseComputation) -> BaseComputation:
+def blake2b_fcompress(computation: MessageComputation) -> MessageComputation:
     try:
         parameters = extract_blake2b_parameters(computation.msg.data_as_bytes)
     except ValidationError as exc:

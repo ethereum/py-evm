@@ -20,7 +20,7 @@ from eth_utils.toolz import nth
 from eth.abc import (
     AccountDatabaseAPI,
     AtomicDatabaseAPI,
-    ComputationAPI,
+    MessageComputationAPI,
     ExecutionContextAPI,
     MessageAPI,
     SignedTransactionAPI,
@@ -45,7 +45,7 @@ class BaseState(Configurable, StateAPI):
     #
     __slots__ = ['_db', 'execution_context', '_account_db']
 
-    computation_class: Type[ComputationAPI] = None
+    message_computation_class: Type[MessageComputationAPI] = None
     transaction_context_class: Type[TransactionContextAPI] = None
     account_db_class: Type[AccountDatabaseAPI] = None
     transaction_executor_class: Type[TransactionExecutorAPI] = None
@@ -188,7 +188,7 @@ class BaseState(Configurable, StateAPI):
         """
         return (
             self._account_db.is_address_warm(address)
-            or address in self.computation_class.get_precompiles()
+            or address in self.message_computation_class.get_precompiles()
         )
 
     def mark_address_warm(self, address: Address) -> None:
@@ -242,11 +242,11 @@ class BaseState(Configurable, StateAPI):
     #
     def get_computation(self,
                         message: MessageAPI,
-                        transaction_context: TransactionContextAPI) -> ComputationAPI:
-        if self.computation_class is None:
-            raise AttributeError("No `computation_class` has been set for this State")
+                        transaction_context: TransactionContextAPI) -> MessageComputationAPI:
+        if self.message_computation_class is None:
+            raise AttributeError("No `message_computation_class` has been set for this State")
         else:
-            computation = self.computation_class(self, message, transaction_context)
+            computation = self.message_computation_class(self, message, transaction_context)
         return computation
 
     #
@@ -265,7 +265,7 @@ class BaseState(Configurable, StateAPI):
         return self.transaction_executor_class(self)
 
     def costless_execute_transaction(self,
-                                     transaction: SignedTransactionAPI) -> ComputationAPI:
+                                     transaction: SignedTransactionAPI) -> MessageComputationAPI:
         with self.override_transaction_context(gas_price=transaction.gas_price):
             free_transaction = transaction.copy(gas_price=0)
             return self.apply_transaction(free_transaction)
@@ -309,7 +309,7 @@ class BaseTransactionExecutor(TransactionExecutorAPI):
     def __init__(self, vm_state: StateAPI) -> None:
         self.vm_state = vm_state
 
-    def __call__(self, transaction: SignedTransactionAPI) -> ComputationAPI:
+    def __call__(self, transaction: SignedTransactionAPI) -> MessageComputationAPI:
         self.validate_transaction(transaction)
         message = self.build_evm_message(transaction)
         computation = self.build_computation(message, transaction)

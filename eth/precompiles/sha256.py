@@ -7,11 +7,11 @@ from eth._utils.numeric import (
 )
 
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 
-def sha256(computation: BaseComputation) -> BaseComputation:
+def sha256(computation: MessageComputation) -> MessageComputation:
     word_count = ceil32(len(computation.msg.data)) // 32
     gas_fee = constants.GAS_SHA256 + word_count * constants.GAS_SHA256WORD
 

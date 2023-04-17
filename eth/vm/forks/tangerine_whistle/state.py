@@ -4,4 +4,4 @@ from .computation import TangerineWhistleComputation
 
 
 class TangerineWhistleState(HomesteadState):
-    computation_class = TangerineWhistleComputation
+    message_computation_class = TangerineWhistleComputation

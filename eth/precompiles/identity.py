@@ -4,11 +4,11 @@ from eth._utils.numeric import (
 )
 
 from eth.vm.computation import (
-    BaseComputation,
+    MessageComputation,
 )
 
 
-def identity(computation: BaseComputation) -> BaseComputation:
+def identity(computation: MessageComputation) -> MessageComputation:
     word_count = ceil32(len(computation.msg.data)) // 32
     gas_fee = constants.GAS_IDENTITY + word_count * constants.GAS_IDENTITYWORD
 

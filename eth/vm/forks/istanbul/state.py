@@ -2,8 +2,8 @@ from eth.vm.forks.petersburg.state import (
     PetersburgState
 )
 
-from .computation import IstanbulComputation
+from .computation import IstanbulMessageComputation
 
 
 class IstanbulState(PetersburgState):
-    computation_class = IstanbulComputation
+    message_computation_class = IstanbulMessageComputation

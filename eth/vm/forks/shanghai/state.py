@@ -14,7 +14,7 @@ class ShanghaiTransactionExecutor(ParisTransactionExecutor):
 
 
 class ShanghaiState(ParisState):
-    computation_class = ShanghaiComputation
+    message_computation_class = ShanghaiComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = ShanghaiTransactionExecutor   # noqa: E501
 
     def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:

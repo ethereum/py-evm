@@ -8,7 +8,7 @@ from eth._utils.address import (
     force_bytes_to_address,
 )
 from eth.abc import (
-    ComputationAPI,
+    MessageComputationAPI,
 )
 from eth.vm import mnemonics
 from eth.vm.forks.istanbul.storage import (
@@ -39,7 +39,7 @@ from eth.vm.logic.system import (
 from . import constants as berlin_constants
 
 
-def _mark_address_warm(computation: ComputationAPI, address: Address) -> bool:
+def _mark_address_warm(computation: MessageComputationAPI, address: Address) -> bool:
     """
     Mark the given address as warm if it was not previously.
 
@@ -62,7 +62,7 @@ def _account_load_cost(was_cold: bool) -> int:
 
 
 def _consume_gas_for_account_load(
-        computation: ComputationAPI,
+        computation: MessageComputationAPI,
         address: Address,
         reason: str) -> None:
     was_cold = _mark_address_warm(computation, address)
@@ -70,7 +70,7 @@ def _consume_gas_for_account_load(
     computation.consume_gas(gas_cost, reason=reason)
 
 
-def _mark_storage_warm(computation: ComputationAPI, slot: int) -> bool:
+def _mark_storage_warm(computation: MessageComputationAPI, slot: int) -> bool:
     """
     :return was_cold: True if the storage slot was not previously accessed
         during this transaction
@@ -83,13 +83,13 @@ def _mark_storage_warm(computation: ComputationAPI, slot: int) -> bool:
         return True
 
 
-def balance_eip2929(computation: ComputationAPI) -> None:
+def balance_eip2929(computation: MessageComputationAPI) -> None:
     address = force_bytes_to_address(computation.stack_pop1_bytes())
     _consume_gas_for_account_load(computation, address, mnemonics.BALANCE)
     push_balance_of_address(address, computation)
 
 
-def extcodesize_eip2929(computation: ComputationAPI) -> None:
+def extcodesize_eip2929(computation: MessageComputationAPI) -> None:
     address = force_bytes_to_address(computation.stack_pop1_bytes())
     _consume_gas_for_account_load(computation, address, mnemonics.EXTCODEHASH)
 
@@ -97,13 +97,13 @@ def extcodesize_eip2929(computation: ComputationAPI) -> None:
     computation.stack_push_int(code_size)
 
 
-def extcodecopy_eip2929(computation: ComputationAPI) -> None:
+def extcodecopy_eip2929(computation: MessageComputationAPI) -> None:
     address, size = extcodecopy_execute(computation)
     consume_extcodecopy_word_cost(computation, size)
     _consume_gas_for_account_load(computation, address, mnemonics.EXTCODECOPY)
 
 
-def extcodehash_eip2929(computation: ComputationAPI) -> None:
+def extcodehash_eip2929(computation: MessageComputationAPI) -> None:
     """
     Return the code hash for a given address.
     EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md
@@ -119,7 +119,7 @@ def extcodehash_eip2929(computation: ComputationAPI) -> None:
         computation.stack_push_bytes(state.get_code_hash(address))
 
 
-def sload_eip2929(computation: ComputationAPI) -> None:
+def sload_eip2929(computation: MessageComputationAPI) -> None:
     slot = computation.stack_pop1_int()
 
     if _mark_storage_warm(computation, slot):
@@ -142,7 +142,10 @@ GAS_SCHEDULE_EIP2929 = GAS_SCHEDULE_EIP2200._replace(
 
 
 @curry
-def sstore_eip2929_generic(gas_schedule: NetSStoreGasSchedule, computation: ComputationAPI) -> int:
+def sstore_eip2929_generic(
+    gas_schedule: NetSStoreGasSchedule,
+    computation: MessageComputationAPI,
+) -> int:
     slot = sstore_eip2200_generic(gas_schedule, computation)
 
     if _mark_storage_warm(computation, slot):
@@ -156,7 +159,11 @@ sstore_eip2929 = sstore_eip2929_generic(GAS_SCHEDULE_EIP2929)
 
 
 class LoadFeeByCacheWarmth:
-    def get_account_load_fee(self, computation: ComputationAPI, code_address: Address) -> int:
+    def get_account_load_fee(
+        self,
+        computation: MessageComputationAPI,
+        code_address: Address,
+    ) -> int:
         was_cold = _mark_address_warm(computation, code_address)
         return _account_load_cost(was_cold)
 
@@ -177,7 +184,7 @@ class StaticCallEIP2929(LoadFeeByCacheWarmth, StaticCall):
     pass
 
 
-def selfdestruct_eip2929(computation: ComputationAPI) -> None:
+def selfdestruct_eip2929(computation: MessageComputationAPI) -> None:
     beneficiary = force_bytes_to_address(computation.stack_pop1_bytes())
 
     if _mark_address_warm(computation, beneficiary):
@@ -194,7 +201,7 @@ class CreateEIP2929(CreateByzantium):
     def generate_contract_address(self,
                                   stack_data: CreateOpcodeStackData,
                                   call_data: bytes,
-                                  computation: ComputationAPI) -> Address:
+                                  computation: MessageComputationAPI) -> Address:
         address = super().generate_contract_address(stack_data, call_data, computation)
         computation.state.mark_address_warm(address)
         return address
@@ -204,7 +211,7 @@ class Create2EIP2929(Create2):
     def generate_contract_address(self,
                                   stack_data: CreateOpcodeStackData,
                                   call_data: bytes,
-                                  computation: ComputationAPI) -> Address:
+                                  computation: MessageComputationAPI) -> Address:
         address = super().generate_contract_address(stack_data, call_data, computation)
         computation.state.mark_address_warm(address)
         return address

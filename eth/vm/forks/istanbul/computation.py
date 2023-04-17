@@ -10,7 +10,7 @@ from eth.vm.forks.petersburg.computation import (
     PETERSBURG_PRECOMPILES
 )
 from eth.vm.forks.petersburg.computation import (
-    PetersburgComputation,
+    PetersburgMessageComputation,
 )
 from eth.vm.gas_meter import (
     allow_negative_refund_strategy,
@@ -39,16 +39,17 @@ ISTANBUL_PRECOMPILES = merge(
 )
 
 
-class IstanbulComputation(PetersburgComputation):
+class IstanbulMessageComputation(PetersburgMessageComputation):
     """
-    A class for all execution computations in the ``Istanbul`` fork.
-    Inherits from :class:`~eth.vm.forks.constantinople.petersburg.PetersburgComputation`
+    A class for all execution *message* computations in the ``Istanbul`` fork.
+    Inherits from
+    :class:`~eth.vm.forks.constantinople.petersburg.PetersburgMessageComputation`
     """
     # Override
     opcodes = ISTANBUL_OPCODES
     _precompiles = ISTANBUL_PRECOMPILES
 
-    def get_gas_meter(self) -> GasMeter:
+    def _configure_gas_meter(self) -> GasMeter:
         return GasMeter(
             self.msg.gas,
             allow_negative_refund_strategy
