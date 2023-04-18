@@ -1,7 +1,7 @@
 Creating Opcodes
 ================
 
-An opcode is just a function which takes a :class:`~eth.vm.computation.MessageComputation`
+An opcode is just a function which takes a :class:`~eth.vm.computation.BaseComputation`
 instance as it's sole argument.  If an opcode function has a return value, this
 value will be discarded during normal VM execution.
 
@@ -52,7 +52,7 @@ Usage of the :func:`~eth.vm.opcode.as_opcode` helper:
     def custom_op(computation):
         ... # opcode logic here
     
-    class ExampleComputation(MessageComputation):
+    class ExampleComputation(BaseComputation):
         opcodes = {
             b'\x01': as_opcode(custom_op, 'CUSTOM_OP', 10),
         }
