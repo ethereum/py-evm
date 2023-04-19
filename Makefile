@@ -25,6 +25,9 @@ clean-pyc:
 lint:
 	tox -e lint
 
+lint-roll:
+	$(MAKE) lint
+
 test:
 	py.test --tb native tests
 

@@ -5,6 +5,7 @@ version: 2.0
 
 common: &common
   working_directory: ~/repo
+  resource_class: xlarge
   steps:
     - checkout
     - run:
