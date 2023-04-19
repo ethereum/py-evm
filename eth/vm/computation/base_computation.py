@@ -3,9 +3,12 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Generic,
+    List,
     Optional,
     Tuple,
     Type,
+    TypeVar,
     Union,
 )
 
@@ -73,7 +76,10 @@ def memory_gas_cost(size_in_bytes: int) -> int:
     return total_cost
 
 
-class BaseComputation(Configurable, ComputationAPI):
+C = TypeVar("C", bound="ComputationAPI")
+
+
+class BaseComputation(ComputationAPI, Configurable, Generic[C]):
     """
     The base class for all execution computations.
 
@@ -92,8 +98,8 @@ class BaseComputation(Configurable, ComputationAPI):
 
     state: StateAPI = None
     code: CodeStreamAPI = None
+    children: List[C] = None
     return_data: bytes = b''
-    accounts_to_delete: Dict[Address, Address] = None
 
     _memory: MemoryAPI = None
     _stack: StackAPI = None
@@ -107,6 +113,8 @@ class BaseComputation(Configurable, ComputationAPI):
 
     def __init__(self, state: StateAPI) -> None:
         self.state = state
+        self.children = []
+
         self._memory = Memory()
         self._stack = Stack()
 
