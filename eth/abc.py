@@ -1862,7 +1862,7 @@ class ExecutionContextAPI(ABC):
 
 
 class ComputationAPI(
-    ContextManager['ComputationAPI'],
+    ContextManager["ComputationAPI"],
     StackManipulationAPI,
 ):
     """
@@ -2111,12 +2111,11 @@ class MessageComputationAPI(
 
     msg: MessageAPI
     transaction_context: TransactionContextAPI
-    children: List["MessageComputationAPI"]
 
     @abstractmethod
     def __init__(
         self,
-        state: 'StateAPI',
+        state: "StateAPI",
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
     ) -> None:
@@ -2154,7 +2153,7 @@ class MessageComputationAPI(
     def apply_child_message_computation(
         self,
         child_msg: MessageAPI,
-    ) -> 'MessageComputationAPI':
+    ) -> "MessageComputationAPI":
         """
         Apply the vm message ``child_msg`` as a child message computation.
         """
@@ -2164,7 +2163,7 @@ class MessageComputationAPI(
     def generate_child_message_computation(
         self,
         child_msg: MessageAPI,
-    ) -> 'MessageComputationAPI':
+    ) -> "MessageComputationAPI":
         """
         Generate a child message computation from the given ``child_msg``.
         """
@@ -2173,7 +2172,7 @@ class MessageComputationAPI(
     @abstractmethod
     def add_child_message_computation(
         self,
-        child_message_computation: 'MessageComputationAPI',
+        child_message_computation: "MessageComputationAPI",
     ) -> None:
         """
         Add the given ``child_computation``.
@@ -2232,10 +2231,11 @@ class MessageComputationAPI(
     @classmethod
     @abstractmethod
     def apply_message(
-            cls,
-            state: 'StateAPI',
-            message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> 'MessageComputationAPI':
+        cls,
+        state: "StateAPI",
+        message: MessageAPI,
+        transaction_context: TransactionContextAPI,
+    ) -> "MessageComputationAPI":
         """
         Execute a VM message. This is where the VM-specific call logic exists.
         """

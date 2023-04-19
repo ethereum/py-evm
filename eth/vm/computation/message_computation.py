@@ -12,7 +12,8 @@ from typing import (
 )
 
 from eth.vm.computation.base_computation import (
-    BaseComputation, NO_RESULT,
+    BaseComputation,
+    NO_RESULT,
 )
 from eth_typing import (
     Address,
@@ -54,7 +55,10 @@ from eth.vm.message import (
 )
 
 
-class MessageComputation(BaseComputation, MessageComputationAPI):
+class MessageComputation(
+    MessageComputationAPI,
+    BaseComputation[MessageComputationAPI],
+):
     """
     A class for executing message computations.
     """
@@ -74,14 +78,13 @@ class MessageComputation(BaseComputation, MessageComputationAPI):
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
     ) -> None:
-        super().__init__(state)
+        BaseComputation.__init__(self, state)
 
         self.msg = message
         self.transaction_context = transaction_context
         self.code = CodeStream(message.code)
         self._gas_meter = self._configure_gas_meter()
 
-        self.children = []
         self.accounts_to_delete = {}
         self._log_entries = []
 
