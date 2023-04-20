@@ -4,7 +4,7 @@ from eth.abc import (
     TransactionExecutorAPI,
     WithdrawalAPI,
 )
-from .computation import ShanghaiComputation
+from .computation import ShanghaiMessageComputation
 from ..paris import ParisState
 from ..paris.state import ParisTransactionExecutor
 
@@ -14,7 +14,7 @@ class ShanghaiTransactionExecutor(ParisTransactionExecutor):
 
 
 class ShanghaiState(ParisState):
-    message_computation_class = ShanghaiComputation
+    message_computation_class = ShanghaiMessageComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = ShanghaiTransactionExecutor   # noqa: E501
 
     def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:

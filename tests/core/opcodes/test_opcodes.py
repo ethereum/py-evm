@@ -7,7 +7,7 @@ from eth.chains.mainnet import (
     POS_MAINNET_VMS,
 )
 from eth.vm.forks.shanghai.computation import (
-    ShanghaiComputation,
+    ShanghaiMessageComputation,
 )
 from eth_utils import (
     decode_hex,
@@ -1599,7 +1599,7 @@ def test_selfdestruct_does_not_issue_deprecation_warning_pre_shanghai(vm_class):
 
 
 def test_selfdestruct_issues_deprecation_warning_for_shanghai():
-    available_vm_opcodes = ShanghaiComputation.opcodes
+    available_vm_opcodes = ShanghaiMessageComputation.opcodes
 
     vm_opcodes_without_selfdestruct = {
         k: available_vm_opcodes[k] for k in available_vm_opcodes.keys()
