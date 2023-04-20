@@ -1,5 +1,10 @@
 from eth._utils.numeric import ceil32
-from eth.abc import MessageComputationAPI, MessageAPI, StateAPI, TransactionContextAPI
+from eth.abc import (
+    MessageComputationAPI,
+    MessageAPI,
+    StateAPI,
+    TransactionContextAPI,
+)
 from .constants import (
     INITCODE_WORD_COST,
     MAX_INITCODE_SIZE,
@@ -11,7 +16,7 @@ from eth.exceptions import (
 from eth.vm.forks.paris.computation import ParisMessageComputation
 
 
-class ShanghaiComputation(ParisMessageComputation):
+class ShanghaiMessageComputation(ParisMessageComputation):
     """
     A class for all execution *message* computations in the ``Shanghai`` hard fork
     """
