@@ -6,7 +6,6 @@ from eth.db import (
     get_db_backend,
 )
 
-
 pytest.importorskip('leveldb')
 
 
