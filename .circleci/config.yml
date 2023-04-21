@@ -49,7 +49,9 @@ common: &common
           - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
     - run:
         name: install dependencies
-        command: pip install --user tox
+        command: |
+          python -m pip install --upgrade pip
+          python -m pip install tox
     - run:
         name: run tox
         command: python -m tox -r
