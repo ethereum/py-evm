@@ -47,6 +47,7 @@ deps = {
         "pydocstyle>=6.0.0",
         "types-setuptools",
         "importlib-metadata<5.0;python_version<'3.8'",
+        "isort==5.11.4"
     ],
     'benchmark': [
         "termcolor>=1.1.0,<2.0.0",

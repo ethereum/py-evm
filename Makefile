@@ -23,7 +23,11 @@ clean-pyc:
 	find . -name '__pycache__' -exec rm -rf {} +
 
 lint:
-	tox -e lint
+	tox run -e lint
+
+lint-roll:
+	isort eth tests
+	$(MAKE) lint
 
 test:
 	py.test --tb native tests
