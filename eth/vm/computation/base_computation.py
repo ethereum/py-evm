@@ -1,4 +1,6 @@
-from types import TracebackType
+from types import (
+    TracebackType,
+)
 from typing import (
     Any,
     Callable,
@@ -12,8 +14,9 @@ from typing import (
     Union,
 )
 
-from cached_property import cached_property
-
+from cached_property import (
+    cached_property,
+)
 from eth_typing import (
     Address,
 )
@@ -28,13 +31,13 @@ from eth._utils.numeric import (
     ceil32,
 )
 from eth.abc import (
-    ComputationAPI,
-    MemoryAPI,
-    StackAPI,
-    GasMeterAPI,
-    OpcodeAPI,
     CodeStreamAPI,
+    ComputationAPI,
+    GasMeterAPI,
+    MemoryAPI,
     MessageComputationAPI,
+    OpcodeAPI,
+    StackAPI,
     StateAPI,
 )
 from eth.constants import (

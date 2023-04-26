@@ -1,11 +1,15 @@
 import contextlib
 from typing import (
-    cast,
     Iterator,
+    cast,
 )
 
-from eth_hash.auto import keccak
-from trie import HexaryTrie
+from eth_hash.auto import (
+    keccak,
+)
+from trie import (
+    HexaryTrie,
+)
 
 from eth.db.keymap import (
     KeyMapDB,

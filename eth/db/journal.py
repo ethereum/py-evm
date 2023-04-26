@@ -2,21 +2,37 @@ import collections
 from itertools import (
     count,
 )
-from typing import Callable, cast, Dict, List, Set, Union
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Set,
+    Union,
+    cast,
+)
 
+from eth_utils import (
+    ValidationError,
+)
 from eth_utils.toolz import (
     first,
     nth,
 )
-from eth_utils import (
-    ValidationError,
+
+from eth.abc import (
+    DatabaseAPI,
+)
+from eth.typing import (
+    JournalDBCheckpoint,
 )
 
-from eth.abc import DatabaseAPI
-from eth.typing import JournalDBCheckpoint
-
-from .backends.base import BaseDB
-from .diff import DBDiff, DBDiffTracker
+from .backends.base import (
+    BaseDB,
+)
+from .diff import (
+    DBDiff,
+    DBDiffTracker,
+)
 
 
 class DeletedEntry:

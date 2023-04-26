@@ -1,15 +1,15 @@
 from eth.vm.forks.byzantium.computation import (
-    BYZANTIUM_PRECOMPILES
-)
-from eth.vm.forks.byzantium.computation import (
-    ByzantiumMessageComputation
+    BYZANTIUM_PRECOMPILES,
+    ByzantiumMessageComputation,
 )
 from eth.vm.gas_meter import (
-    allow_negative_refund_strategy,
     GasMeter,
+    allow_negative_refund_strategy,
 )
 
-from .opcodes import CONSTANTINOPLE_OPCODES
+from .opcodes import (
+    CONSTANTINOPLE_OPCODES,
+)
 
 CONSTANTINOPLE_PRECOMPILES = BYZANTIUM_PRECOMPILES
 

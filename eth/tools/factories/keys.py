@@ -1,14 +1,16 @@
 import secrets
-try:
-    import factory
-except ImportError:
-    raise ImportError("The p2p.tools.factories module requires the `factory_boy` library.")
 
+from eth_keys import (
+    keys,
+)
 from eth_utils import (
     int_to_big_endian,
 )
 
-from eth_keys import keys
+try:
+    import factory
+except ImportError:
+    raise ImportError("The p2p.tools.factories module requires the `factory_boy` library.")
 
 
 def _mk_private_key_bytes() -> bytes:

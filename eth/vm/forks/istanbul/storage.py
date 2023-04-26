@@ -1,12 +1,18 @@
-from eth_utils.toolz import curry
+from eth_utils.toolz import (
+    curry,
+)
 
-from eth.exceptions import OutOfGas
-from eth.vm.computation import MessageComputation
+from eth.exceptions import (
+    OutOfGas,
+)
+from eth.vm.computation import (
+    MessageComputation,
+)
 from eth.vm.forks.constantinople.storage import (
     GAS_SCHEDULE_EIP1283,
 )
 from eth.vm.forks.istanbul import (
-    constants
+    constants,
 )
 from eth.vm.logic.storage import (
     NetSStoreGasSchedule,

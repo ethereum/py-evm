@@ -7,10 +7,6 @@ from eth_utils.toolz import (
     merge,
 )
 
-from eth.precompiles.modexp import (
-    extract_lengths,
-    modexp,
-)
 from eth._utils.address import (
     force_bytes_to_address,
 )
@@ -20,17 +16,21 @@ from eth._utils.numeric import (
 from eth._utils.padding import (
     zpad_right,
 )
-
-from eth.vm.forks.berlin import constants
-
-from eth.vm.forks.muir_glacier.computation import (
-    MUIR_GLACIER_PRECOMPILES
+from eth.precompiles.modexp import (
+    extract_lengths,
+    modexp,
+)
+from eth.vm.forks.berlin import (
+    constants,
 )
 from eth.vm.forks.muir_glacier.computation import (
+    MUIR_GLACIER_PRECOMPILES,
     MuirGlacierMessageComputation,
 )
 
-from .opcodes import BERLIN_OPCODES
+from .opcodes import (
+    BERLIN_OPCODES,
+)
 
 
 def _calculate_multiplication_complexity(base_length: int, modulus_length: int) -> int:

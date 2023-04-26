@@ -1,21 +1,23 @@
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 import logging
 from typing import (
-    Iterator,
     FrozenSet,
+    Iterator,
     Set,
 )
 
 from eth.abc import (
-    AtomicWriteBatchAPI,
     AtomicDatabaseAPI,
+    AtomicWriteBatchAPI,
     DatabaseAPI,
-)
-from eth.db.backends.base import (
-    BaseDB,
 )
 from eth.db.atomic import (
     BaseAtomicDB,
+)
+from eth.db.backends.base import (
+    BaseDB,
 )
 
 

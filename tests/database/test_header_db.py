@@ -1,27 +1,27 @@
 import enum
-from functools import partial
+from functools import (
+    partial,
+)
 import operator
+import pytest
 import random
 
-from hypothesis import (
-    example,
-    given,
-    settings,
-    strategies as st,
+from eth_utils import (
+    ValidationError,
+    keccak,
+    to_set,
+    to_tuple,
 )
-import pytest
-
 from eth_utils.toolz import (
     accumulate,
     compose,
     sliding_window,
 )
-
-from eth_utils import (
-    to_set,
-    to_tuple,
-    keccak,
-    ValidationError,
+from hypothesis import (
+    example,
+    given,
+    settings,
+    strategies as st,
 )
 
 from eth.constants import (
@@ -29,13 +29,18 @@ from eth.constants import (
     GENESIS_DIFFICULTY,
     GENESIS_GAS_LIMIT,
 )
-from eth.db.atomic import AtomicDB
+from eth.db.atomic import (
+    AtomicDB,
+)
 from eth.db.chain_gaps import (
-    GapChange,
     GENESIS_CHAIN_GAPS,
+    GapChange,
     fill_gap,
-    reopen_gap,
     is_block_number_in_gap,
+    reopen_gap,
+)
+from eth.db.header import (
+    HeaderDB,
 )
 from eth.exceptions import (
     CanonicalHeadNotFound,
@@ -44,15 +49,14 @@ from eth.exceptions import (
     HeaderNotFound,
     ParentNotFound,
 )
-from eth.db.header import HeaderDB
+from eth.tools.rlp import (
+    assert_headers_eq,
+)
 from eth.vm.forks.gray_glacier import (
     GrayGlacierVM,
 )
 from eth.vm.forks.gray_glacier.blocks import (
     GrayGlacierBlockHeader as BlockHeader,
-)
-from eth.tools.rlp import (
-    assert_headers_eq,
 )
 
 

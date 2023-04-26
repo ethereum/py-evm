@@ -1,19 +1,24 @@
-from functools import partial
+from functools import (
+    partial,
+)
 
-from eth_keys.datatypes import PrivateKey
-from eth_typing import Address
-
-from eth.vm.forks.petersburg.transactions import (
-    PetersburgTransaction,
-    PetersburgUnsignedTransaction,
+from eth_keys.datatypes import (
+    PrivateKey,
+)
+from eth_typing import (
+    Address,
 )
 
 from eth._utils.transactions import (
-    create_transaction_signature,
     calculate_intrinsic_gas,
+    create_transaction_signature,
 )
 from eth.vm.forks.homestead.transactions import (
     HOMESTEAD_TX_GAS_SCHEDULE,
+)
+from eth.vm.forks.petersburg.transactions import (
+    PetersburgTransaction,
+    PetersburgUnsignedTransaction,
 )
 
 from .constants import (

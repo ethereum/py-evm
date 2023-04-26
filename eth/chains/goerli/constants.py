@@ -1,5 +1,6 @@
-from eth_typing import BlockNumber
-
+from eth_typing import (
+    BlockNumber,
+)
 
 GOERLI_CHAIN_ID = 5
 

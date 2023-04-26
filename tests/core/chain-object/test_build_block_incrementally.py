@@ -1,11 +1,14 @@
 import pytest
 
-from eth.chains.base import MiningChain
-from eth.tools.factories.transaction import (
-    new_transaction
+from eth._utils.address import (
+    force_bytes_to_address,
 )
-from eth._utils.address import force_bytes_to_address
-
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.tools.factories.transaction import (
+    new_transaction,
+)
 
 ADDRESS_1010 = force_bytes_to_address(b'\x10\x10')
 

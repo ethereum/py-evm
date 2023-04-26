@@ -1,7 +1,6 @@
 import functools
 import time
 from typing import (
-    cast,
     Any,
     Callable,
     Dict,
@@ -9,12 +8,7 @@ from typing import (
     Tuple,
     Type,
     Union,
-)
-
-from eth_utils.toolz import (
-    curry,
-    merge,
-    pipe,
+    cast,
 )
 
 from eth_typing import (
@@ -22,14 +16,20 @@ from eth_typing import (
     BlockNumber,
     Hash32,
 )
-
 from eth_utils import (
+    ValidationError,
     to_dict,
     to_tuple,
-    ValidationError,
+)
+from eth_utils.toolz import (
+    curry,
+    merge,
+    pipe,
 )
 
-from eth import constants
+from eth import (
+    constants,
+)
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockAPI,
@@ -37,47 +37,55 @@ from eth.abc import (
     MiningChainAPI,
     VirtualMachineAPI,
 )
-from eth.consensus.applier import ConsensusApplier
-from eth.consensus.noproof import NoProofConsensus
-from eth.db.atomic import AtomicDB
+from eth.consensus.applier import (
+    ConsensusApplier,
+)
+from eth.consensus.noproof import (
+    NoProofConsensus,
+)
+from eth.db.atomic import (
+    AtomicDB,
+)
 from eth.db.backends.memory import (
     MemoryDB,
 )
 from eth.rlp.headers import (
     HeaderParams,
 )
-from eth.tools.mining import POWMiningMixin
 from eth.tools._utils.mappings import (
     deep_merge,
 )
 from eth.tools._utils.normalization import (
     normalize_state,
 )
+from eth.tools.mining import (
+    POWMiningMixin,
+)
 from eth.typing import (
     AccountState,
     GeneralState,
-    VMFork,
     VMConfiguration,
+    VMFork,
 )
 from eth.validation import (
     validate_vm_configuration,
 )
 from eth.vm.forks import (
-    FrontierVM,
-    HomesteadVM,
-    TangerineWhistleVM,
-    SpuriousDragonVM,
+    ArrowGlacierVM,
+    BerlinVM,
     ByzantiumVM,
     ConstantinopleVM,
-    PetersburgVM,
-    IstanbulVM,
-    MuirGlacierVM,
-    BerlinVM,
-    LondonVM,
-    ArrowGlacierVM,
+    FrontierVM,
     GrayGlacierVM,
+    HomesteadVM,
+    IstanbulVM,
+    LondonVM,
+    MuirGlacierVM,
     ParisVM,
+    PetersburgVM,
     ShanghaiVM,
+    SpuriousDragonVM,
+    TangerineWhistleVM,
 )
 
 

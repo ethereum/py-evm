@@ -1,5 +1,9 @@
-from contextlib import contextmanager
-from typing import Iterator
+from contextlib import (
+    contextmanager,
+)
+from typing import (
+    Iterator,
+)
 import warnings
 
 

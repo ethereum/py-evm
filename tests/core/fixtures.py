@@ -2,7 +2,6 @@ from eth_utils import (
     decode_hex,
 )
 
-
 # This block is a child of the genesis defined in the chain fixture above and contains a single tx
 # that transfers 10 wei from 0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b to
 # 0x095e7baea6a6c7c4c2dfeb977efac326af552d87.

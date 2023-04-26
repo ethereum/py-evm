@@ -1,14 +1,13 @@
-from eth_utils.toolz import (
-    assoc,
-)
-
+import pytest
 
 from eth_utils import (
     decode_hex,
     function_signature_to_4byte_selector,
     to_bytes,
 )
-import pytest
+from eth_utils.toolz import (
+    assoc,
+)
 
 from eth.exceptions import (
     InvalidInstruction,
@@ -16,22 +15,22 @@ from eth.exceptions import (
     Revert,
 )
 from eth.tools.factories.transaction import (
-    new_transaction
+    new_transaction,
 )
 from eth.vm.forks import (
-    FrontierVM,
-    HomesteadVM,
-    TangerineWhistleVM,
-    SpuriousDragonVM,
+    ArrowGlacierVM,
+    BerlinVM,
     ByzantiumVM,
     ConstantinopleVM,
-    PetersburgVM,
-    IstanbulVM,
-    MuirGlacierVM,
-    BerlinVM,
-    LondonVM,
-    ArrowGlacierVM,
+    FrontierVM,
     GrayGlacierVM,
+    HomesteadVM,
+    IstanbulVM,
+    LondonVM,
+    MuirGlacierVM,
+    PetersburgVM,
+    SpuriousDragonVM,
+    TangerineWhistleVM,
 )
 
 

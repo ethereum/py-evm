@@ -4,12 +4,12 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.vm.stack import (
-    Stack,
-)
 from eth.exceptions import (
     FullStack,
     InsufficientStack,
+)
+from eth.vm.stack import (
+    Stack,
 )
 
 

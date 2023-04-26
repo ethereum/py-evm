@@ -1,7 +1,15 @@
-from typing import Any, Union
+from typing import (
+    Any,
+    Union,
+)
 
-from eth.abc import SignedTransactionAPI, UnsignedTransactionAPI
-from eth._utils.spoof import SpoofAttributes
+from eth._utils.spoof import (
+    SpoofAttributes,
+)
+from eth.abc import (
+    SignedTransactionAPI,
+    UnsignedTransactionAPI,
+)
 
 
 class SpoofTransaction(SpoofAttributes):

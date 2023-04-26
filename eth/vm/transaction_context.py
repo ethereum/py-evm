@@ -1,8 +1,12 @@
 import itertools
 
-from eth_typing import Address
+from eth_typing import (
+    Address,
+)
 
-from eth.abc import TransactionContextAPI
+from eth.abc import (
+    TransactionContextAPI,
+)
 from eth.validation import (
     validate_canonical_address,
     validate_uint256,

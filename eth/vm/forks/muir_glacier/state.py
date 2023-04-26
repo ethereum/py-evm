@@ -1,8 +1,10 @@
 from eth.vm.forks.istanbul.state import (
-    IstanbulState
+    IstanbulState,
 )
 
-from .computation import MuirGlacierMessageComputation
+from .computation import (
+    MuirGlacierMessageComputation,
+)
 
 
 class MuirGlacierState(IstanbulState):

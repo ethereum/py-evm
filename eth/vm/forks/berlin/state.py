@@ -1,19 +1,23 @@
-from typing import Type
+from typing import (
+    Type,
+)
 
 from eth.abc import (
-    MessageComputationAPI,
     MessageAPI,
+    MessageComputationAPI,
     SignedTransactionAPI,
     TransactionExecutorAPI,
 )
 from eth.vm.forks.muir_glacier.state import (
-    MuirGlacierState
+    MuirGlacierState,
 )
 from eth.vm.forks.spurious_dragon.state import (
     SpuriousDragonTransactionExecutor,
 )
 
-from .computation import BerlinMessageComputation
+from .computation import (
+    BerlinMessageComputation,
+)
 
 
 class BerlinTransactionExecutor(SpuriousDragonTransactionExecutor):

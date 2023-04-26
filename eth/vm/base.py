@@ -16,8 +16,12 @@ from typing import (
     Union,
 )
 
-from cached_property import cached_property
-from eth_hash.auto import keccak
+from cached_property import (
+    cached_property,
+)
+from eth_hash.auto import (
+    keccak,
+)
 from eth_typing import (
     Address,
     Hash32,
@@ -28,17 +32,24 @@ from eth_utils import (
 )
 import rlp
 
+from eth._utils.datatypes import (
+    Configurable,
+)
+from eth._utils.db import (
+    get_block_header_by_hash,
+    get_parent_header,
+)
 from eth.abc import (
     AtomicDatabaseAPI,
-    BlockAPI,
     BlockAndMetaWitness,
+    BlockAPI,
     BlockHeaderAPI,
     ChainContextAPI,
     ChainDatabaseAPI,
-    MessageComputationAPI,
     ConsensusAPI,
     ConsensusContextAPI,
     ExecutionContextAPI,
+    MessageComputationAPI,
     ReceiptAPI,
     ReceiptBuilderAPI,
     SignedTransactionAPI,
@@ -56,7 +67,9 @@ from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
     MAX_UNCLES,
 )
-from eth.db.trie import make_trie_root_and_nodes
+from eth.db.trie import (
+    make_trie_root_and_nodes,
+)
 from eth.exceptions import (
     HeaderNotFound,
 )
@@ -66,16 +79,9 @@ from eth.rlp.headers import (
 from eth.rlp.sedes import (
     uint32,
 )
-from eth._utils.datatypes import (
-    Configurable,
-)
-from eth._utils.db import (
-    get_parent_header,
-    get_block_header_by_hash,
-)
 from eth.validation import (
-    validate_length_lte,
     validate_gas_limit,
+    validate_length_lte,
 )
 from eth.vm.execution_context import (
     ExecutionContext,

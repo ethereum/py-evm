@@ -1,22 +1,34 @@
-from typing import Any, Optional
+from typing import (
+    Any,
+    Optional,
+)
 
-from toolz import curry
+from eth_utils import (
+    ValidationError,
+)
+from toolz import (
+    curry,
+)
 
-from eth.abc import BlockHeaderAPI
+from eth.abc import (
+    BlockHeaderAPI,
+)
 from eth.constants import (
     POST_MERGE_DIFFICULTY,
     POST_MERGE_MIX_HASH,
     POST_MERGE_NONCE,
 )
+from eth.vm.forks.byzantium.headers import (
+    configure_header,
+)
 from eth.vm.forks.gray_glacier.headers import (
     compute_gray_glacier_difficulty,
     create_gray_glacier_header_from_parent,
 )
-from eth.vm.forks.byzantium.headers import (
-    configure_header,
+
+from .blocks import (
+    ParisBlockHeader,
 )
-from eth_utils import ValidationError
-from .blocks import ParisBlockHeader
 
 
 def _validate_and_return_paris_header_param(

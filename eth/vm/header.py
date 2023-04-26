@@ -1,4 +1,6 @@
-from eth.vm.forks.shanghai.blocks import ShanghaiBackwardsHeader
+from eth.vm.forks.shanghai.blocks import (
+    ShanghaiBackwardsHeader,
+)
 
 HeaderSedes = ShanghaiBackwardsHeader
 """

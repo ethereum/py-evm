@@ -1,6 +1,10 @@
-from eth.vm.forks.homestead.state import HomesteadState
+from eth.vm.forks.homestead.state import (
+    HomesteadState,
+)
 
-from .computation import TangerineWhistleMessageComputation
+from .computation import (
+    TangerineWhistleMessageComputation,
+)
 
 
 class TangerineWhistleState(HomesteadState):

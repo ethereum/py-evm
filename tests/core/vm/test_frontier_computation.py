@@ -1,10 +1,10 @@
 import pytest
 
-from eth.vm.message import (
-    Message,
-)
 from eth.vm.forks.frontier.computation import (
     FrontierMessageComputation,
+)
+from eth.vm.message import (
+    Message,
 )
 
 

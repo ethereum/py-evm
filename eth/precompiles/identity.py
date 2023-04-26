@@ -1,8 +1,9 @@
-from eth import constants
+from eth import (
+    constants,
+)
 from eth._utils.numeric import (
     ceil32,
 )
-
 from eth.vm.computation import (
     MessageComputation,
 )

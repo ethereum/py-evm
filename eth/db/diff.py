@@ -3,12 +3,12 @@ from collections.abc import (
     MutableMapping,
 )
 from typing import (
-    cast,
+    TYPE_CHECKING,
     Dict,
     Iterable,
-    Union,
     Tuple,
-    TYPE_CHECKING,
+    Union,
+    cast,
 )
 
 from eth_utils import (
@@ -16,8 +16,12 @@ from eth_utils import (
     to_tuple,
 )
 
-from eth.abc import DatabaseAPI
-from eth.vm.interrupt import EVMMissingData
+from eth.abc import (
+    DatabaseAPI,
+)
+from eth.vm.interrupt import (
+    EVMMissingData,
+)
 
 if TYPE_CHECKING:
     ABC_Mutable_Mapping = MutableMapping[bytes, Union[bytes, 'MissingReason']]

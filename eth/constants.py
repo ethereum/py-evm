@@ -1,16 +1,22 @@
-from eth_typing import (
-    Address,
-    BlockNumber,
-    Hash32,
-)
 from typing import (
     List,
     Optional,
 )
 
-from eth._warnings import catch_and_ignore_import_warning
+from eth_typing import (
+    Address,
+    BlockNumber,
+    Hash32,
+)
+
+from eth._warnings import (
+    catch_and_ignore_import_warning,
+)
+
 with catch_and_ignore_import_warning():
-    from eth_utils import denoms
+    from eth_utils import (
+        denoms,
+    )
 
 
 ANY = 'any'

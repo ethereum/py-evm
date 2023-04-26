@@ -1,18 +1,17 @@
-import rlp
 from typing import (
     Iterable,
     Optional,
     Tuple,
 )
 
+from eth_utils import (
+    ValidationError,
+    to_tuple,
+)
 from eth_utils.toolz import (
     curry,
 )
-
-from eth_utils import (
-    to_tuple,
-    ValidationError,
-)
+import rlp
 
 from eth.rlp.blocks import (
     BaseBlock,

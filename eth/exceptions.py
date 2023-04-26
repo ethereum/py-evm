@@ -1,4 +1,6 @@
-from eth_typing import Hash32
+from eth_typing import (
+    Hash32,
+)
 
 
 class PyEVMError(Exception):

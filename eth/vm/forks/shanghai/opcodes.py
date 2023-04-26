@@ -1,24 +1,39 @@
 import copy
-from typing import Dict
-
-from .logic import (
-    CreateEIP3860,
-    Create2EIP3860,
+from typing import (
+    Dict,
 )
-from eth.tools._utils.deprecation import deprecate_method
-from eth.vm.opcode import as_opcode
-from eth_utils.toolz import merge
 
-from eth import constants
-from eth.abc import OpcodeAPI
-from eth.vm import mnemonics
-from eth.vm import opcode_values
+from eth_utils.toolz import (
+    merge,
+)
+
+from eth import (
+    constants,
+)
+from eth.abc import (
+    OpcodeAPI,
+)
+from eth.tools._utils.deprecation import (
+    deprecate_method,
+)
+from eth.vm import (
+    mnemonics,
+    opcode_values,
+)
+from eth.vm.forks.paris.opcodes import (
+    PARIS_OPCODES,
+)
 from eth.vm.logic import (
     stack,
 )
+from eth.vm.opcode import (
+    as_opcode,
+)
 
-from eth.vm.forks.paris.opcodes import PARIS_OPCODES
-
+from .logic import (
+    Create2EIP3860,
+    CreateEIP3860,
+)
 
 UPDATED_OPCODES: Dict[int, OpcodeAPI] = {
     opcode_values.CREATE: CreateEIP3860.configure(

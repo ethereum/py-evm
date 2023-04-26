@@ -11,17 +11,17 @@ from eth_utils.toolz import (
     curry,
 )
 
-from eth import constants
-
+from eth import (
+    constants,
+)
 from eth._utils.numeric import (
     get_highest_bit_index,
 )
 from eth._utils.padding import (
     pad32r,
-    zpad_right,
     zpad_left,
+    zpad_right,
 )
-
 from eth.vm.computation import (
     MessageComputation,
 )

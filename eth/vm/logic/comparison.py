@@ -1,11 +1,13 @@
-from eth import constants
-
+from eth import (
+    constants,
+)
 from eth._utils.numeric import (
     signed_to_unsigned,
     unsigned_to_signed,
 )
-
-from eth.vm.computation import MessageComputation
+from eth.vm.computation import (
+    MessageComputation,
+)
 
 
 def lt(computation: MessageComputation) -> None:

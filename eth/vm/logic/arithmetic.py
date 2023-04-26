@@ -2,15 +2,17 @@ from eth_utils.toolz import (
     curry,
 )
 
-from eth import constants
-
-from eth._utils.numeric import (
-    unsigned_to_signed,
-    signed_to_unsigned,
-    ceil8,
+from eth import (
+    constants,
 )
-
-from eth.vm.computation import MessageComputation
+from eth._utils.numeric import (
+    ceil8,
+    signed_to_unsigned,
+    unsigned_to_signed,
+)
+from eth.vm.computation import (
+    MessageComputation,
+)
 
 
 def add(computation: MessageComputation) -> None:

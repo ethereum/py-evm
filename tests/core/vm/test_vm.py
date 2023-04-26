@@ -1,12 +1,14 @@
 import pytest
 
-import rlp
 from eth_utils import (
-    decode_hex,
     ValidationError,
+    decode_hex,
 )
+import rlp
 
-from eth import constants
+from eth import (
+    constants,
+)
 from eth.chains.base import (
     MiningChain,
 )
@@ -14,9 +16,11 @@ from eth.chains.mainnet import (
     MAINNET_VMS,
     MINING_MAINNET_VMS,
 )
-from eth.tools.builder.chain import api
+from eth.tools.builder.chain import (
+    api,
+)
 from eth.tools.factories.transaction import (
-    new_transaction
+    new_transaction,
 )
 
 

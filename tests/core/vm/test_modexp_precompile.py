@@ -7,8 +7,8 @@ from eth_utils import (
 )
 
 from eth.precompiles.modexp import (
-    _modexp,
     _compute_modexp_gas_fee_eip_198,
+    _modexp,
 )
 from eth.vm.forks.berlin.computation import (
     _compute_modexp_gas_fee_eip_2565,

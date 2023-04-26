@@ -3,7 +3,7 @@ from typing import (
     Iterable,
     List,
     Tuple,
-    Union
+    Union,
 )
 
 from eth_utils import (
@@ -11,16 +11,18 @@ from eth_utils import (
     big_endian_to_int,
     int_to_big_endian,
 )
+
+from eth.abc import (
+    StackAPI,
+)
 from eth.exceptions import (
-    InsufficientStack,
     FullStack,
+    InsufficientStack,
 )
 from eth.validation import (
     validate_stack_bytes,
     validate_stack_int,
 )
-
-from eth.abc import StackAPI
 
 
 def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:

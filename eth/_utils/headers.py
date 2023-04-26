@@ -9,17 +9,19 @@ from eth_typing import (
     Address,
 )
 
-from eth.abc import BlockHeaderAPI
+from eth.abc import (
+    BlockHeaderAPI,
+)
 from eth.constants import (
     BLANK_ROOT_HASH,
-    GENESIS_BLOCK_NUMBER,
-    GENESIS_PARENT_HASH,
-    GAS_LIMIT_EMA_DENOMINATOR,
     GAS_LIMIT_ADJUSTMENT_FACTOR,
+    GAS_LIMIT_EMA_DENOMINATOR,
     GAS_LIMIT_MAXIMUM,
     GAS_LIMIT_MINIMUM,
-    GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR,
     GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR,
+    GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR,
+    GENESIS_BLOCK_NUMBER,
+    GENESIS_PARENT_HASH,
     ZERO_ADDRESS,
 )
 from eth.typing import (

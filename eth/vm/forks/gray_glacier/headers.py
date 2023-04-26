@@ -1,10 +1,13 @@
-from typing import Any, Callable, Optional
-
-from toolz import curry
-
-from .blocks import (
-    GrayGlacierBlockHeader,
+from typing import (
+    Any,
+    Callable,
+    Optional,
 )
+
+from toolz import (
+    curry,
+)
+
 from eth.abc import (
     BlockHeaderAPI,
 )
@@ -13,9 +16,11 @@ from eth.vm.forks.arrow_glacier.headers import (
 )
 from eth.vm.forks.byzantium.headers import (
     compute_difficulty,
-)
-from eth.vm.forks.byzantium.headers import (
     configure_header,
+)
+
+from .blocks import (
+    GrayGlacierBlockHeader,
 )
 
 compute_gray_glacier_difficulty = compute_difficulty(11_400_000)

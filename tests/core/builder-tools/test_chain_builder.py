@@ -1,12 +1,17 @@
 import pytest
 
-from eth_utils import ValidationError, to_wei
+from eth_utils import (
+    ValidationError,
+    to_wei,
+)
 
 from eth.chains.base import (
     Chain,
     MiningChain,
 )
-from eth.constants import ZERO_ADDRESS
+from eth.constants import (
+    ZERO_ADDRESS,
+)
 from eth.tools.builder.chain import (
     at_block_number,
     build,
@@ -20,7 +25,9 @@ from eth.tools.builder.chain import (
     mine_block,
     mine_blocks,
 )
-from eth.tools.factories.transaction import new_transaction
+from eth.tools.factories.transaction import (
+    new_transaction,
+)
 
 
 @pytest.fixture

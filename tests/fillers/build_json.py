@@ -1,21 +1,22 @@
-import os
 import json
+import os
 
-from eth_hash.auto import keccak
-
+from eth_hash.auto import (
+    keccak,
+)
 from eth_utils import (
     encode_hex,
 )
-from eth.tools.fixtures.helpers import (
-    get_test_name,
-)
+
 from eth.tools.fixtures.fillers import (
     fill_test,
 )
 from eth.tools.fixtures.fillers.formatters import (
     filler_formatter,
 )
-
+from eth.tools.fixtures.helpers import (
+    get_test_name,
+)
 
 PARENT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT_DIR = os.path.join(PARENT_DIR, "json")

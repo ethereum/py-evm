@@ -1,10 +1,11 @@
 import pytest
 
 from eth_utils import (
-    decode_hex,
     big_endian_to_int,
+    decode_hex,
     is_same_address,
 )
+
 from eth._utils.address import (
     generate_safe_contract_address,
 )

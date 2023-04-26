@@ -1,8 +1,10 @@
 from eth.vm.forks.byzantium.state import (
-    ByzantiumState
+    ByzantiumState,
 )
 
-from .computation import PetersburgMessageComputation
+from .computation import (
+    PetersburgMessageComputation,
+)
 
 
 class PetersburgState(ByzantiumState):

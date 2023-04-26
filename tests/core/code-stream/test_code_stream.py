@@ -1,20 +1,27 @@
 import itertools
+import pytest
 import sys
 
-import pytest
-
+from eth_utils import (
+    ValidationError,
+)
+from eth_utils.toolz import (
+    drop,
+)
 from hypothesis import (
     given,
     strategies as st,
 )
 
-from eth_utils import ValidationError
-
-from eth_utils.toolz import drop
-
-from eth.vm import opcode_values
-from eth.vm.code_stream import CodeStream
-from eth.tools._utils.slow_code_stream import SlowCodeStream
+from eth.tools._utils.slow_code_stream import (
+    SlowCodeStream,
+)
+from eth.vm import (
+    opcode_values,
+)
+from eth.vm.code_stream import (
+    CodeStream,
+)
 
 
 def test_code_stream_accepts_bytes():

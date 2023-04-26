@@ -1,6 +1,10 @@
-from abc import ABC
+from abc import (
+    ABC,
+)
 
-from eth_keys.datatypes import PrivateKey
+from eth_keys.datatypes import (
+    PrivateKey,
+)
 
 from eth._utils.transactions import (
     create_transaction_signature,

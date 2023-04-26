@@ -4,26 +4,25 @@ from typing import (
     Sequence,
 )
 
-from eth.abc import (
-    AtomicDatabaseAPI,
-    BlockHeaderAPI,
-    VirtualMachineAPI,
-    VirtualMachineModifierAPI,
-)
-from eth.db.chain import ChainDB
-
 from eth_typing import (
     Address,
 )
 from eth_utils import (
+    ValidationError,
     encode_hex,
     to_tuple,
-    ValidationError,
 )
 
 from eth.abc import (
+    AtomicDatabaseAPI,
+    BlockHeaderAPI,
     ConsensusAPI,
     ConsensusContextAPI,
+    VirtualMachineAPI,
+    VirtualMachineModifierAPI,
+)
+from eth.db.chain import (
+    ChainDB,
 )
 from eth.typing import (
     HeaderParams,
@@ -31,17 +30,19 @@ from eth.typing import (
     VMFork,
 )
 
+from ._utils import (
+    get_block_signer,
+    is_in_turn,
+    validate_header_integrity,
+)
 from .constants import (
     EPOCH_LENGTH,
 )
 from .datatypes import (
     Snapshot,
 )
-from .snapshot_manager import SnapshotManager
-from ._utils import (
-    get_block_signer,
-    is_in_turn,
-    validate_header_integrity,
+from .snapshot_manager import (
+    SnapshotManager,
 )
 
 

@@ -1,4 +1,6 @@
-from eth.vm.computation import MessageComputation
+from eth.vm.computation import (
+    MessageComputation,
+)
 
 
 def blockhash(computation: MessageComputation) -> None:

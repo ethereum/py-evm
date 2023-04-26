@@ -1,4 +1,3 @@
-import rlp
 from typing import (
     Tuple,
 )
@@ -6,15 +5,16 @@ from typing import (
 from eth_typing import (
     Address,
 )
+import rlp
 
-from eth.rlp.sedes import (
-    uint256,
-)
 from eth.consensus.clique.datatypes import (
     Snapshot,
     Tally,
     Vote,
     VoteAction,
+)
+from eth.rlp.sedes import (
+    uint256,
 )
 
 ADDRESS_TALLY_SEDES = rlp.sedes.List((rlp.sedes.binary, rlp.sedes.binary))

@@ -1,15 +1,16 @@
-from .constants import (
-    INITCODE_WORD_COST,
-)
 from eth._utils.numeric import (
     ceil32,
 )
 from eth.vm.forks.berlin.logic import (
-    CreateEIP2929,
     Create2EIP2929,
+    CreateEIP2929,
 )
 from eth.vm.logic.system import (
     CreateOpcodeStackData,
+)
+
+from .constants import (
+    INITCODE_WORD_COST,
 )
 
 

@@ -5,7 +5,9 @@ from typing import (
     Set,
 )
 
-from eth_hash.auto import keccak
+from eth_hash.auto import (
+    keccak,
+)
 from eth_typing import (
     Address,
     Hash32,
@@ -50,11 +52,11 @@ from eth.db.cache import (
 from eth.db.journal import (
     JournalDB,
 )
-from eth.vm.interrupt import (
-    MissingStorageTrieNode,
-)
 from eth.typing import (
     JournalDBCheckpoint,
+)
+from eth.vm.interrupt import (
+    MissingStorageTrieNode,
 )
 
 

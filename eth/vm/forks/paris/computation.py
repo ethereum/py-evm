@@ -1,5 +1,10 @@
-from .opcodes import PARIS_OPCODES
-from eth.vm.forks.gray_glacier.computation import GrayGlacierMessageComputation
+from eth.vm.forks.gray_glacier.computation import (
+    GrayGlacierMessageComputation,
+)
+
+from .opcodes import (
+    PARIS_OPCODES,
+)
 
 
 class ParisMessageComputation(GrayGlacierMessageComputation):

@@ -1,8 +1,14 @@
 import functools
-from typing import Tuple
-from eth import constants
+from typing import (
+    Tuple,
+)
 
-from eth.vm.computation import MessageComputation
+from eth import (
+    constants,
+)
+from eth.vm.computation import (
+    MessageComputation,
+)
 
 
 def log_XX(computation: MessageComputation, topic_count: int) -> None:

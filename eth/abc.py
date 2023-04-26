@@ -1,6 +1,6 @@
 from abc import (
     ABC,
-    abstractmethod
+    abstractmethod,
 )
 from typing import (
     Any,
@@ -9,6 +9,7 @@ from typing import (
     ContextManager,
     Dict,
     FrozenSet,
+    Hashable,
     Iterable,
     Iterator,
     List,
@@ -20,35 +21,37 @@ from typing import (
     Type,
     TypeVar,
     Union,
-    Hashable,
 )
 
-from eth_bloom import BloomFilter
-
+from eth_bloom import (
+    BloomFilter,
+)
+from eth_keys.datatypes import (
+    PrivateKey,
+)
 from eth_typing import (
     Address,
     BlockNumber,
     Hash32,
 )
-
-from eth_utils import ExtendedDebugLogger
-
-from eth_keys.datatypes import PrivateKey
+from eth_utils import (
+    ExtendedDebugLogger,
+)
 
 from eth.constants import (
     BLANK_ROOT_HASH,
 )
-
-from eth.exceptions import VMError
+from eth.exceptions import (
+    VMError,
+)
 from eth.typing import (
+    AccountState,
     BytesOrView,
     ChainGaps,
-    JournalDBCheckpoint,
-    AccountState,
     HeaderParams,
+    JournalDBCheckpoint,
     VMConfiguration,
 )
-
 
 T = TypeVar('T')
 

@@ -8,7 +8,9 @@ from typing import (
     Type,
 )
 
-from eth_keys import keys
+from eth_keys import (
+    keys,
+)
 from eth_typing import (
     Address,
 )
@@ -22,8 +24,12 @@ from eth._utils.db import (
 from eth._utils.padding import (
     pad32,
 )
-from eth.constants import BLANK_ROOT_HASH
-from eth.db.atomic import AtomicDB
+from eth.constants import (
+    BLANK_ROOT_HASH,
+)
+from eth.db.atomic import (
+    AtomicDB,
+)
 from eth.typing import (
     AccountState,
     TransactionDict,

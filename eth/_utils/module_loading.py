@@ -1,6 +1,7 @@
+from importlib import (
+    import_module,
+)
 import operator
-from importlib import import_module
-
 from types import (
     ModuleType,
 )

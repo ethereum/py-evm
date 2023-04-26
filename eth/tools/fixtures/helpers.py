@@ -1,36 +1,40 @@
 import os
-
-import rlp
-
 from typing import (
-    cast,
     Any,
     Dict,
     Iterable,
     Tuple,
     Type,
-)
-
-from eth_utils.toolz import (
-    assoc,
-    first,
+    cast,
 )
 
 from eth_utils import (
     to_normalized_address,
 )
+from eth_utils.toolz import (
+    assoc,
+    first,
+)
+import rlp
 
-from eth import MainnetChain
+from eth import (
+    MainnetChain,
+    constants,
+)
+from eth._utils.state import (
+    diff_state,
+)
 from eth.abc import (
     BlockAPI,
     ChainAPI,
     StateAPI,
     VirtualMachineAPI,
 )
-from eth import constants
-from eth.db.atomic import AtomicDB
 from eth.chains.mainnet import (
     MainnetDAOValidatorVM,
+)
+from eth.db.atomic import (
+    AtomicDB,
 )
 from eth.tools.builder.chain import (
     disable_pow_check,
@@ -38,23 +42,20 @@ from eth.tools.builder.chain import (
 from eth.typing import (
     AccountState,
 )
-from eth._utils.state import (
-    diff_state,
-)
 from eth.vm.forks import (
-    PetersburgVM,
-    ConstantinopleVM,
-    ByzantiumVM,
-    TangerineWhistleVM,
-    FrontierVM,
-    HomesteadVM as BaseHomesteadVM,
-    SpuriousDragonVM,
-    IstanbulVM,
     BerlinVM,
-    LondonVM,
+    ByzantiumVM,
+    ConstantinopleVM,
+    FrontierVM,
     GrayGlacierVM,
+    HomesteadVM as BaseHomesteadVM,
+    IstanbulVM,
+    LondonVM,
     ParisVM,
+    PetersburgVM,
     ShanghaiVM,
+    SpuriousDragonVM,
+    TangerineWhistleVM,
 )
 
 

@@ -1,18 +1,33 @@
 import pytest
-from eth_typing import Address
 
-from eth_utils import decode_hex
+from eth_typing import (
+    Address,
+)
+from eth_utils import (
+    decode_hex,
+)
 
-from eth import constants
-from eth.consensus.noproof import NoProofConsensus
-from eth.chains.base import MiningChain
+from eth import (
+    constants,
+)
+from eth.chains.base import (
+    MiningChain,
+)
 from eth.chains.mainnet import (
     MINING_MAINNET_VMS,
 )
-from eth.exceptions import InvalidInstruction
-from eth.vm.forks import BerlinVM
+from eth.consensus.noproof import (
+    NoProofConsensus,
+)
+from eth.exceptions import (
+    InvalidInstruction,
+)
 from eth.tools.factories.transaction import (
-    new_dynamic_fee_transaction, new_transaction,
+    new_dynamic_fee_transaction,
+    new_transaction,
+)
+from eth.vm.forks import (
+    BerlinVM,
 )
 
 FOUR_TXN_GAS_LIMIT = 21000 * 4

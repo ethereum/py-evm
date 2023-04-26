@@ -1,17 +1,18 @@
 import itertools
 import logging
 
+from eth._utils.numeric import (
+    ceil32,
+)
+from eth.abc import (
+    MemoryAPI,
+)
 from eth.validation import (
     validate_is_bytes,
     validate_length,
     validate_lte,
     validate_uint256,
 )
-
-from eth._utils.numeric import (
-    ceil32,
-)
-from eth.abc import MemoryAPI
 
 
 class Memory(MemoryAPI):

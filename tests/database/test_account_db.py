@@ -1,21 +1,24 @@
 import pytest
 
-from eth_hash.auto import keccak
-
+from eth_hash.auto import (
+    keccak,
+)
 from eth_utils import (
     ValidationError,
-)
-
-from eth.db.atomic import AtomicDB
-from eth.db.backends.memory import MemoryDB
-from eth.db.account import (
-    AccountDB,
 )
 
 from eth.constants import (
     EMPTY_SHA3,
 )
-
+from eth.db.account import (
+    AccountDB,
+)
+from eth.db.atomic import (
+    AtomicDB,
+)
+from eth.db.backends.memory import (
+    MemoryDB,
+)
 
 ADDRESS = b'\xaa' * 20
 OTHER_ADDRESS = b'\xbb' * 20

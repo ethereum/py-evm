@@ -1,6 +1,6 @@
 from eth.abc import (
-    BlockAPI,
     BlockAndMetaWitness,
+    BlockAPI,
     VirtualMachineAPI,
 )
 from eth.consensus import (

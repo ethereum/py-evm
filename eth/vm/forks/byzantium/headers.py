@@ -2,26 +2,27 @@ from typing import (
     Any,
     Callable,
 )
+
 from eth_utils.toolz import (
     curry,
 )
 
-from eth.abc import (
-    BlockHeaderAPI,
-    VirtualMachineAPI,
-)
-from eth.constants import (
-    EMPTY_UNCLE_HASH,
-    DIFFICULTY_ADJUSTMENT_DENOMINATOR,
-    DIFFICULTY_MINIMUM,
-    BOMB_EXPONENTIAL_PERIOD,
-    BOMB_EXPONENTIAL_FREE_PERIODS,
-)
 from eth._utils.db import (
     get_parent_header,
 )
 from eth._utils.headers import (
     new_timestamp_from_parent,
+)
+from eth.abc import (
+    BlockHeaderAPI,
+    VirtualMachineAPI,
+)
+from eth.constants import (
+    BOMB_EXPONENTIAL_FREE_PERIODS,
+    BOMB_EXPONENTIAL_PERIOD,
+    DIFFICULTY_ADJUSTMENT_DENOMINATOR,
+    DIFFICULTY_MINIMUM,
+    EMPTY_UNCLE_HASH,
 )
 from eth.validation import (
     validate_gt,
@@ -32,7 +33,7 @@ from eth.vm.forks.frontier.headers import (
 )
 
 from .constants import (
-    BYZANTIUM_DIFFICULTY_ADJUSTMENT_CUTOFF
+    BYZANTIUM_DIFFICULTY_ADJUSTMENT_CUTOFF,
 )
 
 

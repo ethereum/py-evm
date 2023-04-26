@@ -1,12 +1,11 @@
 import functools
-import warnings
 from typing import (
     Any,
     Callable,
     TypeVar,
     cast,
 )
-
+import warnings
 
 TFunc = TypeVar("TFunc", bound=Callable[..., Any])
 

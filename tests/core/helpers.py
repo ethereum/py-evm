@@ -1,12 +1,16 @@
 import pytest
 
 from eth_utils import (
-    decode_hex,
     ValidationError,
+    decode_hex,
 )
 
-from eth.chains.base import MiningChain
-from eth.tools.factories.transaction import new_transaction
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.tools.factories.transaction import (
+    new_transaction,
+)
 
 
 def fill_block(chain, from_, key, gas, data):

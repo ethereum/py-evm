@@ -1,40 +1,52 @@
-from pathlib import Path
-
+from pathlib import (
+    Path,
+)
 import pytest
 
+from eth_keys import (
+    keys,
+)
 from eth_utils import (
     decode_hex,
+    setup_DEBUG2_logging,
     to_tuple,
     to_wei,
-    setup_DEBUG2_logging,
 )
-
-from eth_keys import keys
 import rlp
 
-from eth import constants
+from eth import (
+    constants,
+)
 from eth.chains.base import (
     Chain,
     MiningChain,
 )
-from eth.consensus import PowConsensus
-from eth.consensus.noproof import NoProofConsensus
-from eth.db.atomic import AtomicDB
-from eth.rlp.headers import BlockHeader
+from eth.consensus import (
+    PowConsensus,
+)
+from eth.consensus.noproof import (
+    NoProofConsensus,
+)
+from eth.db.atomic import (
+    AtomicDB,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+)
 from eth.vm.forks import (
-    FrontierVM,
-    HomesteadVM,
-    TangerineWhistleVM,
-    SpuriousDragonVM,
+    ArrowGlacierVM,
+    BerlinVM,
     ByzantiumVM,
     ConstantinopleVM,
-    PetersburgVM,
-    IstanbulVM,
-    MuirGlacierVM,
-    BerlinVM,
-    LondonVM,
-    ArrowGlacierVM,
+    FrontierVM,
     GrayGlacierVM,
+    HomesteadVM,
+    IstanbulVM,
+    LondonVM,
+    MuirGlacierVM,
+    PetersburgVM,
+    SpuriousDragonVM,
+    TangerineWhistleVM,
 )
 
 #

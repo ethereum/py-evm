@@ -2,19 +2,19 @@ from eth_utils.toolz import (
     merge,
 )
 
-from eth import precompiles
+from eth import (
+    precompiles,
+)
 from eth._utils.address import (
     force_bytes_to_address,
 )
 from eth.vm.forks.petersburg.computation import (
-    PETERSBURG_PRECOMPILES
-)
-from eth.vm.forks.petersburg.computation import (
+    PETERSBURG_PRECOMPILES,
     PetersburgMessageComputation,
 )
 from eth.vm.gas_meter import (
-    allow_negative_refund_strategy,
     GasMeter,
+    allow_negative_refund_strategy,
 )
 
 from .constants import (
@@ -23,7 +23,9 @@ from .constants import (
     GAS_ECPAIRING_BASE,
     GAS_ECPAIRING_PER_POINT,
 )
-from .opcodes import ISTANBUL_OPCODES
+from .opcodes import (
+    ISTANBUL_OPCODES,
+)
 
 ISTANBUL_PRECOMPILES = merge(
     PETERSBURG_PRECOMPILES,

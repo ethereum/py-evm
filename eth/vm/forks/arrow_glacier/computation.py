@@ -1,4 +1,6 @@
-from ..london.computation import LondonMessageComputation
+from ..london.computation import (
+    LondonMessageComputation,
+)
 
 
 class ArrowGlacierMessageComputation(LondonMessageComputation):

@@ -1,5 +1,17 @@
+from typing import (
+    Iterable,
+)
+
+from eth_typing import (
+    Address,
+    Hash32,
+)
+from eth_utils import (
+    ValidationError,
+    encode_hex,
+    get_extended_debug_logger,
+)
 import lru
-from typing import Iterable
 
 from eth.abc import (
     BlockHeaderAPI,
@@ -9,22 +21,10 @@ from eth.exceptions import (
     HeaderNotFound,
 )
 
-from eth_typing import (
-    Address,
-    Hash32,
-)
-from eth_utils import (
-    encode_hex,
-    get_extended_debug_logger,
-    ValidationError,
-)
-
-from .encoding import (
-    decode_snapshot,
-    encode_snapshot,
-)
-from .exceptions import (
-    SnapshotNotFound,
+from ._utils import (
+    get_block_signer,
+    get_signers_at_checkpoint,
+    is_checkpoint,
 )
 from .constants import (
     IN_MEMORY_SNAPSHOTS,
@@ -38,11 +38,12 @@ from .datatypes import (
     Vote,
     VoteAction,
 )
-
-from ._utils import (
-    get_signers_at_checkpoint,
-    get_block_signer,
-    is_checkpoint,
+from .encoding import (
+    decode_snapshot,
+    encode_snapshot,
+)
+from .exceptions import (
+    SnapshotNotFound,
 )
 
 

@@ -1,8 +1,10 @@
-from typing import Tuple
+from typing import (
+    Tuple,
+)
 
 from eth_utils import (
-    big_endian_to_int,
     ValidationError,
+    big_endian_to_int,
 )
 from eth_utils.toolz import (
     curry,
@@ -12,28 +14,25 @@ from py_ecc import (
     optimized_bn128 as bn128,
 )
 
-from eth import constants
-
-from eth.exceptions import (
-    VMError,
+from eth import (
+    constants,
 )
-
-from eth.typing import (
-    BytesOrView,
-)
-
 from eth._utils.bn128 import (
-    validate_point,
     FQP_point_to_FQ2_point,
+    validate_point,
 )
 from eth._utils.padding import (
     pad32,
 )
-
+from eth.exceptions import (
+    VMError,
+)
+from eth.typing import (
+    BytesOrView,
+)
 from eth.vm.computation import (
     MessageComputation,
 )
-
 
 ZERO = bn128.Z2
 EXPONENT = bn128.FQ12.one()

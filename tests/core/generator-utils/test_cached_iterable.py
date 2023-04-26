@@ -1,10 +1,13 @@
-from eth._utils.generator import CachedIterable
+import itertools
 
 from eth_utils.toolz import (
     first,
     nth,
 )
-import itertools
+
+from eth._utils.generator import (
+    CachedIterable,
+)
 
 
 def test_cached_generator():

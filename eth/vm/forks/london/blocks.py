@@ -5,13 +5,15 @@ from typing import (
     cast,
 )
 
-from eth_hash.auto import keccak
+from eth_hash.auto import (
+    keccak,
+)
 from eth_typing import (
     BlockNumber,
 )
 from eth_typing.evm import (
     Address,
-    Hash32
+    Hash32,
 )
 from eth_utils import (
     encode_hex,
@@ -21,7 +23,7 @@ from rlp.sedes import (
     Binary,
     CountableList,
     big_endian_int,
-    binary
+    binary,
 )
 
 from eth._utils.headers import (
@@ -35,12 +37,12 @@ from eth.abc import (
     TransactionBuilderAPI,
 )
 from eth.constants import (
-    ZERO_ADDRESS,
-    ZERO_HASH32,
+    BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
     GENESIS_NONCE,
     GENESIS_PARENT_HASH,
-    BLANK_ROOT_HASH,
+    ZERO_ADDRESS,
+    ZERO_HASH32,
 )
 from eth.rlp.headers import (
     BlockHeader,

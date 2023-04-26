@@ -6,7 +6,9 @@ from eth.typing import (
     AccountDiff,
     AccountState,
 )
-from eth.vm.state import BaseState
+from eth.vm.state import (
+    BaseState,
+)
 
 
 @to_tuple

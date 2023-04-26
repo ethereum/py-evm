@@ -1,6 +1,9 @@
-from ..homestead.computation import HomesteadMessageComputation
-
-from .opcodes import TANGERINE_WHISTLE_OPCODES
+from ..homestead.computation import (
+    HomesteadMessageComputation,
+)
+from .opcodes import (
+    TANGERINE_WHISTLE_OPCODES,
+)
 
 
 class TangerineWhistleMessageComputation(HomesteadMessageComputation):

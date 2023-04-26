@@ -5,34 +5,38 @@ from typing import (
     cast,
 )
 
-from cached_property import cached_property
+from cached_property import (
+    cached_property,
+)
+from eth_hash.auto import (
+    keccak,
+)
+from eth_typing import (
+    Address,
+    Hash32,
+)
+from eth_utils import (
+    ValidationError,
+)
 import rlp
 from rlp.sedes import (
     big_endian_int,
     binary,
 )
 
-from eth_typing import (
-    Address,
-    Hash32,
-)
-
-from eth_hash.auto import keccak
-from eth_utils import (
-    ValidationError,
-)
-
 from eth.abc import (
     BaseTransactionAPI,
-    MessageComputationAPI,
     LegacyTransactionFieldsAPI,
+    MessageComputationAPI,
     SignedTransactionAPI,
     TransactionBuilderAPI,
     TransactionFieldsAPI,
     UnsignedTransactionAPI,
 )
 
-from .sedes import address
+from .sedes import (
+    address,
+)
 
 
 class BaseTransactionMethods(BaseTransactionAPI):

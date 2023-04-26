@@ -1,10 +1,16 @@
-from eth.exceptions import ReservedBytesInCode
+from eth.exceptions import (
+    ReservedBytesInCode,
+)
 from eth.vm.forks.berlin.computation import (
     BerlinMessageComputation,
 )
 
-from .opcodes import LONDON_OPCODES
-from ..london.constants import EIP3541_RESERVED_STARTING_BYTE
+from ..london.constants import (
+    EIP3541_RESERVED_STARTING_BYTE,
+)
+from .opcodes import (
+    LONDON_OPCODES,
+)
 
 
 class LondonMessageComputation(BerlinMessageComputation):

@@ -1,6 +1,8 @@
 import functools
 
-from eth.vm.computation import MessageComputation
+from eth.vm.computation import (
+    MessageComputation,
+)
 
 
 def swap_XX(computation: MessageComputation, position: int) -> None:

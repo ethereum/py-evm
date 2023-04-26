@@ -1,12 +1,15 @@
 from typing import (
     Callable,
 )
+
 from eth_utils import (
     ValidationError,
     get_extended_debug_logger,
 )
 
-from eth.abc import GasMeterAPI
+from eth.abc import (
+    GasMeterAPI,
+)
 from eth.exceptions import (
     OutOfGas,
 )

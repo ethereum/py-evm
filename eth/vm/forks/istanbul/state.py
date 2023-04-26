@@ -1,8 +1,10 @@
 from eth.vm.forks.petersburg.state import (
-    PetersburgState
+    PetersburgState,
 )
 
-from .computation import IstanbulMessageComputation
+from .computation import (
+    IstanbulMessageComputation,
+)
 
 
 class IstanbulState(PetersburgState):

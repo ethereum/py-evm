@@ -1,5 +1,6 @@
-from eth_typing import BlockNumber
-
+from eth_typing import (
+    BlockNumber,
+)
 
 # https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md
 MAINNET_CHAIN_ID = 1

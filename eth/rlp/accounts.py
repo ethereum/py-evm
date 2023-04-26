@@ -1,20 +1,24 @@
+from typing import (
+    Any,
+)
+
 import rlp
 from rlp.sedes import (
     big_endian_int,
 )
 
-from eth.abc import AccountAPI
+from eth.abc import (
+    AccountAPI,
+)
 from eth.constants import (
-    EMPTY_SHA3,
     BLANK_ROOT_HASH,
+    EMPTY_SHA3,
 )
 
 from .sedes import (
-    trie_root,
     hash32,
+    trie_root,
 )
-
-from typing import Any
 
 
 class Account(rlp.Serializable, AccountAPI):

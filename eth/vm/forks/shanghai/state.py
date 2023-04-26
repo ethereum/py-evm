@@ -1,12 +1,21 @@
-from typing import Type
+from typing import (
+    Type,
+)
 
 from eth.abc import (
     TransactionExecutorAPI,
     WithdrawalAPI,
 )
-from .computation import ShanghaiMessageComputation
-from ..paris import ParisState
-from ..paris.state import ParisTransactionExecutor
+
+from ..paris import (
+    ParisState,
+)
+from ..paris.state import (
+    ParisTransactionExecutor,
+)
+from .computation import (
+    ShanghaiMessageComputation,
+)
 
 
 class ShanghaiTransactionExecutor(ParisTransactionExecutor):

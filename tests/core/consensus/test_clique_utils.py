@@ -1,26 +1,30 @@
 import pytest
 
+from eth_keys import (
+    keys,
+)
+from eth_typing import (
+    Address,
+)
 from eth_utils import (
     decode_hex,
 )
 
-from eth_keys import keys
-
-from eth_typing import Address
-
 from eth.chains.goerli import (
     GOERLI_GENESIS_HEADER,
-)
-from eth.consensus.clique.constants import (
-    VANITY_LENGTH,
-    SIGNATURE_LENGTH,
 )
 from eth.consensus.clique._utils import (
     get_block_signer,
     get_signers_at_checkpoint,
     sign_block_header,
 )
-from eth.rlp.headers import BlockHeader
+from eth.consensus.clique.constants import (
+    SIGNATURE_LENGTH,
+    VANITY_LENGTH,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+)
 
 ALICE_PK = keys.PrivateKey(
     decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')

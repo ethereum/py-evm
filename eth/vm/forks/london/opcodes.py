@@ -1,29 +1,36 @@
 import copy
-from typing import Dict
+from typing import (
+    Dict,
+)
 
-from eth_utils.toolz import merge
+from eth_utils.toolz import (
+    merge,
+)
 
-from eth.vm.logic import (
-    block,
+from eth import (
+    constants,
 )
 from eth.vm import (
     mnemonics,
     opcode_values,
 )
-from eth.vm.opcode import (
-    Opcode,
-    as_opcode,
-)
-from eth import constants
-
 from eth.vm.forks.berlin.opcodes import (
     BERLIN_OPCODES,
 )
 from eth.vm.forks.byzantium.opcodes import (
     ensure_no_static,
 )
+from eth.vm.logic import (
+    block,
+)
+from eth.vm.opcode import (
+    Opcode,
+    as_opcode,
+)
 
-from . import storage
+from . import (
+    storage,
+)
 
 UPDATED_OPCODES: Dict[int, Opcode] = {
     opcode_values.BASEFEE: as_opcode(

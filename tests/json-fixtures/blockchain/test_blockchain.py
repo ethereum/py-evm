@@ -1,17 +1,15 @@
 import os
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 import pytest
-import rlp
 
 from eth_utils import (
-    to_tuple,
     ValidationError,
+    to_tuple,
 )
+import rlp
 
-from eth.tools.rlp import (
-    assert_imported_block_unchanged,
-    assert_headers_eq,
-)
 from eth.tools._utils.normalization import (
     normalize_blockchain_fixtures,
 )
@@ -25,8 +23,13 @@ from eth.tools.fixtures import (
     should_run_slow_tests,
     verify_state,
 )
-from eth.vm.header import HeaderSedes
-
+from eth.tools.rlp import (
+    assert_headers_eq,
+    assert_imported_block_unchanged,
+)
+from eth.vm.header import (
+    HeaderSedes,
+)
 
 ROOT_PROJECT_DIR = Path(__file__).parents[3]
 

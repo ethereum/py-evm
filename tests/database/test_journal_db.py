@@ -1,16 +1,31 @@
-from eth_utils import ValidationError
+import pytest
+
+from eth_utils import (
+    ValidationError,
+)
 from hypothesis import (
     given,
     settings,
     strategies as st,
 )
-from hypothesis.stateful import Bundle, RuleBasedStateMachine, rule
-import pytest
+from hypothesis.stateful import (
+    Bundle,
+    RuleBasedStateMachine,
+    rule,
+)
 
-from eth.db.backends.memory import MemoryDB
-from eth.db.journal import JournalDB
-from eth.db.slow_journal import JournalDB as SlowJournalDB
-from eth.vm.interrupt import EVMMissingData
+from eth.db.backends.memory import (
+    MemoryDB,
+)
+from eth.db.journal import (
+    JournalDB,
+)
+from eth.db.slow_journal import (
+    JournalDB as SlowJournalDB,
+)
+from eth.vm.interrupt import (
+    EVMMissingData,
+)
 
 
 @pytest.fixture

@@ -5,14 +5,14 @@ from eth_utils import (
 )
 
 from eth.exceptions import (
-    VMError,
     Revert,
-)
-from eth.vm.message import (
-    Message,
+    VMError,
 )
 from eth.vm.computation import (
     MessageComputation,
+)
+from eth.vm.message import (
+    Message,
 )
 from eth.vm.transaction_context import (
     BaseTransactionContext,

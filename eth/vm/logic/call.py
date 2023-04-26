@@ -1,18 +1,21 @@
 from abc import (
     ABC,
-    abstractmethod
+    abstractmethod,
 )
-
 from typing import (
     Tuple,
 )
-
-from eth import constants
 
 from eth_typing import (
     Address,
 )
 
+from eth import (
+    constants,
+)
+from eth._utils.address import (
+    force_bytes_to_address,
+)
 from eth.abc import (
     MessageComputationAPI,
 )
@@ -23,11 +26,6 @@ from eth.exceptions import (
 from eth.vm.opcode import (
     Opcode,
 )
-
-from eth._utils.address import (
-    force_bytes_to_address,
-)
-
 
 CallParams = Tuple[int, int, Address, Address, Address, int, int, int, int, bool, bool]
 

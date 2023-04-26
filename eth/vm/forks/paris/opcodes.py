@@ -1,19 +1,31 @@
 import copy
-from typing import Dict
+from typing import (
+    Dict,
+)
 
-from eth.vm.opcode import as_opcode
-from eth_utils.toolz import merge
+from eth_utils.toolz import (
+    merge,
+)
 
-from eth import constants
-from eth.abc import OpcodeAPI
-from eth.vm import mnemonics
-from eth.vm import opcode_values
+from eth import (
+    constants,
+)
+from eth.abc import (
+    OpcodeAPI,
+)
+from eth.vm import (
+    mnemonics,
+    opcode_values,
+)
+from eth.vm.forks.london.opcodes import (
+    LONDON_OPCODES,
+)
 from eth.vm.logic import (
     block,
 )
-
-from eth.vm.forks.london.opcodes import LONDON_OPCODES
-
+from eth.vm.opcode import (
+    as_opcode,
+)
 
 NEW_OPCODES = {
     # EIP-4399: supplant DIFFICULTY with PREVRANDAO

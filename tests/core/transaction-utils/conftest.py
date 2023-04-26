@@ -1,6 +1,5 @@
 import pytest
 
-
 # from https://github.com/ethereum/tests/blob/c951a3c105d600ccd8f1c3fc87856b2bcca3df0a/BasicTests/txtest.json  # noqa: E501
 TRANSACTION_FIXTURES = [
     {

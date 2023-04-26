@@ -1,11 +1,13 @@
 import pytest
 
 from eth_utils import (
-    decode_hex,
     ValidationError,
+    decode_hex,
 )
 
-from eth.chains.base import MiningChain
+from eth.chains.base import (
+    MiningChain,
+)
 from eth.chains.goerli import (
     GOERLI_GENESIS_HEADER,
 )
@@ -13,13 +15,12 @@ from eth.consensus.clique import (
     CliqueApplier,
     CliqueConsensusContext,
 )
-
-from eth.rlp.headers import BlockHeader
-
+from eth.rlp.headers import (
+    BlockHeader,
+)
 from eth.vm.forks.petersburg import (
     PetersburgVM,
 )
-
 
 GOERLI_HEADER_ONE = BlockHeader(
     difficulty=2,

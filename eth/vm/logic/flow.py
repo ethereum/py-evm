@@ -1,10 +1,11 @@
 from eth.exceptions import (
-    InvalidJumpDestination,
-    InvalidInstruction,
     Halt,
+    InvalidInstruction,
+    InvalidJumpDestination,
 )
-
-from eth.vm.computation import MessageComputation
+from eth.vm.computation import (
+    MessageComputation,
+)
 from eth.vm.opcode_values import (
     JUMPDEST,
 )

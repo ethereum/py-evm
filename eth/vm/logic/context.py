@@ -1,26 +1,29 @@
-from typing import Tuple
+from typing import (
+    Tuple,
+)
 
 from eth_typing import (
     Address,
 )
 
-from eth import constants
-
-from eth.abc import (
-    MessageComputationAPI,
+from eth import (
+    constants,
 )
-from eth.exceptions import (
-    OutOfBoundsRead,
-)
-
 from eth._utils.address import (
     force_bytes_to_address,
 )
 from eth._utils.numeric import (
     ceil32,
 )
-
-from eth.vm.computation import MessageComputation
+from eth.abc import (
+    MessageComputationAPI,
+)
+from eth.exceptions import (
+    OutOfBoundsRead,
+)
+from eth.vm.computation import (
+    MessageComputation,
+)
 
 
 def balance(computation: MessageComputation) -> None:

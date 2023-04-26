@@ -1,11 +1,16 @@
+import pytest
 import time
 
-import pytest
+from eth_utils.toolz import (
+    pipe,
+)
 
-from eth_utils.toolz import pipe
-
-from eth import constants
-from eth.chains.base import Chain
+from eth import (
+    constants,
+)
+from eth.chains.base import (
+    Chain,
+)
 from eth.tools.builder.chain import (
     frontier_at,
     genesis,

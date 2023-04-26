@@ -1,9 +1,15 @@
 import pytest
 
-from eth_utils import ValidationError
+from eth_utils import (
+    ValidationError,
+)
 
-from eth.chains.base import MiningChain
-from eth.consensus.pow import check_pow
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.consensus.pow import (
+    check_pow,
+)
 from eth.tools.builder.chain import (
     arrow_glacier_at,
     berlin_at,
@@ -30,21 +36,21 @@ from eth.tools.builder.chain import (
     tangerine_whistle_at,
 )
 from eth.vm.forks import (
-    FrontierVM,
-    HomesteadVM,
-    TangerineWhistleVM,
-    SpuriousDragonVM,
+    ArrowGlacierVM,
+    BerlinVM,
     ByzantiumVM,
     ConstantinopleVM,
-    PetersburgVM,
-    IstanbulVM,
-    MuirGlacierVM,
-    BerlinVM,
-    LondonVM,
-    ArrowGlacierVM,
+    FrontierVM,
     GrayGlacierVM,
+    HomesteadVM,
+    IstanbulVM,
+    LondonVM,
+    MuirGlacierVM,
     ParisVM,
+    PetersburgVM,
     ShanghaiVM,
+    SpuriousDragonVM,
+    TangerineWhistleVM,
 )
 
 

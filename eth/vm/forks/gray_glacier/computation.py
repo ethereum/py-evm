@@ -1,4 +1,6 @@
-from ..arrow_glacier.computation import ArrowGlacierMessageComputation
+from ..arrow_glacier.computation import (
+    ArrowGlacierMessageComputation,
+)
 
 
 class GrayGlacierMessageComputation(ArrowGlacierMessageComputation):

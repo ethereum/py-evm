@@ -1,7 +1,12 @@
 import pytest
-from eth_utils import to_canonical_address
 
-from eth.vm.transaction_context import BaseTransactionContext
+from eth_utils import (
+    to_canonical_address,
+)
+
+from eth.vm.transaction_context import (
+    BaseTransactionContext,
+)
 
 
 @pytest.fixture

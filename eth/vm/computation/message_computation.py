@@ -1,5 +1,7 @@
 import itertools
-from types import TracebackType
+from types import (
+    TracebackType,
+)
 from typing import (
     Any,
     Dict,
@@ -11,10 +13,6 @@ from typing import (
     cast,
 )
 
-from eth.vm.computation.base_computation import (
-    BaseComputation,
-    NO_RESULT,
-)
 from eth_typing import (
     Address,
 )
@@ -43,6 +41,10 @@ from eth.validation import (
 )
 from eth.vm.code_stream import (
     CodeStream,
+)
+from eth.vm.computation.base_computation import (
+    NO_RESULT,
+    BaseComputation,
 )
 from eth.vm.gas_meter import (
     GasMeter,

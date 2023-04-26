@@ -1,19 +1,31 @@
 import collections
-from typing import cast, Dict, Set, Union
+from typing import (
+    Dict,
+    Set,
+    Union,
+    cast,
+)
 import uuid
 
+from eth_utils import (
+    ValidationError,
+)
 from eth_utils.toolz import (
     first,
     merge,
     nth,
 )
-from eth_utils import (
-    ValidationError,
-)
 
-from eth.abc import DatabaseAPI
-from eth.db.backends.base import BaseDB
-from eth.db.diff import DBDiff, DBDiffTracker
+from eth.abc import (
+    DatabaseAPI,
+)
+from eth.db.backends.base import (
+    BaseDB,
+)
+from eth.db.diff import (
+    DBDiff,
+    DBDiffTracker,
+)
 
 
 class DeletedEntry:

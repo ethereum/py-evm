@@ -1,27 +1,29 @@
-from typing import Optional
+from typing import (
+    Optional,
+)
 
-from eth_keys.datatypes import PrivateKey
-
+from eth_keys.datatypes import (
+    PrivateKey,
+)
 from eth_typing import (
     Address,
 )
-
 from eth_utils import (
     int_to_big_endian,
 )
-
 import rlp
 
-from eth.vm.forks.homestead.transactions import (
-    HomesteadTransaction,
-    HomesteadUnsignedTransaction,
+from eth._utils.numeric import (
+    is_even,
 )
-
-from eth._utils.numeric import is_even
 from eth._utils.transactions import (
     create_transaction_signature,
     extract_chain_id,
     is_eip_155_signed_transaction,
+)
+from eth.vm.forks.homestead.transactions import (
+    HomesteadTransaction,
+    HomesteadUnsignedTransaction,
 )
 
 

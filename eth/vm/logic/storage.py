@@ -1,11 +1,17 @@
-from typing import NamedTuple
+from typing import (
+    NamedTuple,
+)
 
 from eth_utils import (
     encode_hex,
 )
-from eth import constants
 
-from eth.vm.computation import MessageComputation
+from eth import (
+    constants,
+)
+from eth.vm.computation import (
+    MessageComputation,
+)
 
 
 def sstore(computation: MessageComputation) -> None:
