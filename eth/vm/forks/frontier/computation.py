@@ -1,15 +1,13 @@
-from eth import precompiles
-
-from eth_hash.auto import keccak
+from eth_hash.auto import (
+    keccak,
+)
 from eth_utils import (
     encode_hex,
 )
 
-from eth.constants import (
-    GAS_CODEDEPOSIT,
-    STACK_DEPTH_LIMIT,
+from eth import (
+    precompiles,
 )
-
 from eth._utils.address import (
     force_bytes_to_address,
 )
@@ -19,17 +17,22 @@ from eth.abc import (
     StateAPI,
     TransactionContextAPI,
 )
+from eth.constants import (
+    GAS_CODEDEPOSIT,
+    STACK_DEPTH_LIMIT,
+)
 from eth.exceptions import (
-    OutOfGas,
     InsufficientFunds,
+    OutOfGas,
     StackDepthLimit,
 )
 from eth.vm.computation import (
     BaseComputation,
 )
 
-from .opcodes import FRONTIER_OPCODES
-
+from .opcodes import (
+    FRONTIER_OPCODES,
+)
 
 FRONTIER_PRECOMPILES = {
     force_bytes_to_address(b'\x01'): precompiles.ecrecover,

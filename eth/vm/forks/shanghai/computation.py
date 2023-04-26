@@ -1,19 +1,26 @@
-from eth._utils.numeric import ceil32
+from eth._utils.numeric import (
+    ceil32,
+)
 from eth.abc import (
     ComputationAPI,
     MessageAPI,
     StateAPI,
     TransactionContextAPI,
 )
+from eth.exceptions import (
+    OutOfGas,
+)
+from eth.vm.forks.paris.computation import (
+    ParisComputation,
+)
+
 from .constants import (
     INITCODE_WORD_COST,
     MAX_INITCODE_SIZE,
 )
-from .opcodes import SHANGHAI_OPCODES
-from eth.exceptions import (
-    OutOfGas,
+from .opcodes import (
+    SHANGHAI_OPCODES,
 )
-from eth.vm.forks.paris.computation import ParisComputation
 
 
 class ShanghaiComputation(ParisComputation):

@@ -1,15 +1,16 @@
-from rlp.sedes import (
-    CountableList,
-    binary,
-)
-
 from typing import (
     Tuple,
 )
 
 import rlp
+from rlp.sedes import (
+    CountableList,
+    binary,
+)
 
-from eth.abc import LogAPI
+from eth.abc import (
+    LogAPI,
+)
 
 from .sedes import (
     address,

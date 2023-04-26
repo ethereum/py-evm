@@ -1,12 +1,11 @@
 from eth_utils import (
-    replace_exceptions,
     ValidationError,
+    replace_exceptions,
 )
 
 from eth._utils.rlp import (
     validate_rlp_equal,
 )
-
 
 assert_imported_block_unchanged = replace_exceptions({
     ValidationError: AssertionError,

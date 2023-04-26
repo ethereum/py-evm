@@ -1,10 +1,17 @@
-from typing import Type
+from typing import (
+    Type,
+)
 
-from eth_hash.auto import keccak
+from eth_hash.auto import (
+    keccak,
+)
 from eth_utils import (
     encode_hex,
 )
 
+from eth._utils.address import (
+    generate_contract_address,
+)
 from eth.abc import (
     ComputationAPI,
     MessageAPI,
@@ -16,20 +23,23 @@ from eth.abc import (
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
-from eth.vm.message import (
-    Message,
-)
 from eth.vm.forks.berlin.state import (
     BerlinState,
     BerlinTransactionExecutor,
 )
-from eth._utils.address import (
-    generate_contract_address,
+from eth.vm.message import (
+    Message,
 )
 
-from .computation import LondonComputation
-from .validation import validate_london_normalized_transaction
-from .constants import EIP3529_MAX_REFUND_QUOTIENT
+from .computation import (
+    LondonComputation,
+)
+from .constants import (
+    EIP3529_MAX_REFUND_QUOTIENT,
+)
+from .validation import (
+    validate_london_normalized_transaction,
+)
 
 
 class LondonTransactionExecutor(BerlinTransactionExecutor):

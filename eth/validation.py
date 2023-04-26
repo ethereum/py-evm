@@ -1,41 +1,40 @@
 import functools
-
 from typing import (
     Any,
-    cast,
     Dict,
     Iterable,
     Sequence,
     Tuple,
     Type,
     Union,
+    cast,
 )
 
 from eth_typing import (
     Address,
     Hash32,
 )
-
 from eth_utils import (
-    is_list_like,
     ValidationError,
+    is_list_like,
 )
-from eth_utils.toolz import dicttoolz
-
-from eth_utils.toolz import functoolz
-
-from eth_utils.toolz import itertoolz
+from eth_utils.toolz import (
+    dicttoolz,
+    functoolz,
+    itertoolz,
+)
 
 from eth._utils.headers import (
     compute_gas_limit_bounds,
 )
-from eth.abc import VirtualMachineAPI
+from eth.abc import (
+    VirtualMachineAPI,
+)
 from eth.constants import (
     SECPK1_N,
-    UINT_256_MAX,
     UINT_64_MAX,
+    UINT_256_MAX,
 )
-
 from eth.typing import (
     BytesOrView,
 )

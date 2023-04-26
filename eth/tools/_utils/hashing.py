@@ -4,13 +4,17 @@ from typing import (
     cast,
 )
 
-from eth_hash.auto import keccak
+from eth_hash.auto import (
+    keccak,
+)
 from eth_typing import (
     Hash32,
 )
 import rlp
 
-from eth.rlp.logs import Log
+from eth.rlp.logs import (
+    Log,
+)
 
 
 def hash_log_entries(log_entries: Iterable[Tuple[bytes, Tuple[int, ...], bytes]]) -> Hash32:

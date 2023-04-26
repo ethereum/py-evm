@@ -4,13 +4,17 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.abc import DatabaseAPI
+from eth.abc import (
+    DatabaseAPI,
+)
+from eth.db.backends.base import (
+    BaseDB,
+)
 from eth.db.diff import (
     DBDiff,
     DBDiffTracker,
     DiffMissingError,
 )
-from eth.db.backends.base import BaseDB
 
 
 class BatchDB(BaseDB):

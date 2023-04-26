@@ -1,15 +1,25 @@
-from typing import Any, Optional
+from typing import (
+    Any,
+    Optional,
+)
 
-from toolz import curry
+from toolz import (
+    curry,
+)
 
-from eth.abc import BlockHeaderAPI
-from eth.vm.forks.paris.headers import (
-    create_paris_header_from_parent,
+from eth.abc import (
+    BlockHeaderAPI,
 )
 from eth.vm.forks.byzantium.headers import (
     configure_header,
 )
-from .blocks import ShanghaiBlockHeader
+from eth.vm.forks.paris.headers import (
+    create_paris_header_from_parent,
+)
+
+from .blocks import (
+    ShanghaiBlockHeader,
+)
 
 
 @curry

@@ -1,14 +1,22 @@
-from typing import cast, Optional
+from typing import (
+    Optional,
+    cast,
+)
 
-from eth_utils.toolz import curry
-
-from eth.exceptions import VMError
+from eth_utils.toolz import (
+    curry,
+)
 
 from eth.abc import (
     SignedTransactionAPI,
     StateAPI,
 )
-from eth.vm.spoof import SpoofTransaction
+from eth.exceptions import (
+    VMError,
+)
+from eth.vm.spoof import (
+    SpoofTransaction,
+)
 
 
 def _get_computation_error(state: StateAPI, transaction: SignedTransactionAPI) -> Optional[VMError]:

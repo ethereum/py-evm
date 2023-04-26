@@ -1,4 +1,6 @@
-from typing import Type
+from typing import (
+    Type,
+)
 
 from eth.abc import (
     ComputationAPI,
@@ -7,13 +9,15 @@ from eth.abc import (
     TransactionExecutorAPI,
 )
 from eth.vm.forks.muir_glacier.state import (
-    MuirGlacierState
+    MuirGlacierState,
 )
 from eth.vm.forks.spurious_dragon.state import (
     SpuriousDragonTransactionExecutor,
 )
 
-from .computation import BerlinComputation
+from .computation import (
+    BerlinComputation,
+)
 
 
 class BerlinTransactionExecutor(SpuriousDragonTransactionExecutor):

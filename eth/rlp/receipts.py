@@ -1,11 +1,15 @@
 import itertools
-from typing import Iterable
+from typing import (
+    Iterable,
+)
 
-from eth_bloom import BloomFilter
+from eth_bloom import (
+    BloomFilter,
+)
 import rlp
 from rlp.sedes import (
-    big_endian_int,
     CountableList,
+    big_endian_int,
     binary,
 )
 
@@ -14,7 +18,9 @@ from eth.abc import (
     ReceiptBuilderAPI,
 )
 
-from .logs import Log
+from .logs import (
+    Log,
+)
 from .sedes import (
     uint256,
 )

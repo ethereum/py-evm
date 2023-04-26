@@ -1,13 +1,16 @@
-from collections.abc import Mapping
+from collections.abc import (
+    Mapping,
+)
 import itertools
-
 from typing import (
     Any,
     Dict,
     Sequence,
 )
 
-from eth_utils.toolz import merge_with
+from eth_utils.toolz import (
+    merge_with,
+)
 
 
 def merge_if_dicts(values: Sequence[Dict[Any, Any]]) -> Any:

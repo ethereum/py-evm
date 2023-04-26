@@ -1,29 +1,26 @@
 import functools
 from typing import (
-    cast,
     Iterable,
     Sequence,
     Tuple,
+    cast,
 )
 
-import rlp
-
+from eth_typing import (
+    BlockNumber,
+    Hash32,
+)
+from eth_utils import (
+    ValidationError,
+    encode_hex,
+    to_tuple,
+)
 from eth_utils.toolz import (
     concat,
     first,
     sliding_window,
 )
-
-from eth_utils import (
-    encode_hex,
-    to_tuple,
-    ValidationError,
-)
-
-from eth_typing import (
-    Hash32,
-    BlockNumber,
-)
+import rlp
 
 from eth.abc import (
     AtomicDatabaseAPI,
@@ -35,12 +32,15 @@ from eth.constants import (
     GENESIS_PARENT_HASH,
 )
 from eth.db.chain_gaps import (
-    GapChange,
-    GapInfo,
     GAP_WRITES,
     GENESIS_CHAIN_GAPS,
+    GapChange,
+    GapInfo,
     fill_gap,
     reopen_gap,
+)
+from eth.db.schema import (
+    SchemaV1,
 )
 from eth.exceptions import (
     CanonicalHeadNotFound,
@@ -48,14 +48,19 @@ from eth.exceptions import (
     HeaderNotFound,
     ParentNotFound,
 )
-from eth.db.schema import SchemaV1
-from eth.rlp.sedes import chain_gaps
-from eth.typing import ChainGaps
+from eth.rlp.sedes import (
+    chain_gaps,
+)
+from eth.typing import (
+    ChainGaps,
+)
 from eth.validation import (
     validate_block_number,
     validate_word,
 )
-from eth.vm.header import HeaderSedes
+from eth.vm.header import (
+    HeaderSedes,
+)
 
 
 class HeaderDB(HeaderDatabaseAPI):

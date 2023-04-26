@@ -1,12 +1,13 @@
 import pytest
 
 from eth_utils import (
-    big_endian_to_int,
     ValidationError,
+    big_endian_to_int,
 )
 
-from eth.tools._utils.normalization import normalize_state
-
+from eth.tools._utils.normalization import (
+    normalize_state,
+)
 
 ADDRESS_A = b'a' + b'\0' * 19
 ADDRESS_B = b'b' + b'\0' * 19

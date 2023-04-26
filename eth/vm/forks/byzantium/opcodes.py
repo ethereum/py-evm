@@ -1,25 +1,35 @@
 import copy
 import functools
-from typing import Dict
-
-from eth_utils.toolz import merge
-
 from typing import (
     Any,
     Callable,
+    Dict,
 )
 
-from eth import constants
+from eth_utils.toolz import (
+    merge,
+)
 
-from eth.abc import ComputationAPI, OpcodeAPI
+from eth import (
+    constants,
+)
+from eth.abc import (
+    ComputationAPI,
+    OpcodeAPI,
+)
 from eth.exceptions import (
     WriteProtection,
 )
-from eth.vm import mnemonics
-from eth.vm import opcode_values
+from eth.vm import (
+    mnemonics,
+    opcode_values,
+)
+from eth.vm.forks.spurious_dragon.opcodes import (
+    SPURIOUS_DRAGON_OPCODES,
+)
 from eth.vm.forks.tangerine_whistle.constants import (
     GAS_CALL_EIP150,
-    GAS_SELFDESTRUCT_EIP150
+    GAS_SELFDESTRUCT_EIP150,
 )
 from eth.vm.logic import (
     call,
@@ -28,9 +38,9 @@ from eth.vm.logic import (
     storage,
     system,
 )
-from eth.vm.opcode import as_opcode
-
-from eth.vm.forks.spurious_dragon.opcodes import SPURIOUS_DRAGON_OPCODES
+from eth.vm.opcode import (
+    as_opcode,
+)
 
 
 def ensure_no_static(opcode_fn: Callable[..., Any]) -> Callable[..., Any]:

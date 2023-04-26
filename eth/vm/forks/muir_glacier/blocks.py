@@ -1,6 +1,7 @@
 from rlp.sedes import (
     CountableList,
 )
+
 from eth.rlp.headers import (
     BlockHeader,
 )

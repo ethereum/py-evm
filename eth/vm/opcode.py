@@ -1,5 +1,4 @@
 import functools
-
 from typing import (
     Any,
     Callable,
@@ -12,12 +11,13 @@ from eth_utils import (
     get_extended_debug_logger,
 )
 
-from eth._utils.datatypes import Configurable
+from eth._utils.datatypes import (
+    Configurable,
+)
 from eth.abc import (
     ComputationAPI,
     OpcodeAPI,
 )
-
 
 T = TypeVar('T')
 

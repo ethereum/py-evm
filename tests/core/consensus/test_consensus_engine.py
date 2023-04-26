@@ -1,22 +1,24 @@
 import pytest
 
-from eth.abc import (
-    ConsensusAPI,
-)
-from eth.consensus import (
-    ConsensusContext,
-)
-
-from eth.chains.base import MiningChain
-from eth.tools.builder.chain import (
-    genesis,
-)
-from eth.vm.forks.istanbul import IstanbulVM
-
 from eth_utils import (
     ValidationError,
 )
 
+from eth.abc import (
+    ConsensusAPI,
+)
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.consensus import (
+    ConsensusContext,
+)
+from eth.tools.builder.chain import (
+    genesis,
+)
+from eth.vm.forks.istanbul import (
+    IstanbulVM,
+)
 
 CONSENSUS_DATA_LENGH = 9
 

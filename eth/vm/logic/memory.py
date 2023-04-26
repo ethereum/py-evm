@@ -1,4 +1,6 @@
-from eth.abc import ComputationAPI
+from eth.abc import (
+    ComputationAPI,
+)
 
 
 def mstore(computation: ComputationAPI) -> None:

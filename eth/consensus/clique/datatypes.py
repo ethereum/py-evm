@@ -1,5 +1,5 @@
 from enum import (
-    Enum
+    Enum,
 )
 from typing import (
     Dict,
@@ -11,7 +11,7 @@ from typing import (
 
 from eth_typing import (
     Address,
-    Hash32
+    Hash32,
 )
 from eth_utils import (
     ValidationError,
@@ -19,7 +19,7 @@ from eth_utils import (
 
 from .constants import (
     NONCE_AUTH,
-    NONCE_DROP
+    NONCE_DROP,
 )
 
 

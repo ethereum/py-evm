@@ -1,18 +1,23 @@
-from typing import NamedTuple
+from typing import (
+    NamedTuple,
+)
 
-import rlp
-
-from eth_keys import keys
-from eth_keys import datatypes
+from eth_keys import (
+    datatypes,
+    keys,
+)
 from eth_keys.exceptions import (
     BadSignature,
 )
-
 from eth_utils import (
-    int_to_big_endian,
     ValidationError,
+    int_to_big_endian,
 )
+import rlp
 
+from eth._utils.numeric import (
+    is_even,
+)
 from eth.abc import (
     SignedTransactionAPI,
     UnsignedTransactionAPI,
@@ -20,16 +25,13 @@ from eth.abc import (
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
+from eth.rlp.transactions import (
+    BaseTransaction,
+)
 from eth.typing import (
-    Address,
     VRS,
+    Address,
 )
-from eth._utils.numeric import (
-    is_even,
-)
-
-from eth.rlp.transactions import BaseTransaction
-
 
 EIP155_CHAIN_ID_OFFSET = 35
 # Add this offset to y_parity to get "v" for legacy transactions, from Frontier

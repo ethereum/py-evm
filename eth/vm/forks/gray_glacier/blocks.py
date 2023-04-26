@@ -1,18 +1,21 @@
-from abc import ABC
-from typing import Type
+from abc import (
+    ABC,
+)
+from typing import (
+    Type,
+)
 
-from eth.abc import TransactionBuilderAPI
 from eth_utils import (
     encode_hex,
 )
-
 from rlp.sedes import (
     CountableList,
 )
 
-from .transactions import (
-    GrayGlacierTransactionBuilder,
+from eth.abc import (
+    TransactionBuilderAPI,
 )
+
 from ..arrow_glacier import (
     ArrowGlacierBlock,
 )
@@ -20,7 +23,12 @@ from ..arrow_glacier.blocks import (
     ArrowGlacierBlockHeader,
     ArrowGlacierMiningHeader,
 )
-from ..london.blocks import LondonBackwardsHeader
+from ..london.blocks import (
+    LondonBackwardsHeader,
+)
+from .transactions import (
+    GrayGlacierTransactionBuilder,
+)
 
 
 class GrayGlacierMiningHeader(ArrowGlacierMiningHeader, ABC):

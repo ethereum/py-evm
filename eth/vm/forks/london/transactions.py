@@ -1,4 +1,3 @@
-from cached_property import cached_property
 from typing import (
     Dict,
     Sequence,
@@ -7,7 +6,12 @@ from typing import (
     Union,
 )
 
-from eth_keys.datatypes import PrivateKey
+from cached_property import (
+    cached_property,
+)
+from eth_keys.datatypes import (
+    PrivateKey,
+)
 from eth_typing import (
     Address,
     Hash32,
@@ -33,11 +37,21 @@ from eth.abc import (
     SignedTransactionAPI,
     TransactionDecoderAPI,
 )
-from eth.constants import CREATE_CONTRACT_ADDRESS
-from eth.rlp.logs import Log
-from eth.rlp.receipts import Receipt
-from eth.rlp.transactions import SignedTransactionMethods
-from eth.rlp.sedes import address
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
+from eth.rlp.logs import (
+    Log,
+)
+from eth.rlp.receipts import (
+    Receipt,
+)
+from eth.rlp.sedes import (
+    address,
+)
+from eth.rlp.transactions import (
+    SignedTransactionMethods,
+)
 from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
@@ -61,8 +75,12 @@ from eth.vm.forks.istanbul.transactions import (
     ISTANBUL_TX_GAS_SCHEDULE,
 )
 
-from .constants import DYNAMIC_FEE_TRANSACTION_TYPE
-from .receipts import LondonReceiptBuilder
+from .constants import (
+    DYNAMIC_FEE_TRANSACTION_TYPE,
+)
+from .receipts import (
+    LondonReceiptBuilder,
+)
 
 
 class LondonLegacyTransaction(BerlinLegacyTransaction):

@@ -1,26 +1,41 @@
 import pytest
+
+from eth_utils import (
+    decode_hex,
+)
+from eth_utils.toolz import (
+    sliding_window,
+)
 import rlp
 
-from eth_utils import decode_hex
-from eth_utils.toolz import sliding_window
-
-from eth import constants
-from eth.abc import MiningChainAPI
-from eth.chains.base import MiningChain
+from eth import (
+    constants,
+)
+from eth.abc import (
+    MiningChainAPI,
+)
+from eth.chains.base import (
+    MiningChain,
+)
 from eth.chains.mainnet import (
     MAINNET_GENESIS_HEADER,
     MINING_MAINNET_VMS,
 )
-from eth.chains.ropsten import ROPSTEN_GENESIS_HEADER
-from eth.consensus.noproof import NoProofConsensus
+from eth.chains.ropsten import (
+    ROPSTEN_GENESIS_HEADER,
+)
+from eth.consensus.noproof import (
+    NoProofConsensus,
+)
 from eth.exceptions import (
     TransactionNotFound,
 )
 from eth.tools.factories.transaction import (
-    new_transaction
+    new_transaction,
 )
-from eth.vm.forks.frontier.blocks import FrontierBlock
-
+from eth.vm.forks.frontier.blocks import (
+    FrontierBlock,
+)
 from tests.core.fixtures import (
     valid_block_rlp,
 )

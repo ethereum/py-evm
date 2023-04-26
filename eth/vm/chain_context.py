@@ -1,6 +1,10 @@
-from typing import Optional
+from typing import (
+    Optional,
+)
 
-from eth.abc import ChainContextAPI
+from eth.abc import (
+    ChainContextAPI,
+)
 from eth.validation import (
     validate_uint256,
 )

@@ -8,7 +8,9 @@ from typing import (
 from eth_utils import (
     ValidationError,
 )
-from toolz.functoolz import curry
+from toolz.functoolz import (
+    curry,
+)
 
 from eth._utils.headers import (
     compute_gas_limit,
@@ -19,8 +21,12 @@ from eth.abc import (
     BlockHeaderAPI,
     BlockHeaderSedesAPI,
 )
-from eth.constants import GENESIS_GAS_LIMIT
-from eth.rlp.headers import BlockHeader
+from eth.constants import (
+    GENESIS_GAS_LIMIT,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+)
 from eth.vm.forks.berlin.headers import (
     configure_header,
 )
@@ -28,8 +34,9 @@ from eth.vm.forks.muir_glacier.headers import (
     compute_difficulty,
 )
 
-
-from .blocks import LondonBlockHeader
+from .blocks import (
+    LondonBlockHeader,
+)
 from .constants import (
     BASE_FEE_MAX_CHANGE_DENOMINATOR,
     ELASTICITY_MULTIPLIER,

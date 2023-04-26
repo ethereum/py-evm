@@ -1,14 +1,17 @@
+import pytest
+
 from hypothesis import (
     given,
     strategies as st,
 )
-import pytest
 
 from eth.db.accesslog import (
-    KeyAccessLoggerDB,
     KeyAccessLoggerAtomicDB,
+    KeyAccessLoggerDB,
 )
-from eth.db.backends.memory import MemoryDB
+from eth.db.backends.memory import (
+    MemoryDB,
+)
 
 
 @given(st.lists(st.binary()))

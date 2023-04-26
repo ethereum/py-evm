@@ -1,6 +1,8 @@
 import pytest
 
-from eth.abc import DatabaseAPI
+from eth.abc import (
+    DatabaseAPI,
+)
 
 
 class DatabaseAPITestSuite:

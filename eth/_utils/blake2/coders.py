@@ -1,13 +1,13 @@
 from typing import (
-    cast,
     Iterable,
     Tuple,
+    cast,
 )
 
 from eth_utils import (
+    ValidationError,
     to_int,
     to_tuple,
-    ValidationError,
 )
 
 from .compression import (

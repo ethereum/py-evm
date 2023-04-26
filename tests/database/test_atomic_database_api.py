@@ -1,10 +1,17 @@
 import pytest
 
-from eth.db.atomic import AtomicDB
-from eth.db.backends.level import LevelDB
-
-from eth.tools.db.base import DatabaseAPITestSuite
-from eth.tools.db.atomic import AtomicDatabaseBatchAPITestSuite
+from eth.db.atomic import (
+    AtomicDB,
+)
+from eth.db.backends.level import (
+    LevelDB,
+)
+from eth.tools.db.atomic import (
+    AtomicDatabaseBatchAPITestSuite,
+)
+from eth.tools.db.base import (
+    DatabaseAPITestSuite,
+)
 
 
 @pytest.fixture(params=['atomic', 'level'])

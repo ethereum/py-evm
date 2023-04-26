@@ -8,15 +8,14 @@ from eth_utils.toolz import (
     merge,
 )
 
-from eth.constants import (
-    DEFAULT_SPOOF_Y_PARITY,
-    DEFAULT_SPOOF_R,
-    DEFAULT_SPOOF_S,
-)
-
 from eth.abc import (
     SignedTransactionAPI,
     UnsignedTransactionAPI,
+)
+from eth.constants import (
+    DEFAULT_SPOOF_R,
+    DEFAULT_SPOOF_S,
+    DEFAULT_SPOOF_Y_PARITY,
 )
 
 SPOOF_ATTRIBUTES_DEFAULTS = {

@@ -1,6 +1,12 @@
-from eth.abc import ComputationAPI
-from eth.exceptions import InvalidInstruction
-from eth.vm.opcode import Opcode
+from eth.abc import (
+    ComputationAPI,
+)
+from eth.exceptions import (
+    InvalidInstruction,
+)
+from eth.vm.opcode import (
+    Opcode,
+)
 
 
 class InvalidOpcode(Opcode):

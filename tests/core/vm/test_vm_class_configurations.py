@@ -1,13 +1,19 @@
 import pytest
 
+from eth_bloom import (
+    BloomFilter,
+)
+
 from eth.abc import (
     ReceiptBuilderAPI,
     TransactionBuilderAPI,
 )
-from eth.chains.mainnet import MAINNET_VMS
-from eth.rlp.headers import BlockHeader
-
-from eth_bloom import BloomFilter
+from eth.chains.mainnet import (
+    MAINNET_VMS,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+)
 
 
 @pytest.fixture(scope="module")

@@ -1,11 +1,10 @@
-from eth.vm.forks.petersburg.headers import (
-    compute_difficulty,
-)
 from eth.vm.forks.istanbul.headers import (
     configure_header,
     create_header_from_parent,
 )
-
+from eth.vm.forks.petersburg.headers import (
+    compute_difficulty,
+)
 
 compute_muir_glacier_difficulty = compute_difficulty(9000000)
 

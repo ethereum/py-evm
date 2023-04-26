@@ -1,11 +1,11 @@
 from eth.vm.forks.byzantium.computation import (
-    BYZANTIUM_PRECOMPILES
-)
-from eth.vm.forks.byzantium.computation import (
-    ByzantiumComputation
+    BYZANTIUM_PRECOMPILES,
+    ByzantiumComputation,
 )
 
-from .opcodes import PETERSBURG_OPCODES
+from .opcodes import (
+    PETERSBURG_OPCODES,
+)
 
 PETERSBURG_PRECOMPILES = BYZANTIUM_PRECOMPILES
 

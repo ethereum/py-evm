@@ -1,12 +1,11 @@
 import pytest
 
+from eth._utils.numeric import (
+    int_to_bytes32,
+)
 from eth.constants import (
     NULL_BYTE,
     UINT_256_MAX,
-)
-
-from eth._utils.numeric import (
-    int_to_bytes32,
 )
 
 

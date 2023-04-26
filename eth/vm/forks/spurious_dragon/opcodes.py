@@ -1,28 +1,39 @@
 import copy
-from typing import Dict
-
-from eth_utils.toolz import merge
-
-from eth.abc import OpcodeAPI
-from eth.vm.forks.tangerine_whistle.constants import (
-    GAS_SELFDESTRUCT_EIP150,
-    GAS_CALL_EIP150
+from typing import (
+    Dict,
 )
-from eth.vm import mnemonics
-from eth.vm import opcode_values
-from eth.vm.forks.tangerine_whistle.opcodes import TANGERINE_WHISTLE_OPCODES
+
+from eth_utils.toolz import (
+    merge,
+)
+
+from eth.abc import (
+    OpcodeAPI,
+)
+from eth.vm import (
+    mnemonics,
+    opcode_values,
+)
+from eth.vm.forks.tangerine_whistle.constants import (
+    GAS_CALL_EIP150,
+    GAS_SELFDESTRUCT_EIP150,
+)
+from eth.vm.forks.tangerine_whistle.opcodes import (
+    TANGERINE_WHISTLE_OPCODES,
+)
 from eth.vm.logic import (
     arithmetic,
-    system,
     call,
+    system,
 )
-from eth.vm.opcode import as_opcode
+from eth.vm.opcode import (
+    as_opcode,
+)
 
 from .constants import (
     GAS_EXP_EIP160,
-    GAS_EXPBYTE_EIP160
+    GAS_EXPBYTE_EIP160,
 )
-
 
 UPDATED_OPCODES = {
     opcode_values.EXP: as_opcode(

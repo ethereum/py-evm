@@ -2,10 +2,12 @@ import contextlib
 import logging
 from typing import (
     Iterator,
-    Set
+    Set,
 )
 
-from eth.abc import CodeStreamAPI
+from eth.abc import (
+    CodeStreamAPI,
+)
 from eth.validation import (
     validate_is_bytes,
 )

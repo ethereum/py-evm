@@ -1,11 +1,14 @@
-from eth_utils.toolz import partial
+from eth_utils.toolz import (
+    partial,
+)
 
-from eth.vm.forks.berlin import constants as berlin_constants
+from eth.vm.forks.berlin import (
+    constants as berlin_constants,
+)
 from eth.vm.forks.berlin.logic import (
     GAS_SCHEDULE_EIP2929,
     sstore_eip2929_generic,
 )
-
 
 SSTORE_CLEARS_SCHEDULE_EIP_3529 = (
     GAS_SCHEDULE_EIP2929.sstore_reset_gas

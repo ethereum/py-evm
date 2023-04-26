@@ -1,10 +1,17 @@
-from typing import Dict
+from typing import (
+    Dict,
+)
 
-from eth import constants
-
-from eth.abc import OpcodeAPI
-from eth.vm import mnemonics
-from eth.vm import opcode_values
+from eth import (
+    constants,
+)
+from eth.abc import (
+    OpcodeAPI,
+)
+from eth.vm import (
+    mnemonics,
+    opcode_values,
+)
 from eth.vm.logic import (
     arithmetic,
     block,
@@ -24,7 +31,6 @@ from eth.vm.logic import (
 from eth.vm.opcode import (
     as_opcode,
 )
-
 
 FRONTIER_OPCODES: Dict[int, OpcodeAPI] = {
     #

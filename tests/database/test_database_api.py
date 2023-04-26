@@ -1,15 +1,27 @@
 import pytest
+
 from eth.db.accesslog import (
     KeyAccessLoggerAtomicDB,
     KeyAccessLoggerDB,
 )
-from eth.db.backends.memory import MemoryDB
-from eth.db.journal import JournalDB
-from eth.db.batch import BatchDB
-from eth.db.atomic import AtomicDB
-from eth.db.cache import CacheDB
-
-from eth.tools.db.base import DatabaseAPITestSuite
+from eth.db.atomic import (
+    AtomicDB,
+)
+from eth.db.backends.memory import (
+    MemoryDB,
+)
+from eth.db.batch import (
+    BatchDB,
+)
+from eth.db.cache import (
+    CacheDB,
+)
+from eth.db.journal import (
+    JournalDB,
+)
+from eth.tools.db.base import (
+    DatabaseAPITestSuite,
+)
 
 
 @pytest.fixture(params=[

@@ -1,20 +1,32 @@
-from cached_property import cached_property
-from typing import cast
+from typing import (
+    cast,
+)
 
-from eth.abc import WithdrawalAPI
-from eth.validation import (
-    validate_canonical_address,
-    validate_uint64,
+from cached_property import (
+    cached_property,
 )
 from eth_typing import (
     Address,
     Hash32,
 )
-
+from eth_utils import (
+    keccak,
+)
 import rlp
-from eth.rlp.sedes import address
-from eth_utils import keccak
-from rlp.sedes import big_endian_int
+from rlp.sedes import (
+    big_endian_int,
+)
+
+from eth.abc import (
+    WithdrawalAPI,
+)
+from eth.rlp.sedes import (
+    address,
+)
+from eth.validation import (
+    validate_canonical_address,
+    validate_uint64,
+)
 
 
 class Withdrawal(rlp.Serializable):

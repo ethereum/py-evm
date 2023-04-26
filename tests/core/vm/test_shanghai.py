@@ -1,9 +1,17 @@
 import pytest
 
-from eth.chains.base import MiningChain
-from eth.consensus import NoProofConsensus
-from eth.vm.forks import ShanghaiVM
-from eth.vm.forks.shanghai.withdrawals import Withdrawal
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.consensus import (
+    NoProofConsensus,
+)
+from eth.vm.forks import (
+    ShanghaiVM,
+)
+from eth.vm.forks.shanghai.withdrawals import (
+    Withdrawal,
+)
 
 
 @pytest.fixture

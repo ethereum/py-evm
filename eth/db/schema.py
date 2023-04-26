@@ -3,7 +3,9 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.abc import SchemaAPI
+from eth.abc import (
+    SchemaAPI,
+)
 
 
 class SchemaV1(SchemaAPI):

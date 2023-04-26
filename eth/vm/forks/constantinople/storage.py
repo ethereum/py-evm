@@ -1,8 +1,10 @@
-from functools import partial
+from functools import (
+    partial,
+)
 
 from eth.vm.logic.storage import (
-    net_sstore,
     NetSStoreGasSchedule,
+    net_sstore,
 )
 
 GAS_SCHEDULE_EIP1283 = NetSStoreGasSchedule(

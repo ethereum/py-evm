@@ -1,10 +1,11 @@
 import copy
+
 from eth_utils.toolz import (
-    merge
+    merge,
 )
 
 from eth import (
-    constants
+    constants,
 )
 from eth.vm import (
     mnemonics,
@@ -12,10 +13,10 @@ from eth.vm import (
 )
 from eth.vm.forks.byzantium.opcodes import (
     BYZANTIUM_OPCODES,
-    ensure_no_static
+    ensure_no_static,
 )
 from eth.vm.forks.constantinople.constants import (
-    GAS_EXTCODEHASH_EIP1052
+    GAS_EXTCODEHASH_EIP1052,
 )
 from eth.vm.forks.constantinople.storage import (
     sstore_eip1283,
@@ -26,9 +27,8 @@ from eth.vm.logic import (
     system,
 )
 from eth.vm.opcode import (
-    as_opcode
+    as_opcode,
 )
-
 
 UPDATED_OPCODES = {
     opcode_values.SHL: as_opcode(

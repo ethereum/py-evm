@@ -1,26 +1,33 @@
 import os
-
 import pytest
-from eth_utils import to_int
 
-from eth.constants import EMPTY_UNCLE_HASH
-from eth.rlp.headers import BlockHeader
+from eth_typing.enums import (
+    ForkName,
+)
+from eth_utils import (
+    to_int,
+)
+
+from eth.constants import (
+    EMPTY_UNCLE_HASH,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+)
 from eth.tools.fixtures import (
     filter_fixtures,
     generate_fixture_tests,
     load_fixture,
 )
 from eth.vm.forks import (
-    FrontierVM,
-    HomesteadVM,
+    ArrowGlacierVM,
+    BerlinVM,
     ByzantiumVM,
     ConstantinopleVM,
-    BerlinVM,
-    ArrowGlacierVM,
+    FrontierVM,
     GrayGlacierVM,
+    HomesteadVM,
 )
-from eth_typing.enums import ForkName
-
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 

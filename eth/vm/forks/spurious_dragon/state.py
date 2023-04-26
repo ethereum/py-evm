@@ -1,4 +1,6 @@
-from typing import Type
+from typing import (
+    Type,
+)
 
 from eth_utils import (
     encode_hex,
@@ -14,8 +16,12 @@ from eth.vm.forks.homestead.state import (
     HomesteadTransactionExecutor,
 )
 
-from .computation import SpuriousDragonComputation
-from ._utils import collect_touched_accounts
+from ._utils import (
+    collect_touched_accounts,
+)
+from .computation import (
+    SpuriousDragonComputation,
+)
 
 
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):

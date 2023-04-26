@@ -1,4 +1,6 @@
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 import logging
 from typing import (
     Iterator,
@@ -12,14 +14,18 @@ from eth.abc import (
     AtomicWriteBatchAPI,
     DatabaseAPI,
 )
-
+from eth.db.backends.base import (
+    BaseAtomicDB,
+    BaseDB,
+)
+from eth.db.backends.memory import (
+    MemoryDB,
+)
 from eth.db.diff import (
     DBDiff,
     DBDiffTracker,
     DiffMissingError,
 )
-from eth.db.backends.base import BaseAtomicDB, BaseDB
-from eth.db.backends.memory import MemoryDB
 
 
 class AtomicDB(BaseAtomicDB):

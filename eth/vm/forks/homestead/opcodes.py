@@ -1,18 +1,28 @@
 import copy
-from typing import Dict
+from typing import (
+    Dict,
+)
 
-from eth_utils.toolz import merge
+from eth_utils.toolz import (
+    merge,
+)
 
-from eth import constants
-from eth.abc import OpcodeAPI
-from eth.vm import mnemonics
-from eth.vm import opcode_values
+from eth import (
+    constants,
+)
+from eth.abc import (
+    OpcodeAPI,
+)
+from eth.vm import (
+    mnemonics,
+    opcode_values,
+)
+from eth.vm.forks.frontier.opcodes import (
+    FRONTIER_OPCODES,
+)
 from eth.vm.logic import (
     call,
 )
-
-from eth.vm.forks.frontier.opcodes import FRONTIER_OPCODES
-
 
 NEW_OPCODES = {
     opcode_values.DELEGATECALL: call.DelegateCall.configure(

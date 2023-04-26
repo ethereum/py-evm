@@ -1,6 +1,6 @@
 from typing import (
-    Any,
     TYPE_CHECKING,
+    Any,
 )
 
 from eth_typing import (
@@ -10,16 +10,20 @@ from eth_utils import (
     decode_hex,
 )
 
-from eth.abc import BlockHeaderAPI
-from eth.constants import (
-    DIFFICULTY_ADJUSTMENT_DENOMINATOR,
-    DIFFICULTY_MINIMUM,
-    BOMB_EXPONENTIAL_PERIOD,
-    BOMB_EXPONENTIAL_FREE_PERIODS,
-)
-from eth.rlp.headers import BlockHeader
 from eth._utils.db import (
     get_parent_header,
+)
+from eth.abc import (
+    BlockHeaderAPI,
+)
+from eth.constants import (
+    BOMB_EXPONENTIAL_FREE_PERIODS,
+    BOMB_EXPONENTIAL_PERIOD,
+    DIFFICULTY_ADJUSTMENT_DENOMINATOR,
+    DIFFICULTY_MINIMUM,
+)
+from eth.rlp.headers import (
+    BlockHeader,
 )
 from eth.validation import (
     validate_gt,
@@ -30,11 +34,11 @@ from eth.vm.forks.frontier.headers import (
 )
 
 from .constants import (
-    HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF
+    HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF,
 )
 
 if TYPE_CHECKING:
-    from eth.vm.forks.homestead import HomesteadVM      # noqa: F401
+    from eth.vm.forks.homestead import HomesteadVM  # noqa: F401
 
 
 def compute_homestead_difficulty(parent_header: BlockHeaderAPI, timestamp: int) -> int:

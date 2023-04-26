@@ -1,26 +1,29 @@
-from lru import LRU
 from typing import (
-    cast,
     Dict,
     Iterable,
     Set,
     Tuple,
+    cast,
 )
 
-from eth_hash.auto import keccak
+from eth_hash.auto import (
+    keccak,
+)
 from eth_typing import (
     Address,
-    Hash32
+    Hash32,
 )
-
 from eth_utils import (
+    ValidationError,
     encode_hex,
     get_extended_debug_logger,
     int_to_big_endian,
     to_checksum_address,
     to_dict,
     to_tuple,
-    ValidationError,
+)
+from lru import (
+    LRU,
 )
 import rlp
 from trie import (
@@ -43,6 +46,9 @@ from eth.db.accesslog import (
     KeyAccessLoggerAtomicDB,
     KeyAccessLoggerDB,
 )
+from eth.db.backends.memory import (
+    MemoryDB,
+)
 from eth.db.batch import (
     BatchDB,
 )
@@ -55,9 +61,6 @@ from eth.db.diff import (
 from eth.db.journal import (
     JournalDB,
 )
-from eth.db.backends.memory import (
-    MemoryDB,
-)
 from eth.db.storage import (
     AccountStorageDB,
 )
@@ -65,23 +68,25 @@ from eth.db.witness import (
     AccountQueryTracker,
     MetaWitness,
 )
+from eth.rlp.accounts import (
+    Account,
+)
 from eth.typing import (
     JournalDBCheckpoint,
+)
+from eth.validation import (
+    validate_canonical_address,
+    validate_is_bytes,
+    validate_uint256,
 )
 from eth.vm.interrupt import (
     MissingAccountTrieNode,
     MissingBytecode,
 )
-from eth.rlp.accounts import (
-    Account,
-)
-from eth.validation import (
-    validate_is_bytes,
-    validate_uint256,
-    validate_canonical_address,
-)
 
-from .hash_trie import HashTrie
+from .hash_trie import (
+    HashTrie,
+)
 
 IS_PRESENT_VALUE = b''
 

@@ -2,14 +2,22 @@ from eth_utils.toolz import (
     merge,
 )
 
-from eth import precompiles
+from eth import (
+    precompiles,
+)
 from eth._utils.address import (
     force_bytes_to_address,
 )
-from eth.vm.forks.frontier.computation import FRONTIER_PRECOMPILES
-from eth.vm.forks.spurious_dragon.computation import SpuriousDragonComputation
+from eth.vm.forks.frontier.computation import (
+    FRONTIER_PRECOMPILES,
+)
+from eth.vm.forks.spurious_dragon.computation import (
+    SpuriousDragonComputation,
+)
 
-from .opcodes import BYZANTIUM_OPCODES
+from .opcodes import (
+    BYZANTIUM_OPCODES,
+)
 
 BYZANTIUM_PRECOMPILES = merge(
     FRONTIER_PRECOMPILES,

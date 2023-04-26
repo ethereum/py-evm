@@ -1,52 +1,88 @@
-from abc import ABC
-from typing import List, Sequence, Tuple, Type, cast
-
-import rlp
-from eth.exceptions import BlockNotFound, HeaderNotFound
-from eth.rlp.blocks import BaseBlock
-from eth.rlp.headers import BlockHeader
-from eth.rlp.sedes import address, hash32, trie_root, uint256
-from eth_bloom import BloomFilter
-from eth_typing import Address, BlockNumber, Hash32
-
-from eth._utils.headers import new_timestamp_from_parent
-from eth.abc import (
-    BlockHeaderAPI, BlockHeaderSedesAPI, ChainDatabaseAPI, MiningHeaderAPI,
-    ReceiptAPI, ReceiptBuilderAPI, SignedTransactionAPI, TransactionBuilderAPI,
-    WithdrawalAPI,
+from abc import (
+    ABC,
 )
-from eth.constants import (
-    ZERO_ADDRESS,
-    ZERO_HASH32,
-    EMPTY_UNCLE_HASH,
-    GENESIS_NONCE,
-    GENESIS_PARENT_HASH,
-    BLANK_ROOT_HASH,
+from typing import (
+    List,
+    Sequence,
+    Tuple,
+    Type,
+    cast,
 )
 
+from eth_bloom import (
+    BloomFilter,
+)
+from eth_typing import (
+    Address,
+    BlockNumber,
+    Hash32,
+)
 from eth_utils import (
-    encode_hex, keccak,
+    encode_hex,
+    keccak,
 )
-
+import rlp
 from rlp.sedes import (
     Binary,
     CountableList,
     big_endian_int,
     binary,
 )
-from trie.exceptions import MissingTrieNode
-
-from .transactions import (
-    ShanghaiTransactionBuilder,
+from trie.exceptions import (
+    MissingTrieNode,
 )
-from .withdrawals import Withdrawal
+
+from eth._utils.headers import (
+    new_timestamp_from_parent,
+)
+from eth.abc import (
+    BlockHeaderAPI,
+    BlockHeaderSedesAPI,
+    ChainDatabaseAPI,
+    MiningHeaderAPI,
+    ReceiptAPI,
+    ReceiptBuilderAPI,
+    SignedTransactionAPI,
+    TransactionBuilderAPI,
+    WithdrawalAPI,
+)
+from eth.constants import (
+    BLANK_ROOT_HASH,
+    EMPTY_UNCLE_HASH,
+    GENESIS_NONCE,
+    GENESIS_PARENT_HASH,
+    ZERO_ADDRESS,
+    ZERO_HASH32,
+)
+from eth.exceptions import (
+    BlockNotFound,
+    HeaderNotFound,
+)
+from eth.rlp.blocks import (
+    BaseBlock,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+)
+from eth.rlp.sedes import (
+    address,
+    hash32,
+    trie_root,
+    uint256,
+)
+
 from ..london.blocks import (
     LondonBlockHeader,
 )
 from ..london.receipts import (
     LondonReceiptBuilder,
 )
-
+from .transactions import (
+    ShanghaiTransactionBuilder,
+)
+from .withdrawals import (
+    Withdrawal,
+)
 
 UNMINED_SHANGHAI_HEADER_FIELDS = [
     ('parent_hash', hash32),

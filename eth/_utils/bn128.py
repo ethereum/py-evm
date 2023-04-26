@@ -1,16 +1,17 @@
-from py_ecc import (
-    optimized_bn128 as bn128,
-)
-from py_ecc.optimized_bn128 import (
-    FQP,
-    FQ2,
+from typing import (
+    Tuple,
 )
 
 from eth_utils import (
     ValidationError,
 )
-
-from typing import Tuple
+from py_ecc import (
+    optimized_bn128 as bn128,
+)
+from py_ecc.optimized_bn128 import (
+    FQ2,
+    FQP,
+)
 
 
 def validate_point(x: int, y: int) -> Tuple[bn128.FQ, bn128.FQ, bn128.FQ]:

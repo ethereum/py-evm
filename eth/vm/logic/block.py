@@ -1,6 +1,10 @@
-from eth_typing import BlockNumber
+from eth_typing import (
+    BlockNumber,
+)
 
-from eth.abc import ComputationAPI
+from eth.abc import (
+    ComputationAPI,
+)
 
 
 def blockhash(computation: ComputationAPI) -> None:

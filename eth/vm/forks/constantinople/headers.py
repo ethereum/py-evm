@@ -1,9 +1,8 @@
 from eth.vm.forks.byzantium.headers import (
+    compute_difficulty,
     configure_header,
     create_header_from_parent,
-    compute_difficulty,
 )
-
 
 compute_constantinople_difficulty = compute_difficulty(5000000)
 

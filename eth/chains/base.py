@@ -1,3 +1,4 @@
+import logging
 import operator
 import random
 from typing import (
@@ -9,8 +10,6 @@ from typing import (
     Tuple,
     Type,
 )
-
-import logging
 
 from eth_typing import (
     Address,
@@ -25,32 +24,35 @@ from eth_utils.toolz import (
     sliding_window,
 )
 
-from eth._utils.db import (
-    apply_state_dict,
-)
 from eth._utils.datatypes import (
     Configurable,
+)
+from eth._utils.db import (
+    apply_state_dict,
 )
 from eth._utils.rlp import (
     validate_imported_block_unchanged,
 )
+from eth._warnings import (
+    catch_and_ignore_import_warning,
+)
 from eth.abc import (
-    BlockAPI,
-    BlockAndMetaWitness,
-    MiningChainAPI,
     AtomicDatabaseAPI,
+    BlockAndMetaWitness,
+    BlockAPI,
     BlockHeaderAPI,
     BlockImportResult,
     BlockPersistResult,
     ChainAPI,
     ChainDatabaseAPI,
-    ConsensusContextAPI,
-    VirtualMachineAPI,
-    ReceiptAPI,
     ComputationAPI,
-    StateAPI,
+    ConsensusContextAPI,
+    MiningChainAPI,
+    ReceiptAPI,
     SignedTransactionAPI,
+    StateAPI,
     UnsignedTransactionAPI,
+    VirtualMachineAPI,
     WithdrawalAPI,
 )
 from eth.consensus import (
@@ -60,14 +62,12 @@ from eth.constants import (
     EMPTY_UNCLE_HASH,
     MAX_UNCLE_DEPTH,
 )
-
 from eth.db.chain import (
     ChainDB,
 )
 from eth.db.header import (
     HeaderDB,
 )
-
 from eth.estimators import (
     get_gas_estimator,
 )
@@ -76,30 +76,28 @@ from eth.exceptions import (
     TransactionNotFound,
     VMNotFound,
 )
-
 from eth.rlp.headers import (
     BlockHeader,
 )
-
 from eth.typing import (
     AccountState,
     HeaderParams,
     StaticMethod,
 )
-
 from eth.validation import (
     validate_block_number,
     validate_uint256,
-    validate_word,
     validate_vm_configuration,
+    validate_word,
 )
-from eth.vm.chain_context import ChainContext
+from eth.vm.chain_context import (
+    ChainContext,
+)
 
-from eth._warnings import catch_and_ignore_import_warning
 with catch_and_ignore_import_warning():
     from eth_utils import (
-        to_set,
         ValidationError,
+        to_set,
     )
     from eth_utils.toolz import (
         assoc,

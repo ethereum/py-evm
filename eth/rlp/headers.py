@@ -4,23 +4,22 @@ from typing import (
     overload,
 )
 
-import rlp
-from rlp.sedes import (
-    big_endian_int,
-    Binary,
-    binary,
+from eth_hash.auto import (
+    keccak,
 )
-
 from eth_typing import (
     Address,
     BlockNumber,
     Hash32,
 )
-
-from eth_hash.auto import keccak
-
 from eth_utils import (
     encode_hex,
+)
+import rlp
+from rlp.sedes import (
+    Binary,
+    big_endian_int,
+    binary,
 )
 
 from eth._utils.headers import (
@@ -31,20 +30,22 @@ from eth.abc import (
     MiningHeaderAPI,
 )
 from eth.constants import (
-    ZERO_ADDRESS,
-    ZERO_HASH32,
+    BLANK_ROOT_HASH,
     EMPTY_UNCLE_HASH,
     GENESIS_NONCE,
     GENESIS_PARENT_HASH,
-    BLANK_ROOT_HASH,
+    ZERO_ADDRESS,
+    ZERO_HASH32,
 )
-from eth.typing import HeaderParams
+from eth.typing import (
+    HeaderParams,
+)
 
 from .sedes import (
     address,
     hash32,
-    uint256,
     trie_root,
+    uint256,
 )
 
 

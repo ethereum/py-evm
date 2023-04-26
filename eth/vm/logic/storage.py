@@ -1,10 +1,17 @@
-from typing import NamedTuple
+from typing import (
+    NamedTuple,
+)
 
-from eth.abc import ComputationAPI
 from eth_utils import (
     encode_hex,
 )
-from eth import constants
+
+from eth import (
+    constants,
+)
+from eth.abc import (
+    ComputationAPI,
+)
 
 
 def sstore(computation: ComputationAPI) -> None:

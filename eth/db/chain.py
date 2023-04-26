@@ -1,6 +1,5 @@
 import functools
 import itertools
-
 from typing import (
     Dict,
     Iterable,
@@ -10,28 +9,29 @@ from typing import (
     cast,
 )
 
-from eth.vm.forks.shanghai.withdrawals import (
-    Withdrawal,
+from eth_hash.auto import (
+    keccak,
 )
 from eth_typing import (
     BlockNumber,
-    Hash32
+    Hash32,
 )
 from eth_utils import (
     encode_hex,
 )
-
-from eth_hash.auto import keccak
 from trie.exceptions import (
     MissingTrieNode,
 )
 
+from eth._warnings import (
+    catch_and_ignore_import_warning,
+)
 from eth.abc import (
+    AtomicDatabaseAPI,
     BlockAPI,
     BlockHeaderAPI,
     ChainDatabaseAPI,
     DatabaseAPI,
-    AtomicDatabaseAPI,
     ReceiptAPI,
     ReceiptDecoderAPI,
     SignedTransactionAPI,
@@ -43,36 +43,51 @@ from eth.constants import (
     GENESIS_PARENT_HASH,
 )
 from eth.db.chain_gaps import (
-    fill_gap,
+    GENESIS_CHAIN_GAPS,
     GapChange,
     GapInfo,
-    GENESIS_CHAIN_GAPS,
+    fill_gap,
     is_block_number_in_gap,
     reopen_gap,
 )
-from eth.db.trie import make_trie_root_and_nodes
+from eth.db.header import (
+    HeaderDB,
+)
+from eth.db.schema import (
+    SchemaV1,
+)
+from eth.db.trie import (
+    make_trie_root_and_nodes,
+)
 from eth.exceptions import (
     HeaderNotFound,
     ReceiptNotFound,
     TransactionNotFound,
 )
-from eth.db.header import HeaderDB
-from eth.db.schema import SchemaV1
-from eth.rlp.sedes import chain_gaps
-from eth.typing import ChainGaps
+from eth.rlp.sedes import (
+    chain_gaps,
+)
+from eth.typing import (
+    ChainGaps,
+)
 from eth.validation import (
     validate_word,
 )
-from eth.vm.header import HeaderSedes
-from eth._warnings import catch_and_ignore_import_warning
+from eth.vm.forks.shanghai.withdrawals import (
+    Withdrawal,
+)
+from eth.vm.header import (
+    HeaderSedes,
+)
+
 with catch_and_ignore_import_warning():
+    from eth_utils import (
+        ValidationError,
+        to_tuple,
+    )
     import rlp
     from trie import (
         HexaryTrie,
-    )
-    from eth_utils import (
-        to_tuple,
-        ValidationError,
     )
 
 

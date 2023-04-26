@@ -1,8 +1,14 @@
 import pytest
 
-from eth.chains.base import MiningChain
-from eth.db.backends.memory import MemoryDB
-from eth.db.atomic import AtomicDB
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.db.atomic import (
+    AtomicDB,
+)
+from eth.db.backends.memory import (
+    MemoryDB,
+)
 
 
 @pytest.fixture

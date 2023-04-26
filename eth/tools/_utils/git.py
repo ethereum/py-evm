@@ -1,6 +1,8 @@
 import subprocess
 
-from eth_utils import to_text
+from eth_utils import (
+    to_text,
+)
 
 
 def get_version_from_git() -> str:

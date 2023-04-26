@@ -1,16 +1,19 @@
 import pytest
 
 from eth_utils import (
-    to_tuple,
     ValidationError,
+    to_tuple,
 )
-
-from eth_utils.toolz import sliding_window
+from eth_utils.toolz import (
+    sliding_window,
+)
 
 from eth.chains.mainnet import (
     MainnetHomesteadVM,
 )
-from eth.rlp.headers import BlockHeader
+from eth.rlp.headers import (
+    BlockHeader,
+)
 
 
 class ETC_VM(MainnetHomesteadVM):

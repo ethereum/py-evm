@@ -1,7 +1,14 @@
 import functools
-from typing import Tuple
-from eth import constants
-from eth.abc import ComputationAPI
+from typing import (
+    Tuple,
+)
+
+from eth import (
+    constants,
+)
+from eth.abc import (
+    ComputationAPI,
+)
 
 
 def log_XX(computation: ComputationAPI, topic_count: int) -> None:

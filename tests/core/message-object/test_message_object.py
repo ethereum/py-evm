@@ -1,17 +1,16 @@
 import pytest
 
 from eth_utils import (
-    to_normalized_address,
     ValidationError,
+    to_normalized_address,
 )
 
-from eth.vm.message import (
-    Message,
-)
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
-
+from eth.vm.message import (
+    Message,
+)
 
 ADDRESS_A = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf0"
 ADDRESS_B = b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xf1"

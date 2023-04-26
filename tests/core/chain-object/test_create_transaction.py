@@ -1,10 +1,18 @@
 import pytest
 
-from eth_keys import keys
+from eth_keys import (
+    keys,
+)
 
-from eth.chains.base import MiningChain
-from eth.chains.mainnet import MINING_MAINNET_VMS
-from eth.tools.builder.chain import api
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.chains.mainnet import (
+    MINING_MAINNET_VMS,
+)
+from eth.tools.builder.chain import (
+    api,
+)
 
 
 @pytest.fixture(params=MINING_MAINNET_VMS)

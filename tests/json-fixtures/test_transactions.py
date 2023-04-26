@@ -1,61 +1,62 @@
 import os
-
 import pytest
 
-import rlp
-
-from eth.exceptions import UnrecognizedTransactionType
-from eth.vm.forks.shanghai.transactions import ShanghaiTransactionBuilder
+from eth_typing.enums import (
+    ForkName,
+)
 from eth_utils import (
+    ValidationError,
     is_same_address,
     to_tuple,
-    ValidationError,
+)
+import rlp
+
+from eth.exceptions import (
+    UnrecognizedTransactionType,
+)
+from eth.tools._utils.normalization import (
+    normalize_transactiontest_fixture,
 )
 from eth.tools.fixtures import (
     generate_fixture_tests,
     load_fixture,
 )
-from eth.tools._utils.normalization import (
-    normalize_transactiontest_fixture,
-)
-from eth.vm.forks.frontier.transactions import (
-    FrontierTransaction
-)
-from eth.vm.forks.homestead.transactions import (
-    HomesteadTransaction
-)
-from eth.vm.forks.spurious_dragon.transactions import (
-    SpuriousDragonTransaction
-)
-from eth.vm.forks.byzantium.transactions import (
-    ByzantiumTransaction
-)
-from eth.vm.forks.constantinople.transactions import (
-    ConstantinopleTransaction
-)
-from eth.vm.forks.petersburg.transactions import (
-    PetersburgTransaction
-)
-from eth.vm.forks.istanbul.transactions import (
-    IstanbulTransaction
-)
 from eth.vm.forks.berlin.constants import (
     VALID_TRANSACTION_TYPES,
 )
 from eth.vm.forks.berlin.transactions import (
-    BerlinTransactionBuilder
+    BerlinTransactionBuilder,
+)
+from eth.vm.forks.byzantium.transactions import (
+    ByzantiumTransaction,
+)
+from eth.vm.forks.constantinople.transactions import (
+    ConstantinopleTransaction,
+)
+from eth.vm.forks.frontier.transactions import (
+    FrontierTransaction,
+)
+from eth.vm.forks.homestead.transactions import (
+    HomesteadTransaction,
+)
+from eth.vm.forks.istanbul.transactions import (
+    IstanbulTransaction,
 )
 from eth.vm.forks.london.transactions import (
-    LondonTransactionBuilder
+    LondonTransactionBuilder,
 )
 from eth.vm.forks.paris.transactions import (
-    ParisTransactionBuilder
+    ParisTransactionBuilder,
 )
-
-from eth_typing.enums import (
-    ForkName
+from eth.vm.forks.petersburg.transactions import (
+    PetersburgTransaction,
 )
-
+from eth.vm.forks.shanghai.transactions import (
+    ShanghaiTransactionBuilder,
+)
+from eth.vm.forks.spurious_dragon.transactions import (
+    SpuriousDragonTransaction,
+)
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 

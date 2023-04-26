@@ -4,13 +4,10 @@ from eth_typing import (
 from eth_utils import (
     encode_hex,
 )
-from eth import constants
-from eth.exceptions import (
-    Halt,
-    Revert,
-    WriteProtection,
-)
 
+from eth import (
+    constants,
+)
 from eth._utils.address import (
     force_bytes_to_address,
     generate_contract_address,
@@ -23,10 +20,21 @@ from eth.abc import (
     ComputationAPI,
     MessageAPI,
 )
-from eth.vm import mnemonics
-from eth.vm.opcode import Opcode
+from eth.exceptions import (
+    Halt,
+    Revert,
+    WriteProtection,
+)
+from eth.vm import (
+    mnemonics,
+)
+from eth.vm.opcode import (
+    Opcode,
+)
 
-from .call import max_child_gas_eip150
+from .call import (
+    max_child_gas_eip150,
+)
 
 
 def return_op(computation: ComputationAPI) -> None:

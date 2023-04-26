@@ -1,17 +1,25 @@
-from eth_utils.toolz import (
-    assoc,
-    groupby,
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    List,
+    Tuple,
+    Type,
+    TypeVar,
 )
 
 from eth_utils import (
     to_dict,
     to_set,
 )
+from eth_utils.toolz import (
+    assoc,
+    groupby,
+)
 
-
-from typing import Any, Dict, Tuple, Type, TypeVar, Iterator, List
-
-from eth.abc import ConfigurableAPI
+from eth.abc import (
+    ConfigurableAPI,
+)
 
 
 def _is_local_prop(prop: str) -> bool:

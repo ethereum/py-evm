@@ -1,8 +1,12 @@
 import pytest
 
-from eth_utils import ValidationError
+from eth_utils import (
+    ValidationError,
+)
 
-from eth.abc import AtomicDatabaseAPI
+from eth.abc import (
+    AtomicDatabaseAPI,
+)
 
 
 class AtomicDatabaseBatchAPITestSuite:

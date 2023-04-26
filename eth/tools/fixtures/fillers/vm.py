@@ -6,8 +6,11 @@ from typing import (
     Union,
 )
 
-from eth.tools.fixtures.helpers import (
-    get_test_name,
+from eth.tools._utils.hashing import (
+    hash_log_entries,
+)
+from eth.tools._utils.mappings import (
+    deep_merge,
 )
 from eth.tools._utils.normalization import (
     normalize_bytes,
@@ -18,8 +21,9 @@ from eth.tools._utils.normalization import (
     normalize_logs,
     normalize_state,
 )
-from eth.tools._utils.hashing import hash_log_entries
-from eth.tools._utils.mappings import deep_merge
+from eth.tools.fixtures.helpers import (
+    get_test_name,
+)
 
 
 def fill_vm_test(

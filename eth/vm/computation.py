@@ -1,5 +1,7 @@
 import itertools
-from types import TracebackType
+from types import (
+    TracebackType,
+)
 from typing import (
     Any,
     Callable,
@@ -12,12 +14,9 @@ from typing import (
     cast,
 )
 
-from cached_property import cached_property
-
-from eth.typing import BytesOrView
-from eth.vm.code_stream import CodeStream
-from eth.vm.gas_meter import GasMeter
-from eth.vm.message import Message
+from cached_property import (
+    cached_property,
+)
 from eth_typing import (
     Address,
 )
@@ -35,9 +34,9 @@ from eth._utils.numeric import (
 from eth.abc import (
     CodeStreamAPI,
     ComputationAPI,
+    GasMeterAPI,
     MemoryAPI,
     MessageAPI,
-    GasMeterAPI,
     OpcodeAPI,
     StackAPI,
     StateAPI,
@@ -51,16 +50,28 @@ from eth.exceptions import (
     Halt,
     VMError,
 )
+from eth.typing import (
+    BytesOrView,
+)
 from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
     validate_uint256,
+)
+from eth.vm.code_stream import (
+    CodeStream,
+)
+from eth.vm.gas_meter import (
+    GasMeter,
 )
 from eth.vm.logic.invalid import (
     InvalidOpcode,
 )
 from eth.vm.memory import (
     Memory,
+)
+from eth.vm.message import (
+    Message,
 )
 from eth.vm.stack import (
     Stack,

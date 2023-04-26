@@ -1,7 +1,5 @@
-from typing import Tuple
-
-from py_ecc import (
-    optimized_bn128 as bn128,
+from typing import (
+    Tuple,
 )
 
 from eth_utils import (
@@ -12,14 +10,12 @@ from eth_utils import (
 from eth_utils.toolz import (
     curry,
 )
-
-from eth import constants
-
-from eth.abc import (
-    ComputationAPI,
+from py_ecc import (
+    optimized_bn128 as bn128,
 )
-from eth.exceptions import (
-    VMError,
+
+from eth import (
+    constants,
 )
 from eth._utils.bn128 import (
     validate_point,
@@ -27,6 +23,12 @@ from eth._utils.bn128 import (
 from eth._utils.padding import (
     pad32,
     pad32r,
+)
+from eth.abc import (
+    ComputationAPI,
+)
+from eth.exceptions import (
+    VMError,
 )
 
 

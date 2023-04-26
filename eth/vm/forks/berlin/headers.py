@@ -1,9 +1,8 @@
 from eth.vm.forks.muir_glacier.headers import (
+    compute_muir_glacier_difficulty,
     configure_header,
     create_header_from_parent,
-    compute_muir_glacier_difficulty,
 )
-
 
 compute_berlin_difficulty = compute_muir_glacier_difficulty
 

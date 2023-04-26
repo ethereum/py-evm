@@ -2,7 +2,7 @@ import pytest
 
 from eth._utils.padding import (
     pad32,
-    pad32r
+    pad32r,
 )
 
 padding_byte = b"\x00"

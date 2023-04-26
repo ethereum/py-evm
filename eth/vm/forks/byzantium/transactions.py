@@ -1,10 +1,13 @@
-from eth_keys.datatypes import PrivateKey
-from eth_typing import Address
+from eth_keys.datatypes import (
+    PrivateKey,
+)
+from eth_typing import (
+    Address,
+)
 
 from eth._utils.transactions import (
     create_transaction_signature,
 )
-
 from eth.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
     SpuriousDragonUnsignedTransaction,

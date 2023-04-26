@@ -1,24 +1,29 @@
-from eth_hash.auto import keccak
-
-from eth import constants
-from eth.exceptions import (
-    OutOfGas,
+from eth_hash.auto import (
+    keccak,
 )
 from eth_utils import (
     encode_hex,
 )
 
+from eth import (
+    constants,
+)
 from eth.abc import (
     ComputationAPI,
     MessageAPI,
     StateAPI,
     TransactionContextAPI,
 )
+from eth.exceptions import (
+    OutOfGas,
+)
 from eth.vm.forks.frontier.computation import (
     FrontierComputation,
 )
 
-from .opcodes import HOMESTEAD_OPCODES
+from .opcodes import (
+    HOMESTEAD_OPCODES,
+)
 
 
 class HomesteadComputation(FrontierComputation):

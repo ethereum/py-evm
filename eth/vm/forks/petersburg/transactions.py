@@ -1,13 +1,16 @@
-from eth_keys.datatypes import PrivateKey
-from eth_typing import Address
-
-from eth.vm.forks.byzantium.transactions import (
-    ByzantiumTransaction,
-    ByzantiumUnsignedTransaction,
+from eth_keys.datatypes import (
+    PrivateKey,
+)
+from eth_typing import (
+    Address,
 )
 
 from eth._utils.transactions import (
     create_transaction_signature,
+)
+from eth.vm.forks.byzantium.transactions import (
+    ByzantiumTransaction,
+    ByzantiumUnsignedTransaction,
 )
 
 

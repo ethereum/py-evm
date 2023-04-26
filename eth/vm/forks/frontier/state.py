@@ -1,30 +1,34 @@
-from typing import Type
+from typing import (
+    Type,
+)
 
-from eth_hash.auto import keccak
+from eth_hash.auto import (
+    keccak,
+)
 from eth_utils import (
     encode_hex,
 )
 
+from eth._utils.address import (
+    generate_contract_address,
+)
 from eth.abc import (
     AccountDatabaseAPI,
     ComputationAPI,
-    SignedTransactionAPI,
     MessageAPI,
+    SignedTransactionAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
 )
-from eth.constants import CREATE_CONTRACT_ADDRESS
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
 from eth.db.account import (
     AccountDB,
 )
 from eth.exceptions import (
     ContractCreationCollision,
 )
-
-from eth._utils.address import (
-    generate_contract_address,
-)
-
 from eth.vm.message import (
     Message,
 )
@@ -33,16 +37,19 @@ from eth.vm.state import (
     BaseTransactionExecutor,
 )
 
-
-from .computation import FrontierComputation
+from .computation import (
+    FrontierComputation,
+)
 from .constants import (
-    REFUND_SELFDESTRUCT,
     MAX_REFUND_QUOTIENT,
+    REFUND_SELFDESTRUCT,
 )
 from .transaction_context import (
-    FrontierTransactionContext
+    FrontierTransactionContext,
 )
-from .validation import validate_frontier_transaction
+from .validation import (
+    validate_frontier_transaction,
+)
 
 
 class FrontierTransactionExecutor(BaseTransactionExecutor):
