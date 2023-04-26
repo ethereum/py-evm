@@ -1,10 +1,13 @@
-from eth import constants
-
+from eth import (
+    constants,
+)
 from eth._utils.numeric import (
     signed_to_unsigned,
     unsigned_to_signed,
 )
-from eth.abc import ComputationAPI
+from eth.abc import (
+    ComputationAPI,
+)
 
 
 def lt(computation: ComputationAPI) -> None:

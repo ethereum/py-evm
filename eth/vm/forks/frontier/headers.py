@@ -1,21 +1,8 @@
 from typing import (
-    Any,
     TYPE_CHECKING,
+    Any,
 )
 
-from eth.abc import BlockHeaderAPI
-from eth.validation import (
-    validate_gt,
-    validate_header_params_for_configuration,
-)
-
-from eth.constants import (
-    GENESIS_GAS_LIMIT,
-    DIFFICULTY_ADJUSTMENT_DENOMINATOR,
-    DIFFICULTY_MINIMUM,
-    BOMB_EXPONENTIAL_PERIOD,
-    BOMB_EXPONENTIAL_FREE_PERIODS,
-)
 from eth._utils.db import (
     get_parent_header,
 )
@@ -24,14 +11,30 @@ from eth._utils.headers import (
     fill_header_params_from_parent,
     new_timestamp_from_parent,
 )
-from eth.rlp.headers import BlockHeader
+from eth.abc import (
+    BlockHeaderAPI,
+)
+from eth.constants import (
+    BOMB_EXPONENTIAL_FREE_PERIODS,
+    BOMB_EXPONENTIAL_PERIOD,
+    DIFFICULTY_ADJUSTMENT_DENOMINATOR,
+    DIFFICULTY_MINIMUM,
+    GENESIS_GAS_LIMIT,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+)
+from eth.validation import (
+    validate_gt,
+    validate_header_params_for_configuration,
+)
 
 from .constants import (
-    FRONTIER_DIFFICULTY_ADJUSTMENT_CUTOFF
+    FRONTIER_DIFFICULTY_ADJUSTMENT_CUTOFF,
 )
 
 if TYPE_CHECKING:
-    from eth.vm.forks.frontier import FrontierVM    # noqa: F401
+    from eth.vm.forks.frontier import FrontierVM  # noqa: F401
 
 
 def compute_frontier_difficulty(parent_header: BlockHeaderAPI, timestamp: int) -> int:

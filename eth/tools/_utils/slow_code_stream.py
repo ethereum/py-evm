@@ -3,13 +3,15 @@ import io
 import logging
 from typing import (
     Iterator,
-    Set
+    Set,
 )
 
 from eth.validation import (
     validate_is_bytes,
 )
-from eth.vm import opcode_values
+from eth.vm import (
+    opcode_values,
+)
 
 PUSH1, PUSH32, STOP = opcode_values.PUSH1, opcode_values.PUSH32, opcode_values.STOP
 

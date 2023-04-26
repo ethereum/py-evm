@@ -1,10 +1,16 @@
-from eth_hash.auto import keccak
+from eth_hash.auto import (
+    keccak,
+)
 
-from eth import constants
+from eth import (
+    constants,
+)
 from eth._utils.numeric import (
     ceil32,
 )
-from eth.abc import ComputationAPI
+from eth.abc import (
+    ComputationAPI,
+)
 
 
 def sha3(computation: ComputationAPI) -> None:

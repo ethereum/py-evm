@@ -1,10 +1,13 @@
+from eth_hash.auto import (
+    keccak,
+)
 from hypothesis import (
     given,
     strategies as st,
 )
-
-from eth_hash.auto import keccak
-from trie import HexaryTrie
+from trie import (
+    HexaryTrie,
+)
 
 from eth.db.hash_trie import (
     HashTrie,

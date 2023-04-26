@@ -1,7 +1,6 @@
 import functools
 import json
 import os
-
 from typing import (
     Any,
     Callable,
@@ -10,12 +9,13 @@ from typing import (
     Tuple,
 )
 
+from eth_utils import (
+    to_tuple,
+)
 from eth_utils.toolz import (
     curry,
     identity,
 )
-
-from eth_utils import to_tuple
 
 from ._utils import (
     recursive_find_files,

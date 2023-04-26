@@ -1,16 +1,22 @@
-from typing import Iterable
+from typing import (
+    Iterable,
+)
 
-from eth_typing import Address
+from eth_typing import (
+    Address,
+)
+from eth_utils import (
+    to_set,
+)
 
-from eth_utils import to_set
-
-from eth import constants
-
-from eth.abc import (
-    ComputationAPI,
+from eth import (
+    constants,
 )
 from eth._utils.address import (
     force_bytes_to_address,
+)
+from eth.abc import (
+    ComputationAPI,
 )
 
 THREE = force_bytes_to_address(b'\x03')

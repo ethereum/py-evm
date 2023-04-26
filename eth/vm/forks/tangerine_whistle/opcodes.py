@@ -1,20 +1,31 @@
 import copy
 
-from eth_utils.toolz import merge
+from eth_utils.toolz import (
+    merge,
+)
 
-from eth.vm.forks.tangerine_whistle import constants
-from eth.constants import GAS_CREATE
-from eth.vm import opcode_values
-from eth.vm import mnemonics
-from eth.vm.forks.homestead.opcodes import HOMESTEAD_OPCODES
+from eth.constants import (
+    GAS_CREATE,
+)
+from eth.vm import (
+    mnemonics,
+    opcode_values,
+)
+from eth.vm.forks.homestead.opcodes import (
+    HOMESTEAD_OPCODES,
+)
+from eth.vm.forks.tangerine_whistle import (
+    constants,
+)
 from eth.vm.logic import (
     call,
     context,
     storage,
     system,
 )
-from eth.vm.opcode import as_opcode
-
+from eth.vm.opcode import (
+    as_opcode,
+)
 
 UPDATED_OPCODES = {
     opcode_values.EXTCODESIZE: as_opcode(

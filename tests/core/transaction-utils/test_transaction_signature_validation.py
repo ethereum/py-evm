@@ -1,15 +1,22 @@
 import pytest
 
-import rlp
-
+from eth_keys import (
+    keys,
+)
 from eth_utils import (
     decode_hex,
     is_same_address,
     to_canonical_address,
 )
+import rlp
 
-from eth_keys import keys
-
+from eth._utils.transactions import (
+    extract_transaction_sender,
+    validate_transaction_signature,
+)
+from eth.vm.forks.berlin.transactions import (
+    BerlinTransactionBuilder,
+)
 from eth.vm.forks.frontier.transactions import (
     FrontierTransaction,
 )
@@ -18,14 +25,6 @@ from eth.vm.forks.homestead.transactions import (
 )
 from eth.vm.forks.spurious_dragon.transactions import (
     SpuriousDragonTransaction,
-)
-from eth.vm.forks.berlin.transactions import (
-    BerlinTransactionBuilder,
-)
-
-from eth._utils.transactions import (
-    extract_transaction_sender,
-    validate_transaction_signature,
 )
 
 

@@ -1,10 +1,11 @@
+import enum
 import pytest
 
-import enum
-
-from eth.vm.forks.frontier import FrontierVM
 from eth.chains.tester import (
     _generate_vm_configuration,
+)
+from eth.vm.forks.frontier import (
+    FrontierVM,
 )
 
 

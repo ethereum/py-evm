@@ -1,13 +1,22 @@
-from contextlib import contextmanager
+from contextlib import (
+    contextmanager,
+)
 import logging
-from pathlib import Path
+from pathlib import (
+    Path,
+)
 from typing import (
-    Iterator,
     TYPE_CHECKING,
+    Iterator,
 )
 
-from eth_utils import ValidationError
+from eth_utils import (
+    ValidationError,
+)
 
+from eth._warnings import (
+    catch_and_ignore_import_warning,
+)
 from eth.abc import (
     AtomicWriteBatchAPI,
     DatabaseAPI,
@@ -16,12 +25,11 @@ from eth.db.diff import (
     DBDiffTracker,
     DiffMissingError,
 )
+
 from .base import (
     BaseAtomicDB,
     BaseDB,
 )
-
-from eth._warnings import catch_and_ignore_import_warning
 
 if TYPE_CHECKING:
     with catch_and_ignore_import_warning():

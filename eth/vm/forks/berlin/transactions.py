@@ -4,13 +4,19 @@ from typing import (
     Sequence,
     Tuple,
     Type,
-    cast,
     Union,
+    cast,
 )
 
-from cached_property import cached_property
-from eth_keys.datatypes import PrivateKey
-from eth_hash.auto import keccak
+from cached_property import (
+    cached_property,
+)
+from eth_hash.auto import (
+    keccak,
+)
+from eth_keys.datatypes import (
+    PrivateKey,
+)
 from eth_typing import (
     Address,
     Hash32,
@@ -29,6 +35,12 @@ from rlp.sedes import (
     binary,
 )
 
+from eth._utils.transactions import (
+    calculate_intrinsic_gas,
+    create_transaction_signature,
+    extract_transaction_sender,
+    validate_transaction_signature,
+)
 from eth.abc import (
     DecodedZeroOrOneLayerRLP,
     ReceiptAPI,
@@ -37,12 +49,24 @@ from eth.abc import (
     TransactionDecoderAPI,
     UnsignedTransactionAPI,
 )
-from eth.constants import CREATE_CONTRACT_ADDRESS
-from eth.exceptions import UnrecognizedTransactionType
-from eth.rlp.logs import Log
-from eth.rlp.receipts import Receipt
-from eth.rlp.sedes import address
-from eth.rlp.transactions import SignedTransactionMethods
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
+from eth.exceptions import (
+    UnrecognizedTransactionType,
+)
+from eth.rlp.logs import (
+    Log,
+)
+from eth.rlp.receipts import (
+    Receipt,
+)
+from eth.rlp.sedes import (
+    address,
+)
+from eth.rlp.transactions import (
+    SignedTransactionMethods,
+)
 from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
@@ -55,13 +79,6 @@ from eth.vm.forks.istanbul.transactions import (
 from eth.vm.forks.muir_glacier.transactions import (
     MuirGlacierTransaction,
     MuirGlacierUnsignedTransaction,
-)
-
-from eth._utils.transactions import (
-    calculate_intrinsic_gas,
-    create_transaction_signature,
-    extract_transaction_sender,
-    validate_transaction_signature,
 )
 
 from .constants import (

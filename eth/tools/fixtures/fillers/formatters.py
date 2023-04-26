@@ -12,9 +12,9 @@ from eth_utils.curried import (
     to_checksum_address,
     to_hex,
 )
-
-from eth_utils.toolz import curried
-
+from eth_utils.toolz import (
+    curried,
+)
 
 environment_formatter = apply_formatters_to_dict({
     "currentCoinbase": to_checksum_address,

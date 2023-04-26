@@ -1,12 +1,15 @@
 import pytest
 
-from eth_utils import ValidationError
+from eth_utils import (
+    ValidationError,
+)
 
 from eth.tools.factories.transaction import (
-    new_transaction
+    new_transaction,
 )
-from eth.vm.interrupt import MissingAccountTrieNode
-
+from eth.vm.interrupt import (
+    MissingAccountTrieNode,
+)
 
 ADDRESS = b'\xaa' * 20
 OTHER_ADDRESS = b'\xbb' * 20

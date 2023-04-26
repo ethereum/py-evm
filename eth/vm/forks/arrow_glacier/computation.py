@@ -1,4 +1,6 @@
-from ..london.computation import LondonComputation
+from ..london.computation import (
+    LondonComputation,
+)
 
 
 class ArrowGlacierComputation(LondonComputation):

@@ -1,12 +1,16 @@
 import pytest
 
 from eth_utils import (
-    to_bytes,
     ValidationError,
+    to_bytes,
 )
 
-from eth._utils.blake2.coders import extract_blake2b_parameters
-from eth._utils.blake2.compression import blake2b_compress
+from eth._utils.blake2.coders import (
+    extract_blake2b_parameters,
+)
+from eth._utils.blake2.compression import (
+    blake2b_compress,
+)
 
 
 @pytest.mark.parametrize(

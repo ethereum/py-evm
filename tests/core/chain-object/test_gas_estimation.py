@@ -1,29 +1,31 @@
 import pytest
 
-from eth.estimators.gas import binary_gas_search_1000_tolerance
+from eth._utils.address import (
+    force_bytes_to_address,
+)
+from eth.estimators.gas import (
+    binary_gas_search_1000_tolerance,
+)
 from eth.tools.factories.transaction import (
-    new_transaction
+    new_transaction,
 )
 from eth.vm.forks import (
-    FrontierVM,
-    HomesteadVM,
-    TangerineWhistleVM,
-    SpuriousDragonVM,
+    ArrowGlacierVM,
+    BerlinVM,
     ByzantiumVM,
     ConstantinopleVM,
-    PetersburgVM,
+    FrontierVM,
+    HomesteadVM,
     IstanbulVM,
-    MuirGlacierVM,
-    BerlinVM,
     LondonVM,
-    ArrowGlacierVM,
+    MuirGlacierVM,
+    PetersburgVM,
+    SpuriousDragonVM,
+    TangerineWhistleVM,
 )
-from eth._utils.address import force_bytes_to_address
-
 from tests.core.helpers import (
     fill_block,
 )
-
 
 ADDRESS_2 = b'\0' * 19 + b'\x02'
 

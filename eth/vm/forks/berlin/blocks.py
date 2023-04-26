@@ -1,4 +1,6 @@
-from typing import Type
+from typing import (
+    Type,
+)
 
 from rlp.sedes import (
     CountableList,

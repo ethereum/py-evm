@@ -15,27 +15,31 @@ from eth_utils import (
     ExtendedDebugLogger,
     get_extended_debug_logger,
 )
-from eth_utils.toolz import nth
+from eth_utils.toolz import (
+    nth,
+)
 
+from eth._utils.datatypes import (
+    Configurable,
+)
 from eth.abc import (
     AccountDatabaseAPI,
     AtomicDatabaseAPI,
     ComputationAPI,
     ExecutionContextAPI,
     MessageAPI,
+    MetaWitnessAPI,
     SignedTransactionAPI,
     StateAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
-    MetaWitnessAPI,
     WithdrawalAPI,
 )
 from eth.constants import (
     MAX_PREV_HEADER_DEPTH,
 )
-from eth.typing import JournalDBCheckpoint
-from eth._utils.datatypes import (
-    Configurable,
+from eth.typing import (
+    JournalDBCheckpoint,
 )
 
 

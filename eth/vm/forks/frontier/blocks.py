@@ -4,19 +4,16 @@ from typing import (
     Type,
 )
 
-from rlp.sedes import (
-    CountableList,
-)
-
 from eth_bloom import (
     BloomFilter,
 )
-
 from eth_typing import (
     BlockNumber,
     Hash32,
 )
-
+from rlp.sedes import (
+    CountableList,
+)
 from trie.exceptions import (
     MissingTrieNode,
 )

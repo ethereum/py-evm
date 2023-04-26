@@ -1,66 +1,71 @@
+import pytest
 import warnings
 
-import pytest
-
-from eth.chains.mainnet import (
-    MAINNET_VMS,
-    POS_MAINNET_VMS,
-)
-from eth.vm.forks.shanghai.computation import (
-    ShanghaiComputation,
-)
 from eth_utils import (
+    ValidationError,
     decode_hex,
     encode_hex,
     hexstr_if_str,
     int_to_big_endian,
     to_bytes,
     to_canonical_address,
-    ValidationError,
 )
+
 from eth import (
-    constants
+    constants,
 )
 from eth._utils.address import (
     force_bytes_to_address,
 )
-from eth.consensus import ConsensusContext
+from eth._utils.padding import (
+    pad32,
+)
+from eth.chains.mainnet import (
+    MAINNET_VMS,
+    POS_MAINNET_VMS,
+)
+from eth.consensus import (
+    ConsensusContext,
+)
 from eth.db.atomic import (
-    AtomicDB
+    AtomicDB,
 )
 from eth.db.chain import (
-    ChainDB
+    ChainDB,
 )
 from eth.exceptions import (
     InvalidInstruction,
     VMError,
 )
-from eth._utils.padding import (
-    pad32
-)
 from eth.vm import (
-    opcode_values
+    opcode_values,
 )
-from eth.vm.chain_context import ChainContext
+from eth.vm.chain_context import (
+    ChainContext,
+)
 from eth.vm.forks import (
-    FrontierVM,
-    HomesteadVM,
-    TangerineWhistleVM,
-    SpuriousDragonVM,
+    BerlinVM,
     ByzantiumVM,
     ConstantinopleVM,
-    PetersburgVM,
+    FrontierVM,
+    HomesteadVM,
     IstanbulVM,
-    MuirGlacierVM,
-    BerlinVM,
     LondonVM,
+    MuirGlacierVM,
+    PetersburgVM,
     ShanghaiVM,
+    SpuriousDragonVM,
+    TangerineWhistleVM,
+)
+from eth.vm.forks.shanghai.computation import (
+    ShanghaiComputation,
 )
 from eth.vm.message import (
     Message,
 )
-from eth.vm.spoof import SpoofTransaction
-
+from eth.vm.spoof import (
+    SpoofTransaction,
+)
 
 NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
 NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"

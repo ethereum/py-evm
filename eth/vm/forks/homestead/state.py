@@ -1,4 +1,6 @@
-from typing import Type
+from typing import (
+    Type,
+)
 
 from eth.abc import (
     ComputationAPI,
@@ -9,8 +11,12 @@ from eth.vm.forks.frontier.state import (
     FrontierTransactionExecutor,
 )
 
-from .computation import HomesteadComputation
-from .validation import validate_homestead_transaction
+from .computation import (
+    HomesteadComputation,
+)
+from .validation import (
+    validate_homestead_transaction,
+)
 
 
 class HomesteadState(FrontierState):

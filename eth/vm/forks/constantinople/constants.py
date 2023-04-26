@@ -1,5 +1,6 @@
-from eth_utils import denoms
-
+from eth_utils import (
+    denoms,
+)
 
 GAS_EXTCODEHASH_EIP1052 = 400
 GAS_SSTORE_EIP1283_NOOP = 200

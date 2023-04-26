@@ -1,32 +1,38 @@
 import copy
 
-from eth_utils.toolz import merge
+from eth_utils.toolz import (
+    merge,
+)
 
-from eth import constants
+from eth import (
+    constants,
+)
 from eth.vm import (
     mnemonics,
     opcode_values,
 )
 from eth.vm.forks.byzantium.opcodes import (
-    ensure_no_static
-)
-from eth.vm.forks.petersburg.opcodes import (
-    PETERSBURG_OPCODES,
+    ensure_no_static,
 )
 from eth.vm.forks.istanbul.constants import (
     GAS_BALANCE_EIP1884,
-    GAS_SLOAD_EIP1884,
     GAS_EXTCODEHASH_EIP1884,
+    GAS_SLOAD_EIP1884,
+)
+from eth.vm.forks.petersburg.opcodes import (
+    PETERSBURG_OPCODES,
 )
 from eth.vm.logic import (
     context,
     storage,
 )
-from eth.vm.opcode import as_opcode
+from eth.vm.opcode import (
+    as_opcode,
+)
+
 from .storage import (
     sstore_eip2200,
 )
-
 
 UPDATED_OPCODES = {
     # New opcodes

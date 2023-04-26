@@ -1,14 +1,15 @@
 import fnmatch
 import functools
 import os
-
 from typing import (
     Any,
     Callable,
     Iterable,
 )
 
-from eth_utils import to_tuple
+from eth_utils import (
+    to_tuple,
+)
 
 
 @to_tuple

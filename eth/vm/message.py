@@ -1,8 +1,12 @@
 import logging
 
-from eth_typing import Address
+from eth_typing import (
+    Address,
+)
 
-from eth.abc import MessageAPI
+from eth.abc import (
+    MessageAPI,
+)
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
@@ -11,12 +15,12 @@ from eth.typing import (
 )
 from eth.validation import (
     validate_canonical_address,
+    validate_gte,
+    validate_is_boolean,
     validate_is_bytes,
     validate_is_bytes_or_view,
     validate_is_integer,
-    validate_gte,
     validate_uint256,
-    validate_is_boolean,
 )
 
 

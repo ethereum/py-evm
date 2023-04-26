@@ -1,6 +1,5 @@
 import pytest
 
-
 from eth.chains.base import (
     Chain,
     MiningChain,
@@ -10,14 +9,18 @@ from eth.constants import (
     GENESIS_DIFFICULTY,
     GENESIS_GAS_LIMIT,
 )
-from eth.db.chain import ChainDB
+from eth.db.chain import (
+    ChainDB,
+)
 from eth.exceptions import (
     VMNotFound,
 )
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.vm.base import VM
+from eth.vm.base import (
+    VM,
+)
 
 
 @pytest.fixture

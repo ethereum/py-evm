@@ -1,10 +1,11 @@
-from eth.abc import ComputationAPI
-from eth.exceptions import (
-    InvalidJumpDestination,
-    InvalidInstruction,
-    Halt,
+from eth.abc import (
+    ComputationAPI,
 )
-
+from eth.exceptions import (
+    Halt,
+    InvalidInstruction,
+    InvalidJumpDestination,
+)
 from eth.vm.opcode_values import (
     JUMPDEST,
 )

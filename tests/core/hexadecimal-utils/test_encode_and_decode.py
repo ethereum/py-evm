@@ -1,10 +1,9 @@
 import pytest
 
 from eth_utils import (
-    encode_hex,
     decode_hex,
+    encode_hex,
 )
-
 from hypothesis import (
     given,
     strategies as st,

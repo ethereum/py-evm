@@ -1,23 +1,25 @@
-from typing import Tuple
+from typing import (
+    Tuple,
+)
 
 from eth_typing import (
     Address,
 )
 
-from eth import constants
-
-from eth.abc import (
-    ComputationAPI,
+from eth import (
+    constants,
 )
-from eth.exceptions import (
-    OutOfBoundsRead,
-)
-
 from eth._utils.address import (
     force_bytes_to_address,
 )
 from eth._utils.numeric import (
     ceil32,
+)
+from eth.abc import (
+    ComputationAPI,
+)
+from eth.exceptions import (
+    OutOfBoundsRead,
 )
 
 

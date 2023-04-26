@@ -1,28 +1,28 @@
-from collections import OrderedDict
+from collections import (
+    OrderedDict,
+)
 from typing import (
     Iterable,
     Tuple,
 )
 
+from eth_hash.auto import (
+    keccak,
+)
 from eth_typing import (
     Address,
     Hash32,
 )
-
 from eth_utils import (
-    big_endian_to_int,
     ValidationError,
+    big_endian_to_int,
     encode_hex,
 )
-
-from eth_hash.auto import keccak
-
 from pyethash import (
     EPOCH_LENGTH,
     hashimoto_light,
     mkcache_bytes,
 )
-
 
 from eth.abc import (
     AtomicDatabaseAPI,
@@ -33,7 +33,6 @@ from eth.validation import (
     validate_length,
     validate_lte,
 )
-
 
 # Type annotation here is to ensure we don't accidentally use strings instead of bytes.
 cache_by_epoch: 'OrderedDict[int, bytearray]' = OrderedDict()

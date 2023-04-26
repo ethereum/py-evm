@@ -1,8 +1,11 @@
 import pytest
 
-from eth.chains.base import MiningChain
-
-from eth.tools.builder.chain import api
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.tools.builder.chain import (
+    api,
+)
 
 
 @pytest.fixture(params=api.mining_mainnet_fork_at_fns)

@@ -1,14 +1,25 @@
 # test computation class behavior across VMs
 import pytest
-from eth_typing import Address
 
-from eth_utils import decode_hex
+from eth_typing import (
+    Address,
+)
+from eth_utils import (
+    decode_hex,
+)
 
-from eth.chains.base import MiningChain
-from eth.chains.mainnet import MINING_MAINNET_VMS
-
-from eth import constants
-from eth.consensus import NoProofConsensus
+from eth import (
+    constants,
+)
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.chains.mainnet import (
+    MINING_MAINNET_VMS,
+)
+from eth.consensus import (
+    NoProofConsensus,
+)
 from eth.exceptions import (
     InvalidInstruction,
 )

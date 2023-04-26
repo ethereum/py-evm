@@ -2,19 +2,25 @@ from typing import (
     Iterable,
 )
 
-from eth_keys import keys
-from eth_keys.datatypes import PrivateKey
+from eth_keys import (
+    keys,
+)
+from eth_keys.datatypes import (
+    PrivateKey,
+)
 from eth_typing import (
     Address,
     Hash32,
 )
 from eth_utils import (
+    ValidationError,
     encode_hex,
     to_tuple,
-    ValidationError,
 )
 
-from eth._utils.headers import eth_now
+from eth._utils.headers import (
+    eth_now,
+)
 from eth.abc import (
     BlockHeaderAPI,
 )

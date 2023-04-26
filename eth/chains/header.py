@@ -1,7 +1,7 @@
 from typing import (
-    cast,
     Tuple,
     Type,
+    cast,
 )
 
 from eth_typing import (
@@ -9,6 +9,9 @@ from eth_typing import (
     Hash32,
 )
 
+from eth._utils.datatypes import (
+    Configurable,
+)
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,
@@ -20,9 +23,6 @@ from eth.db.backends.base import (
 )
 from eth.db.header import (
     HeaderDB,
-)
-from eth._utils.datatypes import (
-    Configurable,
 )
 
 

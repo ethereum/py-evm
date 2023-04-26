@@ -1,4 +1,6 @@
-from eth_utils import decode_hex
+from eth_utils import (
+    decode_hex,
+)
 
 ALLOWED_CLIQUE_DIFFICULTIES = {1, 2}
 

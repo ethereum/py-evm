@@ -1,14 +1,18 @@
 import copy
-from typing import Dict
+from typing import (
+    Dict,
+)
 
 from eth_utils.toolz import (
-    merge
+    merge,
 )
 
 from eth import (
-    constants
+    constants,
 )
-from eth.abc import OpcodeAPI
+from eth.abc import (
+    OpcodeAPI,
+)
 from eth.vm import (
     mnemonics,
     opcode_values,
@@ -17,7 +21,7 @@ from eth.vm.forks.byzantium.opcodes import (
     BYZANTIUM_OPCODES,
 )
 from eth.vm.forks.petersburg.constants import (
-    GAS_EXTCODEHASH_EIP1052
+    GAS_EXTCODEHASH_EIP1052,
 )
 from eth.vm.logic import (
     arithmetic,
@@ -25,9 +29,8 @@ from eth.vm.logic import (
     system,
 )
 from eth.vm.opcode import (
-    as_opcode
+    as_opcode,
 )
-
 
 UPDATED_OPCODES = {
     opcode_values.SHL: as_opcode(

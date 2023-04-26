@@ -1,27 +1,25 @@
 import pytest
 
-from eth.constants import (
-    GENESIS_PARENT_HASH,
-    ZERO_ADDRESS,
-)
 from eth.consensus.clique.datatypes import (
     Snapshot,
     Tally,
     Vote,
-    VoteAction
+    VoteAction,
 )
 from eth.consensus.clique.encoding import (
     decode_address_tally_pair,
-    encode_address_tally_pair,
-
     decode_snapshot,
     decode_tally,
     decode_vote,
+    encode_address_tally_pair,
     encode_snapshot,
     encode_tally,
     encode_vote,
 )
-
+from eth.constants import (
+    GENESIS_PARENT_HASH,
+    ZERO_ADDRESS,
+)
 
 SOME_ADDRESS = b'\x85\x82\xa2\x89V\xb9%\x93M\x03\xdd\xb4Xu\xe1\x8e\x85\x93\x12\xc1'
 

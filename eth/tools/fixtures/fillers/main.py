@@ -8,18 +8,23 @@ from eth_utils.toolz import (
     merge,
 )
 
+from eth.tools._utils.git import (
+    get_version_from_git,
+)
 from eth.tools.fixtures.helpers import (
     get_test_name,
 )
-from eth.tools._utils.git import get_version_from_git
 
 from .formatters import (
     filled_state_test_formatter,
     filled_vm_test_formatter,
 )
-from .state import fill_state_test
-from .vm import fill_vm_test
-
+from .state import (
+    fill_state_test,
+)
+from .vm import (
+    fill_vm_test,
+)
 
 FILLED_WITH_TEMPLATE = "py-evm-{version}"
 

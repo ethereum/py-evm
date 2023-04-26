@@ -1,5 +1,4 @@
 import functools
-
 from typing import (
     Any,
     Callable,
@@ -10,10 +9,12 @@ from typing import (
 
 try:
     from vyper.compile_lll import (
-        compile_to_assembly,
         assembly_to_evm,
+        compile_to_assembly,
     )
-    from vyper.parser.parser_utils import LLLnode
+    from vyper.parser.parser_utils import (
+        LLLnode,
+    )
 except ImportError:
     vyper_available = False
 else:

@@ -4,8 +4,12 @@ from typing import (
     Type,
 )
 
-from cached_property import cached_property
-from eth_bloom import BloomFilter
+from cached_property import (
+    cached_property,
+)
+from eth_bloom import (
+    BloomFilter,
+)
 from eth_utils import (
     ValidationError,
     to_bytes,
@@ -23,14 +27,17 @@ from eth.abc import (
     ReceiptBuilderAPI,
     ReceiptDecoderAPI,
 )
-from eth.exceptions import UnrecognizedTransactionType
-from eth.rlp.receipts import Receipt
+from eth.exceptions import (
+    UnrecognizedTransactionType,
+)
+from eth.rlp.receipts import (
+    Receipt,
+)
 
 from .constants import (
     ACCESS_LIST_TRANSACTION_TYPE,
     VALID_TRANSACTION_TYPES,
 )
-
 
 TYPED_RECEIPT_BODY_CODECS = {
     # Note that the body of a "type 1" receipt uses exactly the same codec as a

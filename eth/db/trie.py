@@ -1,12 +1,18 @@
 import functools
-from typing import Dict, Sequence, Tuple, Union
+from typing import (
+    Dict,
+    Sequence,
+    Tuple,
+    Union,
+)
 
+from eth_typing import (
+    Hash32,
+)
 import rlp
 from trie import (
     HexaryTrie,
 )
-
-from eth_typing import Hash32
 
 from eth.abc import (
     ReceiptAPI,

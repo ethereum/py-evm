@@ -1,11 +1,14 @@
 import pytest
 
-from eth.db.backends.memory import MemoryDB
-from eth.db.atomic import AtomicDB
 from eth.db import (
     get_db_backend,
 )
-
+from eth.db.atomic import (
+    AtomicDB,
+)
+from eth.db.backends.memory import (
+    MemoryDB,
+)
 
 pytest.importorskip('leveldb')
 

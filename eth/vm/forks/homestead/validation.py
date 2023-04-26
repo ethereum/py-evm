@@ -2,13 +2,12 @@ from eth_utils import (
     ValidationError,
 )
 
-from eth.constants import (
-    SECPK1_N,
-)
-
 from eth.abc import (
     SignedTransactionAPI,
     StateAPI,
+)
+from eth.constants import (
+    SECPK1_N,
 )
 from eth.vm.forks.frontier.validation import (
     validate_frontier_transaction,

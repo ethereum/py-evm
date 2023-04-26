@@ -1,43 +1,54 @@
 import pytest
 
+from eth_keys import (
+    keys,
+)
 from eth_utils import (
+    ValidationError,
     decode_hex,
     to_tuple,
 )
 
-from eth_keys import keys
-
-from eth_utils import ValidationError
-
-from eth.chains.base import MiningChain
+from eth.chains.base import (
+    MiningChain,
+)
 from eth.chains.goerli import (
     GOERLI_GENESIS_HEADER,
 )
 from eth.consensus.clique import (
+    NONCE_AUTH,
+    NONCE_DROP,
     CliqueApplier,
     CliqueConsensus,
     CliqueConsensusContext,
-    NONCE_AUTH,
-    NONCE_DROP,
     VoteAction,
-)
-from eth.consensus.clique.constants import (
-    VANITY_LENGTH,
-    SIGNATURE_LENGTH,
 )
 from eth.consensus.clique._utils import (
     get_block_signer,
     sign_block_header,
 )
-from eth.constants import (
-    ZERO_ADDRESS
+from eth.consensus.clique.constants import (
+    SIGNATURE_LENGTH,
+    VANITY_LENGTH,
 )
-from eth.rlp.headers import BlockHeader
-from eth.tools.factories.keys import PublicKeyFactory
-from eth.tools.factories.transaction import new_transaction
-from eth.vm.forks.istanbul import IstanbulVM
-from eth.vm.forks.petersburg import PetersburgVM
-
+from eth.constants import (
+    ZERO_ADDRESS,
+)
+from eth.rlp.headers import (
+    BlockHeader,
+)
+from eth.tools.factories.keys import (
+    PublicKeyFactory,
+)
+from eth.tools.factories.transaction import (
+    new_transaction,
+)
+from eth.vm.forks.istanbul import (
+    IstanbulVM,
+)
+from eth.vm.forks.petersburg import (
+    PetersburgVM,
+)
 
 ALICE_PK = keys.PrivateKey(
     decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')

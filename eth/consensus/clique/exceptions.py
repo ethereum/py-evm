@@ -1,4 +1,6 @@
-from eth.exceptions import PyEVMError
+from eth.exceptions import (
+    PyEVMError,
+)
 
 
 class SnapshotNotFound(PyEVMError):

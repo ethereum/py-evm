@@ -4,7 +4,6 @@ extracting environment variables.
 """
 
 import os
-
 from typing import (
     Any,
     Callable,
@@ -15,7 +14,6 @@ from typing import (
     TypeVar,
     Union,
 )
-
 
 # No set literals because we support Python 2.6.
 TRUE_VALUES = {

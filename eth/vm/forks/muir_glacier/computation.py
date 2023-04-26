@@ -1,11 +1,11 @@
 from eth.vm.forks.istanbul.computation import (
-    ISTANBUL_PRECOMPILES
-)
-from eth.vm.forks.istanbul.computation import (
+    ISTANBUL_PRECOMPILES,
     IstanbulComputation,
 )
 
-from .opcodes import MUIR_GLACIER_OPCODES
+from .opcodes import (
+    MUIR_GLACIER_OPCODES,
+)
 
 MUIR_GLACIER_PRECOMPILES = ISTANBUL_PRECOMPILES
 

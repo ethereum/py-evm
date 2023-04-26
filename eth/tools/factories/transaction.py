@@ -1,4 +1,6 @@
-from eth_utils.toolz import curry
+from eth_utils.toolz import (
+    curry,
+)
 
 from eth.vm.spoof import (
     SpoofTransaction,

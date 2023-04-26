@@ -1,8 +1,10 @@
-from eth_utils.exceptions import ValidationError
+from eth_utils.exceptions import (
+    ValidationError,
+)
 
 from eth.abc import (
     SignedTransactionAPI,
-    StateAPI
+    StateAPI,
 )
 from eth.vm.forks.homestead.validation import (
     validate_homestead_transaction,

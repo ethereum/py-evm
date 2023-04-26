@@ -3,6 +3,7 @@ import pytest
 from eth_utils import (
     ValidationError,
 )
+
 from eth.constants import (
     SECPK1_N,
 )
@@ -19,9 +20,9 @@ from eth.validation import (
     validate_length,
     validate_length_lte,
     validate_lt,
-    validate_lte,
     validate_lt_secpk1n,
     validate_lt_secpk1n2,
+    validate_lte,
     validate_multiple_of,
     validate_stack_bytes,
     validate_stack_int,
@@ -31,7 +32,6 @@ from eth.validation import (
     validate_vm_configuration,
     validate_word,
 )
-
 
 byte = b"\x00"
 

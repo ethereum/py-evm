@@ -1,4 +1,6 @@
-from ..arrow_glacier.computation import ArrowGlacierComputation
+from ..arrow_glacier.computation import (
+    ArrowGlacierComputation,
+)
 
 
 class GrayGlacierComputation(ArrowGlacierComputation):

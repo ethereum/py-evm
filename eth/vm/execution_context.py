@@ -9,8 +9,12 @@ from eth_typing import (
     Hash32,
 )
 
-from eth.abc import ExecutionContextAPI
-from eth._utils.generator import CachedIterable
+from eth._utils.generator import (
+    CachedIterable,
+)
+from eth.abc import (
+    ExecutionContextAPI,
+)
 
 
 class ExecutionContext(ExecutionContextAPI):

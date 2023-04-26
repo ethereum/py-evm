@@ -1,4 +1,6 @@
-from eth_utils import denoms
+from eth_utils import (
+    denoms,
+)
 
 #
 # Difficulty

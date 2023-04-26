@@ -1,19 +1,26 @@
-from typing import Any, Callable, Optional
+from typing import (
+    Any,
+    Callable,
+    Optional,
+)
 
-from toolz import curry
+from toolz import (
+    curry,
+)
 
-from eth.abc import BlockHeaderAPI
-from .blocks import (
-    ArrowGlacierBlockHeader,
+from eth.abc import (
+    BlockHeaderAPI,
+)
+from eth.vm.forks.byzantium.headers import (
+    compute_difficulty,
+    configure_header,
 )
 from eth.vm.forks.london.headers import (
     create_london_header_from_parent,
 )
-from eth.vm.forks.byzantium.headers import (
-    compute_difficulty,
-)
-from eth.vm.forks.byzantium.headers import (
-    configure_header,
+
+from .blocks import (
+    ArrowGlacierBlockHeader,
 )
 
 compute_arrow_glacier_difficulty = compute_difficulty(10_700_000)

@@ -1,18 +1,21 @@
-from abc import ABC
-from typing import Type
+from abc import (
+    ABC,
+)
+from typing import (
+    Type,
+)
 
-from eth.abc import TransactionBuilderAPI
 from eth_utils import (
     encode_hex,
 )
-
 from rlp.sedes import (
     CountableList,
 )
 
-from .transactions import (
-    ArrowGlacierTransactionBuilder,
+from eth.abc import (
+    TransactionBuilderAPI,
 )
+
 from ..london import (
     LondonBlock,
 )
@@ -20,6 +23,9 @@ from ..london.blocks import (
     LondonBackwardsHeader,
     LondonBlockHeader,
     LondonMiningHeader,
+)
+from .transactions import (
+    ArrowGlacierTransactionBuilder,
 )
 
 

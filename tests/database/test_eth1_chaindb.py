@@ -1,43 +1,55 @@
 import pytest
 
+from eth_hash.auto import (
+    keccak,
+)
 from hypothesis import (
     given,
     strategies as st,
 )
-
 import rlp
 
-from eth_hash.auto import keccak
-
-from eth.constants import (
-    BLANK_ROOT_HASH,
-    ZERO_ADDRESS,
+from eth._utils.address import (
+    force_bytes_to_address,
 )
 from eth.chains.base import (
     MiningChain,
 )
-from eth.db.atomic import AtomicDB
+from eth.constants import (
+    BLANK_ROOT_HASH,
+    ZERO_ADDRESS,
+)
+from eth.db.atomic import (
+    AtomicDB,
+)
 from eth.db.chain import (
     ChainDB,
 )
-from eth.db.chain_gaps import GENESIS_CHAIN_GAPS
-from eth.db.schema import SchemaV1
+from eth.db.chain_gaps import (
+    GENESIS_CHAIN_GAPS,
+)
+from eth.db.schema import (
+    SchemaV1,
+)
 from eth.exceptions import (
     BlockNotFound,
+    CheckpointsMustBeCanonical,
     HeaderNotFound,
     ParentNotFound,
     ReceiptNotFound,
-    CheckpointsMustBeCanonical,
 )
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.tools.builder.chain import api
+from eth.tools.builder.chain import (
+    api,
+)
+from eth.tools.factories.transaction import (
+    new_access_list_transaction,
+    new_transaction,
+)
 from eth.tools.rlp import (
     assert_headers_eq,
-)
-from eth._utils.address import (
-    force_bytes_to_address,
 )
 from eth.vm.forks import (
     BerlinVM,
@@ -49,11 +61,6 @@ from eth.vm.forks.frontier.blocks import (
 from eth.vm.forks.homestead.blocks import (
     HomesteadBlock,
 )
-from eth.tools.factories.transaction import (
-    new_access_list_transaction,
-    new_transaction,
-)
-
 
 A_ADDRESS = b"\xaa" * 20
 B_ADDRESS = b"\xbb" * 20

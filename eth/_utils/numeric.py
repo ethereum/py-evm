@@ -5,17 +5,17 @@ from typing import (
     Union,
 )
 
-from eth_utils.toolz import (
-    curry,
-)
 from eth_typing import (
     Hash32,
+)
+from eth_utils.toolz import (
+    curry,
 )
 
 from eth.constants import (
     UINT_255_MAX,
-    UINT_256_MAX,
     UINT_256_CEILING,
+    UINT_256_MAX,
 )
 
 

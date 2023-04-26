@@ -1,11 +1,18 @@
 import pytest
-from eth_typing import Address
 
-from eth.vm.forks.shanghai.withdrawals import Withdrawal
-from eth.validation import UINT_64_MAX
+from eth_typing import (
+    Address,
+)
 from eth_utils import (
     ValidationError,
     to_hex,
+)
+
+from eth.validation import (
+    UINT_64_MAX,
+)
+from eth.vm.forks.shanghai.withdrawals import (
+    Withdrawal,
 )
 
 

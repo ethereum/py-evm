@@ -1,16 +1,22 @@
 from eth_typing import (
     Address,
 )
-from eth_utils.toolz import curry
+from eth_utils.toolz import (
+    curry,
+)
 
-from eth import constants
+from eth import (
+    constants,
+)
 from eth._utils.address import (
     force_bytes_to_address,
 )
 from eth.abc import (
     ComputationAPI,
 )
-from eth.vm import mnemonics
+from eth.vm import (
+    mnemonics,
+)
 from eth.vm.forks.istanbul.storage import (
     GAS_SCHEDULE_EIP2200,
     sstore_eip2200_generic,
@@ -23,8 +29,8 @@ from eth.vm.logic.call import (
 )
 from eth.vm.logic.context import (
     consume_extcodecopy_word_cost,
-    push_balance_of_address,
     extcodecopy_execute,
+    push_balance_of_address,
 )
 from eth.vm.logic.storage import (
     NetSStoreGasSchedule,
@@ -36,7 +42,9 @@ from eth.vm.logic.system import (
     selfdestruct_eip161_on_address,
 )
 
-from . import constants as berlin_constants
+from . import (
+    constants as berlin_constants,
+)
 
 
 def _mark_address_warm(computation: ComputationAPI, address: Address) -> bool:

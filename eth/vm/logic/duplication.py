@@ -1,6 +1,8 @@
 import functools
 
-from eth.abc import ComputationAPI
+from eth.abc import (
+    ComputationAPI,
+)
 
 
 def dup_XX(computation: ComputationAPI, position: int) -> None:

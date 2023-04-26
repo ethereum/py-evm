@@ -4,7 +4,6 @@ from typing import (
     Any,
     AnyStr,
     Callable,
-    cast,
     Dict,
     Iterable,
     List,
@@ -12,28 +11,15 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
 )
-
-from mypy_extensions import (
-    TypedDict,
-)
-
-from eth_utils.toolz import (
-    assoc_in,
-    compose,
-    concat,
-    curry,
-    identity,
-    merge,
-)
-from eth_utils.toolz import curried
 
 from eth_typing import (
     Address,
     HexStr,
 )
-
 from eth_utils.curried import (
+    ValidationError,
     apply_formatter_if,
     apply_formatter_to_array,
     apply_formatters_to_dict,
@@ -49,18 +35,27 @@ from eth_utils.curried import (
     to_bytes,
     to_canonical_address,
     to_dict,
-    ValidationError,
+)
+from eth_utils.toolz import (
+    assoc_in,
+    compose,
+    concat,
+    curried,
+    curry,
+    identity,
+    merge,
+)
+from mypy_extensions import (
+    TypedDict,
 )
 
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
-
 from eth.tools._utils.mappings import (
     deep_merge,
     is_cleanly_mergable,
 )
-
 from eth.typing import (
     AccountState,
     GeneralState,

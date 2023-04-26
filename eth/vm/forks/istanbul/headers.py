@@ -1,9 +1,8 @@
 from eth.vm.forks.petersburg.headers import (
+    compute_petersburg_difficulty,
     configure_header,
     create_header_from_parent,
-    compute_petersburg_difficulty,
 )
-
 
 compute_istanbul_difficulty = compute_petersburg_difficulty
 

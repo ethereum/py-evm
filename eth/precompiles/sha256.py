@@ -1,11 +1,11 @@
 import hashlib
 
-from eth import constants
-
+from eth import (
+    constants,
+)
 from eth._utils.numeric import (
     ceil32,
 )
-
 from eth.abc import (
     ComputationAPI,
 )

@@ -1,6 +1,7 @@
 from typing import (
     Iterable,
 )
+
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,

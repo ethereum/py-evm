@@ -10,35 +10,35 @@ from typing import (
     Callable,
     Dict,
 )
+
+from eth_utils import (
+    apply_formatters_to_dict,
+    decode_hex,
+    to_canonical_address,
+)
 from eth_utils.toolz import (
     assoc,
     assoc_in,
     curry,
     merge,
 )
-from eth_utils import (
-    apply_formatters_to_dict,
-    decode_hex,
-    to_canonical_address,
-)
 
-from eth.tools.fixtures.helpers import (
-    get_test_name,
+from eth.tools._utils.mappings import (
+    deep_merge,
 )
 from eth.tools._utils.normalization import (
     normalize_environment,
     normalize_execution,
+    normalize_networks,
     normalize_state,
     normalize_transaction,
-    normalize_networks,
-)
-from eth.tools._utils.mappings import (
-    deep_merge,
 )
 from eth.tools._utils.vyper import (
     compile_vyper_lll,
 )
-
+from eth.tools.fixtures.helpers import (
+    get_test_name,
+)
 from eth.typing import (
     GeneralState,
     TransactionDict,
@@ -48,7 +48,6 @@ from ._utils import (
     add_transaction_to_group,
     wrap_in_list,
 )
-
 
 #
 # Defaults

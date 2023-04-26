@@ -1,10 +1,13 @@
-from eth_hash.auto import keccak
-
+from eth_hash.auto import (
+    keccak,
+)
 from eth_utils import (
     encode_hex,
 )
 
-from eth import constants
+from eth import (
+    constants,
+)
 from eth.abc import (
     ComputationAPI,
     MessageAPI,
@@ -19,8 +22,12 @@ from eth.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
 
-from ..spurious_dragon.constants import EIP170_CODE_SIZE_LIMIT
-from .opcodes import SPURIOUS_DRAGON_OPCODES
+from ..spurious_dragon.constants import (
+    EIP170_CODE_SIZE_LIMIT,
+)
+from .opcodes import (
+    SPURIOUS_DRAGON_OPCODES,
+)
 
 
 class SpuriousDragonComputation(HomesteadComputation):

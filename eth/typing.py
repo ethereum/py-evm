@@ -1,17 +1,17 @@
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
     Generic,
     Iterable,
     List,
-    Optional,
     NewType,
+    Optional,
     Sequence,
     Tuple,
     Type,
     TypeVar,
-    TYPE_CHECKING,
     Union,
 )
 

@@ -1,14 +1,24 @@
 import enum
-from typing import Iterable, Tuple
+from typing import (
+    Iterable,
+    Tuple,
+)
 
-from eth_typing import BlockNumber
+from eth_typing import (
+    BlockNumber,
+)
 from eth_utils import (
     ValidationError,
     to_tuple,
 )
 
-from eth.exceptions import GapTrackingCorrupted
-from eth.typing import BlockRange, ChainGaps
+from eth.exceptions import (
+    GapTrackingCorrupted,
+)
+from eth.typing import (
+    BlockRange,
+    ChainGaps,
+)
 
 
 class GapChange(enum.Enum):

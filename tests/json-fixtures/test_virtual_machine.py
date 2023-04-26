@@ -1,24 +1,33 @@
 import os
-
 import pytest
 
+from eth_hash.auto import (
+    keccak,
+)
 from eth_utils import (
     to_bytes,
 )
 
-from eth.consensus import ConsensusContext
+from eth.consensus import (
+    ConsensusContext,
+)
 from eth.db import (
     get_db_backend,
 )
-from eth.db.chain import ChainDB
-
-from eth_hash.auto import keccak
-
+from eth.db.chain import (
+    ChainDB,
+)
 from eth.exceptions import (
     VMError,
 )
 from eth.rlp.headers import (
     BlockHeader,
+)
+from eth.tools._utils.hashing import (
+    hash_log_entries,
+)
+from eth.tools._utils.normalization import (
+    normalize_vmtest_fixture,
 )
 from eth.tools.fixtures import (
     filter_fixtures,
@@ -27,20 +36,18 @@ from eth.tools.fixtures import (
     setup_state,
     verify_state,
 )
-from eth.tools._utils.normalization import (
-    normalize_vmtest_fixture,
+from eth.vm.chain_context import (
+    ChainContext,
 )
-from eth.tools._utils.hashing import (
-    hash_log_entries,
-)
-from eth.vm.chain_context import ChainContext
 from eth.vm.forks import (
     HomesteadVM,
 )
 from eth.vm.forks.homestead.computation import (
     HomesteadComputation,
 )
-from eth.vm.forks.homestead.state import HomesteadState
+from eth.vm.forks.homestead.state import (
+    HomesteadState,
+)
 from eth.vm.message import (
     Message,
 )

@@ -1,9 +1,15 @@
 import pytest
-from eth.vm.forks.london.transactions import UnsignedDynamicFeeTransaction
 
-from eth.vm.forks.berlin.transactions import UnsignedAccessListTransaction
+from eth_utils import (
+    ValidationError,
+)
 
-from eth_utils import ValidationError
+from eth.vm.forks.berlin.transactions import (
+    UnsignedAccessListTransaction,
+)
+from eth.vm.forks.london.transactions import (
+    UnsignedDynamicFeeTransaction,
+)
 
 
 @pytest.mark.parametrize(

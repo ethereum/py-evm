@@ -1,10 +1,15 @@
 import pytest
+
 from eth_utils import (
     ValidationError,
 )
 
-from eth.db.backends.memory import MemoryDB
-from eth.db.batch import BatchDB
+from eth.db.backends.memory import (
+    MemoryDB,
+)
+from eth.db.batch import (
+    BatchDB,
+)
 
 
 @pytest.fixture

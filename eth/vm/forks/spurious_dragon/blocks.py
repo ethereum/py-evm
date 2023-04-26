@@ -1,12 +1,14 @@
 from rlp.sedes import (
     CountableList,
 )
+
 from eth.rlp.headers import (
     BlockHeader,
 )
 from eth.vm.forks.homestead.blocks import (
     HomesteadBlock,
 )
+
 from .transactions import (
     SpuriousDragonTransaction,
 )
