@@ -35,7 +35,7 @@ from eth.abc import (
     BlockHeaderAPI,
     ChainContextAPI,
     ChainDatabaseAPI,
-    MessageComputationAPI,
+    ComputationAPI,
     ConsensusAPI,
     ConsensusContextAPI,
     ExecutionContextAPI,
@@ -166,7 +166,7 @@ class VM(Configurable, VirtualMachineAPI):
     def apply_transaction(self,
                           header: BlockHeaderAPI,
                           transaction: SignedTransactionAPI
-                          ) -> Tuple[ReceiptAPI, MessageComputationAPI]:
+                          ) -> Tuple[ReceiptAPI, ComputationAPI]:
         self.validate_transaction_against_header(header, transaction)
 
         # Mark current state as un-revertable, since new transaction is starting...
@@ -222,7 +222,7 @@ class VM(Configurable, VirtualMachineAPI):
                          data: bytes,
                          code: bytes,
                          code_address: Address = None,
-                         ) -> MessageComputationAPI:
+                         ) -> ComputationAPI:
         if origin is None:
             origin = sender
 
@@ -244,7 +244,7 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         # Execute it in the VM
-        return self.state.message_computation_class.apply_computation(
+        return self.state.computation_class.apply_computation(
             self.state,
             message,
             transaction_context,
@@ -254,7 +254,7 @@ class VM(Configurable, VirtualMachineAPI):
         self,
         transactions: Sequence[SignedTransactionAPI],
         base_header: BlockHeaderAPI
-    ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[MessageComputationAPI, ...]]:
+    ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         vm_header = self.get_header()
         if base_header.block_number != vm_header.block_number:
             raise ValidationError(

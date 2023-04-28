@@ -14,7 +14,7 @@ from eth_typing import (
 )
 
 from eth.abc import (
-    MessageComputationAPI,
+    ComputationAPI,
 )
 from eth.exceptions import (
     OutOfGas,
@@ -35,18 +35,18 @@ CallParams = Tuple[int, int, Address, Address, Address, int, int, int, int, bool
 class BaseCall(Opcode, ABC):
     @abstractmethod
     def compute_msg_extra_gas(self,
-                              computation: MessageComputationAPI,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
         raise NotImplementedError("Must be implemented by subclasses")
 
     @abstractmethod
-    def get_call_params(self, computation: MessageComputationAPI) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         raise NotImplementedError("Must be implemented by subclasses")
 
     def compute_msg_gas(self,
-                        computation: MessageComputationAPI,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
@@ -57,7 +57,7 @@ class BaseCall(Opcode, ABC):
 
     def get_account_load_fee(
         self,
-        computation: MessageComputationAPI,
+        computation: ComputationAPI,
         code_address: Address,
     ) -> int:
         """
@@ -66,7 +66,7 @@ class BaseCall(Opcode, ABC):
         """
         return 0
 
-    def __call__(self, computation: MessageComputationAPI) -> None:
+    def __call__(self, computation: ComputationAPI) -> None:
         computation.consume_gas(
             self.gas_cost,
             reason=self.mnemonic,
@@ -163,7 +163,7 @@ class BaseCall(Opcode, ABC):
             # TODO: after upgrade to py3.6, use a TypedDict and try again
             child_msg = computation.prepare_child_message(**child_msg_kwargs)  # type: ignore
 
-            child_computation = computation.apply_child_message_computation(child_msg)
+            child_computation = computation.apply_child_computation(child_msg)
 
             if child_computation.is_error:
                 computation.stack_push_int(0)
@@ -184,7 +184,7 @@ class BaseCall(Opcode, ABC):
 
 class Call(BaseCall):
     def compute_msg_extra_gas(self,
-                              computation: MessageComputationAPI,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
@@ -194,7 +194,7 @@ class Call(BaseCall):
         create_gas_fee = constants.GAS_NEWACCOUNT if not account_exists else 0
         return transfer_gas_fee + create_gas_fee
 
-    def get_call_params(self, computation: MessageComputationAPI) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         to = force_bytes_to_address(computation.stack_pop1_bytes())
 
@@ -223,13 +223,13 @@ class Call(BaseCall):
 
 class CallCode(BaseCall):
     def compute_msg_extra_gas(self,
-                              computation: MessageComputationAPI,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
         return constants.GAS_CALLVALUE if value else 0
 
-    def get_call_params(self, computation: MessageComputationAPI) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         code_address = force_bytes_to_address(computation.stack_pop1_bytes())
 
@@ -261,20 +261,20 @@ class CallCode(BaseCall):
 
 class DelegateCall(BaseCall):
     def compute_msg_gas(self,
-                        computation: MessageComputationAPI,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
         return gas, gas
 
     def compute_msg_extra_gas(self,
-                              computation: MessageComputationAPI,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
         return 0
 
-    def get_call_params(self, computation: MessageComputationAPI) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         code_address = force_bytes_to_address(computation.stack_pop1_bytes())
 
@@ -309,7 +309,7 @@ class DelegateCall(BaseCall):
 #
 class CallEIP150(Call):
     def compute_msg_gas(self,
-                        computation: MessageComputationAPI,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
@@ -326,7 +326,7 @@ class CallEIP150(Call):
 
 class CallCodeEIP150(CallCode):
     def compute_msg_gas(self,
-                        computation: MessageComputationAPI,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
@@ -343,7 +343,7 @@ class CallCodeEIP150(CallCode):
 
 class DelegateCallEIP150(DelegateCall):
     def compute_msg_gas(self,
-                        computation: MessageComputationAPI,
+                        computation: ComputationAPI,
                         gas: int,
                         to: Address,
                         value: int) -> Tuple[int, int]:
@@ -364,7 +364,7 @@ def max_child_gas_eip150(gas: int) -> int:
 
 
 def compute_eip150_msg_gas(*,
-                           computation: MessageComputationAPI,
+                           computation: ComputationAPI,
                            gas: int,
                            extra_gas: int,
                            value: int,
@@ -391,7 +391,7 @@ def compute_eip150_msg_gas(*,
 #
 class CallEIP161(CallEIP150):
     def compute_msg_extra_gas(self,
-                              computation: MessageComputationAPI,
+                              computation: ComputationAPI,
                               gas: int,
                               to: Address,
                               value: int) -> int:
@@ -409,7 +409,7 @@ class CallEIP161(CallEIP150):
 # Byzantium
 #
 class StaticCall(CallEIP161):
-    def get_call_params(self, computation: MessageComputationAPI) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         to = force_bytes_to_address(computation.stack_pop1_bytes())
 
@@ -436,7 +436,7 @@ class StaticCall(CallEIP161):
 
 
 class CallByzantium(CallEIP161):
-    def get_call_params(self, computation: MessageComputationAPI) -> CallParams:
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
         call_params = super().get_call_params(computation)
         value = call_params[1]
         if computation.msg.is_static and value != 0:

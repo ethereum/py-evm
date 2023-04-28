@@ -3,7 +3,7 @@ import pytest
 from eth_utils import hexstr_if_str, to_wei, to_bytes
 from eth.constants import CREATE_CONTRACT_ADDRESS
 from eth.vm import opcode_values
-from eth.vm.forks.spurious_dragon.computation import SpuriousDragonMessageComputation
+from eth.vm.forks.spurious_dragon.computation import SpuriousDragonComputation
 from eth.vm.forks.spurious_dragon.constants import EIP170_CODE_SIZE_LIMIT
 from eth.vm.message import Message
 from eth._utils.address import generate_contract_address
@@ -77,7 +77,7 @@ def test_contract_code_size_limit(
 
     # EIP-170 apply after the SpuriousDragon fork.
     if (
-        issubclass(computation.__class__, SpuriousDragonMessageComputation)
+        issubclass(computation.__class__, SpuriousDragonComputation)
         and code_len > EIP170_CODE_SIZE_LIMIT
     ):
         assert isinstance(computation.error, OutOfGas)

@@ -9,22 +9,22 @@ from eth_utils import (
 )
 
 from eth.abc import (
-    MessageComputationAPI,
+    ComputationAPI,
     MessageAPI,
     StateAPI,
     TransactionContextAPI,
 )
 from eth.vm.forks.frontier.computation import (
-    FrontierMessageComputation,
+    FrontierComputation,
 )
 
 from .opcodes import HOMESTEAD_OPCODES
 
 
-class HomesteadMessageComputation(FrontierMessageComputation):
+class HomesteadComputation(FrontierComputation):
     """
     A class for all execution *message* computations in the ``Frontier`` fork.
-    Inherits from :class:`~eth.vm.forks.frontier.computation.FrontierMessageComputation`
+    Inherits from :class:`~eth.vm.forks.frontier.computation.FrontierComputation`
     """
     # Override
     opcodes = HOMESTEAD_OPCODES
@@ -34,7 +34,7 @@ class HomesteadMessageComputation(FrontierMessageComputation):
             cls,
             state: StateAPI,
             message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> MessageComputationAPI:
+            transaction_context: TransactionContextAPI) -> ComputationAPI:
         snapshot = state.snapshot()
 
         computation = cls.apply_message(state, message, transaction_context)

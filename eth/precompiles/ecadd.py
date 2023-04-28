@@ -15,6 +15,9 @@ from eth_utils.toolz import (
 
 from eth import constants
 
+from eth.abc import (
+    ComputationAPI,
+)
 from eth.exceptions import (
     VMError,
 )
@@ -26,15 +29,11 @@ from eth._utils.padding import (
     pad32r,
 )
 
-from eth.vm.computation import (
-    MessageComputation,
-)
-
 
 @curry
 def ecadd(
-        computation: MessageComputation,
-        gas_cost: int = constants.GAS_ECADD) -> MessageComputation:
+        computation: ComputationAPI,
+        gas_cost: int = constants.GAS_ECADD) -> ComputationAPI:
 
     computation.consume_gas(gas_cost, reason='ECADD Precompile')
 

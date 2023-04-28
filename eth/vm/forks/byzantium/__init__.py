@@ -16,7 +16,7 @@ from eth_utils import (
 from eth.abc import (
     BlockAPI,
     BlockHeaderAPI,
-    MessageComputationAPI,
+    ComputationAPI,
     ReceiptAPI,
     SignedTransactionAPI,
     StateAPI,
@@ -104,7 +104,7 @@ class ByzantiumVM(SpuriousDragonVM):
             cls,
             base_header: BlockHeaderAPI,
             transaction: SignedTransactionAPI,
-            computation: MessageComputationAPI,
+            computation: ComputationAPI,
             state: StateAPI) -> ReceiptAPI:
 
         gas_used = base_header.gas_used + cls.finalize_gas_used(transaction, computation)

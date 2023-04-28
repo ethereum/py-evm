@@ -164,13 +164,6 @@ ComputationAPI
   :members:
 
 
-MessageComputationAPI
----------------------
-
-.. autoclass:: eth.abc.MessageComputationAPI
-  :members:
-
-
 AccountStorageDatabaseAPI
 -------------------------
 

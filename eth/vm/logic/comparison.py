@@ -4,11 +4,10 @@ from eth._utils.numeric import (
     signed_to_unsigned,
     unsigned_to_signed,
 )
+from eth.abc import ComputationAPI
 
-from eth.vm.computation import MessageComputation
 
-
-def lt(computation: MessageComputation) -> None:
+def lt(computation: ComputationAPI) -> None:
     """
     Lesser Comparison
     """
@@ -22,7 +21,7 @@ def lt(computation: MessageComputation) -> None:
     computation.stack_push_int(result)
 
 
-def gt(computation: MessageComputation) -> None:
+def gt(computation: ComputationAPI) -> None:
     """
     Greater Comparison
     """
@@ -36,7 +35,7 @@ def gt(computation: MessageComputation) -> None:
     computation.stack_push_int(result)
 
 
-def slt(computation: MessageComputation) -> None:
+def slt(computation: ComputationAPI) -> None:
     """
     Signed Lesser Comparison
     """
@@ -53,7 +52,7 @@ def slt(computation: MessageComputation) -> None:
     computation.stack_push_int(signed_to_unsigned(result))
 
 
-def sgt(computation: MessageComputation) -> None:
+def sgt(computation: ComputationAPI) -> None:
     """
     Signed Greater Comparison
     """
@@ -70,7 +69,7 @@ def sgt(computation: MessageComputation) -> None:
     computation.stack_push_int(signed_to_unsigned(result))
 
 
-def eq(computation: MessageComputation) -> None:
+def eq(computation: ComputationAPI) -> None:
     """
     Equality
     """
@@ -84,7 +83,7 @@ def eq(computation: MessageComputation) -> None:
     computation.stack_push_int(result)
 
 
-def iszero(computation: MessageComputation) -> None:
+def iszero(computation: ComputationAPI) -> None:
     """
     Not
     """
@@ -98,7 +97,7 @@ def iszero(computation: MessageComputation) -> None:
     computation.stack_push_int(result)
 
 
-def and_op(computation: MessageComputation) -> None:
+def and_op(computation: ComputationAPI) -> None:
     """
     Bitwise And
     """
@@ -109,7 +108,7 @@ def and_op(computation: MessageComputation) -> None:
     computation.stack_push_int(result)
 
 
-def or_op(computation: MessageComputation) -> None:
+def or_op(computation: ComputationAPI) -> None:
     """
     Bitwise Or
     """
@@ -120,7 +119,7 @@ def or_op(computation: MessageComputation) -> None:
     computation.stack_push_int(result)
 
 
-def xor(computation: MessageComputation) -> None:
+def xor(computation: ComputationAPI) -> None:
     """
     Bitwise XOr
     """
@@ -131,7 +130,7 @@ def xor(computation: MessageComputation) -> None:
     computation.stack_push_int(result)
 
 
-def not_op(computation: MessageComputation) -> None:
+def not_op(computation: ComputationAPI) -> None:
     """
     Not
     """
@@ -142,7 +141,7 @@ def not_op(computation: MessageComputation) -> None:
     computation.stack_push_int(result)
 
 
-def byte_op(computation: MessageComputation) -> None:
+def byte_op(computation: ComputationAPI) -> None:
     """
     Bitwise And
     """

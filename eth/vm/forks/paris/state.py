@@ -5,7 +5,7 @@ from eth.abc import (
     TransactionExecutorAPI,
 )
 from eth_typing import Hash32
-from .computation import ParisMessageComputation
+from .computation import ParisComputation
 from ..gray_glacier import GrayGlacierState
 from ..gray_glacier.state import GrayGlacierTransactionExecutor
 
@@ -15,7 +15,7 @@ class ParisTransactionExecutor(GrayGlacierTransactionExecutor):
 
 
 class ParisState(GrayGlacierState):
-    message_computation_class = ParisMessageComputation
+    computation_class = ParisComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = ParisTransactionExecutor
 
     @property

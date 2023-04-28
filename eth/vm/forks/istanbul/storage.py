@@ -1,7 +1,7 @@
 from eth_utils.toolz import curry
 
+from eth.abc import ComputationAPI
 from eth.exceptions import OutOfGas
-from eth.vm.computation import MessageComputation
 from eth.vm.forks.constantinople.storage import (
     GAS_SCHEDULE_EIP1283,
 )
@@ -21,7 +21,7 @@ GAS_SCHEDULE_EIP2200 = GAS_SCHEDULE_EIP1283._replace(
 @curry
 def sstore_eip2200_generic(
     gas_schedule: NetSStoreGasSchedule,
-    computation: MessageComputation,
+    computation: ComputationAPI,
 ) -> int:
     gas_remaining = computation.get_gas_remaining()
     if gas_remaining <= 2300:

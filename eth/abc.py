@@ -347,7 +347,7 @@ class BaseTransactionAPI(ABC):
         ...
 
     @abstractmethod
-    def gas_used_by(self, computation: 'MessageComputationAPI') -> int:
+    def gas_used_by(self, computation: 'ComputationAPI') -> int:
         """
         Return the gas used by the given computation. In Frontier,
         for example, this is sum of the intrinsic cost and the gas used
@@ -1440,7 +1440,7 @@ class OpcodeAPI(ABC):
     mnemonic: str
 
     @abstractmethod
-    def __call__(self, computation: 'MessageComputationAPI') -> None:
+    def __call__(self, computation: 'ComputationAPI') -> None:
         """
         Execute the logic of the opcode.
         """
@@ -1449,7 +1449,7 @@ class OpcodeAPI(ABC):
     @classmethod
     @abstractmethod
     def as_opcode(cls: Type[T],
-                  logic_fn: Callable[['MessageComputationAPI'], None],
+                  logic_fn: Callable[['ComputationAPI'], None],
                   mnemonic: str,
                   gas_cost: int) -> T:
         """
@@ -1872,21 +1872,50 @@ class ComputationAPI(
     logger: ExtendedDebugLogger
 
     state: "StateAPI"
+    msg: MessageAPI
+    transaction_context: TransactionContextAPI
     code: CodeStreamAPI
-    return_data: bytes
+    children: List["ComputationAPI"]
+    return_data: bytes = b''
+    accounts_to_delete: Dict[Address, Address]
+
+    _memory: MemoryAPI
+    _stack: StackAPI
+    _gas_meter: GasMeterAPI
+    _error: VMError
+    _output: bytes = b''
+    _log_entries: List[Tuple[int, Address, Tuple[int, ...], bytes]]
 
     # VM configuration
     opcodes: Dict[int, OpcodeAPI]
     _precompiles: Dict[Address, Callable[["ComputationAPI"], "ComputationAPI"]]
 
     @abstractmethod
-    def __init__(self, state: "StateAPI") -> None:
+    def __init__(
+        self,
+        state: "StateAPI",
+        message: MessageAPI,
+        transaction_context: TransactionContextAPI,
+    ) -> None:
+        """
+        Instantiate the computation.
+        """
         ...
 
     @abstractmethod
     def _configure_gas_meter(self) -> GasMeterAPI:
         """
         Configure the gas meter for the computation at class initialization.
+        """
+        ...
+
+    # -- convenience -- #
+    @property
+    @abstractmethod
+    def is_origin_computation(self) -> bool:
+        """
+        Return ``True`` if this computation is the outermost computation at
+        ``depth == 0``.
         """
         ...
 
@@ -2100,41 +2129,6 @@ class ComputationAPI(
         """
         ...
 
-
-class MessageComputationAPI(
-    ComputationAPI,
-    ContextManager['MessageComputationAPI'],
-):
-    """
-    The base abstract class for all execution *message* computations.
-    """
-
-    msg: MessageAPI
-    transaction_context: TransactionContextAPI
-
-    @abstractmethod
-    def __init__(
-        self,
-        state: "StateAPI",
-        message: MessageAPI,
-        transaction_context: TransactionContextAPI,
-    ) -> None:
-        """
-        Instantiate the message computation.
-        """
-        ...
-
-    # -- convenience -- #
-    @property
-    @abstractmethod
-    def is_origin_computation(self) -> bool:
-        """
-        Return ``True`` if this message computation is the outermost computation at
-        ``depth == 0``. Since EOF computations cannot exist without a message, this
-        is solely an inherent property of message computations.
-        """
-        ...
-
     # -- runtime operations -- #
     @abstractmethod
     def prepare_child_message(self,
@@ -2145,34 +2139,34 @@ class MessageComputationAPI(
                               code: bytes,
                               **kwargs: Any) -> MessageAPI:
         """
-        Helper method for creating a child message computation.
+        Helper method for creating a child computation.
         """
         ...
 
     @abstractmethod
-    def apply_child_message_computation(
+    def apply_child_computation(
         self,
         child_msg: MessageAPI,
-    ) -> "MessageComputationAPI":
+    ) -> "ComputationAPI":
         """
-        Apply the vm message ``child_msg`` as a child message computation.
+        Apply the vm message ``child_msg`` as a child computation.
         """
         ...
 
     @abstractmethod
-    def generate_child_message_computation(
+    def generate_child_computation(
         self,
         child_msg: MessageAPI,
-    ) -> "MessageComputationAPI":
+    ) -> "ComputationAPI":
         """
-        Generate a child message computation from the given ``child_msg``.
+        Generate a child computation from the given ``child_msg``.
         """
         ...
 
     @abstractmethod
-    def add_child_message_computation(
+    def add_child_computation(
         self,
-        child_message_computation: "MessageComputationAPI",
+        child_computation: "ComputationAPI",
     ) -> None:
         """
         Add the given ``child_computation``.
@@ -2235,7 +2229,7 @@ class MessageComputationAPI(
         state: "StateAPI",
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
-    ) -> "MessageComputationAPI":
+    ) -> "ComputationAPI":
         """
         Execute a VM message. This is where the VM-specific call logic exists.
         """
@@ -2244,10 +2238,11 @@ class MessageComputationAPI(
     @classmethod
     @abstractmethod
     def apply_create_message(
-            cls,
-            state: 'StateAPI',
-            message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> 'MessageComputationAPI':
+        cls,
+        state: "StateAPI",
+        message: MessageAPI,
+        transaction_context: TransactionContextAPI,
+    ) -> "ComputationAPI":
         """
         Execute a VM message to create a new contract. This is where the VM-specific
         create logic exists.
@@ -2261,7 +2256,7 @@ class MessageComputationAPI(
         state: 'StateAPI',
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
-    ) -> 'MessageComputationAPI':
+    ) -> "ComputationAPI":
         """
         Execute the logic within the message: Either run the precompile, or
         step through each opcode.  Generally, the only VM-specific logic is for
@@ -2669,9 +2664,9 @@ class TransactionExecutorAPI(ABC):
         ...
 
     @abstractmethod
-    def __call__(self, transaction: SignedTransactionAPI) -> 'MessageComputationAPI':
+    def __call__(self, transaction: SignedTransactionAPI) -> "ComputationAPI":
         """
-        Execute the ``transaction`` and return a :class:`eth.abc.MessageComputationAPI`.
+        Execute the ``transaction`` and return a :class:`eth.abc.ComputationAPI`.
         """
         ...
 
@@ -2693,7 +2688,7 @@ class TransactionExecutorAPI(ABC):
     @abstractmethod
     def build_computation(self,
                           message: MessageAPI,
-                          transaction: SignedTransactionAPI) -> 'MessageComputationAPI':
+                          transaction: SignedTransactionAPI) -> "ComputationAPI":
         """
         Apply the ``message`` to the VM and use the given ``transaction`` to
         retrieve the context from.
@@ -2704,7 +2699,7 @@ class TransactionExecutorAPI(ABC):
     @abstractmethod
     def finalize_computation(self,
                              transaction: SignedTransactionAPI,
-                             computation: 'MessageComputationAPI') -> 'MessageComputationAPI':
+                             computation: "ComputationAPI") -> "ComputationAPI":
         """
         Finalize the ``transaction``.
         """
@@ -2734,7 +2729,7 @@ class StateAPI(ConfigurableAPI):
 
         Each :class:`~eth.abc.StateAPI` class must be configured with:
 
-        - ``message_computation_class``: The :class:`~eth.abc.MessageComputationAPI` class for
+        - ``computation_class``: The :class:`~eth.abc.ComputationAPI` class for
           vm execution.
         - ``transaction_context_class``: The :class:`~eth.abc.TransactionContextAPI`
           class for vm execution.
@@ -2744,7 +2739,7 @@ class StateAPI(ConfigurableAPI):
     #
     execution_context: ExecutionContextAPI
 
-    message_computation_class: Type[MessageComputationAPI]
+    computation_class: Type[ComputationAPI]
     transaction_context_class: Type[TransactionContextAPI]
     account_db_class: Type[AccountDatabaseAPI]
     transaction_executor_class: Type[TransactionExecutorAPI] = None
@@ -3103,7 +3098,7 @@ class StateAPI(ConfigurableAPI):
     @abstractmethod
     def get_computation(self,
                         message: MessageAPI,
-                        transaction_context: TransactionContextAPI) -> MessageComputationAPI:
+                        transaction_context: TransactionContextAPI) -> ComputationAPI:
         """
         Return a computation instance for the given `message` and `transaction_context`
         """
@@ -3128,7 +3123,7 @@ class StateAPI(ConfigurableAPI):
     def apply_transaction(
         self,
         transaction: SignedTransactionAPI,
-    ) -> MessageComputationAPI:
+    ) -> ComputationAPI:
         """
         Apply transaction to the vm state
 
@@ -3148,7 +3143,7 @@ class StateAPI(ConfigurableAPI):
     def costless_execute_transaction(
         self,
         transaction: SignedTransactionAPI,
-    ) -> MessageComputationAPI:
+    ) -> ComputationAPI:
         """
         Execute the given ``transaction`` with a gas price of ``0``.
         """
@@ -3318,7 +3313,7 @@ class VirtualMachineAPI(ConfigurableAPI):
             transactions: Sequence[SignedTransactionAPI],
             base_header: BlockHeaderAPI,
             partial_header: BlockHeaderAPI,
-            computation: MessageComputationAPI,
+            computation: ComputationAPI,
             receipt: ReceiptAPI) -> None:
         """
         A hook for a subclass to use as a way to note that a transaction was applied.
@@ -3334,7 +3329,7 @@ class VirtualMachineAPI(ConfigurableAPI):
     def apply_transaction(self,
                           header: BlockHeaderAPI,
                           transaction: SignedTransactionAPI
-                          ) -> Tuple[ReceiptAPI, MessageComputationAPI]:
+                          ) -> Tuple[ReceiptAPI, ComputationAPI]:
         """
         Apply the transaction to the current block. This is a wrapper around
         :func:`~eth.vm.state.State.apply_transaction` with some extra orchestration logic.
@@ -3365,7 +3360,7 @@ class VirtualMachineAPI(ConfigurableAPI):
                          value: int,
                          data: bytes,
                          code: bytes,
-                         code_address: Address = None) -> MessageComputationAPI:
+                         code_address: Address = None) -> ComputationAPI:
         """
         Execute raw bytecode in the context of the current state of
         the virtual machine. Note that this skips over some of the logic
@@ -3377,8 +3372,8 @@ class VirtualMachineAPI(ConfigurableAPI):
             - others...
 
         For other potential surprises, check the implementation differences
-        between :meth:`MessageComputationAPI.apply_computation` and
-        :meth:`MessageComputationAPI.apply_message`. (depending on the VM fork)
+        between :meth:`ComputationAPI.apply_computation` and
+        :meth:`ComputationAPI.apply_message`. (depending on the VM fork)
         """
         ...
 
@@ -3387,7 +3382,7 @@ class VirtualMachineAPI(ConfigurableAPI):
         self,
         transactions: Sequence[SignedTransactionAPI],
         base_header: BlockHeaderAPI
-    ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[MessageComputationAPI, ...]]:
+    ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         """
         Determine the results of applying all transactions to the base header.
         This does *not* update the current block or header of the VM.
@@ -3411,7 +3406,7 @@ class VirtualMachineAPI(ConfigurableAPI):
     def make_receipt(self,
                      base_header: BlockHeaderAPI,
                      transaction: SignedTransactionAPI,
-                     computation: MessageComputationAPI,
+                     computation: ComputationAPI,
                      state: StateAPI) -> ReceiptAPI:
         """
         Generate the receipt resulting from applying the transaction.
@@ -4045,7 +4040,7 @@ class ChainAPI(ConfigurableAPI):
             transactions: Tuple[SignedTransactionAPI, ...],
             parent_header: BlockHeaderAPI = None,
             withdrawals: Tuple[WithdrawalAPI, ...] = None,
-    ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[MessageComputationAPI, ...]]:
+    ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         """
         Generate a block with the provided transactions. This does *not* import
         that block into your chain. If you want this new block in your chain,
@@ -4271,7 +4266,7 @@ class MiningChainAPI(ChainAPI):
             *args: Any,
             parent_header: BlockHeaderAPI = None,
             **kwargs: Any,
-    ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[MessageComputationAPI, ...]]:
+    ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         """
         Build a block with the given transactions, and mine it.
 
@@ -4285,7 +4280,7 @@ class MiningChainAPI(ChainAPI):
     @abstractmethod
     def apply_transaction(self,
                           transaction: SignedTransactionAPI
-                          ) -> Tuple[BlockAPI, ReceiptAPI, MessageComputationAPI]:
+                          ) -> Tuple[BlockAPI, ReceiptAPI, ComputationAPI]:
         """
         Apply the transaction to the current tip block.
 

@@ -7,7 +7,7 @@ from eth_typing import (
 from eth import constants
 
 from eth.abc import (
-    MessageComputationAPI,
+    ComputationAPI,
 )
 from eth.exceptions import (
     OutOfBoundsRead,
@@ -20,40 +20,38 @@ from eth._utils.numeric import (
     ceil32,
 )
 
-from eth.vm.computation import MessageComputation
 
-
-def balance(computation: MessageComputation) -> None:
+def balance(computation: ComputationAPI) -> None:
     addr = force_bytes_to_address(computation.stack_pop1_bytes())
     push_balance_of_address(addr, computation)
 
 
-def selfbalance(computation: MessageComputation) -> None:
+def selfbalance(computation: ComputationAPI) -> None:
     push_balance_of_address(computation.msg.storage_address, computation)
 
 
-def push_balance_of_address(address: Address, computation: MessageComputationAPI) -> None:
+def push_balance_of_address(address: Address, computation: ComputationAPI) -> None:
     balance = computation.state.get_balance(address)
     computation.stack_push_int(balance)
 
 
-def origin(computation: MessageComputation) -> None:
+def origin(computation: ComputationAPI) -> None:
     computation.stack_push_bytes(computation.transaction_context.origin)
 
 
-def address(computation: MessageComputation) -> None:
+def address(computation: ComputationAPI) -> None:
     computation.stack_push_bytes(computation.msg.storage_address)
 
 
-def caller(computation: MessageComputation) -> None:
+def caller(computation: ComputationAPI) -> None:
     computation.stack_push_bytes(computation.msg.sender)
 
 
-def callvalue(computation: MessageComputation) -> None:
+def callvalue(computation: ComputationAPI) -> None:
     computation.stack_push_int(computation.msg.value)
 
 
-def calldataload(computation: MessageComputation) -> None:
+def calldataload(computation: ComputationAPI) -> None:
     """
     Load call data into memory.
     """
@@ -66,12 +64,12 @@ def calldataload(computation: MessageComputation) -> None:
     computation.stack_push_bytes(normalized_value)
 
 
-def calldatasize(computation: MessageComputation) -> None:
+def calldatasize(computation: ComputationAPI) -> None:
     size = len(computation.msg.data)
     computation.stack_push_int(size)
 
 
-def calldatacopy(computation: MessageComputation) -> None:
+def calldatacopy(computation: ComputationAPI) -> None:
     (
         mem_start_position,
         calldata_start_position,
@@ -93,16 +91,16 @@ def calldatacopy(computation: MessageComputation) -> None:
     computation.memory_write(mem_start_position, size, padded_value)
 
 
-def chain_id(computation: MessageComputation) -> None:
+def chain_id(computation: ComputationAPI) -> None:
     computation.stack_push_int(computation.state.execution_context.chain_id)
 
 
-def codesize(computation: MessageComputation) -> None:
+def codesize(computation: ComputationAPI) -> None:
     size = len(computation.code)
     computation.stack_push_int(size)
 
 
-def codecopy(computation: MessageComputation) -> None:
+def codecopy(computation: ComputationAPI) -> None:
     (
         mem_start_position,
         code_start_position,
@@ -127,18 +125,18 @@ def codecopy(computation: MessageComputation) -> None:
     computation.memory_write(mem_start_position, size, padded_code_bytes)
 
 
-def gasprice(computation: MessageComputation) -> None:
+def gasprice(computation: ComputationAPI) -> None:
     computation.stack_push_int(computation.transaction_context.gas_price)
 
 
-def extcodesize(computation: MessageComputation) -> None:
+def extcodesize(computation: ComputationAPI) -> None:
     account = force_bytes_to_address(computation.stack_pop1_bytes())
     code_size = len(computation.state.get_code(account))
 
     computation.stack_push_int(code_size)
 
 
-def extcodecopy_execute(computation: MessageComputationAPI) -> Tuple[Address, int]:
+def extcodecopy_execute(computation: ComputationAPI) -> Tuple[Address, int]:
     """
     Runs the logical component of extcodecopy, without charging gas.
 
@@ -163,7 +161,7 @@ def extcodecopy_execute(computation: MessageComputationAPI) -> Tuple[Address, in
     return account, size
 
 
-def consume_extcodecopy_word_cost(computation: MessageComputationAPI, size: int) -> None:
+def consume_extcodecopy_word_cost(computation: ComputationAPI, size: int) -> None:
     word_count = ceil32(size) // 32
     copy_gas_cost = constants.GAS_COPY * word_count
     computation.consume_gas(
@@ -172,12 +170,12 @@ def consume_extcodecopy_word_cost(computation: MessageComputationAPI, size: int)
     )
 
 
-def extcodecopy(computation: MessageComputation) -> None:
+def extcodecopy(computation: ComputationAPI) -> None:
     _address, size = extcodecopy_execute(computation)
     consume_extcodecopy_word_cost(computation, size)
 
 
-def extcodehash(computation: MessageComputation) -> None:
+def extcodehash(computation: ComputationAPI) -> None:
     """
     Return the code hash for a given address.
     EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md
@@ -191,12 +189,12 @@ def extcodehash(computation: MessageComputation) -> None:
         computation.stack_push_bytes(state.get_code_hash(account))
 
 
-def returndatasize(computation: MessageComputation) -> None:
+def returndatasize(computation: ComputationAPI) -> None:
     size = len(computation.return_data)
     computation.stack_push_int(size)
 
 
-def returndatacopy(computation: MessageComputation) -> None:
+def returndatacopy(computation: ComputationAPI) -> None:
     (
         mem_start_position,
         returndata_start_position,

@@ -2,8 +2,8 @@ from eth.vm.forks.byzantium.state import (
     ByzantiumState
 )
 
-from .computation import ConstantinopleMessageComputation
+from .computation import ConstantinopleComputation
 
 
 class ConstantinopleState(ByzantiumState):
-    message_computation_class = ConstantinopleMessageComputation
+    computation_class = ConstantinopleComputation

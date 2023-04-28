@@ -1,13 +1,13 @@
-from ..homestead.computation import HomesteadMessageComputation
+from ..homestead.computation import HomesteadComputation
 
 from .opcodes import TANGERINE_WHISTLE_OPCODES
 
 
-class TangerineWhistleMessageComputation(HomesteadMessageComputation):
+class TangerineWhistleComputation(HomesteadComputation):
     """
     A class for all execution *message* computations in the ``TangerineWhistle`` fork.
     Inherits from
-    :class:`~eth.vm.forks.homestead.computation.HomesteadMessageComputation`
+    :class:`~eth.vm.forks.homestead.computation.HomesteadComputation`
     """
     # Override
     opcodes = TANGERINE_WHISTLE_OPCODES

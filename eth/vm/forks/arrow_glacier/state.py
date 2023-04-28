@@ -1,7 +1,7 @@
 from typing import Type
 
 from eth.abc import TransactionExecutorAPI
-from .computation import ArrowGlacierMessageComputation
+from .computation import ArrowGlacierComputation
 from ..london import LondonState
 from ..london.state import LondonTransactionExecutor
 
@@ -11,5 +11,5 @@ class ArrowGlacierTransactionExecutor(LondonTransactionExecutor):
 
 
 class ArrowGlacierState(LondonState):
-    message_computation_class = ArrowGlacierMessageComputation
+    computation_class = ArrowGlacierComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = ArrowGlacierTransactionExecutor

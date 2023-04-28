@@ -24,7 +24,7 @@ from eth_utils import (
 
 from eth.abc import (
     BaseTransactionAPI,
-    MessageComputationAPI,
+    ComputationAPI,
     LegacyTransactionFieldsAPI,
     SignedTransactionAPI,
     TransactionBuilderAPI,
@@ -44,7 +44,7 @@ class BaseTransactionMethods(BaseTransactionAPI):
     def intrinsic_gas(self) -> int:
         return self.get_intrinsic_gas()
 
-    def gas_used_by(self, computation: MessageComputationAPI) -> int:
+    def gas_used_by(self, computation: ComputationAPI) -> int:
         return self.get_intrinsic_gas() + computation.get_gas_used()
 
     @property

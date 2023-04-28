@@ -2,7 +2,7 @@ from eth.vm.forks.byzantium.computation import (
     BYZANTIUM_PRECOMPILES
 )
 from eth.vm.forks.byzantium.computation import (
-    ByzantiumMessageComputation
+    ByzantiumComputation
 )
 
 from .opcodes import PETERSBURG_OPCODES
@@ -10,11 +10,11 @@ from .opcodes import PETERSBURG_OPCODES
 PETERSBURG_PRECOMPILES = BYZANTIUM_PRECOMPILES
 
 
-class PetersburgMessageComputation(ByzantiumMessageComputation):
+class PetersburgComputation(ByzantiumComputation):
     """
     A class for all execution *message* computations in the ``Petersburg`` fork.
     Inherits from
-    :class:`~eth.vm.forks.byzantium.computation.ByzantiumMessageComputation`
+    :class:`~eth.vm.forks.byzantium.computation.ByzantiumComputation`
     """
     # Override
     opcodes = PETERSBURG_OPCODES
