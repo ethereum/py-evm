@@ -38,6 +38,10 @@ CREATE_CONTRACT_ADDRESS = Address(b"")
 ZERO_ADDRESS = Address(20 * b"\x00")
 ZERO_HASH32 = Hash32(32 * b"\x00")
 
+#
+# POW Constants
+#
+EPOCH_LENGTH = 30000  # unsigned int - may need to add: `+(1<<32)`
 
 #
 # Stack Limit
