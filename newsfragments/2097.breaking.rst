@@ -1,1 +1,0 @@
-Refactor ``BaseComputation`` as a simpler base class and subclass ``MessageComputation`` building on it, allowing flexibility for other types of computations such as EOF computations.

@@ -6,19 +6,19 @@ from eth_utils import to_set
 
 from eth import constants
 
+from eth.abc import (
+    ComputationAPI,
+)
 from eth._utils.address import (
     force_bytes_to_address,
 )
-
-from eth.vm.computation import MessageComputation
-
 
 THREE = force_bytes_to_address(b'\x03')
 
 
 @to_set
 def collect_touched_accounts(
-    computation: MessageComputation,
+    computation: ComputationAPI,
     ancestor_had_error: bool = False
 ) -> Iterable[Address]:
     """

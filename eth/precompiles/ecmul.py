@@ -15,6 +15,9 @@ from eth_utils.toolz import (
 
 from eth import constants
 
+from eth.abc import (
+    ComputationAPI,
+)
 from eth.exceptions import (
     VMError,
 )
@@ -26,15 +29,11 @@ from eth._utils.padding import (
     pad32r,
 )
 
-from eth.vm.computation import (
-    MessageComputation,
-)
-
 
 @curry
 def ecmul(
-        computation: MessageComputation,
-        gas_cost: int = constants.GAS_ECMUL) -> MessageComputation:
+        computation: ComputationAPI,
+        gas_cost: int = constants.GAS_ECMUL) -> ComputationAPI:
 
     computation.consume_gas(gas_cost, reason='ECMUL Precompile')
 

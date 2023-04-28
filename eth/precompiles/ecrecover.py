@@ -15,17 +15,17 @@ from eth._utils.padding import (
     pad32r,
 )
 
+from eth.abc import (
+    ComputationAPI,
+)
 from eth.validation import (
     validate_lt_secpk1n,
     validate_gte,
     validate_lte,
 )
-from eth.vm.computation import (
-    MessageComputation,
-)
 
 
-def ecrecover(computation: MessageComputation) -> MessageComputation:
+def ecrecover(computation: ComputationAPI) -> ComputationAPI:
     computation.consume_gas(constants.GAS_ECRECOVER, reason="ECRecover Precompile")
     data = computation.msg.data_as_bytes
     raw_message_hash = data[:32]

@@ -7,7 +7,7 @@ from eth_utils import (
 
 from eth.abc import (
     AccountDatabaseAPI,
-    MessageComputationAPI,
+    ComputationAPI,
     SignedTransactionAPI,
     MessageAPI,
     TransactionContextAPI,
@@ -34,7 +34,7 @@ from eth.vm.state import (
 )
 
 
-from .computation import FrontierMessageComputation
+from .computation import FrontierComputation
 from .constants import (
     REFUND_SELFDESTRUCT,
     MAX_REFUND_QUOTIENT,
@@ -111,7 +111,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
     def build_computation(self,
                           message: MessageAPI,
-                          transaction: SignedTransactionAPI) -> MessageComputationAPI:
+                          transaction: SignedTransactionAPI) -> ComputationAPI:
         transaction_context = self.vm_state.get_transaction_context(transaction)
         if message.is_create:
             is_collision = self.vm_state.has_code_or_nonce(
@@ -131,13 +131,13 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                     encode_hex(message.storage_address),
                 )
             else:
-                computation = self.vm_state.message_computation_class.apply_create_message(
+                computation = self.vm_state.computation_class.apply_create_message(
                     self.vm_state,
                     message,
                     transaction_context,
                 )
         else:
-            computation = self.vm_state.message_computation_class.apply_message(
+            computation = self.vm_state.computation_class.apply_message(
                 self.vm_state,
                 message,
                 transaction_context,
@@ -147,7 +147,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
     @classmethod
     def calculate_gas_refund(cls,
-                             computation: MessageComputationAPI,
+                             computation: ComputationAPI,
                              gas_used: int) -> int:
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
@@ -162,8 +162,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
     def finalize_computation(
         self,
         transaction: SignedTransactionAPI,
-        computation: MessageComputationAPI
-    ) -> MessageComputationAPI:
+        computation: ComputationAPI
+    ) -> ComputationAPI:
         transaction_context = self.vm_state.get_transaction_context(transaction)
 
         gas_remaining = computation.get_gas_remaining()
@@ -204,12 +204,12 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
 
 class FrontierState(BaseState):
-    message_computation_class: Type[MessageComputationAPI] = FrontierMessageComputation
+    computation_class: Type[ComputationAPI] = FrontierComputation
     transaction_context_class: Type[TransactionContextAPI] = FrontierTransactionContext
     account_db_class: Type[AccountDatabaseAPI] = AccountDB
     transaction_executor_class: Type[TransactionExecutorAPI] = FrontierTransactionExecutor
 
-    def apply_transaction(self, transaction: SignedTransactionAPI) -> MessageComputationAPI:
+    def apply_transaction(self, transaction: SignedTransactionAPI) -> ComputationAPI:
         executor = self.get_transaction_executor()
         return executor(transaction)
 

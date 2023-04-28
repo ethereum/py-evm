@@ -1,11 +1,10 @@
 import functools
 from typing import Tuple
 from eth import constants
+from eth.abc import ComputationAPI
 
-from eth.vm.computation import MessageComputation
 
-
-def log_XX(computation: MessageComputation, topic_count: int) -> None:
+def log_XX(computation: ComputationAPI, topic_count: int) -> None:
     if topic_count < 0 or topic_count > 4:
         raise TypeError("Invalid log topic size.  Must be 0, 1, 2, 3, or 4")
 

@@ -1,7 +1,7 @@
 from eth.vm.forks.spurious_dragon.state import SpuriousDragonState
 
-from .computation import ByzantiumMessageComputation
+from .computation import ByzantiumComputation
 
 
 class ByzantiumState(SpuriousDragonState):
-    message_computation_class = ByzantiumMessageComputation
+    computation_class = ByzantiumComputation

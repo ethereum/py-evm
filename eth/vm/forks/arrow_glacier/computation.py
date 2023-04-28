@@ -1,9 +1,9 @@
-from ..london.computation import LondonMessageComputation
+from ..london.computation import LondonComputation
 
 
-class ArrowGlacierMessageComputation(LondonMessageComputation):
+class ArrowGlacierComputation(LondonComputation):
     """
     A class for all execution *message* computations in the ``ArrowGlacier`` fork.
-    Inherits from :class:`~eth.vm.forks.london.LondonMessageComputation`
+    Inherits from :class:`~eth.vm.forks.london.LondonComputation`
     """
     pass

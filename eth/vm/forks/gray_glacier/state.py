@@ -1,7 +1,7 @@
 from typing import Type
 
 from eth.abc import TransactionExecutorAPI
-from .computation import GrayGlacierMessageComputation
+from .computation import GrayGlacierComputation
 from ..arrow_glacier import ArrowGlacierState
 from ..arrow_glacier.state import ArrowGlacierTransactionExecutor
 
@@ -11,5 +11,5 @@ class GrayGlacierTransactionExecutor(ArrowGlacierTransactionExecutor):
 
 
 class GrayGlacierState(ArrowGlacierState):
-    message_computation_class = GrayGlacierMessageComputation
+    computation_class = GrayGlacierComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = GrayGlacierTransactionExecutor

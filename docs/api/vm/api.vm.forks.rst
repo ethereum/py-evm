@@ -17,10 +17,10 @@ FrontierState
 .. autoclass:: eth.vm.forks.frontier.state.FrontierState
   :members:
 
-FrontierMessageComputation
+FrontierComputation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: eth.vm.forks.frontier.computation.FrontierMessageComputation
+.. autoclass:: eth.vm.forks.frontier.computation.FrontierComputation
   :members:
 
 
@@ -39,10 +39,10 @@ HomesteadState
 .. autoclass:: eth.vm.forks.homestead.state.HomesteadState
   :members:
 
-HomesteadMessageComputation
+HomesteadComputation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: eth.vm.forks.homestead.computation.HomesteadMessageComputation
+.. autoclass:: eth.vm.forks.homestead.computation.HomesteadComputation
   :members:
 
 
@@ -61,10 +61,10 @@ TangerineWhistleState
 .. autoclass:: eth.vm.forks.tangerine_whistle.state.TangerineWhistleState
   :members:
 
-TangerineWhistleMessageComputation
+TangerineWhistleComputation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: eth.vm.forks.tangerine_whistle.computation.TangerineWhistleMessageComputation
+.. autoclass:: eth.vm.forks.tangerine_whistle.computation.TangerineWhistleComputation
   :members:
 
 
@@ -83,10 +83,10 @@ SpuriousDragonState
 .. autoclass:: eth.vm.forks.spurious_dragon.state.SpuriousDragonState
   :members:
 
-SpuriousDragonMessageComputation
+SpuriousDragonComputation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: eth.vm.forks.spurious_dragon.computation.SpuriousDragonMessageComputation
+.. autoclass:: eth.vm.forks.spurious_dragon.computation.SpuriousDragonComputation
   :members:
 
 
@@ -105,10 +105,10 @@ ByzantiumState
 .. autoclass:: eth.vm.forks.byzantium.state.ByzantiumState
   :members:
 
-ByzantiumMessageComputation
+ByzantiumComputation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: eth.vm.forks.byzantium.computation.ByzantiumMessageComputation
+.. autoclass:: eth.vm.forks.byzantium.computation.ByzantiumComputation
   :members:
 
 
@@ -127,10 +127,10 @@ ConstantinopleState
 .. autoclass:: eth.vm.forks.constantinople.state.ConstantinopleState
   :members:
 
-ConstantinopleMessageComputation
+ConstantinopleComputation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: eth.vm.forks.constantinople.computation.ConstantinopleMessageComputation
+.. autoclass:: eth.vm.forks.constantinople.computation.ConstantinopleComputation
   :members:
 
 
@@ -149,10 +149,10 @@ PetersburgState
 .. autoclass:: eth.vm.forks.petersburg.state.PetersburgState
   :members:
 
-PetersburgMessageComputation
+PetersburgComputation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: eth.vm.forks.petersburg.computation.PetersburgMessageComputation
+.. autoclass:: eth.vm.forks.petersburg.computation.PetersburgComputation
   :members:
 
 
@@ -171,10 +171,10 @@ IstanbulState
 .. autoclass:: eth.vm.forks.istanbul.state.IstanbulState
   :members:
 
-IstanbulMessageComputation
+IstanbulComputation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. autoclass:: eth.vm.forks.istanbul.computation.IstanbulMessageComputation
+.. autoclass:: eth.vm.forks.istanbul.computation.IstanbulComputation
   :members:
 
 

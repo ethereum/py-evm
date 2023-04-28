@@ -38,7 +38,7 @@ from eth.vm.forks import (
     HomesteadVM,
 )
 from eth.vm.forks.homestead.computation import (
-    HomesteadMessageComputation,
+    HomesteadComputation,
 )
 from eth.vm.forks.homestead.state import HomesteadState
 from eth.vm.message import (
@@ -116,7 +116,7 @@ def get_block_hash_for_testing(self, block_number):
         return keccak(to_bytes(text=f"{block_number}"))
 
 
-HomesteadComputationForTesting = HomesteadMessageComputation.configure(
+HomesteadComputationForTesting = HomesteadComputation.configure(
     __name__='HomesteadComputationForTesting',
     apply_message=apply_message_for_testing,
     apply_create_message=apply_create_message_for_testing,
@@ -124,7 +124,7 @@ HomesteadComputationForTesting = HomesteadMessageComputation.configure(
 HomesteadStateForTesting = HomesteadState.configure(
     __name__='HomesteadStateForTesting',
     get_ancestor_hash=get_block_hash_for_testing,
-    message_computation_class=HomesteadComputationForTesting,
+    computation_class=HomesteadComputationForTesting,
 )
 HomesteadVMForTesting = HomesteadVM.configure(
     __name__='HomesteadVMForTesting',

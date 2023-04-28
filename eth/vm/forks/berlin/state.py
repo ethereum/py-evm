@@ -1,7 +1,7 @@
 from typing import Type
 
 from eth.abc import (
-    MessageComputationAPI,
+    ComputationAPI,
     MessageAPI,
     SignedTransactionAPI,
     TransactionExecutorAPI,
@@ -13,14 +13,14 @@ from eth.vm.forks.spurious_dragon.state import (
     SpuriousDragonTransactionExecutor,
 )
 
-from .computation import BerlinMessageComputation
+from .computation import BerlinComputation
 
 
 class BerlinTransactionExecutor(SpuriousDragonTransactionExecutor):
     def build_computation(
             self,
             message: MessageAPI,
-            transaction: SignedTransactionAPI) -> MessageComputationAPI:
+            transaction: SignedTransactionAPI) -> ComputationAPI:
 
         self.vm_state.mark_address_warm(transaction.sender)
 
@@ -36,5 +36,5 @@ class BerlinTransactionExecutor(SpuriousDragonTransactionExecutor):
 
 
 class BerlinState(MuirGlacierState):
-    message_computation_class = BerlinMessageComputation
+    computation_class = BerlinComputation
     transaction_executor_class: Type[TransactionExecutorAPI] = BerlinTransactionExecutor

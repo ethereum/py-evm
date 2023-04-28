@@ -1,6 +1,6 @@
 from eth._utils.numeric import ceil32
 from eth.abc import (
-    MessageComputationAPI,
+    ComputationAPI,
     MessageAPI,
     StateAPI,
     TransactionContextAPI,
@@ -13,10 +13,10 @@ from .opcodes import SHANGHAI_OPCODES
 from eth.exceptions import (
     OutOfGas,
 )
-from eth.vm.forks.paris.computation import ParisMessageComputation
+from eth.vm.forks.paris.computation import ParisComputation
 
 
-class ShanghaiMessageComputation(ParisMessageComputation):
+class ShanghaiComputation(ParisComputation):
     """
     A class for all execution *message* computations in the ``Shanghai`` hard fork
     """
@@ -45,7 +45,7 @@ class ShanghaiMessageComputation(ParisMessageComputation):
             )
 
     @classmethod
-    def consume_initcode_gas_cost(cls, computation: MessageComputationAPI) -> None:
+    def consume_initcode_gas_cost(cls, computation: ComputationAPI) -> None:
         # EIP-3860: initcode gas cost
         initcode_length = len(computation.msg.code)
 
