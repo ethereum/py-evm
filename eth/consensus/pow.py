@@ -19,8 +19,8 @@ from eth_utils import (
     encode_hex,
 )
 from pyethash import (
-    EPOCH_LENGTH,
-    hashimoto_light,
+    # EPOCH_LENGTH,
+    # hashimoto_light,
     mkcache_bytes,
 )
 
@@ -28,6 +28,13 @@ from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,
     ConsensusAPI,
+)
+from eth.consensus.hashimoto import (
+    hashimoto_light,
+    mkcache,
+)
+from eth.constants import (
+    EPOCH_LENGTH,
 )
 from eth.validation import (
     validate_length,
@@ -52,7 +59,8 @@ def get_cache(block_number: int) -> bytes:
 
     # Generate the cache if it was not already in memory
     # Simulate requesting mkcache by block number: multiply index by epoch length
-    c = mkcache_bytes(epoch_index * EPOCH_LENGTH)
+    block_number = epoch_index * EPOCH_LENGTH
+    c = mkcache(block_number)
     cache_by_epoch[epoch_index] = c
 
     # Limit memory usage for cache
@@ -73,22 +81,25 @@ def check_pow(
     validate_length(mining_hash, 32, title="Mining Hash")
     validate_length(nonce, 8, title="POW Nonce")
     cache = get_cache(block_number)
+    print("got cache")
     mining_output = hashimoto_light(
         block_number, cache, mining_hash, big_endian_to_int(nonce)
     )
-    if mining_output[b"mix digest"] != mix_hash:
+    print("made it past hashimoto_light")
+    if mining_output["mix_digest"] != mix_hash:
         raise ValidationError(
-            f"mix hash mismatch; expected: {encode_hex(mining_output[b'mix digest'])} "
+            f"mix hash mismatch; expected: {encode_hex(mining_output['mix_digest'])} "
             f"!= actual: {encode_hex(mix_hash)}. "
             f"Mix hash calculated from block #{block_number}, "
             f"mine hash {encode_hex(mining_hash)}, nonce {encode_hex(nonce)}"
-            f", difficulty {difficulty}, cache hash {encode_hex(keccak(cache))}"
+            # f", difficulty {difficulty}, cache hash {encode_hex(keccak(cache))}"
         )
-    result = big_endian_to_int(mining_output[b"result"])
+    result = big_endian_to_int(mining_output["result"].encode())
     validate_lte(result, 2**256 // difficulty, title="POW Difficulty")
 
 
-MAX_TEST_MINE_ATTEMPTS = 1000
+# MAX_TEST_MINE_ATTEMPTS = 1000
+MAX_TEST_MINE_ATTEMPTS = 10
 
 
 def mine_pow_nonce(
@@ -97,10 +108,10 @@ def mine_pow_nonce(
     cache = get_cache(block_number)
     for nonce in range(MAX_TEST_MINE_ATTEMPTS):
         mining_output = hashimoto_light(block_number, cache, mining_hash, nonce)
-        result = big_endian_to_int(mining_output[b"result"])
+        result = big_endian_to_int(mining_output["result"].encode())
         result_cap = 2**256 // difficulty
         if result <= result_cap:
-            return nonce.to_bytes(8, "big"), mining_output[b"mix digest"]
+            return nonce.to_bytes(8, "big"), mining_output["mix_digest"]
 
     raise Exception("Too many attempts at POW mining, giving up")
 

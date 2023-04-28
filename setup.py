@@ -16,9 +16,11 @@ extras_require = {
         "lru-dict>=1.1.6",
         "mypy-extensions>=1.0.0",
         "py-ecc>=1.4.7,<7.0.0",
-        "pyethash>=0.1.27,<1.0.0",
+        "pyethash@git+ssh://git@github.com/ethereum/ethash.git@master",
+        # "pyethash>=0.1.27,<1.0.0",
         "rlp>=3,<4",
         "trie>=2.0.0,<3",
+        "pycryptodome",
     ],
     # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.

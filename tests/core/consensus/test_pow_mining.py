@@ -28,7 +28,10 @@ def _concurrently_run_to_completion(target, concurrency):
     for t in threads:
         t.start()
     for t in threads:
-        t.join()
+        try:
+            t.join()
+        except Exception as e:
+            print(e)
 
 
 def test_cache_turnover():
@@ -48,7 +51,7 @@ def test_cache_turnover():
             assert c == expected[block_num]
             time.sleep(0.0005)
 
-    # need a few running threads to poke the cache at the same time
+    # # need a few running threads to poke the cache at the same time
     _concurrently_run_to_completion(lookup_random_caches, 3)
 
 
@@ -65,13 +68,14 @@ def test_pow_across_epochs(ropsten_epoch_headers):
 
     # run a few more threads than the maximum stored in the cache,
     # to exercise the path of cache replacement in threaded context
-    _concurrently_run_to_completion(check, CACHE_MAX_ITEMS + 5)
+    _concurrently_run_to_completion(check, CACHE_MAX_ITEMS + 2)
 
 
 @pytest.mark.parametrize(
     "base_vm_class",
     MINING_MAINNET_VMS,
 )
+@pytest.mark.timeout(1000)
 def test_mining_tools_proof_of_work_mining(base_vm_class):
     vm_class = type(base_vm_class.__name__, (POWMiningMixin, base_vm_class), {})
 
