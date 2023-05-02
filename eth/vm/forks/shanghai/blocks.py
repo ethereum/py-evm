@@ -29,7 +29,10 @@ from eth_utils import (
 )
 
 from rlp.sedes import (
-    Binary, CountableList, big_endian_int, binary,
+    Binary,
+    CountableList,
+    big_endian_int,
+    binary,
 )
 from trie.exceptions import MissingTrieNode
 
@@ -39,6 +42,9 @@ from .transactions import (
 from .withdrawals import Withdrawal
 from ..london.blocks import (
     LondonBlockHeader,
+)
+from ..london.receipts import (
+    LondonReceiptBuilder,
 )
 
 
@@ -182,6 +188,8 @@ class ShanghaiBlock(BaseBlock):
     # re-defined from `BaseBlock`, as `FrontierBlock` was, to include withdrawals
 
     transaction_builder: Type[TransactionBuilderAPI] = ShanghaiTransactionBuilder
+    # London was the last fork where the receipt builder was updated
+    receipt_builder: Type[ReceiptBuilderAPI] = LondonReceiptBuilder
     fields = [
         ('header', ShanghaiBlockHeader),
         ('transactions', CountableList(transaction_builder)),
