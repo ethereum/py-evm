@@ -1,0 +1,1 @@
+Add missing receipt builder for the `ShanghaiBlock` class.
