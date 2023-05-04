@@ -3,7 +3,7 @@ Forks
 
 
 Frontier
----------
+--------
 
 FrontierVM
 ~~~~~~~~~~
@@ -18,7 +18,7 @@ FrontierState
   :members:
 
 FrontierComputation
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.frontier.computation.FrontierComputation
   :members:
@@ -40,7 +40,7 @@ HomesteadState
   :members:
 
 HomesteadComputation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.homestead.computation.HomesteadComputation
   :members:
@@ -62,7 +62,7 @@ TangerineWhistleState
   :members:
 
 TangerineWhistleComputation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.tangerine_whistle.computation.TangerineWhistleComputation
   :members:
@@ -72,7 +72,7 @@ SpuriousDragon
 --------------
 
 SpuriousDragonVM
-~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.spurious_dragon.SpuriousDragonVM
   :members:
@@ -84,7 +84,7 @@ SpuriousDragonState
   :members:
 
 SpuriousDragonComputation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.spurious_dragon.computation.SpuriousDragonComputation
   :members:
@@ -106,7 +106,7 @@ ByzantiumState
   :members:
 
 ByzantiumComputation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.byzantium.computation.ByzantiumComputation
   :members:
@@ -128,7 +128,7 @@ ConstantinopleState
   :members:
 
 ConstantinopleComputation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.constantinople.computation.ConstantinopleComputation
   :members:
@@ -150,29 +150,29 @@ PetersburgState
   :members:
 
 PetersburgComputation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.petersburg.computation.PetersburgComputation
   :members:
 
 
 Istanbul
-----------
+--------
 
 IstanbulVM
-~~~~~~~~~~~~
+~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.istanbul.IstanbulVM
   :members:
 
 IstanbulState
-~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.istanbul.state.IstanbulState
   :members:
 
 IstanbulComputation
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
 
 .. autoclass:: eth.vm.forks.istanbul.computation.IstanbulComputation
   :members:
@@ -182,7 +182,7 @@ Muir Glacier
 ------------
 
 Submodules
-~~~~~~~~~~~
+~~~~~~~~~~
 
 eth.vm.forks.muir\_glacier.blocks module
 ========================================
@@ -243,7 +243,7 @@ Module contents
 
 
 Berlin
--------
+------
 
 Submodules
 ~~~~~~~~~~
@@ -489,7 +489,7 @@ Submodules
 ~~~~~~~~~~
 
 eth.vm.forks.gray\_glacier.blocks module
-=========================================
+========================================
 
 .. automodule:: eth.vm.forks.gray_glacier.blocks
     :members:
@@ -497,7 +497,7 @@ eth.vm.forks.gray\_glacier.blocks module
     :show-inheritance:
 
 eth.vm.forks.gray\_glacier.computation module
-==============================================
+=============================================
 
 .. automodule:: eth.vm.forks.gray_glacier.computation
     :members:
@@ -505,7 +505,7 @@ eth.vm.forks.gray\_glacier.computation module
     :show-inheritance:
 
 eth.vm.forks.gray\_glacier.headers module
-==========================================
+=========================================
 
 .. automodule:: eth.vm.forks.gray_glacier.headers
     :members:
@@ -513,7 +513,7 @@ eth.vm.forks.gray\_glacier.headers module
     :show-inheritance:
 
 eth.vm.forks.gray\_glacier.state module
-========================================
+=======================================
 
 .. automodule:: eth.vm.forks.gray_glacier.state
     :members:
@@ -521,7 +521,7 @@ eth.vm.forks.gray\_glacier.state module
     :show-inheritance:
 
 eth.vm.forks.gray\_glacier.transactions module
-===============================================
+==============================================
 
 .. automodule:: eth.vm.forks.gray_glacier.transactions
     :members:
