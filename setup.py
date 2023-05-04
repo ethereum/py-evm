@@ -43,11 +43,11 @@ deps = {
     'lint': [
         "flake8==3.8.2",
         "flake8-bugbear==20.1.4",
+        "isort>=5.10.1",
         "mypy==0.910",
         "pydocstyle>=6.0.0",
         "types-setuptools",
         "importlib-metadata<5.0;python_version<'3.8'",
-        "isort==5.11.4"
     ],
     'benchmark': [
         "termcolor>=1.1.0,<2.0.0",
