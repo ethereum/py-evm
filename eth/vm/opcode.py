@@ -19,7 +19,7 @@ from eth.abc import (
     OpcodeAPI,
 )
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Opcode(Configurable, OpcodeAPI):
@@ -34,14 +34,14 @@ class Opcode(Configurable, OpcodeAPI):
 
     @property
     def logger(self) -> ExtendedDebugLogger:
-        return get_extended_debug_logger(f'eth.vm.logic.{self.mnemonic}')
+        return get_extended_debug_logger(f"eth.vm.logic.{self.mnemonic}")
 
     @classmethod
-    def as_opcode(cls: Type[T],
-                  logic_fn: Callable[..., Any],
-                  mnemonic: str,
-                  gas_cost: int) -> T:
+    def as_opcode(
+        cls: Type[T], logic_fn: Callable[..., Any], mnemonic: str, gas_cost: int
+    ) -> T:
         if gas_cost:
+
             @functools.wraps(logic_fn)
             def wrapped_logic_fn(computation: ComputationAPI) -> Any:
                 """
@@ -53,21 +53,22 @@ class Opcode(Configurable, OpcodeAPI):
                     mnemonic,
                 )
                 return logic_fn(computation)
+
         else:
             wrapped_logic_fn = logic_fn
 
         props = {
-            '__call__': staticmethod(wrapped_logic_fn),
-            'mnemonic': mnemonic,
-            'gas_cost': gas_cost,
+            "__call__": staticmethod(wrapped_logic_fn),
+            "mnemonic": mnemonic,
+            "gas_cost": gas_cost,
         }
         opcode_cls = type(f"opcode:{mnemonic}", (cls,), props)
         return opcode_cls()
 
-    def __copy__(self) -> 'Opcode':
+    def __copy__(self) -> "Opcode":
         return type(self)()
 
-    def __deepcopy__(self, memo: Any) -> 'Opcode':
+    def __deepcopy__(self, memo: Any) -> "Opcode":
         return type(self)()
 
 

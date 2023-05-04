@@ -13,7 +13,7 @@ from .state import SpuriousDragonState
 
 class SpuriousDragonVM(TangerineWhistleVM):
     # fork name
-    fork: str = 'spurious-dragon'
+    fork: str = "spurious-dragon"
 
     # classes
     block_class: Type[BlockAPI] = SpuriousDragonBlock

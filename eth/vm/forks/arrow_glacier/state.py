@@ -23,4 +23,6 @@ class ArrowGlacierTransactionExecutor(LondonTransactionExecutor):
 
 class ArrowGlacierState(LondonState):
     computation_class = ArrowGlacierComputation
-    transaction_executor_class: Type[TransactionExecutorAPI] = ArrowGlacierTransactionExecutor
+    transaction_executor_class: Type[
+        TransactionExecutorAPI
+    ] = ArrowGlacierTransactionExecutor

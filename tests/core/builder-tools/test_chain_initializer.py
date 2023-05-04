@@ -50,16 +50,16 @@ def test_chain_builder_initialize_chain_default(chain_class):
     assert header.nonce == constants.GENESIS_NONCE
 
 
-ADDRESS_A = b'a' + b'\0' * 19
-ADDRESS_B = b'b' + b'\0' * 19
+ADDRESS_A = b"a" + b"\0" * 19
+ADDRESS_B = b"b" + b"\0" * 19
 
 
 def test_chain_builder_initialize_chain_with_state_simple(chain_class):
     chain = pipe(
         chain_class,
         genesis(
-            state=((ADDRESS_A, 'balance', 1),),
-        )
+            state=((ADDRESS_A, "balance", 1),),
+        ),
     )
 
     header = chain.get_canonical_head()
@@ -75,8 +75,8 @@ def test_chain_builder_initialize_chain_with_state_multiple(chain_class):
     chain = pipe(
         chain_class,
         genesis(
-            state=((ADDRESS_A, 'balance', 1), (ADDRESS_B, 'balance', 2)),
-        )
+            state=((ADDRESS_A, "balance", 1), (ADDRESS_B, "balance", 2)),
+        ),
     )
 
     header = chain.get_canonical_head()
@@ -93,8 +93,8 @@ def test_chain_builder_initialize_chain_with_params(chain_class):
     chain = pipe(
         chain_class,
         genesis(
-            params={'difficulty': 12345},
-        )
+            params={"difficulty": 12345},
+        ),
     )
 
     header = chain.get_canonical_head()
@@ -107,9 +107,9 @@ def test_chain_builder_initialize_chain_with_params_and_state(chain_class):
     chain = pipe(
         chain_class,
         genesis(
-            params={'difficulty': 12345},
-            state=((ADDRESS_A, 'balance', 1),),
-        )
+            params={"difficulty": 12345},
+            state=((ADDRESS_A, "balance", 1),),
+        ),
     )
 
     header = chain.get_canonical_head()

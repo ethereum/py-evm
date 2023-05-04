@@ -138,9 +138,14 @@ def test_headerdb_persist_disconnected_headers(headerdb, genesis_header):
 
     assert_headers_eq(headerdb.get_canonical_head(), pseudo_genesis)
 
-    headers_from_pseudo_genesis = (headers[8], headers[9],)
+    headers_from_pseudo_genesis = (
+        headers[8],
+        headers[9],
+    )
 
-    headerdb.persist_header_chain(headers_from_pseudo_genesis, pseudo_genesis.parent_hash)
+    headerdb.persist_header_chain(
+        headers_from_pseudo_genesis, pseudo_genesis.parent_hash
+    )
     assert headerdb.get_header_chain_gaps() == (((1, 7),), 11)
     head = headerdb.get_canonical_head()
     assert_headers_eq(head, headers[-1])
@@ -205,7 +210,8 @@ def _validate_gap_invariants(gaps):
 
     # 2. gaps are not overrlapping
     for low_range, high_range in sliding_window(2, gaps[0]):
-        # the top of the low range must not be sequential with the bottom of the high range
+        # the top of the low range must not be sequential
+        # with the bottom of the high range
         assert low_range[1] + 1 < high_range[0], gaps
 
     # 3. final gap does not overlap with the tail
@@ -215,59 +221,80 @@ def _validate_gap_invariants(gaps):
 
 
 @pytest.mark.parametrize(
-    'steps',
+    "steps",
     (
         # Make sure children of old canonical headers also get de-canonicalized
         (
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:4])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:4])),
             (StepAction.VERIFY_GAPS, ((), 5)),
-            # If a header has enough difficulty, be sure to de-canonicalize the old children
-            # In an old implementation, only headers at the same block number were de-canonicalized
-            (StepAction.PERSIST_HEADERS, (
-                'a',
-                # Insert a huge-difficulty header, enough to make sure all of b gets over-taken
-                lambda headers: [headers[0].copy(difficulty=headers[0].difficulty * 10)],
-            )),
+            # If a header has enough difficulty, be sure to de-canonicalize the old
+            # children. In an old implementation, only headers at the same block
+            # number were de-canonicalized
+            (
+                StepAction.PERSIST_HEADERS,
+                (
+                    "a",
+                    # Insert a huge-difficulty header, enough to make sure
+                    # all of b gets over-taken
+                    lambda headers: [
+                        headers[0].copy(difficulty=headers[0].difficulty * 10)
+                    ],
+                ),
+            ),
             (StepAction.VERIFY_GAPS, ((), 2)),
         ),
-        # If trying to de-canonicalize children of old canonical headers, and the first child
-        #   is a checkpoint, then raise an exception.
+        # If trying to de-canonicalize children of old canonical headers, and the first
+        # child is a checkpoint, then raise an exception.
         (
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:1])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[:1])),
             (StepAction.PERSIST_CHECKPOINT, 2),
             (StepAction.VERIFY_GAPS, ((), 3)),
-            # If a header has enough difficulty, be sure to de-canonicalize the old children
-            # In an old implementation, only headers at the same block number were de-canonicalized
+            # If a header has enough difficulty, be sure to de-canonicalize the
+            # old children. In an old implementation, only headers at the same block
+            # number were de-canonicalized
             # BUT, if one of those children is a checkpoint, then fail hard
-            (StepAction.VERIFY_PERSIST_RAISES, (
-                'b',
-                CheckpointsMustBeCanonical,
-                # Insert a huge-difficulty header, enough to make sure all of a gets over-taken
-                lambda headers: [headers[0].copy(difficulty=headers[0].difficulty * 10)],
-            )),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                (
+                    "b",
+                    CheckpointsMustBeCanonical,
+                    # Insert a huge-difficulty header, enough to make sure all of a gets
+                    # over-taken
+                    lambda headers: [
+                        headers[0].copy(difficulty=headers[0].difficulty * 10)
+                    ],
+                ),
+            ),
         ),
-        # If trying to de-canonicalize children of old canonical headers, and a grandchild
-        #   is a checkpoint, then raise an exception.
+        # If trying to de-canonicalize children of old canonical headers, and a
+        # grandchild is a checkpoint, then raise an exception.
         (
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:2])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[:2])),
             (StepAction.PERSIST_CHECKPOINT, 3),
             (StepAction.VERIFY_GAPS, ((), 4)),
-            # If a header has enough difficulty, be sure to de-canonicalize the old children
-            # In an old implementation, only headers at the same block number were de-canonicalized
+            # If a header has enough difficulty, be sure to de-canonicalize the old
+            # children. In an old implementation, only headers at the same block number
+            # were de-canonicalized
             # BUT, if one of those children is a checkpoint, then fail hard
-            (StepAction.VERIFY_PERSIST_RAISES, (
-                'b',
-                CheckpointsMustBeCanonical,
-                # Insert a huge-difficulty header, enough to make sure all of a gets over-taken
-                lambda headers: [headers[0].copy(difficulty=headers[0].difficulty * 10)],
-            )),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                (
+                    "b",
+                    CheckpointsMustBeCanonical,
+                    # Insert a huge-difficulty header, enough to make sure all of a gets
+                    # over-taken
+                    lambda headers: [
+                        headers[0].copy(difficulty=headers[0].difficulty * 10)
+                    ],
+                ),
+            ),
         ),
         # If a gap gets filled with a checkpoint, make sure that the checkpoint's parent
         # is valid. Otherwise, decanonicalize and re-insert a gap.
         (
             (StepAction.PERSIST_CHECKPOINT, 4),
             (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:2])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:2])),
             (StepAction.VERIFY_GAPS, (((3, 3),), 5)),
             (StepAction.PERSIST_CHECKPOINT, 3),
             (StepAction.VERIFY_GAPS, (((2, 2),), 5)),
@@ -278,146 +305,156 @@ def _validate_gap_invariants(gaps):
         ),
         # Make sure that b can't sneak it's way to canonical
         (
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:5])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:5])),
             (StepAction.PERSIST_CHECKPOINT, 9),
             (StepAction.PERSIST_CHECKPOINT, 6),
             (StepAction.PERSIST_CHECKPOINT, 1),
             (StepAction.PERSIST_CHECKPOINT, 4),
             (StepAction.VERIFY_GAPS, (((2, 3), (5, 5), (7, 8)), 10)),
-            (StepAction.VERIFY_PERSIST_RAISES, (
-                'b',
-                CheckpointsMustBeCanonical,
-                lambda headers: headers[5:7]
-            )),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                ("b", CheckpointsMustBeCanonical, lambda headers: headers[5:7]),
+            ),
         ),
         # Start patching gap with uncles, later overwrite with true chain
         (
             (StepAction.PERSIST_CHECKPOINT, 8),
             (StepAction.VERIFY_GAPS, (((1, 7),), 9)),
             (StepAction.VERIFY_CANONICAL_HEAD, 8),
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:3])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:3])),
             (StepAction.VERIFY_GAPS, (((4, 7),), 9)),
-            (StepAction.VERIFY_CANONICAL_HEADERS, ('b', lambda headers: headers[:3])),
+            (StepAction.VERIFY_CANONICAL_HEADERS, ("b", lambda headers: headers[:3])),
             # Verify patching the gap does not affect what our current head is
             (StepAction.VERIFY_CANONICAL_HEAD, 8),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers)),
-            # It's important to verify all headers of a became canonical because there was a point
-            # in time where the chain "thought" we already had filled 1 - 3 but they later turned
-            # out to be uncles.
-            (StepAction.VERIFY_CANONICAL_HEADERS, ('a', lambda headers: headers)),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers)),
+            # It's important to verify all headers of a became canonical because there
+            # was a point in time where the chain "thought" we already had filled 1 - 3
+            # but they later turned out to be uncles.
+            (StepAction.VERIFY_CANONICAL_HEADERS, ("a", lambda headers: headers)),
             (StepAction.VERIFY_GAPS, ((), 11)),
         ),
-        # Writing to the tail end of a gap, when its child would not have a matching parent_hash
-        #   should raise a validation error
+        # Writing to the tail end of a gap, when its child would not have a matching
+        # parent_hash should raise a validation error
         (
             (StepAction.PERSIST_CHECKPOINT, 4),
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:2])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:2])),
             (StepAction.VERIFY_GAPS, (((3, 3),), 5)),
             (StepAction.PERSIST_CHECKPOINT, 1),
             (StepAction.VERIFY_GAPS, (((2, 3),), 5)),
-            # Cannot fill the end of the (2, 3) gap because it doesn't match the checkpoint at 4
-            (StepAction.VERIFY_PERSIST_RAISES, ('b', CheckpointsMustBeCanonical, lambda h: h[2:3])),
+            # Cannot fill the end of the (2, 3) gap because it doesn't match the
+            # checkpoint at 4
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                ("b", CheckpointsMustBeCanonical, lambda h: h[2:3]),
+            ),
         ),
         # Make sure b can't sneak into canonical, overwriting a checkpoint
         (
             (StepAction.PERSIST_CHECKPOINT, 5),
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:2])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:2])),
             (StepAction.VERIFY_GAPS, (((3, 4),), 6)),
             (StepAction.PERSIST_CHECKPOINT, 1),
             (StepAction.VERIFY_GAPS, (((2, 4),), 6)),
-            (StepAction.VERIFY_PERSIST_RAISES, (
-                'b',
-                CheckpointsMustBeCanonical,
-                lambda headers: headers[2:3]
-            )),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                ("b", CheckpointsMustBeCanonical, lambda headers: headers[2:3]),
+            ),
             (StepAction.VERIFY_GAPS, (((2, 4),), 6)),
         ),
         # A couple cases of invalid checkpoint descendents getting de-canonicalized
         (
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:4])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:4])),
             (StepAction.PERSIST_CHECKPOINT, 4),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[4:5])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[4:5])),
             (StepAction.PERSIST_CHECKPOINT, 1),
             (StepAction.VERIFY_GAPS, (((2, 3),), 6)),
         ),
         (
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:4])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:4])),
             (StepAction.PERSIST_CHECKPOINT, 2),
-            (StepAction.VERIFY_GAPS, (((1, 1), ), 3)),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[2:3])),
-            (StepAction.VERIFY_GAPS, (((1, 1), ), 4)),
+            (StepAction.VERIFY_GAPS, (((1, 1),), 3)),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[2:3])),
+            (StepAction.VERIFY_GAPS, (((1, 1),), 4)),
         ),
         # Disallow checkpoints being made non-canonical
         (
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:4])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:4])),
             (StepAction.PERSIST_CHECKPOINT, 4),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[4:5])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[4:5])),
             (StepAction.PERSIST_CHECKPOINT, 1),
-            (StepAction.VERIFY_PERSIST_RAISES, (
-                'b',
-                CheckpointsMustBeCanonical,
-                lambda headers: headers[4:6],
-            )),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                (
+                    "b",
+                    CheckpointsMustBeCanonical,
+                    lambda headers: headers[4:6],
+                ),
+            ),
             (
                 StepAction.VERIFY_CANONICAL_HEADERS,
-                ('a', lambda headers: headers[0:1] + headers[3:5]),
+                ("a", lambda headers: headers[0:1] + headers[3:5]),
             ),
             (StepAction.VERIFY_GAPS, (((2, 3),), 6)),
         ),
         # Another of ^
         (
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:1])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:1])),
             (StepAction.PERSIST_CHECKPOINT, 2),
             (StepAction.VERIFY_GAPS, (((1, 1),), 3)),
-            (StepAction.VERIFY_PERSIST_RAISES, (
-                'b',
-                CheckpointsMustBeCanonical,
-                lambda headers: headers[1:3],
-            )),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:1])),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                (
+                    "b",
+                    CheckpointsMustBeCanonical,
+                    lambda headers: headers[1:3],
+                ),
+            ),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[:1])),
             (StepAction.VERIFY_GAPS, ((), 3)),
-            (StepAction.VERIFY_CANONICAL_HEADERS, ('a', lambda headers: headers[:2])),
+            (StepAction.VERIFY_CANONICAL_HEADERS, ("a", lambda headers: headers[:2])),
         ),
         # Checkpoint a child of an uncle
         (
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:1])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:1])),
             (StepAction.VERIFY_GAPS, ((), 2)),
             (StepAction.PERSIST_CHECKPOINT, 2),
             # Persisting a checkpoint where the parent is not a match should cause the
             # parent to become non-canonical.
-            (StepAction.VERIFY_GAPS, (((1, 1), ), 3)),
+            (StepAction.VERIFY_GAPS, (((1, 1),), 3)),
             (StepAction.VERIFY_CANONICAL_HEAD, 2),
             # Fill the uncled gap, the checkpoint (no-op) and the tail
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers)),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers)),
             # Verify that block 1 gets canonicalized as A
-            (StepAction.VERIFY_CANONICAL_HEADERS, ('a', lambda headers: headers)),
+            (StepAction.VERIFY_CANONICAL_HEADERS, ("a", lambda headers: headers)),
             (StepAction.VERIFY_GAPS, ((), 11)),
         ),
         # Don't override a checkpoint by persisting a chain that's a child of a gap
         (
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:1])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:1])),
             (StepAction.PERSIST_CHECKPOINT, 2),
-            (StepAction.VERIFY_GAPS, (((1, 1), ), 3)),
-            (StepAction.VERIFY_PERSIST_RAISES, (
-                'b',
-                CheckpointsMustBeCanonical,
-                lambda headers: headers[1:3]
-            )),
+            (StepAction.VERIFY_GAPS, (((1, 1),), 3)),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                ("b", CheckpointsMustBeCanonical, lambda headers: headers[1:3]),
+            ),
         ),
         # checkpointing should canonicalize matching parent header chain
         (
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:2])),
-            (StepAction.PERSIST_HEADERS, ('b', lambda headers: headers[:3])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[:2])),
+            (StepAction.PERSIST_HEADERS, ("b", lambda headers: headers[:3])),
             (StepAction.PERSIST_CHECKPOINT, 3),
             (StepAction.VERIFY_GAPS, ((), 4)),
-            (StepAction.VERIFY_CANONICAL_HEADERS, ('a', lambda headers: headers[:3])),
+            (StepAction.VERIFY_CANONICAL_HEADERS, ("a", lambda headers: headers[:3])),
         ),
         # Can not close gap with uncle chain
         (
             (StepAction.PERSIST_CHECKPOINT, 8),
             (StepAction.VERIFY_GAPS, (((1, 7),), 9)),
             (StepAction.VERIFY_CANONICAL_HEAD, 8),
-            (StepAction.VERIFY_PERSIST_RAISES, ('b', CheckpointsMustBeCanonical, lambda h: h[:7])),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                ("b", CheckpointsMustBeCanonical, lambda h: h[:7]),
+            ),
             (StepAction.VERIFY_GAPS, (((1, 7),), 9)),
         ),
         # Can not fill gaps non-sequentially (backwards from checkpoint)
@@ -425,17 +462,23 @@ def _validate_gap_invariants(gaps):
             (StepAction.PERSIST_CHECKPOINT, 4),
             (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
             (StepAction.VERIFY_CANONICAL_HEAD, 4),
-            (StepAction.VERIFY_PERSIST_RAISES, ('b', ParentNotFound, lambda headers: [headers[2]])),
-            (StepAction.VERIFY_PERSIST_RAISES, ('a', ParentNotFound, lambda headers: [headers[2]])),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                ("b", ParentNotFound, lambda headers: [headers[2]]),
+            ),
+            (
+                StepAction.VERIFY_PERSIST_RAISES,
+                ("a", ParentNotFound, lambda headers: [headers[2]]),
+            ),
             (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
         ),
         # Can close gap, when head has advanced from checkpoint header
         (
             (StepAction.PERSIST_CHECKPOINT, 4),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: [headers[4]])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: [headers[4]])),
             (StepAction.VERIFY_GAPS, (((1, 3),), 6)),
             (StepAction.VERIFY_CANONICAL_HEAD, 5),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:3])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[:3])),
             (StepAction.VERIFY_GAPS, ((), 6)),
         ),
         # Can close gap that ends at checkpoint header
@@ -443,7 +486,7 @@ def _validate_gap_invariants(gaps):
             (StepAction.PERSIST_CHECKPOINT, 4),
             (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
             (StepAction.VERIFY_CANONICAL_HEAD, 4),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:3])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[:3])),
             (StepAction.VERIFY_GAPS, ((), 5)),
         ),
         # Open new gaps, while filling in previous gaps
@@ -451,20 +494,29 @@ def _validate_gap_invariants(gaps):
             (StepAction.PERSIST_CHECKPOINT, 4),
             (StepAction.VERIFY_GAPS, (((1, 3),), 5)),
             (StepAction.VERIFY_CANONICAL_HEAD, 4),
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[:2])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[:2])),
             (StepAction.VERIFY_GAPS, (((3, 3),), 5)),
             # Create another gap
             (StepAction.PERSIST_CHECKPOINT, 8),
             (StepAction.VERIFY_CANONICAL_HEAD, 8),
-            (StepAction.VERIFY_GAPS, (((3, 3), (5, 7),), 9)),
+            (
+                StepAction.VERIFY_GAPS,
+                (
+                    (
+                        (3, 3),
+                        (5, 7),
+                    ),
+                    9,
+                ),
+            ),
             # Work on the second gap but don't close
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: headers[4:6])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: headers[4:6])),
             (StepAction.VERIFY_GAPS, (((3, 3), (7, 7)), 9)),
             # Close first gap
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: [headers[2]])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: [headers[2]])),
             (StepAction.VERIFY_GAPS, (((7, 7),), 9)),
             # Close second gap
-            (StepAction.PERSIST_HEADERS, ('a', lambda headers: [headers[6]])),
+            (StepAction.PERSIST_HEADERS, ("a", lambda headers: [headers[6]])),
             (StepAction.VERIFY_GAPS, ((), 9)),
         ),
     ),
@@ -476,16 +528,18 @@ def test_different_cases_of_patching_gaps(headerdb, genesis_header, steps):
     chain_b = mk_header_chain(genesis_header, length=new_chain_length)
 
     def _get_chain(id):
-        if chain_id == 'a':
+        if chain_id == "a":
             return chain_a
-        elif chain_id == 'b':
+        elif chain_id == "b":
             return chain_b
         else:
             raise Exception(f"Invalid chain id: {chain_id}")
 
     assert headerdb.get_header_chain_gaps() == GENESIS_CHAIN_GAPS
 
-    for step_index, step in enumerate(steps):  # noqa: B007  # step_index only present for debugging
+    for _step_index, step in enumerate(
+        steps
+    ):  # noqa: B007  # step_index only present for debugging
         step_action, step_data = step
         if step_action is StepAction.PERSIST_CHECKPOINT:
             pseudo_genesis = chain_a[step_data - 1]
@@ -498,7 +552,9 @@ def test_different_cases_of_patching_gaps(headerdb, genesis_header, steps):
         elif step_action is StepAction.VERIFY_GAPS:
             gaps = headerdb.get_header_chain_gaps()
             assert gaps == step_data
-            all_gap_numbers = _all_gap_numbers(gaps, highest_block_number=new_chain_length + 1)
+            all_gap_numbers = _all_gap_numbers(
+                gaps, highest_block_number=new_chain_length + 1
+            )
             for missing_block_number in all_gap_numbers:
                 with pytest.raises(HeaderNotFound):
                     headerdb.get_canonical_block_header_by_number(missing_block_number)
@@ -515,7 +571,10 @@ def test_different_cases_of_patching_gaps(headerdb, genesis_header, steps):
         elif step_action is StepAction.VERIFY_CANONICAL_HEADERS:
             chain_id, selector_fn = step_data
             for header in selector_fn(_get_chain(chain_id)):
-                assert headerdb.get_canonical_block_header_by_number(header.block_number) == header
+                assert (
+                    headerdb.get_canonical_block_header_by_number(header.block_number)
+                    == header
+                )
         else:
             raise Exception("Unknown step action")
 
@@ -524,62 +583,98 @@ def test_different_cases_of_patching_gaps(headerdb, genesis_header, steps):
 
 
 @pytest.mark.parametrize(
-    'written_headers, evolving_gaps',
+    "written_headers, evolving_gaps",
     (
-        (   # consecutive updates, then overwriting existing header
+        (  # consecutive updates, then overwriting existing header
             (1, 2, 1),
             (
                 (GapChange.TailWrite, ((), 2)),
                 (GapChange.TailWrite, ((), 3)),
                 (GapChange.NoChange, ((), 3)),
-            )
+            ),
         ),
-        (   # consecutive updates
+        (  # consecutive updates
             (1, 2, 3),
             (
                 (GapChange.TailWrite, ((), 2)),
                 (GapChange.TailWrite, ((), 3)),
                 (GapChange.TailWrite, ((), 4)),
-            )
+            ),
         ),
-        (   # missing a single header in the middle
+        (  # missing a single header in the middle
             (1, 3),
             (
                 (GapChange.TailWrite, ((), 2)),
                 (GapChange.NewGap, (((2, 2),), 4)),
-            )
+            ),
         ),
-        (   # missing three headers in the middle
+        (  # missing three headers in the middle
             (1, 5),
             (
                 (GapChange.TailWrite, ((), 2)),
                 (GapChange.NewGap, (((2, 4),), 6)),
-            )
+            ),
         ),
-        (   # missing three headers in the middle, then patching center, dividing existing hole
+        (  # missing three middle headers, then patching center, dividing existing hole
             (1, 5, 3),
             (
                 (GapChange.TailWrite, ((), 2)),
                 (GapChange.NewGap, (((2, 4),), 6)),
-                (GapChange.GapSplit, (((2, 2), (4, 4),), 6,))
-            )
+                (
+                    GapChange.GapSplit,
+                    (
+                        (
+                            (2, 2),
+                            (4, 4),
+                        ),
+                        6,
+                    ),
+                ),
+            ),
         ),
-        (   # multiple holes, shrinking them until they vanish
+        (  # multiple holes, shrinking them until they vanish
             (1, 10, 5, 2, 4, 3, 9, 8, 7, 6),
             (
                 (GapChange.TailWrite, ((), 2)),
                 (GapChange.NewGap, (((2, 9),), 11)),
-                (GapChange.GapSplit, (((2, 4), (6, 9),), 11)),
-                (GapChange.GapLeftShrink, (((3, 4), (6, 9),), 11)),
-                (GapChange.GapRightShrink, (((3, 3), (6, 9),), 11)),
+                (
+                    GapChange.GapSplit,
+                    (
+                        (
+                            (2, 4),
+                            (6, 9),
+                        ),
+                        11,
+                    ),
+                ),
+                (
+                    GapChange.GapLeftShrink,
+                    (
+                        (
+                            (3, 4),
+                            (6, 9),
+                        ),
+                        11,
+                    ),
+                ),
+                (
+                    GapChange.GapRightShrink,
+                    (
+                        (
+                            (3, 3),
+                            (6, 9),
+                        ),
+                        11,
+                    ),
+                ),
                 (GapChange.GapFill, (((6, 9),), 11)),
                 (GapChange.GapRightShrink, (((6, 8),), 11)),
                 (GapChange.GapRightShrink, (((6, 7),), 11)),
                 (GapChange.GapRightShrink, (((6, 6),), 11)),
                 (GapChange.GapFill, ((), 11)),
-            )
+            ),
         ),
-    )
+    ),
 )
 def test_gap_tracking(headerdb, genesis_header, written_headers, evolving_gaps):
     headerdb.persist_header(genesis_header)
@@ -599,19 +694,26 @@ def test_gap_tracking(headerdb, genesis_header, written_headers, evolving_gaps):
         assert change == evolving_gaps[idx][0]
 
 
-@given(st.lists(
-    st.tuples(
-        # True to insert a header (ie~ remove a gap), False to remove a header (ie~ add a gap)
-        st.booleans(),
-        st.integers(min_value=1, max_value=19),  # constrain to try to cause collisions
+@given(
+    st.lists(
+        st.tuples(
+            # True to insert a header (ie~ remove a gap), False to remove a
+            # header (ie~ add a gap)
+            st.booleans(),
+            st.integers(
+                min_value=1, max_value=19
+            ),  # constrain to try to cause collisions
+        )
     )
-))
+)
 @example([(True, 2), (True, 4), (False, 4)])
 def test_gap_continuity(changes):
     MAX_BLOCK_NUM = 21
 
     # method to get all the block numbers that are in a gap right now
-    _all_missing = compose(set, partial(_all_gap_numbers, highest_block_number=MAX_BLOCK_NUM))
+    _all_missing = compose(
+        set, partial(_all_gap_numbers, highest_block_number=MAX_BLOCK_NUM)
+    )
 
     @to_set
     def _all_inserted(chain_gaps):
@@ -713,9 +815,13 @@ def test_true_chain_canonicalized_regardless_of_order(genesis_header, data):
 
         action = data.draw(st.sampled_from(ActionEnum))
         if action == ActionEnum.CHECKPOINT:
-            checkpoint_index = data.draw(st.sampled_from(list(sorted(missing_indices[CHAIN_A]))))
+            checkpoint_index = data.draw(
+                st.sampled_from(list(sorted(missing_indices[CHAIN_A])))
+            )
             checkpoint = chain_a_headers[checkpoint_index]
-            checkpoint_score = get_score(genesis_header, chain_a_headers[:checkpoint_index + 1])
+            checkpoint_score = get_score(
+                genesis_header, chain_a_headers[: checkpoint_index + 1]
+            )
             headerdb.persist_checkpoint_header(checkpoint, checkpoint_score)
 
             # keep track of whether any checkpoints were added, so we eventually
@@ -736,7 +842,9 @@ def test_true_chain_canonicalized_regardless_of_order(genesis_header, data):
             try:
                 headerdb.persist_header_chain(next_headers)
             except CheckpointsMustBeCanonical:
-                assert chain_idx == CHAIN_B, "Only chain B should fail to decanonize checkpoint"
+                assert (
+                    chain_idx == CHAIN_B
+                ), "Only chain B should fail to decanonize checkpoint"
                 # Persist failed, so retry different action
                 continue
 
@@ -750,13 +858,13 @@ def test_true_chain_canonicalized_regardless_of_order(genesis_header, data):
     if last_checkpoint is None:
         # Force canonicalization of chain a by adding a bonus header at the end of
         #   all the chain A headers.
-        (subsequent_header, ) = mk_header_chain(chain_a_headers[-1], length=1)
+        (subsequent_header,) = mk_header_chain(chain_a_headers[-1], length=1)
         headerdb.persist_checkpoint_header(
             subsequent_header,
             get_score(genesis_header, chain_a_headers + (subsequent_header,)),
         )
 
-        assert_is_canonical_chain(headerdb, chain_a_headers + (subsequent_header, ))
+        assert_is_canonical_chain(headerdb, chain_a_headers + (subsequent_header,))
     else:
         if headerdb.get_canonical_head() != chain_a_headers[-1]:
             child_headers = mk_header_chain(chain_a_headers[-1], length=1)
@@ -770,14 +878,12 @@ def test_true_chain_canonicalized_regardless_of_order(genesis_header, data):
 
 
 @pytest.mark.parametrize(
-    'chain_length',
+    "chain_length",
     (0, 1, 2, 3),
 )
 def test_headerdb_get_canonical_head_with_header_chain_iterator(
-        headerdb,
-        genesis_header,
-        chain_length):
-
+    headerdb, genesis_header, chain_length
+):
     headerdb.persist_header(genesis_header)
     headers = mk_header_chain(genesis_header, length=chain_length)
 
@@ -796,19 +902,25 @@ def test_headerdb_persist_header_disallows_unknown_parent(headerdb):
         difficulty=GENESIS_DIFFICULTY,
         block_number=GENESIS_BLOCK_NUMBER,
         gas_limit=GENESIS_GAS_LIMIT,
-        parent_hash=b'\x0f' * 32,
+        parent_hash=b"\x0f" * 32,
         timestamp=0,
     )
     with pytest.raises(ParentNotFound, match="unknown parent"):
         headerdb.persist_header(header)
 
 
-def test_headerdb_persist_header_chain_disallows_non_contiguous_chain(headerdb, genesis_header):
+def test_headerdb_persist_header_chain_disallows_non_contiguous_chain(
+    headerdb, genesis_header
+):
     headerdb.persist_header(genesis_header)
 
     headers = mk_header_chain(genesis_header, length=3)
 
-    non_contiguous_headers = (headers[0], headers[2], headers[1],)
+    non_contiguous_headers = (
+        headers[0],
+        headers[2],
+        headers[1],
+    )
 
     with pytest.raises(ValidationError, match="Non-contiguous chain"):
         headerdb.persist_header_chain(non_contiguous_headers)
@@ -898,7 +1010,8 @@ def test_headerdb_canonical_head_updates_to_longest_chain(headerdb, genesis_head
     chain_b = mk_header_chain(genesis_header, 5)
     chain_c = mk_header_chain(genesis_header, 9)
 
-    # insert `chain_a` into the database and verify that each block becomes the canonical head.
+    # insert `chain_a` into the database and verify that each block becomes the
+    # canonical head.
     for idx, header in enumerate(chain_a, 1):
         headerdb.persist_header(header)
         assert_is_canonical_chain(headerdb, chain_a[:idx])
@@ -913,7 +1026,8 @@ def test_headerdb_canonical_head_updates_to_longest_chain(headerdb, genesis_head
     for idx, header in enumerate(chain_c, 1):
         headerdb.persist_header(header)
 
-        # HEAD should remain at the tip of `chain_a` until *after* the 8th header is imported
+        # HEAD should remain at the tip of `chain_a` until *after* the 8th
+        # header is imported
         if idx <= 7:
             assert_is_canonical_chain(headerdb, chain_a)
         else:

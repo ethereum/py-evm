@@ -82,14 +82,16 @@ def test_header_chain_get_vm_class_using_block_header(base_db, genesis_header):
 
 
 def test_header_chain_invalid_if_no_vm_configuration(base_db, genesis_header):
-    chain_class = MiningChain.configure('ChainNoEmptyConfiguration', vm_configuration=())
+    chain_class = MiningChain.configure(
+        "ChainNoEmptyConfiguration", vm_configuration=()
+    )
     with pytest.raises(ValueError):
         chain_class(base_db, genesis_header)
 
 
 def test_vm_not_found_if_no_matching_block_number(genesis_header):
-    chain_class = Chain.configure('ChainStartsAtBlock10', vm_configuration=(
-        (10, VM_A),
-    ))
+    chain_class = Chain.configure(
+        "ChainStartsAtBlock10", vm_configuration=((10, VM_A),)
+    )
     with pytest.raises(VMNotFound):
         chain_class.get_vm_class_for_block_number(9)

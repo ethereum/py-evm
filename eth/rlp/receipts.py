@@ -30,18 +30,15 @@ class Receipt(rlp.Serializable, ReceiptAPI, ReceiptBuilderAPI):
     type_id = None
 
     fields = [
-        ('state_root', binary),
-        ('gas_used', big_endian_int),
-        ('bloom', uint256),
-        ('logs', CountableList(Log))
+        ("state_root", binary),
+        ("gas_used", big_endian_int),
+        ("bloom", uint256),
+        ("logs", CountableList(Log)),
     ]
 
-    def __init__(self,
-                 state_root: bytes,
-                 gas_used: int,
-                 logs: Iterable[Log],
-                 bloom: int = None) -> None:
-
+    def __init__(
+        self, state_root: bytes, gas_used: int, logs: Iterable[Log], bloom: int = None
+    ) -> None:
         if bloom is None:
             bloomables = itertools.chain.from_iterable(log.bloomables for log in logs)
             bloom = int(BloomFilter.from_iterable(bloomables))

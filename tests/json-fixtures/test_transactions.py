@@ -61,11 +61,11 @@ from eth.vm.forks.spurious_dragon.transactions import (
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
 
-BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, 'fixtures', 'TransactionTests')
+BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, "fixtures", "TransactionTests")
 
 
 # Fixtures have an `_info` key at their root which we need to skip over.
-FIXTURE_FORK_SKIPS = {'_info', 'txbytes'}
+FIXTURE_FORK_SKIPS = {"_info", "txbytes"}
 
 
 @to_tuple
@@ -77,7 +77,7 @@ def expand_fixtures_forks(all_fixtures):
     """
     for fixture_path, fixture_key in all_fixtures:
         fixture = load_fixture(fixture_path, fixture_key)
-        for fixture_fork, _ in fixture['result'].items():
+        for fixture_fork, _ in fixture["result"].items():
             if fixture_fork not in FIXTURE_FORK_SKIPS:
                 yield fixture_path, fixture_key, fixture_fork
 
@@ -148,27 +148,27 @@ def test_transaction_fixtures(fixture, fixture_transaction_class):
     TransactionClass = fixture_transaction_class
 
     try:
-        txn = rlp.decode(fixture['txbytes'], sedes=TransactionClass)
+        txn = rlp.decode(fixture["txbytes"], sedes=TransactionClass)
     except (rlp.DeserializationError, rlp.exceptions.DecodingError):
-        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+        assert "hash" not in fixture, "Transaction was supposed to be valid"
     except TypeError as err:
         # Ensure we are only letting type errors pass that are caused by
         # RLP elements that are lists when they shouldn't be lists
         # (see: /TransactionTests/ttWrongRLP/RLPElementIsListWhenItShouldntBe.json)
         assert err.args == ("'bytes' object cannot be interpreted as an integer",)
-        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+        assert "hash" not in fixture, "Transaction was supposed to be valid"
     # fixture normalization changes the fixture key from rlp to rlpHex
     except KeyError:
-        assert fixture['rlpHex']
-        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+        assert fixture["rlpHex"]
+        assert "hash" not in fixture, "Transaction was supposed to be valid"
     except ValidationError as err:
         err_matchers = ("Cannot build typed transaction with", ">= 0x80")
         assert all(_ in err.args[0] for _ in err_matchers)
-        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+        assert "hash" not in fixture, "Transaction was supposed to be valid"
     except UnrecognizedTransactionType as err:
         assert err.args[1] == "Unknown transaction type"
         assert hex(err.args[0]) not in VALID_TRANSACTION_TYPES
-        assert 'hash' not in fixture, "Transaction was supposed to be valid"
+        assert "hash" not in fixture, "Transaction was supposed to be valid"
     else:
         # check parameter correctness
         try:
@@ -176,6 +176,6 @@ def test_transaction_fixtures(fixture, fixture_transaction_class):
         except ValidationError:
             return
 
-    if 'sender' in fixture:
-        assert 'hash' in fixture, "Transaction was supposed to be invalid"
-        assert is_same_address(txn.sender, fixture['sender'])
+    if "sender" in fixture:
+        assert "hash" in fixture, "Transaction was supposed to be invalid"
+        assert is_same_address(txn.sender, fixture["sender"])

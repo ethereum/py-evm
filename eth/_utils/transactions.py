@@ -56,16 +56,19 @@ def extract_signature_v(v: int) -> int:
         return V_OFFSET
 
 
-def create_transaction_signature(unsigned_txn: UnsignedTransactionAPI,
-                                 private_key: datatypes.PrivateKey,
-                                 chain_id: int = None) -> VRS:
-
+def create_transaction_signature(
+    unsigned_txn: UnsignedTransactionAPI,
+    private_key: datatypes.PrivateKey,
+    chain_id: int = None,
+) -> VRS:
     transaction_parts = rlp.decode(rlp.encode(unsigned_txn))
 
     if chain_id:
-        transaction_parts_for_signature = (
-            transaction_parts + [int_to_big_endian(chain_id), b'', b'']
-        )
+        transaction_parts_for_signature = transaction_parts + [
+            int_to_big_endian(chain_id),
+            b"",
+            b"",
+        ]
     else:
         transaction_parts_for_signature = transaction_parts
 
@@ -112,10 +115,10 @@ class IntrinsicGasSchedule(NamedTuple):
 
 
 def calculate_intrinsic_gas(
-        gas_schedule: IntrinsicGasSchedule,
-        transaction: SignedTransactionAPI,
+    gas_schedule: IntrinsicGasSchedule,
+    transaction: SignedTransactionAPI,
 ) -> int:
-    num_zero_bytes = transaction.data.count(b'\x00')
+    num_zero_bytes = transaction.data.count(b"\x00")
     num_non_zero_bytes = len(transaction.data) - num_zero_bytes
     if transaction.to == CREATE_CONTRACT_ADDRESS:
         create_cost = gas_schedule.gas_txcreate

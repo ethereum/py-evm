@@ -23,16 +23,16 @@ from eth.abc import (
 
 
 def _is_local_prop(prop: str) -> bool:
-    return len(prop.split('.')) == 1
+    return len(prop.split(".")) == 1
 
 
 def _extract_top_level_key(prop: str) -> str:
-    left, _, _ = prop.partition('.')
+    left, _, _ = prop.partition(".")
     return left
 
 
 def _extract_tail_key(prop: str) -> str:
-    _, _, right = prop.partition('.')
+    _, _, right = prop.partition(".")
     return right
 
 
@@ -52,12 +52,15 @@ def _get_sub_overrides(overrides: Dict[str, Any]) -> Iterator[Tuple[str, Any]]:
 
 @to_dict
 def _get_sub_overrides_by_prop(
-        overrides: Dict[str, Any]) -> Iterator[Tuple[str, Dict[str, List[str]]]]:
+    overrides: Dict[str, Any]
+) -> Iterator[Tuple[str, Dict[str, List[str]]]]:
     # we only want the overrides that are not top level.
     sub_overrides = _get_sub_overrides(overrides)
     key_groups = groupby(_extract_top_level_key, sub_overrides.keys())
     for top_level_key, props in key_groups.items():
-        yield top_level_key, {_extract_tail_key(prop): overrides[prop] for prop in props}
+        yield top_level_key, {
+            _extract_tail_key(prop): overrides[prop] for prop in props
+        }
 
 
 @to_set
@@ -65,24 +68,23 @@ def _get_top_level_keys(overrides: Dict[str, Any]) -> Iterator[str]:
     for prop in overrides:
         yield _extract_top_level_key(prop)
 
+
 # Dynamic subclassing is not supported by mypy
 # https://github.com/python/mypy/wiki/Unsupported-Python-Features
 # Most of the cases where we silence mypy boil down to cases where
 # dynamic subclasses where generated through this method
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Configurable(ConfigurableAPI):
     """
     Base class for simple inline subclassing
     """
-    @classmethod
-    def configure(cls: Type[T],
-                  __name__: str = None,
-                  **overrides: Any) -> Type[T]:
 
+    @classmethod
+    def configure(cls: Type[T], __name__: str = None, **overrides: Any) -> Type[T]:
         if __name__ is None:
             __name__ = cls.__name__
 
@@ -92,7 +94,7 @@ class Configurable(ConfigurableAPI):
         local_overrides = _get_local_overrides(overrides)
 
         for key in top_level_keys:
-            if key == '__name__':
+            if key == "__name__":
                 continue
             elif not hasattr(cls, key):
                 raise TypeError(

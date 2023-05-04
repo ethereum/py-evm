@@ -26,7 +26,7 @@ from .state import ParisState
 
 class ParisVM(GrayGlacierVM):
     # fork name
-    fork = 'paris'
+    fork = "paris"
 
     # classes
     block_class: Type[BaseBlock] = ParisBlock
@@ -53,14 +53,14 @@ class ParisVM(GrayGlacierVM):
 
     @classmethod
     def validate_header(
-        cls,
-        header: BlockHeaderAPI,
-        parent_header: BlockHeaderAPI
+        cls, header: BlockHeaderAPI, parent_header: BlockHeaderAPI
     ) -> None:
         super().validate_header(header, parent_header)
 
         difficulty, nonce, uncles_hash = (
-            header.difficulty, header.nonce, header.uncles_hash
+            header.difficulty,
+            header.nonce,
+            header.uncles_hash,
         )
 
         if difficulty != POST_MERGE_DIFFICULTY:
@@ -73,5 +73,6 @@ class ParisVM(GrayGlacierVM):
             )
         if uncles_hash != POST_MERGE_OMMERS_HASH:
             raise ValidationError(
-                f"Uncles hash must be {POST_MERGE_OMMERS_HASH !r}, got {uncles_hash !r}."
+                f"Uncles hash must be {POST_MERGE_OMMERS_HASH !r}, "
+                f"got {uncles_hash !r}."
             )

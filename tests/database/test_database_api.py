@@ -24,15 +24,17 @@ from eth.tools.db.base import (
 )
 
 
-@pytest.fixture(params=[
-    JournalDB,
-    BatchDB,
-    MemoryDB,
-    AtomicDB,
-    CacheDB,
-    KeyAccessLoggerAtomicDB,
-    KeyAccessLoggerDB,
-])
+@pytest.fixture(
+    params=[
+        JournalDB,
+        BatchDB,
+        MemoryDB,
+        AtomicDB,
+        CacheDB,
+        KeyAccessLoggerAtomicDB,
+        KeyAccessLoggerDB,
+    ]
+)
 def db(request):
     base_db = MemoryDB()
     if request.param is JournalDB:

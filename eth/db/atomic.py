@@ -60,9 +60,10 @@ class AtomicDB(BaseAtomicDB):
 
 class AtomicDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
     """
-    This is returned by a BaseAtomicDB during an atomic_batch, to provide a temporary view
-    of the database, before commit.
+    This is returned by a BaseAtomicDB during an atomic_batch, to provide a temporary
+    view of the database, before commit.
     """
+
     logger = logging.getLogger("eth.db.AtomicDBWriteBatch")
 
     _write_target_db: DatabaseAPI = None
@@ -94,7 +95,9 @@ class AtomicDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
 
     def __delitem__(self, key: bytes) -> None:
         if self._track_diff is None:
-            raise ValidationError("Cannot delete data from a write batch, out of context")
+            raise ValidationError(
+                "Cannot delete data from a write batch, out of context"
+            )
 
         if key not in self:
             raise KeyError(key)
@@ -108,7 +111,9 @@ class AtomicDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
 
     def _exists(self, key: bytes) -> bool:
         if self._track_diff is None:
-            raise ValidationError("Cannot test data existance from a write batch, out of context")
+            raise ValidationError(
+                "Cannot test data existance from a write batch, out of context"
+            )
 
         try:
             self[key]
@@ -119,12 +124,14 @@ class AtomicDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
 
     @classmethod
     @contextmanager
-    def _commit_unless_raises(cls, write_target_db: DatabaseAPI) -> Iterator[AtomicWriteBatchAPI]:
+    def _commit_unless_raises(
+        cls, write_target_db: DatabaseAPI
+    ) -> Iterator[AtomicWriteBatchAPI]:
         """
         Commit all writes inside the context, unless an exception was raised.
 
-        Although this is technically an external API, it (and this whole class) is only intended
-        to be used by AtomicDB.
+        Although this is technically an external API, it (and this whole class) is only
+        intended to be used by AtomicDB.
         """
         readable_write_batch: AtomicDBWriteBatch = cls(write_target_db)
         try:

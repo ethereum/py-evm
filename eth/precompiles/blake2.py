@@ -33,7 +33,9 @@ def blake2b_fcompress(computation: ComputationAPI) -> ComputationAPI:
     num_rounds = parameters[0]
     gas_cost = GAS_COST_PER_ROUND * num_rounds
 
-    computation.consume_gas(gas_cost, reason=f"Blake2b Compress Precompile w/ {num_rounds} rounds")
+    computation.consume_gas(
+        gas_cost, reason=f"Blake2b Compress Precompile w/ {num_rounds} rounds"
+    )
 
     computation.output = blake2b_compress(*parameters)
     return computation

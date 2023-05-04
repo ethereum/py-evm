@@ -55,12 +55,15 @@ def get_signers_at_checkpoint(header: BlockHeaderAPI) -> Iterable[Address]:
         raise ValidationError("Checkpoint header must contain list of signers")
 
     signer_count = int(
-        (len(header.extra_data) - VANITY_LENGTH - SIGNATURE_LENGTH) / COMMON_ADDRESS_LENGTH
+        (len(header.extra_data) - VANITY_LENGTH - SIGNATURE_LENGTH)
+        / COMMON_ADDRESS_LENGTH
     )
 
     for i in range(signer_count):
         yield Address(
-            header.extra_data[VANITY_LENGTH + i * COMMON_ADDRESS_LENGTH:][:COMMON_ADDRESS_LENGTH]
+            header.extra_data[VANITY_LENGTH + i * COMMON_ADDRESS_LENGTH :][
+                :COMMON_ADDRESS_LENGTH
+            ]
         )
 
 
@@ -75,7 +78,7 @@ def get_signature_hash(header: BlockHeaderAPI) -> Hash32:
         raise ValueError("header.extra_data too short to contain signature")
 
     signature_header: BlockHeaderAPI = header.copy(
-        extra_data=header.extra_data[:len(header.extra_data) - SIGNATURE_LENGTH]
+        extra_data=header.extra_data[: len(header.extra_data) - SIGNATURE_LENGTH]
     )
     return signature_header.hash
 
@@ -91,7 +94,9 @@ def get_block_signer(header: BlockHeaderAPI) -> Address:
 
     signature = keys.Signature(signature_bytes=signature_bytes)
 
-    return signature.recover_public_key_from_msg_hash(signature_hash).to_canonical_address()
+    return signature.recover_public_key_from_msg_hash(
+        signature_hash
+    ).to_canonical_address()
 
 
 def is_in_turn(signer: Address, snapshot: Snapshot, header: BlockHeaderAPI) -> bool:
@@ -108,20 +113,22 @@ def is_in_turn(signer: Address, snapshot: Snapshot, header: BlockHeaderAPI) -> b
         return header.block_number % len(sorted_signers) == offset
 
 
-def sign_block_header(header: BlockHeaderAPI, private_key: PrivateKey) -> BlockHeaderAPI:
+def sign_block_header(
+    header: BlockHeaderAPI, private_key: PrivateKey
+) -> BlockHeaderAPI:
     signature_hash = get_signature_hash(header)
     signature = private_key.sign_msg_hash(signature_hash)
     signers = get_signers_at_checkpoint(header)
 
-    signed_extra_data = b''.join((
-        header.extra_data[:VANITY_LENGTH],
-        b''.join(signers),
-        signature.to_bytes(),
-    ))
-
-    return header.copy(
-        extra_data=signed_extra_data
+    signed_extra_data = b"".join(
+        (
+            header.extra_data[:VANITY_LENGTH],
+            b"".join(signers),
+            signature.to_bytes(),
+        )
     )
+
+    return header.copy(extra_data=signed_extra_data)
 
 
 def is_checkpoint(block_number: int, epoch_length: int) -> bool:
@@ -132,7 +139,6 @@ def is_checkpoint(block_number: int, epoch_length: int) -> bool:
 
 
 def validate_header_integrity(header: BlockHeaderAPI, epoch_length: int) -> None:
-
     if header.timestamp > eth_now():
         raise ValidationError(f"Invalid future timestamp: {header.timestamp}")
 

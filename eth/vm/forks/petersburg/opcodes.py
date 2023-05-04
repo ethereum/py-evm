@@ -54,7 +54,7 @@ UPDATED_OPCODES = {
         gas_cost=GAS_EXTCODEHASH_EIP1052,
     ),
     opcode_values.CREATE2: system.Create2.configure(
-        __name__='opcode:CREATE2',
+        __name__="opcode:CREATE2",
         mnemonic=mnemonics.CREATE2,
         gas_cost=constants.GAS_CREATE,
     )(),

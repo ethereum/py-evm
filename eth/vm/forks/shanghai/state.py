@@ -24,9 +24,11 @@ class ShanghaiTransactionExecutor(ParisTransactionExecutor):
 
 class ShanghaiState(ParisState):
     computation_class = ShanghaiComputation
-    transaction_executor_class: Type[TransactionExecutorAPI] = ShanghaiTransactionExecutor   # noqa: E501
+    transaction_executor_class: Type[
+        TransactionExecutorAPI
+    ] = ShanghaiTransactionExecutor
 
     def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:
         # withdrawal amount is in gwei, convert to wei
-        amount_in_wei = withdrawal.amount * 10 ** 9
+        amount_in_wei = withdrawal.amount * 10**9
         self.delta_balance(withdrawal.address, amount_in_wei)

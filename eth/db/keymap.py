@@ -18,6 +18,7 @@ class KeyMapDB(BaseDB):
     Modify keys when accessing the database, according to the
     abstract keymap function set in the subclass.
     """
+
     def __init__(self, db: DatabaseAPI) -> None:
         self._db = db
 
@@ -38,7 +39,7 @@ class KeyMapDB(BaseDB):
         mapped_key = self.keymap(key)
         del self._db[mapped_key]
 
-    def __contains__(self, key: bytes) -> bool:     # type: ignore # Breaks LSP
+    def __contains__(self, key: bytes) -> bool:  # type: ignore # Breaks LSP
         mapped_key = self.keymap(key)
         return mapped_key in self._db
 
@@ -46,7 +47,7 @@ class KeyMapDB(BaseDB):
         return getattr(self._db, attr)
 
     def __setattr__(self, attr: Any, val: Any) -> None:
-        if attr in ('_db', 'keymap'):
+        if attr in ("_db", "keymap"):
             super().__setattr__(attr, val)
         else:
             setattr(self._db, attr, val)

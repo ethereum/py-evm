@@ -98,16 +98,18 @@ def fill_state_test(filler: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
         for network in networks:
             state_class = STATE_CLASSES[network]
             post_state_root = calc_state_root(post_state, state_class)
-            post[network].append({
-                "hash": encode_hex(post_state_root),
-                "indexes": indexes,
-            })
+            post[network].append(
+                {
+                    "hash": encode_hex(post_state_root),
+                    "indexes": indexes,
+                }
+            )
 
     return {
         test_name: {
             "env": environment,
             "pre": pre_state,
             "transaction": transaction_group,
-            "post": post
+            "post": post,
         }
     }

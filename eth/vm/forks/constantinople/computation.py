@@ -20,12 +20,10 @@ class ConstantinopleComputation(ByzantiumComputation):
     Inherits from
     :class:`~eth.vm.forks.byzantium.computation.ByzantiumComputation`
     """
+
     # Override
     opcodes = CONSTANTINOPLE_OPCODES
     _precompiles = CONSTANTINOPLE_PRECOMPILES
 
     def _configure_gas_meter(self) -> GasMeter:
-        return GasMeter(
-            self.msg.gas,
-            allow_negative_refund_strategy
-        )
+        return GasMeter(self.msg.gas, allow_negative_refund_strategy)

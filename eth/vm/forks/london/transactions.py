@@ -88,9 +88,9 @@ class LondonLegacyTransaction(BerlinLegacyTransaction):
 
 
 class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
-    def as_signed_transaction(self,
-                              private_key: PrivateKey,
-                              chain_id: int = None) -> LondonLegacyTransaction:
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> LondonLegacyTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return LondonLegacyTransaction(
             nonce=self.nonce,
@@ -108,15 +108,15 @@ class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
 class UnsignedDynamicFeeTransaction(rlp.Serializable):
     _type_id = DYNAMIC_FEE_TRANSACTION_TYPE
     fields = [
-        ('chain_id', big_endian_int),
-        ('nonce', big_endian_int),
-        ('max_priority_fee_per_gas', big_endian_int),
-        ('max_fee_per_gas', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('access_list', CountableList(AccountAccesses)),
+        ("chain_id", big_endian_int),
+        ("nonce", big_endian_int),
+        ("max_priority_fee_per_gas", big_endian_int),
+        ("max_fee_per_gas", big_endian_int),
+        ("gas", big_endian_int),
+        ("to", address),
+        ("value", big_endian_int),
+        ("data", binary),
+        ("access_list", CountableList(AccountAccesses)),
     ]
 
     @cached_property
@@ -127,7 +127,7 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable):
         payload = rlp.encode(self)
         return self._type_byte + payload
 
-    def as_signed_transaction(self, private_key: PrivateKey) -> 'TypedTransaction':
+    def as_signed_transaction(self, private_key: PrivateKey) -> "TypedTransaction":
         message = self.get_message_for_signing()
         signature = private_key.sign_msg(message)
         y_parity, r, s = signature.vrs
@@ -144,7 +144,7 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable):
             self.access_list,
             y_parity,
             r,
-            s
+            s,
         )
         return LondonTypedTransaction(self._type_id, signed_transaction)
 
@@ -170,27 +170,30 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable):
         return self.get_intrinsic_gas()
 
 
-class DynamicFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI):
+class DynamicFeeTransaction(
+    rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI
+):
     _type_id = DYNAMIC_FEE_TRANSACTION_TYPE
     fields = [
-        ('chain_id', big_endian_int),
-        ('nonce', big_endian_int),
-        ('max_priority_fee_per_gas', big_endian_int),
-        ('max_fee_per_gas', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('access_list', CountableList(AccountAccesses)),
-        ('y_parity', big_endian_int),
-        ('r', big_endian_int),
-        ('s', big_endian_int),
+        ("chain_id", big_endian_int),
+        ("nonce", big_endian_int),
+        ("max_priority_fee_per_gas", big_endian_int),
+        ("max_fee_per_gas", big_endian_int),
+        ("gas", big_endian_int),
+        ("to", address),
+        ("value", big_endian_int),
+        ("data", binary),
+        ("access_list", CountableList(AccountAccesses)),
+        ("y_parity", big_endian_int),
+        ("r", big_endian_int),
+        ("s", big_endian_int),
     ]
 
     @property
     def gas_price(self) -> None:
         raise AttributeError(
-            "Gas price is no longer available. See max_priority_fee_per_gas or max_fee_per_gas"
+            "Gas price is no longer available."
+            "See max_priority_fee_per_gas or max_fee_per_gas"
         )
 
     def get_sender(self) -> Address:
@@ -229,16 +232,12 @@ class DynamicFeeTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
         return rlp.encode(self)
 
     def make_receipt(
-            self,
-            status: bytes,
-            gas_used: int,
-            log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]) -> ReceiptAPI:
-
-        logs = [
-            Log(address, topics, data)
-            for address, topics, data
-            in log_entries
-        ]
+        self,
+        status: bytes,
+        gas_used: int,
+        log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...],
+    ) -> ReceiptAPI:
+        logs = [Log(address, topics, data) for address, topics, data in log_entries]
         # TypedTransaction is responsible for wrapping this into a TypedReceipt
         return Receipt(
             state_root=status,
@@ -268,16 +267,17 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
 
     @classmethod
     def new_unsigned_dynamic_fee_transaction(
-            cls,
-            chain_id: int,
-            nonce: int,
-            max_priority_fee_per_gas: int,
-            max_fee_per_gas: int,
-            gas: int,
-            to: Address,
-            value: int,
-            data: bytes,
-            access_list: Sequence[Tuple[Address, Sequence[int]]],) -> LondonTypedTransaction:
+        cls,
+        chain_id: int,
+        nonce: int,
+        max_priority_fee_per_gas: int,
+        max_fee_per_gas: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+        access_list: Sequence[Tuple[Address, Sequence[int]]],
+    ) -> LondonTypedTransaction:
         transaction = UnsignedDynamicFeeTransaction(
             chain_id,
             nonce,
@@ -293,19 +293,20 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
 
     @classmethod
     def new_dynamic_fee_transaction(
-            cls,
-            chain_id: int,
-            nonce: int,
-            max_priority_fee_per_gas: int,
-            max_fee_per_gas: int,
-            gas: int,
-            to: Address,
-            value: int,
-            data: bytes,
-            access_list: Sequence[Tuple[Address, Sequence[int]]],
-            y_parity: int,
-            r: int,
-            s: int) -> LondonTypedTransaction:
+        cls,
+        chain_id: int,
+        nonce: int,
+        max_priority_fee_per_gas: int,
+        max_fee_per_gas: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+        access_list: Sequence[Tuple[Address, Sequence[int]]],
+        y_parity: int,
+        r: int,
+        s: int,
+    ) -> LondonTypedTransaction:
         transaction = DynamicFeeTransaction(
             chain_id,
             nonce,

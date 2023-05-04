@@ -27,9 +27,7 @@ def london_plus_miner(chain_without_block_validation):
         pytest.skip("This test is only meant to run with mining capability")
         return
 
-    valid_vms = (
-        LondonVM,
-    )
+    valid_vms = (LondonVM,)
     vm = chain_without_block_validation.get_vm()
     if isinstance(vm, valid_vms):
         return chain_without_block_validation
@@ -37,10 +35,12 @@ def london_plus_miner(chain_without_block_validation):
         pytest.skip("This test is not meant to run on pre-London VMs")
 
 
-ADDRESS_A = force_bytes_to_address(b'\x10\x10')
+ADDRESS_A = force_bytes_to_address(b"\x10\x10")
 
 
-def test_transaction_cost_valid(london_plus_miner, funded_address, funded_address_private_key):
+def test_transaction_cost_valid(
+    london_plus_miner, funded_address, funded_address_private_key
+):
     chain = london_plus_miner
     vm = chain.get_vm()
     base_fee_per_gas = vm.get_header().base_fee_per_gas
@@ -70,7 +70,9 @@ def test_transaction_cost_valid(london_plus_miner, funded_address, funded_addres
     assert chain.get_vm().get_header().gas_used > 0
 
 
-def test_transaction_cost_invalid(london_plus_miner, funded_address, funded_address_private_key):
+def test_transaction_cost_invalid(
+    london_plus_miner, funded_address, funded_address_private_key
+):
     chain = london_plus_miner
     vm = chain.get_vm()
     base_fee_per_gas = vm.get_header().base_fee_per_gas
@@ -93,9 +95,10 @@ def test_transaction_cost_invalid(london_plus_miner, funded_address, funded_addr
     # sanity check
     assert vm.get_header().gas_used == 0
 
-    # The *validation* step should catch that the sender does not have enough funds. If validation
-    # misses the problem, then we might see an InsufficientFunds, because the VM will think the
-    # transaction is fine, then attempt to execute it, then then run out of funds.
+    # The *validation* step should catch that the sender does not have enough funds. If
+    # validation misses the problem, then we might see an InsufficientFunds, because the
+    # VM will think the transaction is fine, then attempt to execute it,
+    # then then run out of funds.
     with pytest.raises(ValidationError):
         chain.apply_transaction(tx)
 

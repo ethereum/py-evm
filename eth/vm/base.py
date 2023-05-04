@@ -110,14 +110,14 @@ class VM(Configurable, VirtualMachineAPI):
     _state = None
     _block = None
 
-    cls_logger = logging.getLogger('eth.vm.base.VM')
+    cls_logger = logging.getLogger("eth.vm.base.VM")
 
     def __init__(
         self,
         header: BlockHeaderAPI,
         chaindb: ChainDatabaseAPI,
         chain_context: ChainContextAPI,
-        consensus_context: ConsensusContextAPI
+        consensus_context: ConsensusContextAPI,
     ) -> None:
         self.chaindb = chaindb
         self.chain_context = chain_context
@@ -133,26 +133,33 @@ class VM(Configurable, VirtualMachineAPI):
     def get_block(self) -> BlockAPI:
         if self._block is None:
             block_class = self.get_block_class()
-            self._block = block_class.from_header(header=self._initial_header, chaindb=self.chaindb)
+            self._block = block_class.from_header(
+                header=self._initial_header, chaindb=self.chaindb
+            )
         return self._block
 
     @property
     def state(self) -> StateAPI:
         if self._state is None:
-            self._state = self.build_state(self.chaindb.db,
-                                           self.get_header(),
-                                           self.chain_context,
-                                           self.previous_hashes)
+            self._state = self.build_state(
+                self.chaindb.db,
+                self.get_header(),
+                self.chain_context,
+                self.previous_hashes,
+            )
         return self._state
 
     @classmethod
-    def build_state(cls,
-                    db: AtomicDatabaseAPI,
-                    header: BlockHeaderAPI,
-                    chain_context: ChainContextAPI,
-                    previous_hashes: Iterable[Hash32] = (),
-                    ) -> StateAPI:
-        execution_context = cls.create_execution_context(header, previous_hashes, chain_context)
+    def build_state(
+        cls,
+        db: AtomicDatabaseAPI,
+        header: BlockHeaderAPI,
+        chain_context: ChainContextAPI,
+        previous_hashes: Iterable[Hash32] = (),
+    ) -> StateAPI:
+        execution_context = cls.create_execution_context(
+            header, previous_hashes, chain_context
+        )
         return cls.get_state_class()(db, execution_context, header.state_root)
 
     @cached_property
@@ -164,15 +171,14 @@ class VM(Configurable, VirtualMachineAPI):
     #
     @property
     def logger(self) -> logging.Logger:
-        return logging.getLogger(f'eth.vm.base.VM.{self.__class__.__name__}')
+        return logging.getLogger(f"eth.vm.base.VM.{self.__class__.__name__}")
 
     #
     # Execution
     #
-    def apply_transaction(self,
-                          header: BlockHeaderAPI,
-                          transaction: SignedTransactionAPI
-                          ) -> Tuple[ReceiptAPI, ComputationAPI]:
+    def apply_transaction(
+        self, header: BlockHeaderAPI, transaction: SignedTransactionAPI
+    ) -> Tuple[ReceiptAPI, ComputationAPI]:
         self.validate_transaction_against_header(header, transaction)
 
         # Mark current state as un-revertable, since new transaction is starting...
@@ -189,7 +195,7 @@ class VM(Configurable, VirtualMachineAPI):
         cls,
         header: BlockHeaderAPI,
         prev_hashes: Iterable[Hash32],
-        chain_context: ChainContextAPI
+        chain_context: ChainContextAPI,
     ) -> ExecutionContextAPI:
         fee_recipient = cls.consensus_class.get_fee_recipient(header)
         try:
@@ -218,17 +224,18 @@ class VM(Configurable, VirtualMachineAPI):
                 base_fee_per_gas=base_fee,
             )
 
-    def execute_bytecode(self,
-                         origin: Address,
-                         gas_price: int,
-                         gas: int,
-                         to: Address,
-                         sender: Address,
-                         value: int,
-                         data: bytes,
-                         code: bytes,
-                         code_address: Address = None,
-                         ) -> ComputationAPI:
+    def execute_bytecode(
+        self,
+        origin: Address,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        sender: Address,
+        value: int,
+        data: bytes,
+        code: bytes,
+        code_address: Address = None,
+    ) -> ComputationAPI:
         if origin is None:
             origin = sender
 
@@ -257,14 +264,12 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
     def apply_all_transactions(
-        self,
-        transactions: Sequence[SignedTransactionAPI],
-        base_header: BlockHeaderAPI
+        self, transactions: Sequence[SignedTransactionAPI], base_header: BlockHeaderAPI
     ) -> Tuple[BlockHeaderAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         vm_header = self.get_header()
         if base_header.block_number != vm_header.block_number:
             raise ValidationError(
-                f"This VM instance must only work on block #{self.get_header().block_number}, "
+                f"This VM instance must only work on block #{self.get_header().block_number}, "  # noqa: E501
                 f"but the target header has block #{base_header.block_number}"
             )
 
@@ -371,10 +376,14 @@ class VM(Configurable, VirtualMachineAPI):
         header = self.get_header().copy(gas_used=0)
 
         # we need to re-initialize the `state` to update the execution context.
-        self._state = self.get_state_class()(self.chaindb.db, execution_context, header.state_root)
+        self._state = self.get_state_class()(
+            self.chaindb.db, execution_context, header.state_root
+        )
 
         # run all of the transactions.
-        new_header, receipts, _ = self.apply_all_transactions(block.transactions, header)
+        new_header, receipts, _ = self.apply_all_transactions(
+            block.transactions, header
+        )
 
         withdrawals = block.withdrawals if hasattr(block, "withdrawals") else None
 
@@ -392,7 +401,9 @@ class VM(Configurable, VirtualMachineAPI):
 
         return self.mine_block(filled_block)
 
-    def mine_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAndMetaWitness:
+    def mine_block(
+        self, block: BlockAPI, *args: Any, **kwargs: Any
+    ) -> BlockAndMetaWitness:
         packed_block = self.pack_block(block, *args, **kwargs)
         block_result = self.finalize_block(packed_block)
 
@@ -409,7 +420,6 @@ class VM(Configurable, VirtualMachineAPI):
         receipts: Sequence[ReceiptAPI],
         withdrawals: Sequence[WithdrawalAPI] = None,
     ) -> BlockAPI:
-
         tx_root_hash, tx_kv_nodes = make_trie_root_and_nodes(transactions)
         self.chaindb.persist_trie_data_dict(tx_kv_nodes)
 
@@ -479,10 +489,12 @@ class VM(Configurable, VirtualMachineAPI):
         # all writes until we tell it to write to the underlying db
         meta_witness = self.state.persist()
 
-        final_block = block.copy(header=block.header.copy(state_root=self.state.state_root))
+        final_block = block.copy(
+            header=block.header.copy(state_root=self.state.state_root)
+        )
 
         self.logger.debug(
-            "%s reads %d unique node hashes, %d addresses, %d bytecodes, and %d storage slots",
+            "%s reads %d unique node hashes, %d addresses, %d bytecodes, and %d storage slots",  # noqa: E501
             final_block,
             len(meta_witness.hashes),
             len(meta_witness.accounts_queried),
@@ -493,9 +505,9 @@ class VM(Configurable, VirtualMachineAPI):
         return BlockAndMetaWitness(final_block, meta_witness)
 
     def pack_block(self, block: BlockAPI, *args: Any, **kwargs: Any) -> BlockAPI:
-        if 'uncles' in kwargs:
-            uncles = kwargs.pop('uncles')
-            kwargs.setdefault('uncles_hash', keccak(rlp.encode(uncles)))
+        if "uncles" in kwargs:
+            uncles = kwargs.pop("uncles")
+            kwargs.setdefault("uncles_hash", keccak(rlp.encode(uncles)))
         else:
             uncles = block.uncles
 
@@ -507,7 +519,7 @@ class VM(Configurable, VirtualMachineAPI):
             raise AttributeError(
                 f"Unable to set the field(s) {', '.join(known_fields)} "
                 "on the `BlockHeader` class. "
-                f"Received the following unexpected fields: {', '.join(unknown_fields)}."
+                f"Received the following unexpected fields: {', '.join(unknown_fields)}."  # noqa: E501
             )
 
         header: BlockHeaderAPI = block.header.copy(**kwargs)
@@ -520,9 +532,9 @@ class VM(Configurable, VirtualMachineAPI):
     # Blocks
     #
     @classmethod
-    def generate_block_from_parent_header_and_coinbase(cls,
-                                                       parent_header: BlockHeaderAPI,
-                                                       coinbase: Address) -> BlockAPI:
+    def generate_block_from_parent_header_and_coinbase(
+        cls, parent_header: BlockHeaderAPI, coinbase: Address
+    ) -> BlockAPI:
         block_header = cls.create_header_from_parent(parent_header, coinbase=coinbase)
         block = cls.get_block_class()(
             block_header,
@@ -544,9 +556,9 @@ class VM(Configurable, VirtualMachineAPI):
             return cls.block_class
 
     @classmethod
-    def get_prev_hashes(cls,
-                        last_block_hash: Hash32,
-                        chaindb: ChainDatabaseAPI) -> Optional[Iterable[Hash32]]:
+    def get_prev_hashes(
+        cls, last_block_hash: Hash32, chaindb: ChainDatabaseAPI
+    ) -> Optional[Iterable[Hash32]]:
         if last_block_hash == GENESIS_PARENT_HASH:
             return
 
@@ -570,21 +582,18 @@ class VM(Configurable, VirtualMachineAPI):
         return self.get_transaction_builder().new_transaction(*args, **kwargs)
 
     @classmethod
-    def create_unsigned_transaction(cls,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> UnsignedTransactionAPI:
+    def create_unsigned_transaction(
+        cls,
+        *,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+    ) -> UnsignedTransactionAPI:
         return cls.get_transaction_builder().create_unsigned_transaction(
-            nonce=nonce,
-            gas_price=gas_price,
-            gas=gas,
-            to=to,
-            value=value,
-            data=data
+            nonce=nonce, gas_price=gas_price, gas=gas, to=to, value=value, data=data
         )
 
     @classmethod
@@ -619,21 +628,21 @@ class VM(Configurable, VirtualMachineAPI):
                 elif uint32.serialize(topic) not in receipt.bloom_filter:
                     raise ValidationError(
                         f"The topic at position {topic_idx} from the log entry at "
-                        f"position {log_idx} is not present in the provided bloom filter."
+                        f"position {log_idx} is not present in the provided bloom filter."  # noqa: E501
                     )
                 already_checked.add(topic)
 
     def validate_block(self, block: BlockAPI) -> None:
         if not isinstance(block, self.get_block_class()):
             raise ValidationError(
-                f"This vm ({self!r}) is not equipped to validate a block of type {block!r}"
+                f"This vm ({self!r}) is not equipped to validate a block of type {block!r}"  # noqa: E501
             )
 
         if block.is_genesis:
             validate_length_lte(
                 block.header.extra_data,
                 self.extra_data_max_bytes,
-                title="BlockHeader.extra_data"
+                title="BlockHeader.extra_data",
             )
         else:
             parent_header = get_parent_header(block.header, self.chaindb)
@@ -670,16 +679,21 @@ class VM(Configurable, VirtualMachineAPI):
             )
 
     @classmethod
-    def validate_header(cls,
-                        header: BlockHeaderAPI,
-                        parent_header: BlockHeaderAPI) -> None:
-
+    def validate_header(
+        cls, header: BlockHeaderAPI, parent_header: BlockHeaderAPI
+    ) -> None:
         if parent_header is None:
-            # to validate genesis header, check if it equals canonical header at block number 0
-            raise ValidationError("Must have access to parent header to validate current header")
+            # to validate genesis header, check if it equals canonical header
+            # at block number 0
+            raise ValidationError(
+                "Must have access to parent header to validate current header"
+            )
         else:
             validate_length_lte(
-                header.extra_data, cls.extra_data_max_bytes, title="BlockHeader.extra_data")
+                header.extra_data,
+                cls.extra_data_max_bytes,
+                title="BlockHeader.extra_data",
+            )
 
             cls.validate_gas(header, parent_header)
 
@@ -694,16 +708,15 @@ class VM(Configurable, VirtualMachineAPI):
             if header.timestamp <= parent_header.timestamp:
                 raise ValidationError(
                     "timestamp must be strictly later than parent, "
-                    f"but is {parent_header.timestamp - header.timestamp} seconds before.\n"
+                    f"but is {parent_header.timestamp - header.timestamp} seconds before.\n"  # noqa: E501
                     f"- child  : {header.timestamp}\n"
                     f"- parent : {parent_header.timestamp}. "
                 )
 
     @classmethod
     def validate_gas(
-            cls,
-            header: BlockHeaderAPI,
-            parent_header: BlockHeaderAPI) -> None:
+        cls, header: BlockHeaderAPI, parent_header: BlockHeaderAPI
+    ) -> None:
         validate_gas_limit(header.gas_limit, parent_header.gas_limit)
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
@@ -717,17 +730,15 @@ class VM(Configurable, VirtualMachineAPI):
             )
             raise
 
-    def validate_seal_extension(self,
-                                header: BlockHeaderAPI,
-                                parents: Iterable[BlockHeaderAPI]) -> None:
+    def validate_seal_extension(
+        self, header: BlockHeaderAPI, parents: Iterable[BlockHeaderAPI]
+    ) -> None:
         self._consensus.validate_seal_extension(header, parents)
 
     @classmethod
-    def validate_uncle(cls,
-                       block: BlockAPI,
-                       uncle: BlockHeaderAPI,
-                       uncle_parent: BlockHeaderAPI) -> None:
-
+    def validate_uncle(
+        cls, block: BlockAPI, uncle: BlockHeaderAPI, uncle_parent: BlockHeaderAPI
+    ) -> None:
         if uncle.block_number >= block.number:
             raise ValidationError(
                 f"Uncle number ({uncle.block_number}) is higher than "
@@ -750,7 +761,9 @@ class VM(Configurable, VirtualMachineAPI):
             )
 
         uncle_parent_gas_limit = uncle_parent.gas_limit
-        if not hasattr(uncle_parent, 'base_fee_per_gas') and hasattr(uncle, 'base_fee_per_gas'):
+        if not hasattr(uncle_parent, "base_fee_per_gas") and hasattr(
+            uncle, "base_fee_per_gas"
+        ):
             # if Berlin -> London transition, double the parent limit for validation
             uncle_parent_gas_limit *= 2
 
@@ -770,18 +783,19 @@ class VM(Configurable, VirtualMachineAPI):
     def in_costless_state(self) -> Iterator[StateAPI]:
         header = self.get_header()
 
-        temp_block = self.generate_block_from_parent_header_and_coinbase(header, header.coinbase)
+        temp_block = self.generate_block_from_parent_header_and_coinbase(
+            header, header.coinbase
+        )
         prev_hashes = itertools.chain((header.hash,), self.previous_hashes)
 
-        if hasattr(temp_block.header, 'base_fee_per_gas'):
+        if hasattr(temp_block.header, "base_fee_per_gas"):
             free_header = temp_block.header.copy(base_fee_per_gas=0)
         else:
             free_header = temp_block.header
 
-        state = self.build_state(self.chaindb.db,
-                                 free_header,
-                                 self.chain_context,
-                                 prev_hashes)
+        state = self.build_state(
+            self.chaindb.db, free_header, self.chain_context, prev_hashes
+        )
 
         snapshot = state.snapshot()
         yield state

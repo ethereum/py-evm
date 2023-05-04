@@ -16,6 +16,7 @@ class MuirGlacierComputation(IstanbulComputation):
     Inherits from
     :class:`~eth.vm.forks.constantinople.istanbul.IstanbulComputation`
     """
+
     # Override
     opcodes = MUIR_GLACIER_OPCODES
     _precompiles = MUIR_GLACIER_PRECOMPILES

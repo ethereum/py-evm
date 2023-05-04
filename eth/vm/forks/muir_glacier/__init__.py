@@ -19,13 +19,13 @@ from .state import MuirGlacierState
 
 class MuirGlacierVM(IstanbulVM):
     # fork name
-    fork = 'muir-glacier'
+    fork = "muir-glacier"
 
     # classes
     block_class: Type[BaseBlock] = MuirGlacierBlock
     _state_class: Type[BaseState] = MuirGlacierState
 
     # Methods
-    create_header_from_parent = staticmethod(create_muir_glacier_header_from_parent)  # type: ignore
-    compute_difficulty = staticmethod(compute_muir_glacier_difficulty)    # type: ignore
+    create_header_from_parent = staticmethod(create_muir_glacier_header_from_parent)  # type: ignore  # noqa: E501
+    compute_difficulty = staticmethod(compute_muir_glacier_difficulty)  # type: ignore
     configure_header = configure_muir_glacier_header

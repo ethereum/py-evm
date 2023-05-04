@@ -47,8 +47,11 @@ def ensure_no_static(opcode_fn: Callable[..., Any]) -> Callable[..., Any]:
     @functools.wraps(opcode_fn)
     def inner(computation: ComputationAPI) -> Callable[..., Any]:
         if computation.msg.is_static:
-            raise WriteProtection("Cannot modify state while inside of a STATICCALL context")
+            raise WriteProtection(
+                "Cannot modify state while inside of a STATICCALL context"
+            )
         return opcode_fn(computation)
+
     return inner
 
 
@@ -75,12 +78,12 @@ UPDATED_OPCODES = {
     # Call
     #
     opcode_values.STATICCALL: call.StaticCall.configure(
-        __name__='opcode:STATICCALL',
+        __name__="opcode:STATICCALL",
         mnemonic=mnemonics.STATICCALL,
         gas_cost=GAS_CALL_EIP150,
     )(),
     opcode_values.CALL: call.CallByzantium.configure(
-        __name__='opcode:CALL',
+        __name__="opcode:CALL",
         mnemonic=mnemonics.CALL,
         gas_cost=GAS_CALL_EIP150,
     )(),
@@ -116,7 +119,7 @@ UPDATED_OPCODES = {
     # Create
     #
     opcode_values.CREATE: system.CreateByzantium.configure(
-        __name__='opcode:CREATE',
+        __name__="opcode:CREATE",
         mnemonic=mnemonics.CREATE,
         gas_cost=constants.GAS_CREATE,
     )(),

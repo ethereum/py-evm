@@ -45,7 +45,10 @@ def encode_address_tally_pair(pair: Tuple[Address, Tally]) -> bytes:
 
 
 def decode_address_tally_pair(pair: bytes) -> Tuple[Address, Tally]:
-    address, tally_bytes, = rlp.decode(
+    (
+        address,
+        tally_bytes,
+    ) = rlp.decode(
         pair,
         sedes=ADDRESS_TALLY_SEDES,
     )
@@ -76,7 +79,9 @@ def decode_vote(vote: bytes) -> Vote:
         signer=signer,
         block_number=block_number,
         subject=subject,
-        action=VoteAction.NOMINATE if action == VoteAction.NOMINATE.value else VoteAction.KICK
+        action=VoteAction.NOMINATE
+        if action == VoteAction.NOMINATE.value
+        else VoteAction.KICK,
     )
 
 
@@ -108,7 +113,7 @@ def decode_snapshot(snapshot: bytes) -> Snapshot:
         signers=frozenset(signers),
         block_hash=block_hash,
         votes=frozenset(votes),
-        tallies=tallies
+        tallies=tallies,
     )
 
 
@@ -125,7 +130,4 @@ def decode_tally(tally: bytes) -> Tally:
         sedes=TALLY_SEDES,
     )
 
-    return Tally(
-        action=VoteAction(action_binary),
-        votes=votes
-    )
+    return Tally(action=VoteAction(action_binary), votes=votes)

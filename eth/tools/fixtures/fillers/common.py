@@ -54,7 +54,9 @@ from ._utils import (
 #
 
 DEFAULT_MAIN_ENVIRONMENT = {
-    "currentCoinbase": to_canonical_address("0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba"),
+    "currentCoinbase": to_canonical_address(
+        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba"
+    ),
     "currentDifficulty": 131072,
     "currentGasLimit": 1000000,
     "currentNumber": 1,
@@ -70,9 +72,11 @@ DEFAULT_MAIN_TRANSACTION: TransactionDict = {
     "gasLimit": 100000,
     "gasPrice": 0,
     "nonce": 0,
-    "secretKey": decode_hex("0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"),
+    "secretKey": decode_hex(
+        "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+    ),
     "to": to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"),
-    "value": 0
+    "value": 0,
 }
 
 
@@ -87,7 +91,7 @@ DEFAULT_EXECUTION = {
     "value": 1000000000000000000,
     "data": b"",
     "gasPrice": 1,
-    "gas": 100000
+    "gas": 100000,
 }
 
 
@@ -100,21 +104,28 @@ Test.__new__.__defaults__ = (None,)  # type: ignore
 # Filler Generation
 #
 
-def setup_filler(name: str, environment: Dict[Any, Any] = None) -> Dict[str, Dict[str, Any]]:
+
+def setup_filler(
+    name: str, environment: Dict[Any, Any] = None
+) -> Dict[str, Dict[str, Any]]:
     environment = normalize_environment(environment or {})
-    return {name: {
-        "env": environment,
-        "pre": {},
-    }}
+    return {
+        name: {
+            "env": environment,
+            "pre": {},
+        }
+    }
 
 
-def setup_main_filler(name: str, environment: Dict[Any, Any] = None) -> Dict[str, Dict[str, Any]]:
+def setup_main_filler(
+    name: str, environment: Dict[Any, Any] = None
+) -> Dict[str, Dict[str, Any]]:
     """
     Kick off the filler generation process by creating the general filler scaffold with
     a test name and general information about the testing environment.
 
-    For tests for the main chain, the `environment` parameter is expected to be a dictionary with
-    some or all of the following keys:
+    For tests for the main chain, the `environment` parameter is expected to be a
+    dictionary with some or all of the following keys:
 
     +------------------------+---------------------------------+
     | key                    | description                     |
@@ -140,7 +151,8 @@ def pre_state(*raw_state: GeneralState, filler: Dict[str, Any]) -> None:
     Specify the state prior to the test execution. Multiple invocations don't override
     the state but extend it instead.
 
-    In general, the elements of `state_definitions` are nested dictionaries of the following form:
+    In general, the elements of `state_definitions` are nested dictionaries of the
+    following form:
 
     .. code-block:: python
 
@@ -155,8 +167,8 @@ def pre_state(*raw_state: GeneralState, filler: Dict[str, Any]) -> None:
             }
         }
 
-    To avoid unnecessary nesting especially if only few fields per account are specified, the
-    following and similar formats are possible as well:
+    To avoid unnecessary nesting especially if only few fields per account are
+    specified, the following and similar formats are possible as well:
 
     .. code-block:: python
 
@@ -165,40 +177,48 @@ def pre_state(*raw_state: GeneralState, filler: Dict[str, Any]) -> None:
         (address, "storage", {<storage slot>: <storage value>})
         (address, {"balance", <account balance>})
     """
+
     @wraps(pre_state)
     def _pre_state(filler: Dict[str, Any]) -> Dict[str, Any]:
         test_name = get_test_name(filler)
 
         old_pre_state = filler[test_name].get("pre_state", {})
         pre_state = normalize_state(raw_state)
-        defaults = {address: {
-            "balance": 0,
-            "nonce": 0,
-            "code": b"",
-            "storage": {},
-        } for address in pre_state}
+        defaults = {
+            address: {
+                "balance": 0,
+                "nonce": 0,
+                "code": b"",
+                "storage": {},
+            }
+            for address in pre_state
+        }
         new_pre_state = deep_merge(defaults, old_pre_state, pre_state)
 
         return assoc_in(filler, [test_name, "pre"], new_pre_state)
 
 
-def _expect(post_state: Dict[str, Any],
-            networks: Any,
-            transaction: TransactionDict,
-            filler: Dict[str, Any]) -> Dict[str, Any]:
-
+def _expect(
+    post_state: Dict[str, Any],
+    networks: Any,
+    transaction: TransactionDict,
+    filler: Dict[str, Any],
+) -> Dict[str, Any]:
     test_name = get_test_name(filler)
     test = filler[test_name]
     test_update: Dict[str, Dict[Any, Any]] = {test_name: {}}
 
     pre_state = test.get("pre", {})
     post_state = normalize_state(post_state or {})
-    defaults = {address: {
-        "balance": 0,
-        "nonce": 0,
-        "code": b"",
-        "storage": {},
-    } for address in post_state}
+    defaults = {
+        address: {
+            "balance": 0,
+            "nonce": 0,
+            "code": b"",
+            "storage": {},
+        }
+        for address in post_state
+    }
     result = deep_merge(defaults, pre_state, normalize_state(post_state))
     new_expect = {"result": result}
 
@@ -207,11 +227,14 @@ def _expect(post_state: Dict[str, Any],
             merge(get_default_transaction(networks), transaction)
         )
         if "transaction" not in test:
-            transaction_group = apply_formatters_to_dict({
-                "data": wrap_in_list,
-                "gasLimit": wrap_in_list,
-                "value": wrap_in_list,
-            }, transaction)
+            transaction_group = apply_formatters_to_dict(
+                {
+                    "data": wrap_in_list,
+                    "gasLimit": wrap_in_list,
+                    "value": wrap_in_list,
+                },
+                transaction,
+            )
             indexes = {
                 index_key: 0
                 for transaction_key, index_key in [
@@ -226,7 +249,9 @@ def _expect(post_state: Dict[str, Any],
                 test["transaction"], transaction
             )
         new_expect = assoc(new_expect, "indexes", indexes)
-        test_update = assoc_in(test_update, [test_name, "transaction"], transaction_group)
+        test_update = assoc_in(
+            test_update, [test_name, "transaction"], transaction_group
+        )
 
     if networks is not None:
         networks = normalize_networks(networks)
@@ -239,24 +264,27 @@ def _expect(post_state: Dict[str, Any],
     return deep_merge(filler, test_update)
 
 
-def expect(post_state: Dict[str, Any] = None,
-           networks: Any = None,
-           transaction: TransactionDict = None) -> Callable[..., Dict[str, Any]]:
-
+def expect(
+    post_state: Dict[str, Any] = None,
+    networks: Any = None,
+    transaction: TransactionDict = None,
+) -> Callable[..., Dict[str, Any]]:
     """
     Specify the expected result for the test.
 
-    For state tests, multiple expectations can be given, differing in the transaction data, gas
-    limit, and value, in the applicable networks, and as a result also in the post state. VM tests
-    support only a single expectation with no specified network and no transaction (here, its role
-    is played by :func:`~eth.tools.fixtures.fillers.execution`).
+    For state tests, multiple expectations can be given, differing in the transaction
+    data, gas limit, and value, in the applicable networks, and as a result also in the
+    post state. VM tests support only a single expectation with no specified network and
+    no transaction.
+    (here, its role is played by :func:`~eth.tools.fixtures.fillers.execution`).
 
     * ``post_state`` is a list of state definition in the same form as expected
       by :func:`~eth.tools.fixtures.fillers.pre_state`. State items that are
       not set explicitly default to their pre state.
 
-    * ``networks`` defines the forks under which the expectation is applicable. It should be a
-        sublist of the following identifiers (also available in `ALL_FORKS`):
+    * ``networks`` defines the forks under which the expectation is applicable. It
+        should be a sublist of the following identifiers
+        (also available in `ALL_FORKS`):
 
       * ``"Frontier"``
       * ``"Homestead"``
@@ -280,8 +308,8 @@ def expect(post_state: Dict[str, Any] = None,
       | ``"value"``    | the transaction value         |
       +----------------+-------------------------------+
 
-    In addition, one should specify either the signature itself (via keys ``"v"``, ``"r"``,
-    and ``"s"``) or a private key used for signing (via ``"secretKey"``).
+    In addition, one should specify either the signature itself (via keys ``"v"``,
+    ``"r"``, and ``"s"``) or a private key used for signing (via ``"secretKey"``).
     """
     return partial(_expect, post_state, networks, transaction)
 
@@ -290,8 +318,8 @@ def expect(post_state: Dict[str, Any] = None,
 def execution(execution: Dict[str, Any], filler: Dict[str, Any]) -> Dict[str, Any]:
     """
     For VM tests, specify the code that is being run as well as the current state of
-    the EVM. State tests don't support this object. The parameter is a dictionary specifying some
-    or all of the following keys:
+    the EVM. State tests don't support this object. The parameter is a dictionary
+    specifying some or all of the following keys:
 
     +--------------------+------------------------------------------------------------+
     |  key               | description                                                |
@@ -337,5 +365,5 @@ def execution(execution: Dict[str, Any], filler: Dict[str, Any]) -> Dict[str, An
             test_name: {
                 "exec": execution,
             }
-        }
+        },
     )

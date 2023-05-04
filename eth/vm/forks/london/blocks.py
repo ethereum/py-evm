@@ -65,20 +65,20 @@ from .transactions import (
 )
 
 UNMINED_LONDON_HEADER_FIELDS = [
-    ('parent_hash', hash32),
-    ('uncles_hash', hash32),
-    ('coinbase', address),
-    ('state_root', trie_root),
-    ('transaction_root', trie_root),
-    ('receipt_root', trie_root),
-    ('bloom', uint256),
-    ('difficulty', big_endian_int),
-    ('block_number', big_endian_int),
-    ('gas_limit', big_endian_int),
-    ('gas_used', big_endian_int),
-    ('timestamp', big_endian_int),
-    ('extra_data', binary),
-    ('base_fee_per_gas', big_endian_int),
+    ("parent_hash", hash32),
+    ("uncles_hash", hash32),
+    ("coinbase", address),
+    ("state_root", trie_root),
+    ("transaction_root", trie_root),
+    ("receipt_root", trie_root),
+    ("bloom", uint256),
+    ("difficulty", big_endian_int),
+    ("block_number", big_endian_int),
+    ("gas_limit", big_endian_int),
+    ("gas_used", big_endian_int),
+    ("timestamp", big_endian_int),
+    ("extra_data", binary),
+    ("base_fee_per_gas", big_endian_int),
 ]
 
 
@@ -87,34 +87,43 @@ class LondonMiningHeader(rlp.Serializable, MiningHeaderAPI):
 
 
 class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
-    fields = UNMINED_LONDON_HEADER_FIELDS[:-1] + [
-        ('mix_hash', binary),
-        ('nonce', Binary(8, allow_empty=True)),
-    ] + UNMINED_LONDON_HEADER_FIELDS[-1:]
+    fields = (
+        UNMINED_LONDON_HEADER_FIELDS[:-1]
+        + [
+            ("mix_hash", binary),
+            ("nonce", Binary(8, allow_empty=True)),
+        ]
+        + UNMINED_LONDON_HEADER_FIELDS[-1:]
+    )
 
-    def __init__(self,
-                 difficulty: int,
-                 block_number: BlockNumber,
-                 gas_limit: int,
-                 timestamp: int = None,
-                 coinbase: Address = ZERO_ADDRESS,
-                 parent_hash: Hash32 = ZERO_HASH32,
-                 uncles_hash: Hash32 = EMPTY_UNCLE_HASH,
-                 state_root: Hash32 = BLANK_ROOT_HASH,
-                 transaction_root: Hash32 = BLANK_ROOT_HASH,
-                 receipt_root: Hash32 = BLANK_ROOT_HASH,
-                 bloom: int = 0,
-                 gas_used: int = 0,
-                 extra_data: bytes = b'',
-                 mix_hash: Hash32 = ZERO_HASH32,
-                 nonce: bytes = GENESIS_NONCE,
-                 base_fee_per_gas: int = 0) -> None:
+    def __init__(
+        self,
+        difficulty: int,
+        block_number: BlockNumber,
+        gas_limit: int,
+        timestamp: int = None,
+        coinbase: Address = ZERO_ADDRESS,
+        parent_hash: Hash32 = ZERO_HASH32,
+        uncles_hash: Hash32 = EMPTY_UNCLE_HASH,
+        state_root: Hash32 = BLANK_ROOT_HASH,
+        transaction_root: Hash32 = BLANK_ROOT_HASH,
+        receipt_root: Hash32 = BLANK_ROOT_HASH,
+        bloom: int = 0,
+        gas_used: int = 0,
+        extra_data: bytes = b"",
+        mix_hash: Hash32 = ZERO_HASH32,
+        nonce: bytes = GENESIS_NONCE,
+        base_fee_per_gas: int = 0,
+    ) -> None:
         if timestamp is None:
             if parent_hash == ZERO_HASH32:
                 timestamp = new_timestamp_from_parent(None)
             else:
-                # without access to the parent header, we cannot select a new timestamp correctly
-                raise ValueError("Must set timestamp explicitly if this is not a genesis header")
+                # without access to the parent header,
+                # we cannot select a new timestamp correctly
+                raise ValueError(
+                    "Must set timestamp explicitly if this is not a genesis header"
+                )
         super().__init__(
             parent_hash=parent_hash,
             uncles_hash=uncles_hash,
@@ -135,7 +144,7 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
         )
 
     def __str__(self) -> str:
-        return f'<LondonBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
+        return f"<LondonBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>"
 
     _hash = None
 
@@ -158,8 +167,9 @@ class LondonBlockHeader(rlp.Serializable, BlockHeaderAPI):
     @property
     def is_genesis(self) -> bool:
         # if removing the block_number == 0 test, consider the validation consequences.
-        # validate_header stops trying to check the current header against a parent header.
-        # Can someone trick us into following a high difficulty header with genesis parent hash?
+        # validate_header stops trying to check the current header against
+        # a parent header. Can someone trick us into following a high difficulty header
+        # with genesis parent hash?
         return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
 
     @property
@@ -196,7 +206,7 @@ class LondonBlock(BerlinBlock):
     transaction_builder: Type[TransactionBuilderAPI] = LondonTransactionBuilder
     receipt_builder: Type[ReceiptBuilderAPI] = LondonReceiptBuilder
     fields = [
-        ('header', LondonBlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(LondonBackwardsHeader))
+        ("header", LondonBlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(LondonBackwardsHeader)),
     ]

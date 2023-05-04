@@ -89,7 +89,7 @@ def NO_RESULT(computation: ComputationAPI) -> None:
 def memory_gas_cost(size_in_bytes: int) -> int:
     size_in_words = ceil32(size_in_bytes) // 32
     linear_cost = size_in_words * GAS_MEMORY
-    quadratic_cost = size_in_words ** 2 // GAS_MEMORY_QUADRATIC_DENOMINATOR
+    quadratic_cost = size_in_words**2 // GAS_MEMORY_QUADRATIC_DENOMINATOR
 
     total_cost = linear_cost + quadratic_cost
     return total_cost
@@ -117,14 +117,14 @@ class BaseComputation(ComputationAPI, Configurable):
     transaction_context: TransactionContextAPI = None
     code: CodeStreamAPI = None
     children: List[ComputationAPI] = None
-    return_data: bytes = b''
+    return_data: bytes = b""
     accounts_to_delete: Dict[Address, Address] = None
 
     _memory: MemoryAPI = None
     _stack: StackAPI = None
     _gas_meter: GasMeterAPI = None
     _error: VMError = None
-    _output: bytes = b''
+    _output: bytes = b""
     _log_entries: List[Tuple[int, Address, Tuple[int, ...], bytes]] = None
 
     # VM configuration
@@ -187,7 +187,7 @@ class BaseComputation(ComputationAPI, Configurable):
         code: bytes,
         **kwargs: Any,
     ) -> MessageAPI:
-        kwargs.setdefault('sender', self.msg.storage_address)
+        kwargs.setdefault("sender", self.msg.storage_address)
 
         child_message = Message(
             gas=gas,
@@ -196,7 +196,7 @@ class BaseComputation(ComputationAPI, Configurable):
             data=data,
             code=code,
             depth=self.msg.depth + 1,
-            **kwargs
+            **kwargs,
         )
         return child_message
 
@@ -234,12 +234,12 @@ class BaseComputation(ComputationAPI, Configurable):
             if child_computation.msg.is_create:
                 self.return_data = child_computation.output
             elif child_computation.should_burn_gas:
-                self.return_data = b''
+                self.return_data = b""
             else:
                 self.return_data = child_computation.output
         else:
             if child_computation.msg.is_create:
-                self.return_data = b''
+                self.return_data = b""
             else:
                 self.return_data = child_computation.output
         self.children.append(child_computation)
@@ -249,9 +249,8 @@ class BaseComputation(ComputationAPI, Configurable):
         if self.is_error:
             return 0
         else:
-            return (
-                self._gas_meter.gas_refunded
-                + sum(c.get_gas_refund() for c in self.children)
+            return self._gas_meter.gas_refunded + sum(
+                c.get_gas_refund() for c in self.children
             )
 
     # -- account management -- #
@@ -280,10 +279,7 @@ class BaseComputation(ComputationAPI, Configurable):
                 dict(
                     itertools.chain(
                         self.accounts_to_delete.items(),
-                        *(
-                            child.get_accounts_for_deletion()
-                            for child in self.children
-                        )
+                        *(child.get_accounts_for_deletion() for child in self.children),
                     )
                 ).items()
             )
@@ -303,9 +299,9 @@ class BaseComputation(ComputationAPI, Configurable):
             (self.transaction_context.get_next_log_counter(), account, topics, data)
         )
 
-    def get_raw_log_entries(self) -> Tuple[
-        Tuple[int, bytes, Tuple[int, ...], bytes], ...
-    ]:
+    def get_raw_log_entries(
+        self,
+    ) -> Tuple[Tuple[int, bytes, Tuple[int, ...], bytes], ...]:
         if self.is_error:
             return ()
         else:
@@ -313,7 +309,7 @@ class BaseComputation(ComputationAPI, Configurable):
                 sorted(
                     itertools.chain(
                         self._log_entries,
-                        *(child.get_raw_log_entries() for child in self.children)
+                        *(child.get_raw_log_entries() for child in self.children),
                     )
                 )
             )
@@ -329,7 +325,6 @@ class BaseComputation(ComputationAPI, Configurable):
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
     ) -> ComputationAPI:
-
         with cls(state, message, transaction_context) as computation:
             if message.is_create and computation.is_origin_computation:
                 # If computation is from a create transaction, consume initcode gas if
@@ -338,9 +333,7 @@ class BaseComputation(ComputationAPI, Configurable):
                 cls.consume_initcode_gas_cost(computation)
 
             # Early exit on pre-compiles
-            precompile = computation.precompiles.get(
-                message.code_address, NO_RESULT
-            )
+            precompile = computation.precompiles.get(message.code_address, NO_RESULT)
             if precompile is not NO_RESULT:
                 precompile(computation)
                 return computation
@@ -441,7 +434,7 @@ class BaseComputation(ComputationAPI, Configurable):
                             "->",
                             str(after_size),
                         )
-                    )
+                    ),
                 )
 
             self._memory.extend(start_position, size)
@@ -537,7 +530,7 @@ class BaseComputation(ComputationAPI, Configurable):
     @property
     def output(self) -> bytes:
         if self.should_erase_return_data:
-            return b''
+            return b""
         else:
             return self._output
 
@@ -621,7 +614,7 @@ class BaseComputation(ComputationAPI, Configurable):
 
             # when we raise an exception that erases return data, erase the return data
             if self.should_erase_return_data:
-                self.return_data = b''
+                self.return_data = b""
 
             # suppress VM exceptions
             return True

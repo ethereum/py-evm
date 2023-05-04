@@ -52,10 +52,7 @@ def compute_homestead_difficulty(parent_header: BlockHeaderAPI, timestamp: int) 
         1 - (timestamp - parent_tstamp) // HOMESTEAD_DIFFICULTY_ADJUSTMENT_CUTOFF,
         -99,
     )
-    difficulty = max(
-        parent_header.difficulty + offset * sign,
-        DIFFICULTY_MINIMUM
-    )
+    difficulty = max(parent_header.difficulty + offset * sign, DIFFICULTY_MINIMUM)
     num_bomb_periods = (
         (parent_header.block_number + 1) // BOMB_EXPONENTIAL_PERIOD
     ) - BOMB_EXPONENTIAL_FREE_PERIODS
@@ -66,15 +63,16 @@ def compute_homestead_difficulty(parent_header: BlockHeaderAPI, timestamp: int) 
         return difficulty
 
 
-def create_homestead_header_from_parent(parent_header: BlockHeaderAPI,
-                                        **header_params: Any) -> BlockHeader:
-    if 'difficulty' not in header_params:
-        # Use setdefault to ensure the new header has the same timestamp we use to calculate its
-        # difficulty.
-        header_params.setdefault('timestamp', parent_header.timestamp + 1)
-        header_params['difficulty'] = compute_homestead_difficulty(
+def create_homestead_header_from_parent(
+    parent_header: BlockHeaderAPI, **header_params: Any
+) -> BlockHeader:
+    if "difficulty" not in header_params:
+        # Use setdefault to ensure the new header has the same timestamp we use to
+        # calculate its difficulty.
+        header_params.setdefault("timestamp", parent_header.timestamp + 1)
+        header_params["difficulty"] = compute_homestead_difficulty(
             parent_header,
-            header_params['timestamp'],
+            header_params["timestamp"],
         )
     return create_frontier_header_from_parent(parent_header, **header_params)
 
@@ -83,11 +81,11 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
     validate_header_params_for_configuration(header_params)
 
     with vm.get_header().build_changeset(**header_params) as changeset:
-        if 'timestamp' in header_params and changeset.block_number > 0:
+        if "timestamp" in header_params and changeset.block_number > 0:
             parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
             changeset.difficulty = compute_homestead_difficulty(
                 parent_header,
-                header_params['timestamp'],
+                header_params["timestamp"],
             )
 
         # In geth the modification of the state in the DAO fork block is performed
@@ -95,7 +93,10 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
         # get to that. Another alternative would be to do it in Block.mine(), but
         # there we'd need to manually instantiate the State and update
         # header.state_root after we're done.
-        if vm.support_dao_fork and changeset.block_number == vm.get_dao_fork_block_number():
+        if (
+            vm.support_dao_fork
+            and changeset.block_number == vm.get_dao_fork_block_number()
+        ):
             state = vm.state
 
             for hex_account in dao_drain_list:
@@ -114,7 +115,7 @@ def configure_homestead_header(vm: "HomesteadVM", **header_params: Any) -> Block
     return header
 
 
-dao_refund_contract = Address(decode_hex('0xbf4ed7b27f1d666546e30d74d50d173d20bca754'))
+dao_refund_contract = Address(decode_hex("0xbf4ed7b27f1d666546e30d74d50d173d20bca754"))
 dao_drain_list = [
     "0xd4fe7bc31cedb7bfb8a345f31e668033056b2728",
     "0xb3fb0e5aba0e20e5c49d252dfd30e102b171a425",

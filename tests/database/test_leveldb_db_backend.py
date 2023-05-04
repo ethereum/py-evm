@@ -10,14 +10,13 @@ from eth.db.backends.memory import (
     MemoryDB,
 )
 
-pytest.importorskip('leveldb')
+pytest.importorskip("leveldb")
 
 
 # Sets db backend to leveldb
 @pytest.fixture
 def config_env(monkeypatch):
-    monkeypatch.setenv('CHAIN_DB_BACKEND_CLASS',
-                       'eth.db.backends.level.LevelDB')
+    monkeypatch.setenv("CHAIN_DB_BACKEND_CLASS", "eth.db.backends.level.LevelDB")
 
 
 @pytest.fixture
@@ -42,28 +41,28 @@ def test_raises_if_db_path_is_not_specified(config_env):
 
 
 def test_set_and_get(memory_db, level_db):
-    level_db.set(b'1', b'1')
-    memory_db.set(b'1', b'1')
-    assert level_db.get(b'1') == memory_db.get(b'1')
+    level_db.set(b"1", b"1")
+    memory_db.set(b"1", b"1")
+    assert level_db.get(b"1") == memory_db.get(b"1")
 
 
 def test_set_on_existing_value(level_db, memory_db):
-    level_db.set(b'1', b'2')
-    level_db.set(b'1', b'3')
-    memory_db.set(b'1', b'2')
-    memory_db.set(b'1', b'3')
-    assert level_db.get(b'1') == memory_db.get(b'1')
+    level_db.set(b"1", b"2")
+    level_db.set(b"1", b"3")
+    memory_db.set(b"1", b"2")
+    memory_db.set(b"1", b"3")
+    assert level_db.get(b"1") == memory_db.get(b"1")
 
 
 def test_exists(level_db, memory_db):
-    level_db.set(b'1', b'2')
-    memory_db.set(b'1', b'1')
-    level_db.exists(b'1') == memory_db.exists(b'1')
+    level_db.set(b"1", b"2")
+    memory_db.set(b"1", b"1")
+    level_db.exists(b"1") == memory_db.exists(b"1")
 
 
 def test_delete(level_db, memory_db):
-    level_db.set(b'1', b'1')
-    memory_db.set(b'1', b'1')
-    level_db.delete(b'1')
-    memory_db.delete(b'1')
-    assert level_db.exists(b'1') == memory_db.exists(b'1')
+    level_db.set(b"1", b"1")
+    memory_db.set(b"1", b"1")
+    level_db.delete(b"1")
+    memory_db.delete(b"1")
+    assert level_db.exists(b"1") == memory_db.exists(b"1")

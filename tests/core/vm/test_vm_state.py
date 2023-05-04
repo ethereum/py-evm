@@ -11,9 +11,9 @@ from eth.vm.interrupt import (
     MissingAccountTrieNode,
 )
 
-ADDRESS = b'\xaa' * 20
-OTHER_ADDRESS = b'\xbb' * 20
-INVALID_ADDRESS = b'aa' * 20
+ADDRESS = b"\xaa" * 20
+OTHER_ADDRESS = b"\xbb" * 20
+INVALID_ADDRESS = b"aa" * 20
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def test_missing_state_root(chain_without_block_validation, funded_address):
     tx = new_transaction(valid_vm, from_=funded_address, to=ADDRESS)
 
     head = chain_without_block_validation.get_canonical_head()
-    header_with_bad_state_root = head.copy(state_root=b'X' * 32)
+    header_with_bad_state_root = head.copy(state_root=b"X" * 32)
     busted_vm = chain_without_block_validation.get_vm(header_with_bad_state_root)
 
     # notice that the state root is missing by the raised MissingAccountTrieNode
@@ -49,10 +49,10 @@ def test_missing_state_root(chain_without_block_validation, funded_address):
 
 
 @pytest.mark.parametrize(
-    'address, slot',
+    "address, slot",
     (
         (INVALID_ADDRESS, 0),
-        (ADDRESS, b'\0'),
+        (ADDRESS, b"\0"),
         (ADDRESS, None),
     ),
 )
@@ -62,11 +62,11 @@ def test_get_storage_input_validation(state, address, slot):
 
 
 @pytest.mark.parametrize(
-    'address, slot, new_value',
+    "address, slot, new_value",
     (
         (INVALID_ADDRESS, 0, 0),
-        (ADDRESS, b'\0', 0),
-        (ADDRESS, 0, b'\0'),
+        (ADDRESS, b"\0", 0),
+        (ADDRESS, 0, b"\0"),
         (ADDRESS, 0, None),
         (ADDRESS, None, 0),
     ),
@@ -81,7 +81,7 @@ def test_delete_storage_input_validation(state):
         state.delete_storage(INVALID_ADDRESS)
 
 
-@pytest.mark.parametrize('read_storage_before_snapshot', [True, False])
+@pytest.mark.parametrize("read_storage_before_snapshot", [True, False])
 def test_revert_selfdestruct(state, read_storage_before_snapshot):
     state.set_storage(ADDRESS, 1, 2)
     state.persist()
@@ -89,7 +89,8 @@ def test_revert_selfdestruct(state, read_storage_before_snapshot):
     if read_storage_before_snapshot:
         assert state.get_storage(ADDRESS, 1) == 2
 
-    # take a snapshot when the ADDRESS storage is *not* dirty, so it doesn't have a checkpoint
+    # take a snapshot when the ADDRESS storage is *not* dirty,
+    # so it doesn't have a checkpoint
     snapshot = state.snapshot()
 
     # simulate a self-destruct, which puts a clear() in the storage journal
@@ -108,7 +109,7 @@ def test_revert_selfdestruct(state, read_storage_before_snapshot):
     assert state.get_storage(ADDRESS, 1) == 2
 
 
-@pytest.mark.parametrize('make_state_root_after_create', [True, False])
+@pytest.mark.parametrize("make_state_root_after_create", [True, False])
 def test_delete_after_create_in_same_block(state, make_state_root_after_create):
     # create account with storage in one "transaction"
     state.set_storage(ADDRESS, 0, 1)
@@ -130,13 +131,11 @@ def test_delete_after_create_in_same_block(state, make_state_root_after_create):
     assert not state.account_exists(ADDRESS)
 
 
-@pytest.mark.parametrize('make_state_root_after_lock', [True, False])
-@pytest.mark.parametrize('persist_after_first_create', [True, False])
+@pytest.mark.parametrize("make_state_root_after_lock", [True, False])
+@pytest.mark.parametrize("persist_after_first_create", [True, False])
 def test_delete_and_revive_in_same_block(
-        state,
-        make_state_root_after_lock,
-        persist_after_first_create):
-
+    state, make_state_root_after_lock, persist_after_first_create
+):
     # create account with storage in one "transaction"
     state.set_storage(ADDRESS, 0, 1)
     state.lock_changes()

@@ -17,7 +17,7 @@ from .transactions import (
 class ByzantiumBlock(SpuriousDragonBlock):
     transaction_builder = ByzantiumTransaction
     fields = [
-        ('header', BlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(BlockHeader))
+        ("header", BlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(BlockHeader)),
     ]

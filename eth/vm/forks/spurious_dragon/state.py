@@ -25,9 +25,9 @@ from .computation import (
 
 
 class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
-    def finalize_computation(self,
-                             transaction: SignedTransactionAPI,
-                             computation: ComputationAPI) -> ComputationAPI:
+    def finalize_computation(
+        self, transaction: SignedTransactionAPI, computation: ComputationAPI
+    ) -> ComputationAPI:
         computation = super().finalize_computation(transaction, computation)
 
         #
@@ -36,10 +36,9 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
         touched_accounts = collect_touched_accounts(computation)
 
         for account in touched_accounts:
-            should_delete = (
-                self.vm_state.account_exists(account)
-                and self.vm_state.account_is_empty(account)
-            )
+            should_delete = self.vm_state.account_exists(
+                account
+            ) and self.vm_state.account_is_empty(account)
             if should_delete:
                 self.vm_state.logger.debug2(
                     "CLEARING EMPTY ACCOUNT: %s",
@@ -52,4 +51,6 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
 
 class SpuriousDragonState(HomesteadState):
     computation_class: Type[ComputationAPI] = SpuriousDragonComputation
-    transaction_executor_class: Type[TransactionExecutorAPI] = SpuriousDragonTransactionExecutor
+    transaction_executor_class: Type[
+        TransactionExecutorAPI
+    ] = SpuriousDragonTransactionExecutor

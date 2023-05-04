@@ -19,13 +19,12 @@ from eth.abc import (
     ComputationAPI,
 )
 
-THREE = force_bytes_to_address(b'\x03')
+THREE = force_bytes_to_address(b"\x03")
 
 
 @to_set
 def collect_touched_accounts(
-    computation: ComputationAPI,
-    ancestor_had_error: bool = False
+    computation: ComputationAPI, ancestor_had_error: bool = False
 ) -> Iterable[Address]:
     """
     Collect all of the accounts that *may* need to be deleted based on
@@ -65,5 +64,5 @@ def collect_touched_accounts(
     # recurse into nested computations (even errored ones, since looking for RIPEMD160)
     for child in computation.children:
         yield from collect_touched_accounts(
-            child,
-            ancestor_had_error=(computation.is_error or ancestor_had_error))
+            child, ancestor_had_error=(computation.is_error or ancestor_had_error)
+        )

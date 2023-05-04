@@ -32,11 +32,12 @@ FILLED_WITH_TEMPLATE = "py-evm-{version}"
 #
 # Primary test filler
 #
-def fill_test(filler: Dict[str, Any],
-              info: Dict[str, Any] = None,
-              apply_formatter: bool = True,
-              **kwargs: Any) -> Dict[str, Any]:
-
+def fill_test(
+    filler: Dict[str, Any],
+    info: Dict[str, Any] = None,
+    apply_formatter: bool = True,
+    **kwargs: Any
+) -> Dict[str, Any]:
     test_name = get_test_name(filler)
     test = filler[test_name]
 
@@ -51,7 +52,7 @@ def fill_test(filler: Dict[str, Any],
 
     info = merge(
         {"filledwith": FILLED_WITH_TEMPLATE.format(version=get_version_from_git())},
-        info if info else {}
+        info if info else {},
     )
     filled = assoc_in(filled, [test_name, "_info"], info)
 

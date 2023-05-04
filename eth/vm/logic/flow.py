@@ -12,7 +12,7 @@ from eth.vm.opcode_values import (
 
 
 def stop(computation: ComputationAPI) -> None:
-    raise Halt('STOP')
+    raise Halt("STOP")
 
 
 def jump(computation: ComputationAPI) -> None:

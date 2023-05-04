@@ -31,7 +31,9 @@ HOMESTEAD_TX_GAS_SCHEDULE = FRONTIER_TX_GAS_SCHEDULE._replace(
 )
 
 
-homestead_get_intrinsic_gas = partial(calculate_intrinsic_gas, HOMESTEAD_TX_GAS_SCHEDULE)
+homestead_get_intrinsic_gas = partial(
+    calculate_intrinsic_gas, HOMESTEAD_TX_GAS_SCHEDULE
+)
 
 
 class HomesteadTransaction(FrontierTransaction):
@@ -43,24 +45,28 @@ class HomesteadTransaction(FrontierTransaction):
         return homestead_get_intrinsic_gas(self)
 
     def get_message_for_signing(self) -> bytes:
-        return rlp.encode(HomesteadUnsignedTransaction(
-            nonce=self.nonce,
-            gas_price=self.gas_price,
-            gas=self.gas,
-            to=self.to,
-            value=self.value,
-            data=self.data,
-        ))
+        return rlp.encode(
+            HomesteadUnsignedTransaction(
+                nonce=self.nonce,
+                gas_price=self.gas_price,
+                gas=self.gas,
+                to=self.to,
+                value=self.value,
+                data=self.data,
+            )
+        )
 
     @classmethod
-    def create_unsigned_transaction(cls,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> 'HomesteadUnsignedTransaction':
+    def create_unsigned_transaction(
+        cls,
+        *,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes
+    ) -> "HomesteadUnsignedTransaction":
         return HomesteadUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
 

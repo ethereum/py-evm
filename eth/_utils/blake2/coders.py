@@ -14,7 +14,9 @@ from .compression import (
     TMessageBlock,
 )
 
-TMessage = Tuple[int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int]
+TMessage = Tuple[
+    int, int, int, int, int, int, int, int, int, int, int, int, int, int, int, int
+]
 TFCompressArgs = Tuple[int, TMessageBlock, TMessage, Tuple[int, int], bool]
 
 
@@ -22,7 +24,8 @@ def extract_blake2b_parameters(input_bytes: bytes) -> TFCompressArgs:
     num_bytes = len(input_bytes)
     if num_bytes != 213:
         raise ValidationError(
-            f"input length for Blake2 F precompile should be exactly 213 bytes, got: {num_bytes}"
+            "input length for Blake2 F precompile should be exactly 213 bytes, got: "
+            f"{num_bytes}"
         )
 
     rounds = to_int(input_bytes[:4])
@@ -31,7 +34,9 @@ def extract_blake2b_parameters(input_bytes: bytes) -> TFCompressArgs:
 
     message = cast(TMessage, _get_64_bit_little_endian_words(input_bytes[68:196]))
 
-    t_offset_counters = cast(Tuple[int, int], _get_64_bit_little_endian_words(input_bytes[196:212]))
+    t_offset_counters = cast(
+        Tuple[int, int], _get_64_bit_little_endian_words(input_bytes[196:212])
+    )
 
     final_block_int = to_int(input_bytes[212])
     if final_block_int == 0:
@@ -40,7 +45,8 @@ def extract_blake2b_parameters(input_bytes: bytes) -> TFCompressArgs:
         final_block_flag = True
     else:
         raise ValidationError(
-            f"incorrect final block indicator flag, needed 0 or 1, got: {final_block_int}"
+            "incorrect final block indicator flag, needed 0 or 1, got: "
+            f"{final_block_int}"
         )
 
     return rounds, h_state, message, t_offset_counters, final_block_flag

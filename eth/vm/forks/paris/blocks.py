@@ -35,15 +35,14 @@ class ParisMiningHeader(GrayGlacierMiningHeader, ABC):
 
 class ParisBlockHeader(GrayGlacierBlockHeader, ABC):
     def __str__(self) -> str:
-        return f'<ParisBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
+        return f"<ParisBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>"
 
 
 class ParisBlock(GrayGlacierBlock):
     transaction_builder: Type[TransactionBuilderAPI] = ParisTransactionBuilder
     fields = [
-        ('header', ParisBlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-
+        ("header", ParisBlockHeader),
+        ("transactions", CountableList(transaction_builder)),
         # no uncles in pos, max_length=0
-        ('uncles', CountableList(LondonBackwardsHeader, max_length=0)),
+        ("uncles", CountableList(LondonBackwardsHeader, max_length=0)),
     ]

@@ -24,8 +24,8 @@ from eth.vm.interrupt import (
 )
 
 if TYPE_CHECKING:
-    ABC_Mutable_Mapping = MutableMapping[bytes, Union[bytes, 'MissingReason']]
-    ABC_Mapping = Mapping[bytes, Union[bytes, 'MissingReason']]
+    ABC_Mutable_Mapping = MutableMapping[bytes, Union[bytes, "MissingReason"]]
+    ABC_Mapping = Mapping[bytes, Union[bytes, "MissingReason"]]
 else:
     ABC_Mutable_Mapping = MutableMapping
     ABC_Mapping = Mapping
@@ -47,6 +47,7 @@ class DiffMissingError(KeyError):
     Use :attr:`is_deleted` to check if the value is missing because it was
     deleted, or simply because it was never updated.
     """
+
     def __init__(self, missing_key: bytes, reason: MissingReason) -> None:
         self.reason = reason
         super().__init__(missing_key, reason)
@@ -69,8 +70,10 @@ class DBDiffTracker(ABC_Mutable_Mapping):
     was deleted, or never present, using :meth:`DiffMissingError.is_deleted`.
 
     When it's time to take the tracked changes and write them to your database,
-    get the :class:`DBDiff` with :meth:`DBDiffTracker.diff` and use the attached methods.
+    get the :class:`DBDiff` with :meth:`DBDiffTracker.diff` and use the attached
+    methods.
     """
+
     def __init__(self) -> None:
         self._changes: Dict[bytes, Union[bytes, MissingReason]] = {}
 
@@ -81,7 +84,7 @@ class DBDiffTracker(ABC_Mutable_Mapping):
     def __getitem__(self, key: bytes) -> bytes:
         result = self._changes.get(key, NEVER_INSERTED)
         if result in (DELETED, NEVER_INSERTED):
-            raise DiffMissingError(key, result)  # type: ignore # ignore over cast for perf reasons
+            raise DiffMissingError(key, result)  # type: ignore # ignore over cast for perf reasons  # noqa: E501
         else:
             return result  # type: ignore # ignore over cast for perf reasons
 
@@ -95,13 +98,14 @@ class DBDiffTracker(ABC_Mutable_Mapping):
 
     def __iter__(self) -> None:
         raise NotImplementedError(
-            "Cannot iterate through changes, use diff().apply_to(db) to update a database"
+            "Cannot iterate through changes, use diff().apply_to(db) "
+            "to update a database"
         )
 
     def __len__(self) -> int:
         return len(self._changes)
 
-    def diff(self) -> 'DBDiff':
+    def diff(self) -> "DBDiff":
         return DBDiff(dict(self._changes))
 
 
@@ -113,9 +117,12 @@ class DBDiff(ABC_Mapping):
     The primary usage is to apply these changes to your underlying
     database with :meth:`apply_to`.
     """
+
     _changes: Dict[bytes, Union[bytes, MissingReason]] = None
 
-    def __init__(self, changes: Dict[bytes, Union[bytes, MissingReason]] = None) -> None:
+    def __init__(
+        self, changes: Dict[bytes, Union[bytes, MissingReason]] = None
+    ) -> None:
         if changes is None:
             self._changes = {}
         else:
@@ -124,14 +131,15 @@ class DBDiff(ABC_Mapping):
     def __getitem__(self, key: bytes) -> bytes:
         result = self._changes.get(key, NEVER_INSERTED)
         if result in (DELETED, NEVER_INSERTED):
-            raise DiffMissingError(key, result)  # type: ignore # ignore over cast for perf reasons
+            raise DiffMissingError(key, result)  # type: ignore # ignore over cast for perf reasons  # noqa: E501
         else:
             return result  # type: ignore # ignore over cast for perf reasons
 
     def __iter__(self) -> None:
         raise NotImplementedError(
             "Cannot iterate through changes, use apply_to(db) to update a database. "
-            "Also, pending_keys(), deleted_keys(), and pending_items() might be of interest."
+            "Also, pending_keys(), deleted_keys(), and pending_items() might be of "
+            "interest."
         )
 
     def __eq__(self, other: object) -> bool:
@@ -142,7 +150,7 @@ class DBDiff(ABC_Mapping):
 
     def __repr__(self) -> str:
         deleted = [
-            f'key={encode_hex(key)}'
+            f"key={encode_hex(key)}"
             for key, val in self._changes.items()
             if val is DELETED
         ]
@@ -183,11 +191,11 @@ class DBDiff(ABC_Mapping):
         """
         for key, value in self._changes.items():
             if value is not DELETED:
-                yield key, value  # type: ignore # value can only be DELETED or actual new value
+                yield key, value  # type: ignore # value can only be DELETED or actual new value  # noqa: E501
 
-    def apply_to(self,
-                 db: Union[DatabaseAPI, ABC_Mutable_Mapping],
-                 apply_deletes: bool = True) -> None:
+    def apply_to(
+        self, db: Union[DatabaseAPI, ABC_Mutable_Mapping], apply_deletes: bool = True
+    ) -> None:
         """
         Apply the changes in this diff to the given database.
         You may choose to opt out of deleting any underlying keys.
@@ -210,7 +218,7 @@ class DBDiff(ABC_Mapping):
                 db[key] = value  # type: ignore # ignore over cast for perf reasons
 
     @classmethod
-    def join(cls, diffs: Iterable['DBDiff']) -> 'DBDiff':
+    def join(cls, diffs: Iterable["DBDiff"]) -> "DBDiff":
         """
         Join several DBDiff objects into a single DBDiff object.
 

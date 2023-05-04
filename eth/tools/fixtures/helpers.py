@@ -64,12 +64,12 @@ from eth.vm.forks import (
 #
 def setup_state(desired_state: AccountState, state: StateAPI) -> None:
     for account, account_data in desired_state.items():
-        for slot, value in account_data['storage'].items():
+        for slot, value in account_data["storage"].items():
             state.set_storage(account, slot, value)
 
-        nonce = account_data['nonce']
-        code = account_data['code']
-        balance = account_data['balance']
+        nonce = account_data["nonce"]
+        code = account_data["code"]
+        balance = account_data["balance"]
 
         state.set_nonce(account, nonce)
         state.set_code(account, code)
@@ -83,7 +83,7 @@ def verify_state(expected_state: AccountState, state: StateAPI) -> None:
     if diff:
         error_messages = []
         for account, field, actual_value, expected_value in diff:
-            if field == 'balance':
+            if field == "balance":
                 error_messages.append(
                     f"{to_normalized_address(account)}(balance) | "
                     f"Actual: {actual_value!r} | Expected: {expected_value!r} | "
@@ -95,94 +95,70 @@ def verify_state(expected_state: AccountState, state: StateAPI) -> None:
                     f"Actual: {actual_value!r} | Expected: {expected_value!r}"
                 )
         raise AssertionError(
-            f"State DB did not match expected state on {len(error_messages)} values:{new_line}"
-            f"{f'{new_line} - '.join(error_messages)}"
+            f"State DB did not match expected state on {len(error_messages)} "
+            f"values:{new_line} {f'{new_line} - '.join(error_messages)}"
         )
 
 
-def chain_vm_configuration(fixture: Dict[str, Any]) -> Iterable[Tuple[int, Type[VirtualMachineAPI]]]:  # noqa: E501
-    network = fixture['network']
+def chain_vm_configuration(
+    fixture: Dict[str, Any]
+) -> Iterable[Tuple[int, Type[VirtualMachineAPI]]]:
+    network = fixture["network"]
 
-    if network == 'Frontier':
-        return (
-            (0, FrontierVM),
-        )
-    elif network == 'Homestead':
+    if network == "Frontier":
+        return ((0, FrontierVM),)
+    elif network == "Homestead":
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
-        return (
-            (0, HomesteadVM),
-        )
-    elif network == 'EIP150':
-        return (
-            (0, TangerineWhistleVM),
-        )
-    elif network == 'EIP158':
-        return (
-            (0, SpuriousDragonVM),
-        )
-    elif network == 'Byzantium':
-        return (
-            (0, ByzantiumVM),
-        )
-    elif network == 'Constantinople':
-        return (
-            (0, ConstantinopleVM),
-        )
-    elif network == 'ConstantinopleFix':
-        return (
-            (0, PetersburgVM),
-        )
-    elif network == 'Istanbul':
-        return (
-            (0, IstanbulVM),
-        )
-    elif network == 'Berlin':
-        return (
-            (0, BerlinVM),
-        )
-    elif network == 'London':
-        return (
-            (0, LondonVM),
-        )
-    elif network == 'Merge':
-        return (
-            (0, ParisVM),
-        )
+        return ((0, HomesteadVM),)
+    elif network == "EIP150":
+        return ((0, TangerineWhistleVM),)
+    elif network == "EIP158":
+        return ((0, SpuriousDragonVM),)
+    elif network == "Byzantium":
+        return ((0, ByzantiumVM),)
+    elif network == "Constantinople":
+        return ((0, ConstantinopleVM),)
+    elif network == "ConstantinopleFix":
+        return ((0, PetersburgVM),)
+    elif network == "Istanbul":
+        return ((0, IstanbulVM),)
+    elif network == "Berlin":
+        return ((0, BerlinVM),)
+    elif network == "London":
+        return ((0, LondonVM),)
+    elif network == "Merge":
+        return ((0, ParisVM),)
     elif network == "Shanghai":
-        return (
-            (0, ShanghaiVM),
-        )
-    elif network == 'FrontierToHomesteadAt5':
+        return ((0, ShanghaiVM),)
+    elif network == "FrontierToHomesteadAt5":
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
             (0, FrontierVM),
             (5, HomesteadVM),
         )
-    elif network == 'HomesteadToEIP150At5':
+    elif network == "HomesteadToEIP150At5":
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
             (0, HomesteadVM),
             (5, TangerineWhistleVM),
         )
-    elif network == 'HomesteadToDaoAt5':
+    elif network == "HomesteadToDaoAt5":
         HomesteadVM = MainnetDAOValidatorVM.configure(
             support_dao_fork=True,
             _dao_fork_block_number=5,
         )
-        return (
-            (0, HomesteadVM),
-        )
-    elif network == 'EIP158ToByzantiumAt5':
+        return ((0, HomesteadVM),)
+    elif network == "EIP158ToByzantiumAt5":
         return (
             (0, SpuriousDragonVM),
             (5, ByzantiumVM),
         )
-    elif network == 'ByzantiumToConstantinopleFixAt5':
+    elif network == "ByzantiumToConstantinopleFixAt5":
         return (
             (0, ByzantiumVM),
             (5, PetersburgVM),
         )
-    elif network == 'BerlinToLondonAt5':
+    elif network == "BerlinToLondonAt5":
         return (
             (0, BerlinVM),
             (5, LondonVM),
@@ -212,26 +188,26 @@ def genesis_fields_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
     Convert all genesis fields in a fixture to a dictionary of header fields and values.
     """
 
-    header_fields = fixture['genesisBlockHeader']
+    header_fields = fixture["genesisBlockHeader"]
     base_fields = {
-        'parent_hash': header_fields['parentHash'],
-        'uncles_hash': header_fields['uncleHash'],
-        'coinbase': header_fields['coinbase'],
-        'state_root': header_fields['stateRoot'],
-        'transaction_root': header_fields['transactionsTrie'],
-        'receipt_root': header_fields['receiptTrie'],
-        'bloom': header_fields['bloom'],
-        'difficulty': header_fields['difficulty'],
-        'block_number': header_fields['number'],
-        'gas_limit': header_fields['gasLimit'],
-        'gas_used': header_fields['gasUsed'],
-        'timestamp': header_fields['timestamp'],
-        'extra_data': header_fields['extraData'],
-        'mix_hash': header_fields['mixHash'],
-        'nonce': header_fields['nonce'],
+        "parent_hash": header_fields["parentHash"],
+        "uncles_hash": header_fields["uncleHash"],
+        "coinbase": header_fields["coinbase"],
+        "state_root": header_fields["stateRoot"],
+        "transaction_root": header_fields["transactionsTrie"],
+        "receipt_root": header_fields["receiptTrie"],
+        "bloom": header_fields["bloom"],
+        "difficulty": header_fields["difficulty"],
+        "block_number": header_fields["number"],
+        "gas_limit": header_fields["gasLimit"],
+        "gas_used": header_fields["gasUsed"],
+        "timestamp": header_fields["timestamp"],
+        "extra_data": header_fields["extraData"],
+        "mix_hash": header_fields["mixHash"],
+        "nonce": header_fields["nonce"],
     }
-    if 'baseFeePerGas' in header_fields:
-        return assoc(base_fields, 'base_fee_per_gas', header_fields['baseFeePerGas'])
+    if "baseFeePerGas" in header_fields:
+        return assoc(base_fields, "base_fee_per_gas", header_fields["baseFeePerGas"])
     else:
         return base_fields
 
@@ -249,46 +225,47 @@ def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
     # Confirm that (currently) non-configurable defaults are set correctly,
     #   then remove them because they cannot be configured on the header.
     defaults = (
-        ('parent_hash', constants.GENESIS_PARENT_HASH),
-        ('uncles_hash', constants.EMPTY_UNCLE_HASH),
-        ('bloom', constants.GENESIS_BLOOM),
-        ('block_number', constants.GENESIS_BLOCK_NUMBER),
-        ('gas_used', constants.GENESIS_GAS_USED),
+        ("parent_hash", constants.GENESIS_PARENT_HASH),
+        ("uncles_hash", constants.EMPTY_UNCLE_HASH),
+        ("bloom", constants.GENESIS_BLOOM),
+        ("block_number", constants.GENESIS_BLOCK_NUMBER),
+        ("gas_used", constants.GENESIS_GAS_USED),
     )
 
     for key, default_val in defaults:
         supplied_val = params.pop(key)
         if supplied_val != default_val:
-            raise ValueError(f"Unexpected genesis {key}: {supplied_val}, expected: {default_val}")
+            raise ValueError(
+                f"Unexpected genesis {key}: {supplied_val}, expected: {default_val}"
+            )
 
     return params
 
 
-def new_chain_from_fixture(fixture: Dict[str, Any],
-                           chain_cls: Type[ChainAPI] = MainnetChain) -> ChainAPI:
+def new_chain_from_fixture(
+    fixture: Dict[str, Any], chain_cls: Type[ChainAPI] = MainnetChain
+) -> ChainAPI:
     base_db = AtomicDB()
 
     vm_config = chain_vm_configuration(fixture)
 
     ChainFromFixture = chain_cls.configure(
-        'ChainFromFixture',
+        "ChainFromFixture",
         vm_configuration=vm_config,
     )
 
-    if 'sealEngine' in fixture and fixture['sealEngine'] == 'NoProof':
+    if "sealEngine" in fixture and fixture["sealEngine"] == "NoProof":
         ChainFromFixture = disable_pow_check(ChainFromFixture)
 
     return ChainFromFixture.from_genesis(
         base_db,
         genesis_params=genesis_params_from_fixture(fixture),
-        genesis_state=fixture['pre'],
+        genesis_state=fixture["pre"],
     )
 
 
 def apply_fixture_block_to_chain(
-        block_fixture: Dict[str, Any],
-        chain: ChainAPI,
-        perform_validation: bool = True
+    block_fixture: Dict[str, Any], chain: ChainAPI, perform_validation: bool = True
 ) -> Tuple[BlockAPI, BlockAPI, bytes]:
     """
     :return: (provided_block, imported_block, rlp_encoded_imported_block)
@@ -296,13 +273,15 @@ def apply_fixture_block_to_chain(
     # The block to import may be in a different block-class-range than the
     # chain's current one, so we use the block number specified in the
     # fixture to look up the correct block class.
-    if 'blockHeader' in block_fixture:
-        block_number = block_fixture['blockHeader']['number']
-        block_class = chain.get_vm_class_for_block_number(block_number).get_block_class()
+    if "blockHeader" in block_fixture:
+        block_number = block_fixture["blockHeader"]["number"]
+        block_class = chain.get_vm_class_for_block_number(
+            block_number
+        ).get_block_class()
     else:
         block_class = chain.get_vm().get_block_class()
 
-    block = rlp.decode(block_fixture['rlp'], sedes=block_class)
+    block = rlp.decode(block_fixture["rlp"], sedes=block_class)
 
     import_result = chain.import_block(block, perform_validation=perform_validation)
     imported_block = import_result.imported_block
@@ -313,7 +292,7 @@ def apply_fixture_block_to_chain(
 
 
 def should_run_slow_tests() -> bool:
-    if os.environ.get('TRAVIS_EVENT_TYPE') == 'cron':
+    if os.environ.get("TRAVIS_EVENT_TYPE") == "cron":
         return True
     return False
 

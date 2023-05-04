@@ -88,22 +88,24 @@ from .hash_trie import (
     HashTrie,
 )
 
-IS_PRESENT_VALUE = b''
+IS_PRESENT_VALUE = b""
 
 
 class AccountDB(AccountDatabaseAPI):
-    logger = get_extended_debug_logger('eth.db.account.AccountDB')
+    logger = get_extended_debug_logger("eth.db.account.AccountDB")
 
-    def __init__(self, db: AtomicDatabaseAPI, state_root: Hash32 = BLANK_ROOT_HASH) -> None:
+    def __init__(
+        self, db: AtomicDatabaseAPI, state_root: Hash32 = BLANK_ROOT_HASH
+    ) -> None:
         r"""
         Internal implementation details (subject to rapid change):
         Database entries go through several pipes, like so...
 
         .. code::
 
-            db > _batchdb ---------------------------> _journaldb ----------------> code lookups
+            db > _batchdb ------------------------> _journaldb -----------> code lookups
              \
-              -> _batchtrie -> _trie -> _trie_cache -> _journaltrie --------------> account lookups
+              -> _batchtrie -> _trie -> _trie_cache -> _journaltrie ---> account lookups
 
         Journaling sequesters writes at the _journal* attrs ^, until persist is called.
 
@@ -146,7 +148,8 @@ class AccountDB(AccountDatabaseAPI):
         self._root_hash_at_last_persist = state_root
         self._accessed_accounts: Set[Address] = set()
         self._accessed_bytecodes: Set[Address] = set()
-        # Track whether an account or slot have been accessed during a given transaction:
+        # Track whether an account or slot have been accessed
+        # during a given transaction:
         self._reset_access_counters()
 
     @property
@@ -165,7 +168,9 @@ class AccountDB(AccountDatabaseAPI):
     #
     # Storage
     #
-    def get_storage(self, address: Address, slot: int, from_journal: bool = True) -> int:
+    def get_storage(
+        self, address: Address, slot: int, from_journal: bool = True
+    ) -> int:
         validate_canonical_address(address, title="Storage Address")
         validate_uint256(slot, title="Storage Slot")
 
@@ -220,7 +225,9 @@ class AccountDB(AccountDatabaseAPI):
             self._account_stores[address] = store
         return store
 
-    def _dirty_account_stores(self) -> Iterable[Tuple[Address, AccountStorageDatabaseAPI]]:
+    def _dirty_account_stores(
+        self,
+    ) -> Iterable[Tuple[Address, AccountStorageDatabaseAPI]]:
         for address in self._dirty_accounts:
             store = self._account_stores[address]
             yield address, store
@@ -240,14 +247,16 @@ class AccountDB(AccountDatabaseAPI):
         account = self._get_account(address)
         self._set_account(address, account.copy(storage_root=new_storage_root))
 
-    def _validate_flushed_storage(self, address: Address, store: AccountStorageDatabaseAPI) -> None:
+    def _validate_flushed_storage(
+        self, address: Address, store: AccountStorageDatabaseAPI
+    ) -> None:
         if store.has_changed_root:
             actual_storage_root = self._get_storage_root(address)
             expected_storage_root = store.get_changed_root()
             if expected_storage_root != actual_storage_root:
                 raise ValidationError(
-                    "Storage root was not saved to account before trying to persist roots. "
-                    f"Account {address!r} had storage {actual_storage_root!r}, "
+                    "Storage root was not saved to account before trying to persist "
+                    f"roots. Account {address!r} had storage {actual_storage_root!r}, "
                     f"but should be {expected_storage_root!r}."
                 )
 
@@ -295,7 +304,7 @@ class AccountDB(AccountDatabaseAPI):
 
         code_hash = self.get_code_hash(address)
         if code_hash == EMPTY_SHA3:
-            return b''
+            return b""
         else:
             try:
                 return self._journaldb[code_hash]
@@ -338,7 +347,8 @@ class AccountDB(AccountDatabaseAPI):
 
         # We must wipe the storage first, because if it's the first time we load it,
         #   then we want to load it with the original storage root hash, not the
-        #   empty one. (in case of a later revert, we don't want to poison the storage cache)
+        #   empty one. (in case of a later revert, we don't want to poison the
+        #   storage cache)
         self._wipe_storage(address)
 
         if address in self._account_cache:
@@ -348,7 +358,7 @@ class AccountDB(AccountDatabaseAPI):
     def account_exists(self, address: Address) -> bool:
         validate_canonical_address(address, title="Storage Address")
         account_rlp = self._get_encoded_account(address, from_journal=True)
-        return account_rlp != b''
+        return account_rlp != b""
 
     def touch_account(self, address: Address) -> None:
         validate_canonical_address(address, title="Storage Address")
@@ -372,7 +382,9 @@ class AccountDB(AccountDatabaseAPI):
     #
     # Internal
     #
-    def _get_encoded_account(self, address: Address, from_journal: bool = True) -> bytes:
+    def _get_encoded_account(
+        self, address: Address, from_journal: bool = True
+    ) -> bytes:
         self._accessed_accounts.add(address)
         lookup_trie = self._journaltrie if from_journal else self._trie_cache
 
@@ -382,7 +394,7 @@ class AccountDB(AccountDatabaseAPI):
             raise MissingAccountTrieNode(*exc.args) from exc
         except KeyError:
             # In case the account is deleted in the JournalDB
-            return b''
+            return b""
 
     def _get_account(self, address: Address, from_journal: bool = True) -> Account:
         if from_journal and address in self._account_cache:
@@ -406,7 +418,8 @@ class AccountDB(AccountDatabaseAPI):
     def _reset_access_counters(self) -> None:
         # Account accesses and storage accesses recorded in the same journal
         # Accounts just use the address as the key (and an empty value as a flag)
-        # Storage use a concatenation of address and slot converted to bytes (and empty value)
+        # Storage use a concatenation of address and slot converted to bytes
+        # (and empty value)
         self._journal_accessed_state = JournalDB(MemoryDB())
 
     #
@@ -458,8 +471,8 @@ class AccountDB(AccountDatabaseAPI):
 
         diff = self._journaltrie.diff()
         if diff.deleted_keys() or diff.pending_items():
-            # In addition to squashing (which is redundant here), this context manager causes
-            # an atomic commit of the changes, so exceptions will revert the trie
+            # In addition to squashing (which is redundant here), this context manager
+            # causes an atomic commit of the changes, so exceptions will revert the trie
             with self._trie.squash_changes() as memory_trie:
                 self._apply_account_diff_without_proof(diff, memory_trie)
 
@@ -520,22 +533,27 @@ class AccountDB(AccountDatabaseAPI):
     @to_dict
     def _get_access_list(self) -> Iterable[Tuple[Address, AccountQueryTracker]]:
         """
-        Get the list of addresses that were accessed, whether the bytecode was accessed, and
-        which storage slots were accessed.
+        Get the list of addresses that were accessed, whether the bytecode was accessed,
+        and which storage slots were accessed.
         """
         for address in self._accessed_accounts:
             did_access_bytecode = address in self._accessed_bytecodes
             if address in self._account_stores:
-                accessed_storage_slots = self._account_stores[address].get_accessed_slots()
+                accessed_storage_slots = self._account_stores[
+                    address
+                ].get_accessed_slots()
             else:
                 accessed_storage_slots = frozenset()
-            yield address, AccountQueryTracker(did_access_bytecode, accessed_storage_slots)
+            yield address, AccountQueryTracker(
+                did_access_bytecode, accessed_storage_slots
+            )
 
     def _get_meta_witness(self) -> MetaWitness:
         """
         Get a variety of metadata about the state witness needed to execute the block.
 
-        This creates a copy, so that underlying changes do not affect the returned MetaWitness.
+        This creates a copy, so that underlying changes do not affect the returned
+        MetaWitness.
         """
         return MetaWitness(self._get_accessed_node_hashes(), self._get_access_list())
 
@@ -560,7 +578,7 @@ class AccountDB(AccountDatabaseAPI):
         for address in sorted(diff.pending_keys()):
             account = self._get_account(Address(address))
             self.logger.debug2(
-                "Pending Account %s: balance %d, nonce %d, storage root %s, code hash %s",
+                "Pending Account %s: balance %d, nonce %d, storage root %s, code hash %s",  # noqa: E501
                 to_checksum_address(address),
                 account.balance,
                 account.nonce,
@@ -568,7 +586,8 @@ class AccountDB(AccountDatabaseAPI):
                 encode_hex(account.code_hash),
             )
         for deleted_address in sorted(diff.deleted_keys()):
-            # Check if the account was accessed before accessing/logging info about the address
+            # Check if the account was accessed before accessing/logging
+            # info about the address
             was_account_accessed = deleted_address in self._accessed_accounts
             cast_deleted_address = Address(deleted_address)
             self.logger.debug2(
@@ -577,11 +596,14 @@ class AccountDB(AccountDatabaseAPI):
                 self.account_is_empty(cast_deleted_address),
                 self.account_exists(cast_deleted_address),
             )
-            # If the account was not accessed previous to the log, (re)mark it as not accessed
+            # If the account was not accessed previous to the log,
+            # (re)mark it as not accessed
             if not was_account_accessed:
                 self._accessed_accounts.remove(cast_deleted_address)
 
-    def _apply_account_diff_without_proof(self, diff: DBDiff, trie: DatabaseAPI) -> None:
+    def _apply_account_diff_without_proof(
+        self, diff: DBDiff, trie: DatabaseAPI
+    ) -> None:
         """
         Apply diff of trie updates, when original nodes might be missing.
         Note that doing this naively will raise exceptions about missing nodes
@@ -615,8 +637,10 @@ class AccountDB(AccountDatabaseAPI):
         #   - We know the leaf node hash but not the leaf node body
         # Refactor that triggers missing node:
         #   - Add value with key (0, 3, 4)
-        #   - We need to replace the current leaf node with a branch that points leaves at 1 and 3
-        #   - The leaf for key (0, 1, 2) now contains only the (2) part, so needs to be rebuilt
+        #   - We need to replace the current leaf node with a branch that points leaves
+        #       at 1 and 3
+        #   - The leaf for key (0, 1, 2) now contains only the (2) part, so needs to
+        #       be rebuilt
         #   - We need the full body of the old (1, 2) leaf node, to rebuild
 
         for key, val in diff.pending_items():

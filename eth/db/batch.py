@@ -21,22 +21,25 @@ class BatchDB(BaseDB):
     """
     A wrapper of basic DB objects with uncommitted DB changes stored in local cache,
     which represents as a dictionary of database keys and values.
-    This class should be usable as a context manager, the changes either all fail or all succeed.
-    Upon exiting the context, it writes all of the key value pairs from the cache into
-    the underlying database. If any error occurred before committing phase,
+    This class should be usable as a context manager, the changes either all fail or all
+    succeed. Upon exiting the context, it writes all of the key value pairs from the
+    cache into the underlying database. If any error occurred before committing phase,
     we would not apply commits at all.
     """
+
     logger = logging.getLogger("eth.db.BatchDB")
 
     wrapped_db: DatabaseAPI = None
     _track_diff: DBDiffTracker = None
 
-    def __init__(self, wrapped_db: DatabaseAPI, read_through_deletes: bool = False) -> None:
+    def __init__(
+        self, wrapped_db: DatabaseAPI, read_through_deletes: bool = False
+    ) -> None:
         self.wrapped_db = wrapped_db
         self._track_diff = DBDiffTracker()
         self._read_through_deletes = read_through_deletes
 
-    def __enter__(self) -> 'BatchDB':
+    def __enter__(self) -> "BatchDB":
         return self
 
     def __exit__(self, exc_type: None, exc_value: None, traceback: None) -> None:
@@ -55,7 +58,9 @@ class BatchDB(BaseDB):
 
     def commit_to(self, target_db: DatabaseAPI, apply_deletes: bool = True) -> None:
         if apply_deletes and self._read_through_deletes:
-            raise ValidationError("BatchDB should never apply deletes when reading through deletes")
+            raise ValidationError(
+                "BatchDB should never apply deletes when reading through deletes"
+            )
         diff = self.diff()
         diff.apply_to(target_db, apply_deletes)
         self.clear()

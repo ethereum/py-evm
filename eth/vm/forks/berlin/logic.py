@@ -70,9 +70,8 @@ def _account_load_cost(was_cold: bool) -> int:
 
 
 def _consume_gas_for_account_load(
-        computation: ComputationAPI,
-        address: Address,
-        reason: str) -> None:
+    computation: ComputationAPI, address: Address, reason: str
+) -> None:
     was_cold = _mark_address_warm(computation, address)
     gas_cost = _account_load_cost(was_cold)
     computation.consume_gas(gas_cost, reason=reason)
@@ -158,7 +157,9 @@ def sstore_eip2929_generic(
 
     if _mark_storage_warm(computation, slot):
         gas_cost = berlin_constants.COLD_SLOAD_COST
-        computation.consume_gas(gas_cost, reason=f"Implicit SLOAD during {mnemonics.SSTORE}")
+        computation.consume_gas(
+            gas_cost, reason=f"Implicit SLOAD during {mnemonics.SSTORE}"
+        )
 
     return slot
 
@@ -206,20 +207,24 @@ def selfdestruct_eip2929(computation: ComputationAPI) -> None:
 
 
 class CreateEIP2929(CreateByzantium):
-    def generate_contract_address(self,
-                                  stack_data: CreateOpcodeStackData,
-                                  call_data: bytes,
-                                  computation: ComputationAPI) -> Address:
+    def generate_contract_address(
+        self,
+        stack_data: CreateOpcodeStackData,
+        call_data: bytes,
+        computation: ComputationAPI,
+    ) -> Address:
         address = super().generate_contract_address(stack_data, call_data, computation)
         computation.state.mark_address_warm(address)
         return address
 
 
 class Create2EIP2929(Create2):
-    def generate_contract_address(self,
-                                  stack_data: CreateOpcodeStackData,
-                                  call_data: bytes,
-                                  computation: ComputationAPI) -> Address:
+    def generate_contract_address(
+        self,
+        stack_data: CreateOpcodeStackData,
+        call_data: bytes,
+        computation: ComputationAPI,
+    ) -> Address:
         address = super().generate_contract_address(stack_data, call_data, computation)
         computation.state.mark_address_warm(address)
         return address

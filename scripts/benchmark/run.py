@@ -3,9 +3,7 @@
 import logging
 import sys
 
-from eth._utils.version import (
-    construct_evm_runtime_identifier
-)
+from eth._utils.version import construct_evm_runtime_identifier
 
 from checks import (
     ImportEmptyBlocksBenchmark,
@@ -29,20 +27,13 @@ from checks.deploy_dos import (
 
 from checks.simple_value_transfers import (
     TO_EXISTING_ADDRESS_CONFIG,
-    TO_NON_EXISTING_ADDRESS_CONFIG
+    TO_NON_EXISTING_ADDRESS_CONFIG,
 )
 
-from contract_data import (
-    get_contracts
-)
+from contract_data import get_contracts
 
-from _utils.compile import (
-    compile_contracts
-)
-from _utils.reporting import (
-    DefaultStat,
-    print_final_benchmark_total_line
-)
+from _utils.compile import compile_contracts
+from _utils.reporting import DefaultStat, print_final_benchmark_total_line
 from _utils.shellart import (
     bold_green,
     bold_red,
@@ -59,17 +50,18 @@ HEADER = (
 
 
 def run() -> None:
-
-    logging.basicConfig(level=logging.INFO, format='%(message)s')
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     logging.info(bold_green(HEADER))
     logging.info(construct_evm_runtime_identifier() + "\n")
 
     if "--compile-contracts" in sys.argv:
-        logging.info('Precompiling contracts')
+        logging.info("Precompiling contracts")
         try:
             compile_contracts(get_contracts())
         except OSError:
-            logging.error(bold_red('Compiling contracts requires "solc" system dependency'))
+            logging.error(
+                bold_red('Compiling contracts requires "solc" system dependency')
+            )
             sys.exit(1)
 
     total_stat = DefaultStat()
@@ -96,5 +88,5 @@ def run() -> None:
     print_final_benchmark_total_line(total_stat)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

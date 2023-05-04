@@ -101,7 +101,9 @@ def chain(chain_without_block_validation):
 
 
 def test_chaindb_add_block_number_to_hash_lookup(chaindb, block):
-    block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(block.number)
+    block_number_to_hash_key = SchemaV1.make_block_number_to_hash_lookup_key(
+        block.number
+    )
     assert not chaindb.exists(block_number_to_hash_key)
     assert chaindb.get_chain_gaps() == GENESIS_CHAIN_GAPS
     chaindb.persist_block(block)
@@ -109,27 +111,45 @@ def test_chaindb_add_block_number_to_hash_lookup(chaindb, block):
 
 
 @pytest.mark.parametrize(
-    'has_uncle, has_transaction, can_fetch_block',
+    "has_uncle, has_transaction, can_fetch_block",
     (
         # Uncle block gets de-canonicalized by a header that has another uncle
-        (True, False, False,),
+        (
+            True,
+            False,
+            False,
+        ),
         # Uncle block gets de-canonicalized by a header that has transactions
-        (False, True, False,),
+        (
+            False,
+            True,
+            False,
+        ),
         # Has uncle and transactions
-        (True, True, False,),
-        # Uncle block gets de-canonicalized by a header that has no uncles nor transactions which
-        # means this is a "Header-only" block. Even though we technically do not need to re-open
-        # a gap here, we don't have a good way of detecting that special case and hence open a gap.
-        (False, False, True,),
-    )
+        (
+            True,
+            True,
+            False,
+        ),
+        # Uncle block gets de-canonicalized by a header that has no uncles nor
+        # transactions which means this is a "Header-only" block. Even though we
+        # technically do not need to re-open a gap here, we don't have a good way
+        # of detecting that special case and hence open a gap.
+        (
+            False,
+            False,
+            True,
+        ),
+    ),
 )
-def test_block_gap_tracking(chain,
-                            funded_address,
-                            funded_address_private_key,
-                            has_uncle,
-                            has_transaction,
-                            can_fetch_block):
-
+def test_block_gap_tracking(
+    chain,
+    funded_address,
+    funded_address_private_key,
+    has_uncle,
+    has_transaction,
+    can_fetch_block,
+):
     # Mine three common blocks
     common_chain = api.build(
         chain,
@@ -145,7 +165,9 @@ def test_block_gap_tracking(chain,
         to=ZERO_ADDRESS,
         private_key=funded_address_private_key,
     )
-    uncle = api.build(common_chain, api.mine_block()).get_canonical_block_header_by_number(4)
+    uncle = api.build(
+        common_chain, api.mine_block()
+    ).get_canonical_block_header_by_number(4)
     uncles = [uncle] if has_uncle else []
     transactions = [tx] if has_transaction else []
 
@@ -165,7 +187,10 @@ def test_block_gap_tracking(chain,
                 api.mine_block(),
             ),
             # This will be the uncle chain
-            (api.mine_block(extra_data=b'fork-it'), api.mine_block(),),
+            (
+                api.mine_block(extra_data=b"fork-it"),
+                api.mine_block(),
+            ),
         ),
     )
 
@@ -196,9 +221,9 @@ def test_block_gap_tracking(chain,
     assert gap_chain.chaindb.get_chain_gaps() == (((4, 6),), 8)
 
     # Overwriting header 3 doesn't cause us to re-open a block gap
-    gap_chain.chaindb.persist_header_chain([
-        main_chain.chaindb.get_canonical_block_header_by_number(3)
-    ])
+    gap_chain.chaindb.persist_header_chain(
+        [main_chain.chaindb.get_canonical_block_header_by_number(3)]
+    )
     assert gap_chain.chaindb.get_chain_gaps() == (((4, 6),), 8)
 
     # Now get the uncle block
@@ -210,7 +235,8 @@ def test_block_gap_tracking(chain,
     assert gap_chain.chaindb.get_header_chain_gaps() == (((5, 5),), 8)
     assert gap_chain.chaindb.get_chain_gaps() == (((5, 6),), 8)
 
-    # Trying to save another uncle errors as its header isn't the parent of the checkpoint
+    # Trying to save another uncle errors as its header
+    # isn't the parent of the checkpoint
     second_uncle = uncle_chain.get_canonical_block_by_number(5)
     second_uncle_receipts = second_uncle.get_receipts(uncle_chain.chaindb)
     with pytest.raises(CheckpointsMustBeCanonical):
@@ -228,9 +254,9 @@ def test_block_gap_tracking(chain,
     assert gap_chain.chaindb.get_chain_gaps() == (((4, 6),), 8)
 
     if can_fetch_block:
-        # We can fetch the block even if the gap tracking reports it as missing if the block is
-        # a "trivial" block, meaning one that doesn't have transactions nor uncles and hence
-        # can be loaded by just the header alone.
+        # We can fetch the block even if the gap tracking reports it as missing if the
+        # block is a "trivial" block, meaning one that doesn't have transactions nor
+        # uncles and hence can be loaded by just the header alone.
         block_4 = gap_chain.get_canonical_block_by_number(4)
         assert block_4 == main_chain.get_canonical_block_by_number(4)
     else:
@@ -278,7 +304,9 @@ def test_chaindb_get_score(chaindb):
     chaindb.persist_header(genesis)
 
     genesis_score_key = SchemaV1.make_block_hash_to_score_lookup_key(genesis.hash)
-    genesis_score = rlp.decode(chaindb.db.get(genesis_score_key), sedes=rlp.sedes.big_endian_int)
+    genesis_score = rlp.decode(
+        chaindb.db.get(genesis_score_key), sedes=rlp.sedes.big_endian_int
+    )
     assert genesis_score == 1
     assert chaindb.get_score(genesis.hash) == 1
 
@@ -292,7 +320,9 @@ def test_chaindb_get_score(chaindb):
     chaindb.persist_header(block1)
 
     block1_score_key = SchemaV1.make_block_hash_to_score_lookup_key(block1.hash)
-    block1_score = rlp.decode(chaindb.db.get(block1_score_key), sedes=rlp.sedes.big_endian_int)
+    block1_score = rlp.decode(
+        chaindb.db.get(block1_score_key), sedes=rlp.sedes.big_endian_int
+    )
     assert block1_score == 11
     assert chaindb.get_score(block1.hash) == 11
 
@@ -312,19 +342,16 @@ def test_chaindb_get_canonical_block_hash(chaindb, block):
     assert block_hash == block.hash
 
 
-def mine_blocks_with_receipts(chain,
-                              num_blocks,
-                              num_tx_per_block,
-                              funded_address,
-                              funded_address_private_key):
-
+def mine_blocks_with_receipts(
+    chain, num_blocks, num_tx_per_block, funded_address, funded_address_private_key
+):
     for _ in range(num_blocks):
         block_receipts = []
         for _ in range(num_tx_per_block):
             tx = new_transaction(
                 chain.get_vm(),
                 from_=funded_address,
-                to=force_bytes_to_address(b'\x10\x10'),
+                to=force_bytes_to_address(b"\x10\x10"),
                 private_key=funded_address_private_key,
             )
             new_block, tx_receipt, computation = chain.apply_transaction(tx)
@@ -334,18 +361,20 @@ def mine_blocks_with_receipts(chain,
         yield chain.mine_block(), block_receipts
 
 
-def test_chaindb_get_receipt_and_tx_by_index(chain, funded_address, funded_address_private_key):
+def test_chaindb_get_receipt_and_tx_by_index(
+    chain, funded_address, funded_address_private_key
+):
     NUMBER_BLOCKS_IN_CHAIN = 5
     TRANSACTIONS_IN_BLOCK = 10
     REQUIRED_BLOCK_NUMBER = 2
     REQUIRED_RECEIPT_INDEX = 3
 
-    for (block, receipts) in mine_blocks_with_receipts(
-            chain,
-            NUMBER_BLOCKS_IN_CHAIN,
-            TRANSACTIONS_IN_BLOCK,
-            funded_address,
-            funded_address_private_key,
+    for block, receipts in mine_blocks_with_receipts(
+        chain,
+        NUMBER_BLOCKS_IN_CHAIN,
+        TRANSACTIONS_IN_BLOCK,
+        funded_address,
+        funded_address_private_key,
     ):
         if block.header.block_number == REQUIRED_BLOCK_NUMBER:
             actual_receipt = receipts[REQUIRED_RECEIPT_INDEX]
@@ -363,7 +392,8 @@ def test_chaindb_get_receipt_and_tx_by_index(chain, funded_address, funded_addre
     assert chaindb_retrieved_receipt == actual_receipt
 
     chaindb_retrieved_tx = chain.chaindb.get_transaction_by_index(
-        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class)
+        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class
+    )
     assert chaindb_retrieved_tx == actual_tx
 
     # Raise error if block number is not found
@@ -384,12 +414,8 @@ def test_chaindb_get_receipt_and_tx_by_index(chain, funded_address, funded_addre
 
 
 def mine_blocks_with_access_list_receipts(
-        chain,
-        num_blocks,
-        num_tx_per_block,
-        funded_address,
-        funded_address_private_key):
-
+    chain, num_blocks, num_tx_per_block, funded_address, funded_address_private_key
+):
     current_vm = chain.get_vm()
     if not isinstance(current_vm, (BerlinVM, LondonVM)):
         pytest.skip("{current_vm} does not support typed transactions")
@@ -400,7 +426,7 @@ def mine_blocks_with_access_list_receipts(
             tx = new_access_list_transaction(
                 chain.get_vm(),
                 from_=funded_address,
-                to=force_bytes_to_address(b'\x10\x10'),
+                to=force_bytes_to_address(b"\x10\x10"),
                 private_key=funded_address_private_key,
             )
             new_block, tx_receipt, computation = chain.apply_transaction(tx)
@@ -411,21 +437,19 @@ def mine_blocks_with_access_list_receipts(
 
 
 def test_chaindb_get_access_list_receipt_and_tx_by_index(
-        chain,
-        funded_address,
-        funded_address_private_key):
-
+    chain, funded_address, funded_address_private_key
+):
     NUMBER_BLOCKS_IN_CHAIN = 5
     TRANSACTIONS_IN_BLOCK = 10
     REQUIRED_BLOCK_NUMBER = 2
     REQUIRED_RECEIPT_INDEX = 3
 
-    for (block, receipts) in mine_blocks_with_access_list_receipts(
-            chain,
-            NUMBER_BLOCKS_IN_CHAIN,
-            TRANSACTIONS_IN_BLOCK,
-            funded_address,
-            funded_address_private_key,
+    for block, receipts in mine_blocks_with_access_list_receipts(
+        chain,
+        NUMBER_BLOCKS_IN_CHAIN,
+        TRANSACTIONS_IN_BLOCK,
+        funded_address,
+        funded_address_private_key,
     ):
         if block.header.block_number == REQUIRED_BLOCK_NUMBER:
             actual_receipt = receipts[REQUIRED_RECEIPT_INDEX]
@@ -443,7 +467,8 @@ def test_chaindb_get_access_list_receipt_and_tx_by_index(
     assert chaindb_retrieved_receipt == actual_receipt
 
     chaindb_retrieved_tx = chain.chaindb.get_transaction_by_index(
-        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class)
+        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class
+    )
     assert chaindb_retrieved_tx == actual_tx
 
     # Raise error if block number is not found
@@ -476,16 +501,17 @@ def test_chaindb_get_access_list_receipt_and_tx_by_index(
                 )
             ),
         ),
-    )
+    ),
 )
-def test_chaindb_persist_unexecuted_block(chain,
-                                          chain_without_block_validation_factory,
-                                          funded_address,
-                                          funded_address_private_key,
-                                          use_persist_unexecuted_block):
-
-    # We need one chain to create blocks and a second one with a pristine database to test
-    # persisting blocks that have not been executed.
+def test_chaindb_persist_unexecuted_block(
+    chain,
+    chain_without_block_validation_factory,
+    funded_address,
+    funded_address_private_key,
+    use_persist_unexecuted_block,
+):
+    # We need one chain to create blocks and a second one with a pristine database to
+    # test persisting blocks that have not been executed.
     second_chain = chain_without_block_validation_factory(AtomicDB())
     assert chain.get_canonical_head() == second_chain.get_canonical_head()
     assert chain != second_chain
@@ -495,12 +521,12 @@ def test_chaindb_persist_unexecuted_block(chain,
     REQUIRED_BLOCK_NUMBER = 2
     REQUIRED_RECEIPT_INDEX = 3
 
-    for (block, receipts) in mine_blocks_with_receipts(
-            chain,
-            NUMBER_BLOCKS_IN_CHAIN,
-            TRANSACTIONS_IN_BLOCK,
-            funded_address,
-            funded_address_private_key,
+    for block, receipts in mine_blocks_with_receipts(
+        chain,
+        NUMBER_BLOCKS_IN_CHAIN,
+        TRANSACTIONS_IN_BLOCK,
+        funded_address,
+        funded_address_private_key,
     ):
         if block.header.block_number == REQUIRED_BLOCK_NUMBER:
             actual_receipt = receipts[REQUIRED_RECEIPT_INDEX]
@@ -515,7 +541,8 @@ def test_chaindb_persist_unexecuted_block(chain,
             second_chain.chaindb.persist_block(block)
 
     chaindb_retrieved_tx = second_chain.chaindb.get_transaction_by_index(
-        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class)
+        REQUIRED_BLOCK_NUMBER, REQUIRED_RECEIPT_INDEX, tx_class
+    )
     assert chaindb_retrieved_tx == actual_tx
 
     receipt_builder = chain.get_vm().get_receipt_builder()
@@ -546,7 +573,7 @@ def test_chaindb_persist_unexecuted_block(chain,
 
 
 def test_chaindb_raises_blocknotfound_on_missing_uncles(VM, chaindb, header):
-    bad_header = header.copy(uncles_hash=b'unicorns' * 4)
+    bad_header = header.copy(uncles_hash=b"unicorns" * 4)
     chaindb.persist_header(bad_header)
 
     with pytest.raises(BlockNotFound):
@@ -554,7 +581,7 @@ def test_chaindb_raises_blocknotfound_on_missing_uncles(VM, chaindb, header):
 
 
 def test_chaindb_raises_blocknotfound_on_missing_transactions(VM, chaindb, header):
-    bad_header = header.copy(transaction_root=b'unicorns' * 4)
+    bad_header = header.copy(transaction_root=b"unicorns" * 4)
     chaindb.persist_header(bad_header)
 
     with pytest.raises(BlockNotFound):

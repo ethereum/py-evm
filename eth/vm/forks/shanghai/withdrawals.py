@@ -31,10 +31,10 @@ from eth.validation import (
 
 class Withdrawal(rlp.Serializable):
     fields = [
-        ('index', big_endian_int),
-        ('validator_index', big_endian_int),
-        ('address', address),
-        ('amount', big_endian_int),
+        ("index", big_endian_int),
+        ("validator_index", big_endian_int),
+        ("address", address),
+        ("amount", big_endian_int),
     ]
 
     def __init__(

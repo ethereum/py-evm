@@ -40,14 +40,11 @@ def test_import_block_with_reorg(mining_chain, funded_address_private_key):
     fork_chain = api.build(
         mining_chain,
         api.copy(),
-        api.mine_block(extra_data=b'fork-it'),
+        api.mine_block(extra_data=b"fork-it"),
         api.mine_blocks(2),
     )
     # mine ahead 2 blocks on the main chain
-    main_chain = api.build(
-        mining_chain,
-        api.mine_blocks(2)
-    )
+    main_chain = api.build(mining_chain, api.mine_blocks(2))
 
     block_4 = main_chain.get_canonical_block_by_number(4)
     f_block_4 = fork_chain.get_canonical_block_by_number(4)
@@ -84,8 +81,7 @@ def test_import_block_with_reorg(mining_chain, funded_address_private_key):
 
 
 def test_import_block_with_reorg_with_current_head_as_uncle(
-        mining_chain,
-        funded_address_private_key
+    mining_chain, funded_address_private_key
 ):
     """
     https://github.com/ethereum/py-evm/issues/1185
@@ -95,7 +91,7 @@ def test_import_block_with_reorg_with_current_head_as_uncle(
         mining_chain,
         api.chain_split(
             (api.mine_block(),),  # this will be the 'uncle'
-            (api.mine_block(extra_data=b'fork-it'),),
+            (api.mine_block(extra_data=b"fork-it"),),
         ),
     )
 

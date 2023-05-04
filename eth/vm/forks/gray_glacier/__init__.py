@@ -17,7 +17,7 @@ from .. import ArrowGlacierVM
 
 class GrayGlacierVM(ArrowGlacierVM):
     # fork name
-    fork = 'gray-glacier'
+    fork = "gray-glacier"
 
     # classes
     block_class: Type[BaseBlock] = GrayGlacierBlock

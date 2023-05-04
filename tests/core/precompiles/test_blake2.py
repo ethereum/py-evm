@@ -14,7 +14,7 @@ from eth._utils.blake2.compression import (
 
 
 @pytest.mark.parametrize(
-    'input_hex, expected_result',
+    "input_hex, expected_result",
     (
         ("", ValidationError),
         (
@@ -48,7 +48,9 @@ from eth._utils.blake2.compression import (
         pytest.param(
             "ffffffff48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b61626300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000001",  # noqa: E501
             "fc59093aafa9ab43daae0e914c57635c5402d8e3d2130eb9b3cc181de7f0ecf9b22bf99a7815ce16419e200e01846e6b5df8cc7703041bbceb571de6631d2615",  # noqa: E501
-            marks=pytest.mark.skip(reason="This example is currently expected to take ~14 hours")
+            marks=pytest.mark.skip(
+                reason="This example is currently expected to take ~14 hours"
+            ),
         ),
     ),
 )
@@ -64,7 +66,9 @@ def test_blake2(input_hex, expected_result):
 
         # a bit of parameter massaging for the pure python implementation
         rounds, h_state = blake2b_params[:2]
-        message = input_bytes[68:196]  # python implementation uses bytes instead of decoded ints
+        message = input_bytes[
+            68:196
+        ]  # python implementation uses bytes instead of decoded ints
         t_offset_counters, final_block_flag = blake2b_params[-2:]
 
         result_bytes = blake2b_compress(

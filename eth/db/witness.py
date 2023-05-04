@@ -22,10 +22,10 @@ class AccountQueryTracker(NamedTuple):
 
 class MetaWitness(MetaWitnessAPI):
     def __init__(
-            self,
-            witness_hashes: Set[Hash32],
-            accounts_metadata_queried: Dict[Address, AccountQueryTracker]) -> None:
-
+        self,
+        witness_hashes: Set[Hash32],
+        accounts_metadata_queried: Dict[Address, AccountQueryTracker],
+    ) -> None:
         self._trie_node_hashes = frozenset(witness_hashes)
         self._accounts_metadata_queried = accounts_metadata_queried
 

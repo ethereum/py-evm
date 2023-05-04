@@ -12,5 +12,6 @@ class TangerineWhistleComputation(HomesteadComputation):
     Inherits from
     :class:`~eth.vm.forks.homestead.computation.HomesteadComputation`
     """
+
     # Override
     opcodes = TANGERINE_WHISTLE_OPCODES

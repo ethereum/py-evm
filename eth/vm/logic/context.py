@@ -59,9 +59,9 @@ def calldataload(computation: ComputationAPI) -> None:
     """
     start_position = computation.stack_pop1_int()
 
-    value = computation.msg.data_as_bytes[start_position:start_position + 32]
-    padded_value = value.ljust(32, b'\x00')
-    normalized_value = padded_value.lstrip(b'\x00')
+    value = computation.msg.data_as_bytes[start_position : start_position + 32]
+    padded_value = value.ljust(32, b"\x00")
+    normalized_value = padded_value.lstrip(b"\x00")
 
     computation.stack_push_bytes(normalized_value)
 
@@ -86,9 +86,9 @@ def calldatacopy(computation: ComputationAPI) -> None:
     computation.consume_gas(copy_gas_cost, reason="CALLDATACOPY fee")
 
     value = computation.msg.data_as_bytes[
-        calldata_start_position: calldata_start_position + size
+        calldata_start_position : calldata_start_position + size
     ]
-    padded_value = value.ljust(size, b'\x00')
+    padded_value = value.ljust(size, b"\x00")
 
     computation.memory_write(mem_start_position, size, padded_value)
 
@@ -122,7 +122,7 @@ def codecopy(computation: ComputationAPI) -> None:
     with computation.code.seek(code_start_position):
         code_bytes = computation.code.read(size)
 
-    padded_code_bytes = code_bytes.ljust(size, b'\x00')
+    padded_code_bytes = code_bytes.ljust(size, b"\x00")
 
     computation.memory_write(mem_start_position, size, padded_code_bytes)
 
@@ -155,8 +155,8 @@ def extcodecopy_execute(computation: ComputationAPI) -> Tuple[Address, int]:
 
     code = computation.state.get_code(account)
 
-    code_bytes = code[code_start_position:code_start_position + size]
-    padded_code_bytes = code_bytes.ljust(size, b'\x00')
+    code_bytes = code[code_start_position : code_start_position + size]
+    padded_code_bytes = code_bytes.ljust(size, b"\x00")
 
     computation.memory_write(mem_start_position, size, padded_code_bytes)
 
@@ -168,7 +168,7 @@ def consume_extcodecopy_word_cost(computation: ComputationAPI, size: int) -> Non
     copy_gas_cost = constants.GAS_COPY * word_count
     computation.consume_gas(
         copy_gas_cost,
-        reason='EXTCODECOPY: word gas cost',
+        reason="EXTCODECOPY: word gas cost",
     )
 
 
@@ -218,6 +218,8 @@ def returndatacopy(computation: ComputationAPI) -> None:
 
     computation.consume_gas(copy_gas_cost, reason="RETURNDATACOPY fee")
 
-    value = computation.return_data[returndata_start_position: returndata_start_position + size]
+    value = computation.return_data[
+        returndata_start_position : returndata_start_position + size
+    ]
 
     computation.memory_write(mem_start_position, size, value)

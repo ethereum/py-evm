@@ -20,9 +20,9 @@ from eth.db.backends.memory import (
     MemoryDB,
 )
 
-ADDRESS = b'\xaa' * 20
-OTHER_ADDRESS = b'\xbb' * 20
-INVALID_ADDRESS = b'aa' * 20
+ADDRESS = b"\xaa" * 20
+OTHER_ADDRESS = b"\xbb" * 20
+INVALID_ADDRESS = b"aa" * 20
 
 
 @pytest.fixture
@@ -35,9 +35,12 @@ def account_db(base_db):
     return AccountDB(base_db)
 
 
-@pytest.mark.parametrize("state", [
-    AccountDB(MemoryDB()),
-])
+@pytest.mark.parametrize(
+    "state",
+    [
+        AccountDB(MemoryDB()),
+    ],
+)
 def test_balance(state):
     assert state.get_balance(ADDRESS) == 0
 
@@ -53,9 +56,12 @@ def test_balance(state):
         state.set_balance(ADDRESS, 1.0)
 
 
-@pytest.mark.parametrize("state", [
-    AccountDB(MemoryDB()),
-])
+@pytest.mark.parametrize(
+    "state",
+    [
+        AccountDB(MemoryDB()),
+    ],
+)
 def test_nonce(state):
     assert state.get_nonce(ADDRESS) == 0
 
@@ -77,29 +83,35 @@ def test_nonce(state):
         state.set_nonce(ADDRESS, 1.0)
 
 
-@pytest.mark.parametrize("state", [
-    AccountDB(MemoryDB()),
-])
+@pytest.mark.parametrize(
+    "state",
+    [
+        AccountDB(MemoryDB()),
+    ],
+)
 def test_code(state):
-    assert state.get_code(ADDRESS) == b''
+    assert state.get_code(ADDRESS) == b""
     assert state.get_code_hash(ADDRESS) == EMPTY_SHA3
 
-    state.set_code(ADDRESS, b'code')
-    assert state.get_code(ADDRESS) == b'code'
-    assert state.get_code(OTHER_ADDRESS) == b''
-    assert state.get_code_hash(ADDRESS) == keccak(b'code')
+    state.set_code(ADDRESS, b"code")
+    assert state.get_code(ADDRESS) == b"code"
+    assert state.get_code(OTHER_ADDRESS) == b""
+    assert state.get_code_hash(ADDRESS) == keccak(b"code")
 
     with pytest.raises(ValidationError):
         state.get_code(INVALID_ADDRESS)
     with pytest.raises(ValidationError):
-        state.set_code(INVALID_ADDRESS, b'code')
+        state.set_code(INVALID_ADDRESS, b"code")
     with pytest.raises(ValidationError):
-        state.set_code(ADDRESS, 'code')
+        state.set_code(ADDRESS, "code")
 
 
-@pytest.mark.parametrize("state", [
-    AccountDB(MemoryDB()),
-])
+@pytest.mark.parametrize(
+    "state",
+    [
+        AccountDB(MemoryDB()),
+    ],
+)
 def test_accounts(state):
     assert not state.account_exists(ADDRESS)
     assert not state.account_has_code_or_nonce(ADDRESS)
@@ -108,7 +120,7 @@ def test_accounts(state):
     assert state.account_exists(ADDRESS)
     assert state.get_nonce(ADDRESS) == 0
     assert state.get_balance(ADDRESS) == 0
-    assert state.get_code(ADDRESS) == b''
+    assert state.get_code(ADDRESS) == b""
 
     assert not state.account_has_code_or_nonce(ADDRESS)
     state.increment_nonce(ADDRESS)
@@ -145,7 +157,8 @@ def test_storage_deletion(account_db):
 
 def test_account_db_storage_root(account_db):
     """
-    Make sure that pruning doesn't screw up addresses that temporarily share storage roots
+    Make sure that pruning doesn't screw up addresses
+    that temporarily share storage roots
     """
     account_db.set_storage(ADDRESS, 1, 2)
     account_db.set_storage(OTHER_ADDRESS, 1, 2)
@@ -209,7 +222,6 @@ def test_account_db_read_then_update_then_make_root_then_read(account_db):
 
 
 def test_has_changes_even_if_storage_root_returns_to_old_value(account_db):
-
     account_db.set_storage(ADDRESS, 1, 2)
 
     # must always explicitly make the root before persisting
@@ -238,7 +250,8 @@ def test_has_changes_even_if_storage_root_returns_to_old_value(account_db):
     account_db.lock_changes()
     account_db.make_state_root()
 
-    # even after the storage root changes back to the original root, it should be marked as changed
+    # even after the storage root changes back to the original root,
+    # it should be marked as changed
     storage_db = account_db._get_address_store(ADDRESS)
     assert storage_db.has_changed_root
 
@@ -250,8 +263,8 @@ def test_meta_witness_basic_stats(account_db):
     account_db.get_balance(ADDRESS)
     account_db.get_code(ADDRESS)
     account_db.set_storage(OTHER_ADDRESS, 1, 321)
-    THIRD_ADDRESS = b'c' * 20
-    account_db.set_code(THIRD_ADDRESS, b'fake')
+    THIRD_ADDRESS = b"c" * 20
+    account_db.set_code(THIRD_ADDRESS, b"fake")
     account_db.get_code(THIRD_ADDRESS)
 
     meta_witness = account_db.persist()
@@ -285,8 +298,8 @@ def test_meta_witness_reset_stats_empty(account_db):
     account_db.get_balance(ADDRESS)
     account_db.get_code(ADDRESS)
     account_db.set_storage(OTHER_ADDRESS, 1, 321)
-    THIRD_ADDRESS = b'c' * 20
-    account_db.set_code(THIRD_ADDRESS, b'fake')
+    THIRD_ADDRESS = b"c" * 20
+    account_db.set_code(THIRD_ADDRESS, b"fake")
     account_db.get_code(THIRD_ADDRESS)
 
     # When returning this witness index, the results are emptied
@@ -302,8 +315,8 @@ def test_meta_witness_reset_stats_refilled(account_db):
     # Do a variety of accesses that should not show up in the second
     #   persist() result.
     account_db.set_storage(OTHER_ADDRESS, 1, 321)
-    THIRD_ADDRESS = b'c' * 20
-    account_db.set_code(THIRD_ADDRESS, b'fake')
+    THIRD_ADDRESS = b"c" * 20
+    account_db.set_code(THIRD_ADDRESS, b"fake")
 
     # When returning this witness index, the results are emptied
     account_db.persist()

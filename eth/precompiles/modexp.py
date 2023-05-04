@@ -27,8 +27,9 @@ from eth.abc import (
 )
 
 
-def _compute_adjusted_exponent_length(exponent_length: int,
-                                      first_32_exponent_bytes: bytes) -> int:
+def _compute_adjusted_exponent_length(
+    exponent_length: int, first_32_exponent_bytes: bytes
+) -> int:
     exponent = big_endian_to_int(first_32_exponent_bytes)
 
     if exponent_length <= 32 and exponent == 0:
@@ -37,21 +38,16 @@ def _compute_adjusted_exponent_length(exponent_length: int,
         return get_highest_bit_index(exponent)
     else:
         first_32_bytes_as_int = big_endian_to_int(first_32_exponent_bytes)
-        return (
-            8 * (exponent_length - 32)
-            + get_highest_bit_index(first_32_bytes_as_int)
-        )
+        return 8 * (exponent_length - 32) + get_highest_bit_index(first_32_bytes_as_int)
 
 
 def _compute_complexity(length: int) -> int:
     if length <= 64:
-        return length ** 2
+        return length**2
     elif length <= 1024:
-        return (
-            length ** 2 // 4 + 96 * length - 3072
-        )
+        return length**2 // 4 + 96 * length - 3072
     else:
-        return length ** 2 // 16 + 480 * length - 199680
+        return length**2 // 16 + 480 * length - 199680
 
 
 def extract_lengths(data: bytes) -> Tuple[int, int, int]:
@@ -72,7 +68,7 @@ def _compute_modexp_gas_fee_eip_198(data: bytes) -> int:
     base_length, exponent_length, modulus_length = extract_lengths(data)
 
     first_32_exponent_bytes = zpad_right(
-        data[96 + base_length:96 + base_length + exponent_length],
+        data[96 + base_length : 96 + base_length + exponent_length],
         to_size=min(exponent_length, 32),
     )[:32]
     adjusted_exponent_length = _compute_adjusted_exponent_length(
@@ -128,7 +124,7 @@ def _modexp(data: bytes) -> int:
 @curry
 def modexp(
     computation: ComputationAPI,
-    gas_calculator: Callable[[bytes], int] = _compute_modexp_gas_fee_eip_198
+    gas_calculator: Callable[[bytes], int] = _compute_modexp_gas_fee_eip_198,
 ) -> ComputationAPI:
     """
     https://github.com/ethereum/EIPs/pull/198
@@ -136,7 +132,7 @@ def modexp(
     data = computation.msg.data_as_bytes
 
     gas_fee = gas_calculator(data)
-    computation.consume_gas(gas_fee, reason='MODEXP Precompile')
+    computation.consume_gas(gas_fee, reason="MODEXP Precompile")
 
     result = _modexp(data)
 
@@ -144,9 +140,10 @@ def modexp(
 
     # Modulo 0 is undefined, return zero
     # https://math.stackexchange.com/questions/516251/why-is-n-mod-0-undefined
-    result_bytes = b'' if modulus_length == 0 else zpad_left(
-        int_to_big_endian(result),
-        to_size=modulus_length
+    result_bytes = (
+        b""
+        if modulus_length == 0
+        else zpad_left(int_to_big_endian(result), to_size=modulus_length)
     )
 
     computation.output = result_bytes

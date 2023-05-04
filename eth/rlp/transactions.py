@@ -40,7 +40,6 @@ from .sedes import (
 
 
 class BaseTransactionMethods(BaseTransactionAPI):
-
     def validate(self) -> None:
         pass
 
@@ -61,15 +60,15 @@ class BaseTransactionMethods(BaseTransactionAPI):
 
 
 BASE_TRANSACTION_FIELDS = [
-    ('nonce', big_endian_int),
-    ('gas_price', big_endian_int),
-    ('gas', big_endian_int),
-    ('to', address),
-    ('value', big_endian_int),
-    ('data', binary),
-    ('v', big_endian_int),
-    ('r', big_endian_int),
-    ('s', big_endian_int),
+    ("nonce", big_endian_int),
+    ("gas_price", big_endian_int),
+    ("gas", big_endian_int),
+    ("to", address),
+    ("value", big_endian_int),
+    ("data", binary),
+    ("v", big_endian_int),
+    ("r", big_endian_int),
+    ("s", big_endian_int),
 ]
 
 
@@ -110,10 +109,11 @@ class SignedTransactionMethods(BaseTransactionMethods, SignedTransactionAPI):
 
 
 class BaseTransaction(
-        LegacyTransactionFieldsAPI,
-        BaseTransactionFields,
-        SignedTransactionMethods,
-        TransactionBuilderAPI):
+    LegacyTransactionFieldsAPI,
+    BaseTransactionFields,
+    SignedTransactionMethods,
+    TransactionBuilderAPI,
+):
     # "Legacy" transactions implemented by BaseTransaction are a combination of
     # the transaction codec (TransactionBuilderAPI) *and* the transaction
     # object (SignedTransactionAPI). In a multi-transaction-type world, that
@@ -137,12 +137,14 @@ class BaseTransaction(
         return rlp.encode(self)
 
 
-class BaseUnsignedTransaction(BaseTransactionMethods, rlp.Serializable, UnsignedTransactionAPI):
+class BaseUnsignedTransaction(
+    BaseTransactionMethods, rlp.Serializable, UnsignedTransactionAPI
+):
     fields = [
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
+        ("nonce", big_endian_int),
+        ("gas_price", big_endian_int),
+        ("gas", big_endian_int),
+        ("to", address),
+        ("value", big_endian_int),
+        ("data", binary),
     ]

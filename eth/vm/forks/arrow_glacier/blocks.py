@@ -35,13 +35,13 @@ class ArrowGlacierMiningHeader(LondonMiningHeader, ABC):
 
 class ArrowGlacierBlockHeader(LondonBlockHeader, ABC):
     def __str__(self) -> str:
-        return f'<ArrowGlacierBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
+        return f"<ArrowGlacierBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>"  # noqa: E501
 
 
 class ArrowGlacierBlock(LondonBlock):
     transaction_builder: Type[TransactionBuilderAPI] = ArrowGlacierTransactionBuilder
     fields = [
-        ('header', ArrowGlacierBlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(LondonBackwardsHeader))
+        ("header", ArrowGlacierBlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(LondonBackwardsHeader)),
     ]

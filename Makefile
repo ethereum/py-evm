@@ -27,6 +27,7 @@ lint:
 
 lint-roll:
 	isort eth tests
+	black eth tests scripts setup.py
 	$(MAKE) lint
 
 test:

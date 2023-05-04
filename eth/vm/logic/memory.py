@@ -7,7 +7,7 @@ def mstore(computation: ComputationAPI) -> None:
     start_position = computation.stack_pop1_int()
     value = computation.stack_pop1_bytes()
 
-    padded_value = value.rjust(32, b'\x00')
+    padded_value = value.rjust(32, b"\x00")
     normalized_value = padded_value[-32:]
 
     computation.extend_memory(start_position, 32)
@@ -19,7 +19,7 @@ def mstore8(computation: ComputationAPI) -> None:
     start_position = computation.stack_pop1_int()
     value = computation.stack_pop1_bytes()
 
-    padded_value = value.rjust(1, b'\x00')
+    padded_value = value.rjust(1, b"\x00")
     normalized_value = padded_value[-1:]
 
     computation.extend_memory(start_position, 1)

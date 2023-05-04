@@ -16,7 +16,7 @@ from eth.vm.interrupt import (
 
 @pytest.fixture
 def address_with_balance():
-    return b'1' * 20
+    return b"1" * 20
 
 
 @pytest.fixture
@@ -31,12 +31,12 @@ def balance():
 
 @pytest.fixture
 def address_with_bytecode():
-    return b'2' * 20
+    return b"2" * 20
 
 
 @pytest.fixture
 def bytecode():
-    return b'aoeu'
+    return b"aoeu"
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def bytecode_hash(bytecode):
 
 @pytest.fixture
 def address_with_storage():
-    return b'3' * 20
+    return b"3" * 20
 
 
 @pytest.fixture
@@ -56,29 +56,26 @@ def address_with_storage_hash(address_with_storage):
 
 @pytest.fixture
 def genesis_state(
-        address_with_balance,
-        balance,
-        address_with_bytecode,
-        bytecode,
-        address_with_storage):
+    address_with_balance, balance, address_with_bytecode, bytecode, address_with_storage
+):
     return {
         address_with_balance: {
-            'balance': balance,
-            'code': b'',
-            'nonce': 0,
-            'storage': {},
+            "balance": balance,
+            "code": b"",
+            "nonce": 0,
+            "storage": {},
         },
         address_with_bytecode: {
-            'balance': 0,
-            'code': bytecode,
-            'nonce': 0,
-            'storage': {},
+            "balance": 0,
+            "code": bytecode,
+            "nonce": 0,
+            "storage": {},
         },
         address_with_storage: {
-            'balance': 0,
-            'code': b'',
-            'nonce': 0,
-            'storage': {i: i for i in range(100)},
+            "balance": 0,
+            "code": b"",
+            "nonce": 0,
+            "storage": {i: i for i in range(100)},
         },
     }
 
@@ -88,7 +85,9 @@ def chain(chain_without_block_validation):
     return chain_without_block_validation
 
 
-def test_bytecode_missing_interrupt(chain, bytecode, bytecode_hash, address_with_bytecode):
+def test_bytecode_missing_interrupt(
+    chain, bytecode, bytecode_hash, address_with_bytecode
+):
     # confirm test setup
     retrieved_bytecode = chain.get_vm().state.get_code(address_with_bytecode)
     assert retrieved_bytecode == bytecode
@@ -104,7 +103,9 @@ def test_bytecode_missing_interrupt(chain, bytecode, bytecode_hash, address_with
     assert raised_exception.missing_code_hash == bytecode_hash
 
 
-def test_account_missing_interrupt(chain, balance, address_with_balance, address_with_balance_hash):
+def test_account_missing_interrupt(
+    chain, balance, address_with_balance, address_with_balance_hash
+):
     # confirm test setup
     retrieved_balance = chain.get_vm().state.get_balance(address_with_balance)
     assert retrieved_balance == balance
@@ -124,17 +125,23 @@ def test_account_missing_interrupt(chain, balance, address_with_balance, address
     assert raised_exception.address_hash == address_with_balance_hash
 
 
-def test_storage_missing_interrupt(chain, address_with_storage, address_with_storage_hash):
+def test_storage_missing_interrupt(
+    chain, address_with_storage, address_with_storage_hash
+):
     # confirm test setup
     test_slot = 42
-    retrieved_storage_value = chain.get_vm().state.get_storage(address_with_storage, test_slot)
+    retrieved_storage_value = chain.get_vm().state.get_storage(
+        address_with_storage, test_slot
+    )
     assert retrieved_storage_value == test_slot
-    expected_storage_root = chain.get_vm().state._account_db._get_storage_root(address_with_storage)
-    expected_slot_hash = keccak(int_to_big_endian(test_slot).rjust(32, b'\0'))
+    expected_storage_root = chain.get_vm().state._account_db._get_storage_root(
+        address_with_storage
+    )
+    expected_slot_hash = keccak(int_to_big_endian(test_slot).rjust(32, b"\0"))
 
     # manually remove trie node with account from database
     # found by trie inspection:
-    node_hash = b'bG\\-\x92\xa3\xe4\xd4\xd1\xd5\xe4\xc0r\xbc\xae\x9f\x01\xe7\xdc\xcf\xe3\x96\x9c??+\xb2o\xd5J4\xed'  # noqa: E501
+    node_hash = b"bG\\-\x92\xa3\xe4\xd4\xd1\xd5\xe4\xc0r\xbc\xae\x9f\x01\xe7\xdc\xcf\xe3\x96\x9c??+\xb2o\xd5J4\xed"  # noqa: E501
     del chain.chaindb.db[node_hash]
 
     with pytest.raises(MissingStorageTrieNode) as excinfo:

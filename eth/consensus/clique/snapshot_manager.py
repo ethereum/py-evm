@@ -48,29 +48,29 @@ from .exceptions import (
 
 
 def make_snapshot_lookup_key(block_hash: Hash32) -> bytes:
-    return b'block-hash-to-snapshot:%s' % block_hash
+    return b"block-hash-to-snapshot:%s" % block_hash
 
 
 class SnapshotManager:
     """
-    The ``SnapshotManager`` is responsible for managing the snapshots that hold the current
-    state of the consensus engine. It creates new snapshots by applying headers on top of
-    existing snapshots. It comes with APIs to create, persist and retrieve snapshots.
+    The ``SnapshotManager`` is responsible for managing the snapshots that hold the
+    current state of the consensus engine. It creates new snapshots by applying headers
+    on top of existing snapshots. It comes with APIs to create,
+    persist and retrieve snapshots.
     """
 
-    logger = get_extended_debug_logger('eth.consensus.clique.snapshot_manager.SnapshotManager')
+    logger = get_extended_debug_logger(
+        "eth.consensus.clique.snapshot_manager.SnapshotManager"
+    )
 
-    def __init__(self,
-                 chain_db: ChainDatabaseAPI,
-                 epoch_length: int) -> None:
+    def __init__(self, chain_db: ChainDatabaseAPI, epoch_length: int) -> None:
         self._chain_db = chain_db
         self._epoch_length = epoch_length
         self._snapshots = lru.LRU(IN_MEMORY_SNAPSHOTS)
 
-    def _lookup_header(self,
-                       block_hash: Hash32,
-                       parents: Iterable[BlockHeaderAPI]) -> BlockHeaderAPI:
-
+    def _lookup_header(
+        self, block_hash: Hash32, parents: Iterable[BlockHeaderAPI]
+    ) -> BlockHeaderAPI:
         for parent in parents:
             if parent.hash == block_hash:
                 return parent
@@ -79,15 +79,14 @@ class SnapshotManager:
         except HeaderNotFound:
             raise ValidationError("Unknown ancestor %s", encode_hex(block_hash))
 
-    def _create_snapshot_from_checkpoint_header(self, header: BlockHeaderAPI) -> Snapshot:
+    def _create_snapshot_from_checkpoint_header(
+        self, header: BlockHeaderAPI
+    ) -> Snapshot:
         signers = get_signers_at_checkpoint(header)
         self.logger.debug2("Created snapshot from checkpoint at %s", header)
 
         snapshot = MutableSnapshot(
-            signers=list(signers),
-            block_hash=header.hash,
-            votes=[],
-            tallies={}
+            signers=list(signers), block_hash=header.hash, votes=[], tallies={}
         )
         return self.add_snapshot(snapshot)
 
@@ -117,7 +116,7 @@ class SnapshotManager:
                     signer=signer,
                     block_number=header.block_number,
                     subject=header.coinbase,
-                    action=action
+                    action=action,
                 )
                 snapshot.votes.append(vote)
 
@@ -137,8 +136,9 @@ class SnapshotManager:
                             if self.retract_vote(snapshot, vote.subject, vote.action):
                                 snapshot.votes.remove(vote)
 
-                        # Discard any pending votes *regarding* the added or removed member
-                        # No need to uncast, the whole tally is going to be removed anyway.
+                        # Discard any pending votes *regarding* the added or
+                        # removed member. No need to uncast, the whole tally is going
+                        # to be removed anyway.
                         if vote.subject == header.coinbase:
                             snapshot.votes.remove(vote)
 
@@ -148,13 +148,15 @@ class SnapshotManager:
 
         return snapshot.get_immutable_clone()
 
-    def get_or_create_snapshot(self,
-                               block_number: int,
-                               block_hash: Hash32,
-                               parents: Iterable[BlockHeaderAPI] = ()) -> Snapshot:
+    def get_or_create_snapshot(
+        self,
+        block_number: int,
+        block_hash: Hash32,
+        parents: Iterable[BlockHeaderAPI] = (),
+    ) -> Snapshot:
         """
-        Return a snapshot either by creating or retrieving it or raise a ``ValidationError``
-        if the header does not have a known ancestor.
+        Return a snapshot either by creating or retrieving it or raise a
+        ``ValidationError`` if the header does not have a known ancestor.
         """
         try:
             snapshot = self.get_snapshot(block_number, block_hash)
@@ -163,15 +165,16 @@ class SnapshotManager:
         else:
             return snapshot
 
-    def create_snapshot_for(self,
-                            block_hash: Hash32,
-                            cached_parents: Iterable[BlockHeaderAPI]) -> Snapshot:
+    def create_snapshot_for(
+        self, block_hash: Hash32, cached_parents: Iterable[BlockHeaderAPI]
+    ) -> Snapshot:
         """
         Create a ``Snapshot`` for the given ``block_hash``. This involves traversing
         backwards through the chain of headers to find a suitable base snapshot either
         from memory, on disk or by creating it on the fly from a checkpoint header.
         After we've found a suitable base snapshot, apply all headers from after the
-        base snapshot up to the header of ``block_hash`` to create the requested snapshot.
+        base snapshot up to the header of ``block_hash`` to create the requested
+        snapshot.
         """
         current_header = header = self._lookup_header(block_hash, cached_parents)
 
@@ -182,12 +185,17 @@ class SnapshotManager:
         while True:
             try:
                 new_snapshot = self.get_snapshot(
-                    current_header.block_number, current_header.parent_hash)
+                    current_header.block_number, current_header.parent_hash
+                )
             except SnapshotNotFound:
-                current_header = self._lookup_header(current_header.parent_hash, cached_parents)
+                current_header = self._lookup_header(
+                    current_header.parent_hash, cached_parents
+                )
 
                 if is_checkpoint(current_header.block_number, self._epoch_length):
-                    new_snapshot = self._create_snapshot_from_checkpoint_header(current_header)
+                    new_snapshot = self._create_snapshot_from_checkpoint_header(
+                        current_header
+                    )
                     break
                 else:
                     parents.append(current_header)
@@ -200,15 +208,18 @@ class SnapshotManager:
         new_snapshot = self.apply(new_snapshot, header)
 
         if is_checkpoint(header.block_number, self._epoch_length):
-            self.logger.debug2("Persisting checkpoint snapshot at %s", header.block_number)
+            self.logger.debug2(
+                "Persisting checkpoint snapshot at %s", header.block_number
+            )
             self.persist_snapshot(new_snapshot)
 
         return new_snapshot
 
     def get_snapshot(self, block_number: int, block_hash: Hash32) -> Snapshot:
         """
-        Return a ``Snapshot`` if it exists in memory, on-disk or can be computed directly from
-        a header that serves as a checkpoint. Otherwise raise a ``SnapshotNotFound`` error.
+        Return a ``Snapshot`` if it exists in memory, on-disk or can be computed
+        directly from a header that serves as a checkpoint.
+        Otherwise raise a ``SnapshotNotFound`` error.
         """
 
         # We first try to find the snapshot in memory
@@ -226,7 +237,9 @@ class SnapshotManager:
                 # Otherwise, we can retrieve it on the fly
                 header = self._chain_db.get_block_header_by_hash(block_hash)
             except HeaderNotFound:
-                raise SnapshotNotFound(f"Can not get snapshot for {block_hash!r} at {block_number}")
+                raise SnapshotNotFound(
+                    f"Can not get snapshot for {block_hash!r} at {block_number}"
+                )
             else:
                 if header.block_number != block_number:
                     raise SnapshotNotFound(
@@ -235,11 +248,14 @@ class SnapshotManager:
                 else:
                     return self._create_snapshot_from_checkpoint_header(header)
 
-        raise SnapshotNotFound(f"Can not get snapshot for {block_hash!r} at {block_number}")
+        raise SnapshotNotFound(
+            f"Can not get snapshot for {block_hash!r} at {block_number}"
+        )
 
     def add_snapshot(self, mutable_snapshot: MutableSnapshot) -> Snapshot:
         """
-        Retrieve a ``Snapshot`` from the given ``mutable_snapshot`` and add it to the local cache.
+        Retrieve a ``Snapshot`` from the given ``mutable_snapshot``
+        and add it to the local cache.
         """
         snapshot = mutable_snapshot.get_immutable_clone()
         self._snapshots[snapshot.block_hash] = snapshot
@@ -255,7 +271,8 @@ class SnapshotManager:
 
     def get_snapshot_from_db(self, block_hash: Hash32) -> Snapshot:
         """
-        Retrieve a snapshot from the database. Raise ``SnapshotNotFound`` if it does not exist.
+        Retrieve a snapshot from the database.
+        Raise ``SnapshotNotFound`` if it does not exist.
         """
         key = make_snapshot_lookup_key(block_hash)
         try:
@@ -267,7 +284,9 @@ class SnapshotManager:
         else:
             return decode_snapshot(encoded_key)
 
-    def cast_vote(self, snapshot: MutableSnapshot, subject: Address, action: VoteAction) -> bool:
+    def cast_vote(
+        self, snapshot: MutableSnapshot, subject: Address, action: VoteAction
+    ) -> bool:
         """
         Cast a vote on a ``MutableSnapshot``.
         """
@@ -282,7 +301,9 @@ class SnapshotManager:
         snapshot.tallies[subject] = snapshot.tallies[subject].upvote()
         return True
 
-    def retract_vote(self, snapshot: MutableSnapshot, subject: Address, action: VoteAction) -> bool:
+    def retract_vote(
+        self, snapshot: MutableSnapshot, subject: Address, action: VoteAction
+    ) -> bool:
         """
         Retract a vote on a ``MutableSnapshot``.
         """

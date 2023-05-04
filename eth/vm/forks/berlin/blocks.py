@@ -26,10 +26,10 @@ from .transactions import (
 
 
 class BerlinBlock(MuirGlacierBlock):
-    transaction_builder: Type[TransactionBuilderAPI] = BerlinTransactionBuilder  # type: ignore
+    transaction_builder: Type[TransactionBuilderAPI] = BerlinTransactionBuilder  # type: ignore  # noqa: E501
     receipt_builder: Type[ReceiptBuilderAPI] = BerlinReceiptBuilder  # type: ignore
     fields = [
-        ('header', BlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(BlockHeader))
+        ("header", BlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(BlockHeader)),
     ]

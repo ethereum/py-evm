@@ -21,13 +21,14 @@ class SlowCodeStream:
     A known working version of code stream that is kept around for testing,
     despite not being optimized.
     """
+
     stream = None
     _length_cache = None
     _raw_code_bytes = None
     invalid_positions: Set[int] = None
     valid_positions: Set[int] = None
 
-    logger = logging.getLogger('eth.vm.SlowCodeStream')
+    logger = logging.getLogger("eth.vm.SlowCodeStream")
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="SlowCodeStream bytes")
@@ -81,7 +82,7 @@ class SlowCodeStream:
         self.stream.seek(min(value, len(self)))
 
     @contextlib.contextmanager
-    def seek(self, pc: int) -> Iterator['SlowCodeStream']:
+    def seek(self, pc: int) -> Iterator["SlowCodeStream"]:
         anchor_pc = self.program_counter
         self.program_counter = pc
         try:
@@ -89,7 +90,9 @@ class SlowCodeStream:
         finally:
             self.program_counter = anchor_pc
 
-    def _potentially_disqualifying_opcode_positions(self, position: int) -> Iterator[int]:
+    def _potentially_disqualifying_opcode_positions(
+        self, position: int
+    ) -> Iterator[int]:
         # Look at the last 32 positions (from 1 byte back to 32 bytes back).
         # Don't attempt to look at negative positions.
         deepest_lookback = min(32, position)
@@ -111,16 +114,18 @@ class SlowCodeStream:
             return True
         else:
             # An opcode is not valid, iff it is the "data" following a PUSH_
-            # So we look at the previous 32 bytes (PUSH32 being the largest) to see if there
-            # is a PUSH_ before the opcode in this position.
-            for disqualifier in self._potentially_disqualifying_opcode_positions(position):
-                # Now that we found a PUSH_ before this position, we check if *that* PUSH is valid
+            # So we look at the previous 32 bytes (PUSH32 being the largest) to see if
+            # there is a PUSH_ before the opcode in this position.
+            for disqualifier in self._potentially_disqualifying_opcode_positions(
+                position
+            ):
+                # Now that we found a PUSH_ before this position, we check if *that* PUSH is valid  # noqa: E501
                 if self.is_valid_opcode(disqualifier):
                     # If the PUSH_ valid, then the current position is invalid
                     self.invalid_positions.add(position)
                     return False
-                # Otherwise, keep looking for other potentially disqualifying PUSH_ codes
+                # Otherwise, keep looking for other potentially disqualifying PUSH_ codes  # noqa: E501
 
-            # We didn't find any valid PUSH_ opcodes in the 32 bytes before position; it's valid
+            # We didn't find any valid PUSH_ opcodes in the 32 bytes before position;it's valid  # noqa: E501
             self.valid_positions.add(position)
             return True

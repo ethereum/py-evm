@@ -24,12 +24,13 @@ CONSENSUS_DATA_LENGH = 9
 
 WHITELISTED_ROOT = b"root"
 
-ZERO_BYTE = b'\x00'
+ZERO_BYTE = b"\x00"
 
 
 class WhitelistConsensus(ConsensusAPI):
     """
-    A pseudo consensus engine for testing. Each accepted block puts another block on a whitelist.
+    A pseudo consensus engine for testing.
+    Each accepted block puts another block on a whitelist.
     """
 
     def __init__(self, context: ConsensusContext) -> None:
@@ -45,7 +46,6 @@ class WhitelistConsensus(ConsensusAPI):
         return consensus_data[:4], consensus_data[5:]
 
     def validate_seal(self, header):
-
         current, following = self._get_consensus_data(header.extra_data)
 
         if current == WHITELISTED_ROOT or current in self.base_db:
@@ -62,7 +62,6 @@ class WhitelistConsensus(ConsensusAPI):
 
 
 def test_stateful_consensus_isnt_shared_across_chain_instances():
-
     class ChainClass(MiningChain):
         vm_configuration = (
             (0, IstanbulVM.configure(consensus_class=WhitelistConsensus)),

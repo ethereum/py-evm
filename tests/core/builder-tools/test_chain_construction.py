@@ -57,11 +57,11 @@ from eth.vm.forks import (
 def test_chain_builder_construct_chain_name():
     chain = build(
         MiningChain,
-        name('ChainForTest'),
+        name("ChainForTest"),
     )
 
     assert issubclass(chain, MiningChain)
-    assert chain.__name__ == 'ChainForTest'
+    assert chain.__name__ == "ChainForTest"
 
 
 def test_chain_builder_construct_chain_vm_configuration_single_fork():
@@ -92,7 +92,7 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
 
 
 @pytest.mark.parametrize(
-    'fork_fn,vm_class',
+    "fork_fn,vm_class",
     (
         (frontier_at, FrontierVM),
         (homestead_at, HomesteadVM),
@@ -109,17 +109,18 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (gray_glacier_at, GrayGlacierVM),
         (paris_at, ParisVM),
         (shanghai_at, ShanghaiVM),
-        (latest_mainnet_at, ShanghaiVM),  # this will change whenever the next upgrade is locked
-    )
+        (
+            latest_mainnet_at,
+            ShanghaiVM,
+        ),  # this will change whenever the next upgrade is locked
+    ),
 )
 def test_chain_builder_construct_chain_fork_specific_helpers(fork_fn, vm_class):
     class DummyVM(FrontierVM):
         pass
 
     class ChainForTest(MiningChain):
-        vm_configuration = (
-            (0, DummyVM),
-        )
+        vm_configuration = ((0, DummyVM),)
 
     chain = build(
         ChainForTest,
@@ -157,7 +158,7 @@ def test_chain_builder_without_any_mining_config():
         frontier_at(0),
         genesis(),
     )
-    with pytest.raises(ValidationError, match='mix hash mismatch'):
+    with pytest.raises(ValidationError, match="mix hash mismatch"):
         chain.mine_block()
 
 
@@ -169,7 +170,7 @@ def test_chain_builder_disable_pow_check():
         genesis(),
     )
     block = chain.mine_block()
-    with pytest.raises(ValidationError, match='mix hash mismatch'):
+    with pytest.raises(ValidationError, match="mix hash mismatch"):
         check_pow(
             block.number,
             block.header.mining_hash,

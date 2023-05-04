@@ -11,10 +11,9 @@ from eth.validation import (
 
 
 class ChainContext(ChainContextAPI):
-    __slots__ = ['_chain_id']
+    __slots__ = ["_chain_id"]
 
     def __init__(self, chain_id: Optional[int]) -> None:
-
         if chain_id is None:
             chain_id = 0  # Default value (invalid for public networks)
         # Due to EIP-155's definition of Chain ID,

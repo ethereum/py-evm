@@ -10,8 +10,9 @@ from eth.abc import (
 )
 
 
-def validate_frontier_transaction(state: StateAPI,
-                                  transaction: SignedTransactionAPI) -> None:
+def validate_frontier_transaction(
+    state: StateAPI, transaction: SignedTransactionAPI
+) -> None:
     max_gas_cost = transaction.gas * state.get_gas_price(transaction)
     sender_balance = state.get_balance(transaction.sender)
 
@@ -32,13 +33,16 @@ def validate_frontier_transaction(state: StateAPI,
     sender_nonce = state.get_nonce(transaction.sender)
     if sender_nonce != transaction.nonce:
         raise ValidationError(
-            f"Invalid transaction nonce: Expected {sender_nonce}, but got {transaction.nonce}"
+            f"Invalid transaction nonce: Expected {sender_nonce}, "
+            f"but got {transaction.nonce}"
         )
 
 
-def validate_frontier_transaction_against_header(_vm: VirtualMachineAPI,
-                                                 base_header: BlockHeaderAPI,
-                                                 transaction: SignedTransactionAPI) -> None:
+def validate_frontier_transaction_against_header(
+    _vm: VirtualMachineAPI,
+    base_header: BlockHeaderAPI,
+    transaction: SignedTransactionAPI,
+) -> None:
     if base_header.gas_used + transaction.gas > base_header.gas_limit:
         raise ValidationError(
             f"Transaction exceeds gas limit: using {transaction.gas}, "

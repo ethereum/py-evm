@@ -23,9 +23,9 @@ class NoProofConsensus(ConsensusAPI):
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         pass
 
-    def validate_seal_extension(self,
-                                header: BlockHeaderAPI,
-                                parents: Iterable[BlockHeaderAPI]) -> None:
+    def validate_seal_extension(
+        self, header: BlockHeaderAPI, parents: Iterable[BlockHeaderAPI]
+    ) -> None:
         pass
 
     @classmethod

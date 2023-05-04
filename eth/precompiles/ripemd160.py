@@ -21,7 +21,7 @@ def ripemd160(computation: ComputationAPI) -> ComputationAPI:
     computation.consume_gas(gas_fee, reason="RIPEMD160 Precompile")
 
     # TODO: this only works if openssl is installed.
-    hash = hashlib.new('ripemd160', computation.msg.data).digest()
+    hash = hashlib.new("ripemd160", computation.msg.data).digest()
     padded_hash = pad32(hash)
     computation.output = padded_hash
     return computation

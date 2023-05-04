@@ -55,10 +55,9 @@ from eth.vm.forks import (
 )
 
 
-def validate_header_is_on_intended_dao_fork(support_dao_fork: bool,
-                                            dao_fork_at: BlockNumber,
-                                            header: BlockHeaderAPI) -> None:
-
+def validate_header_is_on_intended_dao_fork(
+    support_dao_fork: bool, dao_fork_at: BlockNumber, header: BlockHeaderAPI
+) -> None:
     # The special extra_data is set on the ten headers starting at the fork
     extra_data_block_nums = range(dao_fork_at, dao_fork_at + 10)
 
@@ -77,18 +76,18 @@ def validate_header_is_on_intended_dao_fork(support_dao_fork: bool,
 
 
 class MainnetDAOValidatorVM(HomesteadVM):
-    """Only on mainnet, TheDAO fork is accompanied by special extra data. Validate those headers"""
+    """
+    Only on mainnet, TheDAO fork is accompanied by special extra data.
+    Validate those headers
+    """
 
     @classmethod
-    def validate_header(cls,
-                        header: BlockHeaderAPI,
-                        previous_header: BlockHeaderAPI) -> None:
-
+    def validate_header(
+        cls, header: BlockHeaderAPI, previous_header: BlockHeaderAPI
+    ) -> None:
         super().validate_header(header, previous_header)
         validate_header_is_on_intended_dao_fork(
-            cls.support_dao_fork,
-            cls.get_dao_fork_block_number(),
-            header
+            cls.support_dao_fork, cls.get_dao_fork_block_number(), header
         )
 
 
@@ -137,8 +136,7 @@ MAINNET_VM_CONFIGURATION = tuple(zip(MAINNET_FORK_BLOCKS, MAINNET_VMS))
 class BaseMainnetChain:
     chain_id = MAINNET_CHAIN_ID
     vm_configuration: Tuple[
-        Tuple[BlockNumber, Type[VirtualMachineAPI]],
-        ...
+        Tuple[BlockNumber, Type[VirtualMachineAPI]], ...
     ] = MAINNET_VM_CONFIGURATION
 
 
@@ -148,7 +146,9 @@ class MainnetChain(BaseMainnetChain, Chain):
 
 MAINNET_GENESIS_HEADER = BlockHeader(
     difficulty=eth_constants.GENESIS_DIFFICULTY,
-    extra_data=decode_hex("0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"),
+    extra_data=decode_hex(
+        "0x11bbe8db4e347b4e8c937c1c8370e4b5ed33adb3db69cbdb7a38e1e50b1b82fa"
+    ),
     gas_limit=eth_constants.GENESIS_GAS_LIMIT,
     gas_used=0,
     bloom=0,
@@ -158,7 +158,9 @@ MAINNET_GENESIS_HEADER = BlockHeader(
     parent_hash=eth_constants.ZERO_HASH32,
     receipt_root=eth_constants.BLANK_ROOT_HASH,
     uncles_hash=eth_constants.EMPTY_UNCLE_HASH,
-    state_root=decode_hex("0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"),
+    state_root=decode_hex(
+        "0xd7f8974fb5ac78d9ac099b9ad5018bedc2ce0a72dad1827a1709da30580f0544"
+    ),
     timestamp=0,
     transaction_root=eth_constants.BLANK_ROOT_HASH,
 )

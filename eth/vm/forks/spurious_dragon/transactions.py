@@ -38,27 +38,35 @@ class SpuriousDragonTransaction(HomesteadTransaction):
     def get_message_for_signing(self) -> bytes:
         if is_eip_155_signed_transaction(self):
             txn_parts = rlp.decode(rlp.encode(self))
-            txn_parts_for_signing = txn_parts[:-3] + [int_to_big_endian(self.chain_id), b'', b'']
+            txn_parts_for_signing = txn_parts[:-3] + [
+                int_to_big_endian(self.chain_id),
+                b"",
+                b"",
+            ]
             return rlp.encode(txn_parts_for_signing)
         else:
-            return rlp.encode(SpuriousDragonUnsignedTransaction(
-                nonce=self.nonce,
-                gas_price=self.gas_price,
-                gas=self.gas,
-                to=self.to,
-                value=self.value,
-                data=self.data,
-            ))
+            return rlp.encode(
+                SpuriousDragonUnsignedTransaction(
+                    nonce=self.nonce,
+                    gas_price=self.gas_price,
+                    gas=self.gas,
+                    to=self.to,
+                    value=self.value,
+                    data=self.data,
+                )
+            )
 
     @classmethod
-    def create_unsigned_transaction(cls,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> 'SpuriousDragonUnsignedTransaction':
+    def create_unsigned_transaction(
+        cls,
+        *,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes
+    ) -> "SpuriousDragonUnsignedTransaction":
         return SpuriousDragonUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
     @property
@@ -84,9 +92,9 @@ class SpuriousDragonTransaction(HomesteadTransaction):
 
 
 class SpuriousDragonUnsignedTransaction(HomesteadUnsignedTransaction):
-    def as_signed_transaction(self,
-                              private_key: PrivateKey,
-                              chain_id: int = None) -> SpuriousDragonTransaction:
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> SpuriousDragonTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return SpuriousDragonTransaction(
             nonce=self.nonce,

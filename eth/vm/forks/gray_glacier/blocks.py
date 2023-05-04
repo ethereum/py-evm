@@ -37,13 +37,13 @@ class GrayGlacierMiningHeader(ArrowGlacierMiningHeader, ABC):
 
 class GrayGlacierBlockHeader(ArrowGlacierBlockHeader, ABC):
     def __str__(self) -> str:
-        return f'<GrayGlacierBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>'
+        return f"<GrayGlacierBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>"  # noqa: E501
 
 
 class GrayGlacierBlock(ArrowGlacierBlock):
     transaction_builder: Type[TransactionBuilderAPI] = GrayGlacierTransactionBuilder
     fields = [
-        ('header', GrayGlacierBlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(LondonBackwardsHeader))
+        ("header", GrayGlacierBlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(LondonBackwardsHeader)),
     ]

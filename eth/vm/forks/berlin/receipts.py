@@ -60,7 +60,8 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
         payload_codec = self.get_payload_codec(type_id)
         if not isinstance(proxy_target, payload_codec):
             raise ValidationError(
-                f"Cannot embed target {proxy_target!r} which doesn't match type ID {type_id}"
+                f"Cannot embed target {proxy_target!r} "
+                f"which doesn't match type ID {type_id}"
             )
 
     @classmethod
@@ -82,7 +83,9 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
         elif type_id in VALID_TRANSACTION_TYPES:
             raise UnrecognizedTransactionType(type_id, "Unknown receipt type")
         else:
-            raise ValidationError(f"Cannot build typed receipt with {hex(type_id)} >= 0x80")
+            raise ValidationError(
+                f"Cannot build typed receipt with {hex(type_id)} >= 0x80"
+            )
 
     @classmethod
     def deserialize(cls, encoded_unchecked: DecodedZeroOrOneLayerRLP) -> ReceiptAPI:
@@ -91,7 +94,7 @@ class TypedReceipt(ReceiptAPI, ReceiptDecoderAPI):
         return cls.decode(encoded)
 
     @classmethod
-    def serialize(cls, obj: 'TypedReceipt') -> DecodedZeroOrOneLayerRLP:
+    def serialize(cls, obj: "TypedReceipt") -> DecodedZeroOrOneLayerRLP:
         encoded = obj.encode()
         return cls.rlp_type.serialize(encoded)
 

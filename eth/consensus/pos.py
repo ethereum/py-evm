@@ -26,9 +26,7 @@ class PosConsensus(ConsensusAPI):
         pass
 
     def validate_seal_extension(
-        self,
-        header: BlockHeaderAPI,
-        parents: Iterable[BlockHeaderAPI]
+        self, header: BlockHeaderAPI, parents: Iterable[BlockHeaderAPI]
     ) -> None:
         pass
 

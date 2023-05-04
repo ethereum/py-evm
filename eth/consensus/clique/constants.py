@@ -10,8 +10,8 @@ EPOCH_LENGTH = 30000
 
 IN_MEMORY_SNAPSHOTS = 128
 
-NONCE_AUTH = decode_hex('0xffffffffffffffff')
-NONCE_DROP = decode_hex('0x0000000000000000')
+NONCE_AUTH = decode_hex("0xffffffffffffffff")
+NONCE_DROP = decode_hex("0x0000000000000000")
 
 # Indicate the byte length required to carry a signature with recovery id.
 # 64 bytes ECDSA signature + 1 byte recovery id

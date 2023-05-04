@@ -58,7 +58,9 @@ class Journal(BaseDB):
         # contains a mapping from all of the `uuid4` changeset_ids
         # to a dictionary of key:value pairs with the recorded changes
         # that belong to the changeset
-        self.journal_data: collections.OrderedDict[uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]] = collections.OrderedDict()  # noqa E501
+        self.journal_data: collections.OrderedDict[
+            uuid.UUID, Dict[bytes, Union[bytes, DeletedEntry]]
+        ] = collections.OrderedDict()
         self._clears_at: Set[uuid.UUID] = set()
 
     @property
@@ -80,7 +82,8 @@ class Journal(BaseDB):
         """
         Returns the id of the latest changeset
         """
-        # last() was iterating through all values, so first(reversed()) gives a 12.5x speedup
+        # last() was iterating through all values, so first(reversed()) gives
+        # a 12.5x speedup
         return first(reversed(self.journal_data.keys()))
 
     @property
@@ -111,7 +114,8 @@ class Journal(BaseDB):
         if custom_changeset_id is not None:
             if custom_changeset_id in self.journal_data:
                 raise ValidationError(
-                    f"Tried to record with an existing changeset id: {custom_changeset_id!r}"
+                    "Tried to record with an existing "
+                    f"changeset id: {custom_changeset_id!r}"
                 )
             else:
                 changeset_id = custom_changeset_id
@@ -121,7 +125,9 @@ class Journal(BaseDB):
         self.journal_data[changeset_id] = {}
         return changeset_id
 
-    def pop_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, Union[bytes, DeletedEntry]]:
+    def pop_changeset(
+        self, changeset_id: uuid.UUID
+    ) -> Dict[bytes, Union[bytes, DeletedEntry]]:
         """
         Returns all changes from the given changeset.  This includes all of
         the changes from any subsequent changeset, giving precedence to
@@ -133,7 +139,9 @@ class Journal(BaseDB):
         all_ids = tuple(self.journal_data.keys())
         changeset_idx = all_ids.index(changeset_id)
         changesets_to_pop = all_ids[changeset_idx:]
-        popped_clears = tuple(idx for idx in changesets_to_pop if idx in self._clears_at)
+        popped_clears = tuple(
+            idx for idx in changesets_to_pop if idx in self._clears_at
+        )
         if popped_clears:
             last_clear_idx = changesets_to_pop.index(popped_clears[-1])
             changesets_to_drop = changesets_to_pop[:last_clear_idx]
@@ -145,13 +153,12 @@ class Journal(BaseDB):
         # we pull all of the changesets *after* the changeset we are
         # reverting to and collapse them to a single set of keys (giving
         # precedence to later changesets)
-        changeset_data = merge(*(
-            self.journal_data.pop(c_id)
-            for c_id
-            in changesets_to_merge
-        ))
+        changeset_data = merge(
+            *(self.journal_data.pop(c_id) for c_id in changesets_to_merge)
+        )
 
-        # drop the changes on the floor if they came before a clear that is being committed
+        # drop the changes on the floor if they came before a clear that is
+        # being committed
         for changeset_id in changesets_to_drop:
             self.journal_data.pop(changeset_id)
 
@@ -160,9 +167,9 @@ class Journal(BaseDB):
 
     def clear(self) -> None:
         """
-        Treat as if the *underlying* database will also be cleared by some other mechanism.
-        We build a special empty changeset just for marking that all previous data should
-        be ignored.
+        Treat as if the *underlying* database will also be cleared by some other
+        mechanism. We build a special empty changeset just for marking that all
+        previous data should be ignored.
         """
         # these internal records are used as a way to tell the difference between
         # changes that came before and after the clear
@@ -176,9 +183,13 @@ class Journal(BaseDB):
                 return True
             elif check_changeset_id == changeset_id:
                 return False
-        raise ValidationError("Changeset ID %s is not in the journal" % check_changeset_id)
+        raise ValidationError(
+            "Changeset ID %s is not in the journal" % check_changeset_id
+        )
 
-    def commit_changeset(self, changeset_id: uuid.UUID) -> Dict[bytes, Union[bytes, DeletedEntry]]:
+    def commit_changeset(
+        self, changeset_id: uuid.UUID
+    ) -> Dict[bytes, Union[bytes, DeletedEntry]]:
         """
         Collapses all changes for the given changeset into the previous
         changesets if it exists.
@@ -189,8 +200,8 @@ class Journal(BaseDB):
             # we only have to assign changeset data into the latest changeset if
             # there is one.
             if does_clear:
-                # if there was a clear and more changesets underneath then clear the latest
-                # changeset, and replace with a new clear changeset
+                # if there was a clear and more changesets underneath then clear the
+                # latest changeset, and replace with a new clear changeset
                 self.latest = {}
                 self._clears_at.add(self.latest_id)
                 self.record_changeset()
@@ -213,7 +224,7 @@ class Journal(BaseDB):
     #
     # Database API
     #
-    def __getitem__(self, key: bytes) -> Union[bytes, DeletedEntry]:    # type: ignore # Breaks LSP
+    def __getitem__(self, key: bytes) -> Union[bytes, DeletedEntry]:  # type: ignore # Breaks LSP  # noqa: E501
         """
         For key lookups we need to iterate through the changesets in reverse
         order, returning from the first one in which the key is present.
@@ -237,7 +248,9 @@ class Journal(BaseDB):
         return val is not None and val not in (ERASE_CREATED_ENTRY, DELETED_ENTRY)
 
     def __delitem__(self, key: bytes) -> None:
-        raise NotImplementedError("You must delete with one of delete_local or delete_wrapped")
+        raise NotImplementedError(
+            "You must delete with one of delete_local or delete_wrapped"
+        )
 
     def delete_wrapped(self, key: bytes) -> None:
         self.latest[key] = DELETED_ENTRY
@@ -250,8 +263,9 @@ class Journal(BaseDB):
         visited_keys: Set[bytes] = set()
 
         # Iterate in reverse, so you can skip over any keys from old checkpoints.
-        # This is required so that when a key is created and then deleted in the journal,
-        #   we don't add the delete to the diff. (We simply omit the change altogether)
+        # This is required so that when a key is created and then deleted in the
+        #   journal, we don't add the delete to the diff.
+        #   (We simply omit the change altogether)
         for changeset_id, changeset in reversed(self.journal_data.items()):
             if changeset_id in self._clears_at:
                 break
@@ -291,6 +305,7 @@ class JournalDB(BaseDB):
     the same changeset will not increase the journal size since we only need
     to track latest value for any given key within any given changeset.
     """
+
     wrapped_db = None
     journal: Journal = None
 
@@ -299,7 +314,6 @@ class JournalDB(BaseDB):
         self.reset()
 
     def __getitem__(self, key: bytes) -> bytes:
-
         val = self.journal[key]
         if val is DELETED_ENTRY:
             raise KeyError(
@@ -309,7 +323,8 @@ class JournalDB(BaseDB):
         elif val is ERASE_CREATED_ENTRY:
             raise KeyError(
                 key,
-                "item is deleted in JournalDB, and is presumed gone from the wrapped DB",
+                "item is deleted in JournalDB, and is presumed gone "
+                "from the wrapped DB",
             )
         elif val is None:
             return self.wrapped_db[key]
@@ -336,16 +351,17 @@ class JournalDB(BaseDB):
 
     def clear(self) -> None:
         """
-        Remove all keys. Immediately after a clear, *all* getitem requests will return a KeyError.
-        That includes the changes pending persist and any data in the underlying database.
+        Remove all keys. Immediately after a clear, *all* getitem requests will
+        return a KeyError. That includes the changes pending persist and any data
+        in the underlying database.
 
         (This action is journaled, like all other actions)
 
         clear will *not* persist the emptying of all keys in the underlying DB.
         It only prevents any updates (or deletes!) before it from being persisted.
 
-        Any caller that wants to use clear must also make sure that the underlying database
-        reflects their desired end state (maybe emptied, maybe not).
+        Any caller that wants to use clear must also make sure that the underlying
+        database reflects their desired end state (maybe emptied, maybe not).
         """
         self.journal.clear()
 
@@ -359,7 +375,9 @@ class JournalDB(BaseDB):
             if key in self.journal:
                 self.journal.delete_local(key)
             else:
-                raise KeyError(key, "key could not be deleted in JournalDB, because it was missing")
+                raise KeyError(
+                    key, "key could not be deleted in JournalDB, because it was missing"
+                )
 
     #
     # Snapshot API
@@ -369,7 +387,9 @@ class JournalDB(BaseDB):
         Checks to be sure the changeset is known by the journal
         """
         if not self.journal.has_changeset(changeset_id):
-            raise ValidationError(f"Changeset not found in journal: {str(changeset_id)}")
+            raise ValidationError(
+                f"Changeset not found in journal: {str(changeset_id)}"
+            )
 
     def has_changeset(self, changeset_id: uuid.UUID) -> bool:
         return self.journal.has_changeset(changeset_id)
@@ -396,15 +416,16 @@ class JournalDB(BaseDB):
         self._validate_changeset(changeset_id)
         if changeset_id == self.journal.root_changeset_id:
             raise ValidationError(
-                "Tried to commit the root changeset. Callers should not keep references "
-                "to the root changeset. Maybe you meant to use persist()?"
+                "Tried to commit the root changeset. Callers should not keep references"
+                " to the root changeset. Maybe you meant to use persist()?"
             )
         self.journal.commit_changeset(changeset_id)
 
     def _reapply_changeset_to_journal(
-            self,
-            changeset_id: uuid.UUID,
-            journal_data: Dict[bytes, Union[bytes, DeletedEntry]]) -> None:
+        self,
+        changeset_id: uuid.UUID,
+        journal_data: Dict[bytes, Union[bytes, DeletedEntry]],
+    ) -> None:
         self.record(changeset_id)
         for key, value in journal_data.items():
             if value is DELETED_ENTRY:

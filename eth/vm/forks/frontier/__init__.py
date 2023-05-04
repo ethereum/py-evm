@@ -35,16 +35,17 @@ from .headers import (
 from .validation import validate_frontier_transaction_against_header
 
 
-def make_frontier_receipt(computation: ComputationAPI,
-                          new_cumulative_gas_used: int) -> ReceiptAPI:
+def make_frontier_receipt(
+    computation: ComputationAPI, new_cumulative_gas_used: int
+) -> ReceiptAPI:
     # Reusable for other forks
-    # This skips setting the state root (set to 0 instead). The logic for making a state root
-    # lives in the FrontierVM, so that state merkelization at each receipt is skipped at Byzantium+.
+    # This skips setting the state root (set to 0 instead). The logic for making a
+    # state root lives in the FrontierVM, so that state merkelization at each receipt
+    # is skipped at Byzantium+.
 
     logs = [
         Log(address, topics, data)
-        for address, topics, data
-        in computation.get_log_entries()
+        for address, topics, data in computation.get_log_entries()
     ]
 
     receipt = Receipt(
@@ -58,15 +59,15 @@ def make_frontier_receipt(computation: ComputationAPI,
 
 class FrontierVM(VM):
     # fork name
-    fork: str = 'frontier'
+    fork: str = "frontier"
 
     # classes
     block_class: Type[BlockAPI] = FrontierBlock
     _state_class: Type[StateAPI] = FrontierState
 
     # methods
-    create_header_from_parent = staticmethod(create_frontier_header_from_parent)    # type: ignore
-    compute_difficulty = staticmethod(compute_frontier_difficulty)      # type: ignore
+    create_header_from_parent = staticmethod(create_frontier_header_from_parent)  # type: ignore  # noqa: E501
+    compute_difficulty = staticmethod(compute_frontier_difficulty)  # type: ignore
     configure_header = configure_frontier_header
     validate_transaction_against_header = validate_frontier_transaction_against_header
 
@@ -76,17 +77,19 @@ class FrontierVM(VM):
 
     @staticmethod
     def get_uncle_reward(block_number: int, uncle: BlockHeaderAPI) -> int:
-        return BLOCK_REWARD * (
-            UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number
-        ) // UNCLE_DEPTH_PENALTY_FACTOR
+        return (
+            BLOCK_REWARD
+            * (UNCLE_DEPTH_PENALTY_FACTOR + uncle.block_number - block_number)
+            // UNCLE_DEPTH_PENALTY_FACTOR
+        )
 
     @classmethod
     def get_nephew_reward(cls) -> int:
         return cls.get_block_reward() // 32
 
-    def add_receipt_to_header(self,
-                              old_header: BlockHeaderAPI,
-                              receipt: ReceiptAPI) -> BlockHeaderAPI:
+    def add_receipt_to_header(
+        self, old_header: BlockHeaderAPI, receipt: ReceiptAPI
+    ) -> BlockHeaderAPI:
         return old_header.copy(
             bloom=int(BloomFilter(old_header.bloom) | receipt.bloom),
             gas_used=receipt.gas_used,
@@ -99,10 +102,9 @@ class FrontierVM(VM):
         return min(max_refund, gross_refund)
 
     @classmethod
-    def finalize_gas_used(cls,
-                          transaction: SignedTransactionAPI,
-                          computation: ComputationAPI) -> int:
-
+    def finalize_gas_used(
+        cls, transaction: SignedTransactionAPI, computation: ComputationAPI
+    ) -> int:
         gas_remaining = computation.get_gas_remaining()
         consumed_gas = transaction.gas - gas_remaining
 
@@ -113,16 +115,16 @@ class FrontierVM(VM):
 
     @classmethod
     def make_receipt(
-            cls,
-            base_header: BlockHeaderAPI,
-            transaction: SignedTransactionAPI,
-            computation: ComputationAPI,
-            state: StateAPI) -> ReceiptAPI:
-
-        gas_used = base_header.gas_used + cls.finalize_gas_used(transaction, computation)
+        cls,
+        base_header: BlockHeaderAPI,
+        transaction: SignedTransactionAPI,
+        computation: ComputationAPI,
+        state: StateAPI,
+    ) -> ReceiptAPI:
+        gas_used = base_header.gas_used + cls.finalize_gas_used(
+            transaction, computation
+        )
 
         receipt_without_state_root = make_frontier_receipt(computation, gas_used)
 
-        return receipt_without_state_root.copy(
-            state_root=state.make_state_root()
-        )
+        return receipt_without_state_root.copy(state_root=state.make_state_root())

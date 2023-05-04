@@ -13,7 +13,9 @@ from eth.abc import (
 
 
 class SpoofTransaction(SpoofAttributes):
-    def __init__(self,
-                 transaction: Union[SignedTransactionAPI, UnsignedTransactionAPI],
-                 **overrides: Any) -> None:
+    def __init__(
+        self,
+        transaction: Union[SignedTransactionAPI, UnsignedTransactionAPI],
+        **overrides: Any
+    ) -> None:
         super().__init__(transaction, **overrides)
