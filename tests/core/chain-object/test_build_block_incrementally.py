@@ -38,7 +38,8 @@ def test_building_block_incrementally_with_single_transaction(
     # test that the *latest* block hasn't changed
     assert chain.get_canonical_head().hash == head_hash
 
-    mined_block = chain.mine_block()
+    mined_block, meta_witness = chain.mine_block_extended()
+    assert len(meta_witness.hashes) == 2
     assert len(mined_block.transactions) == 1
 
     actual_tx = mined_block.transactions[0]

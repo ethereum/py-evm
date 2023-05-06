@@ -248,6 +248,31 @@ def test_validate_chain_works_across_forks(paragon_chain):
     paragon_chain.validate_chain_extension((PARAGON_GENESIS_HEADER,) + voting_chain)
 
 
+def test_building_block_incrementally(paragon_chain):
+    extra_data_len = VANITY_LENGTH + SIGNATURE_LENGTH
+    header = paragon_chain.header.copy(extra_data=extra_data_len * b'0')
+    # XXX: Comment out the two lines below and the test will fail.
+    # This is a quick hack to demonstrate what needs to be done in order to incrementally build
+    # clique blocks; what we probably need is an API to set the signer before we start building
+    paragon_chain.header = sign_block_header(header, ALICE_PK)
+    assert get_block_signer(paragon_chain.header) == ALICE
+
+    tx = new_transaction(paragon_chain.get_vm(), ALICE, BOB, 10, ALICE_PK)
+    _, _, computation = paragon_chain.apply_transaction(tx)
+    computation.raise_if_error()
+    signed_header = sign_block_header(
+        paragon_chain.header.copy(extra_data=extra_data_len * b'0', difficulty=2, nonce=NONCE_DROP),
+        ALICE_PK)
+    mined_block, meta_witness = paragon_chain.mine_block_extended(
+        extra_data=signed_header.extra_data, difficulty=2, nonce=NONCE_DROP)
+    state_root = b'\x99\xaa\xf5CF^\x95_\xce~\xe4)\x00\xb1zr\x1dr\xd6\x00N^\xa6\xdc\xc41\x90~\xb7te\x00'  # noqa: E501
+    assert mined_block.header.state_root == state_root
+
+    # XXX: This should not be empty, just like it is not when using PoW chains
+    # (tests/core/chain-object/test_build_block_incrementally.py)
+    assert len(meta_witness.hashes) == 0
+
+
 def test_import_block(paragon_chain):
 
     vm = paragon_chain.get_vm()

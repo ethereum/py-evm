@@ -481,7 +481,7 @@ class VM(Configurable, VirtualMachineAPI):
 
         final_block = block.copy(header=block.header.copy(state_root=self.state.state_root))
 
-        self.logger.debug(
+        self.logger.info(
             "%s reads %d unique node hashes, %d addresses, %d bytecodes, and %d storage slots",
             final_block,
             len(meta_witness.hashes),
