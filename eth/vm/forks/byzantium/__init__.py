@@ -44,7 +44,9 @@ from .state import ByzantiumState
 
 
 @curry
-def get_uncle_reward(block_reward: int, block_number: int, uncle: BlockHeaderAPI) -> int:
+def get_uncle_reward(
+    block_reward: int, block_number: int, uncle: BlockHeaderAPI
+) -> int:
     block_number_delta = block_number - uncle.block_number
     validate_lte(block_number_delta, MAX_UNCLE_DEPTH)
     return (8 - block_number_delta) * block_reward // 8
@@ -58,15 +60,15 @@ EIP658_STATUS_CODES = {
 
 class ByzantiumVM(SpuriousDragonVM):
     # fork name
-    fork = 'byzantium'
+    fork = "byzantium"
 
     # classes
     block_class: Type[BlockAPI] = ByzantiumBlock
     _state_class: Type[StateAPI] = ByzantiumState
 
     # Methods
-    create_header_from_parent = staticmethod(create_byzantium_header_from_parent)   # type: ignore
-    compute_difficulty = staticmethod(compute_byzantium_difficulty)     # type: ignore
+    create_header_from_parent = staticmethod(create_byzantium_header_from_parent)  # type: ignore  # noqa: E501
+    compute_difficulty = staticmethod(compute_byzantium_difficulty)  # type: ignore
     configure_header = configure_byzantium_header
     # Separated into two steps due to mypy bug of staticmethod.
     # https://github.com/python/mypy/issues/5530
@@ -88,12 +90,12 @@ class ByzantiumVM(SpuriousDragonVM):
     def get_block_reward() -> int:
         return EIP649_BLOCK_REWARD
 
-    def add_receipt_to_header(self,
-                              old_header: BlockHeaderAPI,
-                              receipt: ReceiptAPI) -> BlockHeaderAPI:
-        # Skip merkelizing the account data and persisting it to disk on every transaction.
-        # Starting in Byzantium, this is no longer necessary, because the state root isn't
-        # in the receipt anymore.
+    def add_receipt_to_header(
+        self, old_header: BlockHeaderAPI, receipt: ReceiptAPI
+    ) -> BlockHeaderAPI:
+        # Skip merkelizing the account data and persisting it to disk on every
+        # transaction. Starting in Byzantium, this is no longer necessary,
+        # because the state root isn't in the receipt anymore.
         return old_header.copy(
             bloom=int(BloomFilter(old_header.bloom) | receipt.bloom),
             gas_used=receipt.gas_used,
@@ -101,17 +103,21 @@ class ByzantiumVM(SpuriousDragonVM):
 
     @classmethod
     def make_receipt(
-            cls,
-            base_header: BlockHeaderAPI,
-            transaction: SignedTransactionAPI,
-            computation: ComputationAPI,
-            state: StateAPI) -> ReceiptAPI:
-
-        gas_used = base_header.gas_used + cls.finalize_gas_used(transaction, computation)
+        cls,
+        base_header: BlockHeaderAPI,
+        transaction: SignedTransactionAPI,
+        computation: ComputationAPI,
+        state: StateAPI,
+    ) -> ReceiptAPI:
+        gas_used = base_header.gas_used + cls.finalize_gas_used(
+            transaction, computation
+        )
 
         if computation.is_error:
             status_code = EIP658_TRANSACTION_STATUS_CODE_FAILURE
         else:
             status_code = EIP658_TRANSACTION_STATUS_CODE_SUCCESS
 
-        return transaction.make_receipt(status_code, gas_used, computation.get_log_entries())
+        return transaction.make_receipt(
+            status_code, gas_used, computation.get_log_entries()
+        )

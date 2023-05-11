@@ -40,9 +40,7 @@ class LevelDB(BaseAtomicDB):
     logger = logging.getLogger("eth.db.backends.LevelDB")
 
     # Creates db as a class variable to avoid level db lock error
-    def __init__(self,
-                 db_path: Path = None,
-                 max_open_files: int = None) -> None:
+    def __init__(self, db_path: Path = None, max_open_files: int = None) -> None:
         if not db_path:
             raise TypeError("Please specifiy a valid path for your database.")
         try:
@@ -57,7 +55,7 @@ class LevelDB(BaseAtomicDB):
             str(db_path),
             create_if_missing=True,
             error_if_exists=False,
-            max_open_files=max_open_files
+            max_open_files=max_open_files,
         )
 
     def __getitem__(self, key: bytes) -> bytes:
@@ -93,9 +91,12 @@ class LevelDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
     This class fills that gap, by tracking the in-progress diff, and adding
     a read interface.
     """
+
     logger = logging.getLogger("eth.db.backends.LevelDBWriteBatch")
 
-    def __init__(self, original_read_db: DatabaseAPI, write_batch: 'plyvel.WriteBatch') -> None:
+    def __init__(
+        self, original_read_db: DatabaseAPI, write_batch: "plyvel.WriteBatch"
+    ) -> None:
         self._original_read_db = original_read_db
         self._write_batch = write_batch
         # keep track of the temporary changes made
@@ -124,7 +125,9 @@ class LevelDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
 
     def _exists(self, key: bytes) -> bool:
         if self._track_diff is None:
-            raise ValidationError("Cannot test data existance from a write batch, out of context")
+            raise ValidationError(
+                "Cannot test data existance from a write batch, out of context"
+            )
 
         try:
             self._track_diff[key]
@@ -138,13 +141,16 @@ class LevelDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
 
     def __delitem__(self, key: bytes) -> None:
         if self._track_diff is None:
-            raise ValidationError("Cannot delete data from a write batch, out of context")
+            raise ValidationError(
+                "Cannot delete data from a write batch, out of context"
+            )
 
         self._write_batch.delete(key)
         del self._track_diff[key]
 
     def decommission(self) -> None:
         """
-        Prevent any further actions to be taken on this write batch, called after leaving context
+        Prevent any further actions to be taken on this write batch,
+        called after leaving context
         """
         self._track_diff = None

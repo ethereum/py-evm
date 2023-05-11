@@ -11,11 +11,12 @@ try:
     import factory
 except ImportError:
     raise ImportError(
-        "The p2p.tools.factories module requires the `factory_boy` library.")
+        "The p2p.tools.factories module requires the `factory_boy` library."
+    )
 
 
 def _mk_private_key_bytes() -> bytes:
-    return int_to_big_endian(secrets.randbits(256)).rjust(32, b'\x00')
+    return int_to_big_endian(secrets.randbits(256)).rjust(32, b"\x00")
 
 
 class PrivateKeyFactory(factory.Factory):

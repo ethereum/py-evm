@@ -27,6 +27,7 @@ class ShanghaiComputation(ParisComputation):
     """
     A class for all execution *message* computations in the ``Shanghai`` hard fork
     """
+
     opcodes = SHANGHAI_OPCODES
 
     def __init__(

@@ -53,7 +53,6 @@ def test_cache_turnover():
 
 
 def test_pow_across_epochs(ropsten_epoch_headers):
-
     def check():
         header = random.choice(ropsten_epoch_headers)
         check_pow(
@@ -70,16 +69,14 @@ def test_pow_across_epochs(ropsten_epoch_headers):
 
 
 @pytest.mark.parametrize(
-    'base_vm_class',
+    "base_vm_class",
     MINING_MAINNET_VMS,
 )
 def test_mining_tools_proof_of_work_mining(base_vm_class):
     vm_class = type(base_vm_class.__name__, (POWMiningMixin, base_vm_class), {})
 
     class ChainClass(MiningChain):
-        vm_configuration = (
-            (0, vm_class),
-        )
+        vm_configuration = ((0, vm_class),)
 
     chain = genesis(ChainClass)
 

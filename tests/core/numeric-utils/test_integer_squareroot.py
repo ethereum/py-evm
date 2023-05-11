@@ -14,11 +14,11 @@ from eth._utils.numeric import (
 def test_integer_squareroot_correct(value):
     result = integer_squareroot(value)
     assert (result + 1) ** 2 > value
-    assert result ** 2 <= value
+    assert result**2 <= value
 
 
 @pytest.mark.parametrize(
-    'value,expected',
+    "value,expected",
     (
         (0, 0),
         (1, 1),
@@ -29,7 +29,7 @@ def test_integer_squareroot_correct(value):
         (65535, 255),
         (65536, 256),
         (18446744073709551615, 4294967295),
-    )
+    ),
 )
 def test_integer_squareroot_success(value, expected):
     actual = integer_squareroot(value)
@@ -37,11 +37,11 @@ def test_integer_squareroot_success(value, expected):
 
 
 @pytest.mark.parametrize(
-    'value',
+    "value",
     (
         (1.5),
         (-1),
-    )
+    ),
 )
 def test_integer_squareroot_edge_cases(value):
     with pytest.raises(ValueError):

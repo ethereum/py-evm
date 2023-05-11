@@ -12,14 +12,18 @@ from eth.typing import (
 )
 
 
-def get_parent_header(block_header: BlockHeaderAPI, db: ChainDatabaseAPI) -> BlockHeaderAPI:
+def get_parent_header(
+    block_header: BlockHeaderAPI, db: ChainDatabaseAPI
+) -> BlockHeaderAPI:
     """
     Returns the header for the parent block.
     """
     return db.get_block_header_by_hash(block_header.parent_hash)
 
 
-def get_block_header_by_hash(block_hash: Hash32, db: ChainDatabaseAPI) -> BlockHeaderAPI:
+def get_block_header_by_hash(
+    block_hash: Hash32, db: ChainDatabaseAPI
+) -> BlockHeaderAPI:
     """
     Returns the header for the parent block.
     """

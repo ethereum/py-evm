@@ -43,7 +43,9 @@ GapInfo = Tuple[GapChange, ChainGaps]
 
 
 @to_tuple
-def _join_overlapping_gaps(unjoined_gaps: Tuple[BlockRange, ...]) -> Iterable[BlockRange]:
+def _join_overlapping_gaps(
+    unjoined_gaps: Tuple[BlockRange, ...]
+) -> Iterable[BlockRange]:
     """
     After introducing a new gap, join any that overlap.
     Input must already be sorted.
@@ -76,7 +78,7 @@ def reopen_gap(decanonicalized: BlockNumber, base_gaps: ChainGaps) -> ChainGaps:
     if tip_child <= decanonicalized:
         return base_gaps
 
-    new_raw_gaps = current_gaps + ((decanonicalized, decanonicalized), )
+    new_raw_gaps = current_gaps + ((decanonicalized, decanonicalized),)
 
     # join overlapping gaps
     joined_gaps = _join_overlapping_gaps(sorted(new_raw_gaps))
@@ -118,13 +120,15 @@ def fill_gap(newly_persisted: BlockNumber, base_gaps: ChainGaps) -> GapInfo:
         # We are creating a gap in the chain
         gap_end = BlockNumber(newly_persisted - 1)
         new_gaps = (
-            current_gaps + ((tip_child, gap_end),), BlockNumber(newly_persisted + 1)
+            current_gaps + ((tip_child, gap_end),),
+            BlockNumber(newly_persisted + 1),
         )
         gap_change = GapChange.NewGap
     elif newly_persisted < tip_child:
         # We are patching a gap which may either shrink an existing gap or divide it
         matching_gaps = [
-            (index, pair) for index, pair in enumerate(current_gaps)
+            (index, pair)
+            for index, pair in enumerate(current_gaps)
             if newly_persisted >= pair[0] and newly_persisted <= pair[1]
         ]
 
@@ -146,23 +150,36 @@ def fill_gap(newly_persisted: BlockNumber, base_gaps: ChainGaps) -> GapInfo:
                 gap_change = GapChange.GapFill
             elif newly_persisted == gap[0]:
                 # we are shrinking the gap at the start
-                updated_center = ((BlockNumber(gap[0] + 1), gap[1],),)
+                updated_center = (
+                    (
+                        BlockNumber(gap[0] + 1),
+                        gap[1],
+                    ),
+                )
                 gap_change = GapChange.GapLeftShrink
             elif newly_persisted == gap[1]:
                 # we are shrinking the gap at the tail
-                updated_center = ((gap[0], BlockNumber(gap[1] - 1),),)
+                updated_center = (
+                    (
+                        gap[0],
+                        BlockNumber(gap[1] - 1),
+                    ),
+                )
                 gap_change = GapChange.GapRightShrink
             elif gap[0] < newly_persisted < gap[1]:
                 # we are dividing the gap
                 first_new_gap = (gap[0], BlockNumber(newly_persisted - 1))
                 second_new_gap = (BlockNumber(newly_persisted + 1), gap[1])
-                updated_center = (first_new_gap, second_new_gap,)
+                updated_center = (
+                    first_new_gap,
+                    second_new_gap,
+                )
                 gap_change = GapChange.GapSplit
             else:
                 raise Exception("Invariant")
 
             before_gap = current_gaps[:gap_index]
-            after_gap = current_gaps[gap_index + 1:]
+            after_gap = current_gaps[gap_index + 1 :]
             new_gaps = (before_gap + updated_center + after_gap, tip_child)
 
     else:

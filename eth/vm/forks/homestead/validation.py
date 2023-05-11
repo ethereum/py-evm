@@ -14,8 +14,9 @@ from eth.vm.forks.frontier.validation import (
 )
 
 
-def validate_homestead_transaction(state: StateAPI,
-                                   transaction: SignedTransactionAPI) -> None:
+def validate_homestead_transaction(
+    state: StateAPI, transaction: SignedTransactionAPI
+) -> None:
     if transaction.s > SECPK1_N // 2 or transaction.s == 0:
         raise ValidationError("Invalid signature S value")
 

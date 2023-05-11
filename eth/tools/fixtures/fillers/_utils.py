@@ -43,11 +43,11 @@ def wrap_in_list(item: Any) -> List[Any]:
     return [item]
 
 
-def add_transaction_to_group(group: Dict[str, Any],
-                             transaction: TransactionDict) -> Tuple[Dict[str, Any], Dict[str, int]]:
-
+def add_transaction_to_group(
+    group: Dict[str, Any], transaction: TransactionDict
+) -> Tuple[Dict[str, Any], Dict[str, int]]:
     for key in ["gasPrice", "nonce", "secretKey", "to"]:
-        if key in transaction and transaction[key] != group[key]:   # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
+        if key in transaction and transaction[key] != group[key]:  # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
             raise ValueError(f"Can't add transaction as it differs in {key}")
 
     new_group = copy.deepcopy(group)
@@ -59,8 +59,8 @@ def add_transaction_to_group(group: Dict[str, Any],
                     raise ValueError(f"Can't add transaction as {key} is ambiguous")
                 index = 0
             else:
-                if transaction[key] not in new_group[key]:      # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
-                    new_group[key].append(transaction[key])     # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
+                if transaction[key] not in new_group[key]:  # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
+                    new_group[key].append(transaction[key])  # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
                 index = new_group[key].index(transaction[key])  # type: ignore # https://github.com/python/mypy/issues/5359 # noqa: 501
             indexes[index_key] = index
         else:

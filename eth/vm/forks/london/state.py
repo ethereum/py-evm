@@ -47,9 +47,10 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
         # Use vm_state.get_gas_price instead of transaction_context.gas_price so
         #   that we can run get_transaction_result (aka~ eth_call) and estimate_gas.
         #   Both work better if the GASPRICE opcode returns the original real price,
-        #   but the sender's balance doesn't actually deduct the gas. This get_gas_price()
-        #   will return 0 for eth_call, but transaction_context.gas_price will return
-        #   the same value as the GASPRICE opcode.
+        #   but the sender's balance doesn't actually deduct the gas. This
+        #   get_gas_price() will return 0 for eth_call, but
+        #   transaction_context.gas_price will return the same value as the
+        #   GASPRICE opcode.
         gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
 
         # Buy Gas
@@ -66,7 +67,7 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
                 transaction.sender,
                 self.vm_state.get_nonce(transaction.sender) - 1,
             )
-            data = b''
+            data = b""
             code = transaction.data
         else:
             contract_address = None
@@ -74,9 +75,7 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
             code = self.vm_state.get_code(transaction.to)
 
         self.vm_state.logger.debug2(
-            (
-                "TRANSACTION: %r; sender: %s | to: %s | data-hash: %s"
-            ),
+            ("TRANSACTION: %r; sender: %s | to: %s | data-hash: %s"),
             transaction,
             encode_hex(transaction.sender),
             encode_hex(transaction.to),
@@ -95,9 +94,7 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
         return message
 
     @classmethod
-    def calculate_gas_refund(cls,
-                             computation: ComputationAPI,
-                             gas_used: int) -> int:
+    def calculate_gas_refund(cls, computation: ComputationAPI, gas_used: int) -> int:
         # Self destruct refunds were added in Frontier
         # London removes them in EIP-3529
         gas_refunded = computation.get_gas_refund()
@@ -118,26 +115,26 @@ class LondonState(BerlinState):
     def get_gas_price(self, transaction: SignedTransactionAPI) -> int:
         return min(
             transaction.max_fee_per_gas,
-            transaction.max_priority_fee_per_gas + self.execution_context.base_fee_per_gas,
+            transaction.max_priority_fee_per_gas
+            + self.execution_context.base_fee_per_gas,
         )
 
-    def validate_transaction(
-        self,
-        transaction: SignedTransactionAPI
-    ) -> None:
+    def validate_transaction(self, transaction: SignedTransactionAPI) -> None:
         validate_london_normalized_transaction(
             state=self,
             transaction=transaction,
         )
 
-    def get_transaction_context(self: StateAPI,
-                                transaction: SignedTransactionAPI) -> TransactionContextAPI:
+    def get_transaction_context(
+        self: StateAPI, transaction: SignedTransactionAPI
+    ) -> TransactionContextAPI:
         """
         London-specific transaction context creation,
         where gas_price includes the block base fee
         """
         effective_gas_price = min(
-            transaction.max_priority_fee_per_gas + self.execution_context.base_fee_per_gas,
+            transaction.max_priority_fee_per_gas
+            + self.execution_context.base_fee_per_gas,
             transaction.max_fee_per_gas,
         )
         # See how this reduces in a pre-1559 transaction:
@@ -149,8 +146,7 @@ class LondonState(BerlinState):
         # 2. effective_gas_price = transaction.gas_price
 
         return self.get_transaction_context_class()(
-            gas_price=effective_gas_price,
-            origin=transaction.sender
+            gas_price=effective_gas_price, origin=transaction.sender
         )
 
     @property

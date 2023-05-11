@@ -17,7 +17,7 @@ def import_string(dotted_path: str) -> ModuleType:
     last name in the path. Raise ImportError if the import failed.
     """
     try:
-        module_path, class_name = dotted_path.rsplit('.', 1)
+        module_path, class_name = dotted_path.rsplit(".", 1)
     except ValueError:
         msg = f"{dotted_path} doesn't look like a module path"
         raise ImportError(msg)
@@ -32,12 +32,12 @@ def import_string(dotted_path: str) -> ModuleType:
 
 
 def split_at_longest_importable_path(dotted_path: str) -> Tuple[str, str]:
-    num_path_parts = len(dotted_path.split('.'))
+    num_path_parts = len(dotted_path.split("."))
 
     for i in range(1, num_path_parts):
-        path_parts = dotted_path.rsplit('.', i)
+        path_parts = dotted_path.rsplit(".", i)
         import_part = path_parts[0]
-        remainder = '.'.join(path_parts[1:])
+        remainder = ".".join(path_parts[1:])
 
         try:
             module = import_module(import_part)
@@ -53,4 +53,4 @@ def split_at_longest_importable_path(dotted_path: str) -> Tuple[str, str]:
         else:
             return import_part, remainder
     else:
-        return '', dotted_path
+        return "", dotted_path

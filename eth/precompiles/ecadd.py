@@ -34,10 +34,9 @@ from eth.exceptions import (
 
 @curry
 def ecadd(
-        computation: ComputationAPI,
-        gas_cost: int = constants.GAS_ECADD) -> ComputationAPI:
-
-    computation.consume_gas(gas_cost, reason='ECADD Precompile')
+    computation: ComputationAPI, gas_cost: int = constants.GAS_ECADD
+) -> ComputationAPI:
+    computation.consume_gas(gas_cost, reason="ECADD Precompile")
 
     try:
         result = _ecadd(computation.msg.data_as_bytes)
@@ -45,10 +44,12 @@ def ecadd(
         raise VMError("Invalid ECADD parameters")
 
     result_x, result_y = result
-    result_bytes = b''.join((
-        pad32(int_to_big_endian(result_x.n)),
-        pad32(int_to_big_endian(result_y.n)),
-    ))
+    result_bytes = b"".join(
+        (
+            pad32(int_to_big_endian(result_x.n)),
+            pad32(int_to_big_endian(result_y.n)),
+        )
+    )
     computation.output = result_bytes
     return computation
 

@@ -25,7 +25,7 @@ def test_start_gas_on_instantiation(value):
     assert meter.gas_refunded == 0
 
 
-@pytest.mark.parametrize("value", (-1, 2**256, 'a'))
+@pytest.mark.parametrize("value", (-1, 2**256, "a"))
 def test_instantiation_invalid_value(value):
     with pytest.raises(ValidationError):
         GasMeter(value)

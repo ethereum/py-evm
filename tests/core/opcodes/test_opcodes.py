@@ -69,21 +69,18 @@ from eth.vm.spoof import (
 
 NORMALIZED_ADDRESS_A = "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6"
 NORMALIZED_ADDRESS_B = "0xcd1722f3947def4cf144679da39c4c32bdc35681"
-ADDRESS_WITH_CODE = ("0xddd722f3947def4cf144679da39c4c32bdc35681", b'pseudocode')
+ADDRESS_WITH_CODE = ("0xddd722f3947def4cf144679da39c4c32bdc35681", b"pseudocode")
 EMPTY_ADDRESS_IN_STATE = NORMALIZED_ADDRESS_A
 ADDRESS_NOT_IN_STATE = NORMALIZED_ADDRESS_B
 ADDRESS_WITH_JUST_BALANCE = "0x0000000000000000000000000000000000000001"
 CANONICAL_ADDRESS_A = to_canonical_address("0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6")
 CANONICAL_ADDRESS_B = to_canonical_address("0xcd1722f3947def4cf144679da39c4c32bdc35681")
-CANONICAL_ADDRESS_C = b'\xee' * 20
-CANONICAL_ZERO_ADDRESS = b'\0' * 20
+CANONICAL_ADDRESS_C = b"\xee" * 20
+CANONICAL_ZERO_ADDRESS = b"\0" * 20
 
 
 def assemble(*codes):
-    return b''.join(
-        hexstr_if_str(to_bytes, element)
-        for element in codes
-    )
+    return b"".join(hexstr_if_str(to_bytes, element) for element in codes)
 
 
 def setup_vm(vm_class, chain_id=None):
@@ -99,14 +96,15 @@ def setup_vm(vm_class, chain_id=None):
 
 
 def run_computation(
-        vm,
-        create_address,
-        code,
-        gas=1000000,
-        to=CANONICAL_ADDRESS_A,
-        transaction_sender=b'\x11' * 20,
-        data=b'',
-        access_list=None):
+    vm,
+    create_address,
+    code,
+    gas=1000000,
+    to=CANONICAL_ADDRESS_A,
+    transaction_sender=b"\x11" * 20,
+    data=b"",
+    access_list=None,
+):
     executor = vm.state.get_transaction_executor()
 
     message = Message(
@@ -144,8 +142,7 @@ def run_computation(
     return executor.build_computation(message, transaction)
 
 
-def run_general_computation(vm_class, create_address=None, code=b'', chain_id=None):
-
+def run_general_computation(vm_class, create_address=None, code=b"", chain_id=None):
     vm = setup_vm(vm_class, chain_id=chain_id)
 
     vm.state.touch_account(decode_hex(EMPTY_ADDRESS_IN_STATE))
@@ -157,14 +154,39 @@ def run_general_computation(vm_class, create_address=None, code=b'', chain_id=No
 
 
 @pytest.mark.parametrize(
-    'vm_class, val1, val2, expected',
+    "vm_class, val1, val2, expected",
     (
-        (ByzantiumVM, 2, 4, 6,),
-        (SpuriousDragonVM, 2, 4, 6,),
-        (TangerineWhistleVM, 2, 4, 6,),
-        (HomesteadVM, 2, 4, 6,),
-        (FrontierVM, 2, 4, 6,),
-    )
+        (
+            ByzantiumVM,
+            2,
+            4,
+            6,
+        ),
+        (
+            SpuriousDragonVM,
+            2,
+            4,
+            6,
+        ),
+        (
+            TangerineWhistleVM,
+            2,
+            4,
+            6,
+        ),
+        (
+            HomesteadVM,
+            2,
+            4,
+            6,
+        ),
+        (
+            FrontierVM,
+            2,
+            4,
+            6,
+        ),
+    ),
 )
 def test_add(vm_class, val1, val2, expected):
     computation = run_general_computation(vm_class)
@@ -183,18 +205,18 @@ def test_base_fee():
 
     result = computation.stack_pop1_any()
 
-    assert result == 10 ** 9  # 1 gwei
+    assert result == 10**9  # 1 gwei
 
 
 @pytest.mark.parametrize(
-    'opcode_value, expected',
+    "opcode_value, expected",
     (
-        (opcode_values.COINBASE, b'\0' * 20),
+        (opcode_values.COINBASE, b"\0" * 20),
         # (opcode_values.TIMESTAMP, 1556826898),
         (opcode_values.NUMBER, 0),
         (opcode_values.DIFFICULTY, 17179869184),
         (opcode_values.GASLIMIT, 5000),
-    )
+    ),
 )
 def test_nullary_opcodes(VM, opcode_value, expected):
     computation = run_general_computation(VM)
@@ -206,13 +228,13 @@ def test_nullary_opcodes(VM, opcode_value, expected):
 
 
 @pytest.mark.parametrize(
-    'val1, expected',
+    "val1, expected",
     (
-        (0, b''),
-        (1, b''),
-        (255, b''),
-        (256, b''),
-    )
+        (0, b""),
+        (1, b""),
+        (255, b""),
+        (256, b""),
+    ),
 )
 def test_blockhash(VM, val1, expected):
     computation = run_general_computation(VM)
@@ -225,14 +247,39 @@ def test_blockhash(VM, val1, expected):
 
 
 @pytest.mark.parametrize(
-    'vm_class, val1, val2, expected',
+    "vm_class, val1, val2, expected",
     (
-        (ByzantiumVM, 2, 2, 4,),
-        (SpuriousDragonVM, 2, 2, 4,),
-        (TangerineWhistleVM, 2, 2, 4,),
-        (HomesteadVM, 2, 2, 4,),
-        (FrontierVM, 2, 2, 4,),
-    )
+        (
+            ByzantiumVM,
+            2,
+            2,
+            4,
+        ),
+        (
+            SpuriousDragonVM,
+            2,
+            2,
+            4,
+        ),
+        (
+            TangerineWhistleVM,
+            2,
+            2,
+            4,
+        ),
+        (
+            HomesteadVM,
+            2,
+            2,
+            4,
+        ),
+        (
+            FrontierVM,
+            2,
+            2,
+            4,
+        ),
+    ),
 )
 def test_mul(vm_class, val1, val2, expected):
     computation = run_general_computation(vm_class)
@@ -246,19 +293,69 @@ def test_mul(vm_class, val1, val2, expected):
 
 
 @pytest.mark.parametrize(
-    'vm_class, base, exponent, expected',
+    "vm_class, base, exponent, expected",
     (
-        (ByzantiumVM, 0, 1, 0,),
-        (ByzantiumVM, 0, 0, 1,),
-        (SpuriousDragonVM, 0, 1, 0,),
-        (SpuriousDragonVM, 0, 0, 1,),
-        (TangerineWhistleVM, 0, 1, 0,),
-        (TangerineWhistleVM, 0, 0, 1,),
-        (HomesteadVM, 0, 1, 0,),
-        (HomesteadVM, 0, 0, 1,),
-        (FrontierVM, 0, 1, 0,),
-        (FrontierVM, 0, 0, 1,),
-    )
+        (
+            ByzantiumVM,
+            0,
+            1,
+            0,
+        ),
+        (
+            ByzantiumVM,
+            0,
+            0,
+            1,
+        ),
+        (
+            SpuriousDragonVM,
+            0,
+            1,
+            0,
+        ),
+        (
+            SpuriousDragonVM,
+            0,
+            0,
+            1,
+        ),
+        (
+            TangerineWhistleVM,
+            0,
+            1,
+            0,
+        ),
+        (
+            TangerineWhistleVM,
+            0,
+            0,
+            1,
+        ),
+        (
+            HomesteadVM,
+            0,
+            1,
+            0,
+        ),
+        (
+            HomesteadVM,
+            0,
+            0,
+            1,
+        ),
+        (
+            FrontierVM,
+            0,
+            1,
+            0,
+        ),
+        (
+            FrontierVM,
+            0,
+            0,
+            1,
+        ),
+    ),
 )
 def test_exp(vm_class, base, exponent, expected):
     computation = run_general_computation(vm_class)
@@ -272,76 +369,76 @@ def test_exp(vm_class, base, exponent, expected):
 
 
 @pytest.mark.parametrize(
-    # Testcases from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shl-shift-left
-    'vm_class, val1, val2, expected',
+    # Testcases from https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shl-shift-left  # noqa: E501
+    "vm_class, val1, val2, expected",
     (
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0x00',
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0x00",
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0x01',
-            '0x0000000000000000000000000000000000000000000000000000000000000002',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0x01",
+            "0x0000000000000000000000000000000000000000000000000000000000000002",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0xff',
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0xff",
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0x0100',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0x0100",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0x0101',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0x0101",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x00',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x00",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x01',
-            '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x01",
+            "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0xff',
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0xff",
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x0100',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x0100",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
-            '0x01',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "0x01",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x01',
-            '0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe',
+            "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x01",
+            "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe",
         ),
-    )
+    ),
 )
 def test_shl(vm_class, val1, val2, expected):
     computation = run_general_computation(vm_class)
@@ -355,76 +452,76 @@ def test_shl(vm_class, val1, val2, expected):
 
 
 @pytest.mark.parametrize(
-    # Cases: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shr-logical-shift-right
-    'vm_class, val1, val2, expected',
+    # Cases: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#shr-logical-shift-right  # noqa: E501
+    "vm_class, val1, val2, expected",
     (
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0x00',
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0x00",
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0x01',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0x01",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
-            '0x01',
-            '0x4000000000000000000000000000000000000000000000000000000000000000',
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
+            "0x01",
+            "0x4000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
-            '0xff',
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
+            "0xff",
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
         ),
         (
             ConstantinopleVM,
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
-            '0x0100',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
+            "0x0100",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
-            '0x0101',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
+            "0x0101",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x00',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x00",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x01',
-            '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x01",
+            "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0xff',
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0xff",
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x0100',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x0100",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
-            '0x01',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "0x01",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
-    )
+    ),
 )
 def test_shr(vm_class, val1, val2, expected):
     computation = run_general_computation(vm_class)
@@ -437,107 +534,106 @@ def test_shr(vm_class, val1, val2, expected):
 
 
 @pytest.mark.parametrize(
-    # EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#sar-arithmetic-shift-right
-    'vm_class, val1, val2, expected',
+    # EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-145.md#sar-arithmetic-shift-right  # noqa: E501
+    "vm_class, val1, val2, expected",
     (
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0x00',
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0x00",
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
-            '0x01',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
+            "0x01",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
-            '0x01',
-            '0xc000000000000000000000000000000000000000000000000000000000000000',
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
+            "0x01",
+            "0xc000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
-            '0xff',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
+            "0xff",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
-            '0x0100',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
+            "0x0100",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0x8000000000000000000000000000000000000000000000000000000000000000',
-            '0x0101',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0x8000000000000000000000000000000000000000000000000000000000000000",
+            "0x0101",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x00',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x00",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x01',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x01",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0xff',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0xff",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x0100',
-            '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x0100",
+            "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
         ),
         (
             ConstantinopleVM,
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
-            '0x01',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
-        ),
-
-        (
-            ConstantinopleVM,
-            '0x4000000000000000000000000000000000000000000000000000000000000000',
-            '0xfe',
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "0x01",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
-            '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0xf8',
-            '0x000000000000000000000000000000000000000000000000000000000000007f',
+            "0x4000000000000000000000000000000000000000000000000000000000000000",
+            "0xfe",
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
         ),
         (
             ConstantinopleVM,
-            '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0xfe',
-            '0x0000000000000000000000000000000000000000000000000000000000000001',
+            "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0xf8",
+            "0x000000000000000000000000000000000000000000000000000000000000007f",
         ),
         (
             ConstantinopleVM,
-            '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0xff',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0xfe",
+            "0x0000000000000000000000000000000000000000000000000000000000000001",
         ),
         (
             ConstantinopleVM,
-            '0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-            '0x0100',
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0xff",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
-    )
+        (
+            ConstantinopleVM,
+            "0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+            "0x0100",
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
+        ),
+    ),
 )
 def test_sar(vm_class, val1, val2, expected):
     computation = run_general_computation(vm_class)
@@ -550,30 +646,30 @@ def test_sar(vm_class, val1, val2, expected):
 
 
 @pytest.mark.parametrize(
-    'vm_class, address, expected',
+    "vm_class, address, expected",
     (
         (
             ConstantinopleVM,
             ADDRESS_NOT_IN_STATE,
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
             EMPTY_ADDRESS_IN_STATE,
-            '0x0000000000000000000000000000000000000000000000000000000000000000',
+            "0x0000000000000000000000000000000000000000000000000000000000000000",
         ),
         (
             ConstantinopleVM,
             ADDRESS_WITH_JUST_BALANCE,
-            '0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
+            "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
         ),
         (
             ConstantinopleVM,
             ADDRESS_WITH_CODE[0],
             # equivalent to encode_hex(keccak(ADDRESS_WITH_CODE[1])),
-            '0xb6f5188e2984211a0de167a56a92d85bee084d7a469d97a59e1e2b573dbb4301'
+            "0xb6f5188e2984211a0de167a56a92d85bee084d7a469d97a59e1e2b573dbb4301",
         ),
-    )
+    ),
 )
 def test_extcodehash(vm_class, address, expected):
     computation = run_general_computation(vm_class)
@@ -587,137 +683,137 @@ def test_extcodehash(vm_class, address, expected):
 
 @pytest.mark.parametrize(
     # Testcases from https://eips.ethereum.org/EIPS/eip-1283
-    'vm_class, code, gas_used, refund, original',
+    "vm_class, code, gas_used, refund, original",
     (
         (
             ByzantiumVM,
-            '0x60006000556000600055',
+            "0x60006000556000600055",
             10012,
             0,
             0,
         ),
         (
             ByzantiumVM,
-            '0x60006000556001600055',
+            "0x60006000556001600055",
             25012,
             0,
             0,
         ),
         (
             ConstantinopleVM,
-            '0x60006000556000600055',
+            "0x60006000556000600055",
             412,
             0,
             0,
         ),
         (
             ConstantinopleVM,
-            '0x60006000556001600055',
+            "0x60006000556001600055",
             20212,
             0,
             0,
         ),
         (
             ConstantinopleVM,
-            '0x60016000556000600055',
+            "0x60016000556000600055",
             20212,
             19800,
             0,
         ),
         (
             ConstantinopleVM,
-            '0x60016000556002600055',
+            "0x60016000556002600055",
             20212,
             0,
             0,
         ),
         (
             ConstantinopleVM,
-            '0x60016000556001600055',
+            "0x60016000556001600055",
             20212,
             0,
             0,
         ),
         (
             ConstantinopleVM,
-            '0x60006000556000600055',
+            "0x60006000556000600055",
             5212,
             15000,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60006000556001600055',
+            "0x60006000556001600055",
             5212,
             4800,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60006000556002600055',
+            "0x60006000556002600055",
             5212,
             0,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60026000556000600055',
+            "0x60026000556000600055",
             5212,
             15000,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60026000556003600055',
+            "0x60026000556003600055",
             5212,
             0,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60026000556001600055',
+            "0x60026000556001600055",
             5212,
             4800,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60026000556002600055',
+            "0x60026000556002600055",
             5212,
             0,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60016000556000600055',
+            "0x60016000556000600055",
             5212,
             15000,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60016000556002600055',
+            "0x60016000556002600055",
             5212,
             0,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x60016000556001600055',
+            "0x60016000556001600055",
             412,
             0,
             1,
         ),
         (
             ConstantinopleVM,
-            '0x600160005560006000556001600055',
+            "0x600160005560006000556001600055",
             40218,
             19800,
             0,
         ),
         (
             ConstantinopleVM,
-            '0x600060005560016000556000600055',
+            "0x600060005560016000556000600055",
             10218,
             19800,
             1,
@@ -725,14 +821,14 @@ def test_extcodehash(vm_class, address, expected):
         # Petersburg reverts the SSTORE change
         (
             PetersburgVM,
-            '0x60006000556000600055',
+            "0x60006000556000600055",
             10012,
             0,
             0,
         ),
         (
             PetersburgVM,
-            '0x60006000556001600055',
+            "0x60006000556001600055",
             25012,
             0,
             0,
@@ -740,119 +836,119 @@ def test_extcodehash(vm_class, address, expected):
         # Istanbul re-adds the SSTORE change, but at a higher base cost (200->800)
         (
             IstanbulVM,
-            '0x60006000556000600055',
+            "0x60006000556000600055",
             1612,
             0,
             0,
         ),
         (
             IstanbulVM,
-            '0x60006000556001600055',
+            "0x60006000556001600055",
             20812,
             0,
             0,
         ),
         (
             IstanbulVM,
-            '0x60016000556000600055',
+            "0x60016000556000600055",
             20812,
             19200,
             0,
         ),
         (
             IstanbulVM,
-            '0x60016000556002600055',
+            "0x60016000556002600055",
             20812,
             0,
             0,
         ),
         (
             IstanbulVM,
-            '0x60016000556001600055',
+            "0x60016000556001600055",
             20812,
             0,
             0,
         ),
         (
             IstanbulVM,
-            '0x60006000556000600055',
+            "0x60006000556000600055",
             5812,
             15000,
             1,
         ),
         (
             IstanbulVM,
-            '0x60006000556001600055',
+            "0x60006000556001600055",
             5812,
             4200,
             1,
         ),
         (
             IstanbulVM,
-            '0x60006000556002600055',
+            "0x60006000556002600055",
             5812,
             0,
             1,
         ),
         (
             IstanbulVM,
-            '0x60026000556000600055',
+            "0x60026000556000600055",
             5812,
             15000,
             1,
         ),
         (
             IstanbulVM,
-            '0x60026000556003600055',
+            "0x60026000556003600055",
             5812,
             0,
             1,
         ),
         (
             IstanbulVM,
-            '0x60026000556001600055',
+            "0x60026000556001600055",
             5812,
             4200,
             1,
         ),
         (
             IstanbulVM,
-            '0x60026000556002600055',
+            "0x60026000556002600055",
             5812,
             0,
             1,
         ),
         (
             IstanbulVM,
-            '0x60016000556000600055',
+            "0x60016000556000600055",
             5812,
             15000,
             1,
         ),
         (
             IstanbulVM,
-            '0x60016000556002600055',
+            "0x60016000556002600055",
             5812,
             0,
             1,
         ),
         (
             IstanbulVM,
-            '0x60016000556001600055',
+            "0x60016000556001600055",
             1612,
             0,
             1,
         ),
         (
             IstanbulVM,
-            '0x600160005560006000556001600055',
+            "0x600160005560006000556001600055",
             40818,
             19200,
             0,
         ),
         (
             IstanbulVM,
-            '0x600060005560016000556000600055',
+            "0x600060005560016000556000600055",
             10818,
             19200,
             1,
@@ -860,119 +956,119 @@ def test_extcodehash(vm_class, address, expected):
         # No changes in Muir Glacier
         (
             MuirGlacierVM,
-            '0x60006000556000600055',
+            "0x60006000556000600055",
             1612,
             0,
             0,
         ),
         (
             MuirGlacierVM,
-            '0x60006000556001600055',
+            "0x60006000556001600055",
             20812,
             0,
             0,
         ),
         (
             MuirGlacierVM,
-            '0x60016000556000600055',
+            "0x60016000556000600055",
             20812,
             19200,
             0,
         ),
         (
             MuirGlacierVM,
-            '0x60016000556002600055',
+            "0x60016000556002600055",
             20812,
             0,
             0,
         ),
         (
             MuirGlacierVM,
-            '0x60016000556001600055',
+            "0x60016000556001600055",
             20812,
             0,
             0,
         ),
         (
             MuirGlacierVM,
-            '0x60006000556000600055',
+            "0x60006000556000600055",
             5812,
             15000,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60006000556001600055',
+            "0x60006000556001600055",
             5812,
             4200,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60006000556002600055',
+            "0x60006000556002600055",
             5812,
             0,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60026000556000600055',
+            "0x60026000556000600055",
             5812,
             15000,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60026000556003600055',
+            "0x60026000556003600055",
             5812,
             0,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60026000556001600055',
+            "0x60026000556001600055",
             5812,
             4200,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60026000556002600055',
+            "0x60026000556002600055",
             5812,
             0,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60016000556000600055',
+            "0x60016000556000600055",
             5812,
             15000,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60016000556002600055',
+            "0x60016000556002600055",
             5812,
             0,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x60016000556001600055',
+            "0x60016000556001600055",
             1612,
             0,
             1,
         ),
         (
             MuirGlacierVM,
-            '0x600160005560006000556001600055',
+            "0x600160005560006000556001600055",
             40818,
             19200,
             0,
         ),
         (
             MuirGlacierVM,
-            '0x600060005560016000556000600055',
+            "0x600060005560016000556000600055",
             10818,
             19200,
             1,
@@ -1101,7 +1197,7 @@ def test_extcodehash(vm_class, address, expected):
             7600,
             1,
         ),
-    )
+    ),
 )
 def test_sstore(vm_class, code, gas_used, refund, original):
     vm = setup_vm(vm_class)
@@ -1119,17 +1215,19 @@ def test_sstore(vm_class, code, gas_used, refund, original):
 
 
 @pytest.mark.parametrize(
-    'gas_supplied, success, gas_used, refund',
+    "gas_supplied, success, gas_used, refund",
     (
-        # 2 pushes get executed before the SSTORE, so add 6 before checking the 2300 limit
+        # 2 pushes get executed before the SSTORE,
+        # so add 6 before checking the 2300 limit
         (2306, False, 2306, 0),
-        # Just one more gas, leaving 2301 at the beginning of SSTORE, allows it to succeed
+        # Just one more gas, leaving 2301 at the beginning
+        # of SSTORE, allows it to succeed
         (2307, True, 806, 0),
-    )
+    ),
 )
 def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
     vm_class = IstanbulVM
-    hex_code = '0x6000600055'
+    hex_code = "0x6000600055"
     original = 0
     vm = setup_vm(vm_class)
 
@@ -1152,15 +1250,18 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
     assert comp.get_gas_used() == gas_used
 
 
-@pytest.mark.parametrize('vm_class', (
-    IstanbulVM,
-    MuirGlacierVM,
-    BerlinVM,
-    LondonVM,
-))
+@pytest.mark.parametrize(
+    "vm_class",
+    (
+        IstanbulVM,
+        MuirGlacierVM,
+        BerlinVM,
+        LondonVM,
+    ),
+)
 @pytest.mark.parametrize(
     # Testcases from https://eips.ethereum.org/EIPS/eip-1344
-    'chain_id, expected_result',
+    "chain_id, expected_result",
     (
         (
             86,
@@ -1175,14 +1276,14 @@ def test_sstore_limit_2300(gas_supplied, success, gas_used, refund):
             ValidationError,
         ),
         (
-            2 ** 256 - 1,
-            2 ** 256 - 1,
+            2**256 - 1,
+            2**256 - 1,
         ),
         (
-            2 ** 256,
+            2**256,
             ValidationError,
         ),
-    )
+    ),
 )
 def test_chainid(vm_class, chain_id, expected_result):
     if not isinstance(expected_result, int):
@@ -1199,7 +1300,7 @@ def test_chainid(vm_class, chain_id, expected_result):
 
 
 @pytest.mark.parametrize(
-    'vm_class, code, expect_exception, expect_gas_used',
+    "vm_class, code, expect_exception, expect_gas_used",
     (
         (
             ConstantinopleVM,
@@ -1217,7 +1318,8 @@ def test_chainid(vm_class, chain_id, expected_result):
                 opcode_values.SELFBALANCE,
             ),
             InvalidInstruction,
-            1_000_000,  # the invalid instruction causes a failure that consumes all provided gas
+            # the invalid instruction causes a failure that consumes all provided gas
+            1_000_000,
         ),
         (
             IstanbulVM,
@@ -1275,7 +1377,7 @@ def test_chainid(vm_class, chain_id, expected_result):
             None,
             5,
         ),
-    )
+    ),
 )
 def test_balance(vm_class, code, expect_exception, expect_gas_used):
     sender_balance = 987654321
@@ -1300,7 +1402,7 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
 
 
 @pytest.mark.parametrize(
-    'vm_class, code, expect_gas_used',
+    "vm_class, code, expect_gas_used",
     (
         (
             ConstantinopleVM,
@@ -1399,12 +1501,12 @@ def test_balance(vm_class, code, expect_exception, expect_gas_used):
             BerlinVM,
             assemble(
                 opcode_values.PUSH20,
-                force_bytes_to_address(b'\x05'),
+                force_bytes_to_address(b"\x05"),
                 opcode_values.BALANCE,
             ),
             3 + 100,
         ),
-    )
+    ),
 )
 def test_gas_costs(vm_class, code, expect_gas_used):
     comp = run_computation(setup_vm(vm_class), CANONICAL_ADDRESS_B, code)
@@ -1413,7 +1515,7 @@ def test_gas_costs(vm_class, code, expect_gas_used):
 
 
 @pytest.mark.parametrize(
-    'vm_class, code, expect_gas_used, access_list',
+    "vm_class, code, expect_gas_used, access_list",
     (
         # Empty access list does not affect account cache warmth
         (
@@ -1451,7 +1553,7 @@ def test_gas_costs(vm_class, code, expect_gas_used):
             3 + 100 + 3 + 2100,
             [(CANONICAL_ZERO_ADDRESS, [0])],
         ),
-    )
+    ),
 )
 def test_access_list_gas_costs(vm_class, code, expect_gas_used, access_list):
     recipient = CANONICAL_ZERO_ADDRESS
@@ -1469,9 +1571,15 @@ def test_access_list_gas_costs(vm_class, code, expect_gas_used, access_list):
 
 # cases from https://gist.github.com/holiman/174548cad102096858583c6fbbb0649a
 # mentioned in EIP-2929
-@pytest.mark.parametrize('vm_class', (BerlinVM, LondonVM, ))
 @pytest.mark.parametrize(
-    'bytecode_hex, expect_gas_used',
+    "vm_class",
+    (
+        BerlinVM,
+        LondonVM,
+    ),
+)
+@pytest.mark.parametrize(
+    "bytecode_hex, expect_gas_used",
     (
         (
             "0x60013f5060023b506003315060f13f5060f23b5060f3315060f23f5060f33b5060f1315032315030315000",  # noqa: E501
@@ -1486,20 +1594,20 @@ def test_access_list_gas_costs(vm_class, code, expect_gas_used, access_list):
             44529,
         ),
         (
-            "0x60008080808060046000f15060008080808060ff6000f15060008080808060ff6000fa50",
+            "0x60008080808060046000f15060008080808060ff6000f15060008080808060ff6000fa50",  # noqa: E501
             2869,
         ),
     ),
 )
 def test_eip2929_gas_by_cache_warmth(vm_class, bytecode_hex, expect_gas_used):
-    recipient = decode_hex('0x000000000000000000000000636F6E7472616374')
+    recipient = decode_hex("0x000000000000000000000000636F6E7472616374")
     comp = run_computation(
         setup_vm(vm_class),
         recipient,
         decode_hex(bytecode_hex),
         gas=18446744073709551615,
         to=recipient,
-        transaction_sender=b'\0' * 20,  # sender defined as 0 address in these tests
+        transaction_sender=b"\0" * 20,  # sender defined as 0 address in these tests
     )
 
     assert comp.is_success
@@ -1507,12 +1615,12 @@ def test_eip2929_gas_by_cache_warmth(vm_class, bytecode_hex, expect_gas_used):
 
 
 @pytest.mark.parametrize(
-    'vm_class, input_hex, output_hex, expect_exception',
+    "vm_class, input_hex, output_hex, expect_exception",
     (
         (
             PetersburgVM,
             "0000000048c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b61626300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000001",  # noqa: E501
-            "",  # noqa: E501
+            "",
             None,
         ),
         (
@@ -1568,17 +1676,19 @@ def test_eip2929_gas_by_cache_warmth(vm_class, bytecode_hex, expect_gas_used):
             "ffffffff48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b61626300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000300000000000000000000000000000001",  # noqa: E501
             "fc59093aafa9ab43daae0e914c57635c5402d8e3d2130eb9b3cc181de7f0ecf9b22bf99a7815ce16419e200e01846e6b5df8cc7703041bbceb571de6631d2615",  # noqa: E501
             None,
-            marks=pytest.mark.skip(reason="Takes 90s to run against blake2b-py v0.1.2, but passes!")
+            marks=pytest.mark.skip(
+                reason="Takes 90s to run against blake2b-py v0.1.2, but passes!"
+            ),
         ),
-    )
+    ),
 )
 def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception):
     comp = run_computation(
         setup_vm(vm_class),
         CANONICAL_ADDRESS_B,
-        code=b'',
+        code=b"",
         gas=2**32 - 1,
-        to=force_bytes_to_address(b'\x09'),
+        to=force_bytes_to_address(b"\x09"),
         data=to_bytes(hexstr=input_hex),
     )
 
@@ -1590,7 +1700,7 @@ def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception
         assert result.hex() == output_hex
 
 
-@pytest.mark.parametrize('vm_class', MAINNET_VMS[:13])  # vms up to Shanghai
+@pytest.mark.parametrize("vm_class", MAINNET_VMS[:13])  # vms up to Shanghai
 def test_selfdestruct_does_not_issue_deprecation_warning_pre_shanghai(vm_class):
     # assert no warning without selfdestruct
     with warnings.catch_warnings():
@@ -1607,7 +1717,8 @@ def test_selfdestruct_issues_deprecation_warning_for_shanghai():
     available_vm_opcodes = ShanghaiComputation.opcodes
 
     vm_opcodes_without_selfdestruct = {
-        k: available_vm_opcodes[k] for k in available_vm_opcodes.keys()
+        k: available_vm_opcodes[k]
+        for k in available_vm_opcodes.keys()
         if k != opcode_values.SELFDESTRUCT
     }
     code_without_self_destruct = assemble(

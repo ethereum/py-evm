@@ -19,13 +19,13 @@ from .state import BerlinState
 
 class BerlinVM(MuirGlacierVM):
     # fork name
-    fork = 'berlin'
+    fork = "berlin"
 
     # classes
     block_class: Type[BaseBlock] = BerlinBlock
     _state_class: Type[BaseState] = BerlinState
 
     # Methods
-    create_header_from_parent = staticmethod(create_berlin_header_from_parent)  # type: ignore
-    compute_difficulty = staticmethod(compute_berlin_difficulty)    # type: ignore
+    create_header_from_parent = staticmethod(create_berlin_header_from_parent)  # type: ignore  # noqa: E501
+    compute_difficulty = staticmethod(compute_berlin_difficulty)  # type: ignore
     configure_header = configure_berlin_header

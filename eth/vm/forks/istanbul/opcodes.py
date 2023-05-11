@@ -46,7 +46,6 @@ UPDATED_OPCODES = {
         mnemonic=mnemonics.SELFBALANCE,
         gas_cost=constants.GAS_LOW,
     ),
-
     # Repriced opcodes
     opcode_values.SSTORE: as_opcode(
         logic_fn=ensure_no_static(sstore_eip2200),

@@ -19,31 +19,33 @@ from eth.constants import (
 )
 
 SPOOF_ATTRIBUTES_DEFAULTS = {
-    'y_parity': DEFAULT_SPOOF_Y_PARITY,
-    'r': DEFAULT_SPOOF_R,
-    's': DEFAULT_SPOOF_S
+    "y_parity": DEFAULT_SPOOF_Y_PARITY,
+    "r": DEFAULT_SPOOF_R,
+    "s": DEFAULT_SPOOF_S,
 }
 
-T = TypeVar('T', bound='SpoofAttributes')
+T = TypeVar("T", bound="SpoofAttributes")
 
 
 class SpoofAttributes:
     def __init__(
-            self,
-            spoof_target: Union[SignedTransactionAPI, UnsignedTransactionAPI],
-            **overrides: Any) -> None:
+        self,
+        spoof_target: Union[SignedTransactionAPI, UnsignedTransactionAPI],
+        **overrides: Any
+    ) -> None:
         self.spoof_target = spoof_target
         self.overrides = overrides
 
-        if 'from_' in overrides:
-            if hasattr(spoof_target, 'sender'):
+        if "from_" in overrides:
+            if hasattr(spoof_target, "sender"):
                 raise TypeError(
-                    "A from_ parameter can only be supplied when the spoof target",
-                    "does not have a sender attribute.  SpoofTransaction will not attempt",
-                    "to override the sender of a signed transaction.")
+                    "A from_ parameter can only be supplied when the spoof target "
+                    "does not have a sender attribute.  SpoofTransaction will not "
+                    "attempt to override the sender of a signed transaction."
+                )
 
-            overrides['sender'] = overrides['from_']
-            overrides['get_sender'] = lambda: overrides['from_']
+            overrides["sender"] = overrides["from_"]
+            overrides["get_sender"] = lambda: overrides["from_"]
             for attr, value in SPOOF_ATTRIBUTES_DEFAULTS.items():
                 if not hasattr(spoof_target, attr):
                     overrides[attr] = value

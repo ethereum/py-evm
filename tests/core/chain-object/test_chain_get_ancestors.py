@@ -14,7 +14,7 @@ from eth.db.backends.memory import (
 @pytest.fixture
 def chain(chain_without_block_validation):
     if not isinstance(chain_without_block_validation, MiningChain):
-        pytest.skip('only valid on mining chains')
+        pytest.skip("only valid on mining chains")
     return chain_without_block_validation
 
 
@@ -28,7 +28,7 @@ def fork_chain(chain):
 
 
 @pytest.mark.parametrize(
-    'limit',
+    "limit",
     (0, 1, 2, 5),
 )
 def test_chain_get_ancestors_from_genesis_block(chain, limit):
@@ -69,9 +69,27 @@ def test_chain_get_ancestors_from_block_5(chain):
     assert chain.get_ancestors(2, header) == (block_4, block_3)
     assert chain.get_ancestors(3, header) == (block_4, block_3, block_2)
     assert chain.get_ancestors(4, header) == (block_4, block_3, block_2, block_1)
-    assert chain.get_ancestors(5, header) == (block_4, block_3, block_2, block_1, genesis)
-    assert chain.get_ancestors(6, header) == (block_4, block_3, block_2, block_1, genesis)
-    assert chain.get_ancestors(10, header) == (block_4, block_3, block_2, block_1, genesis)
+    assert chain.get_ancestors(5, header) == (
+        block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )
+    assert chain.get_ancestors(6, header) == (
+        block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )
+    assert chain.get_ancestors(10, header) == (
+        block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )
 
 
 def test_chain_get_ancestors_for_fork_chains(chain, fork_chain):
@@ -92,7 +110,7 @@ def test_chain_get_ancestors_for_fork_chains(chain, fork_chain):
     assert block_3 == f_block_3
 
     # force the fork chain to diverge
-    fork_chain.header = fork_chain.header.copy(extra_data=b'fork-it!')
+    fork_chain.header = fork_chain.header.copy(extra_data=b"fork-it!")
 
     # mine ahead a bit further on both chains.
     (
@@ -120,20 +138,75 @@ def test_chain_get_ancestors_for_fork_chains(chain, fork_chain):
     assert chain.get_ancestors(1, f_block_5.header) == (f_block_4,)
     assert chain.get_ancestors(2, f_block_5.header) == (f_block_4, block_3)
     assert chain.get_ancestors(3, f_block_5.header) == (f_block_4, block_3, block_2)
-    assert chain.get_ancestors(4, f_block_5.header) == (f_block_4, block_3, block_2, block_1)
-    assert chain.get_ancestors(5, f_block_5.header) == (f_block_4, block_3, block_2, block_1, genesis)  # noqa: E501
+    assert chain.get_ancestors(4, f_block_5.header) == (
+        f_block_4,
+        block_3,
+        block_2,
+        block_1,
+    )
+    assert chain.get_ancestors(5, f_block_5.header) == (
+        f_block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )
     # check that when we hit genesis it self limits
-    assert chain.get_ancestors(6, f_block_5.header) == (f_block_4, block_3, block_2, block_1, genesis)  # noqa: E501
-    assert chain.get_ancestors(20, f_block_5.header) == (f_block_4, block_3, block_2, block_1, genesis)  # noqa: E501
+    assert chain.get_ancestors(6, f_block_5.header) == (
+        f_block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )
+    assert chain.get_ancestors(20, f_block_5.header) == (
+        f_block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )
 
     # check with a block that has NOT been imported
     assert chain.get_ancestors(0, f_block_6.header) == ()
     assert chain.get_ancestors(1, f_block_6.header) == (f_block_5,)
     assert chain.get_ancestors(2, f_block_6.header) == (f_block_5, f_block_4)
     assert chain.get_ancestors(3, f_block_6.header) == (f_block_5, f_block_4, block_3)
-    assert chain.get_ancestors(4, f_block_6.header) == (f_block_5, f_block_4, block_3, block_2)
-    assert chain.get_ancestors(5, f_block_6.header) == (f_block_5, f_block_4, block_3, block_2, block_1)  # noqa: E501
-    assert chain.get_ancestors(6, f_block_6.header) == (f_block_5, f_block_4, block_3, block_2, block_1, genesis)  # noqa: E501
+    assert chain.get_ancestors(4, f_block_6.header) == (
+        f_block_5,
+        f_block_4,
+        block_3,
+        block_2,
+    )
+    assert chain.get_ancestors(5, f_block_6.header) == (
+        f_block_5,
+        f_block_4,
+        block_3,
+        block_2,
+        block_1,
+    )
+    assert chain.get_ancestors(6, f_block_6.header) == (
+        f_block_5,
+        f_block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )
     # check that when we hit genesis it self limits
-    assert chain.get_ancestors(7, f_block_6.header) == (f_block_5, f_block_4, block_3, block_2, block_1, genesis)  # noqa: E501
-    assert chain.get_ancestors(20, f_block_6.header) == (f_block_5, f_block_4, block_3, block_2, block_1, genesis)  # noqa: E501
+    assert chain.get_ancestors(7, f_block_6.header) == (
+        f_block_5,
+        f_block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )
+    assert chain.get_ancestors(20, f_block_6.header) == (
+        f_block_5,
+        f_block_4,
+        block_3,
+        block_2,
+        block_1,
+        genesis,
+    )

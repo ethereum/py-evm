@@ -18,14 +18,16 @@ def fill_block(chain, from_, key, gas, data):
         pytest.skip("Cannot fill block automatically unless using a MiningChain")
         return
 
-    recipient = decode_hex('0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c')
+    recipient = decode_hex("0xa94f5374fce5edbc8e2a8697c15331677e6ebf0c")
     amount = 100
 
     vm = chain.get_vm()
     assert vm.get_header().gas_used == 0
 
     while True:
-        tx = new_transaction(chain.get_vm(), from_, recipient, amount, key, gas=gas, data=data)
+        tx = new_transaction(
+            chain.get_vm(), from_, recipient, amount, key, gas=gas, data=data
+        )
         try:
             chain.apply_transaction(tx)
         except ValidationError as exc:

@@ -7,7 +7,7 @@ from typing import (
     TypeVar,
 )
 
-TItem = TypeVar('TItem')
+TItem = TypeVar("TItem")
 
 
 class CachedIterable(Generic[TItem], Iterable[TItem]):

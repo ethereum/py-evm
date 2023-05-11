@@ -26,7 +26,7 @@ from eth.vm.logic import (
 
 NEW_OPCODES = {
     opcode_values.DELEGATECALL: call.DelegateCall.configure(
-        __name__='opcode:DELEGATECALL',
+        __name__="opcode:DELEGATECALL",
         mnemonic=mnemonics.DELEGATECALL,
         gas_cost=constants.GAS_CALL,
     )(),
@@ -34,6 +34,5 @@ NEW_OPCODES = {
 
 
 HOMESTEAD_OPCODES: Dict[int, OpcodeAPI] = merge(
-    copy.deepcopy(FRONTIER_OPCODES),
-    NEW_OPCODES
+    copy.deepcopy(FRONTIER_OPCODES), NEW_OPCODES
 )

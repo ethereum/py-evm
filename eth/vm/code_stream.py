@@ -19,14 +19,21 @@ from eth.vm.opcode_values import (
 
 
 class CodeStream(CodeStreamAPI):
-    __slots__ = ['_length_cache', '_raw_code_bytes', 'invalid_positions', 'valid_positions', 'pc']
+    __slots__ = [
+        "_length_cache",
+        "_raw_code_bytes",
+        "invalid_positions",
+        "valid_positions",
+        "pc",
+    ]
 
-    logger = logging.getLogger('eth.vm.CodeStream')
+    logger = logging.getLogger("eth.vm.CodeStream")
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="CodeStream bytes")
-        # in order to avoid method overhead when setting/accessing pc, we no longer fence
-        # the pc (Program Counter) into 0 <= pc <= len(code_bytes). We now let it float free.
+        # in order to avoid method overhead when setting/accessing pc, we no longer
+        # fence the pc (Program Counter) into 0 <= pc <= len(code_bytes).
+        # We now let it float free.
         # NOTE: Setting pc to a negative value has undefined behavior.
         self.program_counter = 0
         self._raw_code_bytes = code_bytes
@@ -66,7 +73,7 @@ class CodeStream(CodeStreamAPI):
             return STOP
 
     @contextlib.contextmanager
-    def seek(self, program_counter: int) -> Iterator['CodeStream']:
+    def seek(self, program_counter: int) -> Iterator["CodeStream"]:
         anchor_pc = self.program_counter
         self.program_counter = program_counter
         try:
@@ -74,7 +81,9 @@ class CodeStream(CodeStreamAPI):
         finally:
             self.program_counter = anchor_pc
 
-    def _potentially_disqualifying_opcode_positions(self, position: int) -> Iterator[int]:
+    def _potentially_disqualifying_opcode_positions(
+        self, position: int
+    ) -> Iterator[int]:
         # Look at the last 32 positions (from 1 byte back to 32 bytes back).
         # Don't attempt to look at negative positions.
         deepest_lookback = min(32, position)
@@ -96,16 +105,21 @@ class CodeStream(CodeStreamAPI):
             return True
         else:
             # An opcode is not valid, iff it is the "data" following a PUSH_
-            # So we look at the previous 32 bytes (PUSH32 being the largest) to see if there
-            # is a PUSH_ before the opcode in this position.
-            for disqualifier in self._potentially_disqualifying_opcode_positions(position):
-                # Now that we found a PUSH_ before this position, we check if *that* PUSH is valid
+            # So we look at the previous 32 bytes (PUSH32 being the largest) to see if
+            # there is a PUSH_ before the opcode in this position.
+            for disqualifier in self._potentially_disqualifying_opcode_positions(
+                position
+            ):
+                # Now that we found a PUSH_ before this position,
+                # we check if *that* PUSH is valid
                 if self.is_valid_opcode(disqualifier):
                     # If the PUSH_ valid, then the current position is invalid
                     self.invalid_positions.add(position)
                     return False
-                # Otherwise, keep looking for other potentially disqualifying PUSH_ codes
+                # Otherwise, keep looking for other potentially
+                # disqualifying PUSH_ codes
 
-            # We didn't find any valid PUSH_ opcodes in the 32 bytes before position; it's valid
+            # We didn't find any valid PUSH_ opcodes in the 32 bytes
+            # before position; it's valid
             self.valid_positions.add(position)
             return True

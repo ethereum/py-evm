@@ -21,8 +21,8 @@ def message(canonical_address_a, canonical_address_b):
         to=canonical_address_a,
         sender=canonical_address_b,
         value=100,
-        data=b'',
-        code=b'',
+        data=b"",
+        code=b"",
         gas=100,
     )
     return message
@@ -41,11 +41,7 @@ def computation(message, transaction_context, state):
 @pytest.fixture
 def child_message(computation, canonical_address_b):
     child_message = computation.prepare_child_message(
-        gas=100,
-        to=canonical_address_b,
-        value=200,
-        data=b'',
-        code=b''
+        gas=100, to=canonical_address_b, value=200, data=b"", code=b""
     )
     return child_message
 
@@ -57,5 +53,11 @@ def child_computation(computation, child_message):
 
 
 def test_generate_child_computation(computation, child_computation):
-    assert computation.transaction_context.gas_price == child_computation.transaction_context.gas_price  # noqa: E501
-    assert computation.transaction_context.origin == child_computation.transaction_context.origin  # noqa: E501
+    assert (
+        computation.transaction_context.gas_price
+        == child_computation.transaction_context.gas_price
+    )
+    assert (
+        computation.transaction_context.origin
+        == child_computation.transaction_context.origin
+    )

@@ -36,16 +36,17 @@ class SpuriousDragonComputation(HomesteadComputation):
     Inherits from
     :class:`~eth.vm.forks.homestead.computation.HomesteadComputation`
     """
+
     # Override
     opcodes = SPURIOUS_DRAGON_OPCODES
 
     @classmethod
     def apply_create_message(
-            cls,
-            state: StateAPI,
-            message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> ComputationAPI:
-
+        cls,
+        state: StateAPI,
+        message: MessageAPI,
+        transaction_context: TransactionContextAPI,
+    ) -> ComputationAPI:
         snapshot = state.snapshot()
 
         # EIP161 nonce incrementation
@@ -65,7 +66,9 @@ class SpuriousDragonComputation(HomesteadComputation):
                 try:
                     cls.validate_contract_code(contract_code)
 
-                    contract_code_gas_cost = len(contract_code) * constants.GAS_CODEDEPOSIT
+                    contract_code_gas_cost = (
+                        len(contract_code) * constants.GAS_CODEDEPOSIT
+                    )
                     computation.consume_gas(
                         contract_code_gas_cost,
                         reason="Write contract code for CREATE",
@@ -82,7 +85,7 @@ class SpuriousDragonComputation(HomesteadComputation):
                             "SETTING CODE: %s -> length: %s | hash: %s",
                             encode_hex(message.storage_address),
                             len(contract_code),
-                            encode_hex(keccak(contract_code))
+                            encode_hex(keccak(contract_code)),
                         )
 
                     state.set_code(message.storage_address, contract_code)

@@ -47,7 +47,7 @@ class BaseState(Configurable, StateAPI):
     #
     # Set from __init__
     #
-    __slots__ = ['_db', 'execution_context', '_account_db']
+    __slots__ = ["_db", "execution_context", "_account_db"]
 
     computation_class: Type[ComputationAPI] = None
     transaction_context_class: Type[TransactionContextAPI] = None
@@ -55,10 +55,11 @@ class BaseState(Configurable, StateAPI):
     transaction_executor_class: Type[TransactionExecutorAPI] = None
 
     def __init__(
-            self,
-            db: AtomicDatabaseAPI,
-            execution_context: ExecutionContextAPI,
-            state_root: Hash32) -> None:
+        self,
+        db: AtomicDatabaseAPI,
+        execution_context: ExecutionContextAPI,
+        state_root: Hash32,
+    ) -> None:
         self._db = db
         self.execution_context = execution_context
         self._account_db = self.get_account_db_class()(db, state_root)
@@ -68,7 +69,7 @@ class BaseState(Configurable, StateAPI):
     #
     @property
     def logger(self) -> ExtendedDebugLogger:
-        return get_extended_debug_logger(f'eth.vm.state.{self.__class__.__name__}')
+        return get_extended_debug_logger(f"eth.vm.state.{self.__class__.__name__}")
 
     #
     # Block Object Properties (in opcodes)
@@ -100,7 +101,9 @@ class BaseState(Configurable, StateAPI):
 
     @property
     def base_fee(self) -> int:
-        raise NotImplementedError("Basefee opcode is not implemented prior to London hard fork")
+        raise NotImplementedError(
+            "Basefee opcode is not implemented prior to London hard fork"
+        )
 
     def get_tip(self, transaction: SignedTransactionAPI) -> int:
         return transaction.gas_price
@@ -124,7 +127,9 @@ class BaseState(Configurable, StateAPI):
     def make_state_root(self) -> Hash32:
         return self._account_db.make_state_root()
 
-    def get_storage(self, address: Address, slot: int, from_journal: bool = True) -> int:
+    def get_storage(
+        self, address: Address, slot: int, from_journal: bool = True
+    ) -> int:
         return self._account_db.get_storage(address, slot, from_journal)
 
     def set_storage(self, address: Address, slot: int, value: int) -> None:
@@ -233,20 +238,20 @@ class BaseState(Configurable, StateAPI):
             or block_number < 0
         )
         if is_ancestor_depth_out_of_range:
-            return Hash32(b'')
+            return Hash32(b"")
 
         try:
             return nth(ancestor_depth, self.execution_context.prev_hashes)
         except StopIteration:
             # Ancestor with specified depth not present
-            return Hash32(b'')
+            return Hash32(b"")
 
     #
     # Computation
     #
-    def get_computation(self,
-                        message: MessageAPI,
-                        transaction_context: TransactionContextAPI) -> ComputationAPI:
+    def get_computation(
+        self, message: MessageAPI, transaction_context: TransactionContextAPI
+    ) -> ComputationAPI:
         if self.computation_class is None:
             raise AttributeError("No `computation_class` has been set for this State")
         else:
@@ -259,7 +264,9 @@ class BaseState(Configurable, StateAPI):
     @classmethod
     def get_transaction_context_class(cls) -> Type[TransactionContextAPI]:
         if cls.transaction_context_class is None:
-            raise AttributeError("No `transaction_context_class` has been set for this State")
+            raise AttributeError(
+                "No `transaction_context_class` has been set for this State"
+            )
         return cls.transaction_context_class
 
     #
@@ -268,8 +275,9 @@ class BaseState(Configurable, StateAPI):
     def get_transaction_executor(self) -> TransactionExecutorAPI:
         return self.transaction_executor_class(self)
 
-    def costless_execute_transaction(self,
-                                     transaction: SignedTransactionAPI) -> ComputationAPI:
+    def costless_execute_transaction(
+        self, transaction: SignedTransactionAPI
+    ) -> ComputationAPI:
         with self.override_transaction_context(gas_price=transaction.gas_price):
             free_transaction = transaction.copy(gas_price=0)
             return self.apply_transaction(free_transaction)
@@ -278,7 +286,9 @@ class BaseState(Configurable, StateAPI):
     def override_transaction_context(self, gas_price: int) -> Iterator[None]:
         original_context = self.get_transaction_context
 
-        def get_custom_transaction_context(transaction: SignedTransactionAPI) -> TransactionContextAPI:   # noqa: E501
+        def get_custom_transaction_context(
+            transaction: SignedTransactionAPI,
+        ) -> TransactionContextAPI:
             custom_transaction = transaction.copy(gas_price=gas_price)
             return original_context(custom_transaction)
 
@@ -287,10 +297,11 @@ class BaseState(Configurable, StateAPI):
         try:
             yield
         finally:
-            self.get_transaction_context = original_context     # type: ignore # Remove ignore if https://github.com/python/mypy/issues/708 is fixed. # noqa: E501
+            self.get_transaction_context = original_context  # type: ignore # Remove ignore if https://github.com/python/mypy/issues/708 is fixed. # noqa: E501
 
-    def get_transaction_context(self,
-                                transaction: SignedTransactionAPI) -> TransactionContextAPI:
+    def get_transaction_context(
+        self, transaction: SignedTransactionAPI
+    ) -> TransactionContextAPI:
         return self.get_transaction_context_class()(
             gas_price=transaction.gas_price,
             origin=transaction.sender,

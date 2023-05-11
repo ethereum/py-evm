@@ -31,15 +31,17 @@ class HomesteadComputation(FrontierComputation):
     A class for all execution *message* computations in the ``Frontier`` fork.
     Inherits from :class:`~eth.vm.forks.frontier.computation.FrontierComputation`
     """
+
     # Override
     opcodes = HOMESTEAD_OPCODES
 
     @classmethod
     def apply_create_message(
-            cls,
-            state: StateAPI,
-            message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> ComputationAPI:
+        cls,
+        state: StateAPI,
+        message: MessageAPI,
+        transaction_context: TransactionContextAPI,
+    ) -> ComputationAPI:
         snapshot = state.snapshot()
 
         computation = cls.apply_message(state, message, transaction_context)
@@ -68,7 +70,7 @@ class HomesteadComputation(FrontierComputation):
                             "SETTING CODE: %s -> length: %s | hash: %s",
                             encode_hex(message.storage_address),
                             len(contract_code),
-                            encode_hex(keccak(contract_code))
+                            encode_hex(keccak(contract_code)),
                         )
 
                     state.set_code(message.storage_address, contract_code)

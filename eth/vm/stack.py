@@ -27,8 +27,7 @@ from eth.validation import (
 
 def _busted_type(item_type: type, value: Union[int, bytes]) -> ValidationError:
     return ValidationError(
-        "Stack must always be bytes or int, "
-        f"got {item_type!r} type, val {value!r}"
+        f"Stack must always be bytes or int, got {item_type!r} type, val {value!r}"
     )
 
 
@@ -36,15 +35,16 @@ class Stack(StackAPI):
     """
     VM Stack
     """
-    __slots__ = ['values', '_append', '_pop_typed', '__len__']
-    logger = logging.getLogger('eth.vm.stack.Stack')
+
+    __slots__ = ["values", "_append", "_pop_typed", "__len__"]
+    logger = logging.getLogger("eth.vm.stack.Stack")
 
     #
-    # Performance Note: Operations that push to the stack have the data in some natural form:
-    #   integer or bytes. Whatever operation is pulling from the stack, also has its preferred
-    #   representation to work with. Typically, those two representations line up (pushed & pulled)
-    #   so we save a notable amount of conversion time by storing heterogenous data on the stack,
-    #   and converting only when necessary.
+    # Performance Note: Operations that push to the stack have the data in some natural
+    #   form: integer or bytes. Whatever operation is pulling from the stack, also has
+    #   its preferred representation to work with. Typically, those two representations
+    #   line up (pushed & pulled) so we save a notable amount of conversion time by
+    #   storing heterogenous data on the stack, and converting only when necessary.
     #
 
     def __init__(self) -> None:
@@ -58,7 +58,7 @@ class Stack(StackAPI):
 
     def push_int(self, value: int) -> None:
         if len(self.values) > 1023:
-            raise FullStack('Stack limit reached')
+            raise FullStack("Stack limit reached")
 
         validate_stack_int(value)
 
@@ -66,7 +66,7 @@ class Stack(StackAPI):
 
     def push_bytes(self, value: bytes) -> None:
         if len(self.values) > 1023:
-            raise FullStack('Stack limit reached')
+            raise FullStack("Stack limit reached")
 
         validate_stack_bytes(value)
 
@@ -204,7 +204,7 @@ class Stack(StackAPI):
 
     def dup(self, position: int) -> None:
         if len(self.values) > 1023:
-            raise FullStack('Stack limit reached')
+            raise FullStack("Stack limit reached")
 
         peek_index = -1 * position
         try:
@@ -219,7 +219,9 @@ class Stack(StackAPI):
             elif isinstance(val, bytes):
                 yield "0x" + val.hex()
             else:
-                raise RuntimeError(f"Stack items can only be int or bytes, not {val!r}:{item_type}")
+                raise RuntimeError(
+                    f"Stack items can only be int or bytes, not {val!r}:{item_type}"
+                )
 
     def __str__(self) -> str:
         return str(list(self._stack_items_str()))

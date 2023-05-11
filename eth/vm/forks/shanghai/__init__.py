@@ -16,7 +16,7 @@ from .state import ShanghaiState
 
 class ShanghaiVM(ParisVM):
     # fork name
-    fork = 'shanghai'
+    fork = "shanghai"
 
     # classes
     block_class: Type[BaseBlock] = ShanghaiBlock

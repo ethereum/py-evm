@@ -19,7 +19,8 @@ from eth.typing import (
 
 class ConsensusApplier(VirtualMachineModifierAPI):
     """
-    This class is used to apply simple types of consensus engines to a series of virtual machines.
+    This class is used to apply simple types of consensus engines to a series of
+    virtual machines.
 
     Note that this *must not* be used for Clique, which has its own modifier
     """
@@ -30,7 +31,8 @@ class ConsensusApplier(VirtualMachineModifierAPI):
     @to_tuple
     def amend_vm_configuration(self, config: VMConfiguration) -> Iterable[VMFork]:
         """
-        Amend the given ``VMConfiguration`` to operate under the rules of the pre-defined consensus
+        Amend the given ``VMConfiguration`` to operate
+        under the rules of the pre-defined consensus
         """
         for pair in config:
             block_number, vm = pair

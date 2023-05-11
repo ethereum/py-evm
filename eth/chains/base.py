@@ -112,6 +112,7 @@ class BaseChain(Configurable, ChainAPI):
     """
     The base class for all Chain objects
     """
+
     chaindb: ChainDatabaseAPI = None
     chaindb_class: Type[ChainDatabaseAPI] = None
     consensus_context_class: Type[ConsensusContextAPI] = None
@@ -119,9 +120,13 @@ class BaseChain(Configurable, ChainAPI):
     chain_id: int = None
 
     @classmethod
-    def get_vm_class_for_block_number(cls, block_number: BlockNumber) -> Type[VirtualMachineAPI]:
+    def get_vm_class_for_block_number(
+        cls, block_number: BlockNumber
+    ) -> Type[VirtualMachineAPI]:
         if cls.vm_configuration is None:
-            raise AttributeError("Chain classes must define the VMs in vm_configuration")
+            raise AttributeError(
+                "Chain classes must define the VMs in vm_configuration"
+            )
 
         validate_block_number(block_number)
         for start_block, vm_class in reversed(cls.vm_configuration):
@@ -138,11 +143,11 @@ class BaseChain(Configurable, ChainAPI):
     # Validation API
     #
     def validate_chain(
-            self,
-            root: BlockHeaderAPI,
-            descendants: Tuple[BlockHeaderAPI, ...],
-            seal_check_random_sample_rate: int = 1) -> None:
-
+        self,
+        root: BlockHeaderAPI,
+        descendants: Tuple[BlockHeaderAPI, ...],
+        seal_check_random_sample_rate: int = 1,
+    ) -> None:
         all_indices = range(len(descendants))
         if seal_check_random_sample_rate == 1:
             indices_to_check_seal = set(all_indices)
@@ -157,7 +162,8 @@ class BaseChain(Configurable, ChainAPI):
         for index, (parent, child) in enumerate(header_pairs):
             if child.parent_hash != parent.hash:
                 raise ValidationError(
-                    f"Invalid header chain; {child} has parent {encode_hex(child.parent_hash)},"
+                    f"Invalid header chain; {child} has parent"
+                    f" {encode_hex(child.parent_hash)},"
                     f" but expected {encode_hex(parent.hash)}"
                 )
             vm = self.get_vm(child)
@@ -190,7 +196,8 @@ class Chain(BaseChain):
     def __init__(self, base_db: AtomicDatabaseAPI) -> None:
         if not self.vm_configuration:
             raise ValueError(
-                "The Chain class cannot be instantiated with an empty `vm_configuration`"
+                "The Chain class cannot be instantiated with "
+                "an empty `vm_configuration`"
             )
         else:
             validate_vm_configuration(self.vm_configuration)
@@ -214,10 +221,12 @@ class Chain(BaseChain):
     # Chain API
     #
     @classmethod
-    def from_genesis(cls,
-                     base_db: AtomicDatabaseAPI,
-                     genesis_params: Dict[str, HeaderParams],
-                     genesis_state: AccountState = None) -> 'BaseChain':
+    def from_genesis(
+        cls,
+        base_db: AtomicDatabaseAPI,
+        genesis_params: Dict[str, HeaderParams],
+        genesis_state: AccountState = None,
+    ) -> "BaseChain":
         genesis_vm_class = cls.get_vm_class_for_block_number(BlockNumber(0))
 
         pre_genesis_header = BlockHeader(difficulty=0, block_number=-1, gas_limit=0)
@@ -231,11 +240,11 @@ class Chain(BaseChain):
         apply_state_dict(state, genesis_state)
         state.persist()
 
-        if 'state_root' not in genesis_params:
+        if "state_root" not in genesis_params:
             # If the genesis state_root was not specified, use the value
             # computed from the initialized state database.
-            genesis_params = assoc(genesis_params, 'state_root', state.state_root)
-        elif genesis_params['state_root'] != state.state_root:
+            genesis_params = assoc(genesis_params, "state_root", state.state_root)
+        elif genesis_params["state_root"] != state.state_root:
             # If the genesis state_root was specified, validate that it matches
             # the computed state from the initialized state database.
             raise ValidationError(
@@ -248,9 +257,9 @@ class Chain(BaseChain):
         return cls.from_genesis_header(base_db, genesis_header)
 
     @classmethod
-    def from_genesis_header(cls,
-                            base_db: AtomicDatabaseAPI,
-                            genesis_header: BlockHeaderAPI) -> 'BaseChain':
+    def from_genesis_header(
+        cls, base_db: AtomicDatabaseAPI, genesis_header: BlockHeaderAPI
+    ) -> "BaseChain":
         chaindb = cls.get_chaindb_class()(base_db)
         chaindb.persist_header(genesis_header)
         return cls(base_db)
@@ -267,15 +276,15 @@ class Chain(BaseChain):
             header=header,
             chaindb=self.chaindb,
             chain_context=chain_context,
-            consensus_context=self.consensus_context
+            consensus_context=self.consensus_context,
         )
 
     #
     # Header API
     #
-    def create_header_from_parent(self,
-                                  parent_header: BlockHeaderAPI,
-                                  **header_params: HeaderParams) -> BlockHeaderAPI:
+    def create_header_from_parent(
+        self, parent_header: BlockHeaderAPI, **header_params: HeaderParams
+    ) -> BlockHeaderAPI:
         return self.get_vm_class_for_block_number(
             block_number=BlockNumber(parent_header.block_number + 1),
         ).create_header_from_parent(parent_header, **header_params)
@@ -284,7 +293,9 @@ class Chain(BaseChain):
         validate_word(block_hash, title="Block Hash")
         return self.chaindb.get_block_header_by_hash(block_hash)
 
-    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
+    def get_canonical_block_header_by_number(
+        self, block_number: BlockNumber
+    ) -> BlockHeaderAPI:
         return self.chaindb.get_canonical_block_header_by_number(block_number)
 
     def get_canonical_head(self) -> BlockHeaderAPI:
@@ -315,11 +326,14 @@ class Chain(BaseChain):
         block_class = vm_class.get_block_class()
         block = block_class(header=header, uncles=[], transactions=[])
 
-        ancestor_generator = iterate(compose(
-            self.get_block_by_hash,
-            operator.attrgetter('parent_hash'),
-            operator.attrgetter('header'),
-        ), block)
+        ancestor_generator = iterate(
+            compose(
+                self.get_block_by_hash,
+                operator.attrgetter("parent_hash"),
+                operator.attrgetter("header"),
+            ),
+            block,
+        )
         # we peel off the first element from the iterator which will be the
         # temporary block object we constructed.
         next(ancestor_generator)
@@ -340,16 +354,18 @@ class Chain(BaseChain):
 
     def get_canonical_block_by_number(self, block_number: BlockNumber) -> BlockAPI:
         validate_uint256(block_number, title="Block Number")
-        return self.get_block_by_hash(self.chaindb.get_canonical_block_hash(block_number))
+        return self.get_block_by_hash(
+            self.chaindb.get_canonical_block_hash(block_number)
+        )
 
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         return self.chaindb.get_canonical_block_hash(block_number)
 
     def build_block_with_transactions_and_withdrawals(
-            self,
-            transactions: Sequence[SignedTransactionAPI],
-            parent_header: BlockHeaderAPI = None,
-            withdrawals: Sequence[WithdrawalAPI] = None,
+        self,
+        transactions: Sequence[SignedTransactionAPI],
+        parent_header: BlockHeaderAPI = None,
+        withdrawals: Sequence[WithdrawalAPI] = None,
     ) -> Tuple[BlockAPI, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         base_header = self.ensure_header(parent_header)
         vm = self.get_vm(base_header)
@@ -375,10 +391,14 @@ class Chain(BaseChain):
     #
     # Transaction API
     #
-    def get_canonical_transaction_index(self, transaction_hash: Hash32) -> Tuple[BlockNumber, int]:
+    def get_canonical_transaction_index(
+        self, transaction_hash: Hash32
+    ) -> Tuple[BlockNumber, int]:
         return self.chaindb.get_transaction_index(transaction_hash)
 
-    def get_canonical_transaction(self, transaction_hash: Hash32) -> SignedTransactionAPI:
+    def get_canonical_transaction(
+        self, transaction_hash: Hash32
+    ) -> SignedTransactionAPI:
         (block_num, index) = self.chaindb.get_transaction_index(transaction_hash)
 
         transaction = self.get_canonical_transaction_by_index(block_num, index)
@@ -388,13 +408,13 @@ class Chain(BaseChain):
         else:
             raise TransactionNotFound(
                 f"Found transaction {encode_hex(transaction.hash)} "
-                f"instead of {encode_hex(transaction_hash)} in block {block_num} at {index}"
+                f"instead of {encode_hex(transaction_hash)} in block "
+                f"{block_num} at {index}"
             )
 
-    def get_canonical_transaction_by_index(self,
-                                           block_number: BlockNumber,
-                                           index: int) -> SignedTransactionAPI:
-
+    def get_canonical_transaction_by_index(
+        self, block_number: BlockNumber, index: int
+    ) -> SignedTransactionAPI:
         VM_class = self.get_vm_class_for_block_number(block_number)
 
         return self.chaindb.get_transaction_by_index(
@@ -406,14 +426,16 @@ class Chain(BaseChain):
     def create_transaction(self, *args: Any, **kwargs: Any) -> SignedTransactionAPI:
         return self.get_vm().create_transaction(*args, **kwargs)
 
-    def create_unsigned_transaction(self,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> UnsignedTransactionAPI:
+    def create_unsigned_transaction(
+        self,
+        *,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+    ) -> UnsignedTransactionAPI:
         return self.get_vm().create_unsigned_transaction(
             nonce=nonce,
             gas_price=gas_price,
@@ -424,15 +446,19 @@ class Chain(BaseChain):
         )
 
     def get_transaction_receipt(self, transaction_hash: Hash32) -> ReceiptAPI:
-        transaction_block_number, transaction_index = self.chaindb.get_transaction_index(
+        (
+            transaction_block_number,
+            transaction_index,
+        ) = self.chaindb.get_transaction_index(
             transaction_hash,
         )
-        return self.get_transaction_receipt_by_index(transaction_block_number, transaction_index)
+        return self.get_transaction_receipt_by_index(
+            transaction_block_number, transaction_index
+        )
 
-    def get_transaction_receipt_by_index(self,
-                                         block_number: BlockNumber,
-                                         index: int) -> ReceiptAPI:
-
+    def get_transaction_receipt_by_index(
+        self, block_number: BlockNumber, index: int
+    ) -> ReceiptAPI:
         vm = self.get_vm_class_for_block_number(block_number)
 
         receipt = self.chaindb.get_receipt_by_index(
@@ -447,10 +473,8 @@ class Chain(BaseChain):
     # Execution API
     #
     def get_transaction_result(
-            self,
-            transaction: SignedTransactionAPI,
-            at_header: BlockHeaderAPI) -> bytes:
-
+        self, transaction: SignedTransactionAPI, at_header: BlockHeaderAPI
+    ) -> bytes:
         with self.get_vm(at_header).in_costless_state() as state:
             computation = state.costless_execute_transaction(transaction)
 
@@ -458,19 +482,16 @@ class Chain(BaseChain):
         return computation.output
 
     def estimate_gas(
-            self,
-            transaction: SignedTransactionAPI,
-            at_header: BlockHeaderAPI = None) -> int:
+        self, transaction: SignedTransactionAPI, at_header: BlockHeaderAPI = None
+    ) -> int:
         if at_header is None:
             at_header = self.get_canonical_head()
         with self.get_vm(at_header).in_costless_state() as state:
             return self.gas_estimator(state, transaction)
 
-    def import_block(self,
-                     block: BlockAPI,
-                     perform_validation: bool = True
-                     ) -> BlockImportResult:
-
+    def import_block(
+        self, block: BlockAPI, perform_validation: bool = True
+    ) -> BlockImportResult:
         try:
             parent_header = self.get_block_header_by_hash(block.header.parent_hash)
         except HeaderNotFound:
@@ -481,8 +502,8 @@ class Chain(BaseChain):
             )
 
         base_header_for_import = self.create_header_from_parent(parent_header)
-        # Make a copy of the empty header, adding in the expected amount of gas used. This
-        #   allows for richer logging in the VM.
+        # Make a copy of the empty header, adding in the expected amount of gas used.
+        #   This allows for richer logging in the VM.
         annotated_header = base_header_for_import.copy(gas_used=block.header.gas_used)
         block_result = self.get_vm(annotated_header).import_block(block)
         imported_block = block_result.block
@@ -492,17 +513,17 @@ class Chain(BaseChain):
             try:
                 validate_imported_block_unchanged(imported_block, block)
             except ValidationError:
-                self.logger.warning("Proposed %s doesn't follow EVM rules, rejecting...", block)
+                self.logger.warning(
+                    "Proposed %s doesn't follow EVM rules, rejecting...", block
+                )
                 raise
 
         persist_result = self.persist_block(imported_block, perform_validation)
         return BlockImportResult(*persist_result, block_result.meta_witness)
 
     def persist_block(
-            self,
-            block: BlockAPI,
-            perform_validation: bool = True) -> BlockPersistResult:
-
+        self, block: BlockAPI, perform_validation: bool = True
+    ) -> BlockPersistResult:
         if perform_validation:
             self.validate_block(block)
 
@@ -512,20 +533,16 @@ class Chain(BaseChain):
         ) = self.chaindb.persist_block(block)
 
         self.logger.debug(
-            'Persisted block: number %s | hash %s',
+            "Persisted block: number %s | hash %s",
             block.number,
             encode_hex(block.hash),
         )
 
         new_canonical_blocks = tuple(
-            self.get_block_by_hash(header_hash)
-            for header_hash
-            in new_canonical_hashes
+            self.get_block_by_hash(header_hash) for header_hash in new_canonical_hashes
         )
         old_canonical_blocks = tuple(
-            self.get_block_by_hash(header_hash)
-            for header_hash
-            in old_canonical_hashes
+            self.get_block_by_hash(header_hash) for header_hash in old_canonical_hashes
         )
 
         return BlockPersistResult(
@@ -560,18 +577,23 @@ class Chain(BaseChain):
         should_have_uncles = block.header.uncles_hash != EMPTY_UNCLE_HASH
 
         if not has_uncles and not should_have_uncles:
-            # optimization to avoid loading ancestors from DB, since the block has no uncles
+            # optimization to avoid loading ancestors from DB,
+            # since the block has no uncles
             return
         elif has_uncles and not should_have_uncles:
-            raise ValidationError("Block has uncles but header suggests uncles should be empty")
+            raise ValidationError(
+                "Block has uncles but header suggests uncles should be empty"
+            )
         elif should_have_uncles and not has_uncles:
-            raise ValidationError("Header suggests block should have uncles but block has none")
+            raise ValidationError(
+                "Header suggests block should have uncles but block has none"
+            )
 
         # Check for duplicates
-        uncle_groups = groupby(operator.attrgetter('hash'), block.uncles)
-        duplicate_uncles = tuple(sorted(
-            hash for hash, twins in uncle_groups.items() if len(twins) > 1
-        ))
+        uncle_groups = groupby(operator.attrgetter("hash"), block.uncles)
+        duplicate_uncles = tuple(
+            sorted(hash for hash, twins in uncle_groups.items() if len(twins) > 1)
+        )
         if duplicate_uncles:
             raise ValidationError(
                 "Block contains duplicate uncles:\n"
@@ -580,8 +602,7 @@ class Chain(BaseChain):
 
         recent_ancestors = tuple(
             ancestor
-            for ancestor
-            in self.get_ancestors(MAX_UNCLE_DEPTH + 1, header=block.header)
+            for ancestor in self.get_ancestors(MAX_UNCLE_DEPTH + 1, header=block.header)
         )
         recent_ancestor_hashes = {ancestor.hash for ancestor in recent_ancestors}
         recent_uncle_hashes = _extract_uncle_hashes(recent_ancestors)
@@ -592,9 +613,7 @@ class Chain(BaseChain):
 
             # ensure the uncle has not already been included.
             if uncle.hash in recent_uncle_hashes:
-                raise ValidationError(
-                    f"Duplicate uncle: {encode_hex(uncle.hash)}"
-                )
+                raise ValidationError(f"Duplicate uncle: {encode_hex(uncle.hash)}")
 
             # ensure that the uncle is not one of the canonical chain blocks.
             if uncle.hash in recent_ancestor_hashes:
@@ -606,7 +625,8 @@ class Chain(BaseChain):
             # ensure that the uncle was built off of one of the canonical chain
             # blocks.
             if uncle.parent_hash not in recent_ancestor_hashes or (
-               uncle.parent_hash == block.header.parent_hash):
+                uncle.parent_hash == block.header.parent_hash
+            ):
                 raise ValidationError(
                     f"Uncle's parent {encode_hex(uncle.parent_hash)} "
                     f"is not an ancestor of {encode_hex(block.hash)}"
@@ -636,7 +656,9 @@ def _extract_uncle_hashes(blocks: Iterable[BlockAPI]) -> Iterable[Hash32]:
 class MiningChain(Chain, MiningChainAPI):
     header: BlockHeaderAPI = None
 
-    def __init__(self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None) -> None:
+    def __init__(
+        self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None
+    ) -> None:
         super().__init__(base_db)
         self.header = self.ensure_header(header)
 
@@ -650,12 +672,15 @@ class MiningChain(Chain, MiningChainAPI):
         receipt, computation = vm.apply_transaction(base_block.header, transaction)
         header_with_receipt = vm.add_receipt_to_header(base_block.header, receipt)
 
-        # since we are building the block locally, we have to persist all the incremental state
+        # since we are building the block locally,
+        # we have to persist all the incremental state
         vm.state.persist()
-        new_header: BlockHeaderAPI = header_with_receipt.copy(state_root=vm.state.state_root)
+        new_header: BlockHeaderAPI = header_with_receipt.copy(
+            state_root=vm.state.state_root
+        )
 
-        transactions = base_block.transactions + (transaction, )
-        receipts = base_block.get_receipts(self.chaindb) + (receipt, )
+        transactions = base_block.transactions + (transaction,)
+        receipts = base_block.get_receipts(self.chaindb) + (receipt,)
 
         new_block = vm.set_block_transactions_and_withdrawals(
             base_block,
@@ -668,12 +693,10 @@ class MiningChain(Chain, MiningChainAPI):
 
         return new_block, receipt, computation
 
-    def import_block(self,
-                     block: BlockAPI,
-                     perform_validation: bool = True
-                     ) -> BlockImportResult:
-        result = super().import_block(
-            block, perform_validation)
+    def import_block(
+        self, block: BlockAPI, perform_validation: bool = True
+    ) -> BlockImportResult:
+        result = super().import_block(block, perform_validation)
 
         self.header = self.ensure_header()
         return result
@@ -683,19 +706,18 @@ class MiningChain(Chain, MiningChainAPI):
 
     @staticmethod
     def _custom_header(base_header: BlockHeaderAPI, **kwargs: Any) -> BlockHeaderAPI:
-        header_fields = {'coinbase'}
+        header_fields = {"coinbase"}
         header_params = {k: v for k, v in kwargs.items() if k in header_fields}
         return base_header.copy(**header_params)
 
     def mine_all(
-            self,
-            transactions: Sequence[SignedTransactionAPI],
-            *args: Any,
-            parent_header: BlockHeaderAPI = None,
-            withdrawals: Sequence[WithdrawalAPI] = None,
-            **kwargs: Any,
+        self,
+        transactions: Sequence[SignedTransactionAPI],
+        *args: Any,
+        parent_header: BlockHeaderAPI = None,
+        withdrawals: Sequence[WithdrawalAPI] = None,
+        **kwargs: Any,
     ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
-
         if parent_header is None:
             base_header = self.header
         else:
@@ -704,7 +726,9 @@ class MiningChain(Chain, MiningChainAPI):
         custom_header = self._custom_header(base_header, **kwargs)
         vm = self.get_vm(custom_header)
 
-        new_header, receipts, computations = vm.apply_all_transactions(transactions, base_header)
+        new_header, receipts, computations = vm.apply_all_transactions(
+            transactions, base_header
+        )
 
         if withdrawals:
             vm.apply_all_withdrawals(withdrawals)

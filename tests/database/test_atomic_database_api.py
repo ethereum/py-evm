@@ -14,11 +14,11 @@ from eth.tools.db.base import (
 )
 
 
-@pytest.fixture(params=['atomic', 'level'])
+@pytest.fixture(params=["atomic", "level"])
 def atomic_db(request, tmpdir):
-    if request.param == 'atomic':
+    if request.param == "atomic":
         return AtomicDB()
-    elif request.param == 'level':
+    elif request.param == "level":
         return LevelDB(db_path=tmpdir.mkdir("level_db_path"))
     else:
         raise ValueError(f"Unexpected database type: {request.param}")

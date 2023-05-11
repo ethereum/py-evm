@@ -37,8 +37,8 @@ def mining_chain_params(funded_address):
         frontier_at(0),
         disable_pow_check,
         genesis(
-            params={'gas_limit': 1000000},
-            state={funded_address: {'balance': to_wei(1000, 'ether')}}
+            params={"gas_limit": 1000000},
+            state={funded_address: {"balance": to_wei(1000, "ether")}},
         ),
     )
 
@@ -94,16 +94,16 @@ def test_chain_builder_build_mine_multiple_blocks(mining_chain):
 def test_chain_builder_mine_block_with_parameters(mining_chain):
     chain = build(
         mining_chain,
-        mine_block(extra_data=b'test-setting-extra-data'),
+        mine_block(extra_data=b"test-setting-extra-data"),
     )
 
     header = chain.get_canonical_head()
-    assert header.extra_data == b'test-setting-extra-data'
+    assert header.extra_data == b"test-setting-extra-data"
 
 
-def test_chain_builder_mine_block_with_transactions(mining_chain,
-                                                    funded_address,
-                                                    funded_address_private_key):
+def test_chain_builder_mine_block_with_transactions(
+    mining_chain, funded_address, funded_address_private_key
+):
     tx = new_transaction(
         mining_chain.get_vm(),
         from_=funded_address,
@@ -145,7 +145,7 @@ def test_chain_builder_at_block_number(mining_chain):
     chain = build(
         pre_fork_chain,
         at_block_number(2),
-        mine_block(extra_data=b'fork-it!'),  # fork 3
+        mine_block(extra_data=b"fork-it!"),  # fork 3
         mine_block(),  # fork 4
         mine_block(),  # fork 5
     )
@@ -177,7 +177,7 @@ def test_chain_builder_build_uncle_fork(mining_chain):
     fork_chain = build(
         chain,
         at_block_number(1),
-        mine_block(extra_data=b'fork-it!'),  # fork 2
+        mine_block(extra_data=b"fork-it!"),  # fork 2
     )
 
     # we don't use canonical head here because the fork chain is non-canonical.
@@ -242,16 +242,16 @@ def test_chain_builder_chain_split(mining_chain):
     chain_a, chain_b = build(
         mining_chain,
         chain_split(
-            (mine_block(extra_data=b'chain-a'), mine_block()),
-            (mine_block(extra_data=b'chain-b'), mine_block(), mine_block()),
+            (mine_block(extra_data=b"chain-a"), mine_block()),
+            (mine_block(extra_data=b"chain-b"), mine_block(), mine_block()),
         ),
     )
 
     first_a = chain_a.get_canonical_block_by_number(1).header
     first_b = chain_b.get_canonical_block_by_number(1).header
 
-    assert first_a.extra_data == b'chain-a'
-    assert first_b.extra_data == b'chain-b'
+    assert first_a.extra_data == b"chain-a"
+    assert first_b.extra_data == b"chain-b"
 
     head_a = chain_a.get_canonical_head()
     assert head_a.block_number == 2

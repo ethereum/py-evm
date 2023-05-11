@@ -63,7 +63,6 @@ frontier_get_intrinsic_gas = partial(calculate_intrinsic_gas, FRONTIER_TX_GAS_SC
 
 
 class FrontierTransaction(BaseTransaction):
-
     @property
     def y_parity(self) -> int:
         return self.v - V_OFFSET
@@ -109,53 +108,55 @@ class FrontierTransaction(BaseTransaction):
         return frontier_get_intrinsic_gas(self)
 
     def get_message_for_signing(self) -> bytes:
-        return rlp.encode(FrontierUnsignedTransaction(
-            nonce=self.nonce,
-            gas_price=self.gas_price,
-            gas=self.gas,
-            to=self.to,
-            value=self.value,
-            data=self.data,
-        ))
+        return rlp.encode(
+            FrontierUnsignedTransaction(
+                nonce=self.nonce,
+                gas_price=self.gas_price,
+                gas=self.gas,
+                to=self.to,
+                value=self.value,
+                data=self.data,
+            )
+        )
 
     @classmethod
-    def create_unsigned_transaction(cls,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> 'FrontierUnsignedTransaction':
+    def create_unsigned_transaction(
+        cls,
+        *,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes
+    ) -> "FrontierUnsignedTransaction":
         return FrontierUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
     @classmethod
     def new_transaction(
-            cls,
-            nonce: int,
-            gas_price: int,
-            gas: int,
-            to: Address,
-            value: int,
-            data: bytes,
-            v: int,
-            r: int,
-            s: int) -> SignedTransactionAPI:
+        cls,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+        v: int,
+        r: int,
+        s: int,
+    ) -> SignedTransactionAPI:
         return cls(nonce, gas_price, gas, to, value, data, v, r, s)
 
     def make_receipt(
-            self,
-            status: bytes,
-            gas_used: int,
-            log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]) -> ReceiptAPI:
+        self,
+        status: bytes,
+        gas_used: int,
+        log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...],
+    ) -> ReceiptAPI:
         # 'status' is a misnomer in Frontier. Until Byzantium, it is the
         # intermediate state root.
 
-        logs = [
-            Log(address, topics, data)
-            for address, topics, data
-            in log_entries
-        ]
+        logs = [Log(address, topics, data) for address, topics, data in log_entries]
 
         return Receipt(
             state_root=status,
@@ -174,7 +175,6 @@ class FrontierTransaction(BaseTransaction):
 
 
 class FrontierUnsignedTransaction(BaseUnsignedTransaction):
-
     def validate(self) -> None:
         validate_uint256(self.nonce, title="Transaction.nonce")
         validate_is_integer(self.gas_price, title="Transaction.gas_price")

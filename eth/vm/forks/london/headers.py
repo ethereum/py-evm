@@ -75,9 +75,7 @@ def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:
         gas_used_delta = parent_gas_target - parent_gas_used
         underburnt_wei = parent_base_fee_per_gas * gas_used_delta
         base_fee_per_gas_delta = (
-            underburnt_wei
-            // parent_gas_target
-            // BASE_FEE_MAX_CHANGE_DENOMINATOR
+            underburnt_wei // parent_gas_target // BASE_FEE_MAX_CHANGE_DENOMINATOR
         )
         return max(parent_base_fee_per_gas - base_fee_per_gas_delta, 0)
 
@@ -86,50 +84,51 @@ def calculate_expected_base_fee_per_gas(parent_header: BlockHeaderAPI) -> int:
 def create_london_header_from_parent(
     difficulty_fn: Callable[[BlockHeaderAPI, int], int],
     parent_header: Optional[BlockHeaderAPI],
-    **header_params: Any
+    **header_params: Any,
 ) -> BlockHeaderAPI:
-    if 'gas_limit' not in header_params:
-        if parent_header is not None and not hasattr(parent_header, 'base_fee_per_gas'):
+    if "gas_limit" not in header_params:
+        if parent_header is not None and not hasattr(parent_header, "base_fee_per_gas"):
             # If the previous block was not a London block,
             #   double the gas limit, so the new target is the old gas limit
-            header_params['gas_limit'] = parent_header.gas_limit * ELASTICITY_MULTIPLIER
+            header_params["gas_limit"] = parent_header.gas_limit * ELASTICITY_MULTIPLIER
         else:
             # frontier rules
-            header_params['gas_limit'] = compute_gas_limit(
+            header_params["gas_limit"] = compute_gas_limit(
                 parent_header,
                 genesis_gas_limit=GENESIS_GAS_LIMIT,
             )
 
     # byzantium
-    if 'timestamp' not in header_params:
-        header_params['timestamp'] = new_timestamp_from_parent(parent_header)
+    if "timestamp" not in header_params:
+        header_params["timestamp"] = new_timestamp_from_parent(parent_header)
 
-    if 'difficulty' not in header_params:
+    if "difficulty" not in header_params:
         if parent_header is None:
             raise ValueError(
                 "Must set difficulty when creating a new genesis header (no parent)."
-                " Consider 1 for easy mining or eth.constants.GENESIS_DIFFICULTY for consistency."
+                " Consider 1 for easy mining or eth.constants.GENESIS_DIFFICULTY for"
+                " consistency."
             )
         else:
-            header_params['difficulty'] = difficulty_fn(
+            header_params["difficulty"] = difficulty_fn(
                 parent_header,
-                header_params['timestamp'],
+                header_params["timestamp"],
             )
 
     # The general fill function doesn't recognize this custom field, so remove it
-    configured_fee_per_gas = header_params.pop('base_fee_per_gas', None)
+    configured_fee_per_gas = header_params.pop("base_fee_per_gas", None)
 
     all_fields = fill_header_params_from_parent(parent_header, **header_params)
 
     calculated_fee_per_gas = calculate_expected_base_fee_per_gas(parent_header)
     if configured_fee_per_gas is None:
-        all_fields['base_fee_per_gas'] = calculated_fee_per_gas
+        all_fields["base_fee_per_gas"] = calculated_fee_per_gas
     else:
         # Must not configure an invalid base fee. So verify that either:
         #   1. This is the genesis header, or
         #   2. The configured value matches the calculated value from the parent
         if parent_header is None or configured_fee_per_gas == calculated_fee_per_gas:
-            all_fields['base_fee_per_gas'] = configured_fee_per_gas
+            all_fields["base_fee_per_gas"] = configured_fee_per_gas
         else:
             raise ValidationError(
                 f"Cannot select an invalid base_fee_per_gas of:"

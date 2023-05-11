@@ -7,20 +7,20 @@ from eth._utils.env import (
 
 
 @pytest.mark.parametrize(
-    'env_value,expected',
+    "env_value,expected",
     (
-        ('1.01', 1.01),
-        ('123.0', 123.0),
-        ('-123.99', -123.99),
-    )
+        ("1.01", 1.01),
+        ("123.0", 123.0),
+        ("-123.99", -123.99),
+    ),
 )
 def test_env_float_not_required_with_no_default(monkeypatch, env_value, expected):
     """
     Test that when the environment variable is present that it is parsed to a float.
     """
-    monkeypatch.setenv('TEST_FLOAT_ENV_VARIABLE', env_value)
+    monkeypatch.setenv("TEST_FLOAT_ENV_VARIABLE", env_value)
 
-    actual = env_float('TEST_FLOAT_ENV_VARIABLE')
+    actual = env_float("TEST_FLOAT_ENV_VARIABLE")
     assert actual == expected
 
 
@@ -30,10 +30,10 @@ def test_env_float_not_required_and_not_set():
     ValueError
     """
     # sanity check
-    assert 'TEST_FLOAT_ENV_VARIABLE' not in os.environ
+    assert "TEST_FLOAT_ENV_VARIABLE" not in os.environ
 
     with pytest.raises(ValueError):
-        env_float('TEST_FLOAT_ENV_VARIABLE')
+        env_float("TEST_FLOAT_ENV_VARIABLE")
 
 
 def test_env_float_when_missing_and_required_is_error():
@@ -42,7 +42,7 @@ def test_env_float_when_missing_and_required_is_error():
     error.
     """
     # sanity check
-    assert 'TEST_FLOAT_ENV_VARIABLE' not in os.environ
+    assert "TEST_FLOAT_ENV_VARIABLE" not in os.environ
 
     with pytest.raises(KeyError):
-        env_float('TEST_FLOAT_ENV_VARIABLE', required=True)
+        env_float("TEST_FLOAT_ENV_VARIABLE", required=True)

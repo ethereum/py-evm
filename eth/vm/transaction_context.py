@@ -14,7 +14,7 @@ from eth.validation import (
 
 
 class BaseTransactionContext(TransactionContextAPI):
-    __slots__ = ['_gas_price', '_origin', '_log_counter']
+    __slots__ = ["_gas_price", "_origin", "_log_counter"]
 
     def __init__(self, gas_price: int, origin: Address) -> None:
         validate_uint256(gas_price, title="TransactionContext.gas_price")

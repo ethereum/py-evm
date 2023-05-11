@@ -21,18 +21,12 @@ from eth.constants import (
 
 def int_to_bytes32(value: Union[int, bool]) -> Hash32:
     if not isinstance(value, int) or isinstance(value, bool):
-        raise ValueError(
-            f"Value must be an integer: Got: {type(value)}"
-        )
+        raise ValueError(f"Value must be an integer: Got: {type(value)}")
     if value < 0:
-        raise ValueError(
-            f"Value cannot be negative: Got: {value}"
-        )
+        raise ValueError(f"Value cannot be negative: Got: {value}")
     if value > UINT_256_MAX:
-        raise ValueError(
-            f"Value exeeds maximum UINT256 size.  Got: {value}"
-        )
-    value_bytes = value.to_bytes(32, 'big')
+        raise ValueError(f"Value exeeds maximum UINT256 size.  Got: {value}")
+    value_bytes = value.to_bytes(32, "big")
     return Hash32(value_bytes)
 
 
@@ -81,9 +75,7 @@ def get_highest_bit_index(value: int) -> int:
 
 
 @curry
-def clamp(inclusive_lower_bound: int,
-          inclusive_upper_bound: int,
-          value: int) -> int:
+def clamp(inclusive_lower_bound: int, inclusive_upper_bound: int, value: int) -> int:
     """
     Bound the given ``value`` between ``inclusive_lower_bound`` and
     ``inclusive_upper_bound``.
@@ -105,13 +97,9 @@ def integer_squareroot(value: int) -> int:
     root of a 256-bit integer is a 128-bit integer.
     """
     if not isinstance(value, int) or isinstance(value, bool):
-        raise ValueError(
-            f"Value must be an integer: Got: {type(value)}"
-        )
+        raise ValueError(f"Value must be an integer: Got: {type(value)}")
     if value < 0:
-        raise ValueError(
-            f"Value cannot be negative: Got: {value}"
-        )
+        raise ValueError(f"Value cannot be negative: Got: {value}")
 
     with decimal.localcontext() as ctx:
         ctx.prec = 128

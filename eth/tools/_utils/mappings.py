@@ -25,7 +25,9 @@ def deep_merge(*dicts: Dict[Any, Any]) -> Dict[Any, Any]:
 
 
 def is_cleanly_mergable(*dicts: Dict[Any, Any]) -> bool:
-    """Check that nothing will be overwritten when dictionaries are merged using `deep_merge`.
+    """
+    Check that nothing will be overwritten when
+    dictionaries are merged using `deep_merge`.
 
     Examples:
 
@@ -46,7 +48,11 @@ def is_cleanly_mergable(*dicts: Dict[Any, Any]) -> bool:
             return False
         else:
             shared_keys = set(dicts[0].keys()) & set(dicts[1].keys())
-            return all(is_cleanly_mergable(dicts[0][key], dicts[1][key]) for key in shared_keys)
+            return all(
+                is_cleanly_mergable(dicts[0][key], dicts[1][key]) for key in shared_keys
+            )
     else:
         dict_combinations = itertools.combinations(dicts, 2)
-        return all(is_cleanly_mergable(*combination) for combination in dict_combinations)
+        return all(
+            is_cleanly_mergable(*combination) for combination in dict_combinations
+        )

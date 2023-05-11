@@ -36,7 +36,4 @@ NEW_OPCODES = {
     ),
 }
 
-PARIS_OPCODES: Dict[int, OpcodeAPI] = merge(
-    copy.deepcopy(LONDON_OPCODES),
-    NEW_OPCODES
-)
+PARIS_OPCODES: Dict[int, OpcodeAPI] = merge(copy.deepcopy(LONDON_OPCODES), NEW_OPCODES)

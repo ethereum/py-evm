@@ -93,7 +93,7 @@ def _configure_mining_chain(name, genesis_vm, vm_under_test):
 def london_plus_miner(request, base_db, genesis_state):
     vm_under_test = request.param
 
-    klass = _configure_mining_chain('LondonAt1', BerlinVM, vm_under_test)
+    klass = _configure_mining_chain("LondonAt1", BerlinVM, vm_under_test)
     header_fields = dict(
         difficulty=1,
         gas_limit=21000 * 2,  # block limit is hit with two transactions
@@ -108,7 +108,9 @@ def london_plus_miner(request, base_db, genesis_state):
 def pre_london_miner(request, base_db, genesis_state):
     vm_under_test = request.param
 
-    klass = _configure_mining_chain('EndsBeforeLondon', MINING_MAINNET_VMS[0], vm_under_test)
+    klass = _configure_mining_chain(
+        "EndsBeforeLondon", MINING_MAINNET_VMS[0], vm_under_test
+    )
     header_fields = dict(
         difficulty=1,
         gas_limit=100000,  # arbitrary, just enough for testing
@@ -117,7 +119,7 @@ def pre_london_miner(request, base_db, genesis_state):
 
 
 @pytest.mark.parametrize(
-    'num_txns, expected_base_fee',
+    "num_txns, expected_base_fee",
     (
         (0, 875000000),
         (1, 937500000),
@@ -128,7 +130,12 @@ def pre_london_miner(request, base_db, genesis_state):
     ),
 )
 def test_base_fee_evolution(
-        london_plus_miner, funded_address, funded_address_private_key, num_txns, expected_base_fee):
+    london_plus_miner,
+    funded_address,
+    funded_address_private_key,
+    num_txns,
+    expected_base_fee,
+):
     chain = london_plus_miner
     assert chain.header.gas_limit == FOUR_TXN_GAS_LIMIT
 
@@ -137,7 +144,7 @@ def test_base_fee_evolution(
         new_transaction(
             vm,
             funded_address,
-            b'\x00' * 20,
+            b"\x00" * 20,
             private_key=funded_address_private_key,
             gas=21000,
             nonce=nonce,
@@ -148,22 +155,23 @@ def test_base_fee_evolution(
     mined_header = block_import.imported_block.header
     assert mined_header.gas_limit == FOUR_TXN_GAS_LIMIT
     assert mined_header.gas_used == 21000 * num_txns
-    assert mined_header.base_fee_per_gas == 10 ** 9  # Initialize at 1 gwei
+    assert mined_header.base_fee_per_gas == 10**9  # Initialize at 1 gwei
 
     block_import, _, _ = chain.mine_all([], gas_limit=FOUR_TXN_GAS_LIMIT)
     mined_header = block_import.imported_block.header
     assert mined_header.gas_limit == FOUR_TXN_GAS_LIMIT
     assert mined_header.gas_used == 0
-    # Check that the base fee evolved correctly, depending on how much gas was used in the parent
+    # Check that the base fee evolved correctly,
+    # depending on how much gas was used in the parent
     assert mined_header.base_fee_per_gas == expected_base_fee
 
 
-@pytest.mark.parametrize(
-    "code, data",
-    EIP_3541_CREATE_AND_CREATE2_REVERT_TEST_CASES
-)
+@pytest.mark.parametrize("code, data", EIP_3541_CREATE_AND_CREATE2_REVERT_TEST_CASES)
 def test_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_post_london(
-    london_plus_miner, funded_address, code, data,
+    london_plus_miner,
+    funded_address,
+    code,
+    data,
 ):
     chain = london_plus_miner
     vm = chain.get_vm()
@@ -181,7 +189,8 @@ def test_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_post_london(
     )
 
     assert successful_create_computation.is_success
-    # assert only the appropriate gas is consumed, not all the gas. This falls within a range
+    # assert only the appropriate gas is consumed, not all the gas.
+    # This falls within a range
     assert 32261 <= successful_create_computation.get_gas_used() <= 32270
 
     # test parameterized negative cases
@@ -197,7 +206,9 @@ def test_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_post_london(
     )
 
     assert revert_create_computation.is_error
-    assert 35000 < revert_create_computation.get_gas_used() < 40000  # assert gas is still consumed
+    assert (
+        35000 < revert_create_computation.get_gas_used() < 40000
+    )  # assert gas is still consumed
     assert revert_create_computation.get_gas_refund() == 0
 
 
@@ -209,23 +220,25 @@ def test_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_post_london(
         decode_hex("0x60ef60005360026000f3"),
         decode_hex("0x60ef60005360036000f3"),
         decode_hex("0x60ef60005360206000f3"),
-    )
+    ),
 )
 def test_state_revert_on_reserved_0xEF_byte_for_create_transaction_post_london(
-        london_plus_miner, funded_address, funded_address_private_key, data
+    london_plus_miner, funded_address, funded_address_private_key, data
 ):
     chain = london_plus_miner
     vm = chain.get_vm()
     initial_block_header = chain.get_block().header
     initial_balance = vm.state.get_balance(funded_address)
 
-    assert initial_balance > 1000000  # arbitrary number, enough for all our transactions
+    assert (
+        initial_balance > 1000000
+    )  # arbitrary number, enough for all our transactions
 
     # positive test case from https://eips.ethereum.org/EIPS/eip-3541#test-cases
     create_successful_contract_transaction = new_dynamic_fee_transaction(
         vm=vm,
         from_=funded_address,
-        to=Address(b''),
+        to=Address(b""),
         amount=0,
         private_key=funded_address_private_key,
         gas=53354,
@@ -250,9 +263,8 @@ def test_state_revert_on_reserved_0xEF_byte_for_create_transaction_post_london(
     assert successful_create_computation.is_success
     assert successful_create_computation_state.get_nonce(funded_address) == 1
     assert gas_used == 53354
-    fees_consumed = (
-        (mined_txn.max_priority_fee_per_gas * gas_used)
-        + (initial_block_header.base_fee_per_gas * gas_used)
+    fees_consumed = (mined_txn.max_priority_fee_per_gas * gas_used) + (
+        initial_block_header.base_fee_per_gas * gas_used
     )
     # successful txn consumes gas and fees:
     assert new_balance == initial_balance - fees_consumed
@@ -261,7 +273,7 @@ def test_state_revert_on_reserved_0xEF_byte_for_create_transaction_post_london(
     create_contract_txn_reserved_byte = new_dynamic_fee_transaction(
         vm=vm,
         from_=funded_address,
-        to=Address(b''),
+        to=Address(b""),
         amount=0,
         private_key=funded_address_private_key,
         gas=60000,
@@ -272,8 +284,7 @@ def test_state_revert_on_reserved_0xEF_byte_for_create_transaction_post_london(
     )
 
     block_import, _, computations = chain.mine_all(
-        [create_contract_txn_reserved_byte],
-        gas_limit=84082
+        [create_contract_txn_reserved_byte], gas_limit=84082
     )
 
     reverted_computation = computations[0]
@@ -286,12 +297,12 @@ def test_state_revert_on_reserved_0xEF_byte_for_create_transaction_post_london(
     assert mined_header.gas_used == 60000
 
 
-@pytest.mark.parametrize(
-    "code, data",
-    EIP_3541_CREATE_AND_CREATE2_REVERT_TEST_CASES
-)
+@pytest.mark.parametrize("code, data", EIP_3541_CREATE_AND_CREATE2_REVERT_TEST_CASES)
 def test_state_does_not_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_pre_london(
-    pre_london_miner, funded_address, code, data,
+    pre_london_miner,
+    funded_address,
+    code,
+    data,
 ):
     chain = pre_london_miner
     vm = chain.get_vm()
@@ -315,7 +326,8 @@ def test_state_does_not_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_pre_
 
     else:
         assert computation.is_success
-        # assert only the appropriate gas is consumed, not all the gas. This falls within a range
+        # assert only the appropriate gas is consumed, not all the gas.
+        # This falls within a range
         assert 32261 <= computation.get_gas_used() <= 38470
         assert computation.get_gas_refund() == 0
 
@@ -328,10 +340,10 @@ def test_state_does_not_revert_on_reserved_0xEF_byte_for_CREATE_and_CREATE2_pre_
         decode_hex("0x60ef60005360026000f3"),
         decode_hex("0x60ef60005360036000f3"),
         decode_hex("0x60ef60005360206000f3"),
-    )
+    ),
 )
 def test_state_does_not_revert_on_reserved_0xEF_byte_for_create_transaction_pre_london(
-        pre_london_miner, funded_address, funded_address_private_key, data
+    pre_london_miner, funded_address, funded_address_private_key, data
 ):
     chain = pre_london_miner
     vm = chain.get_vm()
@@ -341,7 +353,7 @@ def test_state_does_not_revert_on_reserved_0xEF_byte_for_create_transaction_pre_
     create_contract_txn_0xef_byte = new_transaction(
         vm=vm,
         from_=funded_address,
-        to=Address(b''),
+        to=Address(b""),
         amount=0,
         private_key=funded_address_private_key,
         gas=60000,
@@ -350,8 +362,7 @@ def test_state_does_not_revert_on_reserved_0xEF_byte_for_create_transaction_pre_
     )
 
     block_import, _, computations = chain.mine_all(
-        [create_contract_txn_0xef_byte],
-        gas_limit=99904
+        [create_contract_txn_0xef_byte], gas_limit=99904
     )
 
     computation = computations[0]

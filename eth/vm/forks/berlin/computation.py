@@ -39,7 +39,9 @@ def _calculate_multiplication_complexity(base_length: int, modulus_length: int) 
     return words**2
 
 
-def _calculate_iteration_count(exponent_length: int, first_32_exponent_bytes: bytes) -> int:
+def _calculate_iteration_count(
+    exponent_length: int, first_32_exponent_bytes: bytes
+) -> int:
     first_32_exponent = big_endian_to_int(first_32_exponent_bytes)
 
     highest_bit_index = get_highest_bit_index(first_32_exponent)
@@ -67,15 +69,24 @@ def _compute_modexp_gas_fee_eip_2565(data: bytes) -> int:
         first_32_exponent_bytes,
     )
 
-    multiplication_complexity = _calculate_multiplication_complexity(base_length, modulus_length)
-    return max(200,
-               multiplication_complexity * iteration_count
-               // constants.GAS_MOD_EXP_QUADRATIC_DENOMINATOR_EIP_2565)
+    multiplication_complexity = _calculate_multiplication_complexity(
+        base_length, modulus_length
+    )
+    return max(
+        200,
+        multiplication_complexity
+        * iteration_count
+        // constants.GAS_MOD_EXP_QUADRATIC_DENOMINATOR_EIP_2565,
+    )
 
 
 BERLIN_PRECOMPILES = merge(
     MUIR_GLACIER_PRECOMPILES,
-    {force_bytes_to_address(b'\x05'): modexp(gas_calculator=_compute_modexp_gas_fee_eip_2565)},
+    {
+        force_bytes_to_address(b"\x05"): modexp(
+            gas_calculator=_compute_modexp_gas_fee_eip_2565
+        )
+    },
 )
 
 
@@ -84,6 +95,7 @@ class BerlinComputation(MuirGlacierComputation):
     A class for all execution *message* computations in the ``Berlin`` fork.
     Inherits from :class:`~eth.vm.forks.muir_glacier.MuirGlacierComputation`
     """
+
     # Override
     opcodes = BERLIN_OPCODES
     _precompiles = BERLIN_PRECOMPILES

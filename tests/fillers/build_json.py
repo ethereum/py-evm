@@ -24,9 +24,7 @@ FILLER_PARENT_DIR = os.path.join(OUTPUT_DIR, "fillers")
 TEST_PARENT_DIR = os.path.join(OUTPUT_DIR, "tests")
 
 
-DIR_STRUCTURE = {
-
-}
+DIR_STRUCTURE = {}
 
 
 if __name__ == "__main__":
@@ -38,7 +36,9 @@ if __name__ == "__main__":
 
                 filler_src_path = os.path.join(filler_dir, test_group, filename)
                 filler_path = os.path.join(FILLER_PARENT_DIR, filler_src_path)
-                test_path = os.path.join(TEST_PARENT_DIR, test_dir, test_group, filename)
+                test_path = os.path.join(
+                    TEST_PARENT_DIR, test_dir, test_group, filename
+                )
 
                 for path in [filler_path, test_path]:
                     os.makedirs(os.path.dirname(path), exist_ok=True)

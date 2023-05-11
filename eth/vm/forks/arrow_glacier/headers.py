@@ -24,14 +24,16 @@ from .blocks import (
 )
 
 compute_arrow_glacier_difficulty = compute_difficulty(10_700_000)
-configure_arrow_glacier_header = configure_header(difficulty_fn=compute_arrow_glacier_difficulty)
+configure_arrow_glacier_header = configure_header(
+    difficulty_fn=compute_arrow_glacier_difficulty
+)
 
 
 @curry
 def create_arrow_glacier_header_from_parent(
     difficulty_fn: Callable[[BlockHeaderAPI, int], int],
     parent_header: Optional[BlockHeaderAPI],
-    **header_params: Any
+    **header_params: Any,
 ) -> BlockHeaderAPI:
     london_validated_header = create_london_header_from_parent(
         difficulty_fn, parent_header, **header_params

@@ -18,6 +18,7 @@ class LondonComputation(BerlinComputation):
     A class for all execution *message* computations in the ``London`` fork.
     Inherits from :class:`~eth.vm.forks.berlin.BerlinComputation`
     """
+
     opcodes = LONDON_OPCODES
 
     @classmethod

@@ -9,16 +9,17 @@ from eth.vm.spoof import (
 
 @curry
 def new_transaction(
-        vm,
-        from_,
-        to,
-        amount=0,
-        private_key=None,
-        gas_price=10**10,  # 10 gwei, to easily cover the initial London fee of 1 gwei
-        gas=100000,
-        data=b'',
-        nonce=None,
-        chain_id=None):
+    vm,
+    from_,
+    to,
+    amount=0,
+    private_key=None,
+    gas_price=10**10,  # 10 gwei, to easily cover the initial London fee of 1 gwei
+    gas=100000,
+    data=b"",
+    nonce=None,
+    chain_id=None,
+):
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
@@ -46,17 +47,18 @@ def new_transaction(
 
 @curry
 def new_access_list_transaction(
-        vm,
-        from_,
-        to,
-        private_key,
-        amount=0,
-        gas_price=10**10,
-        gas=100000,
-        data=b'',
-        nonce=None,
-        chain_id=1,
-        access_list=None):
+    vm,
+    from_,
+    to,
+    private_key,
+    amount=0,
+    gas_price=10**10,
+    gas=100000,
+    data=b"",
+    nonce=None,
+    chain_id=1,
+    access_list=None,
+):
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
@@ -83,18 +85,19 @@ def new_access_list_transaction(
 
 @curry
 def new_dynamic_fee_transaction(
-        vm,
-        from_,
-        to,
-        private_key,
-        amount=0,
-        max_priority_fee_per_gas=1,
-        max_fee_per_gas=10**10,
-        gas=100000,
-        data=b'',
-        nonce=None,
-        chain_id=1,
-        access_list=None):
+    vm,
+    from_,
+    to,
+    private_key,
+    amount=0,
+    max_priority_fee_per_gas=1,
+    max_fee_per_gas=10**10,
+    gas=100000,
+    data=b"",
+    nonce=None,
+    chain_id=1,
+    access_list=None,
+):
     """
     Create and return a transaction sending amount from <from_> to <to>.
 

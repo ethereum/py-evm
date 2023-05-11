@@ -27,9 +27,10 @@ def require_pytest(fn: Callable[..., Any]) -> Callable[..., Any]:
             import pytest  # noqa: F401
         except ImportError:
             raise ImportError(
-                'pytest is required to use the fixture_tests.  Please ensure '
-                'it is installed.'
+                "pytest is required to use the fixture_tests.  Please ensure "
+                "it is installed."
             )
         else:
             return fn(*args, **kwargs)
+
     return inner

@@ -54,7 +54,6 @@ from .validation import (
 
 class FrontierTransactionExecutor(BaseTransactionExecutor):
     def validate_transaction(self, transaction: SignedTransactionAPI) -> None:
-
         # Validate the transaction
         transaction.validate()
         self.vm_state.validate_transaction(transaction)
@@ -63,8 +62,9 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # Use vm_state.get_gas_price instead of transaction_context.gas_price so
         #   that we can run get_transaction_result (aka~ eth_call) and estimate_gas.
         #   Both work better if the GASPRICE opcode returns the original real price,
-        #   but the sender's balance doesn't actually deduct the gas. This get_gas_price()
-        #   will return 0 for eth_call, but transaction_context.gas_price will return
+        #   but the sender's balance doesn't actually deduct the gas. This
+        #   get_gas_price() will return 0 for eth_call, but
+        #   transaction_context.gas_price will return
         #   the same value as the GASPRICE opcode.
         gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
 
@@ -82,7 +82,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                 transaction.sender,
                 self.vm_state.get_nonce(transaction.sender) - 1,
             )
-            data = b''
+            data = b""
             code = transaction.data
         else:
             contract_address = None
@@ -116,19 +116,19 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         )
         return message
 
-    def build_computation(self,
-                          message: MessageAPI,
-                          transaction: SignedTransactionAPI) -> ComputationAPI:
+    def build_computation(
+        self, message: MessageAPI, transaction: SignedTransactionAPI
+    ) -> ComputationAPI:
         transaction_context = self.vm_state.get_transaction_context(transaction)
         if message.is_create:
-            is_collision = self.vm_state.has_code_or_nonce(
-                message.storage_address
-            )
+            is_collision = self.vm_state.has_code_or_nonce(message.storage_address)
 
             if is_collision:
                 # The address of the newly created contract has *somehow* collided
                 # with an existing contract address.
-                computation = self.vm_state.get_computation(message, transaction_context)
+                computation = self.vm_state.get_computation(
+                    message, transaction_context
+                )
                 computation.error = ContractCreationCollision(
                     f"Address collision while creating contract: "
                     f"{encode_hex(message.storage_address)}"
@@ -153,9 +153,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         return computation
 
     @classmethod
-    def calculate_gas_refund(cls,
-                             computation: ComputationAPI,
-                             gas_used: int) -> int:
+    def calculate_gas_refund(cls, computation: ComputationAPI, gas_used: int) -> int:
         # Self Destruct Refunds
         num_deletions = len(computation.get_accounts_for_deletion())
         if num_deletions:
@@ -167,9 +165,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         return min(gas_refunded, gas_used // MAX_REFUND_QUOTIENT)
 
     def finalize_computation(
-        self,
-        transaction: SignedTransactionAPI,
-        computation: ComputationAPI
+        self, transaction: SignedTransactionAPI, computation: ComputationAPI
     ) -> ComputationAPI:
         transaction_context = self.vm_state.get_transaction_context(transaction)
 
@@ -180,7 +176,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         if gas_refund_amount:
             self.vm_state.logger.debug2(
-                'TRANSACTION REFUND: %s -> %s',
+                "TRANSACTION REFUND: %s -> %s",
                 gas_refund_amount,
                 encode_hex(computation.msg.sender),
             )
@@ -196,7 +192,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # coinbase may end up zeroed after the computation and thus should be marked
         # for deletion since it was touched.
         self.vm_state.logger.debug2(
-            'TRANSACTION FEE: %s -> %s',
+            "TRANSACTION FEE: %s -> %s",
             transaction_fee,
             encode_hex(self.vm_state.coinbase),
         )
@@ -204,7 +200,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         # Process Self Destructs
         for account, _ in computation.get_accounts_for_deletion():
-            self.vm_state.logger.debug2('DELETING ACCOUNT: %s', encode_hex(account))
+            self.vm_state.logger.debug2("DELETING ACCOUNT: %s", encode_hex(account))
             self.vm_state.delete_account(account)
 
         return computation
@@ -214,7 +210,9 @@ class FrontierState(BaseState):
     computation_class: Type[ComputationAPI] = FrontierComputation
     transaction_context_class: Type[TransactionContextAPI] = FrontierTransactionContext
     account_db_class: Type[AccountDatabaseAPI] = AccountDB
-    transaction_executor_class: Type[TransactionExecutorAPI] = FrontierTransactionExecutor
+    transaction_executor_class: Type[
+        TransactionExecutorAPI
+    ] = FrontierTransactionExecutor
 
     def apply_transaction(self, transaction: SignedTransactionAPI) -> ComputationAPI:
         executor = self.get_transaction_executor()

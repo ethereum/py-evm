@@ -19,7 +19,7 @@ HOMESTEAD_MAINNET_BLOCK = BlockNumber(1150000)
 #
 DAO_FORK_MAINNET_BLOCK = BlockNumber(1920000)
 
-DAO_FORK_MAINNET_EXTRA_DATA = b'dao-hard-fork'
+DAO_FORK_MAINNET_EXTRA_DATA = b"dao-hard-fork"
 
 
 #

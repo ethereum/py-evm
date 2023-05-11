@@ -35,7 +35,7 @@ from eth.validation import (
 )
 
 # Type annotation here is to ensure we don't accidentally use strings instead of bytes.
-cache_by_epoch: 'OrderedDict[int, bytearray]' = OrderedDict()
+cache_by_epoch: "OrderedDict[int, bytearray]" = OrderedDict()
 CACHE_MAX_ITEMS = 10
 
 
@@ -62,18 +62,21 @@ def get_cache(block_number: int) -> bytes:
     return c
 
 
-def check_pow(block_number: int,
-              mining_hash: Hash32,
-              mix_hash: Hash32,
-              nonce: bytes,
-              difficulty: int) -> None:
+def check_pow(
+    block_number: int,
+    mining_hash: Hash32,
+    mix_hash: Hash32,
+    nonce: bytes,
+    difficulty: int,
+) -> None:
     validate_length(mix_hash, 32, title="Mix Hash")
     validate_length(mining_hash, 32, title="Mining Hash")
     validate_length(nonce, 8, title="POW Nonce")
     cache = get_cache(block_number)
     mining_output = hashimoto_light(
-        block_number, cache, mining_hash, big_endian_to_int(nonce))
-    if mining_output[b'mix digest'] != mix_hash:
+        block_number, cache, mining_hash, big_endian_to_int(nonce)
+    )
+    if mining_output[b"mix digest"] != mix_hash:
         raise ValidationError(
             f"mix hash mismatch; expected: {encode_hex(mining_output[b'mix digest'])} "
             f"!= actual: {encode_hex(mix_hash)}. "
@@ -81,21 +84,23 @@ def check_pow(block_number: int,
             f"mine hash {encode_hex(mining_hash)}, nonce {encode_hex(nonce)}"
             f", difficulty {difficulty}, cache hash {encode_hex(keccak(cache))}"
         )
-    result = big_endian_to_int(mining_output[b'result'])
+    result = big_endian_to_int(mining_output[b"result"])
     validate_lte(result, 2**256 // difficulty, title="POW Difficulty")
 
 
 MAX_TEST_MINE_ATTEMPTS = 1000
 
 
-def mine_pow_nonce(block_number: int, mining_hash: Hash32, difficulty: int) -> Tuple[bytes, bytes]:
+def mine_pow_nonce(
+    block_number: int, mining_hash: Hash32, difficulty: int
+) -> Tuple[bytes, bytes]:
     cache = get_cache(block_number)
     for nonce in range(MAX_TEST_MINE_ATTEMPTS):
         mining_output = hashimoto_light(block_number, cache, mining_hash, nonce)
-        result = big_endian_to_int(mining_output[b'result'])
+        result = big_endian_to_int(mining_output[b"result"])
         result_cap = 2**256 // difficulty
         if result <= result_cap:
-            return nonce.to_bytes(8, 'big'), mining_output[b'mix digest']
+            return nonce.to_bytes(8, "big"), mining_output[b"mix digest"]
 
     raise Exception("Too many attempts at POW mining, giving up")
 
@@ -113,12 +118,16 @@ class PowConsensus(ConsensusAPI):
         Validate the seal on the given header by checking the proof of work.
         """
         check_pow(
-            header.block_number, header.mining_hash,
-            header.mix_hash, header.nonce, header.difficulty)
+            header.block_number,
+            header.mining_hash,
+            header.mix_hash,
+            header.nonce,
+            header.difficulty,
+        )
 
-    def validate_seal_extension(self,
-                                header: BlockHeaderAPI,
-                                parents: Iterable[BlockHeaderAPI]) -> None:
+    def validate_seal_extension(
+        self, header: BlockHeaderAPI, parents: Iterable[BlockHeaderAPI]
+    ) -> None:
         pass
 
     @classmethod

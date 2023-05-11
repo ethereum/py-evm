@@ -21,7 +21,7 @@ from .state import ConstantinopleState
 
 class ConstantinopleVM(ByzantiumVM):
     # fork name
-    fork = 'constantinople'
+    fork = "constantinople"
 
     # classes
     block_class: Type[BaseBlock] = ConstantinopleBlock
@@ -29,7 +29,7 @@ class ConstantinopleVM(ByzantiumVM):
 
     # Methods
     create_header_from_parent = staticmethod(create_constantinople_header_from_parent)  # type: ignore  # noqa: E501
-    compute_difficulty = staticmethod(compute_constantinople_difficulty)    # type: ignore
+    compute_difficulty = staticmethod(compute_constantinople_difficulty)  # type: ignore
     configure_header = configure_constantinople_header
     get_uncle_reward = staticmethod(get_uncle_reward(EIP1234_BLOCK_REWARD))
 

@@ -123,9 +123,11 @@ def chain_id(chain_id: int, chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
 
 
 @curry
-def fork_at(vm_class: Type[VirtualMachineAPI],
-            at_block: Union[int, BlockNumber],
-            chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
+def fork_at(
+    vm_class: Type[VirtualMachineAPI],
+    at_block: Union[int, BlockNumber],
+    chain_class: Type[ChainAPI],
+) -> Type[ChainAPI]:
     """
     Adds the ``vm_class`` to the chain's ``vm_configuration``.
 
@@ -160,7 +162,7 @@ def fork_at(vm_class: Type[VirtualMachineAPI],
     * :func:`~eth.tools.builder.chain.london_at`
     * :func:`~eth.tools.builder.chain.arrow_glacier_at`
     * :func:`~eth.tools.builder.chain.gray_glacier_at`
-    * :func:`~eth.tools.builder.chain.latest_mainnet_at` - whatever the latest mainnet VM is
+    * :func:`~eth.tools.builder.chain.latest_mainnet_at` - whatever latest mainnet VM is
     """
     if chain_class.vm_configuration is not None:
         base_configuration = chain_class.vm_configuration
@@ -211,8 +213,9 @@ def disable_dao_fork(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
 
 
 @to_tuple
-def _set_vm_dao_fork_block_number(dao_fork_block_number: BlockNumber,
-                                  vm_configuration: VMConfiguration) -> Iterable[VMFork]:
+def _set_vm_dao_fork_block_number(
+    dao_fork_block_number: BlockNumber, vm_configuration: VMConfiguration
+) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
         if _is_homestead(vm_class):
             yield fork_block, vm_class.configure(
@@ -224,8 +227,9 @@ def _set_vm_dao_fork_block_number(dao_fork_block_number: BlockNumber,
 
 
 @curry
-def dao_fork_at(dao_fork_block_number: BlockNumber,
-                chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
+def dao_fork_at(
+    dao_fork_block_number: BlockNumber, chain_class: Type[ChainAPI]
+) -> Type[ChainAPI]:
     """
     Set the block number on which the DAO fork will happen.  Requires that a
     version of the :class:`~eth.vm.forks.homestead.HomesteadVM` is present in
@@ -267,39 +271,42 @@ GENESIS_DEFAULTS = cast(
     Tuple[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]], ...],
     # values that will automatically be default are commented out
     (
-        ('difficulty', 1),
-        ('extra_data', constants.GENESIS_EXTRA_DATA),
-        ('gas_limit', constants.GENESIS_GAS_LIMIT),
+        ("difficulty", 1),
+        ("extra_data", constants.GENESIS_EXTRA_DATA),
+        ("gas_limit", constants.GENESIS_GAS_LIMIT),
         # ('gas_used', 0),
         # ('bloom', 0),
-        ('mix_hash', constants.ZERO_HASH32),
-        ('nonce', constants.GENESIS_NONCE),
+        ("mix_hash", constants.ZERO_HASH32),
+        ("nonce", constants.GENESIS_NONCE),
         # ('block_number', constants.GENESIS_BLOCK_NUMBER),
         # ('parent_hash', constants.GENESIS_PARENT_HASH),
-        ('receipt_root', constants.BLANK_ROOT_HASH),
+        ("receipt_root", constants.BLANK_ROOT_HASH),
         # ('uncles_hash', constants.EMPTY_UNCLE_HASH),
-        ('state_root', constants.BLANK_ROOT_HASH),
-        ('transaction_root', constants.BLANK_ROOT_HASH),
-    )
+        ("state_root", constants.BLANK_ROOT_HASH),
+        ("transaction_root", constants.BLANK_ROOT_HASH),
+    ),
 )
 
 
 @to_dict
-def _get_default_genesis_params(genesis_state: AccountState,
-                                ) -> Iterable[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]]]:  # noqa: E501
+def _get_default_genesis_params(
+    genesis_state: AccountState,
+) -> Iterable[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]]]:
     for key, value in GENESIS_DEFAULTS:
-        if key == 'state_root' and genesis_state:
+        if key == "state_root" and genesis_state:
             # leave out the `state_root` if a genesis state was specified
             pass
         else:
             yield key, value
-    yield 'timestamp', int(time.time())  # populate the timestamp value at runtime
+    yield "timestamp", int(time.time())  # populate the timestamp value at runtime
 
 
 @to_tuple
 def _mix_in_pow_mining(vm_configuration: VMConfiguration) -> Iterable[VMFork]:
     for fork_block, vm_class in vm_configuration:
-        vm_class_with_pow_mining = type(vm_class.__name__, (POWMiningMixin, vm_class), {})
+        vm_class_with_pow_mining = type(
+            vm_class.__name__, (POWMiningMixin, vm_class), {}
+        )
         yield fork_block, vm_class_with_pow_mining
 
 
@@ -338,21 +345,26 @@ def disable_pow_check(chain_class: Type[ChainAPI]) -> Type[ChainAPI]:
 #
 def _fill_and_normalize_state(simple_state: GeneralState) -> AccountState:
     base_state = normalize_state(simple_state)
-    defaults = {address: {
-        "balance": 0,
-        "nonce": 0,
-        "code": b"",
-        "storage": {},
-    } for address in base_state.keys()}
+    defaults = {
+        address: {
+            "balance": 0,
+            "nonce": 0,
+            "code": b"",
+            "storage": {},
+        }
+        for address in base_state.keys()
+    }
     state = deep_merge(defaults, base_state)
     return state
 
 
 @curry
-def genesis(chain_class: ChainAPI,
-            db: AtomicDatabaseAPI = None,
-            params: Dict[str, HeaderParams] = None,
-            state: GeneralState = None) -> ChainAPI:
+def genesis(
+    chain_class: ChainAPI,
+    db: AtomicDatabaseAPI = None,
+    params: Dict[str, HeaderParams] = None,
+    state: GeneralState = None,
+) -> ChainAPI:
     """
     Initialize the given chain class with the given genesis header parameters
     and chain state.
@@ -389,9 +401,9 @@ def mine_block(chain: MiningChainAPI, **kwargs: Any) -> MiningChainAPI:
     """
 
     if not isinstance(chain, MiningChainAPI):
-        raise ValidationError('`mine_block` may only be used on MiningChain instances')
+        raise ValidationError("`mine_block` may only be used on MiningChain instances")
 
-    transactions = kwargs.pop('transactions', ())
+    transactions = kwargs.pop("transactions", ())
 
     chain.mine_all(transactions, **kwargs)
     return chain
@@ -403,7 +415,7 @@ def mine_blocks(num_blocks: int, chain: MiningChainAPI) -> MiningChainAPI:
     Variadic argument version of :func:`~eth.tools.builder.chain.mine_block`
     """
     if not isinstance(chain, MiningChainAPI):
-        raise ValidationError('`mine_block` may only be used on MiningChain instances')
+        raise ValidationError("`mine_block` may only be used on MiningChain instances")
     for _ in range(num_blocks):
         chain.mine_block()
     return chain
@@ -422,6 +434,7 @@ def import_blocks(*blocks: BlockAPI) -> Callable[[ChainAPI], ChainAPI]:
     """
     Variadic argument version of :func:`~eth.tools.builder.chain.import_block`
     """
+
     @functools.wraps(import_blocks)
     def _import_blocks(chain: ChainAPI) -> ChainAPI:
         for block in blocks:
@@ -446,13 +459,17 @@ def copy(chain: MiningChainAPI) -> MiningChainAPI:
     if isinstance(base_db.wrapped_db, MemoryDB):
         db = AtomicDB(MemoryDB(base_db.wrapped_db.kv_store.copy()))
     else:
-        raise ValidationError(f"Unsupported wrapped database: {type(base_db.wrapped_db)}")
+        raise ValidationError(
+            f"Unsupported wrapped database: {type(base_db.wrapped_db)}"
+        )
 
     chain_copy = type(chain)(db, chain.header)
     return chain_copy
 
 
-def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[ChainAPI], Iterable[ChainAPI]]:   # noqa: E501
+def chain_split(
+    *splits: Iterable[Callable[..., Any]]
+) -> Callable[[ChainAPI], Iterable[ChainAPI]]:
     """
     Construct and execute multiple concurrent forks of the chain.
 
@@ -473,7 +490,9 @@ def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[ChainAPI], I
         )
     """
     if not splits:
-        raise ValidationError("Cannot use `chain_split` without providing at least one split")
+        raise ValidationError(
+            "Cannot use `chain_split` without providing at least one split"
+        )
 
     @functools.wraps(chain_split)
     @to_tuple
@@ -489,7 +508,9 @@ def chain_split(*splits: Iterable[Callable[..., Any]]) -> Callable[[ChainAPI], I
 
 
 @curry
-def at_block_number(block_number: Union[int, BlockNumber], chain: MiningChainAPI) -> MiningChainAPI:
+def at_block_number(
+    block_number: Union[int, BlockNumber], chain: MiningChainAPI
+) -> MiningChainAPI:
     """
     Rewind the chain back to the given block number.  Calls to things like
     ``get_canonical_head`` will still return the canonical head of the chain,

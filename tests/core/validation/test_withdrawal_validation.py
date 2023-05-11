@@ -30,7 +30,7 @@ from eth.vm.forks.shanghai.withdrawals import (
             1337,
         ),
         Withdrawal(UINT_64_MAX, UINT_64_MAX, Address(b"\x00" * 20), UINT_64_MAX),
-    )
+    ),
 )
 def test_valid_withdrawal_fields(withdrawal):
     withdrawal.validate()
@@ -70,7 +70,6 @@ def test_valid_withdrawal_fields(withdrawal):
             ),
             "exceeds maximum uint64 size",
         ),
-
         # validate `address` field
         (Withdrawal(0, 0, Address(b"\x00" * 19), 0), "not a valid canonical address"),
         (Withdrawal(0, 0, Address(b"\x00" * 21), 0), "not a valid canonical address"),
@@ -88,7 +87,7 @@ def test_valid_withdrawal_fields(withdrawal):
         "address size is 21 bytes",
         "address size is 1 byte",
         "address is valid but provided as hex string",
-    ]
+    ],
 )
 def test_invalid_withdrawal_fields(withdrawal, message):
     with pytest.raises(ValidationError, match=message):

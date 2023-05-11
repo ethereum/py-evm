@@ -26,24 +26,36 @@ from eth.validation import (
 
 class Message(MessageAPI):
     __slots__ = [
-        'to', 'sender', 'value', 'data', 'depth', 'gas', 'code', '_code_address',
-        'create_address', 'should_transfer_value', 'is_static', '_storage_address'
+        "to",
+        "sender",
+        "value",
+        "data",
+        "depth",
+        "gas",
+        "code",
+        "_code_address",
+        "create_address",
+        "should_transfer_value",
+        "is_static",
+        "_storage_address",
     ]
 
-    logger = logging.getLogger('eth.vm.message.Message')
+    logger = logging.getLogger("eth.vm.message.Message")
 
-    def __init__(self,
-                 gas: int,
-                 to: Address,
-                 sender: Address,
-                 value: int,
-                 data: BytesOrView,
-                 code: bytes,
-                 depth: int = 0,
-                 create_address: Address = None,
-                 code_address: Address = None,
-                 should_transfer_value: bool = True,
-                 is_static: bool = False) -> None:
+    def __init__(
+        self,
+        gas: int,
+        to: Address,
+        sender: Address,
+        value: int,
+        data: BytesOrView,
+        code: bytes,
+        depth: int = 0,
+        create_address: Address = None,
+        code_address: Address = None,
+        should_transfer_value: bool = True,
+        is_static: bool = False,
+    ) -> None:
         validate_uint256(gas, title="Message.gas")
         self.gas: int = gas
 
@@ -75,7 +87,9 @@ class Message(MessageAPI):
             validate_canonical_address(code_address, title="Message.code_address")
         self.code_address = code_address
 
-        validate_is_boolean(should_transfer_value, title="Message.should_transfer_value")
+        validate_is_boolean(
+            should_transfer_value, title="Message.should_transfer_value"
+        )
         self.should_transfer_value = should_transfer_value
 
         validate_is_boolean(is_static, title="Message.is_static")

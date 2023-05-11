@@ -52,17 +52,19 @@ class FrontierBlock(BaseBlock):
     transaction_builder = FrontierTransaction
     receipt_builder = Receipt
     fields = [
-        ('header', BlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(BlockHeader))
+        ("header", BlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(BlockHeader)),
     ]
 
     bloom_filter = None
 
-    def __init__(self,
-                 header: BlockHeaderAPI,
-                 transactions: Sequence[SignedTransactionAPI] = None,
-                 uncles: Sequence[BlockHeaderAPI] = None) -> None:
+    def __init__(
+        self,
+        header: BlockHeaderAPI,
+        transactions: Sequence[SignedTransactionAPI] = None,
+        uncles: Sequence[BlockHeaderAPI] = None,
+    ) -> None:
         if transactions is None:
             transactions = []
         if uncles is None:
@@ -109,11 +111,13 @@ class FrontierBlock(BaseBlock):
     # Header API
     #
     @classmethod
-    def from_header(cls, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI) -> "FrontierBlock":
+    def from_header(
+        cls, header: BlockHeaderAPI, chaindb: ChainDatabaseAPI
+    ) -> "FrontierBlock":
         """
         Returns the block denoted by the given block header.
 
-        :raise eth.exceptions.BlockNotFound: if transactions or uncle headers are missing
+        :raise eth.exceptions.BlockNotFound: if transactions or uncle headers missing
         """
         if header.uncles_hash == EMPTY_UNCLE_HASH:
             uncles: Tuple[BlockHeaderAPI, ...] = ()
@@ -121,12 +125,18 @@ class FrontierBlock(BaseBlock):
             try:
                 uncles = chaindb.get_block_uncles(header.uncles_hash)
             except HeaderNotFound as exc:
-                raise BlockNotFound(f"Uncles not found in database for {header}: {exc}") from exc
+                raise BlockNotFound(
+                    f"Uncles not found in database for {header}: {exc}"
+                ) from exc
 
         try:
-            transactions = chaindb.get_block_transactions(header, cls.get_transaction_builder())
+            transactions = chaindb.get_block_transactions(
+                header, cls.get_transaction_builder()
+            )
         except MissingTrieNode as exc:
-            raise BlockNotFound(f"Transactions not found in database for {header}: {exc}") from exc
+            raise BlockNotFound(
+                f"Transactions not found in database for {header}: {exc}"
+            ) from exc
 
         return cls(
             header=header,

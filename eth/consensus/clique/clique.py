@@ -46,21 +46,24 @@ from .snapshot_manager import (
 )
 
 
-def configure_header(vm: VirtualMachineAPI, **header_params: HeaderParams) -> BlockHeaderAPI:
+def configure_header(
+    vm: VirtualMachineAPI, **header_params: HeaderParams
+) -> BlockHeaderAPI:
     with vm.get_header().build_changeset(**header_params) as changeset:
-        # We do this because the default `configure_header` tries to compute the difficulty
-        # which we can not do at this point. We take the `difficulty` as provided and rely
-        # on the `validate_seal` call that will happen as the last step when blocks are
-        # imported.
+        # We do this because the default `configure_header` tries to compute the
+        # difficulty which we can not do at this point. We take the `difficulty` as
+        # provided and rely on the `validate_seal` call that will happen as the last
+        # step when blocks are imported.
         header = changeset.commit()
     return header
 
 
-def _construct_turn_error_message(expected_difficulty: int,
-                                  header: BlockHeaderAPI,
-                                  signer: Address,
-                                  signers: Sequence[Address]) -> str:
-
+def _construct_turn_error_message(
+    expected_difficulty: int,
+    header: BlockHeaderAPI,
+    signer: Address,
+    signers: Sequence[Address],
+) -> str:
     return (
         f"Expected difficulty of {header} to be {expected_difficulty} "
         f"but was {header.difficulty}.\n"
@@ -69,7 +72,6 @@ def _construct_turn_error_message(expected_difficulty: int,
 
 
 class CliqueConsensusContext(ConsensusContextAPI):
-
     epoch_length = EPOCH_LENGTH
 
     def __init__(self, db: AtomicDatabaseAPI):
@@ -79,11 +81,11 @@ class CliqueConsensusContext(ConsensusContextAPI):
 
 class CliqueConsensus(ConsensusAPI):
     """
-    This class is the entry point to operate a chain under the rules of Clique consensus which
-    is defined in EIP-225: https://eips.ethereum.org/EIPS/eip-225
+    This class is the entry point to operate a chain under the rules of Clique consensus
+    which is defined in EIP-225: https://eips.ethereum.org/EIPS/eip-225
     """
 
-    logger = logging.getLogger('eth.consensus.clique.CliqueConsensus')
+    logger = logging.getLogger("eth.consensus.clique.CliqueConsensus")
 
     def __init__(self, context: CliqueConsensusContext) -> None:
         if context is None:
@@ -94,8 +96,8 @@ class CliqueConsensus(ConsensusAPI):
     @classmethod
     def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
         """
-        If the ``header`` has a signer, return the signer, otherwise return the ``coinbase``
-        of the passed header.
+        If the ``header`` has a signer, return the signer, otherwise return the
+        ``coinbase`` of the passed header.
         """
         try:
             return get_block_signer(header)
@@ -106,20 +108,23 @@ class CliqueConsensus(ConsensusAPI):
         """
         Retrieve the ``Snapshot`` for the given ``header``.
         """
-        return self._snapshot_manager.get_or_create_snapshot(header.block_number, header.hash)
+        return self._snapshot_manager.get_or_create_snapshot(
+            header.block_number, header.hash
+        )
 
     def validate_seal(self, header: BlockHeaderAPI) -> None:
         """
-        Only validate the integrity of the header, use `validate_seal_extension` to validate
-        the consensus relevant seal of the header.
+        Only validate the integrity of the header, use `validate_seal_extension`
+        to validate the consensus relevant seal of the header.
         """
         validate_header_integrity(header, self._epoch_length)
 
-    def validate_seal_extension(self,
-                                header: BlockHeaderAPI,
-                                parents: Iterable[BlockHeaderAPI]) -> None:
+    def validate_seal_extension(
+        self, header: BlockHeaderAPI, parents: Iterable[BlockHeaderAPI]
+    ) -> None:
         """
-        Validate the seal of the given ``header`` according to the Clique consensus rules.
+        Validate the seal of the given ``header`` according
+        to the Clique consensus rules.
         """
 
         if header.block_number == 0:
@@ -129,7 +134,8 @@ class CliqueConsensus(ConsensusAPI):
 
         signer = get_block_signer(header)
         snapshot = self._snapshot_manager.get_or_create_snapshot(
-            header.block_number - 1, header.parent_hash, parents)
+            header.block_number - 1, header.parent_hash, parents
+        )
         in_turn = is_in_turn(signer, snapshot, header)
 
         authorized_signers = snapshot.get_sorted_signers()
@@ -154,13 +160,15 @@ class CliqueConsensus(ConsensusAPI):
 
 class CliqueApplier(VirtualMachineModifierAPI):
     """
-    This class is used to apply a clique consensus engine to a series of virtual machines
+    This class is used to apply a clique consensus engine
+    to a series of virtual machines
     """
 
     @to_tuple
     def amend_vm_configuration(self, config: VMConfiguration) -> Iterable[VMFork]:
         """
-        Amend the given ``VMConfiguration`` to operate under the rules of Clique consensus.
+        Amend the given ``VMConfiguration`` to operate
+        under the rules of Clique consensus.
         """
         for pair in config:
             block_number, vm = pair

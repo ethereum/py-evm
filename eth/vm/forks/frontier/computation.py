@@ -35,10 +35,10 @@ from .opcodes import (
 )
 
 FRONTIER_PRECOMPILES = {
-    force_bytes_to_address(b'\x01'): precompiles.ecrecover,
-    force_bytes_to_address(b'\x02'): precompiles.sha256,
-    force_bytes_to_address(b'\x03'): precompiles.ripemd160,
-    force_bytes_to_address(b'\x04'): precompiles.identity,
+    force_bytes_to_address(b"\x01"): precompiles.ecrecover,
+    force_bytes_to_address(b"\x02"): precompiles.sha256,
+    force_bytes_to_address(b"\x03"): precompiles.ripemd160,
+    force_bytes_to_address(b"\x04"): precompiles.identity,
 }
 
 
@@ -47,9 +47,10 @@ class FrontierComputation(BaseComputation):
     A class for all execution message computations in the ``Frontier`` fork.
     Inherits from :class:`~eth.vm.computation.BaseComputation`
     """
+
     # Override
     opcodes = FRONTIER_OPCODES
-    _precompiles = FRONTIER_PRECOMPILES     # type: ignore # https://github.com/python/mypy/issues/708 # noqa: E501
+    _precompiles = FRONTIER_PRECOMPILES  # type: ignore # https://github.com/python/mypy/issues/708 # noqa: E501
 
     @classmethod
     def apply_message(
@@ -58,7 +59,6 @@ class FrontierComputation(BaseComputation):
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
     ) -> ComputationAPI:
-
         snapshot = state.snapshot()
 
         if message.depth > STACK_DEPTH_LIMIT:
@@ -99,11 +99,11 @@ class FrontierComputation(BaseComputation):
 
     @classmethod
     def apply_create_message(
-            cls,
-            state: StateAPI,
-            message: MessageAPI,
-            transaction_context: TransactionContextAPI) -> ComputationAPI:
-
+        cls,
+        state: StateAPI,
+        message: MessageAPI,
+        transaction_context: TransactionContextAPI,
+    ) -> ComputationAPI:
         computation = cls.apply_message(state, message, transaction_context)
 
         if computation.is_error:
@@ -119,13 +119,13 @@ class FrontierComputation(BaseComputation):
                         reason="Write contract code for CREATE",
                     )
                 except OutOfGas:
-                    computation.output = b''
+                    computation.output = b""
                 else:
                     cls.logger.debug2(
                         "SETTING CODE: %s -> length: %s | hash: %s",
                         encode_hex(message.storage_address),
                         len(contract_code),
-                        encode_hex(keccak(contract_code))
+                        encode_hex(keccak(contract_code)),
                     )
                     state.set_code(message.storage_address, contract_code)
             return computation

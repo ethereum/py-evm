@@ -19,13 +19,13 @@ from .state import IstanbulState
 
 class IstanbulVM(ConstantinopleVM):
     # fork name
-    fork = 'istanbul'
+    fork = "istanbul"
 
     # classes
     block_class: Type[BaseBlock] = IstanbulBlock
     _state_class: Type[BaseState] = IstanbulState
 
     # Methods
-    create_header_from_parent = staticmethod(create_istanbul_header_from_parent)  # type: ignore
-    compute_difficulty = staticmethod(compute_istanbul_difficulty)    # type: ignore
+    create_header_from_parent = staticmethod(create_istanbul_header_from_parent)  # type: ignore  # noqa: E501
+    compute_difficulty = staticmethod(compute_istanbul_difficulty)  # type: ignore
     configure_header = configure_istanbul_header

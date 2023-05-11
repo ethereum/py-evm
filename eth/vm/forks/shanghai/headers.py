@@ -27,7 +27,6 @@ def create_shanghai_header_from_parent(
     parent_header: Optional[BlockHeaderAPI],
     **header_params: Any,
 ) -> BlockHeaderAPI:
-
     paris_validated_header = create_paris_header_from_parent(
         parent_header, **header_params
     )

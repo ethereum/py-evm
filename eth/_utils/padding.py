@@ -2,7 +2,7 @@ from eth_utils.toolz import (
     curry,
 )
 
-ZERO_BYTE = b'\x00'
+ZERO_BYTE = b"\x00"
 
 
 @curry

@@ -17,7 +17,7 @@ from .transactions import (
 class HomesteadBlock(FrontierBlock):
     transaction_builder = HomesteadTransaction
     fields = [
-        ('header', BlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(BlockHeader))
+        ("header", BlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(BlockHeader)),
     ]

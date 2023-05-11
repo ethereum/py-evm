@@ -60,10 +60,14 @@ def byzantium_plus_miner(request, base_db, genesis_state):
     "code",
     (
         # generate some return data, then call CREATE (third-to-last opcode - 0xf0)
-        decode_hex('0x5b595958333d5859858585858585858585f195858585858585858485858585f195858585858585f1f03d30'),  # noqa: E501
+        decode_hex(
+            "0x5b595958333d5859858585858585858585f195858585858585858485858585f195858585858585f1f03d30"  # noqa: E501
+        ),
         # generate some return data, then call CREATE2 (third-to-last opcode - 0xf5)
-        decode_hex('0x5b595958333d5859858585858585858585f195858585858585858485858585f195858585858585f1f53d30'),  # noqa: E501
-    )
+        decode_hex(
+            "0x5b595958333d5859858585858585858585f195858585858585858485858585f195858585858585f1f53d30"  # noqa: E501
+        ),
+    ),
 )
 def test_CREATE_and_CREATE2_resets_return_data_if_account_has_insufficient_funds(
     byzantium_plus_miner,
@@ -81,7 +85,7 @@ def test_CREATE_and_CREATE2_resets_return_data_if_account_has_insufficient_funds
         origin=canonical_address_a,
         to=canonical_address_a,
         sender=Address(
-            b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x34'
+            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x12\x34"  # noqa: E501
         ),
         value=0,
         code=code,
@@ -92,14 +96,15 @@ def test_CREATE_and_CREATE2_resets_return_data_if_account_has_insufficient_funds
 
     if computation.is_error:
         assert isinstance(computation.error, InvalidInstruction)
-        # only test CREATE case for byzantium as the CREATE2 opcode (0xf5) was not yet introduced
+        # only test CREATE case for byzantium as the CREATE2 opcode (0xf5)
+        # was not yet introduced
         assert vm.fork == "byzantium"
         assert "0xf5" in repr(computation.error).lower()
 
     else:
-        # We provide 40000 gas and a simple create uses 32000 gas. This test doesn't particularly
-        # care (and isn't testing for) the exact gas, we just want to make sure not all the gas
-        # is burned since if, say, a VMError were to be raised it would burn all the gas
-        # (burns_gas = True).
+        # We provide 40000 gas and a simple create uses 32000 gas. This test doesn't
+        # particularly care (and isn't testing for) the exact gas, we just want to make
+        # sure not all the gas is burned since if, say, a VMError were to be raised it
+        # would burn all the gas (burns_gas = True).
         assert 34000 < computation.get_gas_used() < 39000
-        assert computation.return_data == b''
+        assert computation.return_data == b""

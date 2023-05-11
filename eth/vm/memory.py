@@ -16,8 +16,8 @@ from eth.validation import (
 
 
 class Memory(MemoryAPI):
-    __slots__ = ['_bytes']
-    logger = logging.getLogger('eth.vm.memory.Memory')
+    __slots__ = ["_bytes"]
+    logger = logging.getLogger("eth.vm.memory.Memory")
 
     def __init__(self) -> None:
         self._bytes = bytearray()
@@ -38,8 +38,8 @@ class Memory(MemoryAPI):
             # memoryview (which stores a pointer into the buffer) has been created by
             # read() and not released. Callers of read() will never try to write to the
             # buffer so we're not missing anything by making a new buffer and forgetting
-            # about the old one. We're keeping too much memory around but this is still a
-            # net savings over having read() return a new bytes() object every time.
+            # about the old one. We're keeping too much memory around but this is still
+            # a net savings over having read() return a new bytes() object every time.
             self._bytes = self._bytes + bytearray(size_to_extend)
 
     def __len__(self) -> int:
@@ -57,7 +57,7 @@ class Memory(MemoryAPI):
                 self._bytes[start_position + idx] = v
 
     def read(self, start_position: int, size: int) -> memoryview:
-        return memoryview(self._bytes)[start_position:start_position + size]
+        return memoryview(self._bytes)[start_position : start_position + size]
 
     def read_bytes(self, start_position: int, size: int) -> bytes:
-        return bytes(self._bytes[start_position:start_position + size])
+        return bytes(self._bytes[start_position : start_position + size])

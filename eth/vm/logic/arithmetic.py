@@ -136,7 +136,7 @@ def sdiv(computation: ComputationAPI) -> None:
     if denominator == 0:
         result = 0
     else:
-        result = (pos_or_neg * (abs(numerator) // abs(denominator)))
+        result = pos_or_neg * (abs(numerator) // abs(denominator))
 
     computation.stack_push_int(signed_to_unsigned(result))
 
@@ -174,7 +174,7 @@ def signextend(computation: ComputationAPI) -> None:
 
     if bits <= 31:
         testbit = bits * 8 + 7
-        sign_bit = (1 << testbit)
+        sign_bit = 1 << testbit
         if value & sign_bit:
             result = value | (constants.UINT_256_CEILING - sign_bit)
         else:

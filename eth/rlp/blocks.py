@@ -30,7 +30,7 @@ class BaseBlock(Configurable, rlp.Serializable, BlockAPI):
         return self.header.is_genesis
 
     def __repr__(self) -> str:
-        return f'<{self.__class__.__name__}(#{str(self)})>'
+        return f"<{self.__class__.__name__}(#{str(self)})>"
 
     def __str__(self) -> str:
         clipped_hash = humanize_hash(self.hash)

@@ -28,6 +28,7 @@ def require_vyper(fn: Callable[..., Any]) -> Callable[..., Any]:
             return fn(*args, **kwargs)
         else:
             raise ImportError("The `{0}` function requires the vyper compiler.")
+
     return inner
 
 

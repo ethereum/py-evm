@@ -1,2 +1,6 @@
-# ignore SHA that added isort
-2f421ce6049dc74a1520280adf8c350c1c567e9f
+# ignore SHAs that added isort
+e9049224a98439cc27522e322cc09e402503565a
+1ee3cce389e48b37895e812692f87aaf4f96e27f
+
+# ignore SHA that added black
+6c958538082fcf6e6d9165c30f289e3c64dbfc5a

@@ -17,7 +17,7 @@ from .transactions import (
 class MuirGlacierBlock(IstanbulBlock):
     transaction_builder = MuirGlacierTransaction
     fields = [
-        ('header', BlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(BlockHeader))
+        ("header", BlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(BlockHeader)),
     ]

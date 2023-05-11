@@ -77,20 +77,21 @@ def compute_frontier_difficulty(parent_header: BlockHeaderAPI, timestamp: int) -
     return difficulty
 
 
-def create_frontier_header_from_parent(parent_header: BlockHeaderAPI,
-                                       **header_params: Any) -> BlockHeader:
-    if 'timestamp' not in header_params:
-        header_params['timestamp'] = new_timestamp_from_parent(parent_header)
+def create_frontier_header_from_parent(
+    parent_header: BlockHeaderAPI, **header_params: Any
+) -> BlockHeader:
+    if "timestamp" not in header_params:
+        header_params["timestamp"] = new_timestamp_from_parent(parent_header)
 
-    if 'difficulty' not in header_params:
-        # Use setdefault to ensure the new header has the same timestamp we use to calculate its
-        # difficulty.
-        header_params['difficulty'] = compute_frontier_difficulty(
+    if "difficulty" not in header_params:
+        # Use setdefault to ensure the new header has the same timestamp we use to
+        # calculate its difficulty.
+        header_params["difficulty"] = compute_frontier_difficulty(
             parent_header,
-            header_params['timestamp'],
+            header_params["timestamp"],
         )
-    if 'gas_limit' not in header_params:
-        header_params['gas_limit'] = compute_gas_limit(
+    if "gas_limit" not in header_params:
+        header_params["gas_limit"] = compute_gas_limit(
             parent_header,
             genesis_gas_limit=GENESIS_GAS_LIMIT,
         )
@@ -103,11 +104,11 @@ def configure_frontier_header(vm: "FrontierVM", **header_params: Any) -> BlockHe
     validate_header_params_for_configuration(header_params)
 
     with vm.get_header().build_changeset(**header_params) as changeset:
-        if 'timestamp' in header_params and vm.get_header().block_number > 0:
+        if "timestamp" in header_params and vm.get_header().block_number > 0:
             parent_header = get_parent_header(changeset.build_rlp(), vm.chaindb)
             changeset.difficulty = compute_frontier_difficulty(
                 parent_header,
-                header_params['timestamp'],
+                header_params["timestamp"],
             )
 
         header = changeset.commit()

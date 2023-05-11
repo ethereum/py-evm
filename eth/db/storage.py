@@ -66,6 +66,7 @@ class PendingWrites(NamedTuple):
     The variables are used to revive storage if the EVM reverts to a point
     prior to deletion.
     """
+
     write_trie: HexaryTrie  # The write trie at the time of deletion
     trie_nodes_batch: BatchDB  # A batch of all trie nodes written to the trie
     starting_root_hash: Hash32  # The starting root hash
@@ -73,11 +74,12 @@ class PendingWrites(NamedTuple):
 
 class StorageLookup(BaseDB):
     """
-    This lookup converts lookups of storage slot integers into the appropriate trie lookup.
-    Similarly, it persists changes to the appropriate trie at write time.
+    This lookup converts lookups of storage slot integers into the appropriate trie
+    lookup. Similarly, it persists changes to the appropriate trie at write time.
 
     StorageLookup also tracks the state roots changed since the last persist.
     """
+
     logger = get_extended_debug_logger("eth.db.storage.StorageLookup")
 
     # The trie that is modified in-place, used to calculate storage root on-demand
@@ -87,7 +89,8 @@ class StorageLookup(BaseDB):
     _trie_nodes_batch: BatchDB
 
     # When deleting an account, push the pending write info onto this stack.
-    # This stack can get as big as the number of transactions per block: one for each delete.
+    # This stack can get as big as the number of transactions per block: one for
+    # each delete.
     _historical_write_tries: List[PendingWrites]
 
     def __init__(self, db: DatabaseAPI, storage_root: Hash32, address: Address) -> None:
@@ -104,7 +107,9 @@ class StorageLookup(BaseDB):
 
         if self._write_trie is None:
             batch_db = self._trie_nodes_batch
-            self._write_trie = HexaryTrie(batch_db, root_hash=self._starting_root_hash, prune=True)
+            self._write_trie = HexaryTrie(
+                batch_db, root_hash=self._starting_root_hash, prune=True
+            )
 
         return self._write_trie
 
@@ -168,7 +173,9 @@ class StorageLookup(BaseDB):
         if self._write_trie is not None:
             return self._write_trie.root_hash
         else:
-            raise ValidationError("Asked for changed root when no writes have been made")
+            raise ValidationError(
+                "Asked for changed root when no writes have been made"
+            )
 
     def _initialize_to_root_hash(self, root_hash: Hash32) -> None:
         self._starting_root_hash = root_hash
@@ -183,12 +190,13 @@ class StorageLookup(BaseDB):
         Trying to commit changes when nothing has been written will raise a
         ValidationError
         """
-        self.logger.debug2('persist storage root to data store')
+        self.logger.debug2("persist storage root to data store")
         if self._trie_nodes_batch is None:
             raise ValidationError(
-                "It is invalid to commit an account's storage if it has no pending changes. "
-                "Always check storage_lookup.has_changed_root before attempting to commit. "
-                f"Write tries on stack = {len(self._historical_write_tries)}; Root hash = "
+                "It is invalid to commit an account's storage if it has no pending "
+                "changes. Always check storage_lookup.has_changed_root before "
+                "attempting to commit. Write tries on stack = "
+                f"{len(self._historical_write_tries)}; Root hash = "
                 f"{encode_hex(self._starting_root_hash)}"
             )
         self._trie_nodes_batch.commit_to(db, apply_deletes=False)
@@ -207,11 +215,13 @@ class StorageLookup(BaseDB):
         write_trie = self._get_write_trie()
 
         # Write the previous trie into a historical stack
-        self._historical_write_tries.append(PendingWrites(
-            write_trie,
-            self._trie_nodes_batch,
-            self._starting_root_hash,
-        ))
+        self._historical_write_tries.append(
+            PendingWrites(
+                write_trie,
+                self._trie_nodes_batch,
+                self._starting_root_hash,
+            )
+        )
 
         new_idx = len(self._historical_write_tries)
         self._starting_root_hash = BLANK_ROOT_HASH
@@ -231,8 +241,8 @@ class StorageLookup(BaseDB):
 
         if trie_index >= len(self._historical_write_tries):
             raise ValidationError(
-                f"Trying to roll back a delete to index {trie_index}, but there are only"
-                f" {len(self._historical_write_tries)} indices available."
+                f"Trying to roll back a delete to index {trie_index}, but there are "
+                f"only {len(self._historical_write_tries)} indices available."
             )
 
         (
@@ -247,19 +257,21 @@ class StorageLookup(BaseDB):
         del self._historical_write_tries[trie_index:]
 
 
-CLEAR_COUNT_KEY_NAME = b'clear-count'
+CLEAR_COUNT_KEY_NAME = b"clear-count"
 
 
 class AccountStorageDB(AccountStorageDatabaseAPI):
     logger = get_extended_debug_logger("eth.db.storage.AccountStorageDB")
 
-    def __init__(self, db: AtomicDatabaseAPI, storage_root: Hash32, address: Address) -> None:
+    def __init__(
+        self, db: AtomicDatabaseAPI, storage_root: Hash32, address: Address
+    ) -> None:
         """
         Database entries go through several pipes, like so...
 
         .. code::
 
-            db -> _storage_lookup -> _storage_cache -> _locked_changes -> _journal_storage
+          db -> _storage_lookup -> _storage_cache -> _locked_changes -> _journal_storage
 
         db is the raw database, we can assume it hits disk when written to.
         Keys are stored as node hashes and rlp-encoded node values.
@@ -267,8 +279,8 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         _storage_lookup is itself a pair of databases: (BatchDB -> HexaryTrie),
         writes to storage lookup *are* immeditaely applied to a trie, generating
         the appropriate trie nodes and and root hash (via the HexaryTrie). The
-        writes are *not* persisted to db, until _storage_lookup is explicitly instructed to,
-        via :meth:`StorageLookup.commit_to`
+        writes are *not* persisted to db, until _storage_lookup is explicitly instructed
+        to, via :meth:`StorageLookup.commit_to`
 
         _storage_cache is a cache tied to the state root of the trie. It
         is important that this cache is checked *after* looking for
@@ -280,8 +292,9 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         un-revertable in the EVM. Currently, that means changes that completed in a
         previous transaction.
 
-        Journaling batches writes at the _journal_storage layer, until persist is called.
-        It manages all the checkpointing and rollbacks that happen during EVM execution.
+        Journaling batches writes at the _journal_storage layer, until persist is
+        called. It manages all the checkpointing and rollbacks that happen during
+        EVM execution.
 
         In both _storage_cache and _journal_storage, Keys are set/retrieved as the
         big_endian encoding of the slot integer, and the rlp-encoded value.
@@ -295,8 +308,8 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
 
         # Track how many times we have cleared the storage. This is journaled
         # in lockstep with other storage changes. That way, we can detect if a revert
-        # causes use to revert past the previous storage deletion. The clear count is used
-        # as an index to find the base trie from before the revert.
+        # causes use to revert past the previous storage deletion. The clear count is
+        # used as an index to find the base trie from before the revert.
         self._clear_count = JournalDB(MemoryDB({CLEAR_COUNT_KEY_NAME: to_bytes(0)}))
 
     def get(self, slot: int, from_journal: bool = True) -> int:
@@ -310,7 +323,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         except KeyError:
             return 0
 
-        if encoded_value == b'':
+        if encoded_value == b"":
             return 0
         else:
             return rlp.decode(encoded_value, sedes=rlp.sedes.big_endian_int)
@@ -326,7 +339,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
                 # deleting an empty key has no effect
                 return
             else:
-                if current_val != b'':
+                if current_val != b"":
                     # only try to delete the value if it's present
                     del self._journal_storage[key]
 
@@ -349,7 +362,8 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         if new_clear_count != old_clear_count + 1:
             raise ValidationError(
                 f"Must increase clear count by one on each delete. Instead, went from"
-                f" {old_clear_count} -> {new_clear_count} in account 0x{self._address.hex()}"
+                f" {old_clear_count} -> {new_clear_count} in account"
+                f" 0x{self._address.hex()}"
             )
 
         # Save the new count, ie~ the index used for a future revert.
@@ -360,7 +374,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         self._clear_count.record(checkpoint)
 
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
-        self.logger.debug2('discard checkpoint %r', checkpoint)
+        self.logger.debug2("discard checkpoint %r", checkpoint)
         latest_clear_count = to_int(self._clear_count[CLEAR_COUNT_KEY_NAME])
 
         if self._journal_storage.has_checkpoint(checkpoint):
@@ -389,7 +403,8 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
             #   is only triggered at the end of the transaction.
             raise ValidationError(
                 f"This revert has changed the clear count in an invalid way, from"
-                f" {latest_clear_count} to {reverted_clear_count}, in 0x{self._address.hex()}"
+                f" {latest_clear_count} to {reverted_clear_count}, in"
+                f" 0x{self._address.hex()}"
             )
 
     def commit(self, checkpoint: JournalDBCheckpoint) -> None:
@@ -418,7 +433,8 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         journal_diff = self._journal_storage.diff()
         if len(journal_diff) > 0:
             raise ValidationError(
-                f"StorageDB had a dirty journal when it needed to be clean: {journal_diff!r}"
+                "StorageDB had a dirty journal when it needed to be "
+                f"clean: {journal_diff!r}"
             )
 
     def get_accessed_slots(self) -> FrozenSet[int]:

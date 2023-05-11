@@ -20,7 +20,7 @@ def push_XX(computation: ComputationAPI, size: int) -> None:
     if raw_len == size:
         computation.stack_push_bytes(raw_value)
     else:
-        padded_value = raw_value.ljust(size, b'\x00')
+        padded_value = raw_value.ljust(size, b"\x00")
         computation.stack_push_bytes(padded_value)
 
 

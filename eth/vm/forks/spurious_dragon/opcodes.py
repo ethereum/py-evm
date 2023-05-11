@@ -47,7 +47,7 @@ UPDATED_OPCODES = {
         gas_cost=GAS_SELFDESTRUCT_EIP150,
     ),
     opcode_values.CALL: call.CallEIP161.configure(
-        __name__='opcode:CALL',
+        __name__="opcode:CALL",
         mnemonic=mnemonics.CALL,
         gas_cost=GAS_CALL_EIP150,
     )(),

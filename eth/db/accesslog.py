@@ -23,7 +23,7 @@ from eth.db.backends.base import (
 
 class KeyAccessLoggerDB(BaseDB):
     """
-    Wraps around a database, and tracks all the keys that were read since initialization.
+    Wraps around a database and tracks all the keys that were read since initialization.
     """
 
     logger = logging.getLogger("eth.db.KeyAccessLoggerDB")
@@ -68,11 +68,15 @@ class KeyAccessLoggerDB(BaseDB):
 
 class KeyAccessLoggerAtomicDB(BaseAtomicDB):
     """
-    Wraps around an atomic database, and tracks all the keys that were read since initialization.
+    Wraps around an atomic database and tracks all the keys
+    that were read since initialization.
     """
+
     logger = logging.getLogger("eth.db.KeyAccessLoggerAtomicDB")
 
-    def __init__(self, wrapped_db: AtomicDatabaseAPI, log_missing_keys: bool = True) -> None:
+    def __init__(
+        self, wrapped_db: AtomicDatabaseAPI, log_missing_keys: bool = True
+    ) -> None:
         """
         :param log_missing_keys: True if a key is added to :attr:`keys_read` even if the
             key/value does not exist in the database.

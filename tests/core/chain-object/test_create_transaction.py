@@ -27,10 +27,10 @@ def chain(request):
 
 @pytest.fixture
 def sender():
-    return keys.PrivateKey(b'unicornsrainbows' * 2)
+    return keys.PrivateKey(b"unicornsrainbows" * 2)
 
 
-TO_ADDRESS = b'\0' * 20
+TO_ADDRESS = b"\0" * 20
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def basic_transaction(chain, sender):
         gas=21001,  # non-default for testing purposes
         to=TO_ADDRESS,
         value=4321,
-        data=b'test',
+        data=b"test",
     )
     return unsigned_txn.as_signed_transaction(sender)
 
@@ -68,11 +68,11 @@ def test_basic_create_unsigned_transaction(chain):
         gas=21001,
         to=TO_ADDRESS,
         value=4321,
-        data=b'test',
+        data=b"test",
     )
     assert transaction.nonce == 0
     assert transaction.gas_price == 1234
     assert transaction.gas == 21001
     assert transaction.to == TO_ADDRESS
     assert transaction.value == 4321
-    assert transaction.data == b'test'
+    assert transaction.data == b"test"

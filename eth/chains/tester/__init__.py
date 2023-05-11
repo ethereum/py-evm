@@ -35,23 +35,21 @@ from eth.vm.forks.homestead import HomesteadVM
 
 class MaintainGasLimitMixin:
     @classmethod
-    def create_header_from_parent(cls,
-                                  parent_header: BlockHeaderAPI,
-                                  **header_params: Any) -> 'MaintainGasLimitMixin':
+    def create_header_from_parent(
+        cls, parent_header: BlockHeaderAPI, **header_params: Any
+    ) -> "MaintainGasLimitMixin":
         """
         Call the parent class method maintaining the same gas_limit as the
         previous block.
         """
         return super().create_header_from_parent(  # type: ignore
-            parent_header,
-            **assoc(header_params, 'gas_limit', parent_header.gas_limit)
+            parent_header, **assoc(header_params, "gas_limit", parent_header.gas_limit)
         )
 
 
 MAINNET_VMS = collections.OrderedDict(
     (vm_class.fork, type(vm_class.__name__, (MaintainGasLimitMixin, vm_class), {}))
-    for _, vm_class
-    in MainnetChain.vm_configuration
+    for _, vm_class in MainnetChain.vm_configuration
 )
 
 ForkStartBlocks = Sequence[Tuple[BlockNumber, Union[str, Type[VirtualMachineAPI]]]]
@@ -59,8 +57,9 @@ VMStartBlock = Tuple[BlockNumber, Type[VirtualMachineAPI]]
 
 
 @to_tuple
-def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
-                               dao_start_block: Union[int, bool] = None) -> Generator[VMStartBlock, None, None]:  # noqa: E501
+def _generate_vm_configuration(
+    *fork_start_blocks: ForkStartBlocks, dao_start_block: Union[int, bool] = None
+) -> Generator[VMStartBlock, None, None]:
     """
     fork_start_blocks should be 2-tuples of (start_block, fork_name_or_vm_class)
 
@@ -81,20 +80,15 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
     # Validate that there are no fork names which are not represented in the
     # mainnet chain.
     fork_names = {
-        fork_name for
-        _, fork_name
-        in fork_start_blocks
-        if isinstance(fork_name, str)
+        fork_name for _, fork_name in fork_start_blocks if isinstance(fork_name, str)
     }
-    unknown_forks = sorted(fork_names.difference(
-        MAINNET_VMS.keys()
-    ))
+    unknown_forks = sorted(fork_names.difference(MAINNET_VMS.keys()))
     if unknown_forks:
         raise ValidationError(f"Configuration contains unknown forks: {unknown_forks}")
 
     # Validate that *if* an explicit value was passed in for dao_start_block
     # that the Homestead fork rules are part of the VM configuration.
-    if dao_start_block is not None and 'homestead' not in fork_names:
+    if dao_start_block is not None and "homestead" not in fork_names:
         raise ValidationError(
             "The `dao_start_block` parameter is only valid for the 'homestead' "
             "fork rules.  The 'homestead' VM was not included in the provided "
@@ -104,7 +98,7 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
     # If no VM is set to start at block 0, default to the frontier VM
     start_blocks = {start_block for start_block, _ in fork_start_blocks}
     if 0 not in start_blocks:
-        yield GENESIS_BLOCK_NUMBER, MAINNET_VMS['frontier']
+        yield GENESIS_BLOCK_NUMBER, MAINNET_VMS["frontier"]
 
     ordered_fork_start_blocks = sorted(fork_start_blocks, key=operator.itemgetter(0))
 
@@ -122,10 +116,16 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
             if dao_start_block is False:
                 yield (start_block, vm_class.configure(support_dao_fork=False))
             elif dao_start_block is None:
-                yield (start_block, vm_class.configure(_dao_fork_block_number=start_block))
+                yield (
+                    start_block,
+                    vm_class.configure(_dao_fork_block_number=start_block),
+                )
             elif isinstance(dao_start_block, int):
                 validate_gte(dao_start_block, start_block)
-                yield (start_block, vm_class.configure(_dao_fork_block_number=dao_start_block))
+                yield (
+                    start_block,
+                    vm_class.configure(_dao_fork_block_number=dao_start_block),
+                )
             else:
                 raise Exception("Invariant: unreachable code path")
         else:
@@ -133,7 +133,9 @@ def _generate_vm_configuration(*fork_start_blocks: ForkStartBlocks,
 
 
 class BaseMainnetTesterChain(Chain):
-    vm_configuration: Tuple[Tuple[BlockNumber, Type[VirtualMachineAPI]], ...] = _generate_vm_configuration()  # noqa: E501
+    vm_configuration: Tuple[
+        Tuple[BlockNumber, Type[VirtualMachineAPI]], ...
+    ] = _generate_vm_configuration()
 
 
 class MainnetTesterChain(BaseMainnetTesterChain):
@@ -152,9 +154,11 @@ class MainnetTesterChain(BaseMainnetTesterChain):
         """
         pass
 
-    def configure_forks(self,
-                        *fork_start_blocks: ForkStartBlocks,
-                        dao_start_block: Union[int, bool] = None) -> None:
+    def configure_forks(
+        self,
+        *fork_start_blocks: ForkStartBlocks,
+        dao_start_block: Union[int, bool] = None,
+    ) -> None:
         """
         On demand configuration of fork rules.  This is a foot gun that if used
         incorrectly could cause weird VM errors.

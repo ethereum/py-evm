@@ -8,7 +8,7 @@ from .state import TangerineWhistleState
 
 class TangerineWhistleVM(HomesteadVM):
     # fork name
-    fork: str = 'tangerine-whistle'  # noqa
+    fork: str = "tangerine-whistle"  # noqa
 
     # classes
     _state_class: Type[StateAPI] = TangerineWhistleState

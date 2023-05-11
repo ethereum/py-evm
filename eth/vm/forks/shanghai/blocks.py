@@ -85,21 +85,21 @@ from .withdrawals import (
 )
 
 UNMINED_SHANGHAI_HEADER_FIELDS = [
-    ('parent_hash', hash32),
-    ('uncles_hash', hash32),
-    ('coinbase', address),
-    ('state_root', trie_root),
-    ('transaction_root', trie_root),
-    ('receipt_root', trie_root),
-    ('bloom', uint256),
-    ('difficulty', big_endian_int),
-    ('block_number', big_endian_int),
-    ('gas_limit', big_endian_int),
-    ('gas_used', big_endian_int),
-    ('timestamp', big_endian_int),
-    ('extra_data', binary),
-    ('base_fee_per_gas', big_endian_int),
-    ('withdrawals_root', trie_root),
+    ("parent_hash", hash32),
+    ("uncles_hash", hash32),
+    ("coinbase", address),
+    ("state_root", trie_root),
+    ("transaction_root", trie_root),
+    ("receipt_root", trie_root),
+    ("bloom", uint256),
+    ("difficulty", big_endian_int),
+    ("block_number", big_endian_int),
+    ("gas_limit", big_endian_int),
+    ("gas_used", big_endian_int),
+    ("timestamp", big_endian_int),
+    ("extra_data", binary),
+    ("base_fee_per_gas", big_endian_int),
+    ("withdrawals_root", trie_root),
 ]
 
 
@@ -110,10 +110,14 @@ class ShanghaiMiningHeader(rlp.Serializable, MiningHeaderAPI, ABC):
 class ShanghaiBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
     # `mix_hash` and `nonce` were fields before `base_fee_per_gas` and
     # `withdrawals_root` and, thus, appear in the block header before them.
-    fields = UNMINED_SHANGHAI_HEADER_FIELDS[:13] + [
-        ('mix_hash', binary),
-        ('nonce', Binary(8, allow_empty=True)),
-    ] + UNMINED_SHANGHAI_HEADER_FIELDS[13:]
+    fields = (
+        UNMINED_SHANGHAI_HEADER_FIELDS[:13]
+        + [
+            ("mix_hash", binary),
+            ("nonce", Binary(8, allow_empty=True)),
+        ]
+        + UNMINED_SHANGHAI_HEADER_FIELDS[13:]
+    )
 
     def __init__(
         self,
@@ -129,7 +133,7 @@ class ShanghaiBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
         receipt_root: Hash32 = BLANK_ROOT_HASH,
         bloom: int = 0,
         gas_used: int = 0,
-        extra_data: bytes = b'',
+        extra_data: bytes = b"",
         mix_hash: Hash32 = ZERO_HASH32,
         nonce: bytes = GENESIS_NONCE,
         base_fee_per_gas: int = 0,
@@ -167,8 +171,8 @@ class ShanghaiBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
 
     def __str__(self) -> str:
         return (
-            f'<ShanghaiBlockHeader '
-            f'#{self.block_number} {encode_hex(self.hash)[2:10]}>'
+            f"<ShanghaiBlockHeader "
+            f"#{self.block_number} {encode_hex(self.hash)[2:10]}>"
         )
 
     _hash = None
@@ -227,10 +231,10 @@ class ShanghaiBlock(BaseBlock):
     # London was the last fork where the receipt builder was updated
     receipt_builder: Type[ReceiptBuilderAPI] = LondonReceiptBuilder
     fields = [
-        ('header', ShanghaiBlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(ShanghaiBackwardsHeader, max_length=0)),
-        ('withdrawals', CountableList(Withdrawal)),
+        ("header", ShanghaiBlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(ShanghaiBackwardsHeader, max_length=0)),
+        ("withdrawals", CountableList(Withdrawal)),
     ]
 
     bloom_filter = None

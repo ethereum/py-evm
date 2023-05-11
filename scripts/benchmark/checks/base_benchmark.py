@@ -5,12 +5,12 @@ from abc import (
 import logging
 from typing import (
     Any,
-    Callable
+    Callable,
 )
 
 from _utils.meters import (
+    TimedResult,
     time_call,
-    TimedResult
 )
 from _utils.reporting import (
     DefaultStat,
@@ -19,24 +19,19 @@ from _utils.reporting import (
     print_default_benchmark_total_line,
 )
 from _utils.shellart import (
-    bold_yellow
+    bold_yellow,
 )
 
 
 class BaseBenchmark(ABC):
-
     @abstractmethod
     def execute(self) -> DefaultStat:
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        raise NotImplementedError("Must be implemented by subclasses")
 
     @property
     @abstractmethod
     def name(self) -> DefaultStat:
-        raise NotImplementedError(
-            "Must be implemented by subclasses"
-        )
+        raise NotImplementedError("Must be implemented by subclasses")
 
     def print_result_header(self) -> None:
         print_default_benchmark_result_header()
@@ -48,7 +43,7 @@ class BaseBenchmark(ABC):
         print_default_benchmark_total_line(stat)
 
     def run(self) -> DefaultStat:
-        logging.info(bold_yellow(f'Starting benchmark: {self.name}\n'))
+        logging.info(bold_yellow(f"Starting benchmark: {self.name}\n"))
         self.print_result_header()
         stat = self.execute()
         self.print_total_line(stat)

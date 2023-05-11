@@ -10,21 +10,21 @@ from eth.vm.forks.frontier import (
 
 
 class Forks(enum.Enum):
-    Custom = 'CustomFrontier'
-    Frontier = 'Frontier'
-    Homestead = 'Homestead'
-    TangerineWhistle = 'TangerineWhistle'
-    SpuriousDragon = 'SpuriousDragon'
-    Byzantium = 'Byzantium'
-    Constantinople = 'Constantinople'
-    Petersburg = 'Petersburg'
-    Istanbul = 'Istanbul'
-    MuirGlacier = 'MuirGlacier'
-    Berlin = 'Berlin'
-    London = 'London'
-    ArrowGlacier = 'ArrowGlacier'
-    GrayGlacier = 'GrayGlacier'
-    Paris = 'Paris'
+    Custom = "CustomFrontier"
+    Frontier = "Frontier"
+    Homestead = "Homestead"
+    TangerineWhistle = "TangerineWhistle"
+    SpuriousDragon = "SpuriousDragon"
+    Byzantium = "Byzantium"
+    Constantinople = "Constantinople"
+    Petersburg = "Petersburg"
+    Istanbul = "Istanbul"
+    MuirGlacier = "MuirGlacier"
+    Berlin = "Berlin"
+    London = "London"
+    ArrowGlacier = "ArrowGlacier"
+    GrayGlacier = "GrayGlacier"
+    Paris = "Paris"
 
 
 class CustomFrontierVM(FrontierVM):
@@ -40,27 +40,40 @@ class CustomFrontierVM(FrontierVM):
             ((0, Forks.Paris),),
         ),
         (
-            ((0, 'tangerine-whistle'), (1, 'spurious-dragon')),
+            ((0, "tangerine-whistle"), (1, "spurious-dragon")),
             {},
             ((0, Forks.TangerineWhistle), (1, Forks.SpuriousDragon)),
         ),
         (
-            ((1, 'tangerine-whistle'), (2, 'spurious-dragon')),
+            ((1, "tangerine-whistle"), (2, "spurious-dragon")),
             {},
-            ((0, Forks.Frontier), (1, Forks.TangerineWhistle), (2, Forks.SpuriousDragon)),
+            (
+                (0, Forks.Frontier),
+                (1, Forks.TangerineWhistle),
+                (2, Forks.SpuriousDragon),
+            ),
         ),
         (
-            ((0, CustomFrontierVM), (1, 'spurious-dragon')),
+            ((0, CustomFrontierVM), (1, "spurious-dragon")),
             {},
             ((0, Forks.Custom), (1, Forks.SpuriousDragon)),
         ),
         (
-            ((0, 'homestead'), (1, 'tangerine-whistle'), (2, 'spurious-dragon')),
+            ((0, "homestead"), (1, "tangerine-whistle"), (2, "spurious-dragon")),
             {},
-            ((0, Forks.Homestead), (1, Forks.TangerineWhistle), (2, Forks.SpuriousDragon)),
+            (
+                (0, Forks.Homestead),
+                (1, Forks.TangerineWhistle),
+                (2, Forks.SpuriousDragon),
+            ),
         ),
         (
-            ((0, 'frontier'), (1, 'homestead'), (2, 'tangerine-whistle'), (3, 'spurious-dragon')),
+            (
+                (0, "frontier"),
+                (1, "homestead"),
+                (2, "tangerine-whistle"),
+                (3, "spurious-dragon"),
+            ),
             {},
             (
                 (0, Forks.Frontier),
@@ -70,7 +83,7 @@ class CustomFrontierVM(FrontierVM):
             ),
         ),
         (
-            ((0, 'frontier'), (1, 'homestead'), (3, 'spurious-dragon')),
+            ((0, "frontier"), (1, "homestead"), (3, "spurious-dragon")),
             {},
             (
                 (0, Forks.Frontier),
@@ -79,37 +92,42 @@ class CustomFrontierVM(FrontierVM):
             ),
         ),
         (
-            ((0, 'homestead'), (1, 'tangerine-whistle')),
+            ((0, "homestead"), (1, "tangerine-whistle")),
             {},
             ((0, Forks.Homestead), (1, Forks.TangerineWhistle)),
         ),
         (
-            ((0, 'frontier'), (1, 'homestead')),
+            ((0, "frontier"), (1, "homestead")),
             {},
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
         (
-            ((1, 'homestead'),),
+            ((1, "homestead"),),
             {},
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
         (
-            ((0, 'frontier'), (1, 'homestead')),
-            {'dao_start_block': 2},
+            ((0, "frontier"), (1, "homestead")),
+            {"dao_start_block": 2},
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
         (
-            ((0, 'frontier'), (1, 'homestead')),
-            {'dao_start_block': False},
+            ((0, "frontier"), (1, "homestead")),
+            {"dao_start_block": False},
             ((0, Forks.Frontier), (1, Forks.Homestead)),
         ),
         (
-            ((0, 'frontier'), (1, 'homestead'), (2, 'tangerine-whistle')),
+            ((0, "frontier"), (1, "homestead"), (2, "tangerine-whistle")),
             {},
             ((0, Forks.Frontier), (1, Forks.Homestead), (2, Forks.TangerineWhistle)),
         ),
         (
-            ((0, 'frontier'), (1, 'homestead'), (2, 'tangerine-whistle'), (3, 'byzantium')),
+            (
+                (0, "frontier"),
+                (1, "homestead"),
+                (2, "tangerine-whistle"),
+                (3, "byzantium"),
+            ),
             {},
             (
                 (0, Forks.Frontier),
@@ -120,18 +138,18 @@ class CustomFrontierVM(FrontierVM):
         ),
         (
             (
-                (0, 'frontier'),
-                (1, 'homestead'),
-                (2, 'tangerine-whistle'),
-                (3, 'byzantium'),
-                (5, 'petersburg'),
-                (6, 'istanbul'),
-                (7, 'muir-glacier'),
-                (8, 'berlin'),
-                (9, 'london'),
-                (10, 'arrow-glacier'),
-                (11, 'gray-glacier'),
-                (12, 'paris'),
+                (0, "frontier"),
+                (1, "homestead"),
+                (2, "tangerine-whistle"),
+                (3, "byzantium"),
+                (5, "petersburg"),
+                (6, "istanbul"),
+                (7, "muir-glacier"),
+                (8, "berlin"),
+                (9, "london"),
+                (10, "arrow-glacier"),
+                (11, "gray-glacier"),
+                (12, "paris"),
             ),
             {},
             (
@@ -165,7 +183,7 @@ def test_generate_vm_configuration(args, kwargs, expected):
         assert right_vm.value in left_vm.__name__
 
         if right_vm == Forks.Homestead:
-            dao_start_block = kwargs.get('dao_start_block')
+            dao_start_block = kwargs.get("dao_start_block")
             if dao_start_block is False:
                 assert left_vm.support_dao_fork is False
             elif dao_start_block is None:

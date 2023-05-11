@@ -81,12 +81,11 @@ class HeaderDB(HeaderDatabaseAPI):
 
     @classmethod
     def _update_header_chain_gaps(
-            cls,
-            db: DatabaseAPI,
-            persisted_header: BlockHeaderAPI,
-            base_gaps: ChainGaps = None
+        cls,
+        db: DatabaseAPI,
+        persisted_header: BlockHeaderAPI,
+        base_gaps: ChainGaps = None,
     ) -> GapInfo:
-
         # If we make many updates in a row, we can avoid reloading the integrity info by
         # continuously caching it and providing it as a parameter to this API
         if base_gaps is None:
@@ -97,7 +96,7 @@ class HeaderDB(HeaderDatabaseAPI):
         if gap_change is not GapChange.NoChange:
             db.set(
                 SchemaV1.make_header_chain_gaps_lookup_key(),
-                rlp.encode(gaps, sedes=chain_gaps)
+                rlp.encode(gaps, sedes=chain_gaps),
             )
 
         return gap_change, gaps
@@ -122,14 +121,15 @@ class HeaderDB(HeaderDatabaseAPI):
         else:
             return rlp.decode(encoded_key, sedes=rlp.sedes.binary)
 
-    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
+    def get_canonical_block_header_by_number(
+        self, block_number: BlockNumber
+    ) -> BlockHeaderAPI:
         return self._get_canonical_block_header_by_number(self.db, block_number)
 
     @classmethod
     def _get_canonical_block_header_by_number(
-            cls,
-            db: DatabaseAPI,
-            block_number: BlockNumber) -> BlockHeaderAPI:
+        cls, db: DatabaseAPI, block_number: BlockNumber
+    ) -> BlockHeaderAPI:
         validate_block_number(block_number)
         canonical_block_hash = cls._get_canonical_block_hash(db, block_number)
         return cls._get_block_header_by_hash(db, canonical_block_hash)
@@ -156,7 +156,9 @@ class HeaderDB(HeaderDatabaseAPI):
         return self._get_block_header_by_hash(self.db, block_hash)
 
     @staticmethod
-    def _get_block_header_by_hash(db: DatabaseAPI, block_hash: Hash32) -> BlockHeaderAPI:
+    def _get_block_header_by_hash(
+        db: DatabaseAPI, block_hash: Hash32
+    ) -> BlockHeaderAPI:
         """
         Returns the requested block header as specified by block hash.
 
@@ -188,15 +190,16 @@ class HeaderDB(HeaderDatabaseAPI):
         validate_word(block_hash, title="Block Hash")
         return block_hash in db
 
-    def persist_header(self,
-                       header: BlockHeaderAPI
-                       ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
+    def persist_header(
+        self, header: BlockHeaderAPI
+    ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         return self.persist_header_chain((header,))
 
-    def persist_header_chain(self,
-                             headers: Iterable[BlockHeaderAPI],
-                             genesis_parent_hash: Hash32 = GENESIS_PARENT_HASH
-                             ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
+    def persist_header_chain(
+        self,
+        headers: Iterable[BlockHeaderAPI],
+        genesis_parent_hash: Hash32 = GENESIS_PARENT_HASH,
+    ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         with self.db.atomic_batch() as db:
             return self._persist_header_chain(db, headers, genesis_parent_hash)
 
@@ -206,15 +209,14 @@ class HeaderDB(HeaderDatabaseAPI):
 
     @classmethod
     def _set_hash_scores_to_db(
-            cls,
-            db: DatabaseAPI,
-            header: BlockHeaderAPI,
-            score: int
+        cls, db: DatabaseAPI, header: BlockHeaderAPI, score: int
     ) -> int:
         difficulty = header.difficulty
         new_score = (
             # In PoS, difficulty = 0 and score values do not need to work the same way
-            score + difficulty if difficulty != 0 else score + header.block_number
+            score + difficulty
+            if difficulty != 0
+            else score + header.block_number
         )
 
         db.set(
@@ -226,10 +228,7 @@ class HeaderDB(HeaderDatabaseAPI):
 
     @classmethod
     def _persist_checkpoint_header(
-            cls,
-            db: DatabaseAPI,
-            header: BlockHeaderAPI,
-            score: int
+        cls, db: DatabaseAPI, header: BlockHeaderAPI, score: int
     ) -> None:
         db.set(
             header.hash,
@@ -241,19 +240,22 @@ class HeaderDB(HeaderDatabaseAPI):
         new_checkpoints = previous_checkpoints + (header.hash,)
         db.set(
             SchemaV1.make_checkpoint_headers_key(),
-            b''.join(new_checkpoints),
+            b"".join(new_checkpoints),
         )
 
         difficulty = header.difficulty
         previous_score = (
             # In PoS, difficulty = 0 and score values do not need to work the same way
-            score - difficulty if difficulty != 0 else score - header.block_number
+            score - difficulty
+            if difficulty != 0
+            else score - header.block_number
         )
         cls._set_hash_scores_to_db(db, header, previous_score)
         cls._set_as_canonical_chain_head(db, header, GENESIS_PARENT_HASH)
         _, gaps = cls._update_header_chain_gaps(db, header)
 
-        # check if the parent block number exists, and is not a match for checkpoint.parent_hash
+        # check if the parent block number exists, and is not a match
+        # for checkpoint.parent_hash
         parent_block_num = BlockNumber(header.block_number - 1)
         try:
             parent_hash = cls._get_canonical_block_hash(db, parent_block_num)
@@ -261,8 +263,9 @@ class HeaderDB(HeaderDatabaseAPI):
             # no parent to check
             pass
         else:
-            # User is asserting that the checkpoint must be canonical, so if the parent doesn't
-            # match, then the parent must not be canonical, and should be de-canonicalized.
+            # User is asserting that the checkpoint must be canonical, so if the parent
+            # doesn't match, then the parent must not be canonical,
+            # and should be de-canonicalized.
             if parent_hash != header.parent_hash:
                 # does the correct header exist in the database?
                 try:
@@ -274,21 +277,19 @@ class HeaderDB(HeaderDatabaseAPI):
                     # True parent should have already been canonicalized during
                     #   _set_as_canonical_chain_head()
                     raise ValidationError(
-                        f"Why was a non-matching parent header {parent_hash!r} left as canonical "
-                        f"after _set_as_canonical_chain_head() and {true_parent} is available?"
+                        f"Why was a non-matching parent header {parent_hash!r} left as "
+                        "canonical after _set_as_canonical_chain_head() and "
+                        f"{true_parent} is available?"
                     )
 
         cls._decanonicalize_descendant_orphans(db, header, new_checkpoints)
 
     @classmethod
     def _decanonicalize_descendant_orphans(
-            cls,
-            db: DatabaseAPI,
-            header: BlockHeaderAPI,
-            checkpoints: Tuple[Hash32, ...]) -> None:
-
-        # Determine if any children need to be de-canonicalized because they are not children of
-        #   the new chain head
+        cls, db: DatabaseAPI, header: BlockHeaderAPI, checkpoints: Tuple[Hash32, ...]
+    ) -> None:
+        # Determine if any children need to be de-canonicalized because they are not
+        # children of the new chain head
         new_gaps = starting_gaps = cls._get_header_chain_gaps(db)
 
         child_number = BlockNumber(header.block_number + 1)
@@ -301,7 +302,8 @@ class HeaderDB(HeaderDatabaseAPI):
             if child.parent_hash != header.hash:
                 if child.hash in checkpoints:
                     raise CheckpointsMustBeCanonical(
-                        f"Trying to decanonicalize {child} while making {header} the chain tip"
+                        f"Trying to decanonicalize {child} while making "
+                        f"{header} the chain tip"
                     )
                 else:
                     next_invalid_child = child
@@ -317,29 +319,29 @@ class HeaderDB(HeaderDatabaseAPI):
             child_number = BlockNumber(child_number + 1)
             try:
                 # All contiguous children must now be made invalid
-                next_invalid_child = cls._get_canonical_block_header_by_number(db, child_number)
+                next_invalid_child = cls._get_canonical_block_header_by_number(
+                    db, child_number
+                )
             except HeaderNotFound:
                 # Found the end of this streak of canonical blocks
                 break
             else:
                 if next_invalid_child.hash in checkpoints:
                     raise CheckpointsMustBeCanonical(
-                        f"Trying to decanonicalize {next_invalid_child} while making {header} the"
-                        " chain tip"
+                        f"Trying to decanonicalize {next_invalid_child} while making "
+                        f"{header} the chain tip"
                     )
 
         if new_gaps != starting_gaps:
             db.set(
                 SchemaV1.make_header_chain_gaps_lookup_key(),
-                rlp.encode(new_gaps, sedes=chain_gaps)
+                rlp.encode(new_gaps, sedes=chain_gaps),
             )
 
     @classmethod
     def _decanonicalize_single(
-            cls,
-            db: DatabaseAPI,
-            block_num: BlockNumber,
-            base_gaps: ChainGaps) -> ChainGaps:
+        cls, db: DatabaseAPI, block_num: BlockNumber, base_gaps: ChainGaps
+    ) -> ChainGaps:
         """
         A single block number was found to no longer be canonical. At doc-time,
         this only happens because it does not link up with a checkpoint header.
@@ -347,24 +349,22 @@ class HeaderDB(HeaderDatabaseAPI):
         chain gaps.
         """
 
-        db.delete(
-            SchemaV1.make_block_number_to_hash_lookup_key(block_num)
-        )
+        db.delete(SchemaV1.make_block_number_to_hash_lookup_key(block_num))
 
         new_gaps = reopen_gap(block_num, base_gaps)
         if new_gaps != base_gaps:
             db.set(
                 SchemaV1.make_header_chain_gaps_lookup_key(),
-                rlp.encode(new_gaps, sedes=chain_gaps)
+                rlp.encode(new_gaps, sedes=chain_gaps),
             )
         return new_gaps
 
     @classmethod
     def _persist_header_chain(
-            cls,
-            db: DatabaseAPI,
-            headers: Iterable[BlockHeaderAPI],
-            genesis_parent_hash: Hash32,
+        cls,
+        db: DatabaseAPI,
+        headers: Iterable[BlockHeaderAPI],
+        genesis_parent_hash: Hash32,
     ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         headers_iterator = iter(headers)
 
@@ -394,7 +394,9 @@ class HeaderDB(HeaderDatabaseAPI):
 
         base_gaps = cls._get_header_chain_gaps(db)
         gap_info = cls._update_header_chain_gaps(db, curr_chain_head, base_gaps)
-        gaps = cls._handle_gap_change(db, gap_info, curr_chain_head, genesis_parent_hash)
+        gaps = cls._handle_gap_change(
+            db, gap_info, curr_chain_head, genesis_parent_hash
+        )
 
         orig_headers_seq = concat([(first_header,), headers_iterator])
         for parent, child in sliding_window(2, orig_headers_seq):
@@ -413,25 +415,32 @@ class HeaderDB(HeaderDatabaseAPI):
 
             score = cls._set_hash_scores_to_db(db, curr_chain_head, score)
             gap_info = cls._update_header_chain_gaps(db, curr_chain_head, gaps)
-            gaps = cls._handle_gap_change(db, gap_info, curr_chain_head, genesis_parent_hash)
+            gaps = cls._handle_gap_change(
+                db, gap_info, curr_chain_head, genesis_parent_hash
+            )
         try:
             previous_canonical_head = cls._get_canonical_head_hash(db)
             head_score = cls._get_score(db, previous_canonical_head)
         except CanonicalHeadNotFound:
-            return cls._set_as_canonical_chain_head(db, curr_chain_head, genesis_parent_hash)
+            return cls._set_as_canonical_chain_head(
+                db, curr_chain_head, genesis_parent_hash
+            )
 
         if score > head_score:
-            return cls._set_as_canonical_chain_head(db, curr_chain_head, genesis_parent_hash)
+            return cls._set_as_canonical_chain_head(
+                db, curr_chain_head, genesis_parent_hash
+            )
 
         return (), ()
 
     @classmethod
-    def _handle_gap_change(cls,
-                           db: DatabaseAPI,
-                           gap_info: GapInfo,
-                           header: BlockHeaderAPI,
-                           genesis_parent_hash: Hash32) -> ChainGaps:
-
+    def _handle_gap_change(
+        cls,
+        db: DatabaseAPI,
+        gap_info: GapInfo,
+        header: BlockHeaderAPI,
+        genesis_parent_hash: Hash32,
+    ) -> ChainGaps:
         gap_change, gaps = gap_info
         if gap_change not in GAP_WRITES:
             return gaps
@@ -439,26 +448,32 @@ class HeaderDB(HeaderDatabaseAPI):
         # Check if this change will link up the chain to the right
         if gap_change in (GapChange.GapFill, GapChange.GapRightShrink):
             next_child_number = BlockNumber(header.block_number + 1)
-            expected_child = cls._get_canonical_block_header_by_number(db, next_child_number)
+            expected_child = cls._get_canonical_block_header_by_number(
+                db, next_child_number
+            )
             if header.hash != expected_child.parent_hash:
-                # Must not join a canonical chain that is not linked from parent to child
-                # If the child is a checkpoint, reject this fill as an uncle.
+                # Must not join a canonical chain that is not linked from parent to
+                # child. If the child is a checkpoint, reject this fill as an uncle.
                 checkpoints = cls._get_checkpoints(db)
                 if expected_child.hash in checkpoints:
                     raise CheckpointsMustBeCanonical(
-                        f"Cannot make {header} canonical, because it is not the parent of"
-                        f" declared checkpoint: {expected_child}"
+                        f"Cannot make {header} canonical, because it is not the parent "
+                        f"of declared checkpoint: {expected_child}"
                     )
                 else:
-                    # If the child is *not* a checkpoint, then re-open a gap in the chain
-                    gaps = cls._decanonicalize_single(db, expected_child.block_number, gaps)
+                    # If the child is *not* a checkpoint,
+                    # then re-open a gap in the chain
+                    gaps = cls._decanonicalize_single(
+                        db, expected_child.block_number, gaps
+                    )
 
         # We implicitly assert that persisted headers are canonical here.
-        # This assertion is made when persisting headers that are known to be part of a gap
-        # in the canonical chain.
-        # What if this assertion is later found to be false? At gap fill time, we can detect if the
-        # chains don't link (and raise a ValidationError). Also, when a true canonical header is
-        # added eventually, we need to canonicalize all the true headers.
+        # This assertion is made when persisting headers that are known to be part of a
+        # gap in the canonical chain.
+        # What if this assertion is later found to be false? At gap fill time, we can
+        # detect if the chains don't link (and raise a ValidationError). Also, when a
+        # true canonical header is added eventually, we need to canonicalize all the
+        # true headers.
         cls._canonicalize_header(db, header, genesis_parent_hash)
         return gaps
 
@@ -470,14 +485,15 @@ class HeaderDB(HeaderDatabaseAPI):
         genesis_parent_hash: Hash32,
     ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         """
-        Force this header to be canonical, and adjust its ancestors/descendants as necessary
+        Force this header to be canonical,
+        and adjust its ancestors/descendants as necessary
 
         :raises CheckpointsMustBeCanonical: if trying to set a head that would
             de-canonicalize a checkpoint
         """
         new_canonical_headers = cast(
             Tuple[BlockHeaderAPI, ...],
-            tuple(reversed(cls._find_new_ancestors(db, header, genesis_parent_hash)))
+            tuple(reversed(cls._find_new_ancestors(db, header, genesis_parent_hash))),
         )
         old_canonical_headers = cls._find_headers_to_decanonicalize(
             db,
@@ -486,19 +502,23 @@ class HeaderDB(HeaderDatabaseAPI):
 
         # Reject if this would make a checkpoint non-canonical
         checkpoints = cls._get_checkpoints(db)
-        attempted_checkpoint_overrides = {old for old in old_canonical_headers
-                                          if old.hash in checkpoints}
+        attempted_checkpoint_overrides = {
+            old for old in old_canonical_headers if old.hash in checkpoints
+        }
         if len(attempted_checkpoint_overrides):
             raise CheckpointsMustBeCanonical(
-                f"Tried to switch chain away from checkpoint(s) {attempted_checkpoint_overrides!r}"
-                f" by inserting new canonical headers {new_canonical_headers}"
+                "Tried to switch chain away from checkpoint(s) "
+                f"{attempted_checkpoint_overrides!r} by inserting new canonical "
+                f"headers {new_canonical_headers}"
             )
 
         for ancestor in new_canonical_headers:
             cls._add_block_number_to_hash_lookup(db, ancestor)
 
         if len(new_canonical_headers):
-            cls._decanonicalize_descendant_orphans(db, new_canonical_headers[-1], checkpoints)
+            cls._decanonicalize_descendant_orphans(
+                db, new_canonical_headers[-1], checkpoints
+            )
 
         return new_canonical_headers, old_canonical_headers
 
@@ -513,8 +533,8 @@ class HeaderDB(HeaderDatabaseAPI):
         Sets the canonical chain HEAD to the block header as specified by the
         given block hash.
 
-        :return: a tuple of the headers that are newly in the canonical chain, and the headers that
-            are no longer in the canonical chain
+        :return: a tuple of the headers that are newly in the canonical chain, and the
+            headers that are no longer in the canonical chain
         :raises CheckpointsMustBeCanonical: if trying to set a head that would
             de-canonicalize a checkpoint
         """
@@ -550,16 +570,14 @@ class HeaderDB(HeaderDatabaseAPI):
             return ()
         else:
             return tuple(
-                Hash32(concatenated_checkpoints[index:index + 32])
+                Hash32(concatenated_checkpoints[index : index + 32])
                 for index in range(0, len(concatenated_checkpoints), 32)
             )
 
     @classmethod
     @to_tuple
     def _find_headers_to_decanonicalize(
-        cls,
-        db: DatabaseAPI,
-        numbers_to_decanonicalize: Sequence[BlockNumber]
+        cls, db: DatabaseAPI, numbers_to_decanonicalize: Sequence[BlockNumber]
     ) -> Iterable[BlockHeaderAPI]:
         for block_number in numbers_to_decanonicalize:
             try:
@@ -572,10 +590,9 @@ class HeaderDB(HeaderDatabaseAPI):
 
     @classmethod
     @to_tuple
-    def _find_new_ancestors(cls,
-                            db: DatabaseAPI,
-                            header: BlockHeaderAPI,
-                            genesis_parent_hash: Hash32) -> Iterable[BlockHeaderAPI]:
+    def _find_new_ancestors(
+        cls, db: DatabaseAPI, header: BlockHeaderAPI, genesis_parent_hash: Hash32
+    ) -> Iterable[BlockHeaderAPI]:
         """
         Returns the chain leading up from the given header until (but not including)
         the first ancestor it has in common with our canonical chain.
@@ -612,7 +629,9 @@ class HeaderDB(HeaderDatabaseAPI):
                     break
 
     @staticmethod
-    def _add_block_number_to_hash_lookup(db: DatabaseAPI, header: BlockHeaderAPI) -> None:
+    def _add_block_number_to_hash_lookup(
+        db: DatabaseAPI, header: BlockHeaderAPI
+    ) -> None:
         """
         Sets a record in the database to allow looking up this header by its
         block number.
@@ -626,10 +645,10 @@ class HeaderDB(HeaderDatabaseAPI):
         )
 
 
-# When performing a chain sync (either fast or regular modes), we'll very often need to look
-# up recent block headers to validate the chain, and decoding their RLP representation is
-# relatively expensive so we cache that here, but use a small cache because we *should* only
-# be looking up recent blocks.
+# When performing a chain sync (either fast or regular modes), we'll very often need to
+# look up recent block headers to validate the chain, and decoding their RLP
+# representation is relatively expensive so we cache that here, but use a small cache
+# because we *should* only be looking up recent blocks.
 @functools.lru_cache(128)
 def _decode_block_header(header_rlp: bytes) -> BlockHeaderAPI:
     # Use a deserialization class that can handle any type of header.

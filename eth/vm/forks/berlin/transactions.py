@@ -97,9 +97,9 @@ class BerlinLegacyTransaction(MuirGlacierTransaction):
 
 
 class BerlinUnsignedLegacyTransaction(MuirGlacierUnsignedTransaction):
-    def as_signed_transaction(self,
-                              private_key: PrivateKey,
-                              chain_id: int = None) -> BerlinLegacyTransaction:
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> BerlinLegacyTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return BerlinLegacyTransaction(
             nonce=self.nonce,
@@ -116,22 +116,22 @@ class BerlinUnsignedLegacyTransaction(MuirGlacierUnsignedTransaction):
 
 class AccountAccesses(rlp.Serializable):
     fields = [
-        ('account', address),
-        ('storage_keys', CountableList(BigEndianInt(32))),
+        ("account", address),
+        ("storage_keys", CountableList(BigEndianInt(32))),
     ]
 
 
 class UnsignedAccessListTransaction(rlp.Serializable):
     _type_id = ACCESS_LIST_TRANSACTION_TYPE
     fields = [
-        ('chain_id', big_endian_int),
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('access_list', CountableList(AccountAccesses)),
+        ("chain_id", big_endian_int),
+        ("nonce", big_endian_int),
+        ("gas_price", big_endian_int),
+        ("gas", big_endian_int),
+        ("to", address),
+        ("value", big_endian_int),
+        ("data", binary),
+        ("access_list", CountableList(AccountAccesses)),
     ]
 
     @cached_property
@@ -142,7 +142,7 @@ class UnsignedAccessListTransaction(rlp.Serializable):
         payload = rlp.encode(self)
         return self._type_byte + payload
 
-    def as_signed_transaction(self, private_key: PrivateKey) -> 'TypedTransaction':
+    def as_signed_transaction(self, private_key: PrivateKey) -> "TypedTransaction":
         message = self.get_message_for_signing()
         signature = private_key.sign_msg(message)
         y_parity, r, s = signature.vrs
@@ -158,7 +158,7 @@ class UnsignedAccessListTransaction(rlp.Serializable):
             self.access_list,
             y_parity,
             r,
-            s
+            s,
         )
         return TypedTransaction(self._type_id, signed_transaction)
 
@@ -190,20 +190,22 @@ class UnsignedAccessListTransaction(rlp.Serializable):
         return self.gas_price
 
 
-class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI):
+class AccessListTransaction(
+    rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI
+):
     _type_id = ACCESS_LIST_TRANSACTION_TYPE
     fields = [
-        ('chain_id', big_endian_int),
-        ('nonce', big_endian_int),
-        ('gas_price', big_endian_int),
-        ('gas', big_endian_int),
-        ('to', address),
-        ('value', big_endian_int),
-        ('data', binary),
-        ('access_list', CountableList(AccountAccesses)),
-        ('y_parity', big_endian_int),
-        ('r', big_endian_int),
-        ('s', big_endian_int),
+        ("chain_id", big_endian_int),
+        ("nonce", big_endian_int),
+        ("gas_price", big_endian_int),
+        ("gas", big_endian_int),
+        ("to", address),
+        ("value", big_endian_int),
+        ("data", binary),
+        ("access_list", CountableList(AccountAccesses)),
+        ("y_parity", big_endian_int),
+        ("r", big_endian_int),
+        ("s", big_endian_int),
     ]
 
     def get_sender(self) -> Address:
@@ -241,16 +243,12 @@ class AccessListTransaction(rlp.Serializable, SignedTransactionMethods, SignedTr
         return rlp.encode(self)
 
     def make_receipt(
-            self,
-            status: bytes,
-            gas_used: int,
-            log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]) -> ReceiptAPI:
-
-        logs = [
-            Log(address, topics, data)
-            for address, topics, data
-            in log_entries
-        ]
+        self,
+        status: bytes,
+        gas_used: int,
+        log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...],
+    ) -> ReceiptAPI:
+        logs = [Log(address, topics, data) for address, topics, data in log_entries]
         # TypedTransaction is responsible for wrapping this into a TypedReceipt
         return Receipt(
             state_root=status,
@@ -274,7 +272,9 @@ class AccessListPayloadDecoder(TransactionDecoderAPI):
         return rlp.decode(payload, sedes=AccessListTransaction)
 
 
-class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, TransactionDecoderAPI):
+class TypedTransaction(
+    SignedTransactionMethods, SignedTransactionAPI, TransactionDecoderAPI
+):
     rlp_type = Binary(min_length=1)  # must have at least one byte for the type
     _inner: SignedTransactionAPI
 
@@ -294,7 +294,9 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
         elif type_id in VALID_TRANSACTION_TYPES:
             raise UnrecognizedTransactionType(type_id, "Unknown transaction type")
         else:
-            raise ValidationError(f"Cannot build typed transaction with {hex(type_id)} >= 0x80")
+            raise ValidationError(
+                f"Cannot build typed transaction with {hex(type_id)} >= 0x80"
+            )
 
     def encode(self) -> bytes:
         return self._type_byte + self._inner.encode()
@@ -309,12 +311,14 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
         return cls(type_id, inner_transaction)
 
     @classmethod
-    def serialize(cls, obj: 'TypedTransaction') -> DecodedZeroOrOneLayerRLP:
+    def serialize(cls, obj: "TypedTransaction") -> DecodedZeroOrOneLayerRLP:
         encoded = obj.encode()
         return cls.rlp_type.serialize(encoded)
 
     @classmethod
-    def deserialize(cls, encoded_unchecked: DecodedZeroOrOneLayerRLP) -> SignedTransactionAPI:
+    def deserialize(
+        cls, encoded_unchecked: DecodedZeroOrOneLayerRLP
+    ) -> SignedTransactionAPI:
         # binary checks a few basics, like the length of the bytes
         encoded = cls.rlp_type.deserialize(encoded_unchecked)
         return cls.decode(encoded)
@@ -391,7 +395,7 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
     def get_intrinsic_gas(self) -> int:
         return self._inner.get_intrinsic_gas()
 
-    def copy(self, **overrides: Any) -> 'TypedTransaction':
+    def copy(self, **overrides: Any) -> "TypedTransaction":
         inner_copy = self._inner.copy(**overrides)
         return type(self)(self.type_id, inner_copy)
 
@@ -402,11 +406,11 @@ class TypedTransaction(SignedTransactionMethods, SignedTransactionAPI, Transacti
             return self.type_id == other.type_id and self._inner == other._inner
 
     def make_receipt(
-            self,
-            status: bytes,
-            gas_used: int,
-            log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...]) -> ReceiptAPI:
-
+        self,
+        status: bytes,
+        gas_used: int,
+        log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...],
+    ) -> ReceiptAPI:
         inner_receipt = self._inner.make_receipt(status, gas_used, log_entries)
 
         return self.receipt_builder.typed_receipt_class(self.type_id, inner_receipt)
@@ -422,6 +426,7 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
     It dispatches to either the legacy transaction type or the new typed
     transaction, depending on the nature of the encoded/decoded transaction.
     """
+
     legacy_signed = BerlinLegacyTransaction
     legacy_unsigned = BerlinUnsignedLegacyTransaction
     typed_transaction = TypedTransaction
@@ -429,7 +434,9 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
     @classmethod
     def decode(cls, encoded: bytes) -> SignedTransactionAPI:
         if len(encoded) == 0:
-            raise ValidationError("Encoded transaction was empty, which makes it invalid")
+            raise ValidationError(
+                "Encoded transaction was empty, which makes it invalid"
+            )
 
         type_id = to_int(encoded[0])
         if type_id in VALID_TRANSACTION_TYPES:
@@ -452,41 +459,45 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
             return cls.legacy_signed.serialize(obj)
 
     @classmethod
-    def create_unsigned_transaction(cls,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> UnsignedTransactionAPI:
+    def create_unsigned_transaction(
+        cls,
+        *,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+    ) -> UnsignedTransactionAPI:
         return cls.legacy_unsigned(nonce, gas_price, gas, to, value, data)
 
     @classmethod
     def new_transaction(
-            cls,
-            nonce: int,
-            gas_price: int,
-            gas: int,
-            to: Address,
-            value: int,
-            data: bytes,
-            v: int,
-            r: int,
-            s: int) -> SignedTransactionAPI:
+        cls,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+        v: int,
+        r: int,
+        s: int,
+    ) -> SignedTransactionAPI:
         return cls.legacy_signed(nonce, gas_price, gas, to, value, data, v, r, s)
 
     @classmethod
     def new_unsigned_access_list_transaction(
-            cls,
-            chain_id: int,
-            nonce: int,
-            gas_price: int,
-            gas: int,
-            to: Address,
-            value: int,
-            data: bytes,
-            access_list: Sequence[Tuple[Address, Sequence[int]]]) -> TypedTransaction:
+        cls,
+        chain_id: int,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+        access_list: Sequence[Tuple[Address, Sequence[int]]],
+    ) -> TypedTransaction:
         transaction = UnsignedAccessListTransaction(
             chain_id,
             nonce,
@@ -501,18 +512,19 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
 
     @classmethod
     def new_access_list_transaction(
-            cls,
-            chain_id: int,
-            nonce: int,
-            gas_price: int,
-            gas: int,
-            to: Address,
-            value: int,
-            data: bytes,
-            access_list: Sequence[Tuple[Address, Sequence[int]]],
-            y_parity: int,
-            r: int,
-            s: int) -> TypedTransaction:
+        cls,
+        chain_id: int,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes,
+        access_list: Sequence[Tuple[Address, Sequence[int]]],
+        y_parity: int,
+        r: int,
+        s: int,
+    ) -> TypedTransaction:
         transaction = AccessListTransaction(
             chain_id,
             nonce,

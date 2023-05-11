@@ -94,23 +94,25 @@ def _file_logging(request):
 """
 
 
-@pytest.fixture(params=[
-                FrontierVM,
-                HomesteadVM.configure(
-                    support_dao_fork=False,
-                ),
-                TangerineWhistleVM,
-                SpuriousDragonVM,
-                ByzantiumVM,
-                ConstantinopleVM,
-                PetersburgVM,
-                IstanbulVM,
-                MuirGlacierVM,
-                BerlinVM,
-                LondonVM,
-                ArrowGlacierVM,
-                GrayGlacierVM,
-                ])
+@pytest.fixture(
+    params=[
+        FrontierVM,
+        HomesteadVM.configure(
+            support_dao_fork=False,
+        ),
+        TangerineWhistleVM,
+        SpuriousDragonVM,
+        ByzantiumVM,
+        ConstantinopleVM,
+        PetersburgVM,
+        IstanbulVM,
+        MuirGlacierVM,
+        BerlinVM,
+        LondonVM,
+        ArrowGlacierVM,
+        GrayGlacierVM,
+    ]
+)
 def VM(request):
     return request.param
 
@@ -123,7 +125,7 @@ def base_db():
 @pytest.fixture
 def funded_address_private_key():
     return keys.PrivateKey(
-        decode_hex('0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8')
+        decode_hex("0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8")
     )
 
 
@@ -134,20 +136,22 @@ def funded_address(funded_address_private_key):
 
 @pytest.fixture
 def funded_address_initial_balance():
-    return to_wei(1000, 'ether')
+    return to_wei(1000, "ether")
 
 
-# wrapped in a method so that different callers aren't using (and modifying) the same dict
+# wrapped in a method so that different callers aren't using (and modifying)
+# the same dict
 def _get_genesis_defaults():
-    # values that are not yet customizeable (and will automatically be default) are commented out
+    # values that are not yet customizeable (and will automatically be default)
+    # are commented out
     return {
-        'difficulty': constants.GENESIS_DIFFICULTY,
-        'gas_limit': 3141592,
-        'coinbase': constants.GENESIS_COINBASE,
-        'nonce': constants.GENESIS_NONCE,
-        'mix_hash': constants.GENESIS_MIX_HASH,
-        'extra_data': constants.GENESIS_EXTRA_DATA,
-        'timestamp': 1501851927,
+        "difficulty": constants.GENESIS_DIFFICULTY,
+        "gas_limit": 3141592,
+        "coinbase": constants.GENESIS_COINBASE,
+        "nonce": constants.GENESIS_NONCE,
+        "mix_hash": constants.GENESIS_MIX_HASH,
+        "extra_data": constants.GENESIS_EXTRA_DATA,
+        "timestamp": 1501851927,
         # 'block_number': constants.GENESIS_BLOCK_NUMBER,
         # 'parent_hash': constants.GENESIS_PARENT_HASH,
         # "bloom": 0,
@@ -171,9 +175,12 @@ def _chain_with_block_validation(VM, base_db, genesis_state, chain_cls=Chain):
     chain_without_block_validation fixture instead.
     """
     klass = chain_cls.configure(
-        __name__='TestChain',
+        __name__="TestChain",
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, VM.configure(consensus_class=PowConsensus)),
+            (
+                constants.GENESIS_BLOCK_NUMBER,
+                VM.configure(consensus_class=PowConsensus),
+            ),
         ),
         chain_id=1337,
     )
@@ -186,15 +193,17 @@ def chain_with_block_validation(VM, base_db, genesis_state):
     return _chain_with_block_validation(VM, base_db, genesis_state)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def chain_from_vm(request, base_db, genesis_state):
     """
     This fixture is to be used only when the properties of the
     chains differ from one VM to another.
     For example, the block rewards change from one VM chain to another
     """
+
     def get_chain_from_vm(vm):
         return _chain_with_block_validation(vm, base_db, genesis_state)
+
     return get_chain_from_vm
 
 
@@ -206,10 +215,10 @@ def import_block_without_validation(chain, block):
 def base_genesis_state(funded_address, funded_address_initial_balance):
     return {
         funded_address: {
-            'balance': funded_address_initial_balance,
-            'nonce': 0,
-            'code': b'',
-            'storage': {},
+            "balance": funded_address_initial_balance,
+            "nonce": 0,
+            "code": b"",
+            "storage": {},
         }
     }
 
@@ -231,14 +240,17 @@ def _chain_without_block_validation(request, VM, base_db, genesis_state):
     """
     # Disable block validation so that we don't need to construct finalized blocks.
     overrides = {
-        'import_block': import_block_without_validation,
-        'validate_block': lambda self, block: None,
+        "import_block": import_block_without_validation,
+        "validate_block": lambda self, block: None,
     }
     chain_class = request.param
     klass = chain_class.configure(
-        __name__='TestChainWithoutBlockValidation',
+        __name__="TestChainWithoutBlockValidation",
         vm_configuration=(
-            (constants.GENESIS_BLOCK_NUMBER, VM.configure(consensus_class=NoProofConsensus)),
+            (
+                constants.GENESIS_BLOCK_NUMBER,
+                VM.configure(consensus_class=NoProofConsensus),
+            ),
         ),
         chain_id=1337,
         **overrides,
@@ -248,11 +260,7 @@ def _chain_without_block_validation(request, VM, base_db, genesis_state):
 
 
 @pytest.fixture(params=[Chain, MiningChain])
-def chain_without_block_validation(
-        request,
-        VM,
-        base_db,
-        genesis_state):
+def chain_without_block_validation(request, VM, base_db, genesis_state):
     return _chain_without_block_validation(request, VM, base_db, genesis_state)
 
 
@@ -268,8 +276,10 @@ def chain_without_block_validation_from_vm(request, base_db, genesis_state):
     chains differ from one VM to another.
     For example, the block rewards change from one VM chain to another
     """
+
     def get_chain_from_vm(vm):
         return _chain_without_block_validation(request, vm, base_db, genesis_state)
+
     return get_chain_from_vm
 
 
@@ -281,7 +291,7 @@ def pytest_addoption(parser):
 def load_bytes_from_file(path):
     with open(path) as f:
         for line in f:
-            if line.startswith('#'):
+            if line.startswith("#"):
                 continue
             else:
                 yield decode_hex(line.strip())
@@ -296,6 +306,6 @@ def deserialize_rlp_objects(serialized_objects, rlp_class):
 
 @pytest.fixture
 def ropsten_epoch_headers():
-    rlp_path = Path(__file__).parent / 'rlp-fixtures' / 'ropston_epoch_headers.rlp'
+    rlp_path = Path(__file__).parent / "rlp-fixtures" / "ropston_epoch_headers.rlp"
     encoded_headers = load_bytes_from_file(rlp_path)
     return deserialize_rlp_objects(encoded_headers, BlockHeader)

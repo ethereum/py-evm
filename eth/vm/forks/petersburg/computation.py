@@ -16,6 +16,7 @@ class PetersburgComputation(ByzantiumComputation):
     Inherits from
     :class:`~eth.vm.forks.byzantium.computation.ByzantiumComputation`
     """
+
     # Override
     opcodes = PETERSBURG_OPCODES
     _precompiles = PETERSBURG_PRECOMPILES

@@ -10,7 +10,7 @@ from eth.tools.factories.transaction import (
     new_transaction,
 )
 
-ADDRESS_1010 = force_bytes_to_address(b'\x10\x10')
+ADDRESS_1010 = force_bytes_to_address(b"\x10\x10")
 
 
 @pytest.fixture
@@ -22,9 +22,8 @@ def chain(chain_without_block_validation):
 
 
 def test_building_block_incrementally_with_single_transaction(
-        chain,
-        funded_address,
-        funded_address_private_key):
+    chain, funded_address, funded_address_private_key
+):
     head_hash = chain.get_canonical_head().hash
     tx = new_transaction(
         chain.get_vm(),
@@ -46,9 +45,8 @@ def test_building_block_incrementally_with_single_transaction(
 
 
 def test_building_block_incrementally_with_multiple_transactions(
-        chain,
-        funded_address,
-        funded_address_private_key):
+    chain, funded_address, funded_address_private_key
+):
     txns = []
     head_hash = chain.get_canonical_head().hash
     for expected_len in range(1, 4):

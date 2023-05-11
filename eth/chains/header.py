@@ -32,7 +32,9 @@ class HeaderChain(Configurable, HeaderChainAPI):
 
     _headerdb_class: Type[HeaderDatabaseAPI] = HeaderDB
 
-    def __init__(self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None) -> None:
+    def __init__(
+        self, base_db: AtomicDatabaseAPI, header: BlockHeaderAPI = None
+    ) -> None:
         self.base_db = base_db
         self.headerdb = self.get_headerdb_class()(base_db)
 
@@ -45,9 +47,9 @@ class HeaderChain(Configurable, HeaderChainAPI):
     # Chain Initialization API
     #
     @classmethod
-    def from_genesis_header(cls,
-                            base_db: AtomicDatabaseAPI,
-                            genesis_header: BlockHeaderAPI) -> HeaderChainAPI:
+    def from_genesis_header(
+        cls, base_db: AtomicDatabaseAPI, genesis_header: BlockHeaderAPI
+    ) -> HeaderChainAPI:
         headerdb = cls.get_headerdb_class()(cast(BaseAtomicDB, base_db))
         headerdb.persist_header(genesis_header)
         return cls(base_db, genesis_header)
@@ -67,7 +69,9 @@ class HeaderChain(Configurable, HeaderChainAPI):
     def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
         return self.headerdb.get_canonical_block_hash(block_number)
 
-    def get_canonical_block_header_by_number(self, block_number: BlockNumber) -> BlockHeaderAPI:
+    def get_canonical_block_header_by_number(
+        self, block_number: BlockNumber
+    ) -> BlockHeaderAPI:
         return self.headerdb.get_canonical_block_header_by_number(block_number)
 
     def get_canonical_head(self) -> BlockHeaderAPI:
@@ -82,9 +86,9 @@ class HeaderChain(Configurable, HeaderChainAPI):
     def header_exists(self, block_hash: Hash32) -> bool:
         return self.headerdb.header_exists(block_hash)
 
-    def import_header(self,
-                      header: BlockHeaderAPI
-                      ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
+    def import_header(
+        self, header: BlockHeaderAPI
+    ) -> Tuple[Tuple[BlockHeaderAPI, ...], Tuple[BlockHeaderAPI, ...]]:
         new_canonical_headers = self.headerdb.persist_header(header)
         self.header = self.get_canonical_head()
         return new_canonical_headers

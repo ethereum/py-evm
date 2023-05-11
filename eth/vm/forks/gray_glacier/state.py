@@ -23,4 +23,6 @@ class GrayGlacierTransactionExecutor(ArrowGlacierTransactionExecutor):
 
 class GrayGlacierState(ArrowGlacierState):
     computation_class = GrayGlacierComputation
-    transaction_executor_class: Type[TransactionExecutorAPI] = GrayGlacierTransactionExecutor
+    transaction_executor_class: Type[
+        TransactionExecutorAPI
+    ] = GrayGlacierTransactionExecutor

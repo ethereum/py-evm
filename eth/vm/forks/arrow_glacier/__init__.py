@@ -17,7 +17,7 @@ from .. import LondonVM
 
 class ArrowGlacierVM(LondonVM):
     # fork name
-    fork = 'arrow-glacier'
+    fork = "arrow-glacier"
 
     # classes
     block_class: Type[BaseBlock] = ArrowGlacierBlock

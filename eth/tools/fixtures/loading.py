@@ -60,9 +60,9 @@ def load_json_fixture(fixture_path: str) -> Dict[str, Any]:
     return file_fixtures
 
 
-def load_fixture(fixture_path: str,
-                 fixture_key: str,
-                 normalize_fn: Callable[..., Any] = identity) -> Dict[str, Any]:
+def load_fixture(
+    fixture_path: str, fixture_key: str, normalize_fn: Callable[..., Any] = identity
+) -> Dict[str, Any]:
     """
     Loads a specific fixture from a fixture file, optionally passing it through
     a normalization function.
@@ -74,15 +74,17 @@ def load_fixture(fixture_path: str,
 
 @require_pytest
 @curry
-def filter_fixtures(all_fixtures: Iterable[Any],
-                    fixtures_base_dir: str,
-                    mark_fn: Callable[[str, str], bool] = None,
-                    ignore_fn: Callable[..., bool] = None) -> Any:
+def filter_fixtures(
+    all_fixtures: Iterable[Any],
+    fixtures_base_dir: str,
+    mark_fn: Callable[[str, str], bool] = None,
+    ignore_fn: Callable[..., bool] = None,
+) -> Any:
     """
     Helper function for filtering test fixtures.
 
-    - `fixtures_base_dir` should be the base directory that the fixtures were collected from.
-    - `mark_fn` should be a function which either returns `None` or a `pytest.mark` object.
+    - `fixtures_base_dir` should be the base dir that the fixtures were collected from.
+    - `mark_fn` should be a func which either returns `None` or a `pytest.mark` object.
     - `ignore_fn` should be a function which returns `True` for any fixture
        which should be ignored.
     """

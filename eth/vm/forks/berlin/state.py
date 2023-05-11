@@ -22,10 +22,8 @@ from .computation import (
 
 class BerlinTransactionExecutor(SpuriousDragonTransactionExecutor):
     def build_computation(
-            self,
-            message: MessageAPI,
-            transaction: SignedTransactionAPI) -> ComputationAPI:
-
+        self, message: MessageAPI, transaction: SignedTransactionAPI
+    ) -> ComputationAPI:
         self.vm_state.mark_address_warm(transaction.sender)
 
         # Mark recipient as accessed, or the new contract being created

@@ -59,7 +59,7 @@ def test_keymap_equivalence(key, val):
     assert explicit_db == composed_db
     assert explicit.root_hash == composed.root_hash
 
-    explicit.root_hash = b'\0' * 32
-    composed.root_hash = b'\0' * 32
+    explicit.root_hash = b"\0" * 32
+    composed.root_hash = b"\0" * 32
 
     assert explicit_trie.root_hash == composed_trie.root_hash

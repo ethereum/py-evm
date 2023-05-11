@@ -34,10 +34,9 @@ from eth.exceptions import (
 
 @curry
 def ecmul(
-        computation: ComputationAPI,
-        gas_cost: int = constants.GAS_ECMUL) -> ComputationAPI:
-
-    computation.consume_gas(gas_cost, reason='ECMUL Precompile')
+    computation: ComputationAPI, gas_cost: int = constants.GAS_ECMUL
+) -> ComputationAPI:
+    computation.consume_gas(gas_cost, reason="ECMUL Precompile")
 
     try:
         result = _ecmull(computation.msg.data_as_bytes)
@@ -45,10 +44,12 @@ def ecmul(
         raise VMError("Invalid ECMUL parameters")
 
     result_x, result_y = result
-    result_bytes = b''.join((
-        pad32(int_to_big_endian(result_x.n)),
-        pad32(int_to_big_endian(result_y.n)),
-    ))
+    result_bytes = b"".join(
+        (
+            pad32(int_to_big_endian(result_x.n)),
+            pad32(int_to_big_endian(result_y.n)),
+        )
+    )
     computation.output = result_bytes
     return computation
 

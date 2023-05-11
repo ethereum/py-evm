@@ -5,6 +5,5 @@ from eth.abc import (
 
 
 class ConsensusContext(ConsensusContextAPI):
-
     def __init__(self, db: AtomicDatabaseAPI):
         self.db = db

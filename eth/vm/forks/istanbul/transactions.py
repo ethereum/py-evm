@@ -35,14 +35,16 @@ istanbul_get_intrinsic_gas = partial(calculate_intrinsic_gas, ISTANBUL_TX_GAS_SC
 
 class IstanbulTransaction(PetersburgTransaction):
     @classmethod
-    def create_unsigned_transaction(cls,
-                                    *,
-                                    nonce: int,
-                                    gas_price: int,
-                                    gas: int,
-                                    to: Address,
-                                    value: int,
-                                    data: bytes) -> 'IstanbulUnsignedTransaction':
+    def create_unsigned_transaction(
+        cls,
+        *,
+        nonce: int,
+        gas_price: int,
+        gas: int,
+        to: Address,
+        value: int,
+        data: bytes
+    ) -> "IstanbulUnsignedTransaction":
         return IstanbulUnsignedTransaction(nonce, gas_price, gas, to, value, data)
 
     def get_intrinsic_gas(self) -> int:
@@ -50,9 +52,9 @@ class IstanbulTransaction(PetersburgTransaction):
 
 
 class IstanbulUnsignedTransaction(PetersburgUnsignedTransaction):
-    def as_signed_transaction(self,
-                              private_key: PrivateKey,
-                              chain_id: int = None) -> IstanbulTransaction:
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> IstanbulTransaction:
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return IstanbulTransaction(
             nonce=self.nonce,

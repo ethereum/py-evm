@@ -26,7 +26,7 @@ from .state import LondonState
 
 class LondonVM(BerlinVM):
     # fork name
-    fork = 'london'
+    fork = "london"
 
     # classes
     block_class: Type[BaseBlock] = LondonBlock
@@ -36,16 +36,14 @@ class LondonVM(BerlinVM):
     create_header_from_parent = staticmethod(  # type: ignore
         create_london_header_from_parent(compute_london_difficulty)
     )
-    compute_difficulty = staticmethod(compute_london_difficulty)    # type: ignore
+    compute_difficulty = staticmethod(compute_london_difficulty)  # type: ignore
     configure_header = configure_london_header
 
     @classmethod
     def validate_gas(
-            cls,
-            header: BlockHeaderAPI,
-            parent_header: BlockHeaderAPI) -> None:
-
-        if hasattr(parent_header, 'base_fee_per_gas'):
+        cls, header: BlockHeaderAPI, parent_header: BlockHeaderAPI
+    ) -> None:
+        if hasattr(parent_header, "base_fee_per_gas"):
             # Follow normal gas limit rules if the previous block had a base fee
             parent_gas_limit = parent_header.gas_limit
         else:

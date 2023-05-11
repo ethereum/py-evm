@@ -22,10 +22,10 @@ from .opcodes import (
 BYZANTIUM_PRECOMPILES = merge(
     FRONTIER_PRECOMPILES,
     {
-        force_bytes_to_address(b'\x05'): precompiles.modexp,
-        force_bytes_to_address(b'\x06'): precompiles.ecadd,
-        force_bytes_to_address(b'\x07'): precompiles.ecmul,
-        force_bytes_to_address(b'\x08'): precompiles.ecpairing,
+        force_bytes_to_address(b"\x05"): precompiles.modexp,
+        force_bytes_to_address(b"\x06"): precompiles.ecadd,
+        force_bytes_to_address(b"\x07"): precompiles.ecmul,
+        force_bytes_to_address(b"\x08"): precompiles.ecpairing,
     },
 )
 
@@ -36,6 +36,7 @@ class ByzantiumComputation(SpuriousDragonComputation):
     Inherits from
     :class:`~eth.vm.forks.spurious_dragon.computation.SpuriousDragonComputation`
     """
+
     # Override
     opcodes = BYZANTIUM_OPCODES
     _precompiles = BYZANTIUM_PRECOMPILES

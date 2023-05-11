@@ -23,15 +23,15 @@ from .state import PetersburgState
 
 class PetersburgVM(ByzantiumVM):
     # fork name
-    fork = 'petersburg'
+    fork = "petersburg"
 
     # classes
     block_class: Type[BlockAPI] = PetersburgBlock
     _state_class: Type[StateAPI] = PetersburgState
 
     # Methods
-    create_header_from_parent = staticmethod(create_petersburg_header_from_parent)  # type: ignore
-    compute_difficulty = staticmethod(compute_petersburg_difficulty)    # type: ignore
+    create_header_from_parent = staticmethod(create_petersburg_header_from_parent)  # type: ignore  # noqa: E501
+    compute_difficulty = staticmethod(compute_petersburg_difficulty)  # type: ignore
     configure_header = configure_petersburg_header
     get_uncle_reward = staticmethod(get_uncle_reward(EIP1234_BLOCK_REWARD))
 

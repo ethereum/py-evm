@@ -56,18 +56,18 @@ def new_timestamp_from_parent(parent: Optional[BlockHeaderAPI]) -> int:
 
 
 def fill_header_params_from_parent(
-        parent: BlockHeaderAPI,
-        gas_limit: int,
-        difficulty: int,
-        timestamp: int,
-        coinbase: Address = ZERO_ADDRESS,
-        nonce: bytes = None,
-        extra_data: bytes = None,
-        transaction_root: bytes = None,
-        state_root: bytes = None,
-        mix_hash: bytes = None,
-        receipt_root: bytes = None) -> Dict[str, HeaderParams]:
-
+    parent: BlockHeaderAPI,
+    gas_limit: int,
+    difficulty: int,
+    timestamp: int,
+    coinbase: Address = ZERO_ADDRESS,
+    nonce: bytes = None,
+    extra_data: bytes = None,
+    transaction_root: bytes = None,
+    state_root: bytes = None,
+    mix_hash: bytes = None,
+    receipt_root: bytes = None,
+) -> Dict[str, HeaderParams]:
     if parent is None:
         parent_hash = GENESIS_PARENT_HASH
         block_number = GENESIS_BLOCK_NUMBER
@@ -81,24 +81,24 @@ def fill_header_params_from_parent(
             state_root = parent.state_root
 
     header_kwargs: Dict[str, HeaderParams] = {
-        'parent_hash': parent_hash,
-        'coinbase': coinbase,
-        'state_root': state_root,
-        'gas_limit': gas_limit,
-        'difficulty': difficulty,
-        'block_number': block_number,
-        'timestamp': timestamp,
+        "parent_hash": parent_hash,
+        "coinbase": coinbase,
+        "state_root": state_root,
+        "gas_limit": gas_limit,
+        "difficulty": difficulty,
+        "block_number": block_number,
+        "timestamp": timestamp,
     }
     if nonce is not None:
-        header_kwargs['nonce'] = nonce
+        header_kwargs["nonce"] = nonce
     if extra_data is not None:
-        header_kwargs['extra_data'] = extra_data
+        header_kwargs["extra_data"] = extra_data
     if transaction_root is not None:
-        header_kwargs['transaction_root'] = transaction_root
+        header_kwargs["transaction_root"] = transaction_root
     if receipt_root is not None:
-        header_kwargs['receipt_root'] = receipt_root
+        header_kwargs["receipt_root"] = receipt_root
     if mix_hash is not None:
-        header_kwargs['mix_hash'] = mix_hash
+        header_kwargs["mix_hash"] = mix_hash
 
     return header_kwargs
 
@@ -110,7 +110,7 @@ def compute_gas_limit_bounds(previous_limit: int) -> Tuple[int, int]:
     boundary_range = previous_limit // GAS_LIMIT_ADJUSTMENT_FACTOR
 
     # the boundary range is the exclusive limit, therefore the inclusive bounds are
-    # (boundary_range - 1) and (boundary_range + 1) for upper and lower bounds, respectively
+    # (boundary_range - 1) and (boundary_range + 1) for upper and lower bounds, respectively  # noqa: E501
     upper_bound_inclusive = min(GAS_LIMIT_MAXIMUM, previous_limit + boundary_range - 1)
     lower_bound_inclusive = max(GAS_LIMIT_MINIMUM, previous_limit - boundary_range + 1)
     return lower_bound_inclusive, upper_bound_inclusive
@@ -147,11 +147,9 @@ def compute_gas_limit(parent_header: BlockHeaderAPI, genesis_gas_limit: int) -> 
 
     if parent_header.gas_used:
         usage_increase = (
-            parent_header.gas_used * GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR
-        ) // (
-            GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR
-        ) // (
-            GAS_LIMIT_EMA_DENOMINATOR
+            (parent_header.gas_used * GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR)
+            // (GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR)
+            // (GAS_LIMIT_EMA_DENOMINATOR)
         )
     else:
         usage_increase = 0
@@ -159,7 +157,7 @@ def compute_gas_limit(parent_header: BlockHeaderAPI, genesis_gas_limit: int) -> 
     gas_limit = max(
         GAS_LIMIT_MINIMUM,
         # + 1 because the decay is an exclusive limit we have to remain inside of
-        (parent_header.gas_limit - decay + 1) + usage_increase
+        (parent_header.gas_limit - decay + 1) + usage_increase,
     )
 
     if gas_limit < GAS_LIMIT_MINIMUM:

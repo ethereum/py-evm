@@ -21,9 +21,9 @@ def stack():
 @pytest.mark.parametrize(
     ("value,is_valid"),
     (
-        (b'abcde', True),
-        (b'100100100100100100100100100100100', False),
-    )
+        (b"abcde", True),
+        (b"100100100100100100100100100100100", False),
+    ),
 )
 def test_push_only_pushes_valid_stack_bytes(stack, value, is_valid):
     if is_valid:
@@ -42,7 +42,7 @@ def test_push_only_pushes_valid_stack_bytes(stack, value, is_valid):
         (1, True),
         (2**256 - 1, True),
         (2**256, False),
-    )
+    ),
 )
 def test_push_only_pushes_valid_stack_ints(stack, value, is_valid):
     if is_valid:
@@ -73,10 +73,10 @@ def test_dup_does_not_allow_stack_to_exceed_1024_items(stack):
 @pytest.mark.parametrize(
     ("items, stack_method"),
     (
-        ([1], 'push_int'),
-        ([1, 2, 3], 'push_int'),
-        ([b'1', b'10', b'101', b'1010'], 'push_bytes')
-    )
+        ([1], "push_int"),
+        ([1, 2, 3], "push_int"),
+        ([b"1", b"10", b"101", b"1010"], "push_bytes"),
+    ),
 )
 def test_pop_returns_latest_stack_item(stack, items, stack_method):
     method = getattr(stack, stack_method)
@@ -88,19 +88,19 @@ def test_pop_returns_latest_stack_item(stack, items, stack_method):
 @pytest.mark.parametrize(
     ("value, push_method, pop_method, expect_result"),
     (
-        (1, 'push_int', 'pop_ints', (1, )),
-        (1, 'push_int', 'pop_any', (1, )),
-        (1, 'push_int', 'pop_bytes', (b'\x01', )),
-        (1, 'push_int', 'pop1_int', 1),
-        (1, 'push_int', 'pop1_any', 1),
-        (1, 'push_int', 'pop1_bytes', b'\x01'),
-        (b'\x09', 'push_bytes', 'pop_ints', (9, )),
-        (b'\x09', 'push_bytes', 'pop_any', (b'\x09', )),
-        (b'\x09', 'push_bytes', 'pop_bytes', (b'\x09', )),
-        (b'\x09', 'push_bytes', 'pop1_int', 9),
-        (b'\x09', 'push_bytes', 'pop1_any', b'\x09'),
-        (b'\x09', 'push_bytes', 'pop1_bytes', b'\x09'),
-    )
+        (1, "push_int", "pop_ints", (1,)),
+        (1, "push_int", "pop_any", (1,)),
+        (1, "push_int", "pop_bytes", (b"\x01",)),
+        (1, "push_int", "pop1_int", 1),
+        (1, "push_int", "pop1_any", 1),
+        (1, "push_int", "pop1_bytes", b"\x01"),
+        (b"\x09", "push_bytes", "pop_ints", (9,)),
+        (b"\x09", "push_bytes", "pop_any", (b"\x09",)),
+        (b"\x09", "push_bytes", "pop_bytes", (b"\x09",)),
+        (b"\x09", "push_bytes", "pop1_int", 9),
+        (b"\x09", "push_bytes", "pop1_any", b"\x09"),
+        (b"\x09", "push_bytes", "pop1_bytes", b"\x09"),
+    ),
 )
 def test_pop_different_types(stack, value, push_method, pop_method, expect_result):
     push = getattr(stack, push_method)
@@ -108,7 +108,7 @@ def test_pop_different_types(stack, value, push_method, pop_method, expect_resul
 
     pop = getattr(stack, pop_method)
 
-    if '1' in pop_method:
+    if "1" in pop_method:
         assert pop() == expect_result
     else:
         assert pop(1) == expect_result

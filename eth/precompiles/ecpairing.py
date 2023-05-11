@@ -40,10 +40,10 @@ EXPONENT = bn128.FQ12.one()
 
 @curry
 def ecpairing(
-        computation: ComputationAPI,
-        gas_cost_base: int = constants.GAS_ECPAIRING_BASE,
-        gas_cost_per_point: int = constants.GAS_ECPAIRING_PER_POINT) -> ComputationAPI:
-
+    computation: ComputationAPI,
+    gas_cost_base: int = constants.GAS_ECPAIRING_BASE,
+    gas_cost_per_point: int = constants.GAS_ECPAIRING_PER_POINT,
+) -> ComputationAPI:
     if len(computation.msg.data) % 192:
         # data length must be an exact multiple of 192
         raise VMError("Invalid ECPAIRING parameters")
@@ -51,7 +51,7 @@ def ecpairing(
     num_points = len(computation.msg.data) // 192
     gas_fee = gas_cost_base + num_points * gas_cost_per_point
 
-    computation.consume_gas(gas_fee, reason='ECPAIRING Precompile')
+    computation.consume_gas(gas_fee, reason="ECPAIRING Precompile")
 
     try:
         result = _ecpairing(computation.msg.data)
@@ -59,9 +59,9 @@ def ecpairing(
         raise VMError("Invalid ECPAIRING parameters")
 
     if result is True:
-        computation.output = pad32(b'\x01')
+        computation.output = pad32(b"\x01")
     elif result is False:
-        computation.output = pad32(b'\x00')
+        computation.output = pad32(b"\x00")
     else:
         raise Exception("Invariant: unreachable code path")
     return computation
@@ -71,9 +71,8 @@ def _ecpairing(data: BytesOrView) -> bool:
     exponent = bn128.FQ12.one()
 
     processing_pipeline = (
-        _process_point(data[start_idx:start_idx + 192])
-        for start_idx
-        in range(0, len(data), 192)
+        _process_point(data[start_idx : start_idx + 192])
+        for start_idx in range(0, len(data), 192)
     )
     exponent = pipe(bn128.FQ12.one(), *processing_pipeline)
 
@@ -102,7 +101,9 @@ def _process_point(data_buffer: bytes, exponent: int) -> bn128.FQP:
     if bn128.multiply(p2, bn128.curve_order)[-1] != bn128.FQ2.zero():
         raise ValidationError("TODO: what case is this?????")
 
-    return exponent * bn128.pairing(FQP_point_to_FQ2_point(p2), p1, final_exponentiate=False)
+    return exponent * bn128.pairing(
+        FQP_point_to_FQ2_point(p2), p1, final_exponentiate=False
+    )
 
 
 def _extract_point(data_slice: bytes) -> Tuple[int, int, int, int, int, int]:

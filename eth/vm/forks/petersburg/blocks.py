@@ -17,7 +17,7 @@ from .transactions import (
 class PetersburgBlock(ByzantiumBlock):
     transaction_builder = PetersburgTransaction
     fields = [
-        ('header', BlockHeader),
-        ('transactions', CountableList(transaction_builder)),
-        ('uncles', CountableList(BlockHeader))
+        ("header", BlockHeader),
+        ("transactions", CountableList(transaction_builder)),
+        ("uncles", CountableList(BlockHeader)),
     ]
