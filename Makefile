@@ -26,7 +26,7 @@ lint:
 	tox run -e lint
 
 lint-roll:
-	isort eth tests
+	isort eth tests scripts
 	black eth tests scripts setup.py
 	$(MAKE) lint
 
