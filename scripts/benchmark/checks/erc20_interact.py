@@ -1,30 +1,11 @@
+from abc import (
+    abstractmethod,
+)
 import pathlib
 from typing import (
     Tuple,
 )
 
-from abc import (
-    abstractmethod,
-)
-
-from web3 import Web3
-
-from eth_utils import (
-    encode_hex,
-    decode_hex,
-)
-
-from eth.constants import CREATE_CONTRACT_ADDRESS
-from eth.chains.base import (
-    MiningChain,
-)
-from eth.rlp.blocks import (
-    BaseBlock,
-)
-from eth.tools.factories.transaction import new_transaction
-from .base_benchmark import (
-    BaseBenchmark,
-)
 from _utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
@@ -32,11 +13,36 @@ from _utils.chain_plumbing import (
     SECOND_ADDRESS_PRIVATE_KEY,
     get_all_chains,
 )
-from _utils.compile import get_compiled_contract
+from _utils.compile import (
+    get_compiled_contract,
+)
 from _utils.reporting import (
     DefaultStat,
 )
+from eth_utils import (
+    decode_hex,
+    encode_hex,
+)
+from web3 import (
+    Web3,
+)
 
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
+from eth.rlp.blocks import (
+    BaseBlock,
+)
+from eth.tools.factories.transaction import (
+    new_transaction,
+)
+
+from .base_benchmark import (
+    BaseBenchmark,
+)
 
 FIRST_TX_GAS_LIMIT = 1400000
 SECOND_TX_GAS_LIMIT = 60000

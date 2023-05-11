@@ -1,18 +1,25 @@
 import random
-from typing import Tuple
-
-from eth._utils.padding import (
-    pad32,
+from typing import (
+    Tuple,
 )
 
-from eth_keys import keys
-from eth_keys.datatypes import PrivateKey, PublicKey
-
+from eth_keys import (
+    keys,
+)
+from eth_keys.datatypes import (
+    PrivateKey,
+    PublicKey,
+)
+from eth_typing import (
+    Address,
+)
 from eth_utils import (
     int_to_big_endian,
 )
 
-from eth_typing import Address
+from eth._utils.padding import (
+    pad32,
+)
 
 
 def generate_random_keypair_and_address() -> Tuple[PrivateKey, PublicKey, Address]:

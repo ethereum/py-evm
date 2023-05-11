@@ -3,40 +3,45 @@
 import logging
 import sys
 
-from eth._utils.version import construct_evm_runtime_identifier
-
+from _utils.compile import (
+    compile_contracts,
+)
+from _utils.reporting import (
+    DefaultStat,
+    print_final_benchmark_total_line,
+)
+from _utils.shellart import (
+    bold_green,
+    bold_red,
+)
 from checks import (
     ImportEmptyBlocksBenchmark,
     MineEmptyBlocksBenchmark,
     SimpleValueTransferBenchmark,
 )
-
+from checks.deploy_dos import (
+    DOSContractCreateEmptyContractBenchmark,
+    DOSContractDeployBenchmark,
+    DOSContractRevertCreateEmptyContractBenchmark,
+    DOSContractRevertSstoreUint64Benchmark,
+    DOSContractSstoreUint64Benchmark,
+)
 from checks.erc20_interact import (
+    ERC20ApproveBenchmark,
     ERC20DeployBenchmark,
     ERC20TransferBenchmark,
-    ERC20ApproveBenchmark,
     ERC20TransferFromBenchmark,
 )
-from checks.deploy_dos import (
-    DOSContractDeployBenchmark,
-    DOSContractSstoreUint64Benchmark,
-    DOSContractCreateEmptyContractBenchmark,
-    DOSContractRevertSstoreUint64Benchmark,
-    DOSContractRevertCreateEmptyContractBenchmark,
-)
-
 from checks.simple_value_transfers import (
     TO_EXISTING_ADDRESS_CONFIG,
     TO_NON_EXISTING_ADDRESS_CONFIG,
 )
+from contract_data import (
+    get_contracts,
+)
 
-from contract_data import get_contracts
-
-from _utils.compile import compile_contracts
-from _utils.reporting import DefaultStat, print_final_benchmark_total_line
-from _utils.shellart import (
-    bold_green,
-    bold_red,
+from eth._utils.version import (
+    construct_evm_runtime_identifier,
 )
 
 HEADER = (

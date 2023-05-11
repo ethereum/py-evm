@@ -1,5 +1,9 @@
 import time
-from typing import Any, Callable, NamedTuple
+from typing import (
+    Any,
+    Callable,
+    NamedTuple,
+)
 
 
 # FIXME: Couldn't get generics to work here. Sticking with `Any` for now

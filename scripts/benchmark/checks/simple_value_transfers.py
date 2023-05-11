@@ -1,38 +1,40 @@
 import logging
-
 from typing import (
     NamedTuple,
     Tuple,
 )
 
-from eth_typing import (
-    Address,
-)
-from eth.chains.base import (
-    MiningChain,
-)
-from eth.rlp.blocks import (
-    BaseBlock,
-)
-from eth.tools.factories.transaction import new_transaction
-
-from .base_benchmark import (
-    BaseBenchmark,
+from _utils.address import (
+    generate_random_address,
 )
 from _utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
-    get_all_chains,
     SECOND_ADDRESS,
-)
-from _utils.address import (
-    generate_random_address,
+    get_all_chains,
 )
 from _utils.reporting import (
     DefaultStat,
 )
 from _utils.shellart import (
     bold_yellow,
+)
+from eth_typing import (
+    Address,
+)
+
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.rlp.blocks import (
+    BaseBlock,
+)
+from eth.tools.factories.transaction import (
+    new_transaction,
+)
+
+from .base_benchmark import (
+    BaseBenchmark,
 )
 
 

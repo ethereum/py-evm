@@ -1,7 +1,11 @@
 import logging
-from typing import NamedTuple
+from typing import (
+    NamedTuple,
+)
 
-from _utils.shellart import bold_white
+from _utils.shellart import (
+    bold_white,
+)
 
 
 class DefaultStat(NamedTuple):

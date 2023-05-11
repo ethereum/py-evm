@@ -10,27 +10,31 @@ from typing import (
     Type,
 )
 
-from eth_keys import keys
-
+from eth_keys import (
+    keys,
+)
+from eth_typing import (
+    Address,
+)
 from eth_utils import (
     decode_hex,
     to_wei,
 )
 
-from eth_typing import Address
-
 from eth import (
     constants,
 )
-from eth.abc import VirtualMachineAPI
+from eth.abc import (
+    VirtualMachineAPI,
+)
 from eth.chains.base import (
     MiningChain,
 )
-from eth.db.backends.level import (
-    LevelDB,
-)
 from eth.chains.mainnet import (
     BaseMainnetChain,
+)
+from eth.db.backends.level import (
+    LevelDB,
 )
 from eth.tools.builder.chain import (
     build,

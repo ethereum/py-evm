@@ -1,4 +1,6 @@
-from termcolor import colored
+from termcolor import (
+    colored,
+)
 
 
 def bold_green(txt: str) -> str:

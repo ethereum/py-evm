@@ -1,30 +1,42 @@
-from abc import abstractmethod
-
+from abc import (
+    abstractmethod,
+)
 import logging
 import pathlib
+from typing import (
+    Tuple,
+)
 
-from typing import Tuple
-from eth_utils import (
-    encode_hex,
-    decode_hex,
-)
-from web3 import Web3
-from eth.chains.base import (
-    MiningChain,
-)
-from eth.constants import CREATE_CONTRACT_ADDRESS
-from eth.rlp.blocks import (
-    BaseBlock,
-)
-from eth.tools.factories.transaction import new_transaction
 from _utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
     get_all_chains,
 )
-from _utils.compile import get_compiled_contract
+from _utils.compile import (
+    get_compiled_contract,
+)
 from _utils.reporting import (
     DefaultStat,
+)
+from eth_utils import (
+    decode_hex,
+    encode_hex,
+)
+from web3 import (
+    Web3,
+)
+
+from eth.chains.base import (
+    MiningChain,
+)
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
+from eth.rlp.blocks import (
+    BaseBlock,
+)
+from eth.tools.factories.transaction import (
+    new_transaction,
 )
 
 from .base_benchmark import (

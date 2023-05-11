@@ -1,7 +1,10 @@
 import json
 import pathlib
 import subprocess
-from typing import Dict, Iterable
+from typing import (
+    Dict,
+    Iterable,
+)
 
 
 def derive_compile_path(contract_path: pathlib.Path) -> pathlib.Path:

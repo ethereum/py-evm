@@ -1,11 +1,22 @@
 import logging
 
-from eth.chains.base import MiningChain
+from _utils.chain_plumbing import (
+    get_all_chains,
+)
+from _utils.format import (
+    format_block,
+)
+from _utils.reporting import (
+    DefaultStat,
+)
 
-from .base_benchmark import BaseBenchmark
-from _utils.chain_plumbing import get_all_chains
-from _utils.format import format_block
-from _utils.reporting import DefaultStat
+from eth.chains.base import (
+    MiningChain,
+)
+
+from .base_benchmark import (
+    BaseBenchmark,
+)
 
 
 class MineEmptyBlocksBenchmark(BaseBenchmark):

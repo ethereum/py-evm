@@ -3,16 +3,24 @@ from abc import (
     abstractmethod,
 )
 import logging
-from typing import Any, Callable
+from typing import (
+    Any,
+    Callable,
+)
 
-from _utils.meters import time_call, TimedResult
+from _utils.meters import (
+    TimedResult,
+    time_call,
+)
 from _utils.reporting import (
     DefaultStat,
     print_default_benchmark_result_header,
     print_default_benchmark_stat_line,
     print_default_benchmark_total_line,
 )
-from _utils.shellart import bold_yellow
+from _utils.shellart import (
+    bold_yellow,
+)
 
 
 class BaseBenchmark(ABC):
