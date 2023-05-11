@@ -1,1 +1,0 @@
-added `black` to lint dependencies and `isort`ed scripts directory

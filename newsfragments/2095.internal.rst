@@ -1,1 +1,0 @@
-pull in less-sensitive updates from the python project template

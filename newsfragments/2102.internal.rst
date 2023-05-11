@@ -1,1 +1,0 @@
-Update ``pip`` version sitting in the circleci image before installing and running ``tox``. Install ``tox`` at the sys level to help avoid ``virtualenv`` version conflicts.

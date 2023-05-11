@@ -3,6 +3,31 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.7.0-alpha.2 (2023-05-11)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Add missing receipt builder for the `ShanghaiBlock` class. (`#2105 <https://github.com/ethereum/py-evm/issues/2105>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Added [isort](https://pycqa.github.io/isort/) for automatically sorting python imports. (`#2094 <https://github.com/ethereum/py-evm/issues/2094>`__)
+- pull in less-sensitive updates from the python project template (`#2095 <https://github.com/ethereum/py-evm/issues/2095>`__)
+- Update ``pip`` version sitting in the circleci image before installing and running ``tox``. Install ``tox`` at the sys level to help avoid ``virtualenv`` version conflicts. (`#2102 <https://github.com/ethereum/py-evm/issues/2102>`__)
+- Refactored the computation class hierarchy and cleaned up the code along the way. Some abstract API classes have more of the underlying properties that the subclasses implement. (`#2106 <https://github.com/ethereum/py-evm/issues/2106>`__)
+- added `black` to lint dependencies and `isort`ed scripts directory (`#2107 <https://github.com/ethereum/py-evm/issues/2107>`__)
+
+
+Miscellaneous changes
+~~~~~~~~~~~~~~~~~~~~~
+
+- `#2083 <https://github.com/ethereum/py-evm/issues/2083>`__
+
+
 py-evm 0.7.0-alpha.1 (2023-04-10)
 ---------------------------------
 

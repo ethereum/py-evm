@@ -1,1 +1,0 @@
-Refactored the computation class hierarchy and cleaned up the code along the way. Some abstract API classes have more of the underlying properties that the subclasses implement.

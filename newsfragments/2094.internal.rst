@@ -1,1 +1,0 @@
-Added [isort](https://pycqa.github.io/isort/) for automatically sorting python imports.
