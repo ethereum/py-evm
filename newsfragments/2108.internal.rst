@@ -1,0 +1,1 @@
+Update ``fixtures`` (ethereum/tests) version to ``v12.2`` and turn on all Shanghai fork tests since EOF is no longer in Shanghai.
