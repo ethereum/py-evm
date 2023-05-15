@@ -1145,20 +1145,8 @@ INCORRECT_UPSTREAM_TESTS = {
 def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
     fixture_id = (fixture_path, fixture_name)
 
-    if "bcExploitTest/" in fixture_path:
-        return pytest.mark.skip("Exploit tests are slow")
-    elif fixture_path.startswith("bcForkStressTest/ForkStressTest.json"):
-        return pytest.mark.skip("Fork stress tests are slow.")
-    elif fixture_path == "bcWalletTest/walletReorganizeOwners.json":
-        return pytest.mark.skip("Wallet owner reorganization tests are slow")
-    elif fixture_id in INCORRECT_UPSTREAM_TESTS:
-        return pytest.mark.xfail(
-            reason="Listed in INCORRECT_UPSTREAM_TESTS.",
-            strict=False,
-        )
-    elif "stTransactionTest/zeroSigTransa" in fixture_path:
-        return pytest.mark.skip("EIP-86 not supported.")
-    elif "HighNonce" in fixture_name:
+    # -- not expected to fail, need to be addressed -- #
+    if "HighNonce" in fixture_name:
         # TODO: Turn these tests on and implement the relevant changes to pass them
         #  https://github.com/ethereum/EIPs/pull/4784
         return pytest.mark.skip(
@@ -1172,6 +1160,22 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
         #  Address these issues and turn these tests back on.
         #  https://github.com/ethereum/tests/blob/develop/BlockchainTests/GeneralStateTests/stCreateTest/CreateAddressWarmAfterFail.json#L4  # noqa: E501
         return pytest.mark.skip("Need support for EIP-2929 edge cases.")
+    elif "Pyspecs" in fixture_path:
+        # TODO: Turn on Pyspecs tests when we restructure the test suite
+        return pytest.mark.skip("Turn off Pyspecs tests for now.")
+
+    # -- expected skips and failures -- #
+    if "bcExploitTest/" in fixture_path:
+        return pytest.mark.skip("Exploit tests are slow")
+    elif fixture_path.startswith("bcForkStressTest/ForkStressTest.json"):
+        return pytest.mark.skip("Fork stress tests are slow.")
+    elif fixture_path == "bcWalletTest/walletReorganizeOwners.json":
+        return pytest.mark.skip("Wallet owner reorganization tests are slow")
+    elif fixture_id in INCORRECT_UPSTREAM_TESTS:
+        return pytest.mark.xfail(
+            reason="Listed in INCORRECT_UPSTREAM_TESTS.",
+            strict=False,
+        )
     elif fixture_id in SLOWEST_TESTS:
         if should_run_slow_tests():
             return
@@ -1179,6 +1183,9 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
             return pytest.mark.skip("Skipping slow test")
     elif "stQuadraticComplexityTest" in fixture_path:
         return pytest.mark.skip("Skipping slow test")
+
+    elif "stTransactionTest/zeroSigTransa" in fixture_path:
+        return pytest.mark.skip("EIP-86 not supported.")
 
 
 def generate_ignore_fn_for_fork(passed_fork):
