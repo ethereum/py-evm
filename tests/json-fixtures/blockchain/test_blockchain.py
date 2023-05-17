@@ -1145,15 +1145,7 @@ INCORRECT_UPSTREAM_TESTS = {
 def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
     fixture_id = (fixture_path, fixture_name)
 
-    if any(
-        f"CreateAddressWarmAfterFail_d10g0v{str(test_id)}" in fixture_name
-        for test_id in range(2)
-    ):
-        # TODO: Two new edge cases for EIP-2929 are failing for london and merge forks.
-        #  Address these issues and turn these tests back on.
-        #  https://github.com/ethereum/tests/blob/develop/BlockchainTests/GeneralStateTests/stCreateTest/CreateAddressWarmAfterFail.json#L4  # noqa: E501
-        return pytest.mark.skip("Need support for EIP-2929 edge cases.")
-    elif "Pyspecs" in fixture_path:
+    if "Pyspecs" in fixture_path:
         # TODO: Turn on Pyspecs tests when we restructure the test suite
         return pytest.mark.skip("Turn off Pyspecs tests for now.")
 
