@@ -1,0 +1,1 @@
+Fix some failing tests by properly decoding the tx bytes provided by the Transaction test fixtures.
