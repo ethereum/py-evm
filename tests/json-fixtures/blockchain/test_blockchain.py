@@ -1145,14 +1145,7 @@ INCORRECT_UPSTREAM_TESTS = {
 def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
     fixture_id = (fixture_path, fixture_name)
 
-    # -- not expected to fail, need to be addressed -- #
-    if "HighNonce" in fixture_name:
-        # TODO: Turn these tests on and implement the relevant changes to pass them
-        #  https://github.com/ethereum/EIPs/pull/4784
-        return pytest.mark.skip(
-            "EIP-2681 update not implemented. HighNonce tests turned off for now."
-        )
-    elif any(
+    if any(
         f"CreateAddressWarmAfterFail_d10g0v{str(test_id)}" in fixture_name
         for test_id in range(2)
     ):

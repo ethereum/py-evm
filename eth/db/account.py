@@ -77,6 +77,7 @@ from eth.typing import (
 from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
+    validate_uint64,
     validate_uint256,
 )
 from eth.vm.interrupt import (
@@ -287,7 +288,7 @@ class AccountDB(AccountDatabaseAPI):
 
     def set_nonce(self, address: Address, nonce: int) -> None:
         validate_canonical_address(address, title="Storage Address")
-        validate_uint256(nonce, title="Nonce")
+        validate_uint64(nonce, title="Nonce")
 
         account = self._get_account(address)
         self._set_account(address, account.copy(nonce=nonce))

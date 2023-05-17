@@ -56,6 +56,7 @@ from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
     validate_is_transaction_access_list,
+    validate_uint64,
     validate_uint256,
 )
 from eth.vm.forks.berlin.constants import (
@@ -150,7 +151,7 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable):
 
     def validate(self) -> None:
         validate_uint256(self.chain_id, title="Transaction.chain_id")
-        validate_uint256(self.nonce, title="Transaction.nonce")
+        validate_uint64(self.nonce, title="Transaction.nonce")
         validate_uint256(self.max_fee_per_gas, title="Transaction.max_fee_per_gas")
         validate_uint256(
             self.max_priority_fee_per_gas, title="Transaction.max_priority_fee_per_gas"

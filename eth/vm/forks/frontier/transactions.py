@@ -48,6 +48,7 @@ from eth.validation import (
     validate_is_integer,
     validate_lt_secpk1n,
     validate_lte,
+    validate_uint64,
     validate_uint256,
 )
 
@@ -76,7 +77,7 @@ class FrontierTransaction(BaseTransaction):
         return V_OFFSET + 1
 
     def validate(self) -> None:
-        validate_uint256(self.nonce, title="Transaction.nonce")
+        validate_uint64(self.nonce, title="Transaction.nonce")
         validate_uint256(self.gas_price, title="Transaction.gas_price")
         validate_uint256(self.gas, title="Transaction.gas")
         if self.to != CREATE_CONTRACT_ADDRESS:
@@ -176,7 +177,7 @@ class FrontierTransaction(BaseTransaction):
 
 class FrontierUnsignedTransaction(BaseUnsignedTransaction):
     def validate(self) -> None:
-        validate_uint256(self.nonce, title="Transaction.nonce")
+        validate_uint64(self.nonce, title="Transaction.nonce")
         validate_is_integer(self.gas_price, title="Transaction.gas_price")
         validate_uint256(self.gas, title="Transaction.gas")
         if self.to != CREATE_CONTRACT_ADDRESS:

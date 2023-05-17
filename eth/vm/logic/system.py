@@ -159,27 +159,26 @@ class Create(Opcode):
 
         computation.extend_memory(stack_data.memory_start, stack_data.memory_length)
 
-        storage_address_balance = computation.state.get_balance(
-            computation.msg.storage_address
-        )
+        storage_address = computation.msg.storage_address
+        storage_address_balance = computation.state.get_balance(storage_address)
+        storage_address_nonce = computation.state.get_nonce(storage_address)
 
         insufficient_funds = storage_address_balance < stack_data.endowment
         stack_too_deep = computation.msg.depth + 1 > constants.STACK_DEPTH_LIMIT
+        nonce_too_high = storage_address_nonce + 1 > constants.UINT_64_MAX
 
-        if insufficient_funds or stack_too_deep:
+        if insufficient_funds or stack_too_deep or nonce_too_high:
             computation.stack_push_int(0)
             computation.return_data = b""
             if insufficient_funds:
                 self.logger.debug2(
-                    "%s failure: %s",
-                    self.mnemonic,
-                    f"Insufficient Funds: {storage_address_balance} < "
-                    f"{stack_data.endowment}",
+                    f"{self.mnemonic} failure: Insufficient Funds: "
+                    f"{storage_address_balance} < {stack_data.endowment}",
                 )
             elif stack_too_deep:
-                self.logger.debug2(
-                    "%s failure: %s", self.mnemonic, "Stack limit reached"
-                )
+                self.logger.debug2(f"{self.mnemonic} failure: Stack limit reached")
+            elif nonce_too_high:
+                self.logger.debug2(f"{self.mnemonic} failure: Nonce too high")
             else:
                 raise RuntimeError(
                     "Invariant: error must be insufficient funds or stack too deep"
