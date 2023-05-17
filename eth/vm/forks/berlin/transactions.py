@@ -71,6 +71,7 @@ from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
     validate_is_transaction_access_list,
+    validate_uint64,
     validate_uint256,
 )
 from eth.vm.forks.istanbul.transactions import (
@@ -164,7 +165,7 @@ class UnsignedAccessListTransaction(rlp.Serializable):
 
     def validate(self) -> None:
         validate_uint256(self.chain_id, title="Transaction.chain_id")
-        validate_uint256(self.nonce, title="Transaction.nonce")
+        validate_uint64(self.nonce, title="Transaction.nonce")
         validate_uint256(self.gas_price, title="Transaction.gas_price")
         validate_uint256(self.gas, title="Transaction.gas")
         if self.to != CREATE_CONTRACT_ADDRESS:
