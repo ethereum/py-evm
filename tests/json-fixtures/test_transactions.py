@@ -106,13 +106,6 @@ def fixture(fixture_data):
 def fixture_transaction_class(fixture_data):
     _, test_name, fork_name = fixture_data
 
-    # TODO: Address these test issues in London, Berlin, and Paris / Merge
-    if test_name in (
-        "GasLimitPriceProductOverflowtMinusOne",
-        "accessListStorage32Bytes",
-    ):
-        pytest.skip("Failing tests that need to be addressed.")
-
     if fork_name == ForkName.Frontier:
         return FrontierTransaction
     elif fork_name == ForkName.Homestead:
@@ -148,7 +141,7 @@ def test_transaction_fixtures(fixture, fixture_transaction_class):
     TransactionClass = fixture_transaction_class
 
     try:
-        txn = rlp.decode(fixture["txbytes"], sedes=TransactionClass)
+        txn = TransactionClass.decode(fixture["txbytes"])
     except (rlp.DeserializationError, rlp.exceptions.DecodingError):
         assert "hash" not in fixture, "Transaction was supposed to be valid"
     except TypeError as err:
