@@ -87,12 +87,12 @@ def sha3_256(seed):
 #     return k.digest()
 
 
-# def get_cache_size(block_number):
-#     sz = CACHE_BYTES_INIT + CACHE_BYTES_GROWTH * (block_number // EPOCH_LENGTH)
-#     sz -= HASH_BYTES
-#     while not isprime(sz / HASH_BYTES):
-#         sz -= 2 * HASH_BYTES
-#     return sz
+def get_cache_size(block_number):
+    sz = CACHE_BYTES_INIT + CACHE_BYTES_GROWTH * (block_number // EPOCH_LENGTH)
+    sz -= HASH_BYTES
+    while not isprime(sz // HASH_BYTES):
+        sz -= 2 * HASH_BYTES
+    return sz
 
 
 def isprime(x):
@@ -102,28 +102,15 @@ def isprime(x):
     return True
 
 
-# def xor(a, b):
-#     return a ^ b
-
-
-def get_full_size(block_number):
-    sz = DATASET_BYTES_INIT + DATASET_BYTES_GROWTH * (block_number // EPOCH_LENGTH)
-    sz -= MIX_BYTES
-    while not isprime(sz / MIX_BYTES):
-        sz -= 2 * MIX_BYTES
-    return sz
+# def get_full_size(block_number):
+#     sz = DATASET_BYTES_INIT + DATASET_BYTES_GROWTH * (block_number // EPOCH_LENGTH)
+#     sz -= MIX_BYTES
+#     while not isprime(sz / MIX_BYTES):
+#         sz -= 2 * MIX_BYTES
+#     return sz
 
 
 def generate_seedhash(block_number):
-    # C code:
-    # uint64_t const epochs = block_number / ETHASH_EPOCH_LENGTH;
-    # for (uint32_t i = 0; i < epochs; ++i)
-    # 	  SHA3_256(&ret, (uint8_t*)&ret, 32);
-    # ret = ""
-    # for i in range(0, epoch):
-    #     ret = keccak(i)
-    # breakpoint()
-    # return ret
     epoch = block_number // EPOCH_LENGTH
     seed = b"\x00" * 32
     while epoch != 0:
@@ -145,31 +132,27 @@ def xor(first_item: int, second_item: int) -> bytes:
     return bytes([a ^ b for a, b in zip(first_item, bytes(second_item))])
 
 
-# def mkcache(cache_size):
 def mkcache(block_number):
-    cache_size = get_full_size(block_number)
-    n = cache_size // HASH_BYTES
-    print("mkcache n: ", n)
+    cache_size = get_cache_size(block_number)
+    cache_size_words = cache_size // HASH_BYTES
 
     seed = generate_seedhash(block_number)
     # Sequentially produce the initial dataset
-    o = [sha3_512(seed)]
-    # for i in range(1, n):
-    for i in range(1, 1000):
-        o.append(sha3_512(o[-1]))
+    cache = [sha3_512(seed)]
+    for _ in range(1, cache_size_words):
+        cache.append(sha3_512(cache[-1]))
 
     # Use a low-round version of randmemohash
     for _ in range(CACHE_ROUNDS):
-        # for i in range(n):
-        for i in range(1000):
-            first_cache_item = o[i - 1 + int(n) % n]
-            foo = int.from_bytes(o[i][0:4], "little")  # might be big?
-            second_cache_item = foo % n
-            # v = o[i][0] % n
+        for i in range(cache_size_words):
+            first_cache_item = cache[i - 1 + int(cache_size_words) % cache_size_words]
+            foo = int.from_bytes(cache[i][0:4], "little")  # might be big?
+            second_cache_item = foo % cache_size_words
+            # v = cache[i][0] % cache_size_words
             result = xor(first_cache_item, second_cache_item)
-            o[i] = sha3_512(result)
-            # o[i] = sha3_512(map(xor, o[(i - 1 + n) % n], o[v]))
-    return o
+            cache[i] = sha3_512(result)
+            # cache[i] = sha3_512(map(xor, cache[(i - 1 + cache_size_words) % cache_size_words], cache[v]))
+    return cache
 
 
 def int_to_le_bytes(val):
