@@ -17,6 +17,7 @@ deps = {
         # "pyethash>=0.1.27,<1.0.0",
         "rlp>=3,<4",
         "trie>=2.0.0,<3",
+        "pycryptodome",
     ],
     # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
@@ -48,7 +49,7 @@ deps = {
         "pydocstyle>=6.0.0",
         "types-setuptools",
         "importlib-metadata<5.0;python_version<'3.8'",
-        "isort==5.11.4"
+        "isort==5.11.4",
     ],
     "benchmark": [
         "termcolor>=1.1.0,<2.0.0",
