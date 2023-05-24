@@ -46,10 +46,6 @@ def zpad(foo, length):
     return foo + "\x00" * max(0, length - len(foo))
 
 
-def serialize_hash(h):
-    return "".join([zpad(encode_int(x), 4) for x in h])
-
-
 # def deserialize_hash(h):
 #     return [decode_int(h[i : i + WORD_BYTES]) for i in range(0, len(h), WORD_BYTES)]
 
@@ -108,13 +104,16 @@ def isprime(x):
 #     while not isprime(sz / MIX_BYTES):
 #         sz -= 2 * MIX_BYTES
 #     return sz
+def serialize_hash(h):
+    foo = "".join([zpad(encode_int(x), 4) for x in h])
+    return foo.encode()
 
 
 def generate_seedhash(block_number):
     epoch = block_number // EPOCH_LENGTH
     seed = b"\x00" * 32
     while epoch != 0:
-        seed = sha3_256(seed)
+        seed = serialize_hash(sha3_256(seed))
         epoch -= 1
     return seed
 
@@ -139,8 +138,12 @@ def mkcache(block_number):
     seed = generate_seedhash(block_number)
     # Sequentially produce the initial dataset
     cache = [sha3_512(seed)]
+
+    previous_cache_item = cache[0]
     for _ in range(1, cache_size_words):
-        cache.append(sha3_512(cache[-1]))
+        cache_item = sha3_512(previous_cache_item)
+        cache.append(cache_item)
+        previous_cache_item = cache_item
 
     # Use a low-round version of randmemohash
     for _ in range(CACHE_ROUNDS):
@@ -148,11 +151,17 @@ def mkcache(block_number):
             first_cache_item = cache[i - 1 + int(cache_size_words) % cache_size_words]
             foo = int.from_bytes(cache[i][0:4], "little")  # might be big?
             second_cache_item = foo % cache_size_words
-            # v = cache[i][0] % cache_size_words
             result = xor(first_cache_item, second_cache_item)
             cache[i] = sha3_512(result)
-            # cache[i] = sha3_512(map(xor, cache[(i - 1 + cache_size_words) % cache_size_words], cache[v]))
-    return cache
+
+    return tuple(le_bytes_to_uint32_sequence(cache_item) for cache_item in cache)
+
+
+def le_bytes_to_uint32_sequence(data):
+    sequence = []
+    for i in range(0, len(data), 4):
+        sequence.append(bytes_to_int(data[i : i + 4]))
+    return tuple(sequence)
 
 
 def int_to_le_bytes(val):
@@ -178,13 +187,16 @@ def calc_dataset_item(cache, i):
 
     mix = sha3_512(int_to_le_bytes(mix))
     # mix = b"00" * 32
-    print("mix 3: ", mix)
+    mix_bytes = bytes_to_int(mix)
+    print("mix 3: ", mix_bytes)
     # fnv it with a lot of random cache nodes based on i
     # for j in range(DATASET_PARENTS):
     for j in range(2):
-        cache_index = fnv(i ^ j, mix[j % r])
+        cache_index = fnv(i ^ j, mix_bytes[j % r])
         mix = bytes(
-            fnv(bytes_to_int(mix), bytes_to_int(cache[cache_index % cache_length]))
+            fnv(
+                bytes_to_int(mix_bytes), bytes_to_int(cache[cache_index % cache_length])
+            )
         )
         # mix = map(fnv, mix, cache[cache_index % n])
     return sha3_512(mix)
@@ -228,7 +240,7 @@ def hashimoto(header, nonce, full_size, dataset_lookup):
         cmix.append(fnv(fnv(fnv(mix[i], mix[i + 1]), mix[i + 2]), mix[i + 3]))
     print("got here: 5")
     return {
-        "mix digest": serialize_hash(cmix),
+        "mix_digest": serialize_hash(cmix),
         # "result": serialize_hash(sha3_256(s + cmix)),
         "result": serialize_hash(sha3_256(cmix.extend(s))),
     }
