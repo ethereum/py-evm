@@ -23,7 +23,7 @@ name = "Performance improvements"
 showcontent = true
 
 [[tool.towncrier.type]]
-directory = "doc"
+directory = "docs"
 name = "Improved Documentation"
 showcontent = true
 
