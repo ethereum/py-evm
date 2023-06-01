@@ -97,7 +97,7 @@ DEFAULT_EXECUTION = {
 
 Test = namedtuple("Test", ["filler", "fill_kwargs"])
 # make `None` default for fill_kwargs
-Test.__new__.__defaults__ = (None,)  # type: ignore
+Test.__new__.__defaults__ = (None,)
 
 
 #

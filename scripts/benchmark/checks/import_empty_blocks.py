@@ -32,7 +32,7 @@ class ImportEmptyBlocksBenchmark(BaseBenchmark):
 
         for chain in get_all_chains():
             val = self.as_timed_result(
-                lambda: self.import_empty_blocks(chain, self.num_blocks)
+                lambda chain=chain: self.import_empty_blocks(chain, self.num_blocks)
             )
             stat = DefaultStat(
                 caption=chain.get_vm().fork,

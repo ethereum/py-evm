@@ -461,7 +461,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
                 f"Receipt with index {receipt_index} not found in block"
             )
 
-    @functools.lru_cache(maxsize=32)
+    @functools.lru_cache(maxsize=32)  # noqa: B019
     @to_tuple
     def _get_block_transactions(
         self, transaction_root: Hash32, transaction_decoder: Type[TransactionDecoderAPI]
@@ -515,7 +515,7 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
     ) -> Tuple[WithdrawalAPI, ...]:
         return self._get_block_withdrawals(header.withdrawals_root)
 
-    @functools.lru_cache(maxsize=32)
+    @functools.lru_cache(maxsize=32)  # noqa: B019
     @to_tuple
     def _get_block_withdrawals(
         self,

@@ -193,7 +193,7 @@ UNSIGNED_HEADER = GOERLI_HEADER_ONE.copy(
 )
 def test_get_signer(header, expected_signer):
     signer = get_block_signer(header)
-    signer is expected_signer
+    assert signer == expected_signer
 
 
 @pytest.mark.parametrize(
