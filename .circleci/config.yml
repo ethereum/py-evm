@@ -65,6 +65,13 @@ common: &common
         key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 jobs:
+  docs:
+    <<: *common
+    docker:
+      - image: cimg/python:3.8
+        environment:
+          TOXENV: docs
+
   py39-native-blockchain-berlin:
     <<: *common
     docker:
@@ -144,13 +151,6 @@ jobs:
         environment:
           TOXENV: py39-native-blockchain-shanghai
 
-  py39-docs:
-    <<: *common
-    docker:
-      - image: cimg/python:3.9
-        environment:
-          TOXENV: py39-docs
-
   py37-core:
     <<: *common
     docker:
@@ -181,12 +181,6 @@ jobs:
       - image: cimg/python:3.7
         environment:
           TOXENV: py37-vm
-  py37-lint:
-    <<: *common
-    docker:
-      - image: cimg/python:3.7
-        environment:
-          TOXENV: py37-lint
 
   py38-core:
     <<: *common
@@ -266,6 +260,7 @@ workflows:
   version: 2
   test:
     jobs:
+      - docs
       - py39-native-blockchain-berlin
       - py39-native-blockchain-byzantium
       - py39-native-blockchain-constantinople
@@ -294,7 +289,5 @@ workflows:
       - py37-database
       - py38-database
       - py39-database
-      - py39-docs
-      - py37-lint
       - py38-lint
       - py39-lint

@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from setuptools import setup, find_packages
+from setuptools import (
+    setup,
+    find_packages,
+)
 
 
-deps = {
+extras_require = {
     "eth": [
         "cached-property>=1.5.1,<2",
         "eth-bloom>=1.0.3",
@@ -41,10 +44,10 @@ deps = {
         "importlib-metadata<5.0;python_version<'3.8'",
     ],
     "lint": [
-        "flake8==3.8.2",
-        "flake8-bugbear==20.1.4",
+        "flake8==6.0.0",  # flake8 claims semver but adds new warnings at minor releases, leave it pinned.
+        "flake8-bugbear==23.3.23",  # flake8-bugbear does not follow semver, leave it pinned.
         "isort>=5.10.1",
-        "mypy==0.910",
+        "mypy==0.971",  # mypy does not follow semver, leave it pinned.
         "pydocstyle>=6.0.0",
         "black>=23",
         "types-setuptools",
@@ -54,7 +57,7 @@ deps = {
         "termcolor>=1.1.0,<2.0.0",
         "web3>=4.1.0,<5.0.0",
     ],
-    "doc": [
+    "docs": [
         "py-evm>=0.2.0-a.14",
         # We need to have pysha for autodoc to be able to extract API docs
         "pysha3>=1.0.0,<2.0.0",
@@ -73,16 +76,21 @@ deps = {
         "idna==2.7",
         # idna 2.7 is not supported by requests 2.18
         "requests>=2.20,<3",
-        "tox==2.7.0",
+        "tox>=4.0.0",
         "twine",
     ],
 }
 
 
-deps["dev"] = deps["dev"] + deps["eth"] + deps["test"] + deps["doc"] + deps["lint"]
+extras_require["dev"] = (
+    extras_require["dev"]
+    + extras_require["eth"]
+    + extras_require["test"]
+    + extras_require["lint"]
+    + extras_require["docs"]
+)
 
-
-install_requires = deps["eth"]
+install_requires = extras_require["eth"]
 
 with open("README.md") as readme_file:
     long_description = readme_file.read()
@@ -100,7 +108,7 @@ setup(
     include_package_data=True,
     py_modules=["eth"],
     install_requires=install_requires,
-    extras_require=deps,
+    extras_require=extras_require,
     license="MIT",
     zip_safe=False,
     keywords="ethereum blockchain evm",
