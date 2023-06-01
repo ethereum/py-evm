@@ -20,6 +20,7 @@ def deprecate_method(func: TFunc, message: str = None) -> TFunc:
                 or f"{func.__name__} is deprecated. "
                 "A breaking change is expected in a future release."
             ),
+            stacklevel=2,
         )
         func(*args, **kwargs)
 

@@ -57,7 +57,7 @@ def test_set_on_existing_value(level_db, memory_db):
 def test_exists(level_db, memory_db):
     level_db.set(b"1", b"2")
     memory_db.set(b"1", b"1")
-    level_db.exists(b"1") == memory_db.exists(b"1")
+    assert level_db.exists(b"1") == memory_db.exists(b"1")
 
 
 def test_delete(level_db, memory_db):

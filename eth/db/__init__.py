@@ -21,4 +21,4 @@ def get_db_backend_class(import_path: str = None) -> Type[AtomicDatabaseAPI]:
 def get_db_backend(import_path: str = None, **init_kwargs: Any) -> AtomicDatabaseAPI:
     backend_class = get_db_backend_class(import_path)
     # mypy doesn't understand the constructor  of AtomicDatabaseAPI
-    return backend_class(**init_kwargs)  # type: ignore
+    return backend_class(**init_kwargs)

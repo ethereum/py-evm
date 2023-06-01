@@ -32,7 +32,7 @@ class MineEmptyBlocksBenchmark(BaseBenchmark):
 
         for chain in get_all_chains():
             value = self.as_timed_result(
-                lambda: self.mine_empty_blocks(chain, self.num_blocks)
+                lambda chain=chain: self.mine_empty_blocks(chain, self.num_blocks)
             )
 
             stat = DefaultStat(

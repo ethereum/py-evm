@@ -77,7 +77,9 @@ class SimpleValueTransferBenchmark(BaseBenchmark):
         for chain in get_all_chains():
             self._next_nonce = None
 
-            value = self.as_timed_result(lambda: self.mine_blocks(chain, num_blocks))
+            value = self.as_timed_result(
+                lambda chain=chain: self.mine_blocks(chain, num_blocks)
+            )
 
             total_gas_used, total_num_tx = value.wrapped_value
 

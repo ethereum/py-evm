@@ -86,7 +86,9 @@ class BaseDOSContractBenchmark(BaseBenchmark):
             self._setup_benchmark(chain)
 
             value = self.as_timed_result(
-                lambda: self.mine_blocks(chain, self.num_blocks, self.num_tx)
+                lambda chain=chain: self.mine_blocks(
+                    chain, self.num_blocks, self.num_tx
+                )
             )
 
             total_gas_used, total_num_tx = value.wrapped_value

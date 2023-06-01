@@ -105,7 +105,7 @@ class AtomicDatabaseBatchAPITestSuite:
 
         # exists
         with pytest.raises(ValidationError):
-            b"1" in batch
+            assert b"1" in batch
 
         with pytest.raises(ValidationError):
             batch.exists(b"1")

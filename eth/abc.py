@@ -241,7 +241,7 @@ class ReceiptAPI(ABC):
         ...
 
     # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
-    def copy(self, *args: Any, **kwargs: Any) -> "ReceiptAPI":
+    def copy(self, *args: Any, **kwargs: Any) -> "ReceiptAPI":  # noqa: B027
         """
         Return a copy of the receipt, optionally overwriting any of its properties.
         """
@@ -876,7 +876,7 @@ class BlockAPI(ABC):
         ...
 
     # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
-    def copy(self, *args: Any, **kwargs: Any) -> "BlockAPI":
+    def copy(self, *args: Any, **kwargs: Any) -> "BlockAPI":  # noqa: B027
         """
         Return a copy of the block, optionally overwriting any of its properties.
         """
@@ -3902,7 +3902,9 @@ class HeaderChainAPI(ABC):
     #
     # Canonical Chain API
     #
-    def get_canonical_block_hash(self, block_number: BlockNumber) -> Hash32:
+    def get_canonical_block_hash(  # noqa: B027
+        self, block_number: BlockNumber
+    ) -> Hash32:
         """
         Direct passthrough to `headerdb`
         """
