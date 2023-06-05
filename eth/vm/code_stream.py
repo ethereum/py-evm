@@ -24,17 +24,17 @@ class CodeStream(CodeStreamAPI):
         "_raw_code_bytes",
         "invalid_positions",
         "valid_positions",
-        "pc",
+        "program_counter",
     ]
 
     logger = logging.getLogger("eth.vm.CodeStream")
 
     def __init__(self, code_bytes: bytes) -> None:
         validate_is_bytes(code_bytes, title="CodeStream bytes")
-        # in order to avoid method overhead when setting/accessing pc, we no longer
-        # fence the pc (Program Counter) into 0 <= pc <= len(code_bytes).
+        # in order to avoid method overhead when setting/accessing program_counter,
+        # we no longer fence it into 0 <= program_counter <= len(code_bytes).
         # We now let it float free.
-        # NOTE: Setting pc to a negative value has undefined behavior.
+        # NOTE: Setting program_counter to a negative value has undefined behavior.
         self.program_counter = 0
         self._raw_code_bytes = code_bytes
         self._length_cache = len(code_bytes)
