@@ -1,1 +1,0 @@
-Bring ``CREATE`` and ``CREATE2`` logic up to speed wrt changes to EIP-2681 (high nonce).

@@ -1,1 +1,0 @@
-bump version for flake8, flake8-bugbear, and mypy, and cleanup `tox.ini`

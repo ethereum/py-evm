@@ -3,6 +3,24 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.7.0-alpha.3 (2023-06-08)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Updated `CodeStream` slot name `pc` to `program_counter` to match the attribute name (`#2109 <https://github.com/ethereum/py-evm/issues/2109>`__)
+- Bring ``CREATE`` and ``CREATE2`` logic up to speed wrt changes to EIP-2681 (high nonce). (`#2110 <https://github.com/ethereum/py-evm/issues/2110>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Update ``fixtures`` (ethereum/tests) version to ``v12.2`` and turn on all Shanghai fork tests since EOF is no longer in Shanghai. (`#2108 <https://github.com/ethereum/py-evm/issues/2108>`__)
+- Fix some failing tests by properly decoding the tx bytes provided by the Transaction test fixtures. (`#2111 <https://github.com/ethereum/py-evm/issues/2111>`__)
+- bump version for flake8, flake8-bugbear, and mypy, and cleanup `tox.ini` (`#2113 <https://github.com/ethereum/py-evm/issues/2113>`__)
+
+
 py-evm v0.7.0-alpha.2 (2023-05-11)
 ----------------------------------
 
