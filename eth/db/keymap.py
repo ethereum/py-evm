@@ -44,7 +44,7 @@ class KeyMapDB(BaseDB):
         return mapped_key in self._db
 
     def __getattr__(self, attr: Any) -> Any:
-        return getattr(self._db, attr)
+        return getattr(super().__getattribute__("_db"), attr)
 
     def __setattr__(self, attr: Any, val: Any) -> None:
         if attr in ("_db", "keymap"):
