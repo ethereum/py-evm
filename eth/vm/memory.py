@@ -53,8 +53,7 @@ class Memory(MemoryAPI):
             validate_length(value, length=size)
             validate_lte(start_position + size, maximum=len(self))
 
-            for idx, v in enumerate(value):
-                self._bytes[start_position + idx] = v
+            self._bytes[start_position : start_position + len(value)] = value
 
     def read(self, start_position: int, size: int) -> memoryview:
         return memoryview(self._bytes)[start_position : start_position + size]
