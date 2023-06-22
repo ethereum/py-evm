@@ -1,0 +1,1 @@
+Bumped ``mypy`` version to 1.4.0
