@@ -14,7 +14,7 @@ extras_require = {
         "eth-typing>=3.3.0,<4.0.0",
         "eth-utils>=2.0.0,<3.0.0",
         "lru-dict>=1.1.6",
-        "mypy_extensions>=0.4.1,<1.0.0",
+        "mypy_extensions>=1.0.0",
         "py-ecc>=1.4.7,<7.0.0",
         "pyethash>=0.1.27,<1.0.0",
         "rlp>=3,<4",
@@ -47,7 +47,7 @@ extras_require = {
         "flake8==6.0.0",  # flake8 claims semver but adds new warnings at minor releases, leave it pinned.
         "flake8-bugbear==23.3.23",  # flake8-bugbear does not follow semver, leave it pinned.
         "isort>=5.10.1",
-        "mypy==0.971",  # mypy does not follow semver, leave it pinned.
+        "mypy==1.4.0",  # mypy does not follow semver, leave it pinned.
         "pydocstyle>=6.0.0",
         "black>=23",
         "types-setuptools",

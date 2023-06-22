@@ -1,7 +1,31 @@
+from typing import (
+    Sequence,
+    Tuple,
+    Union,
+)
+
+from eth_keys.datatypes import (
+    PrivateKey,
+)
+from eth_typing import (
+    Address,
+)
 from eth_utils.toolz import (
     curry,
 )
 
+from eth.abc import (
+    SignedTransactionAPI,
+)
+from eth.vm.base import (
+    VM,
+)
+from eth.vm.forks.berlin.transactions import (
+    AccessListTransaction,
+)
+from eth.vm.forks.london.transactions import (
+    DynamicFeeTransaction,
+)
 from eth.vm.spoof import (
     SpoofTransaction,
 )
@@ -9,17 +33,17 @@ from eth.vm.spoof import (
 
 @curry
 def new_transaction(
-    vm,
-    from_,
-    to,
-    amount=0,
-    private_key=None,
-    gas_price=10**10,  # 10 gwei, to easily cover the initial London fee of 1 gwei
-    gas=100000,
-    data=b"",
-    nonce=None,
-    chain_id=None,
-):
+    vm: VM,
+    from_: Address,
+    to: Address,
+    amount: int = 0,
+    private_key: PrivateKey = None,
+    gas_price: int = 10**10,  # 10 gwei, to easily cover initial London fee of 1 gwei
+    gas: int = 100000,
+    data: bytes = b"",
+    nonce: int = None,
+    chain_id: int = None,
+) -> Union[SignedTransactionAPI, SpoofTransaction]:
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
@@ -37,28 +61,25 @@ def new_transaction(
         data=data,
     )
     if private_key:
-        if chain_id is None:
-            return tx.as_signed_transaction(private_key)
-        else:
-            return tx.as_signed_transaction(private_key, chain_id=chain_id)
+        return tx.as_signed_transaction(private_key, chain_id=chain_id)
     else:
         return SpoofTransaction(tx, from_=from_)
 
 
 @curry
 def new_access_list_transaction(
-    vm,
-    from_,
-    to,
-    private_key,
-    amount=0,
-    gas_price=10**10,
-    gas=100000,
-    data=b"",
-    nonce=None,
-    chain_id=1,
-    access_list=None,
-):
+    vm: VM,
+    from_: Address,
+    to: Address,
+    private_key: PrivateKey,
+    amount: int = 0,
+    gas_price: int = 10**10,
+    gas: int = 100000,
+    data: bytes = b"",
+    nonce: int = None,
+    chain_id: int = 1,
+    access_list: Sequence[Tuple[Address, Sequence[int]]] = None,
+) -> AccessListTransaction:
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
@@ -69,7 +90,7 @@ def new_access_list_transaction(
     if access_list is None:
         access_list = []
 
-    tx = vm.get_transaction_builder().new_unsigned_access_list_transaction(
+    tx = vm.get_transaction_builder().new_unsigned_access_list_transaction(  # type: ignore # noqa: E501
         chain_id=chain_id,
         nonce=nonce,
         gas_price=gas_price,
@@ -85,19 +106,19 @@ def new_access_list_transaction(
 
 @curry
 def new_dynamic_fee_transaction(
-    vm,
-    from_,
-    to,
-    private_key,
-    amount=0,
-    max_priority_fee_per_gas=1,
-    max_fee_per_gas=10**10,
-    gas=100000,
-    data=b"",
-    nonce=None,
-    chain_id=1,
-    access_list=None,
-):
+    vm: VM,
+    from_: Address,
+    to: Address,
+    private_key: PrivateKey,
+    amount: int = 0,
+    max_priority_fee_per_gas: int = 1,
+    max_fee_per_gas: int = 10**10,
+    gas: int = 100000,
+    data: bytes = b"",
+    nonce: int = None,
+    chain_id: int = 1,
+    access_list: Sequence[Tuple[Address, Sequence[int]]] = None,
+) -> DynamicFeeTransaction:
     """
     Create and return a transaction sending amount from <from_> to <to>.
 
@@ -108,7 +129,7 @@ def new_dynamic_fee_transaction(
     if access_list is None:
         access_list = []
 
-    tx = vm.get_transaction_builder().new_unsigned_dynamic_fee_transaction(
+    tx = vm.get_transaction_builder().new_unsigned_dynamic_fee_transaction(  # type: ignore # noqa: E501
         chain_id=chain_id,
         nonce=nonce,
         max_priority_fee_per_gas=max_priority_fee_per_gas,

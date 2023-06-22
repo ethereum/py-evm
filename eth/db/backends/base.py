@@ -33,7 +33,7 @@ class BaseDB(DatabaseAPI):
     def __contains__(self, key: bytes) -> bool:  # type: ignore # Breaks LSP
         if hasattr(self, "_exists"):
             # Classes which inherit this class would have `_exists` attr
-            return self._exists(key)  # type: ignore
+            return self._exists(key)
         else:
             return super().__contains__(key)
 

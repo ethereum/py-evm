@@ -71,7 +71,11 @@ class HomesteadTransaction(FrontierTransaction):
 
 
 class HomesteadUnsignedTransaction(FrontierUnsignedTransaction):
-    def as_signed_transaction(self, private_key: PrivateKey) -> HomesteadTransaction:
+    def as_signed_transaction(
+        self,
+        private_key: PrivateKey,
+        chain_id: int = None,  # unused until SpuriousDragon
+    ) -> HomesteadTransaction:
         v, r, s = create_transaction_signature(self, private_key)
         return HomesteadTransaction(
             nonce=self.nonce,
