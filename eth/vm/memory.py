@@ -1,4 +1,3 @@
-import itertools
 import logging
 
 from eth._utils.numeric import (
@@ -32,7 +31,7 @@ class Memory(MemoryAPI):
 
         size_to_extend = new_size - len(self)
         try:
-            self._bytes.extend(itertools.repeat(0, size_to_extend))
+            self._bytes.extend(bytearray(size_to_extend))
         except BufferError:
             # we can't extend the buffer (which might involve relocating it) if a
             # memoryview (which stores a pointer into the buffer) has been created by
