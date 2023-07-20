@@ -34,7 +34,7 @@ def eth_now() -> int:
     """
     The timestamp is in UTC.
     """
-    return int(datetime.datetime.utcnow().timestamp())
+    return int(datetime.datetime.now(datetime.timezone.utc).timestamp())
 
 
 def new_timestamp_from_parent(parent: Optional[BlockHeaderAPI]) -> int:
