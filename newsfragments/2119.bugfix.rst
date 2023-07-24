@@ -1,1 +1,0 @@
-``eth_now`` now returns a utc timestamp instead of a local timestamp

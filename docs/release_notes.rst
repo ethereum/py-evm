@@ -3,6 +3,21 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.7.0-alpha.4 (2023-07-24)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- ``eth_now`` now returns a utc timestamp instead of a local timestamp (`#2119 <https://github.com/ethereum/py-evm/issues/2119>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Bumped ``mypy`` version to 1.4.0 (`#2117 <https://github.com/ethereum/py-evm/issues/2117>`__)
+
+
 py-evm v0.7.0-alpha.3 (2023-06-08)
 ----------------------------------
 
