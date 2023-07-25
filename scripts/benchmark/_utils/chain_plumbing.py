@@ -1,13 +1,8 @@
-from pathlib import (
-    Path,
-)
-import tempfile
 from typing import (
     Any,
     Dict,
     Iterable,
     Tuple,
-    Type,
 )
 
 from eth_keys import (
@@ -24,23 +19,8 @@ from eth_utils import (
 from eth import (
     constants,
 )
-from eth.abc import (
-    VirtualMachineAPI,
-)
-from eth.chains.base import (
-    MiningChain,
-)
 from eth.chains.mainnet import (
     BaseMainnetChain,
-)
-from eth.db.backends.level import (
-    LevelDB,
-)
-from eth.tools.builder.chain import (
-    build,
-    disable_pow_check,
-    fork_at,
-    genesis,
 )
 
 ALL_VM = [vm for _, vm in BaseMainnetChain.vm_configuration]
@@ -87,24 +67,3 @@ DEFAULT_GENESIS_STATE = [
 ]
 
 GenesisState = Iterable[Tuple[Address, Dict[str, Any]]]
-
-
-def get_chain(
-    vm: Type[VirtualMachineAPI], genesis_state: GenesisState
-) -> Iterable[MiningChain]:
-    with tempfile.TemporaryDirectory() as temp_dir:
-        level_db_obj = LevelDB(Path(temp_dir))
-        level_db_chain = build(
-            MiningChain,
-            fork_at(vm, constants.GENESIS_BLOCK_NUMBER),
-            disable_pow_check(),
-            genesis(db=level_db_obj, params=GENESIS_PARAMS, state=genesis_state),
-        )
-        yield level_db_chain
-
-
-def get_all_chains(
-    genesis_state: GenesisState = DEFAULT_GENESIS_STATE,
-) -> Iterable[MiningChain]:
-    for vm in ALL_VM:
-        yield from get_chain(vm, genesis_state)

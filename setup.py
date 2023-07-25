@@ -26,7 +26,6 @@ extras_require = {
     "eth-extra": [
         "blake2b-py>=0.2.0,<0.3.0",
         "coincurve>=13.0.0,<14.0.0",
-        "plyvel>=1.2.0,<2",
     ],
     "test": [
         "factory-boy==2.11.1",
