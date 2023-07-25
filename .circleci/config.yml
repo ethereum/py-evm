@@ -338,7 +338,6 @@ workflows:
       - py38-database
       - py39-database
       - py310-database
-      - py37-lint
       - py38-lint
       - py39-lint
       - py310-lint

@@ -23,7 +23,7 @@ extras_require = {
     # explicitly need to function and hence should not depend on.
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
-    'eth-extra': [
+    "eth-extra": [
         "blake2b-py>=0.2.0,<0.3.0",
         "coincurve>=13.0.0,<14.0.0",
         "plyvel>=1.2.0,<2",
