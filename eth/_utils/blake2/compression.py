@@ -1,6 +1,6 @@
 import struct
 from typing import (
-    Tuple,
+    Tuple, Union,
 )
 
 doc = """
@@ -74,7 +74,7 @@ TMessageBlock = Tuple[int, int, int, int, int, int, int, int]
 def blake2b_compress(
     num_rounds: int,
     h_starting_state: TMessageBlock,
-    block: bytes,
+    block: Union[bytes, TMessageBlock],
     t_offset_counters: Tuple[int, int],
     final_block_flag: bool,
 ) -> bytes:
@@ -101,8 +101,12 @@ def blake2b_compress(
     sigma_schedule = Blake2b.sigma_schedule
     sigma_schedule_len = len(sigma_schedule)
 
-    # convert block (bytes) into 16 LE words
-    m = struct.unpack_from("<16%s" % Blake2b.WORDFMT, bytes(block))
+    # convert block (if bytes) into tuple of 16 LE words
+    # *later versions of blake2b use the tuple form, but older versions use bytes
+    m = (
+        block if isinstance(block, tuple)
+        else struct.unpack_from("<16%s" % Blake2b.WORDFMT, bytes(block))
+    )
 
     v = [0] * 16
     v[0:8] = h_starting_state
