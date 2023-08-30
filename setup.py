@@ -16,11 +16,8 @@ extras_require = {
         "lru-dict>=1.1.6",
         "mypy-extensions>=1.0.0",
         "py-ecc>=1.4.7,<7.0.0",
-        "pyethash@git+ssh://git@github.com/ethereum/ethash.git@master",
-        # "pyethash>=0.1.27,<1.0.0",
         "rlp>=3,<4",
         "trie>=2.0.0,<3",
-        "pycryptodome",
     ],
     # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.
@@ -29,8 +26,6 @@ extras_require = {
     "eth-extra": [
         "blake2b-py>=0.1.4,<0.2",
         "coincurve>=13.0.0,<14.0.0",
-        "eth-hash[pysha3];implementation_name=='cpython'",
-        "eth-hash[pycryptodome];implementation_name=='pypy'",
         "plyvel>=1.2.0,<2",
     ],
     "test": [
@@ -62,7 +57,6 @@ extras_require = {
     "docs": [
         "py-evm>=0.2.0-a.14",
         # We need to have pysha for autodoc to be able to extract API docs
-        "pysha3>=1.0.0,<2.0.0",
         "Sphinx>=1.5.5,<2",
         "jinja2>=3.0.0,<3.1.0",  # jinja2<3.0 or >=3.1.0 cause doc build failures.
         "sphinx_rtd_theme>=0.1.9",
