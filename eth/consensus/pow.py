@@ -6,9 +6,6 @@ from typing import (
     Tuple,
 )
 
-from eth_hash.auto import (
-    keccak,
-)
 from eth_typing import (
     Address,
     Hash32,
@@ -18,18 +15,14 @@ from eth_utils import (
     big_endian_to_int,
     encode_hex,
 )
-from pyethash import (
-    # EPOCH_LENGTH,
-    # hashimoto_light,
-    mkcache_bytes,
-)
 
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockHeaderAPI,
     ConsensusAPI,
 )
-from eth.consensus.hashimoto import (
+from eth.consensus.ethash import (
+    get_dataset_full_size,
     hashimoto_light,
     mkcache,
 )
@@ -42,11 +35,11 @@ from eth.validation import (
 )
 
 # Type annotation here is to ensure we don't accidentally use strings instead of bytes.
-cache_by_epoch: "OrderedDict[int, bytearray]" = OrderedDict()
+cache_by_epoch: "OrderedDict[int, Tuple[Tuple[int, ...], ...]]" = OrderedDict()
 CACHE_MAX_ITEMS = 10
 
 
-def get_cache(block_number: int) -> bytes:
+def get_cache(block_number: int) -> Tuple[Tuple[int, ...], ...]:
     epoch_index = block_number // EPOCH_LENGTH
 
     # doing explicit caching, because functools.lru_cache is 70% slower in the tests
@@ -81,25 +74,26 @@ def check_pow(
     validate_length(mining_hash, 32, title="Mining Hash")
     validate_length(nonce, 8, title="POW Nonce")
     cache = get_cache(block_number)
-    print("got cache")
     mining_output = hashimoto_light(
-        block_number, cache, mining_hash, big_endian_to_int(nonce)
+        get_dataset_full_size(block_number),
+        cache,
+        mining_hash,
+        nonce,
     )
-    print("made it past hashimoto_light")
     if mining_output["mix_digest"] != mix_hash:
         raise ValidationError(
             f"mix hash mismatch; expected: {encode_hex(mining_output['mix_digest'])} "
-            f"!= actual: {encode_hex(mix_hash)}. "
-            f"Mix hash calculated from block #{block_number}, "
-            f"mine hash {encode_hex(mining_hash)}, nonce {encode_hex(nonce)}"
-            # f", difficulty {difficulty}, cache hash {encode_hex(keccak(cache))}"
+            f"!= actual: {encode_hex(mix_hash)}.\n    "
+            f"Mix hash calculated from block #{block_number},\n    "
+            f"mine hash: {encode_hex(mining_hash)},\n    "
+            f"nonce: {encode_hex(nonce)},\n    "
+            f"difficulty: {difficulty}"
         )
-    result = big_endian_to_int(mining_output["result"].encode())
+    result = big_endian_to_int(mining_output["result"])
     validate_lte(result, 2**256 // difficulty, title="POW Difficulty")
 
 
-# MAX_TEST_MINE_ATTEMPTS = 1000
-MAX_TEST_MINE_ATTEMPTS = 10
+MAX_TEST_MINE_ATTEMPTS = 1000
 
 
 def mine_pow_nonce(
@@ -107,8 +101,13 @@ def mine_pow_nonce(
 ) -> Tuple[bytes, bytes]:
     cache = get_cache(block_number)
     for nonce in range(MAX_TEST_MINE_ATTEMPTS):
-        mining_output = hashimoto_light(block_number, cache, mining_hash, nonce)
-        result = big_endian_to_int(mining_output["result"].encode())
+        mining_output = hashimoto_light(
+            get_dataset_full_size(block_number),
+            cache,
+            mining_hash,
+            nonce.to_bytes(8, "big"),
+        )
+        result = big_endian_to_int(mining_output["result"])
         result_cap = 2**256 // difficulty
         if result <= result_cap:
             return nonce.to_bytes(8, "big"), mining_output["mix_digest"]
@@ -144,7 +143,7 @@ class PowConsensus(ConsensusAPI):
     @classmethod
     def get_fee_recipient(cls, header: BlockHeaderAPI) -> Address:
         """
-        Return the ``coinbase`` of the passed ``header`` as the receipient for any
+        Return the ``coinbase`` of the passed ``header`` as the recipient for any
         rewards for the block.
         """
         return header.coinbase

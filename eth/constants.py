@@ -41,7 +41,7 @@ ZERO_HASH32 = Hash32(32 * b"\x00")
 #
 # POW Constants
 #
-EPOCH_LENGTH = 30000  # unsigned int - may need to add: `+(1<<32)`
+EPOCH_LENGTH = 30000
 
 #
 # Stack Limit
