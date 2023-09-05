@@ -21,7 +21,6 @@ from eth.tools.mining import (
     POWMiningMixin,
 )
 
-
 TEST_NUM_CACHES = 3
 
 
