@@ -13,9 +13,9 @@ from typing import (
 from Crypto.Hash import (
     keccak as pc_keccak,
 )
-
-from eth_typing import Hash32
-
+from eth_typing import (
+    Hash32,
+)
 
 WORD_BYTES = 4  # bytes in word
 DATASET_BYTES_INIT = 2**30  # bytes in dataset at genesis
@@ -196,7 +196,7 @@ def _hashimoto(
     mix = le_bytes_to_uint32_sequence(seed_hash) * mix_hashes
 
     for i in range(ACCESSES):
-        new_data = ()
+        new_data: Tuple[int, ...] = ()
         parent = fnv(i ^ seed_head, mix[i % len(mix)]) % rows
         for j in range(MIX_BYTES // HASH_BYTES):
             new_data += fetch_dataset_item(2 * parent + j)
@@ -225,7 +225,7 @@ def hashimoto_light(
 
 
 def hashimoto(
-    full_size: int, dataset: Tuple[int, ...], header: Hash32, nonce: bytes
+    full_size: int, dataset: Tuple[Tuple[int, ...], ...], header: Hash32, nonce: bytes
 ) -> Dict[str, bytes]:
     return _hashimoto(
         header,

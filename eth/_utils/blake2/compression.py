@@ -1,6 +1,7 @@
 import struct
 from typing import (
-    Tuple, Union,
+    Tuple,
+    Union,
 )
 
 doc = """
@@ -104,7 +105,8 @@ def blake2b_compress(
     # convert block (if bytes) into tuple of 16 LE words
     # *later versions of blake2b use the tuple form, but older versions use bytes
     m = (
-        block if isinstance(block, tuple)
+        block
+        if isinstance(block, tuple)
         else struct.unpack_from("<16%s" % Blake2b.WORDFMT, bytes(block))
     )
 
