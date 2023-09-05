@@ -1,12 +1,21 @@
 Understanding the mining process
 ================================
 
+.. note::
+
+    Proof-of-Work (PoW) mining is no longer used for achieving consensus on Ethereum.
+    Newer virtual machines, beginning with the ``ParisVM``, assume a
+    Proof-of-Stake (PoS) consensus mechanism which lies beyond the scope of the
+    execution layer. This guide is for educational purposes only.
+
+
 From the :doc:`Cookbook </cookbook/index>` we can already learn how to
 use the :class:`~eth.chains.base.Chain` class to create a single
 blockchain as a combination of different virtual machines for different spans
 of blocks.
 
-In this guide we want to build up on that knowledge and look into the actual mining process.
+In this guide we want to build up on that knowledge and look into the actual mining
+process that was once important for achieving consensus on mainnet Ethereum.
 
 
 .. note::
@@ -134,7 +143,7 @@ briefly go over an example that demonstrates how we can retrieve a matching
   Py-EVM currently doesn't offer a stable API for actual PoW mining. The following code is for
   demonstration purpose only.
 
-Mining on the main ethereum chain is a competition done simultanously by many miners, hence the
+Mining on the main ethereum chain is a competition done simultaneously by many miners, hence the
 *mining difficulty* is pretty high which means it will take a very long time to find the right
 ``nonce`` and ``mix_hash`` on commodity hardware. In order for us to have something that we can
 tinker with on a regular laptop, we'll construct a test chain with the ``difficulty`` set to ``1``.
