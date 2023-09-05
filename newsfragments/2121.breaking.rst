@@ -1,0 +1,1 @@
+Remove dependency on ``pyethash``, ``pysha3``, and ``pycryptodome`` packages and internalize the ethash algorithm implementation into Python code with significant loss of performance, in an effort to un-prioritize proof-of-work consensus and logic.
