@@ -25,7 +25,7 @@ extras_require = {
     # using the default fallbacks though.
     "eth-extra": [
         "blake2b-py>=0.2.0,<0.3.0",
-        "coincurve>=13.0.0,<14.0.0",
+        "coincurve>=18.0.0",
     ],
     "test": [
         "factory-boy==2.11.1",
@@ -118,5 +118,6 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
     ],
 )
