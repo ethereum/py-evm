@@ -3,6 +3,21 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.8.0-beta.1 (2023-10-09)
+---------------------------------
+
+Features
+~~~~~~~~
+
+- Python 3.10 and 3.11 support. (`#2088 <https://github.com/ethereum/py-evm/issues/2088>`__)
+
+
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+- Remove dependency on ``pyethash``, ``pysha3``, and ``pycryptodome`` packages and internalize the ethash algorithm implementation into Python code with significant loss of performance, in an effort to un-prioritize proof-of-work consensus and logic. (`#2121 <https://github.com/ethereum/py-evm/issues/2121>`__)
+
+
 py-evm v0.7.0-alpha.4 (2023-07-24)
 ----------------------------------
 
