@@ -78,3 +78,8 @@ GRAY_GLACIER_MAINNET_BLOCK = BlockNumber(15050000)
 # Paris Block (block height at which TTD was reached)
 #
 PARIS_MAINNET_BLOCK = BlockNumber(15537394)
+
+#
+# Shanghai Block
+#
+SHANGHAI_MAINNET_BLOCK = BlockNumber(17034870)
