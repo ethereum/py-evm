@@ -3,12 +3,13 @@
 help:
 	@echo "clean-build - remove build artifacts"
 	@echo "clean-pyc - remove Python file artifacts"
-	@echo "lint - check style with flake8"
+	@echo "lint - fix linting issues with pre-commit"
 	@echo "test - run tests quickly with the default Python"
-	@echo "testall - run tests on every Python version with tox"
 	@echo "coverage - check code coverage quickly with the default Python"
-	@echo "docs - generate Sphinx HTML documentation, including API docs"
-	@echo "release - package and upload a release"
+	@echo "docs - generate docs and open in browser (linux-docs for version on linux)"
+	@echo "notes - consume towncrier newsfragments/ and update release notes in docs/"
+	@echo "release - package and upload a release (does not run notes target)"
+	@echo "dist - package"
 
 clean: clean-build clean-pyc
 
@@ -23,18 +24,13 @@ clean-pyc:
 	find . -name '__pycache__' -exec rm -rf {} +
 
 lint:
-	tox run -e lint
-
-lint-roll:
-	isort eth tests scripts
-	black eth tests scripts setup.py
-	$(MAKE) lint
+	@pre-commit run --all-files --show-diff-on-failure || ( \
+		echo "\n\n\n * pre-commit should have fixed the errors above. Running again to make sure everything is good..." \
+		&& pre-commit run --all-files --show-diff-on-failure \
+	)
 
 test:
-	py.test --tb native tests
-
-test-all:
-	tox
+	pytest tests
 
 coverage:
 	coverage run --source eth
@@ -42,8 +38,11 @@ coverage:
 	coverage html
 	open htmlcov/index.html
 
-build-docs: clean
-	cd docs/; sphinx-build -W -T -E . _build/html
+build-docs:
+	sphinx-apidoc -o docs/ . setup.py "*conftest*"
+	$(MAKE) -C docs clean
+	$(MAKE) -C docs html
+	$(MAKE) -C docs doctest
 
 doctest:
 	cd docs/; sphinx-build -T -b doctest . _build/doctest
@@ -69,11 +68,14 @@ notes:
 	towncrier build --yes --version $(UPCOMING_VERSION)
 	# Before we bump the version, make sure that the towncrier-generated docs will build
 	make build-docs
-	git commit -m "Compile release notes"
+	git commit -m "Compile release notes for v$(UPCOMING_VERSION)"
 
-release: clean
+release: check-bump clean
 	# require that you be on a branch that's linked to upstream/master
 	git status -s -b | head -1 | grep "\.\.upstream/master"
+	# require that upstream is configured for ethereum/py-evm
+	@git remote -v | grep -E "upstream\tgit@github.com:ethereum/py-evm.git \(push\)|upstream\thttps://(www.)?github.com/ethereum/py-evm \(push\)"
+	# verify that docs build correctly
 	./newsfragments/validate_files.py is-empty
 	# verify that docs build correctly
 	make build-docs

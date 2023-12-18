@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def _find_files(project_root):
-    path_exclude_pattern = r"\.git($|\/)|venv|_build|\.tox"
+    path_exclude_pattern = r"\.git($|\/)|venv|_build"
     file_exclude_pattern = r"fill_template_vars\.py|\.swp$"
     filepaths = []
     for dir_path, _dir_names, file_names in os.walk(project_root):
@@ -35,7 +35,7 @@ def _replace(pattern, replacement, project_root):
 def main():
     project_root = Path(os.path.realpath(sys.argv[0])).parent.parent
 
-    module_name = input("What is your python module name (ex: What would you import (no dashes)? ")
+    module_name = input("What is your python module name? ")
 
     pypi_input = input(f"What is your pypi package name? (default: {module_name}) ")
     pypi_name = pypi_input or module_name
