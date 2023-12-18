@@ -1,13 +1,13 @@
-from .clique import (  # noqa: F401
+from .clique import (
     CliqueApplier,
     CliqueConsensus,
     CliqueConsensusContext,
 )
-from .constants import (  # noqa: F401
+from .constants import (
     NONCE_AUTH,
     NONCE_DROP,
 )
-from .datatypes import (  # noqa: F401
+from .datatypes import (
     Snapshot,
     Tally,
     Vote,

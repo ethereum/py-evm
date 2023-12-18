@@ -1,9 +1,8 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
     big_endian_to_int,
 )
+import pytest
 
 from eth.tools._utils.normalization import (
     normalize_state,

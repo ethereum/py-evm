@@ -462,9 +462,8 @@ class AccountDB(AccountDatabaseAPI):
         for address, storage_root in self._get_changed_roots():
             if self.account_exists(address) or storage_root != BLANK_ROOT_HASH:
                 self.logger.debug2(
-                    "Updating account 0x%s to storage root 0x%s",
-                    address.hex(),
-                    storage_root.hex(),
+                    f"Updating account 0x{address.hex()} to storage root "
+                    f"0x{storage_root.hex()}",
                 )
                 self._set_storage_root(address, storage_root)
 
@@ -520,7 +519,7 @@ class AccountDB(AccountDatabaseAPI):
         # persist accounts
         self._validate_generated_root()
         new_root_hash = self.state_root
-        self.logger.debug2("Persisting new state root: 0x%s", new_root_hash.hex())
+        self.logger.debug2(f"Persisting new state root: 0x{new_root_hash.hex()}")
         with self._raw_store_db.atomic_batch() as write_batch:
             self._batchtrie.commit_to(write_batch, apply_deletes=False)
             self._batchdb.commit_to(write_batch, apply_deletes=False)
@@ -579,12 +578,11 @@ class AccountDB(AccountDatabaseAPI):
         for address in sorted(diff.pending_keys()):
             account = self._get_account(Address(address))
             self.logger.debug2(
-                "Pending Account %s: balance %d, nonce %d, storage root %s, code hash %s",  # noqa: E501
-                to_checksum_address(address),
-                account.balance,
-                account.nonce,
-                encode_hex(account.storage_root),
-                encode_hex(account.code_hash),
+                f"Pending Account {to_checksum_address(address)}: "
+                f"balance {account.balance}, "
+                f"nonce {account.nonce}, "
+                f"storage root {encode_hex(account.storage_root)}, "
+                f"code hash {encode_hex(account.code_hash)}"
             )
         for deleted_address in sorted(diff.deleted_keys()):
             # Check if the account was accessed before accessing/logging
@@ -592,10 +590,9 @@ class AccountDB(AccountDatabaseAPI):
             was_account_accessed = deleted_address in self._accessed_accounts
             cast_deleted_address = Address(deleted_address)
             self.logger.debug2(
-                "Deleted Account %s, empty? %s, exists? %s",
-                to_checksum_address(deleted_address),
-                self.account_is_empty(cast_deleted_address),
-                self.account_exists(cast_deleted_address),
+                f"Deleted Account {to_checksum_address(deleted_address)}, "
+                f"empty? {self.account_is_empty(cast_deleted_address)}, "
+                f"exists? {self.account_exists(cast_deleted_address)}"
             )
             # If the account was not accessed previous to the log,
             # (re)mark it as not accessed
@@ -619,9 +616,8 @@ class AccountDB(AccountDatabaseAPI):
                 del trie[delete_key]
             except trie_exceptions.MissingTrieNode as exc:
                 self.logger.debug(
-                    "Missing node while deleting account with key %s: %s",
-                    encode_hex(delete_key),
-                    exc,
+                    "Missing node while deleting account with key "
+                    f"{encode_hex(delete_key)}: {exc}"
                 )
                 raise MissingAccountTrieNode(
                     exc.missing_node_hash,
@@ -649,10 +645,8 @@ class AccountDB(AccountDatabaseAPI):
                 trie[key] = val
             except trie_exceptions.MissingTrieNode as exc:
                 self.logger.debug(
-                    "Missing node on account update key %s to %s: %s",
-                    encode_hex(key),
-                    encode_hex(val),
-                    exc,
+                    f"Missing node on account update key {encode_hex(key)} to "
+                    f"{encode_hex(val)}: {exc}"
                 )
                 raise MissingAccountTrieNode(
                     exc.missing_node_hash,

@@ -1,4 +1,5 @@
 import os
+
 import pytest
 
 from eth._utils.env import (

@@ -4,7 +4,7 @@ Builder Tools
 
 The JSON test fillers found in `eth.tools.fixtures` is a set of tools which facilitate
 creating standard JSON consensus tests as found in the
-`ethereum/tests repository <https://github.com/ethereum/tests>`_. 
+`ethereum/tests repository <https://github.com/ethereum/tests>`_.
 
 .. note:: Only VM and state tests are supported right now.
 
@@ -12,7 +12,7 @@ creating standard JSON consensus tests as found in the
 State Test Fillers
 ------------------
 
-Tests are generated in two steps. 
+Tests are generated in two steps.
 
 * First, a *test filler* is written that contains a high level description of the test case.
 * Subsequently, the filler is compiled to the actual test in a process called
@@ -52,7 +52,7 @@ sequence of functions.
         )
     )
 
-.. note:: 
+.. note::
 
     Note that :func:`~eth.tools.fixtures.setup_filler` returns a
     dictionary, whereas all of the following functions such as
@@ -68,4 +68,3 @@ sequence of functions.
 .. autofunction:: eth.tools.fixtures.fillers.execution
 
 .. autofunction:: eth.tools.fixtures.fillers.expect
-

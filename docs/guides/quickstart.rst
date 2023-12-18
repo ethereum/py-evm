@@ -58,5 +58,3 @@ Finally, install the ``py-evm`` package via pip:
 
   :doc:`Build a first app </guides/building_an_app_that_uses_pyevm>` on top of Py-EVM in under
   5 minutes
-
-

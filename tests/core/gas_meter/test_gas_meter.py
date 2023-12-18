@@ -1,8 +1,7 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
 )
+import pytest
 
 from eth.exceptions import (
     OutOfGas,

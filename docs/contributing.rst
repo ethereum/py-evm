@@ -51,7 +51,7 @@ Code Style
 
 When multiple people are working on the same body of code, it is important that they write code that conforms to a similar style. It often doesn't matter as much which style, but rather that they conform to one style.
 
-To ensure your contribution conforms to the style being used in this project, we encourage you to read our `style guide <https://github.com/pipermerriam/ethereum-dev-tactical-manual/blob/master/style-guide.md>`_.
+To ensure your contribution conforms to the style being used in this project, we encourage you to read our `style guide <https://github.com/ethereum/snake-charmers-tactical-manual/blob/main/style-guide.md>`_.
 
 
 
@@ -74,7 +74,7 @@ Documentation
 ~~~~~~~~~~~~~
 
 Good documentation will lead to quicker adoption and happier users. Please check out our guide
-on `how to create documentation for the Python Ethereum ecosystem <https://github.com/ethereum/snake-charmers-tactical-manual/blob/master/documentation.md>`_.
+on `how to create documentation for the Python Ethereum ecosystem <https://github.com/ethereum/snake-charmers-tactical-manual/blob/main/documentation.md>`_.
 
 
 Pull Requests
@@ -92,7 +92,7 @@ do not pass the CI build yet won't get reviewed unless explicitly requested.
 
 If the pull request introduces changes that should be reflected in the release notes,
 please add a `newsfragment` file as explained
-`here <https://github.com/ethereum/py-evm/blob/master/newsfragments/README.md>`_.
+`here <https://github.com/ethereum/py-evm/blob/main/newsfragments/README.md>`_.
 
 If possible, the change to the release notes file should be included in the commit that introduces the
 feature or bugfix.
@@ -107,7 +107,7 @@ Before releasing a new version, build and test the package that will be released
 
 .. code:: sh
 
-    git checkout master && git pull
+    git checkout main && git pull
 
     make package
 

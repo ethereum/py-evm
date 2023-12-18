@@ -1,5 +1,3 @@
-import pytest
-
 from eth_keys import (
     keys,
 )
@@ -8,6 +6,7 @@ from eth_utils import (
     decode_hex,
     to_tuple,
 )
+import pytest
 
 from eth.chains.base import (
     MiningChain,

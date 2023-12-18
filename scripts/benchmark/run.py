@@ -3,17 +3,6 @@
 import logging
 import sys
 
-from _utils.compile import (
-    compile_contracts,
-)
-from _utils.reporting import (
-    DefaultStat,
-    print_final_benchmark_total_line,
-)
-from _utils.shellart import (
-    bold_green,
-    bold_red,
-)
 from checks import (
     ImportEmptyBlocksBenchmark,
     MineEmptyBlocksBenchmark,
@@ -42,6 +31,17 @@ from contract_data import (
 
 from eth._utils.version import (
     construct_evm_runtime_identifier,
+)
+from scripts.benchmark._utils.compile import (
+    compile_contracts,
+)
+from scripts.benchmark._utils.reporting import (
+    DefaultStat,
+    print_final_benchmark_total_line,
+)
+from scripts.benchmark._utils.shellart import (
+    bold_green,
+    bold_red,
 )
 
 HEADER = (

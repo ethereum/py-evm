@@ -1,5 +1,3 @@
-import pytest
-
 from eth_typing import (
     Address,
 )
@@ -7,6 +5,7 @@ from eth_utils import (
     ValidationError,
     to_hex,
 )
+import pytest
 
 from eth.validation import (
     UINT_64_MAX,

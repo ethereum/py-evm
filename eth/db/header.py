@@ -348,7 +348,6 @@ class HeaderDB(HeaderDatabaseAPI):
         So de-canonicalize this block number and insert a gap in the tracked
         chain gaps.
         """
-
         db.delete(SchemaV1.make_block_number_to_hash_lookup_key(block_num))
 
         new_gaps = reopen_gap(block_num, base_gaps)

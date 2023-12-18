@@ -1,5 +1,4 @@
 import os
-import pytest
 
 from eth_typing.enums import (
     ForkName,
@@ -9,6 +8,7 @@ from eth_utils import (
     is_same_address,
     to_tuple,
 )
+import pytest
 import rlp
 
 from eth.exceptions import (

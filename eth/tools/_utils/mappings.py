@@ -29,7 +29,8 @@ def is_cleanly_mergable(*dicts: Dict[Any, Any]) -> bool:
     Check that nothing will be overwritten when
     dictionaries are merged using `deep_merge`.
 
-    Examples:
+    Examples
+    --------
 
         >>> is_cleanly_mergable({"a": 1}, {"b": 2}, {"c": 3})
         True

@@ -1,9 +1,9 @@
-import pytest
 import time
 
 from eth_utils.toolz import (
     pipe,
 )
+import pytest
 
 from eth import (
     constants,

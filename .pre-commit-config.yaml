@@ -47,4 +47,4 @@ repos:
     rev: v1.5.1
     hooks:
     -   id: mypy
-        exclude: tests/
+        files: eth/

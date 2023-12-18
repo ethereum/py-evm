@@ -6,6 +6,7 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -714,8 +715,8 @@ class MiningChain(Chain, MiningChainAPI):
         self,
         transactions: Sequence[SignedTransactionAPI],
         *args: Any,
-        parent_header: BlockHeaderAPI = None,
-        withdrawals: Sequence[WithdrawalAPI] = None,
+        parent_header: Optional[BlockHeaderAPI] = None,
+        withdrawals: Optional[Sequence[WithdrawalAPI]] = None,
         **kwargs: Any,
     ) -> Tuple[BlockImportResult, Tuple[ReceiptAPI, ...], Tuple[ComputationAPI, ...]]:
         if parent_header is None:

@@ -71,8 +71,8 @@ notes:
 	git commit -m "Compile release notes for v$(UPCOMING_VERSION)"
 
 release: check-bump clean
-	# require that you be on a branch that's linked to upstream/master
-	git status -s -b | head -1 | grep "\.\.upstream/master"
+	# require that you be on a branch that's linked to upstream/main
+	git status -s -b | head -1 | grep "\.\.upstream/main"
 	# require that upstream is configured for ethereum/py-evm
 	@git remote -v | grep -E "upstream\tgit@github.com:ethereum/py-evm.git \(push\)|upstream\thttps://(www.)?github.com/ethereum/py-evm \(push\)"
 	# verify that docs build correctly

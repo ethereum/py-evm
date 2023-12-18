@@ -6,7 +6,6 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/py-evm.svg)](https://pypi.python.org/pypi/py-evm)
 [![Docs build](https://readthedocs.org/projects/py-evm/badge/?version=latest)](https://py-evm.readthedocs.io/en/latest/?badge=latest)
 
-
 ## Py-EVM
 
 Py-EVM is an implementation of the Ethereum protocol in Python. It contains the low level

@@ -69,11 +69,8 @@ class GasMeter(GasMeterAPI):
 
         if self.logger.show_debug2:
             self.logger.debug2(
-                "GAS CONSUMPTION: %s - %s -> %s (%s)",
-                self.gas_remaining + amount,
-                amount,
-                self.gas_remaining,
-                reason,
+                f"GAS CONSUMPTION: {self.gas_remaining + amount} - {amount} -> "
+                f"{self.gas_remaining} ({reason})"
             )
 
     def return_gas(self, amount: int) -> None:
@@ -84,10 +81,8 @@ class GasMeter(GasMeterAPI):
 
         if self.logger.show_debug2:
             self.logger.debug2(
-                "GAS RETURNED: %s + %s -> %s",
-                self.gas_remaining - amount,
-                amount,
-                self.gas_remaining,
+                f"GAS RETURNED: {self.gas_remaining - amount} + {amount} -> "
+                f"{self.gas_remaining}"
             )
 
     def refund_gas(self, amount: int) -> None:
@@ -95,8 +90,6 @@ class GasMeter(GasMeterAPI):
 
         if self.logger.show_debug2:
             self.logger.debug2(
-                "GAS REFUND: %s + %s -> %s",
-                self.gas_refunded - amount,
-                amount,
-                self.gas_refunded,
+                f"GAS REFUND: {self.gas_refunded - amount} + {amount} -> "
+                f"{self.gas_refunded}"
             )

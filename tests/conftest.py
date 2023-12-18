@@ -1,7 +1,6 @@
 from pathlib import (
     Path,
 )
-import pytest
 
 from eth_keys import (
     keys,
@@ -12,6 +11,7 @@ from eth_utils import (
     to_tuple,
     to_wei,
 )
+import pytest
 import rlp
 
 from eth import (

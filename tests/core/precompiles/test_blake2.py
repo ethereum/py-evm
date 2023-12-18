@@ -1,9 +1,8 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
     to_bytes,
 )
+import pytest
 
 from eth._utils.blake2.coders import (
     extract_blake2b_parameters,

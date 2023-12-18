@@ -24,4 +24,3 @@ BaseUnsignedTransaction
 
 .. autoclass:: eth.rlp.transactions.BaseUnsignedTransaction
   :members:
-

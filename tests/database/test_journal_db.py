@@ -1,5 +1,3 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
 )
@@ -13,6 +11,7 @@ from hypothesis.stateful import (
     RuleBasedStateMachine,
     rule,
 )
+import pytest
 
 from eth.db.backends.memory import (
     MemoryDB,
@@ -485,7 +484,7 @@ def test_journal_db_diff_application_mimics_persist(journal_db, memory_db, actio
             key, val = action
             journal_db.set(key, val)
         else:
-            raise Exception("Incorrectly formatted fixture input: %r" % action)
+            raise Exception(f"Incorrectly formatted fixture input: {repr(action)}")
 
     assert MemoryDB({}) == memory_db
     diff = journal_db.diff()

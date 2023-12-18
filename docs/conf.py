@@ -120,8 +120,8 @@ html_theme = "sphinx_rtd_theme"
 
 
 def setup(app):
-    app.add_stylesheet("css/custom.css")
-    app.add_javascript("js/matomo.js")
+    app.add_css_file("css/custom.css")
+    app.add_js_file("js/matomo.js")
 
 
 # Allows the mod index to function more helpfully (not everything under 'e')
@@ -133,7 +133,7 @@ modindex_common_prefix = ["eth."]
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = "ethdocs"
+htmlhelp_basename = "py-evmdocs"
 
 
 # -- Options for LaTeX output ---------------------------------------------

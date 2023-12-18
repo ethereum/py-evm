@@ -1,10 +1,10 @@
 import json
 import os
-import pytest
 
 from eth_utils import (
     decode_hex,
 )
+import pytest
 
 from eth.precompiles.modexp import (
     _compute_modexp_gas_fee_eip_198,

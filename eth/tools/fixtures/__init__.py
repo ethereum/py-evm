@@ -1,12 +1,12 @@
-from .loading import (  # noqa: F401
+from .loading import (
     find_fixtures,
     filter_fixtures,
     load_fixture,
 )
-from .generation import (  # noqa: F401
+from .generation import (
     generate_fixture_tests,
 )
-from .helpers import (  # noqa: F401
+from .helpers import (
     new_chain_from_fixture,
     genesis_fields_from_fixture,
     genesis_params_from_fixture,
@@ -15,7 +15,7 @@ from .helpers import (  # noqa: F401
     should_run_slow_tests,
     verify_state,
 )
-from eth.tools._utils.normalization import (  # noqa: F401
+from eth.tools._utils.normalization import (
     normalize_block,
     normalize_blockchain_fixtures,
     normalize_statetest_fixture,

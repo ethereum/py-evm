@@ -1,7 +1,8 @@
-import pytest
 import random
 import threading
 import time
+
+import pytest
 
 from eth.chains.base import (
     MiningChain,

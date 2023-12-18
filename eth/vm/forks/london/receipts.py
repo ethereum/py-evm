@@ -21,8 +21,9 @@ from .constants import (
 
 class LondonTypedReceipt(BerlinTypedReceipt):
     codecs: Dict[int, Type[Receipt]] = {
-        ACCESS_LIST_TRANSACTION_TYPE: Receipt,
-        DYNAMIC_FEE_TRANSACTION_TYPE: Receipt,
+        # mypy errors due to Receipt inheriting but not defining abstractmethods
+        ACCESS_LIST_TRANSACTION_TYPE: Receipt,  # type: ignore
+        DYNAMIC_FEE_TRANSACTION_TYPE: Receipt,  # type: ignore
     }
 
 

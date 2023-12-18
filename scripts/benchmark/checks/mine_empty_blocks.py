@@ -1,17 +1,16 @@
 import logging
 
-from _utils.chain_plumbing import (
-    get_all_chains,
-)
-from _utils.format import (
-    format_block,
-)
-from _utils.reporting import (
-    DefaultStat,
-)
-
 from eth.chains.base import (
     MiningChain,
+)
+from scripts.benchmark._utils.chain_plumbing import (
+    get_all_chains,
+)
+from scripts.benchmark._utils.format import (
+    format_block,
+)
+from scripts.benchmark._utils.reporting import (
+    DefaultStat,
 )
 
 from .base_benchmark import (

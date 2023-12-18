@@ -59,7 +59,7 @@ def test_chain_get_ancestors_from_block_5(chain):
         block_3,
         block_4,
         block_5,
-    ) = [chain.mine_block() for _ in range(5)]
+    ) = (chain.mine_block() for _ in range(5))
 
     header = block_5.header
     assert header.block_number == 5
@@ -98,12 +98,12 @@ def test_chain_get_ancestors_for_fork_chains(chain, fork_chain):
         block_1,
         block_2,
         block_3,
-    ) = [chain.mine_block() for _ in range(3)]
+    ) = (chain.mine_block() for _ in range(3))
     (
         f_block_1,
         f_block_2,
         f_block_3,
-    ) = [fork_chain.mine_block() for _ in range(3)]
+    ) = (fork_chain.mine_block() for _ in range(3))
 
     assert block_1 == f_block_1
     assert block_2 == f_block_2
@@ -117,12 +117,12 @@ def test_chain_get_ancestors_for_fork_chains(chain, fork_chain):
         block_4,
         block_5,
         block_6,
-    ) = [chain.mine_block() for _ in range(3)]
+    ) = (chain.mine_block() for _ in range(3))
     (
         f_block_4,
         f_block_5,
         f_block_6,
-    ) = [fork_chain.mine_block() for _ in range(3)]
+    ) = (fork_chain.mine_block() for _ in range(3))
 
     # import the fork blocks into the main chain (ensuring they don't cause a reorg)
     block_import_result = chain.import_block(f_block_4)

@@ -471,7 +471,6 @@ class LegacyTransactionFieldsAPI(TransactionFieldsAPI):
 
 
 class UnsignedTransactionAPI(BaseTransactionAPI):
-
     """
     A class representing a transaction before it is signed.
     """
@@ -654,7 +653,6 @@ class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
         Hook called during instantiation to ensure that all transaction
         parameters pass validation rules.
         """
-
         ...
 
     #
@@ -815,7 +813,9 @@ class BlockAPI(ABC):
         header: BlockHeaderAPI,
         transactions: Sequence[SignedTransactionAPI],
         uncles: Sequence[BlockHeaderAPI],
-        withdrawals: Sequence[WithdrawalAPI] = None,  # only present post-Shanghai
+        withdrawals: Optional[
+            Sequence[WithdrawalAPI]
+        ] = None,  # only present post-Shanghai
     ) -> None:
         ...
 
@@ -1039,8 +1039,6 @@ class AtomicWriteBatchAPI(DatabaseAPI):
     Reads to this database will observe writes written during batching,
     but the writes will not actually persist until this object is committed.
     """
-
-    pass
 
 
 class AtomicDatabaseAPI(DatabaseAPI):
@@ -2758,7 +2756,6 @@ class TransactionExecutorAPI(ABC):
         Apply the ``message`` to the VM and use the given ``transaction`` to
         retrieve the context from.
         """
-
         ...
 
     @abstractmethod
@@ -3398,7 +3395,6 @@ class VirtualMachineAPI(ConfigurableAPI):
         This only gets triggered as part of `apply_all_transactions`, which is called
         by `block_import`.
         """
-        pass
 
     #
     # Execution

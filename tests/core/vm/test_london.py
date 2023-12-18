@@ -1,11 +1,10 @@
-import pytest
-
 from eth_typing import (
     Address,
 )
 from eth_utils import (
     decode_hex,
 )
+import pytest
 
 from eth import (
     constants,

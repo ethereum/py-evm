@@ -1,4 +1,4 @@
-from .builders import (  # noqa: F401
+from .builders import (
     at_block_number,
     build,
     chain_id,
@@ -16,7 +16,7 @@ from .builders import (  # noqa: F401
     mine_blocks,
     name,
 )
-from .builders import (  # noqa: F401
+from .builders import (
     byzantium_at,
     frontier_at,
     homestead_at,

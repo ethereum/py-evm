@@ -1,4 +1,5 @@
 import enum
+
 import pytest
 
 from eth.chains.tester import (

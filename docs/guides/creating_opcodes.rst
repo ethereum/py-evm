@@ -51,7 +51,7 @@ Usage of the :func:`~eth.vm.opcode.as_opcode` helper:
 
     def custom_op(computation):
         ... # opcode logic here
-    
+
     class ExampleComputation(BaseComputation):
         opcodes = {
             b'\x01': as_opcode(custom_op, 'CUSTOM_OP', 10),

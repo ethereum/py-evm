@@ -90,19 +90,15 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             code = self.vm_state.get_code(transaction.to)
 
         self.vm_state.logger.debug2(
-            (
-                "TRANSACTION: sender: %s | to: %s | value: %s | gas: %s | "
-                "gas-price: %s | s: %s | r: %s | y_parity: %s | data-hash: %s"
-            ),
-            encode_hex(transaction.sender),
-            encode_hex(transaction.to),
-            transaction.value,
-            transaction.gas,
-            transaction.gas_price,
-            transaction.s,
-            transaction.r,
-            transaction.y_parity,
-            encode_hex(keccak(transaction.data)),
+            f"TRANSACTION: sender: {encode_hex(transaction.sender)} | "
+            f"to: {encode_hex(transaction.to)} | "
+            f"value: {transaction.value} | "
+            f"gas: {transaction.gas} | "
+            f"gas-price: {transaction.gas_price} | "
+            f"s: {transaction.s} | "
+            f"r: {transaction.r} | "
+            f"y_parity: {transaction.y_parity} | "
+            f"data-hash: {encode_hex(keccak(transaction.data))}"
         )
 
         message = Message(
@@ -134,8 +130,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
                     f"{encode_hex(message.storage_address)}"
                 )
                 self.vm_state.logger.debug2(
-                    "Address collision while creating contract: %s",
-                    encode_hex(message.storage_address),
+                    "Address collision while creating contract: "
+                    f"{encode_hex(message.storage_address)}"
                 )
             else:
                 computation = self.vm_state.computation_class.apply_create_message(
@@ -176,9 +172,8 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         if gas_refund_amount:
             self.vm_state.logger.debug2(
-                "TRANSACTION REFUND: %s -> %s",
-                gas_refund_amount,
-                encode_hex(computation.msg.sender),
+                f"TRANSACTION REFUND: {gas_refund_amount} -> "
+                f"{encode_hex(computation.msg.sender)}"
             )
             self.vm_state.delta_balance(computation.msg.sender, gas_refund_amount)
 
@@ -192,15 +187,14 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # coinbase may end up zeroed after the computation and thus should be marked
         # for deletion since it was touched.
         self.vm_state.logger.debug2(
-            "TRANSACTION FEE: %s -> %s",
-            transaction_fee,
-            encode_hex(self.vm_state.coinbase),
+            f"TRANSACTION FEE: {transaction_fee} -> "
+            f"{encode_hex(self.vm_state.coinbase)}"
         )
         self.vm_state.delta_balance(self.vm_state.coinbase, transaction_fee)
 
         # Process Self Destructs
         for account, _ in computation.get_accounts_for_deletion():
-            self.vm_state.logger.debug2("DELETING ACCOUNT: %s", encode_hex(account))
+            self.vm_state.logger.debug2(f"DELETING ACCOUNT: {encode_hex(account)}")
             self.vm_state.delete_account(account)
 
         return computation

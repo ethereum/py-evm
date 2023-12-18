@@ -9,6 +9,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Optional,
 )
 
 from eth_utils import (
@@ -106,7 +107,7 @@ Test.__new__.__defaults__ = (None,)
 
 
 def setup_filler(
-    name: str, environment: Dict[Any, Any] = None
+    name: str, environment: Optional[Dict[Any, Any]] = None
 ) -> Dict[str, Dict[str, Any]]:
     environment = normalize_environment(environment or {})
     return {
@@ -118,7 +119,7 @@ def setup_filler(
 
 
 def setup_main_filler(
-    name: str, environment: Dict[Any, Any] = None
+    name: str, environment: Optional[Dict[Any, Any]] = None
 ) -> Dict[str, Dict[str, Any]]:
     """
     Kick off the filler generation process by creating the general filler scaffold with
@@ -265,9 +266,9 @@ def _expect(
 
 
 def expect(
-    post_state: Dict[str, Any] = None,
-    networks: Any = None,
-    transaction: TransactionDict = None,
+    post_state: Optional[Dict[str, Any]] = None,
+    networks: Optional[Any] = None,
+    transaction: Optional[TransactionDict] = None,
 ) -> Callable[..., Dict[str, Any]]:
     """
     Specify the expected result for the test.

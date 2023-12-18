@@ -83,7 +83,6 @@ def blake2b_compress(
     'F Compression' from section 3.2 of RFC 7693:
     https://tools.ietf.org/html/rfc7693#section-3.2
     """
-
     # Dereference these for [very small] speed improvement.
     # Perhaps more than anything, this makes the code
     # easier to read.
@@ -107,7 +106,7 @@ def blake2b_compress(
     m = (
         block
         if isinstance(block, tuple)
-        else struct.unpack_from("<16%s" % Blake2b.WORDFMT, bytes(block))
+        else struct.unpack_from(f"<16{Blake2b.WORDFMT}", bytes(block))
     )
 
     v = [0] * 16

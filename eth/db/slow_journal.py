@@ -184,7 +184,7 @@ class Journal(BaseDB):
             elif check_changeset_id == changeset_id:
                 return False
         raise ValidationError(
-            "Changeset ID %s is not in the journal" % check_changeset_id
+            f"Changeset ID {check_changeset_id} is not in the journal"
         )
 
     def commit_changeset(

@@ -48,7 +48,6 @@ def get_signers_at_checkpoint(header: BlockHeaderAPI) -> Iterable[Address]:
     """
     Read the list of signers from a checkpoint header.
     """
-
     signers_length = len(header.extra_data) - VANITY_LENGTH - SIGNATURE_LENGTH
 
     if signers_length % COMMON_ADDRESS_LENGTH != 0:
@@ -73,7 +72,6 @@ def get_signature_hash(header: BlockHeaderAPI) -> Hash32:
     the ``header`` except that the last 65 bytes of the ``extra_data`` (the signature)
     are removed before calculating the hash.
     """
-
     if len(header.extra_data) < SIGNATURE_LENGTH:
         raise ValueError("header.extra_data too short to contain signature")
 
@@ -87,7 +85,6 @@ def get_block_signer(header: BlockHeaderAPI) -> Address:
     """
     Return the address of the signer of the ``header``.
     """
-
     signature_hash = get_signature_hash(header)
 
     signature_bytes = header.extra_data[-SIGNATURE_LENGTH:]

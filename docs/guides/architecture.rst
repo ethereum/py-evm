@@ -90,7 +90,7 @@ The term **Computation** is used to encapsulate:
 
 - The computational state during VM execution (e.g. memory, stack, gas metering)
 - The computational results of VM execution (e.g. return data, gas consumption and refunds, execution errors)
-  
+
 This abstraction is the interface through which opcode logic is implemented.
 
 

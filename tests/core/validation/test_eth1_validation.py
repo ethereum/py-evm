@@ -1,8 +1,7 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
 )
+import pytest
 
 from eth.constants import (
     SECPK1_N,

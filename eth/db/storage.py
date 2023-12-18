@@ -238,7 +238,6 @@ class StorageLookup(BaseDB):
 
         :param trie_index: index for reviving the previous trie
         """
-
         if trie_index >= len(self._historical_write_tries):
             raise ValidationError(
                 f"Trying to roll back a delete to index {trie_index}, but there are "
@@ -345,8 +344,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
 
     def delete(self) -> None:
         self.logger.debug2(
-            "Deleting all storage in account 0x%s",
-            self._address.hex(),
+            f"Deleting all storage in account 0x{self._address.hex()}",
         )
         self._journal_storage.clear()
         self._storage_cache.reset_cache()
@@ -374,7 +372,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         self._clear_count.record(checkpoint)
 
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
-        self.logger.debug2("discard checkpoint %r", checkpoint)
+        self.logger.debug2(f"discard checkpoint {repr(checkpoint)}")
         latest_clear_count = to_int(self._clear_count[CLEAR_COUNT_KEY_NAME])
 
         if self._journal_storage.has_checkpoint(checkpoint):

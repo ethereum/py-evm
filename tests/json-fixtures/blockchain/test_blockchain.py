@@ -2,12 +2,12 @@ import os
 from pathlib import (
     Path,
 )
-import pytest
 
 from eth_utils import (
     ValidationError,
     to_tuple,
 )
+import pytest
 import rlp
 
 from eth.tools._utils.normalization import (

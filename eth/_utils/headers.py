@@ -61,12 +61,12 @@ def fill_header_params_from_parent(
     difficulty: int,
     timestamp: int,
     coinbase: Address = ZERO_ADDRESS,
-    nonce: bytes = None,
-    extra_data: bytes = None,
-    transaction_root: bytes = None,
-    state_root: bytes = None,
-    mix_hash: bytes = None,
-    receipt_root: bytes = None,
+    nonce: Optional[bytes] = None,
+    extra_data: Optional[bytes] = None,
+    transaction_root: Optional[bytes] = None,
+    state_root: Optional[bytes] = None,
+    mix_hash: Optional[bytes] = None,
+    receipt_root: Optional[bytes] = None,
 ) -> Dict[str, HeaderParams]:
     if parent is None:
         parent_hash = GENESIS_PARENT_HASH

@@ -8,15 +8,11 @@ class PyEVMError(Exception):
     Base class for all py-evm errors.
     """
 
-    pass
-
 
 class VMNotFound(PyEVMError):
     """
     Raised when no VM is available for the provided block number.
     """
-
-    pass
 
 
 class StateRootNotFound(PyEVMError):
@@ -42,15 +38,11 @@ class BlockNotFound(PyEVMError):
     saved in the database.
     """
 
-    pass
-
 
 class TransactionNotFound(PyEVMError):
     """
     Raised when the transaction with the given hash or block index does not exist.
     """
-
-    pass
 
 
 class UnrecognizedTransactionType(PyEVMError):
@@ -71,23 +63,17 @@ class ReceiptNotFound(PyEVMError):
     Raised when the Receipt with the given receipt index does not exist.
     """
 
-    pass
-
 
 class ParentNotFound(HeaderNotFound):
     """
     Raised when the parent of a given block does not exist.
     """
 
-    pass
-
 
 class CanonicalHeadNotFound(PyEVMError):
     """
     Raised when the chain has no canonical head.
     """
-
-    pass
 
 
 class GapTrackingCorrupted(PyEVMError):
@@ -96,23 +82,17 @@ class GapTrackingCorrupted(PyEVMError):
     (e.g. overlapping gaps)
     """
 
-    pass
-
 
 class CheckpointsMustBeCanonical(PyEVMError):
     """
     Raised when a persisted header attempts to de-canonicalize a checkpoint
     """
 
-    pass
-
 
 class Halt(PyEVMError):
     """
     Raised when an opcode function halts vm execution.
     """
-
-    pass
 
 
 class VMError(PyEVMError):
@@ -129,15 +109,11 @@ class OutOfGas(VMError):
     Raised when a VM execution has run out of gas.
     """
 
-    pass
-
 
 class InsufficientStack(VMError):
     """
     Raised when the stack is empty.
     """
-
-    pass
 
 
 class FullStack(VMError):
@@ -145,23 +121,17 @@ class FullStack(VMError):
     Raised when the stack is full.
     """
 
-    pass
-
 
 class InvalidJumpDestination(VMError):
     """
     Raised when the jump destination for a JUMPDEST operation is invalid.
     """
 
-    pass
-
 
 class InvalidInstruction(VMError):
     """
     Raised when an opcode is invalid.
     """
-
-    pass
 
 
 class InsufficientFunds(VMError):
@@ -170,15 +140,11 @@ class InsufficientFunds(VMError):
     requested value.
     """
 
-    pass
-
 
 class StackDepthLimit(VMError):
     """
     Raised when the call stack has exceeded it's maximum allowed depth.
     """
-
-    pass
 
 
 class ContractCreationCollision(VMError):
@@ -186,16 +152,12 @@ class ContractCreationCollision(VMError):
     Raised when there was an address collision during contract creation.
     """
 
-    pass
-
 
 class IncorrectContractCreationAddress(VMError):
     """
     Raised when the address provided by transaction does not
     match the calculated contract creation address.
     """
-
-    pass
 
 
 class Revert(VMError):
@@ -213,8 +175,6 @@ class WriteProtection(VMError):
     operating inside of a STATICCALL context.
     """
 
-    pass
-
 
 class OutOfBoundsRead(VMError):
     """
@@ -222,13 +182,9 @@ class OutOfBoundsRead(VMError):
     boundaries of the buffer (such as with RETURNDATACOPY)
     """
 
-    pass
-
 
 class ReservedBytesInCode(VMError):
     """
     Raised when bytes for the code to be deployed are reserved
     for a particular reason.
     """
-
-    pass

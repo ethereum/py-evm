@@ -1,15 +1,13 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 from setuptools import (
     find_packages,
     setup,
 )
 
-
 extras_require = {
     "benchmark": [
-        "termcolor>=1.1.0,<2.0.0",
-        "web3>=4.1.0,<5.0.0",
+        "termcolor>=1.1.0",
+        "web3>=6.0.0",
     ],
     "dev": [
         "build>=0.9.0",
@@ -21,12 +19,10 @@ extras_require = {
         "wheel",
     ],
     "docs": [
-        "py-evm>=0.2.0-a.14",
-        # We need to have pysha for autodoc to be able to extract API docs
+        "py-evm>=0.8.0b1",
         "sphinx>=6.0.0",
-        "jinja2>=3.0.0,<3.1.0",  # jinja2<3.0 or >=3.1.0 cause doc build failures.
         "sphinx_rtd_theme>=1.0.0",
-        "sphinxcontrib-asyncio>=0.2.0,<0.4",
+        "sphinxcontrib-asyncio>=0.2.0",
         "towncrier>=21,<22",
     ],
     "eth": [
@@ -45,17 +41,16 @@ extras_require = {
     # Installing these libraries may make the evm perform better than
     # using the default fallbacks though.
     "eth-extra": [
-        "blake2b-py>=0.2.0,<0.3.0",
+        "blake2b-py>=0.2.0",
         "coincurve>=18.0.0",
     ],
     "test": [
-        "factory-boy==2.11.1",
+        "factory-boy>=3.0.0",
         "hypothesis>=5,<6",
-        "pexpect>=4.6,<5",
         "pytest>=7.0.0",
-        "pytest-asyncio>=0.10.0,<0.11",
-        "pytest-cov==2.5.1",
-        "pytest-timeout>=2.0.0,<3",
+        "pytest-asyncio>=0.20.0",
+        "pytest-cov>=4.0.0",
+        "pytest-timeout>=2.0.0",
         "pytest-xdist>=3.0",
     ],
 }
@@ -81,7 +76,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     author="Ethereum Foundation",
-    author_email="piper@pipermerriam.com",
+    author_email="snakecharmers@ethereum.org",
     url="https://github.com/ethereum/py-evm",
     include_package_data=True,
     py_modules=["eth"],

@@ -10,4 +10,3 @@ AtomicDB
 
 .. autoclass:: eth.db.atomic.AtomicDBWriteBatch
   :members:
-

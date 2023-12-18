@@ -351,11 +351,9 @@ class BaseComputation(ComputationAPI, Configurable):
                     # We dig into some internals for debug logs
                     base_comp = cast(BaseComputation, computation)
                     computation.logger.debug2(
-                        "OPCODE: 0x%x (%s) | pc: %s | stack: %s",
-                        opcode,
-                        opcode_fn.mnemonic,
-                        max(0, computation.code.program_counter - 1),
-                        base_comp._stack,
+                        f"OPCODE: 0x{opcode:x} ({opcode_fn.mnemonic}) | "
+                        f"pc: {max(0, computation.code.program_counter - 1)} | "
+                        f"stack: {base_comp._stack}"
                     )
 
                 try:
@@ -415,11 +413,8 @@ class BaseComputation(ComputationAPI, Configurable):
 
         if self.logger.show_debug2:
             self.logger.debug2(
-                "MEMORY: size (%s -> %s) | cost (%s -> %s)",
-                before_size,
-                after_size,
-                before_cost,
-                after_cost,
+                f"MEMORY: size ({before_size} -> {after_size}) | "
+                f"cost ({before_cost} -> {after_cost})"
             )
 
         if size:
@@ -482,7 +477,6 @@ class BaseComputation(ComputationAPI, Configurable):
         """
         Before starting the computation, consume initcode gas cost.
         """
-        pass
 
     # -- stack management -- #
     def stack_swap(self, position: int) -> None:
@@ -566,14 +560,13 @@ class BaseComputation(ComputationAPI, Configurable):
             self.logger.debug2(
                 (
                     "MESSAGE COMPUTATION STARTING: "
-                    "from: %s | to: %s | value: %s | depth %s | static: %s | gas: %s"
+                    f"from: {encode_hex(self.msg.sender)} | "
+                    f"to: {encode_hex(self.msg.to)} | "
+                    f"value: {self.msg.value} | "
+                    f"depth: {self.msg.depth} | "
+                    f"static: {'y' if self.msg.is_static else 'n'} | "
+                    f"gas: {self.msg.gas}"
                 ),
-                encode_hex(self.msg.sender),
-                encode_hex(self.msg.to),
-                self.msg.value,
-                self.msg.depth,
-                "y" if self.msg.is_static else "n",
-                self.msg.gas,
             )
         return self
 
@@ -588,16 +581,14 @@ class BaseComputation(ComputationAPI, Configurable):
                 self.logger.debug2(
                     (
                         "COMPUTATION ERROR: "
-                        "gas: %s | from: %s | to: %s | value: %s | "
-                        "depth: %s | static: %s | error: %s"
+                        f"gas: {self.msg.gas} | "
+                        f"from: {encode_hex(self.msg.sender)} | "
+                        f"to: {encode_hex(self.msg.to)} | "
+                        f"value: {self.msg.value} | "
+                        f"depth: {self.msg.depth} | "
+                        f"static: {'y' if self.msg.is_static else 'n'} | "
+                        f"error: {exc_value}"
                     ),
-                    self.msg.gas,
-                    encode_hex(self.msg.sender),
-                    encode_hex(self.msg.to),
-                    self.msg.value,
-                    self.msg.depth,
-                    "y" if self.msg.is_static else "n",
-                    exc_value,
                 )
 
             self._error = exc_value
@@ -623,16 +614,14 @@ class BaseComputation(ComputationAPI, Configurable):
             self.logger.debug2(
                 (
                     "COMPUTATION SUCCESS: "
-                    "from: %s | to: %s | value: %s | depth: %s | static: %s "
-                    "| gas-used: %s | gas-remaining: %s"
+                    f"from: {encode_hex(self.msg.sender)} | "
+                    f"to: {encode_hex(self.msg.to)} | "
+                    f"value: {self.msg.value} | "
+                    f"depth: {self.msg.depth} | "
+                    f"static: {'y' if self.msg.is_static else 'n'} | "
+                    f"gas-used: {self.get_gas_used()} | "
+                    f"gas-remaining: {self._gas_meter.gas_remaining}"
                 ),
-                encode_hex(self.msg.sender),
-                encode_hex(self.msg.to),
-                self.msg.value,
-                self.msg.depth,
-                "y" if self.msg.is_static else "n",
-                self.get_gas_used(),
-                self._gas_meter.gas_remaining,
             )
 
         return None

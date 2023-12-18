@@ -138,8 +138,8 @@ class AtomicDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
             yield readable_write_batch
         except Exception:
             cls.logger.exception(
-                "Unexpected error in atomic db write, dropped partial writes: %r",
-                readable_write_batch._diff(),
+                "Unexpected error in atomic db write, dropped partial writes: "
+                f"{repr(readable_write_batch._diff())}"
             )
             raise
         else:

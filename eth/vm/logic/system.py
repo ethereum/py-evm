@@ -1,3 +1,7 @@
+from typing import (
+    Optional,
+)
+
 from eth_typing import (
     Address,
 )
@@ -102,10 +106,8 @@ def _selfdestruct(computation: ComputationAPI, beneficiary: Address) -> None:
     computation.state.set_balance(computation.msg.storage_address, 0)
 
     computation.logger.debug2(
-        "SELFDESTRUCT: %s (%s) -> %s",
-        encode_hex(computation.msg.storage_address),
-        local_balance,
-        encode_hex(beneficiary),
+        f"SELFDESTRUCT: {encode_hex(computation.msg.storage_address)} "
+        f"({local_balance}) -> {encode_hex(beneficiary)}"
     )
 
     # 3rd: Register the account to be deleted
@@ -115,7 +117,11 @@ def _selfdestruct(computation: ComputationAPI, beneficiary: Address) -> None:
 
 class CreateOpcodeStackData:
     def __init__(
-        self, endowment: int, memory_start: int, memory_length: int, salt: int = None
+        self,
+        endowment: int,
+        memory_start: int,
+        memory_length: int,
+        salt: Optional[int] = None,
     ) -> None:
         self.endowment = endowment
         self.memory_start = memory_start
@@ -202,8 +208,8 @@ class Create(Opcode):
             computation.stack_push_int(0)
             computation.return_data = b""
             self.logger.debug2(
-                "Address collision while creating contract: %s",
-                encode_hex(contract_address),
+                f"Address collision while creating contract: "
+                f"{encode_hex(contract_address)}"
             )
             return
 
