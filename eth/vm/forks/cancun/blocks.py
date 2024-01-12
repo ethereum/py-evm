@@ -8,10 +8,10 @@ from typing import (
 from eth_utils import (
     encode_hex,
 )
-
 from rlp.sedes import (
     CountableList,
 )
+
 from eth.abc import (
     ReceiptBuilderAPI,
     TransactionBuilderAPI,
@@ -19,9 +19,6 @@ from eth.abc import (
 
 from ..london.receipts import (
     LondonReceiptBuilder,
-)
-from .transactions import (
-    CancunTransactionBuilder,
 )
 from ..shanghai.blocks import (
     ShanghaiBackwardsHeader,
@@ -31,6 +28,9 @@ from ..shanghai.blocks import (
 )
 from ..shanghai.withdrawals import (
     Withdrawal,
+)
+from .transactions import (
+    CancunTransactionBuilder,
 )
 
 
