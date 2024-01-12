@@ -268,7 +268,7 @@ paris_at = fork_at(ParisVM)
 shanghai_at = fork_at(ShanghaiVM)
 cancun_at = fork_at(CancunVM)
 
-latest_mainnet_at = shanghai_at
+latest_mainnet_at = cancun_at
 
 GENESIS_DEFAULTS = cast(
     Tuple[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]], ...],
