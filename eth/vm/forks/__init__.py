@@ -43,3 +43,6 @@ from .paris import (
 from .shanghai import (
     ShanghaiVM,
 )
+from .cancun import (  # noqa: F401
+    CancunVM,
+)
