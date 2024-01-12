@@ -20,6 +20,7 @@ class CacheDB(BaseDB):
         self._db = db
         self._cache_size = cache_size
         self.reset_cache()
+        self._cached_values: LRU[bytes, bytes] = LRU(cache_size)
 
     def reset_cache(self) -> None:
         self._cached_values = LRU(self._cache_size)

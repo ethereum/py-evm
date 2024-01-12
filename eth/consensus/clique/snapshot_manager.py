@@ -66,7 +66,7 @@ class SnapshotManager:
     def __init__(self, chain_db: ChainDatabaseAPI, epoch_length: int) -> None:
         self._chain_db = chain_db
         self._epoch_length = epoch_length
-        self._snapshots = lru.LRU(IN_MEMORY_SNAPSHOTS)
+        self._snapshots: lru.LRU[Hash32, Snapshot] = lru.LRU(IN_MEMORY_SNAPSHOTS)
 
     def _lookup_header(
         self, block_hash: Hash32, parents: Iterable[BlockHeaderAPI]
