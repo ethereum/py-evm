@@ -143,7 +143,7 @@ class AccountDB(AccountDatabaseAPI):
         self._trie_logger = KeyAccessLoggerDB(self._trie, log_missing_keys=False)
         self._trie_cache = CacheDB(self._trie_logger)
         self._journaltrie = JournalDB(self._trie_cache)
-        self._account_cache = LRU(2048)
+        self._account_cache: LRU[Address, Account] = LRU(2048)
         self._account_stores: Dict[Address, AccountStorageDatabaseAPI] = {}
         self._dirty_accounts: Set[Address] = set()
         self._root_hash_at_last_persist = state_root
