@@ -15,6 +15,7 @@ from eth.tools.builder.chain import (
     berlin_at,
     build,
     byzantium_at,
+    cancun_at,
     chain_id,
     constantinople_at,
     disable_pow_check,
@@ -39,6 +40,7 @@ from eth.vm.forks import (
     ArrowGlacierVM,
     BerlinVM,
     ByzantiumVM,
+    CancunVM,
     ConstantinopleVM,
     FrontierVM,
     GrayGlacierVM,
@@ -109,9 +111,10 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (gray_glacier_at, GrayGlacierVM),
         (paris_at, ParisVM),
         (shanghai_at, ShanghaiVM),
+        (cancun_at, CancunVM),
         (
             latest_mainnet_at,
-            ShanghaiVM,
+            CancunVM,
         ),  # this will change whenever the next upgrade is locked
     ),
 )

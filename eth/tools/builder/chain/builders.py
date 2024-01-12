@@ -74,6 +74,7 @@ from eth.vm.forks import (
     ArrowGlacierVM,
     BerlinVM,
     ByzantiumVM,
+    CancunVM,
     ConstantinopleVM,
     FrontierVM,
     GrayGlacierVM,
@@ -264,6 +265,7 @@ arrow_glacier_at = fork_at(ArrowGlacierVM)
 gray_glacier_at = fork_at(GrayGlacierVM)
 paris_at = fork_at(ParisVM)
 shanghai_at = fork_at(ShanghaiVM)
+cancun_at = fork_at(CancunVM)
 
 latest_mainnet_at = shanghai_at
 
