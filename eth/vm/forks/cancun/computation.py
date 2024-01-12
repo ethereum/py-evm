@@ -1,15 +1,3 @@
-from eth._utils.numeric import (
-    ceil32,
-)
-from eth.abc import (
-    ComputationAPI,
-    MessageAPI,
-    StateAPI,
-    TransactionContextAPI,
-)
-from eth.exceptions import (
-    OutOfGas,
-)
 from eth.vm.forks.shanghai.computation import (
     ShanghaiComputation,
 )
