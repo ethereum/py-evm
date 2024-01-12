@@ -23,5 +23,7 @@ class CancunVM(ShanghaiVM):
     _state_class: Type[BaseState] = CancunState
 
     # methods
-    create_header_from_parent = staticmethod(create_cancun_header_from_parent())
+    create_header_from_parent = staticmethod(  # type: ignore
+        create_cancun_header_from_parent()
+    )
     configure_header = configure_cancun_header
