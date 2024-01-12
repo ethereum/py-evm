@@ -77,5 +77,3 @@ class BaseAtomicDB(BaseDB, AtomicDatabaseAPI):
             # when exiting the context, the values are saved either key and key2 will
             # both be saved, or neither will
     """
-
-    pass

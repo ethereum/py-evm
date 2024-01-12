@@ -1,5 +1,3 @@
-import pytest
-
 from eth_utils import (
     decode_hex,
     encode_hex,
@@ -8,6 +6,7 @@ from hypothesis import (
     given,
     strategies as st,
 )
+import pytest
 
 
 @pytest.mark.parametrize(

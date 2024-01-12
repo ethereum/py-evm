@@ -1,8 +1,7 @@
-import pytest
-
 from eth_utils import (
     to_canonical_address,
 )
+import pytest
 
 from eth.vm.transaction_context import (
     BaseTransactionContext,

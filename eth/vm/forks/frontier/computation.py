@@ -76,10 +76,8 @@ class FrontierComputation(BaseComputation):
             state.delta_balance(message.storage_address, message.value)
 
             cls.logger.debug2(
-                "TRANSFERRED: %s from %s -> %s",
-                message.value,
-                encode_hex(message.sender),
-                encode_hex(message.storage_address),
+                f"TRANSFERRED: {message.value} from {encode_hex(message.sender)} -> "
+                f"{encode_hex(message.storage_address)}"
             )
 
         state.touch_account(message.storage_address)
@@ -122,10 +120,9 @@ class FrontierComputation(BaseComputation):
                     computation.output = b""
                 else:
                     cls.logger.debug2(
-                        "SETTING CODE: %s -> length: %s | hash: %s",
-                        encode_hex(message.storage_address),
-                        len(contract_code),
-                        encode_hex(keccak(contract_code)),
+                        f"SETTING CODE: {encode_hex(message.storage_address)} -> "
+                        f"length: {len(contract_code)} | "
+                        f"hash: {encode_hex(keccak(contract_code))}"
                     )
                     state.set_code(message.storage_address, contract_code)
             return computation

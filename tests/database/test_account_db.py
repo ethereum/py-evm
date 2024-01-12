@@ -1,11 +1,10 @@
-import pytest
-
 from eth_hash.auto import (
     keccak,
 )
 from eth_utils import (
     ValidationError,
 )
+import pytest
 
 from eth.constants import (
     EMPTY_SHA3,

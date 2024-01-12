@@ -1,5 +1,3 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
     to_tuple,
@@ -7,6 +5,7 @@ from eth_utils import (
 from eth_utils.toolz import (
     sliding_window,
 )
+import pytest
 
 from eth.chains.mainnet import (
     MainnetHomesteadVM,
@@ -292,4 +291,4 @@ def test_mainnet_dao_fork_header_validation(VM, header, previous_header, valid):
         except ValidationError:
             pass
         else:
-            raise AssertionError("The invalid header %r must fail" % header)
+            raise AssertionError(f"The invalid header {repr(header)} must fail")

@@ -67,10 +67,9 @@ class HomesteadComputation(FrontierComputation):
                 else:
                     if cls.logger:
                         cls.logger.debug2(
-                            "SETTING CODE: %s -> length: %s | hash: %s",
-                            encode_hex(message.storage_address),
-                            len(contract_code),
-                            encode_hex(keccak(contract_code)),
+                            f"SETTING CODE: {encode_hex(message.storage_address)} -> "
+                            f"length: {len(contract_code)} | "
+                            f"hash: {encode_hex(keccak(contract_code))}"
                         )
 
                     state.set_code(message.storage_address, contract_code)

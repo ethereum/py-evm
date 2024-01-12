@@ -75,11 +75,10 @@ class LondonTransactionExecutor(BerlinTransactionExecutor):
             code = self.vm_state.get_code(transaction.to)
 
         self.vm_state.logger.debug2(
-            ("TRANSACTION: %r; sender: %s | to: %s | data-hash: %s"),
-            transaction,
-            encode_hex(transaction.sender),
-            encode_hex(transaction.to),
-            encode_hex(keccak(transaction.data)),
+            f"TRANSACTION: {repr(transaction)}; "
+            f"sender: {encode_hex(transaction.sender)} | "
+            f"to: {encode_hex(transaction.to)} | "
+            f"data-hash: {encode_hex(keccak(transaction.data))}"
         )
 
         message = Message(

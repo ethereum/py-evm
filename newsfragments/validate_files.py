@@ -9,6 +9,7 @@ import sys
 ALLOWED_EXTENSIONS = {
     ".breaking.rst",
     ".bugfix.rst",
+    ".deprecation.rst",
     ".docs.rst",
     ".feature.rst",
     ".internal.rst",
@@ -30,7 +31,6 @@ if num_args == 1:
     assert sys.argv[1] in ("is-empty",)
 
 for fragment_file in THIS_DIR.iterdir():
-
     if fragment_file.name in ALLOWED_FILES:
         continue
     elif num_args == 0:

@@ -54,7 +54,6 @@ def _mark_address_warm(computation: ComputationAPI, address: Address) -> bool:
     :return was_cold: True if the account was not previously accessed
         during this transaction
     """
-
     if computation.state.is_address_warm(address):
         return False
     else:

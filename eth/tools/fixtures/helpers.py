@@ -187,7 +187,6 @@ def genesis_fields_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
     """
     Convert all genesis fields in a fixture to a dictionary of header fields and values.
     """
-
     header_fields = fixture["genesisBlockHeader"]
     base_fields = {
         "parent_hash": header_fields["parentHash"],
@@ -219,7 +218,6 @@ def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
     Some fields cannot be explicitly set when creating a new header, like
     parent_hash, which is automatically set to the empty hash.
     """
-
     params = genesis_fields_from_fixture(fixture)
 
     # Confirm that (currently) non-configurable defaults are set correctly,

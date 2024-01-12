@@ -8,6 +8,7 @@
 *.egg-info
 dist
 build
+.build
 eggs
 .eggs
 parts
@@ -20,6 +21,7 @@ lib
 lib64
 pip-wheel-metadata
 venv*
+.venv*
 
 # Installer logs
 pip-log.txt
@@ -89,18 +91,33 @@ docs/*._utils.*
 # Blockchain
 chains
 
-# Hypothese Property base testing
+# Hypothesis Property base testing
 .hypothesis
 
 # tox/pytest cache
 .cache
 .pytest_cache
 
+# pycache
+__pycache__/
+
 # Test output logs
 logs
 
 # VIM temp files
 *.sw[op]
+
+# mypy
+.mypy_cache
+
+# macOS
+.DS_Store
+
+# pyenv
+.python-version
+
+# vs-code
+.vscode
 
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and Webstorm
 # For a more precise, explicit template, see:
@@ -117,9 +134,6 @@ logs
 out/
 
 ## Plugin-specific files:
-
-### mpeltonen/sbt-idea plugin
-.idea_modules/
 
 ### JIRA plugin
 atlassian-ide-plugin.xml

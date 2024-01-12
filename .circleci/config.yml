@@ -1,4 +1,4 @@
-version: 2.0
+version: 2.1
 
 # heavily inspired by:
 # https://raw.githubusercontent.com/pinax/pinax-wiki/6bd2a99ab6f702e300d708532a6d1d9aa638b9f8/.circleci/config.yml
@@ -14,7 +14,7 @@ common: &common
         # this is necessary until circleci images begin using openssl>=3.0.7
         name: update openssl.cnf for ripemd160
         command: |
-          sudo tee -a /etc/ssl/openssl.cnf >/dev/null <<'EOF'
+          sudo tee -a /etc/ssl/openssl.cnf >/dev/null \<<'EOF'
 
           [openssl_init]
           providers = provider_sect
@@ -41,7 +41,7 @@ common: &common
         command: ./.circleci/merge_pr.sh
         when: on_fail
     - run:
-        name: merge pull request base (3nd try)
+        name: merge pull request base (3rd try)
         command: ./.circleci/merge_pr.sh
         when: on_fail
     - restore_cache:
@@ -54,16 +54,41 @@ common: &common
           python -m pip install tox
     - run:
         name: run tox
-        command: python -m tox -r
+        command: python -m tox run -r
     - save_cache:
         paths:
           - .hypothesis
           - .tox
           - ~/.cache/pip
           - ~/.local
-          - ./eggs
         key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
   resource_class: xlarge
+
+orbs:
+  win: circleci/windows@5.0.0
+
+windows_steps: &windows_steps
+  executor:
+    name: win/default
+    shell: bash.exe
+  working_directory: C:\Users\circleci\project\py-evm
+  steps:
+    - checkout
+    - restore_cache:
+        keys:
+          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+    - run:
+        name: install dependencies
+        command: |
+          python -m pip install --upgrade pip
+          python -m pip install tox
+    - run:
+        name: run tox
+        command: python -m tox run -r
+    - save_cache:
+        paths:
+          - .tox
+        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
 
 jobs:
   docs:
@@ -127,61 +152,30 @@ jobs:
       - image: cimg/python:3.11
         environment:
           TOXENV: py311-native-blockchain-petersburg
-  py311-native-blockchain-tangerine_whistle:
-    <<: *common
-    docker:
-      - image: cimg/python:3.11
-        environment:
-          TOXENV: py311-native-blockchain-tangerine_whistle
-  py311-native-blockchain-spurious_dragon:
-    <<: *common
-    docker:
-      - image: cimg/python:3.11
-        environment:
-          TOXENV: py311-native-blockchain-spurious_dragon
-  py311-native-blockchain-transition:
-    <<: *common
-    docker:
-      - image: cimg/python:3.11
-        environment:
-          TOXENV: py311-native-blockchain-transition
   py311-native-blockchain-shanghai:
     <<: *common
     docker:
       - image: cimg/python:3.11
         environment:
           TOXENV: py311-native-blockchain-shanghai
-
-  py37-core:
+  py311-native-blockchain-spurious_dragon:
     <<: *common
     docker:
-      - image: cimg/python:3.7
+      - image: cimg/python:3.11
         environment:
-          TOXENV: py37-core
-  py37-database:
+          TOXENV: py311-native-blockchain-spurious_dragon
+  py311-native-blockchain-tangerine_whistle:
     <<: *common
     docker:
-      - image: cimg/python:3.7
+      - image: cimg/python:3.11
         environment:
-          TOXENV: py37-database
-  py37-difficulty:
+          TOXENV: py311-native-blockchain-tangerine_whistle
+  py311-native-blockchain-transition:
     <<: *common
     docker:
-      - image: cimg/python:3.7
+      - image: cimg/python:3.11
         environment:
-          TOXENV: py37-difficulty
-  py37-transactions:
-    <<: *common
-    docker:
-      - image: cimg/python:3.7
-        environment:
-          TOXENV: py37-transactions
-  py37-vm:
-    <<: *common
-    docker:
-      - image: cimg/python:3.7
-        environment:
-          TOXENV: py37-vm
+          TOXENV: py311-native-blockchain-transition
 
   py38-core:
     <<: *common
@@ -201,6 +195,12 @@ jobs:
       - image: cimg/python:3.8
         environment:
           TOXENV: py38-difficulty
+  py38-lint:
+    <<: *common
+    docker:
+      - image: cimg/python:3.8
+        environment:
+          TOXENV: py38-lint
   py38-transactions:
     <<: *common
     docker:
@@ -213,12 +213,12 @@ jobs:
       - image: cimg/python:3.8
         environment:
           TOXENV: py38-vm
-  py38-lint:
+  py38-wheel:
     <<: *common
     docker:
       - image: cimg/python:3.8
         environment:
-          TOXENV: py38-lint
+          TOXENV: py38-wheel
 
   py39-core:
     <<: *common
@@ -238,6 +238,12 @@ jobs:
       - image: cimg/python:3.9
         environment:
           TOXENV: py39-difficulty
+  py39-lint:
+    <<: *common
+    docker:
+      - image: cimg/python:3.9
+        environment:
+          TOXENV: py39-lint
   py39-transactions:
     <<: *common
     docker:
@@ -250,12 +256,12 @@ jobs:
       - image: cimg/python:3.9
         environment:
           TOXENV: py39-vm
-  py39-lint:
+  py39-wheel:
     <<: *common
     docker:
       - image: cimg/python:3.9
         environment:
-          TOXENV: py39-lint
+          TOXENV: py39-wheel
 
   py310-core:
     <<: *common
@@ -275,6 +281,12 @@ jobs:
       - image: cimg/python:3.10
         environment:
           TOXENV: py310-difficulty
+  py310-lint:
+    <<: *common
+    docker:
+      - image: cimg/python:3.10
+        environment:
+          TOXENV: py310-lint
   py310-transactions:
     <<: *common
     docker:
@@ -287,12 +299,12 @@ jobs:
       - image: cimg/python:3.10
         environment:
           TOXENV: py310-vm
-  py310-lint:
+  py310-wheel:
     <<: *common
     docker:
       - image: cimg/python:3.10
         environment:
-          TOXENV: py310-lint
+          TOXENV: py310-wheel
 
   py311-core:
     <<: *common
@@ -312,6 +324,12 @@ jobs:
       - image: cimg/python:3.11
         environment:
           TOXENV: py311-difficulty
+  py311-lint:
+    <<: *common
+    docker:
+      - image: cimg/python:3.11
+        environment:
+          TOXENV: py311-lint
   py311-transactions:
     <<: *common
     docker:
@@ -324,57 +342,61 @@ jobs:
       - image: cimg/python:3.11
         environment:
           TOXENV: py311-vm
-  py311-lint:
+  py311-wheel:
     <<: *common
     docker:
       - image: cimg/python:3.11
         environment:
-          TOXENV: py311-lint
+          TOXENV: py311-wheel
+  py311-wheel-windows:
+    <<: *windows_steps
+    environment:
+      TOXENV: py311-wheel-windows
 
 workflows:
   version: 2
   test:
     jobs:
       - docs
-      - py311-native-blockchain-shanghai
-      - py311-native-blockchain-merge
-      - py311-native-blockchain-london
       - py311-native-blockchain-berlin
       - py311-native-blockchain-byzantium
       - py311-native-blockchain-constantinople
       - py311-native-blockchain-frontier
       - py311-native-blockchain-homestead
       - py311-native-blockchain-istanbul
+      - py311-native-blockchain-london
+      - py311-native-blockchain-merge
       - py311-native-blockchain-petersburg
-      - py311-native-blockchain-tangerine_whistle
+      - py311-native-blockchain-shanghai
       - py311-native-blockchain-spurious_dragon
+      - py311-native-blockchain-tangerine_whistle
       - py311-native-blockchain-transition
-      - py37-vm
-      - py38-vm
-      - py39-vm
-      - py310-vm
-      - py311-vm
-      - py37-core
       - py38-core
       - py39-core
       - py310-core
       - py311-core
-      - py37-transactions
-      - py38-transactions
-      - py39-transactions
-      - py310-transactions
-      - py311-transactions
-      - py37-difficulty
-      - py38-difficulty
-      - py39-difficulty
-      - py310-difficulty
-      - py311-difficulty
-      - py37-database
       - py38-database
       - py39-database
       - py310-database
       - py311-database
+      - py38-difficulty
+      - py39-difficulty
+      - py310-difficulty
+      - py311-difficulty
       - py38-lint
       - py39-lint
       - py310-lint
       - py311-lint
+      - py38-transactions
+      - py39-transactions
+      - py310-transactions
+      - py311-transactions
+      - py38-vm
+      - py39-vm
+      - py310-vm
+      - py311-vm
+      - py38-wheel
+      - py39-wheel
+      - py310-wheel
+      - py311-wheel
+      - py311-wheel-windows

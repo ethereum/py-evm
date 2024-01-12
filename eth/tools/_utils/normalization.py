@@ -10,6 +10,7 @@ from typing import (
     Mapping,
     Sequence,
     Tuple,
+    TypedDict,
     Union,
     cast,
 )
@@ -44,9 +45,6 @@ from eth_utils.toolz import (
     curry,
     identity,
     merge,
-)
-from mypy_extensions import (
-    TypedDict,
 )
 
 from eth.constants import (
@@ -183,7 +181,8 @@ def dict_options_normalizer(normalizers: Iterable[Normalizer]) -> Normalizer:
 # Composition
 #
 def state_definition_to_dict(state_definition: GeneralState) -> AccountState:
-    """Convert a state definition to the canonical dict form.
+    """
+    Convert a state definition to the canonical dict form.
 
     State can either be defined in the canonical form, or as a list of sub states that
     are then merged to one. Sub states can either be given as dictionaries themselves,
@@ -382,15 +381,13 @@ def normalize_unsigned_transaction(
     )
 
 
-FixtureAccountDetails = TypedDict(
-    "FixtureAccountDetails",
-    {
-        "balance": HexStr,
-        "nonce": HexStr,
-        "code": HexStr,
-        "storage": Dict[HexStr, HexStr],
-    },
-)
+class FixtureAccountDetails(TypedDict):
+    balance: HexStr
+    nonce: HexStr
+    code: HexStr
+    storage: Dict[HexStr, HexStr]
+
+
 FixtureAccountState = Dict[Address, FixtureAccountDetails]
 
 

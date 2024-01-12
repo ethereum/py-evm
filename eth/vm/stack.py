@@ -103,9 +103,7 @@ class Stack(StackAPI):
         #
         if num_items > len(self.values):
             raise InsufficientStack(
-                "Wanted %d stack items, only had %d",
-                num_items,
-                len(self.values),
+                f"Wanted {num_items} stack items, only had {len(self.values)}"
             )
 
         # Quickest way to pop off multiple values from the end, in place

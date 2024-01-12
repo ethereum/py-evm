@@ -1,8 +1,7 @@
-import pytest
-
 from eth_keys import (
     keys,
 )
+import pytest
 
 from eth.chains.base import (
     MiningChain,

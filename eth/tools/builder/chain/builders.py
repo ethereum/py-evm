@@ -5,6 +5,7 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    Optional,
     Tuple,
     Type,
     Union,
@@ -361,9 +362,9 @@ def _fill_and_normalize_state(simple_state: GeneralState) -> AccountState:
 @curry
 def genesis(
     chain_class: ChainAPI,
-    db: AtomicDatabaseAPI = None,
-    params: Dict[str, HeaderParams] = None,
-    state: GeneralState = None,
+    db: Optional[AtomicDatabaseAPI] = None,
+    params: Optional[Dict[str, HeaderParams]] = None,
+    state: Optional[GeneralState] = None,
 ) -> ChainAPI:
     """
     Initialize the given chain class with the given genesis header parameters
@@ -397,9 +398,7 @@ def mine_block(chain: MiningChainAPI, **kwargs: Any) -> MiningChainAPI:
     """
     Mine a new block on the chain.  Header parameters for the new block can be
     overridden using keyword arguments.
-
     """
-
     if not isinstance(chain, MiningChainAPI):
         raise ValidationError("`mine_block` may only be used on MiningChain instances")
 

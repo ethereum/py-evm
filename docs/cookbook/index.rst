@@ -104,7 +104,7 @@ Building blocks incrementally
 ------------------------------
 
 The default :class:`~eth.chains.chain.Chain` is stateless and thus does not keep a tip block open
-that would allow us to incrementally build a block. However, we can import the 
+that would allow us to incrementally build a block. However, we can import the
 :class:`~eth.chains.chain.MiningChain` which does allow exactly that.
 
 .. doctest::
@@ -112,5 +112,5 @@ that would allow us to incrementally build a block. However, we can import the
   >>> from eth.chains.base import MiningChain
 
 Please check out the :doc:`Understanding the mining process
-</guides/understanding_the_mining_process>` guide for a full example that demonstrates how 
+</guides/understanding_the_mining_process>` guide for a full example that demonstrates how
 to use the :class:`~eth.chains.chain.MiningChain`.

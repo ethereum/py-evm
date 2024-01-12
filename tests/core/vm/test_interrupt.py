@@ -1,11 +1,10 @@
-import pytest
-
 from eth_hash.auto import (
     keccak,
 )
 from eth_utils import (
     int_to_big_endian,
 )
+import pytest
 
 from eth.vm.interrupt import (
     MissingAccountTrieNode,

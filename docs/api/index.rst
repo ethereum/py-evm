@@ -11,7 +11,7 @@ This section aims to provide a detailed description of all APIs. If you are look
    :maxdepth: 4
    :name: toc-api-eth
 
-   
+
    api.abc
    api.chain
    api.db

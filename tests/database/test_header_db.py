@@ -3,7 +3,6 @@ from functools import (
     partial,
 )
 import operator
-import pytest
 import random
 
 from eth_utils import (
@@ -23,6 +22,7 @@ from hypothesis import (
     settings,
     strategies as st,
 )
+import pytest
 
 from eth.constants import (
     GENESIS_BLOCK_NUMBER,

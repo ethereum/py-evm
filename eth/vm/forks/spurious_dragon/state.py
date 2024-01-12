@@ -41,8 +41,7 @@ class SpuriousDragonTransactionExecutor(HomesteadTransactionExecutor):
             ) and self.vm_state.account_is_empty(account)
             if should_delete:
                 self.vm_state.logger.debug2(
-                    "CLEARING EMPTY ACCOUNT: %s",
-                    encode_hex(account),
+                    f"CLEARING EMPTY ACCOUNT: {encode_hex(account)}"
                 )
                 self.vm_state.delete_account(account)
 

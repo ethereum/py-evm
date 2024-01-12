@@ -8,17 +8,17 @@ from typing import (
     Callable,
 )
 
-from _utils.meters import (
+from scripts.benchmark._utils.meters import (
     TimedResult,
     time_call,
 )
-from _utils.reporting import (
+from scripts.benchmark._utils.reporting import (
     DefaultStat,
     print_default_benchmark_result_header,
     print_default_benchmark_stat_line,
     print_default_benchmark_total_line,
 )
-from _utils.shellart import (
+from scripts.benchmark._utils.shellart import (
     bold_yellow,
 )
 

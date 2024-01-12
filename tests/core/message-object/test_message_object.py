@@ -1,9 +1,8 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
     to_normalized_address,
 )
+import pytest
 
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,

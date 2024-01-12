@@ -1,8 +1,7 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
 )
+import pytest
 
 from eth._utils.address import (
     force_bytes_to_address,

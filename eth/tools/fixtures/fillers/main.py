@@ -1,6 +1,7 @@
 from typing import (
     Any,
     Dict,
+    Optional,
 )
 
 from eth_utils.toolz import (
@@ -26,17 +27,15 @@ from .vm import (
     fill_vm_test,
 )
 
-FILLED_WITH_TEMPLATE = "py-evm-{version}"
-
 
 #
 # Primary test filler
 #
 def fill_test(
     filler: Dict[str, Any],
-    info: Dict[str, Any] = None,
+    info: Optional[Dict[str, Any]] = None,
     apply_formatter: bool = True,
-    **kwargs: Any
+    **kwargs: Any,
 ) -> Dict[str, Any]:
     test_name = get_test_name(filler)
     test = filler[test_name]
@@ -51,7 +50,7 @@ def fill_test(
         raise ValueError("Given filler does not appear to be for VM or state test")
 
     info = merge(
-        {"filledwith": FILLED_WITH_TEMPLATE.format(version=get_version_from_git())},
+        {"filledwith": f"py-evm-{get_version_from_git()}"},
         info if info else {},
     )
     filled = assoc_in(filled, [test_name, "_info"], info)

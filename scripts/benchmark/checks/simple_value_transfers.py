@@ -4,21 +4,6 @@ from typing import (
     Tuple,
 )
 
-from _utils.address import (
-    generate_random_address,
-)
-from _utils.chain_plumbing import (
-    FUNDED_ADDRESS,
-    FUNDED_ADDRESS_PRIVATE_KEY,
-    SECOND_ADDRESS,
-    get_all_chains,
-)
-from _utils.reporting import (
-    DefaultStat,
-)
-from _utils.shellart import (
-    bold_yellow,
-)
 from eth_typing import (
     Address,
 )
@@ -31,6 +16,21 @@ from eth.rlp.blocks import (
 )
 from eth.tools.factories.transaction import (
     new_transaction,
+)
+from scripts.benchmark._utils.address import (
+    generate_random_address,
+)
+from scripts.benchmark._utils.chain_plumbing import (
+    FUNDED_ADDRESS,
+    FUNDED_ADDRESS_PRIVATE_KEY,
+    SECOND_ADDRESS,
+    get_all_chains,
+)
+from scripts.benchmark._utils.reporting import (
+    DefaultStat,
+)
+from scripts.benchmark._utils.shellart import (
+    bold_yellow,
 )
 
 from .base_benchmark import (

@@ -2,6 +2,7 @@ from typing import (
     Any,
     Dict,
     Iterable,
+    Optional,
     Tuple,
     Union,
 )
@@ -29,10 +30,10 @@ from eth.tools.fixtures.helpers import (
 def fill_vm_test(
     filler: Dict[str, Any],
     *,
-    call_creates: Any = None,
-    gas_price: Union[int, str] = None,
+    call_creates: Optional[Any] = None,
+    gas_price: Optional[Union[int, str]] = None,
     gas_remaining: Union[int, str] = 0,
-    logs: Iterable[Tuple[bytes, Tuple[int, ...], bytes]] = None,
+    logs: Optional[Iterable[Tuple[bytes, Tuple[int, ...], bytes]]] = None,
     output: bytes = b""
 ) -> Dict[str, Dict[str, Any]]:
     test_name = get_test_name(filler)

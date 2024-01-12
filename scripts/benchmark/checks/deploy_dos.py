@@ -7,17 +7,6 @@ from typing import (
     Tuple,
 )
 
-from _utils.chain_plumbing import (
-    FUNDED_ADDRESS,
-    FUNDED_ADDRESS_PRIVATE_KEY,
-    get_all_chains,
-)
-from _utils.compile import (
-    get_compiled_contract,
-)
-from _utils.reporting import (
-    DefaultStat,
-)
 from eth_utils import (
     decode_hex,
     encode_hex,
@@ -37,6 +26,17 @@ from eth.rlp.blocks import (
 )
 from eth.tools.factories.transaction import (
     new_transaction,
+)
+from scripts.benchmark._utils.chain_plumbing import (
+    FUNDED_ADDRESS,
+    FUNDED_ADDRESS_PRIVATE_KEY,
+    get_all_chains,
+)
+from scripts.benchmark._utils.compile import (
+    get_compiled_contract,
+)
+from scripts.benchmark._utils.reporting import (
+    DefaultStat,
 )
 
 from .base_benchmark import (
@@ -73,7 +73,6 @@ class BaseDOSContractBenchmark(BaseBenchmark):
         This hook can be overwritten to perform preparations on the chain
         that do not count into the measured benchmark time
         """
-        pass
 
     @abstractmethod
     def _apply_transaction(self, chain: MiningChain) -> None:

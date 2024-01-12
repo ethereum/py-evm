@@ -9,4 +9,3 @@ VM
 .. autoclass:: eth.vm.base.VM
   :members:
   :exclude-members: get_prev_hashes
-

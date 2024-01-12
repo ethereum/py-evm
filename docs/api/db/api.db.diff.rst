@@ -18,5 +18,3 @@ DiffMissingError
 
 .. autoclass:: eth.db.diff.DiffMissingError
   :members:
-
-

@@ -297,9 +297,8 @@ class ChainDB(HeaderDB, ChainDatabaseAPI):
             uncles_hash = EMPTY_UNCLE_HASH
         if uncles_hash != block.header.uncles_hash:
             raise ValidationError(
-                "Block's uncles_hash (%s) does not match actual uncles' hash (%s)",
-                block.header.uncles_hash,
-                uncles_hash,
+                f"Block's uncles_hash ({block.header.uncles_hash}) does not match "
+                f"actual uncles' hash ({uncles_hash})"
             )
         new_canonical_hashes = tuple(header.hash for header in new_canonical_headers)
         old_canonical_hashes = tuple(header.hash for header in old_canonical_headers)

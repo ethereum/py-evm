@@ -11,6 +11,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypedDict,
     TypeVar,
     Union,
 )
@@ -20,9 +21,6 @@ from eth_typing import (
     BlockNumber,
     Hash32,
     HexStr,
-)
-from mypy_extensions import (
-    TypedDict,
 )
 
 if TYPE_CHECKING:
@@ -36,10 +34,14 @@ if TYPE_CHECKING:
 
 JournalDBCheckpoint = NewType("JournalDBCheckpoint", int)
 
-AccountDetails = TypedDict(
-    "AccountDetails",
-    {"balance": int, "nonce": int, "code": bytes, "storage": Dict[int, int]},
-)
+
+class AccountDetails(TypedDict):
+    balance: int
+    nonce: int
+    code: bytes
+    storage: Dict[int, int]
+
+
 AccountState = Dict[Address, AccountDetails]
 AccountDiff = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
 
@@ -70,28 +72,23 @@ BytesOrView = Union[bytes, memoryview]
 
 Normalizer = Callable[[Dict[Any, Any]], Dict[str, Any]]
 
-RawAccountDetails = TypedDict(
-    "RawAccountDetails",
-    {
-        "balance": HexStr,
-        "nonce": HexStr,
-        "code": HexStr,
-        "storage": Dict[HexStr, HexStr],
-    },
-)
 
-TransactionDict = TypedDict(
-    "TransactionDict",
-    {
-        "nonce": int,
-        "gasLimit": int,
-        "gasPrice": int,
-        "to": Address,
-        "value": int,
-        "data": bytes,
-        "secretKey": bytes,
-    },
-)
+class RawAccountDetails(TypedDict):
+    balance: HexStr
+    nonce: HexStr
+    code: HexStr
+    storage: Dict[HexStr, HexStr]
+
+
+class TransactionDict(TypedDict):
+    nonce: int
+    gasLimit: int
+    gasPrice: int
+    to: Address
+    value: int
+    data: bytes
+    secretKey: bytes
+
 
 TransactionNormalizer = Callable[[TransactionDict], TransactionDict]
 

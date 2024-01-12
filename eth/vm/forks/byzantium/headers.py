@@ -1,6 +1,7 @@
 from typing import (
     Any,
     Callable,
+    Optional,
 )
 
 from eth_utils.toolz import (
@@ -93,7 +94,7 @@ def create_header_from_parent(
 @curry
 def configure_header(
     vm: VirtualMachineAPI,
-    difficulty_fn: Callable[[BlockHeaderAPI, int], int] = None,
+    difficulty_fn: Optional[Callable[[BlockHeaderAPI, int], int]] = None,
     **header_params: Any,
 ) -> BlockHeaderAPI:
     validate_header_params_for_configuration(header_params)

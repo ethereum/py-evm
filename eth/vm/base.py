@@ -460,17 +460,13 @@ class VM(Configurable, VirtualMachineAPI):
         # computation and thus should be marked for deletion since it was touched.
         self.state.delta_balance(block.header.coinbase, block_reward)
         self.logger.debug(
-            "BLOCK REWARD: %s -> %s",
-            block_reward,
-            encode_hex(block.header.coinbase),
+            f"BLOCK REWARD: {block_reward} -> {encode_hex(block.header.coinbase)}"
         )
 
         for uncle in block.uncles:
             uncle_reward = self.get_uncle_reward(block.number, uncle)
             self.logger.debug(
-                "UNCLE REWARD REWARD: %s -> %s",
-                uncle_reward,
-                encode_hex(uncle.coinbase),
+                f"UNCLE REWARD REWARD: {uncle_reward} -> {encode_hex(uncle.coinbase)}"
             )
             self.state.delta_balance(uncle.coinbase, uncle_reward)
 
@@ -494,12 +490,10 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         self.logger.debug(
-            "%s reads %d unique node hashes, %d addresses, %d bytecodes, and %d storage slots",  # noqa: E501
-            final_block,
-            len(meta_witness.hashes),
-            len(meta_witness.accounts_queried),
-            len(meta_witness.account_bytecodes_queried),
-            meta_witness.total_slots_queried,
+            f"{final_block} reads {len(meta_witness.hashes)} unique node hashes, "
+            f"{len(meta_witness.accounts_queried)} addresses, "
+            f"{len(meta_witness.account_bytecodes_queried)} bytecodes, and "
+            f"{meta_witness.total_slots_queried} storage slots"
         )
 
         return BlockAndMetaWitness(final_block, meta_witness)
@@ -724,9 +718,8 @@ class VM(Configurable, VirtualMachineAPI):
             self._consensus.validate_seal(header)
         except ValidationError as exc:
             self.cls_logger.debug(
-                "Failed to validate seal on header: %r. Error: %s",
-                header.as_dict(),
-                exc,
+                f"Failed to validate seal on header: {repr(header.as_dict())}. "
+                f"Error: {exc}"
             )
             raise
 

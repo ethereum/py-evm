@@ -29,8 +29,6 @@ class empty:
     for a default in real Python code.
     """
 
-    pass
-
 
 def get_env_value(name: str, required: bool = False, default: Any = empty) -> str:
     """
@@ -56,7 +54,8 @@ def get_env_value(name: str, required: bool = False, default: Any = empty) -> st
 def env_int(
     name: str, required: bool = False, default: Union[Type[empty], int] = empty
 ) -> int:
-    """Pulls an environment variable out of the environment and casts it to an
+    """
+    Pulls an environment variable out of the environment and casts it to an
     integer. If the name is not present in the environment and no default is
     specified then a ``ValueError`` will be raised. Similarly, if the
     environment value is not castable to an integer, a ``ValueError`` will be
@@ -86,7 +85,8 @@ def env_int(
 def env_float(
     name: str, required: bool = False, default: Union[Type[empty], float] = empty
 ) -> float:
-    """Pulls an environment variable out of the environment and casts it to an
+    """
+    Pulls an environment variable out of the environment and casts it to an
     float. If the name is not present in the environment and no default is
     specified then a ``ValueError`` will be raised. Similarly, if the
     environment value is not castable to an float, a ``ValueError`` will be
@@ -119,7 +119,8 @@ def env_bool(
     required: bool = False,
     default: Union[Type[empty], bool] = empty,
 ) -> bool:
-    """Pulls an environment variable out of the environment returning it as a
+    """
+    Pulls an environment variable out of the environment returning it as a
     boolean. The strings ``'True'`` and ``'true'`` are the default *truthy*
     values. If not present in the environment and no default is specified,
     ``None`` is returned.
@@ -149,7 +150,8 @@ def env_bool(
 def env_string(
     name: str, required: bool = False, default: Union[Type[empty], str] = empty
 ) -> str:
-    """Pulls an environment variable out of the environment returning it as a
+    """
+    Pulls an environment variable out of the environment returning it as a
     string. If not present in the environment and no default is specified, an
     empty string is returned.
 
@@ -177,7 +179,8 @@ def env_list(
     required: bool = False,
     default: Union[Type[empty], List[Any]] = empty,
 ) -> List[Any]:
-    """Pulls an environment variable out of the environment, splitting it on a
+    """
+    Pulls an environment variable out of the environment, splitting it on a
     separator, and returning it as a list. Extra whitespace on the list values
     is stripped. List values that evaluate as falsy are removed. If not present
     and no default specified, an empty list is returned.
@@ -213,7 +216,8 @@ def get(
     default: Union[Type[empty], T] = empty,
     type: Type[T] = None,
 ) -> T:
-    """Generic getter for environment variables. Handles defaults,
+    """
+    Generic getter for environment variables. Handles defaults,
     required-ness, and what type to expect.
 
     :param name: The name of the environment variable be pulled

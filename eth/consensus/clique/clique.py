@@ -126,7 +126,6 @@ class CliqueConsensus(ConsensusAPI):
         Validate the seal of the given ``header`` according
         to the Clique consensus rules.
         """
-
         if header.block_number == 0:
             return
 

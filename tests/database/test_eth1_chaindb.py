@@ -1,5 +1,3 @@
-import pytest
-
 from eth_hash.auto import (
     keccak,
 )
@@ -7,6 +5,7 @@ from hypothesis import (
     given,
     strategies as st,
 )
+import pytest
 import rlp
 
 from eth._utils.address import (

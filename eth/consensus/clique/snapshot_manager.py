@@ -48,7 +48,7 @@ from .exceptions import (
 
 
 def make_snapshot_lookup_key(block_hash: Hash32) -> bytes:
-    return b"block-hash-to-snapshot:%s" % block_hash
+    return f"block-hash-to-snapshot:{block_hash}".encode()
 
 
 class SnapshotManager:
@@ -77,13 +77,13 @@ class SnapshotManager:
         try:
             return self._chain_db.get_block_header_by_hash(block_hash)
         except HeaderNotFound:
-            raise ValidationError("Unknown ancestor %s", encode_hex(block_hash))
+            raise ValidationError(f"Unknown ancestor {encode_hex(block_hash)}")
 
     def _create_snapshot_from_checkpoint_header(
         self, header: BlockHeaderAPI
     ) -> Snapshot:
         signers = get_signers_at_checkpoint(header)
-        self.logger.debug2("Created snapshot from checkpoint at %s", header)
+        self.logger.debug2(f"Created snapshot from checkpoint at {header}")
 
         snapshot = MutableSnapshot(
             signers=list(signers), block_hash=header.hash, votes=[], tallies={}
@@ -94,7 +94,6 @@ class SnapshotManager:
         """
         Apply the given header on top of the current snapshot to create a new snapshot.
         """
-
         if is_checkpoint(header.block_number, self._epoch_length):
             return self._create_snapshot_from_checkpoint_header(header)
 
@@ -124,11 +123,11 @@ class SnapshotManager:
                 if tally.votes > len(snapshot.signers) / 2:
                     if tally.action is VoteAction.NOMINATE:
                         snapshot.signers.append(header.coinbase)
-                        self.logger.debug("New signer added: %s", header.coinbase)
+                        self.logger.debug(f"New signer added: {header.coinbase}")
                     else:
                         if header.coinbase in snapshot.signers:
                             snapshot.signers.remove(header.coinbase)
-                            self.logger.debug("Signer removed: %s", header.coinbase)
+                            self.logger.debug(f"Signer removed: {header.coinbase}")
 
                     for vote in snapshot.votes.copy():
                         # Discard any pending votes *from* the added or removed member
@@ -209,7 +208,7 @@ class SnapshotManager:
 
         if is_checkpoint(header.block_number, self._epoch_length):
             self.logger.debug2(
-                "Persisting checkpoint snapshot at %s", header.block_number
+                f"Persisting checkpoint snapshot at {header.block_number}",
             )
             self.persist_snapshot(new_snapshot)
 
@@ -221,7 +220,6 @@ class SnapshotManager:
         directly from a header that serves as a checkpoint.
         Otherwise raise a ``SnapshotNotFound`` error.
         """
-
         # We first try to find the snapshot in memory
         if block_hash in self._snapshots:
             return self._snapshots[block_hash]

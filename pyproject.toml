@@ -1,5 +1,76 @@
+[tool.autoflake]
+remove_all_unused_imports = true
+exclude = "__init__.py"
+
+[tool.isort]
+combine_as_imports = true
+extra_standard_library = "pytest"
+force_grid_wrap = 1
+force_sort_within_sections = true
+known_third_party = "hypothesis,pytest"
+known_first_party = "eth"
+multi_line_output = 3
+profile = "black"
+# skip `__init__.py` files because sometimes order of initialization is important
+skip = "__init__.py"
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+disallow_untyped_calls = true
+# TODO: Drop ignore-missing-imports after adding type annotations for eth_utils, coincurve & cytoolz
+ignore_missing_imports = true
+strict_optional = false
+warn_redundant_casts = true
+warn_unused_configs = true
+# TODO: after dropping py39, try enabling this again:
+warn_unused_ignores = false
+
+
+[tool.pydocstyle]
+# All error codes found here:
+# http://www.pydocstyle.org/en/3.0.0/error_codes.html
+#
+# Ignored:
+# D1 - Missing docstring error codes
+#
+# Selected:
+# D2 - Whitespace error codes
+# D3 - Quote error codes
+# D4 - Content related error codes
+select = "D2,D3,D4"
+
+# Extra ignores:
+# D200 - One-line docstring should fit on one line with quotes
+# D203 - 1 blank line required before class docstring
+# D204 - 1 blank line required after class docstring
+# D205 - 1 blank line required between summary line and description
+# D212 - Multi-line docstring summary should start at the first line
+# D302 - Use u""" for Unicode docstrings
+# D400 - First line should end with a period
+# D401 - First line should be in imperative mood
+# D404 - First word of the docstring should not be `This`
+# D412 - No blank lines allowed between a section header and its content
+# D415 - First line should end with a period, question mark, or exclamation point
+add-ignore = "D200,D203,D204,D205,D212,D302,D400,D401,D404,D412,D415"
+
+# Explanation:
+# D400 - Enabling this error code seems to make it a requirement that the first
+# sentence in a docstring is not split across two lines.  It also makes it a
+# requirement that no docstring can have a multi-sentence description without a
+# summary line.  Neither one of those requirements seem appropriate.
+
+[tool.pytest.ini_options]
+addopts = "-v --showlocals --durations 10"
+xfail_strict = true
+log_format = "%(levelname)8s  %(asctime)s  %(filename)20s  %(message)s"
+log_date_format = "%m-%d %H:%M:%S"
+timeout = 300
+
 [tool.towncrier]
-# Read https://github.com/ethereum/py-evm/newsfragments/README.md for instructions
+# Read https://github.com/ethereum/py-evm/blob/main/newsfragments/README.md for instructions
 package = "eth"
 filename = "docs/release_notes.rst"
 directory = "newsfragments"
@@ -8,8 +79,8 @@ title_format = "py-evm v{version} ({project_date})"
 issue_format = "`#{issue} <https://github.com/ethereum/py-evm/issues/{issue}>`__"
 
 [[tool.towncrier.type]]
-directory = "feature"
-name = "Features"
+directory = "breaking"
+name = "Breaking Changes"
 showcontent = true
 
 [[tool.towncrier.type]]
@@ -18,8 +89,8 @@ name = "Bugfixes"
 showcontent = true
 
 [[tool.towncrier.type]]
-directory = "performance"
-name = "Performance improvements"
+directory = "deprecation"
+name = "Deprecations"
 showcontent = true
 
 [[tool.towncrier.type]]
@@ -28,8 +99,8 @@ name = "Improved Documentation"
 showcontent = true
 
 [[tool.towncrier.type]]
-directory = "removal"
-name = "Deprecations and Removals"
+directory = "feature"
+name = "Features"
 showcontent = true
 
 [[tool.towncrier.type]]
@@ -39,10 +110,15 @@ showcontent = true
 
 [[tool.towncrier.type]]
 directory = "misc"
-name = "Miscellaneous changes"
+name = "Miscellaneous Changes"
 showcontent = false
 
 [[tool.towncrier.type]]
-directory = "breaking"
-name = "Breaking changes"
+directory = "performance"
+name = "Performance Improvements"
+showcontent = true
+
+[[tool.towncrier.type]]
+directory = "removal"
+name = "Removals"
 showcontent = true

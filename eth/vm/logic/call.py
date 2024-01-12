@@ -102,10 +102,8 @@ class BaseCall(Opcode, ABC):
             )
             if self.logger.show_debug2:
                 self.logger.debug2(
-                    "%s is charged %d for invoking code at account 0x%s",
-                    self.mnemonic,
-                    load_account_fee,
-                    code_source.hex(),
+                    f"{self.mnemonic} is charged {load_account_fee} for invoking "
+                    f"code at account 0x{code_source.hex()}"
                 )
 
         # This must be computed *after* the load account fee is charged, so
@@ -132,11 +130,7 @@ class BaseCall(Opcode, ABC):
             else:
                 raise Exception("Invariant: Unreachable code path")
 
-            self.logger.debug2(
-                "%s failure: %s",
-                self.mnemonic,
-                err_message,
-            )
+            self.logger.debug2(f"{self.mnemonic} failure: {err_message}")
             computation.return_gas(child_msg_gas)
             computation.stack_push_int(0)
         else:

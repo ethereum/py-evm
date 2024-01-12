@@ -1,10 +1,9 @@
-import pytest
-
 from eth_utils import (
     ValidationError,
     decode_hex,
     to_bytes,
 )
+import pytest
 import rlp
 
 from eth.exceptions import (

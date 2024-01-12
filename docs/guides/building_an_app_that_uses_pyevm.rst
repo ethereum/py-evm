@@ -99,10 +99,7 @@ Next, we'll create a new directory ``app`` and create a file ``main.py`` inside.
 
   >>> mock_address_balance = chain.get_vm().state.get_balance(MOCK_ADDRESS)
 
-  >>> print("The balance of address {} is {} wei".format(
-  ...     encode_hex(MOCK_ADDRESS),
-  ...     mock_address_balance)
-  ... )
+  >>> print(f"The balance of address {encode_hex(MOCK_ADDRESS)} is {mock_address_balance} wei")
   The balance of address 0x0000000000000000000000000000000000000000 is 10000000000000000000000 wei
 
 Running the script

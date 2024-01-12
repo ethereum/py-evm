@@ -109,7 +109,6 @@ def fill_gap(newly_persisted: BlockNumber, base_gaps: ChainGaps) -> GapInfo:
     """
     Remove a gap, for a new header that was canonicalized.
     """
-
     current_gaps, tip_child = base_gaps
 
     if newly_persisted == tip_child:
