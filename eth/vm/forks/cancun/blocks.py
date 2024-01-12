@@ -8,13 +8,11 @@ from typing import (
 from eth_utils import (
     encode_hex,
 )
-import rlp
+
 from rlp.sedes import (
     CountableList,
 )
 from eth.abc import (
-    BlockHeaderAPI,
-    MiningHeaderAPI,
     ReceiptBuilderAPI,
     TransactionBuilderAPI,
 )
@@ -28,17 +26,19 @@ from .transactions import (
 from ..shanghai.blocks import (
     ShanghaiBackwardsHeader,
     ShanghaiBlock,
+    ShanghaiBlockHeader,
+    ShanghaiMiningHeader,
 )
 from ..shanghai.withdrawals import (
     Withdrawal,
 )
 
 
-class CancunMiningHeader(rlp.Serializable, MiningHeaderAPI, ABC):
+class CancunMiningHeader(ShanghaiMiningHeader, ABC):
     pass
 
 
-class CancunBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
+class CancunBlockHeader(ShanghaiBlockHeader, ABC):
     def __str__(self) -> str:
         return f"<CancunBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>"
 
