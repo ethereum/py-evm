@@ -10,6 +10,10 @@ from eth_utils import (
 import pytest
 import rlp
 
+from eth.exceptions import (
+    OutOfGas,
+    UnrecognizedTransactionType,
+)
 from eth.tools._utils.normalization import (
     normalize_blockchain_fixtures,
 )
@@ -1231,6 +1235,8 @@ EXPECTED_BAD_BLOCK_EXCEPTIONS = (
     rlp.DeserializationError,
     ValidationError,
     AssertionError,
+    UnrecognizedTransactionType,
+    OutOfGas,
 )
 
 
