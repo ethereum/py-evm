@@ -120,6 +120,12 @@ jobs:
       - image: cimg/python:3.11
         environment:
           TOXENV: py311-native-blockchain-byzantium
+  py311-native-blockchain-cancun:
+    <<: *common
+    docker:
+      - image: cimg/python:3.11
+        environment:
+          TOXENV: py311-native-blockchain-cancun
   py311-native-blockchain-constantinople:
     <<: *common
     docker:
@@ -370,6 +376,7 @@ workflows:
       - docs
       - py311-native-blockchain-berlin
       - py311-native-blockchain-byzantium
+#      - py311-native-blockchain-cancun  # TODO: re-enable when we have tests passing
       - py311-native-blockchain-constantinople
       - py311-native-blockchain-frontier
       - py311-native-blockchain-homestead
