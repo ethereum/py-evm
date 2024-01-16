@@ -45,6 +45,7 @@ from eth.typing import (
 from eth.vm.forks import (
     BerlinVM,
     ByzantiumVM,
+    CancunVM,
     ConstantinopleVM,
     FrontierVM,
     GrayGlacierVM,
@@ -130,6 +131,11 @@ def chain_vm_configuration(
         return ((0, ParisVM),)
     elif network == "Shanghai":
         return ((0, ShanghaiVM),)
+    elif network == "Cancun":
+        return ((0, CancunVM),)
+
+    # -- transitions -- #
+
     elif network == "FrontierToHomesteadAt5":
         HomesteadVM = BaseHomesteadVM.configure(support_dao_fork=False)
         return (
