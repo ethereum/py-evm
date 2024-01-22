@@ -5,6 +5,9 @@ from typing import (
     Type,
 )
 
+from eth_typing import (
+    Hash32,
+)
 from eth_utils import (
     encode_hex,
 )
@@ -18,7 +21,6 @@ from eth.abc import (
 from eth.vm.forks.gray_glacier.blocks import (
     GrayGlacierBlock,
     GrayGlacierBlockHeader,
-    GrayGlacierMiningHeader,
 )
 
 from ..london.blocks import (
@@ -29,13 +31,13 @@ from .transactions import (
 )
 
 
-class ParisMiningHeader(GrayGlacierMiningHeader, ABC):
-    pass
-
-
 class ParisBlockHeader(GrayGlacierBlockHeader, ABC):
     def __str__(self) -> str:
         return f"<ParisBlockHeader #{self.block_number} {encode_hex(self.hash)[2:10]}>"
+
+    @property
+    def mining_hash(self) -> Hash32:
+        raise ValueError("Mining hash is not available post merge.")
 
 
 class ParisBlock(GrayGlacierBlock):

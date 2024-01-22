@@ -39,7 +39,6 @@ from eth.abc import (
     BlockHeaderAPI,
     BlockHeaderSedesAPI,
     ChainDatabaseAPI,
-    MiningHeaderAPI,
     ReceiptAPI,
     ReceiptBuilderAPI,
     SignedTransactionAPI,
@@ -84,40 +83,27 @@ from .withdrawals import (
     Withdrawal,
 )
 
-UNMINED_SHANGHAI_HEADER_FIELDS = [
-    ("parent_hash", hash32),
-    ("uncles_hash", hash32),
-    ("coinbase", address),
-    ("state_root", trie_root),
-    ("transaction_root", trie_root),
-    ("receipt_root", trie_root),
-    ("bloom", uint256),
-    ("difficulty", big_endian_int),
-    ("block_number", big_endian_int),
-    ("gas_limit", big_endian_int),
-    ("gas_used", big_endian_int),
-    ("timestamp", big_endian_int),
-    ("extra_data", binary),
-    ("base_fee_per_gas", big_endian_int),
-    ("withdrawals_root", trie_root),
-]
-
-
-class ShanghaiMiningHeader(rlp.Serializable, MiningHeaderAPI, ABC):
-    fields = UNMINED_SHANGHAI_HEADER_FIELDS
-
 
 class ShanghaiBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
-    # `mix_hash` and `nonce` were fields before `base_fee_per_gas` and
-    # `withdrawals_root` and, thus, appear in the block header before them.
-    fields = (
-        UNMINED_SHANGHAI_HEADER_FIELDS[:13]
-        + [
-            ("mix_hash", binary),
-            ("nonce", Binary(8, allow_empty=True)),
-        ]
-        + UNMINED_SHANGHAI_HEADER_FIELDS[13:]
-    )
+    fields = [
+        ("parent_hash", hash32),
+        ("uncles_hash", hash32),
+        ("coinbase", address),
+        ("state_root", trie_root),
+        ("transaction_root", trie_root),
+        ("receipt_root", trie_root),
+        ("bloom", uint256),
+        ("difficulty", big_endian_int),
+        ("block_number", big_endian_int),
+        ("gas_limit", big_endian_int),
+        ("gas_used", big_endian_int),
+        ("timestamp", big_endian_int),
+        ("extra_data", binary),
+        ("mix_hash", binary),
+        ("nonce", Binary(8, allow_empty=True)),
+        ("base_fee_per_gas", big_endian_int),
+        ("withdrawals_root", trie_root),
+    ]
 
     def __init__(
         self,
@@ -185,9 +171,7 @@ class ShanghaiBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
 
     @property
     def mining_hash(self) -> Hash32:
-        non_pow_fields = self[:-3] + self[-1:]
-        result = keccak(rlp.encode(non_pow_fields, ShanghaiMiningHeader))
-        return cast(Hash32, result)
+        raise ValueError("Mining hash is not available post merge.")
 
     @property
     def hex_hash(self) -> str:
