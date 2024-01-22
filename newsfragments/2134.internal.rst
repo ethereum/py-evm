@@ -1,0 +1,1 @@
+Drop the concept of a mining header, post-merge.
