@@ -9,7 +9,6 @@ Table of contents
    :caption: General
 
    introduction
-   guides/quickstart
    release_notes
 
 .. toctree::

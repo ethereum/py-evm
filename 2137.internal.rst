@@ -1,0 +1,1 @@
+Fix epub docs build issue, add pdf and epub docs builds to CI

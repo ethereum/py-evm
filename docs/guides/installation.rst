@@ -1,8 +1,6 @@
-Quickstart
-==========
-
 Installation
-~~~~~~~~~~~~
+============
+
 
 This guide teaches how to use Py-EVM as a library. For contributors, please check out the
 :doc:`Contributing Guide </contributing>` which explains how to set everything up for development.

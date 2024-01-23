@@ -26,6 +26,11 @@ The main focus is to enrich the Ethereum ecosystem with a Python implementation 
   * Consortium chains
   * Advanced research
 
+Usage
+-----
+
+Check out our :doc:`guides </guides/installation>` to get started using
+the ``py-evm`` library.
 
 Further reading
 ---------------
