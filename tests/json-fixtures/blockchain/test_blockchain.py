@@ -1145,10 +1145,6 @@ INCORRECT_UPSTREAM_TESTS = {
 def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
     fixture_id = (fixture_path, fixture_name)
 
-    if "Pyspecs" in fixture_path:
-        # TODO: Turn on Pyspecs tests when we restructure the test suite
-        return pytest.mark.skip("Turn off Pyspecs tests for now.")
-
     # -- expected skips and failures -- #
     if "bcExploitTest/" in fixture_path:
         return pytest.mark.skip("Exploit tests are slow")
