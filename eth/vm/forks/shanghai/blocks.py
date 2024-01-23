@@ -3,6 +3,7 @@ from abc import (
 )
 from typing import (
     List,
+    Optional,
     Sequence,
     Tuple,
     Type,
@@ -180,6 +181,10 @@ class ShanghaiBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
     @property
     def is_genesis(self) -> bool:
         return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
+
+    @property
+    def parent_beacon_block_root(self) -> Optional[Hash32]:
+        raise AttributeError("Parent beacon block root is not available until Cancun.")
 
 
 class ShanghaiBackwardsHeader(BlockHeaderSedesAPI):

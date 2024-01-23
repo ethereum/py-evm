@@ -345,7 +345,7 @@ class VM(Configurable, VirtualMachineAPI):
                 f" the attempted block was #{block.number}"
             )
 
-        header_params = {
+        block_header_fields = {
             "coinbase": block.header.coinbase,
             "difficulty": block.header.difficulty,
             "gas_limit": block.header.gas_limit,
@@ -356,16 +356,23 @@ class VM(Configurable, VirtualMachineAPI):
             "uncles_hash": keccak(rlp.encode(block.uncles)),
         }
 
-        block_params = {
-            "header": self.configure_header(**header_params),
+        try:
+            # post-cancun blocks
+            parent_beacon_block_root = block.header.parent_beacon_block_root
+            block_header_fields["parent_beacon_block_root"] = parent_beacon_block_root
+        except AttributeError:
+            pass
+
+        block_fields = {
+            "header": self.configure_header(**block_header_fields),
             "uncles": block.uncles,
         }
 
         if hasattr(block, "withdrawals"):
             # post-shanghai blocks
-            block_params["withdrawals"] = block.withdrawals
+            block_fields["withdrawals"] = block.withdrawals
 
-        self._block = self.get_block().copy(**block_params)
+        self._block = self.get_block().copy(**block_fields)
 
         execution_context = self.create_execution_context(
             block.header, self.previous_hashes, self.chain_context
@@ -379,6 +386,9 @@ class VM(Configurable, VirtualMachineAPI):
         self._state = self.get_state_class()(
             self.chaindb.db, execution_context, header.state_root
         )
+
+        # apply any block-related state processing
+        self.block_preprocessing(self._state, block.header)
 
         # run all of the transactions.
         new_header, receipts, _ = self.apply_all_transactions(
@@ -400,6 +410,13 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         return self.mine_block(filled_block)
+
+    @classmethod
+    def block_preprocessing(cls, state: StateAPI, header: BlockHeaderAPI) -> None:
+        """
+        Process any state changes before processing a block. Pre-processing does not
+        become relevant until the Cancun network upgrade.
+        """
 
     def mine_block(
         self, block: BlockAPI, *args: Any, **kwargs: Any

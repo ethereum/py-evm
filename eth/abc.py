@@ -194,6 +194,14 @@ class BlockHeaderAPI(MiningHeaderAPI, BlockHeaderSedesAPI):
         """
         ...
 
+    @property
+    @abstractmethod
+    def parent_beacon_block_root(self) -> Optional[Hash32]:
+        """
+        Return the hash of the parent beacon block.
+        """
+        ...
+
 
 class LogAPI(ABC):
     """
