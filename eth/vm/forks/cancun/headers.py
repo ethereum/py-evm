@@ -30,10 +30,10 @@ def create_cancun_header_from_parent(
     shanghai_validated_header = create_shanghai_header_from_parent(
         parent_header, **header_params
     )
-
     # extract params validated up to shanghai (previous VM)
     # and plug into a `CancunBlockHeader` class
     all_fields = shanghai_validated_header.as_dict()
+
     return CancunBlockHeader(**all_fields)
 
 
