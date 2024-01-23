@@ -251,6 +251,7 @@ ALLOWED_HEADER_FIELDS = {
     "transaction_root",
     "receipt_root",
     "withdrawals_root",
+    "parent_beacon_block_root",
 }
 
 
