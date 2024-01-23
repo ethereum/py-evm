@@ -192,3 +192,7 @@ class BlockHeader(rlp.Serializable, BlockHeaderAPI):
     @property
     def withdrawals_root(self) -> Optional[Hash32]:
         raise AttributeError("Withdrawals root not available until Shanghai fork")
+
+    @property
+    def parent_beacon_block_root(self) -> Optional[Hash32]:
+        raise AttributeError("Parent beacon block root not available until Cancun fork")
