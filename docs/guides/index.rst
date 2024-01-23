@@ -7,7 +7,7 @@ This section aims to provide hands-on guides to demonstrate how to use Py-EVM. I
    :maxdepth: 2
    :name: toc-eth-guides
 
-   quickstart
+   installation
    building_an_app_that_uses_pyevm
    architecture
    understanding_the_mining_process
