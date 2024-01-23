@@ -508,7 +508,7 @@ def normalize_signed_transaction(transaction: Dict[str, Any]) -> Dict[str, Any]:
     }
     if "type" in transaction:
         type_id = to_int(transaction["type"])
-        if type_id == 1:
+        if type_id in (0, 1):
             custom_fields = {
                 "type": type_id,
                 "gasPrice": to_int(transaction["gasPrice"]),
