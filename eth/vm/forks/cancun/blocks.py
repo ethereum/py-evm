@@ -60,7 +60,6 @@ from ..shanghai.blocks import (
     ShanghaiBackwardsHeader,
     ShanghaiBlock,
     ShanghaiBlockHeader,
-    ShanghaiMiningHeader,
 )
 from ..shanghai.withdrawals import (
     Withdrawal,
@@ -69,41 +68,31 @@ from .transactions import (
     CancunTransactionBuilder,
 )
 
-UNMINED_CANCUN_HEADER_FIELDS = [
-    ("parent_hash", hash32),
-    ("uncles_hash", hash32),
-    ("coinbase", address),
-    ("state_root", trie_root),
-    ("transaction_root", trie_root),
-    ("receipt_root", trie_root),
-    ("bloom", uint256),
-    ("difficulty", big_endian_int),
-    ("block_number", big_endian_int),
-    ("gas_limit", big_endian_int),
-    ("gas_used", big_endian_int),
-    ("timestamp", big_endian_int),
-    ("extra_data", binary),
-    ("base_fee_per_gas", big_endian_int),
-    ("withdrawals_root", trie_root),
-    ("blob_gas_used", big_endian_int),
-    ("excess_blob_gas", big_endian_int),
-    ("parent_beacon_block_root", hash32),
-]
-
-
-class CancunMiningHeader(ShanghaiMiningHeader, ABC):
-    fields = UNMINED_CANCUN_HEADER_FIELDS
-
 
 class CancunBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
-    fields = (
-        UNMINED_CANCUN_HEADER_FIELDS[:13]
-        + [
-            ("mix_hash", binary),
-            ("nonce", Binary(8, 8, allow_empty=True)),
-        ]
-        + UNMINED_CANCUN_HEADER_FIELDS[13:]
-    )
+    fields = [
+        ("parent_hash", hash32),
+        ("uncles_hash", hash32),
+        ("coinbase", address),
+        ("state_root", trie_root),
+        ("transaction_root", trie_root),
+        ("receipt_root", trie_root),
+        ("bloom", uint256),
+        ("difficulty", big_endian_int),
+        ("block_number", big_endian_int),
+        ("gas_limit", big_endian_int),
+        ("gas_used", big_endian_int),
+        ("timestamp", big_endian_int),
+        ("extra_data", binary),
+        ("mix_hash", binary),
+        ("nonce", Binary(8, allow_empty=True)),
+        ("base_fee_per_gas", big_endian_int),
+        ("withdrawals_root", trie_root),
+        # Cancun-specific fields
+        ("blob_gas_used", big_endian_int),
+        ("excess_blob_gas", big_endian_int),
+        ("parent_beacon_block_root", hash32),
+    ]
 
     def __init__(
         self,
@@ -174,9 +163,7 @@ class CancunBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
 
     @property
     def mining_hash(self) -> Hash32:
-        non_pow_fields = self[:-3] + self[-1:]
-        result = keccak(rlp.encode(non_pow_fields, ShanghaiMiningHeader))
-        return cast(Hash32, result)
+        raise ValueError("Mining hash is not available post merge.")
 
     @property
     def hex_hash(self) -> str:
