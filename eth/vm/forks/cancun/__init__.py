@@ -4,6 +4,9 @@ from typing import (
 
 from eth.abc import (
     BlockHeaderAPI,
+    ChainContextAPI,
+    ChainDatabaseAPI,
+    ConsensusContextAPI,
     StateAPI,
 )
 from eth.rlp.blocks import (
@@ -24,6 +27,7 @@ from .blocks import (
 )
 from .constants import (
     BEACON_ROOTS_ADDRESS,
+    BEACON_ROOTS_CONTRACT_CODE,
     HISTORY_BUFFER_LENGTH,
 )
 from .headers import (
@@ -48,6 +52,24 @@ class CancunVM(ShanghaiVM):
         create_cancun_header_from_parent()
     )
     configure_header = configure_cancun_header
+
+    def __init__(
+        self,
+        header: BlockHeaderAPI,
+        chaindb: ChainDatabaseAPI,
+        chain_context: ChainContextAPI,
+        consensus_context: ConsensusContextAPI,
+    ) -> None:
+        super().__init__(header, chaindb, chain_context, consensus_context)
+        self.chaindb = chaindb
+        self.chain_context = chain_context
+        self.consensus_context = consensus_context
+        self._initial_header = header
+
+        # If there exists no code at the BEACON_ROOTS_ADDRESS, set the code as defined
+        # in EIP-4788.
+        if self.state.get_code(BEACON_ROOTS_ADDRESS) == b"":
+            self.state.set_code(BEACON_ROOTS_ADDRESS, BEACON_ROOTS_CONTRACT_CODE)
 
     @classmethod
     def block_preprocessing(cls, state: StateAPI, header: BlockHeaderAPI) -> None:
