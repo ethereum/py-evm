@@ -42,16 +42,19 @@ build-docs:
 	sphinx-apidoc -o docs/ . setup.py "*conftest*"
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
-	$(MAKE) -C docs latexpdf
-	$(MAKE) -C docs epub
 	$(MAKE) -C docs doctest
 
-doctest:
-	cd docs/; sphinx-build -T -b doctest . _build/doctest
+build-docs-ci:
+	$(MAKE) -C docs latexpdf
+	$(MAKE) -C docs epub
 
-validate-docs: build-docs doctest
+validate-newsfragments:
 	./newsfragments/validate_files.py
 	towncrier build --draft
+
+validate-docs: build-docs validate-newsfragments
+
+validate-docs-ci: build-docs build-docs-ci validate-newsfragments
 
 docs: build-docs
 	open docs/_build/html/index.html
