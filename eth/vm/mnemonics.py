@@ -1,6 +1,7 @@
 #
 # Arithmetic
 #
+
 STOP = "STOP"
 ADD = "ADD"
 MUL = "MUL"
@@ -82,6 +83,8 @@ MSIZE = "MSIZE"
 GAS = "GAS"
 JUMPDEST = "JUMPDEST"
 REVERT = "REVERT"
+TLOAD = "TLOAD"
+TSTORE = "TSTORE"
 #
 # Push Operations
 #
