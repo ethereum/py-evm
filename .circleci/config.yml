@@ -31,7 +31,7 @@ common: &common
 
           EOF
     - run:
-        name: checkout fixtures submodule
+        name: checkout submodules
         command: git submodule update --init --recursive
     - run:
         name: merge pull request base
@@ -52,6 +52,15 @@ common: &common
         command: |
           python -m pip install --upgrade pip
           python -m pip install tox
+    - run:
+        name: Install clang for ckzg
+        command: sudo apt-get update && sudo apt-get install -y clang
+    - run:
+        name: install blst, ckzg, and python bindings
+        command: |
+          make -C ./c-kzg-4844/src blst
+          make -C ./c-kzg-4844/src
+          make -C ./c-kzg-4844/bindings/python install
     - run:
         name: run tox
         command: python -m tox run -r
@@ -82,6 +91,12 @@ windows_steps: &windows_steps
         command: |
           python -m pip install --upgrade pip
           python -m pip install tox
+    - run:
+        name: install blst, ckzg, and python bindings
+        command: |
+          make -C ./c-kzg-4844/src blst
+          make -C ./c-kzg-4844/src
+          make -C ./c-kzg-4844/bindings/python install
     - run:
         name: run tox
         command: python -m tox run -r

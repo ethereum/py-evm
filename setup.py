@@ -1,8 +1,25 @@
 #!/usr/bin/env python
 from setuptools import (
+    Extension,
     find_packages,
     setup,
 )
+
+# build c-kzg-4844 from source since no pypi distribution exists
+ckzg_dir = "c-kzg-4844"
+ckzg = Extension(
+    "ckzg",
+    sources=[f"{ckzg_dir}/bindings/python/ckzg.c", f"{ckzg_dir}/src/c_kzg_4844.c"],
+    include_dirs=[
+        f"{ckzg_dir}/inc",
+        f"{ckzg_dir}/src",
+        f"{ckzg_dir}/blst/src",
+        f"{ckzg_dir}/blst/bindings",
+    ],
+    library_dirs=[f"{ckzg_dir}/lib"],
+    libraries=["blst"],
+)
+
 
 extras_require = {
     "benchmark": [
@@ -80,6 +97,7 @@ setup(
     url="https://github.com/ethereum/py-evm",
     include_package_data=True,
     py_modules=["eth"],
+    ext_modules=[ckzg],
     install_requires=install_requires,
     python_requires=">=3.8, <4",
     extras_require=extras_require,

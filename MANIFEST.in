@@ -5,6 +5,8 @@ recursive-include tests *
 
 global-include *.pyi
 
+recursive-include c-kzg-4844 *.c *.h *.o *.a
+
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
 prune .tox

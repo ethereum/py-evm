@@ -1,3 +1,6 @@
 [submodule "fixtures"]
 	path = fixtures
 	url = https://github.com/ethereum/tests.git
+[submodule "c-kzg-4844"]
+	path = c-kzg-4844
+	url = https://www.github.com/ethereum/c-kzg-4844
