@@ -92,6 +92,11 @@ windows_steps: &windows_steps
           python -m pip install --upgrade pip
           python -m pip install tox
     - run:
+        name: Install make and clang via chocolatey
+        command: |
+          choco install make
+          choco install llvm
+    - run:
         name: install blst, ckzg, and python bindings
         command: |
           make -C ./c-kzg-4844/src blst
