@@ -1,1 +1,0 @@
-Accept ``type==0`` as legacy a transaction.

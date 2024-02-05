@@ -3,6 +3,34 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.9.0-beta.1 (2024-02-05)
+---------------------------------
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+
+- Drop python 3.7 support (`#2128 <https://github.com/ethereum/py-evm/issues/2128>`__)
+
+
+Bugfixes
+~~~~~~~~
+
+- Accept ``type==0`` as legacy a transaction. (`#2136 <https://github.com/ethereum/py-evm/issues/2136>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Merge updates from the project template, including using ``pre-commit`` for linting and changing the name of the ``master`` branch to ``main`` (`#2128 <https://github.com/ethereum/py-evm/issues/2128>`__)
+- Update `ethereum/tests` test fixture to use ``v13``. (`#2136 <https://github.com/ethereum/py-evm/issues/2136>`__)
+
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Performance improvements; code refactor; some cleanup. (`#2076 <https://github.com/ethereum/py-evm/issues/2076>`__)
+
+
 py-evm v0.8.0-beta.1 (2023-10-09)
 ---------------------------------
 
