@@ -2058,14 +2058,6 @@ class ComputationAPI(
         ...
 
     @abstractmethod
-    def memory_read(self, start_position: int, size: int) -> memoryview:
-        """
-        Read and return a view of ``size`` bytes from memory starting at
-        ``start_position``.
-        """
-        ...
-
-    @abstractmethod
     def memory_read_bytes(self, start_position: int, size: int) -> bytes:
         """
         Read and return ``size`` bytes from memory starting at ``start_position``.

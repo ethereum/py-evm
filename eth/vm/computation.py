@@ -437,9 +437,6 @@ class BaseComputation(ComputationAPI, Configurable):
     def memory_write(self, start_position: int, size: int, value: bytes) -> None:
         return self._memory.write(start_position, size, value)
 
-    def memory_read(self, start_position: int, size: int) -> memoryview:
-        return self._memory.read(start_position, size)
-
     def memory_read_bytes(self, start_position: int, size: int) -> bytes:
         return self._memory.read_bytes(start_position, size)
 

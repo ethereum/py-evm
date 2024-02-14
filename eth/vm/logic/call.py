@@ -83,7 +83,7 @@ class BaseCall(Opcode, ABC):
         computation.extend_memory(memory_input_start_position, memory_input_size)
         computation.extend_memory(memory_output_start_position, memory_output_size)
 
-        call_data = computation.memory_read(
+        call_data = computation.memory_read_bytes(
             memory_input_start_position, memory_input_size
         )
 
