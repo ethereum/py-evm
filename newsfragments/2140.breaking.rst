@@ -1,0 +1,1 @@
+Remove ``memory_read`` from ``ComputationAPI`` interface and ``Computation`` implementation. Use ``memory_read_bytes`` in its place for call data read.
