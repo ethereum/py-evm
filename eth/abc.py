@@ -1619,6 +1619,13 @@ class MemoryAPI(ABC):
         """
         ...
 
+    @abstractmethod
+    def copy(self, destination: int, source: int, size: int) -> bytes:
+        """
+        Copy ``size`` bytes from ``source`` to ``destination``
+        """
+        ...
+
 
 class StackAPI(ABC):
     """
@@ -2069,6 +2076,13 @@ class ComputationAPI(
     def memory_read_bytes(self, start_position: int, size: int) -> bytes:
         """
         Read and return ``size`` bytes from memory starting at ``start_position``.
+        """
+        ...
+
+    @abstractmethod
+    def memory_copy(self, dst: int, src: int, size: int) -> bytes:
+        """
+        Copy ``size`` bytes of memory from ``src`` to ``dst``
         """
         ...
 

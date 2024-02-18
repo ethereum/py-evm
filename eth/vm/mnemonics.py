@@ -82,6 +82,7 @@ MSIZE = "MSIZE"
 GAS = "GAS"
 JUMPDEST = "JUMPDEST"
 REVERT = "REVERT"
+MCOPY = "MCOPY"
 #
 # Push Operations
 #
