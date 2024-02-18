@@ -38,3 +38,15 @@ def mload(computation: ComputationAPI) -> None:
 
 def msize(computation: ComputationAPI) -> None:
     computation.stack_push_int(len(computation._memory))
+
+
+# EIP-5656
+def mcopy(computation: ComputationAPI) -> None:
+    # terminology directly from the eip
+    dst = computation.stack_pop1_int()
+    src = computation.stack_pop1_int()
+    length = computation.stack_pop1_int()
+
+    computation.extend_memory(max(dst, src), length)
+
+    computation.memory_copy(dst, src, length)

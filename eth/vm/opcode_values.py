@@ -95,6 +95,7 @@ MSIZE = 0x59
 GAS = 0x5A
 JUMPDEST = 0x5B
 
+MCOPY = 0x5E
 
 #
 # Push Operations

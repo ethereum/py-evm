@@ -59,3 +59,15 @@ class Memory(MemoryAPI):
 
     def read_bytes(self, start_position: int, size: int) -> bytes:
         return bytes(self._bytes[start_position : start_position + size])
+
+    def copy(self, destination: int, source: int, size: int) -> None:
+        if size == 0:
+            return
+
+        validate_uint256(destination)
+        validate_uint256(source)
+        validate_uint256(size)
+        validate_lte(max(destination, source) + size, maximum=len(self))
+
+        buf = memoryview(self._bytes)
+        buf[destination : destination + size] = buf[source : source + size]
