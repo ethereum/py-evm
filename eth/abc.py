@@ -2494,6 +2494,22 @@ class AccountAPI(ABC):
     code_hash: Hash32
 
 
+class TransientStorageAPI(ABC):
+    @abstractmethod
+    def get_transient_storage(self, address: Address, slot: int) -> int:
+        """
+        Return the transient storage for ``address`` at slot ``slot``.
+        """
+        ...
+
+    @abstractmethod
+    def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
+        """
+        Return the transient storage for ``address`` at slot ``slot``.
+        """
+        ...
+
+
 class AccountDatabaseAPI(ABC):
     """
     A class representing a database for accounts.
@@ -3179,6 +3195,23 @@ class StateAPI(ConfigurableAPI):
         Mark the account as accessed during this transaction.
 
         See EIP-2929
+        """
+        ...
+
+    #
+    # transient storage
+    #
+    @abstractmethod
+    def get_transient_storage(self, address: Address, slot: int) -> int:
+        """
+        Return the transient storage for ``address`` at slot ``slot``.
+        """
+        ...
+
+    @abstractmethod
+    def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
+        """
+        Return the transient storage for ``address`` at slot ``slot``.
         """
         ...
 
