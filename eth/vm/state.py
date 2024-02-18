@@ -203,6 +203,12 @@ class BaseState(Configurable, StateAPI):
     def mark_address_warm(self, address: Address) -> None:
         self._account_db.mark_address_warm(address)
 
+    def get_transient_storage(self, address: Address, slot: int) -> int:
+        raise AttributeError("No transient_storage has been set for this State")
+
+    def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
+        raise AttributeError("No transient_storage has been set for this State")
+
     #
     # Access self._chaindb
     #
