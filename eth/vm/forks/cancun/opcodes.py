@@ -33,7 +33,7 @@ NEW_OPCODES: Dict[int, OpcodeAPI] = {
     opcode_values.MCOPY: as_opcode(
         logic_fn=memory.mcopy,
         mnemonic=mnemonics.MCOPY,
-        gas_cost=constants.GAS_VERYLOW,
+        gas_cost=constants.GAS_VERYLOW + constants.GAS_COPY,
     ),
 }
 
