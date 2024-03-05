@@ -1,3 +1,9 @@
+from eth import (
+    constants,
+)
+from eth._utils.numeric import (
+    ceil32,
+)
 from eth.abc import (
     ComputationAPI,
 )
@@ -40,13 +46,14 @@ def msize(computation: ComputationAPI) -> None:
     computation.stack_push_int(len(computation._memory))
 
 
-# EIP-5656
 def mcopy(computation: ComputationAPI) -> None:
-    # terminology directly from the eip
-    dst = computation.stack_pop1_int()
-    src = computation.stack_pop1_int()
-    length = computation.stack_pop1_int()
+    dst, src, length = computation.stack_pop_ints(3)
 
-    computation.extend_memory(max(dst, src), length)
+    computation.extend_memory(dst, length)
+
+    word_count = ceil32(length) // 32
+    g_copy = constants.GAS_COPY * word_count
+    # in addition to this g_copy, the opcode also has `gas_cost=constants.GAS_VERYLOW`
+    computation.consume_gas(g_copy, reason="MCOPY fee")
 
     computation.memory_copy(dst, src, length)
