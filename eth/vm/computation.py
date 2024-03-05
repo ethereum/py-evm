@@ -440,8 +440,8 @@ class BaseComputation(ComputationAPI, Configurable):
     def memory_read_bytes(self, start_position: int, size: int) -> bytes:
         return self._memory.read_bytes(start_position, size)
 
-    def memory_copy(self, dst: int, src: int, size: int) -> None:
-        self._memory.copy(dst, src, size)
+    def memory_copy(self, destination: int, source: int, length: int) -> None:
+        self._memory.copy(destination, source, length)
 
     # -- gas consumption -- #
     def get_gas_meter(self) -> GasMeterAPI:

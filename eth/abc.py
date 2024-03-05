@@ -1620,9 +1620,9 @@ class MemoryAPI(ABC):
         ...
 
     @abstractmethod
-    def copy(self, destination: int, source: int, size: int) -> bytes:
+    def copy(self, destination: int, source: int, length: int) -> bytes:
         """
-        Copy ``size`` bytes from ``source`` to ``destination``
+        Copy bytes of memory with size ``length`` from ``source`` to ``destination``
         """
         ...
 
@@ -2080,9 +2080,9 @@ class ComputationAPI(
         ...
 
     @abstractmethod
-    def memory_copy(self, dst: int, src: int, size: int) -> bytes:
+    def memory_copy(self, destination: int, source: int, length: int) -> bytes:
         """
-        Copy ``size`` bytes of memory from ``src`` to ``dst``
+        Copy bytes of memory with size ``length`` from ``source`` to ``destination``
         """
         ...
 
