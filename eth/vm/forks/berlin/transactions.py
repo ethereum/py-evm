@@ -349,6 +349,14 @@ class TypedTransaction(
         return self._inner.max_fee_per_gas
 
     @property
+    def blob_fee_per_gas(self) -> int:
+        return self._inner.blob_fee_per_gas
+
+    @property
+    def blob_versioned_hashes(self) -> Hash32:
+        return self._inner.blob_versioned_hashes
+
+    @property
     def gas(self) -> int:
         return self._inner.gas
 

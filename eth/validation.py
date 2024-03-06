@@ -40,9 +40,11 @@ from eth.typing import (
 )
 
 
-def validate_is_bytes(value: bytes, title: str = "Value") -> None:
+def validate_is_bytes(value: bytes, size: int = None, title: str = "Value") -> None:
     if not isinstance(value, bytes):
         raise ValidationError(f"{title} must be a byte string.  Got: {type(value)}")
+    if size is not None and len(value) != size:
+        raise ValidationError(f"{title} must be size `{size}`. Got size `{len(value)}`")
 
 
 def validate_is_bytes_or_view(value: BytesOrView, title: str = "Value") -> None:
