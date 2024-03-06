@@ -79,9 +79,11 @@ def decode_vote(vote: bytes) -> Vote:
         signer=signer,
         block_number=block_number,
         subject=subject,
-        action=VoteAction.NOMINATE
-        if action == VoteAction.NOMINATE.value
-        else VoteAction.KICK,
+        action=(
+            VoteAction.NOMINATE
+            if action == VoteAction.NOMINATE.value
+            else VoteAction.KICK
+        ),
     )
 
 
