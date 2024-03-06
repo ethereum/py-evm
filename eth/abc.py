@@ -423,6 +423,16 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
+    def blob_fee_per_gas(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def blob_versioned_hashes(self) -> Hash32:
+        ...
+
+    @property
+    @abstractmethod
     def gas(self) -> int:
         ...
 
