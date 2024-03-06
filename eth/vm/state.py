@@ -227,6 +227,12 @@ class BaseState(Configurable, StateAPI):
         _, account_snapshot = snapshot
         self._account_db.commit(account_snapshot)
 
+    def discard(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
+        raise NotImplementedError(
+            "Discard is not implemented until transient storage is added in the "
+            "Cancun hard fork."
+        )
+
     def lock_changes(self) -> None:
         self._account_db.lock_changes()
 

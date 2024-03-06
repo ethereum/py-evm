@@ -2448,6 +2448,25 @@ class AccountAPI(ABC):
 
 class TransientStorageAPI(ABC):
     @abstractmethod
+    def record(self, checkpoint: JournalDBCheckpoint) -> None:
+        """
+        Record changes into the given ``checkpoint``.
+        """
+        ...
+
+    def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
+        """
+        Commit the given ``checkpoint``.
+        """
+        ...
+
+    def discard(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
+        """
+        Discard the given ``checkpoint``.
+        """
+        ...
+
+    @abstractmethod
     def get_transient_storage(self, address: Address, slot: int) -> int:
         """
         Return the transient storage for ``address`` at slot ``slot``.
@@ -3144,6 +3163,13 @@ class StateAPI(ConfigurableAPI):
     def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
         """
         Return the transient storage for ``address`` at slot ``slot``.
+        """
+        ...
+
+    @abstractmethod
+    def reset_transient_storage(self) -> None:
+        """
+        Reset the transient storage.
         """
         ...
 

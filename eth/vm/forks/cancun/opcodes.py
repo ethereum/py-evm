@@ -21,7 +21,7 @@ from eth.vm.forks.shanghai.opcodes import (
     SHANGHAI_OPCODES,
 )
 from eth.vm.logic import (
-    memory,
+    memory, storage,
 )
 from eth.vm.opcode import (
     as_opcode,
@@ -33,6 +33,16 @@ NEW_OPCODES: Dict[int, OpcodeAPI] = {
     opcode_values.MCOPY: as_opcode(
         logic_fn=memory.mcopy,
         mnemonic=mnemonics.MCOPY,
+        gas_cost=constants.GAS_VERYLOW,
+    ),
+    opcode_values.TLOAD: as_opcode(
+        logic_fn=storage.tload,
+        mnemonic=mnemonics.TLOAD,
+        gas_cost=constants.GAS_VERYLOW,
+    ),
+    opcode_values.TSTORE: as_opcode(
+        logic_fn=storage.tstore,
+        mnemonic=mnemonics.TSTORE,
         gas_cost=constants.GAS_VERYLOW,
     ),
 }
