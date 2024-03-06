@@ -13,10 +13,13 @@ from eth.vm.forks.london.constants import (
     DYNAMIC_FEE_TRANSACTION_TYPE,
 )
 
+from ..london.receipts import (
+    LondonReceiptBuilder,
+    LondonTypedReceipt,
+)
 from .constants import (
     BLOB_TRANSACTION_TYPE,
 )
-from ..london.receipts import LondonReceiptBuilder, LondonTypedReceipt
 
 
 class CancunTypedReceipt(LondonTypedReceipt):

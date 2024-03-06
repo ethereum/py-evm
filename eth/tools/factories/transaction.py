@@ -61,7 +61,7 @@ def new_transaction(
         data=data,
     )
     if private_key:
-        return tx.as_signed_transaction(private_key, chain_id=chain_id)
+        return tx.as_signed_transaction(private_key)
     else:
         return SpoofTransaction(tx, from_=from_)
 

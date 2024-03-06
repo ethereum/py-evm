@@ -11,26 +11,6 @@ from typing import (
     Type,
 )
 
-from eth.rlp.logs import (
-    Log,
-)
-from eth.rlp.receipts import (
-    Receipt,
-)
-from eth.validation import (
-    validate_canonical_address,
-    validate_is_bytes,
-    validate_is_transaction_access_list,
-    validate_uint256,
-    validate_uint64,
-)
-from eth.vm.forks.berlin.constants import (
-    ACCESS_LIST_TRANSACTION_TYPE,
-)
-from eth.vm.forks.london.constants import (
-    DYNAMIC_FEE_TRANSACTION_TYPE,
-)
-
 from eth_keys.datatypes import (
     PrivateKey,
 )
@@ -38,10 +18,10 @@ from eth_typing import (
     Address,
     Hash32,
 )
-import rlp
 from eth_utils import (
     to_bytes,
 )
+import rlp
 from rlp.sedes import (
     CountableList,
     big_endian_int,
@@ -57,6 +37,13 @@ from eth.abc import (
     ReceiptAPI,
     SignedTransactionAPI,
     TransactionDecoderAPI,
+    UnsignedTypedTransactionAPI,
+)
+from eth.rlp.logs import (
+    Log,
+)
+from eth.rlp.receipts import (
+    Receipt,
 )
 from eth.rlp.sedes import (
     address,
@@ -64,10 +51,24 @@ from eth.rlp.sedes import (
 from eth.rlp.transactions import (
     SignedTransactionMethods,
 )
+from eth.validation import (
+    validate_canonical_address,
+    validate_is_bytes,
+    validate_is_transaction_access_list,
+    validate_uint64,
+    validate_uint256,
+)
+from eth.vm.forks.berlin.constants import (
+    ACCESS_LIST_TRANSACTION_TYPE,
+)
 from eth.vm.forks.berlin.transactions import (
     AccessListPayloadDecoder,
     AccountAccesses,
     TypedTransaction,
+    _get_txn_intrinsic_gas,
+)
+from eth.vm.forks.london.constants import (
+    DYNAMIC_FEE_TRANSACTION_TYPE,
 )
 from eth.vm.forks.shanghai.transactions import (
     ShanghaiLegacyTransaction,
@@ -78,7 +79,9 @@ from eth.vm.forks.shanghai.transactions import (
 from .constants import (
     BLOB_TRANSACTION_TYPE,
 )
-from .receipts import CancunReceiptBuilder
+from .receipts import (
+    CancunReceiptBuilder,
+)
 
 
 class CancunLegacyTransaction(ShanghaiLegacyTransaction, ABC):
@@ -86,10 +89,10 @@ class CancunLegacyTransaction(ShanghaiLegacyTransaction, ABC):
 
 
 class CancunUnsignedLegacyTransaction(ShanghaiUnsignedLegacyTransaction):
-    def as_signed_transaction(
-        self, private_key: PrivateKey, chain_id: int = None
-    ) -> CancunLegacyTransaction:
-        v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
+    def as_signed_transaction(self, private_key: PrivateKey) -> CancunLegacyTransaction:
+        v, r, s = create_transaction_signature(
+            self, private_key, chain_id=self.chain_id
+        )
         return CancunLegacyTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,
@@ -103,7 +106,12 @@ class CancunUnsignedLegacyTransaction(ShanghaiUnsignedLegacyTransaction):
         )
 
 
-class UnsignedBlobTransaction(rlp.Serializable):
+class UnsignedBlobTransaction(rlp.Serializable, UnsignedTypedTransactionAPI, ABC):
+    max_fee_per_gas: int
+    max_priority_fee_per_gas: int
+    blob_fee_per_gas: int
+    blob_versioned_hashes: Hash32
+
     _type_id = BLOB_TRANSACTION_TYPE
     fields = [
         ("chain_id", big_endian_int),
@@ -115,6 +123,8 @@ class UnsignedBlobTransaction(rlp.Serializable):
         ("value", big_endian_int),
         ("data", binary),
         ("access_list", CountableList(AccountAccesses)),
+        ("blob_fee_per_gas", big_endian_int),
+        ("blob_versioned_hashes", binary),
     ]
 
     @cached_property
@@ -158,8 +168,7 @@ class UnsignedBlobTransaction(rlp.Serializable):
             self.max_priority_fee_per_gas, title="Transaction.max_priority_fee_per_gas"
         )
         validate_uint256(self.gas, title="Transaction.gas")
-        if self.to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(self.to, title="Transaction.to")
+        validate_canonical_address(self.to, title="Transaction.to")
         validate_uint256(self.value, title="Transaction.value")
         validate_is_bytes(self.data, title="Transaction.data")
         validate_is_transaction_access_list(self.access_list)
@@ -171,14 +180,16 @@ class UnsignedBlobTransaction(rlp.Serializable):
         )
 
     def get_intrinsic_gas(self) -> int:
-        return _get_blob_txn_intrinsic_gas(self)
+        return _get_txn_intrinsic_gas(self)
 
     @property
     def intrinsic_gas(self) -> int:
         return self.get_intrinsic_gas()
 
 
-class BlobTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI):
+class BlobTransaction(
+    rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI, ABC
+):
     _type_id = BLOB_TRANSACTION_TYPE
     fields = [
         ("chain_id", big_endian_int),
@@ -236,7 +247,7 @@ class BlobTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransact
         raise NotImplementedError("Call hash() on the TypedTransaction instead")
 
     def get_intrinsic_gas(self) -> int:
-        return _get_blob_txn_intrinsic_gas(self)
+        return _get_txn_intrinsic_gas(self)
 
     def encode(self) -> bytes:
         return rlp.encode(self)
@@ -274,7 +285,7 @@ class CancunTypedTransaction(TypedTransaction):
 class CancunTransactionBuilder(ShanghaiTransactionBuilder):
     legacy_signed = CancunLegacyTransaction
     legacy_unsigned = CancunUnsignedLegacyTransaction
-    typed_transaction = CancunTypedTransaction
+    typed_transaction: type[TypedTransaction] = CancunTypedTransaction
 
     @classmethod
     def new_unsigned_blob_transaction(
@@ -290,7 +301,7 @@ class CancunTransactionBuilder(ShanghaiTransactionBuilder):
         access_list: Sequence[Tuple[Address, Sequence[int]]],
         max_fee_per_blob_gas: int,
         blob_versioned_hashes: Hash32,
-    ) -> CancunTypedTransaction:
+    ) -> UnsignedBlobTransaction:
         transaction = UnsignedBlobTransaction(
             chain_id,
             nonce,
@@ -341,7 +352,3 @@ class CancunTransactionBuilder(ShanghaiTransactionBuilder):
             s,
         )
         return CancunTypedTransaction(BLOB_TRANSACTION_TYPE, transaction)
-
-
-def _get_blob_txn_intrinsic_gas(self):
-    pass

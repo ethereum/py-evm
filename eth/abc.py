@@ -504,12 +504,25 @@ class UnsignedTransactionAPI(BaseTransactionAPI):
     # API that must be implemented by all Transaction subclasses.
     #
     @abstractmethod
-    def as_signed_transaction(
-        self, private_key: PrivateKey, chain_id: int = None
-    ) -> "SignedTransactionAPI":
+    def as_signed_transaction(self, private_key: PrivateKey) -> "SignedTransactionAPI":
         """
         Return a version of this transaction which has been signed using the
         provided `private_key`
+        """
+        ...
+
+    # the chain_id must be defined similarly to `TransactionFieldsAPI` as @property
+    @property
+    def chain_id(self) -> Optional[int]:
+        return None
+
+
+class UnsignedTypedTransactionAPI(UnsignedTransactionAPI, BaseTransactionAPI):
+    @abstractmethod
+    def get_message_for_signing(self) -> bytes:
+        """
+        Return the bytestring that should be signed in order to create a signed
+        transaction.
         """
         ...
 
