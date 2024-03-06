@@ -49,11 +49,9 @@ def msize(computation: ComputationAPI) -> None:
 def mcopy(computation: ComputationAPI) -> None:
     dst, src, length = computation.stack_pop_ints(3)
 
-    # Extend the memory to cover the entire range of the copy. This will make sure that
-    # the memory is allocated for the entire range and that the gas cost is correctly
-    # calculated.
-    computation.extend_memory(src, length)
-    computation.extend_memory(dst, length)
+    # extend the memory based on the maximum of the src and dst to ensure that
+    # we have enough space to copy the memory and to account for the gas cost
+    computation.extend_memory(max(src, dst), length)
 
     word_count = ceil32(length) // 32
     g_copy = constants.GAS_COPY * word_count
