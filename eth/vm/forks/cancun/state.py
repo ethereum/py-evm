@@ -1,8 +1,14 @@
 from typing import (
+    Any,
+    Tuple,
     Type,
     cast,
 )
 
+from eth_typing import (
+    Address,
+    Hash32,
+)
 from eth_utils import (
     ValidationError,
     encode_hex,
@@ -12,11 +18,8 @@ from eth_utils import (
 from eth._utils.address import (
     generate_contract_address,
 )
-from eth_typing import (
-    Address,
-)
-
 from eth.abc import (
+    ComputationAPI,
     MessageAPI,
     SignedTransactionAPI,
     StateAPI,
@@ -28,17 +31,19 @@ from eth.abc import (
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
 )
-
-from ...message import (
-    Message,
+from eth.typing import (
+    JournalDBCheckpoint,
 )
 from eth.vm.forks.shanghai import (
     ShanghaiState,
 )
-from eth.vm.transient_mapping import (
+from eth.vm.transient_storage import (
     TransientStorage,
 )
 
+from ...message import (
+    Message,
+)
 from ..shanghai.state import (
     ShanghaiTransactionExecutor,
 )
@@ -85,9 +90,10 @@ def get_total_blob_gas(transaction: TransactionFieldsAPI) -> int:
 
 
 class CancunTransactionExecutor(ShanghaiTransactionExecutor):
-    def build_computation(self, *args, **kwargs):
+    def build_computation(self, *args: Any, **kwargs: Any) -> ComputationAPI:
         self.vm_state.reset_transient_storage()
         return super().build_computation(*args, **kwargs)
+
     def calc_data_fee(self, transaction: BlobTransaction) -> int:
         return get_total_blob_gas(transaction) * self.vm_state.blob_base_fee
 
@@ -145,33 +151,35 @@ class CancunState(ShanghaiState):
     _transient_storage: TransientStorageAPI = None
 
     @property
-    def transient_storage(self):
+    def transient_storage(self) -> TransientStorageAPI:
         if self._transient_storage is None:
             self.reset_transient_storage()
 
         return self._transient_storage
 
-    def reset_transient_storage(self):
+    def reset_transient_storage(self) -> None:
         self._transient_storage = self._transient_storage_class()
 
-    def get_transient_storage(self, address: Address, slot: int) -> int:
+    def get_transient_storage(self, address: Address, slot: int) -> bytes:
         return self.transient_storage.get_transient_storage(address, slot)
 
-    def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
+    def set_transient_storage(self, address: Address, slot: int, value: bytes) -> None:
         return self.transient_storage.set_transient_storage(address, slot, value)
 
-    def snapshot(self):
+    def snapshot(self) -> Tuple[Hash32, JournalDBCheckpoint]:
         state_root, checkpoint = super().snapshot()
         self.transient_storage.record(checkpoint)
         return state_root, checkpoint
 
-    def commit(self, snapshot):
+    def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         super().commit(snapshot)
-        self.transient_storage.commit(snapshot)
+        _, checkpoint = snapshot
+        self.transient_storage.commit(checkpoint)
 
-    def discard(self, snapshot):
-        super().discard(snapshot)
-        self.transient_storage.discard(snapshot)
+    def revert(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
+        super().revert(snapshot)
+        _, checkpoint = snapshot
+        self.transient_storage.discard(checkpoint)
 
     def get_transaction_context(
         self: StateAPI, transaction: SignedTransactionAPI
