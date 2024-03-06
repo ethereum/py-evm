@@ -1,3 +1,6 @@
+from abc import (
+    ABC,
+)
 from typing import (
     Any,
     Dict,
@@ -48,6 +51,7 @@ from eth.abc import (
     TransactionBuilderAPI,
     TransactionDecoderAPI,
     UnsignedTransactionAPI,
+    UnsignedTypedTransactionAPI,
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -98,10 +102,10 @@ class BerlinLegacyTransaction(MuirGlacierTransaction):
 
 
 class BerlinUnsignedLegacyTransaction(MuirGlacierUnsignedTransaction):
-    def as_signed_transaction(
-        self, private_key: PrivateKey, chain_id: int = None
-    ) -> BerlinLegacyTransaction:
-        v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
+    def as_signed_transaction(self, private_key: PrivateKey) -> BerlinLegacyTransaction:
+        v, r, s = create_transaction_signature(
+            self, private_key, chain_id=self.chain_id
+        )
         return BerlinLegacyTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,
@@ -122,7 +126,7 @@ class AccountAccesses(rlp.Serializable):
     ]
 
 
-class UnsignedAccessListTransaction(rlp.Serializable):
+class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTypedTransactionAPI, ABC):
     _type_id = ACCESS_LIST_TRANSACTION_TYPE
     fields = [
         ("chain_id", big_endian_int),
@@ -175,7 +179,7 @@ class UnsignedAccessListTransaction(rlp.Serializable):
         validate_is_transaction_access_list(self.access_list)
 
     def get_intrinsic_gas(self) -> int:
-        return _get_access_list_txn_intrinsic_gas(self)
+        return _get_txn_intrinsic_gas(self)
 
     @property
     def intrinsic_gas(self) -> int:
@@ -192,7 +196,7 @@ class UnsignedAccessListTransaction(rlp.Serializable):
 
 
 class AccessListTransaction(
-    rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI
+    rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI, ABC
 ):
     _type_id = ACCESS_LIST_TRANSACTION_TYPE
     fields = [
@@ -238,7 +242,7 @@ class AccessListTransaction(
         raise NotImplementedError("Call hash() on the TypedTransaction instead")
 
     def get_intrinsic_gas(self) -> int:
-        return _get_access_list_txn_intrinsic_gas(self)
+        return _get_txn_intrinsic_gas(self)
 
     def encode(self) -> bytes:
         return rlp.encode(self)
@@ -284,7 +288,14 @@ class TypedTransaction(
     }
     receipt_builder = BerlinReceiptBuilder
 
-    def __init__(self, type_id: int, proxy_target: SignedTransactionAPI) -> None:
+    def __init__(
+        self,
+        type_id: int,
+        proxy_target: SignedTransactionAPI,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        super().__init__(*args, **kwargs)
         self.type_id = type_id
         self._inner = proxy_target
 
@@ -438,7 +449,7 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
 
     legacy_signed = BerlinLegacyTransaction
     legacy_unsigned = BerlinUnsignedLegacyTransaction
-    typed_transaction = TypedTransaction
+    typed_transaction: type[TypedTransaction] = TypedTransaction
 
     @classmethod
     def decode(cls, encoded: bytes) -> SignedTransactionAPI:
@@ -506,7 +517,7 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
         value: int,
         data: bytes,
         access_list: Sequence[Tuple[Address, Sequence[int]]],
-    ) -> TypedTransaction:
+    ) -> UnsignedAccessListTransaction:
         transaction = UnsignedAccessListTransaction(
             chain_id,
             nonce,
@@ -550,8 +561,8 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
         return cls.typed_transaction(ACCESS_LIST_TRANSACTION_TYPE, transaction)
 
 
-def _get_access_list_txn_intrinsic_gas(
-    klass: Union[UnsignedAccessListTransaction, AccessListTransaction]
+def _get_txn_intrinsic_gas(
+    klass: Union[UnsignedTypedTransactionAPI, SignedTransactionAPI]
 ) -> int:
     core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, klass)
 

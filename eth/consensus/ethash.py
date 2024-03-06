@@ -2,6 +2,7 @@
 This file was heavily inspired by and borrowed from the ethereum.org page on Ethash,
 as well as the ``ethereum/execution-specs`` repository implementation of Ethash.
 """
+
 from typing import (
     Callable,
     Dict,
