@@ -31,6 +31,7 @@ from eth.vm.opcode import (
 
 from . import (
     constants as cancun_constants,
+    logic as cancun_logic,
 )
 
 UPDATED_OPCODES: Dict[int, OpcodeAPI] = {}
@@ -40,6 +41,16 @@ NEW_OPCODES: Dict[int, OpcodeAPI] = {
         logic_fn=memory.mcopy,
         mnemonic=mnemonics.MCOPY,
         gas_cost=constants.GAS_VERYLOW,
+    ),
+    opcode_values.TLOAD: as_opcode(
+        logic_fn=cancun_logic.tload,
+        mnemonic=mnemonics.TLOAD,
+        gas_cost=cancun_constants.TLOAD_COST,
+    ),
+    opcode_values.TSTORE: as_opcode(
+        logic_fn=cancun_logic.tstore,
+        mnemonic=mnemonics.TSTORE,
+        gas_cost=cancun_constants.TSTORE_COST,
     ),
     opcode_values.BLOBHASH: as_opcode(
         logic_fn=context.blob_hash,
