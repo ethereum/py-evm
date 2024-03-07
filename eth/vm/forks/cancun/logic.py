@@ -11,7 +11,6 @@ def tstore(computation: ComputationAPI) -> None:
     computation.state.set_transient_storage(address, slot, value)
      
      
-@ensure_no_static
 def tload(computation: ComputationAPI) -> None:
     address = computation.msg.storage_address
     slot = computation.stack_pop1_int()
