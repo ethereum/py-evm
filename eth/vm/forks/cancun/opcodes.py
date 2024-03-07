@@ -21,7 +21,8 @@ from eth.vm.forks.shanghai.opcodes import (
     SHANGHAI_OPCODES,
 )
 from eth.vm.logic import (
-    memory, storage,
+    memory,
+    storage,
 )
 from eth.vm.opcode import (
     as_opcode,

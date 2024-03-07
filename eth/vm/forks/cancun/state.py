@@ -66,8 +66,10 @@ class CancunState(ShanghaiState):
 
     def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         super().commit(snapshot)
-        self.transient_storage.commit(snapshot)
+        _, checkpoint = snapshot
+        self.transient_storage.commit(checkpoint)
 
     def discard(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         super().discard(snapshot)
-        self.transient_storage.discard(snapshot)
+        _, checkpoint = snapshot
+        self.transient_storage.discard(checkpoint)

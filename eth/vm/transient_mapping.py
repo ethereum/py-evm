@@ -12,7 +12,8 @@ from eth.db.journal import (
     JournalDB,
 )
 from eth.typing import (
-    Address, JournalDBCheckpoint,
+    Address,
+    JournalDBCheckpoint,
 )
 from eth.validation import (
     validate_canonical_address,
@@ -38,8 +39,7 @@ class TransientStorage(TransientStorageAPI):
     def set_transient_storage(self, address: Address, slot: int, value: bytes) -> None:
         validate_canonical_address(address)
         validate_uint256(slot)
-        if not isinstance(value, bytes):
-            raise TypeError("Value must be bytes")
+        validate_uint256(value)
 
         key = self._get_key(address, slot)
         self._transient_storage[key] = value

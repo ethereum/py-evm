@@ -209,6 +209,9 @@ class BaseState(Configurable, StateAPI):
     def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
         raise AttributeError("No transient_storage has been set for this State")
 
+    def reset_transient_storage(self):
+        raise AttributeError("No transient_storage has been set for this State")
+
     #
     # Access self._chaindb
     #
@@ -228,10 +231,7 @@ class BaseState(Configurable, StateAPI):
         self._account_db.commit(account_snapshot)
 
     def discard(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
-        raise NotImplementedError(
-            "Discard is not implemented until transient storage is added in the "
-            "Cancun hard fork."
-        )
+        pass
 
     def lock_changes(self) -> None:
         self._account_db.lock_changes()
