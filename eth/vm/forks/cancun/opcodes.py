@@ -33,6 +33,12 @@ from . import (
 )
 
 UPDATED_OPCODES: Dict[int, OpcodeAPI] = {}
+#     opcode_values.SELFDESTRUCT: as_opcode(
+#         logic_fn=ensure_no_static(logic.selfdestruct_eip2929),
+#         mnemonic=mnemonics.SELFDESTRUCT,
+#         gas_cost=GAS_SELFDESTRUCT_EIP150,
+#     ),
+# }
 
 NEW_OPCODES: Dict[int, OpcodeAPI] = {
     opcode_values.MCOPY: as_opcode(
