@@ -53,12 +53,11 @@ from eth.vm.forks import (
     LondonVM,
     MuirGlacierVM,
     PetersburgVM,
-    ShanghaiVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
 )
-from eth.vm.forks.shanghai.computation import (
-    ShanghaiComputation,
+from eth.vm.forks.cancun.computation import (
+    CancunComputation,
 )
 from eth.vm.message import (
     Message,
@@ -1713,8 +1712,9 @@ def test_selfdestruct_does_not_issue_deprecation_warning_pre_shanghai(vm_class):
         )
 
 
-def test_selfdestruct_issues_deprecation_warning_for_shanghai():
-    available_vm_opcodes = ShanghaiComputation.opcodes
+@pytest.mark.parametrize("vm_class", MAINNET_VMS[13:])  # vms Shanghai and later
+def test_selfdestruct_issues_deprecation_warning_for_shanghai_and_later(vm_class):
+    available_vm_opcodes = CancunComputation.opcodes
 
     vm_opcodes_without_selfdestruct = {
         k: available_vm_opcodes[k]
@@ -1730,7 +1730,7 @@ def test_selfdestruct_issues_deprecation_warning_for_shanghai():
         warnings.simplefilter("error")
 
         run_computation(
-            setup_vm(ShanghaiVM),
+            setup_vm(vm_class),
             CANONICAL_ADDRESS_B,
             code=code_without_self_destruct,
         )
@@ -1738,7 +1738,7 @@ def test_selfdestruct_issues_deprecation_warning_for_shanghai():
     # assert warning with just selfdestruct opcode
     with pytest.warns(DeprecationWarning):
         run_computation(
-            setup_vm(ShanghaiVM),
+            setup_vm(vm_class),
             CANONICAL_ADDRESS_B,
             code=assemble(opcode_values.SELFDESTRUCT),
         )
