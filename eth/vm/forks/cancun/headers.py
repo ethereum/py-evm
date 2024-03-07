@@ -4,14 +4,14 @@ from typing import (
 )
 
 from toolz import (
-    curry,
+    curry, merge,
 )
 
 from eth.abc import (
     BlockHeaderAPI,
 )
-from eth.vm.forks.byzantium.headers import (
-    configure_header,
+from eth.vm.forks.cancun.constants import (
+    TARGET_BLOB_GAS_PER_BLOCK,
 )
 from eth.vm.forks.shanghai.headers import (
     create_shanghai_header_from_parent,
@@ -22,19 +22,43 @@ from .blocks import (
 )
 
 
+def calc_excess_blob_gas(parent_header):
+    if (
+        parent_header.excess_blob_gas + parent_header.blob_gas_used
+        < TARGET_BLOB_GAS_PER_BLOCK
+    ):
+        return 0
+    else:
+        return (
+            parent_header.excess_blob_gas
+            + parent_header.blob_gas_used
+            - TARGET_BLOB_GAS_PER_BLOCK
+        )
+
+
 @curry
 def create_cancun_header_from_parent(
     parent_header: Optional[BlockHeaderAPI],
     **header_params: Any,
 ) -> BlockHeaderAPI:
+    # remove new fields if present
+    excess_blob_gas = header_params.pop("excess_blob_gas", 0)
+    blob_gas_used = header_params.pop("blob_gas_used", 0)
+    parent_beacon_block_root = header_params.pop("parent_beacon_block_root", None)
+
     shanghai_validated_header = create_shanghai_header_from_parent(
         parent_header, **header_params
     )
-    # extract params validated up to shanghai (previous VM)
-    # and plug into a `CancunBlockHeader` class
-    all_fields = shanghai_validated_header.as_dict()
 
-    return CancunBlockHeader(**all_fields)
+    # put new fields back in
+    all_fields = merge(shanghai_validated_header.as_dict(), {
+        "blob_gas_used": blob_gas_used,
+        "excess_blob_gas": excess_blob_gas,
+        "parent_beacon_block_root": parent_beacon_block_root,
+    })
 
+    if parent_header is not None:
+        all_fields["excess_blob_gas"] = calc_excess_blob_gas(parent_header)
 
-configure_cancun_header = configure_header()
+    new_header = CancunBlockHeader(**all_fields)
+    return new_header

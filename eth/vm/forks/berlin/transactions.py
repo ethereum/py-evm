@@ -45,6 +45,7 @@ from eth._utils.transactions import (
     validate_transaction_signature,
 )
 from eth.abc import (
+    ComputationAPI,
     DecodedZeroOrOneLayerRLP,
     ReceiptAPI,
     SignedTransactionAPI,
@@ -177,6 +178,9 @@ class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTypedTransactionAP
         validate_uint256(self.value, title="Transaction.value")
         validate_is_bytes(self.data, title="Transaction.data")
         validate_is_transaction_access_list(self.access_list)
+
+    def gas_used_by(self, computation: ComputationAPI) -> int:
+        return _get_txn_intrinsic_gas(self) + computation.get_gas_used()
 
     def get_intrinsic_gas(self) -> int:
         return _get_txn_intrinsic_gas(self)
@@ -360,8 +364,8 @@ class TypedTransaction(
         return self._inner.max_fee_per_gas
 
     @property
-    def blob_fee_per_gas(self) -> int:
-        return self._inner.blob_fee_per_gas
+    def max_fee_per_blob_gas(self) -> int:
+        return self._inner.max_fee_per_blob_gas
 
     @property
     def blob_versioned_hashes(self) -> Hash32:

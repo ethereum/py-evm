@@ -1,9 +1,6 @@
 from abc import (
     ABC,
 )
-from functools import (
-    cached_property,
-)
 from typing import (
     Dict,
     Sequence,
@@ -18,9 +15,6 @@ from eth_typing import (
     Address,
     Hash32,
 )
-from eth_utils import (
-    to_bytes,
-)
 import rlp
 from rlp.sedes import (
     CountableList,
@@ -30,30 +24,18 @@ from rlp.sedes import (
 
 from eth._utils.transactions import (
     create_transaction_signature,
-    extract_transaction_sender,
-    validate_transaction_signature,
 )
 from eth.abc import (
-    ReceiptAPI,
     SignedTransactionAPI,
     TransactionDecoderAPI,
-    UnsignedTypedTransactionAPI,
-)
-from eth.rlp.logs import (
-    Log,
-)
-from eth.rlp.receipts import (
-    Receipt,
 )
 from eth.rlp.sedes import (
     address,
 )
-from eth.rlp.transactions import (
-    SignedTransactionMethods,
-)
 from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
+    validate_is_list_like,
     validate_is_transaction_access_list,
     validate_uint64,
     validate_uint256,
@@ -65,7 +47,6 @@ from eth.vm.forks.berlin.transactions import (
     AccessListPayloadDecoder,
     AccountAccesses,
     TypedTransaction,
-    _get_txn_intrinsic_gas,
 )
 from eth.vm.forks.london.constants import (
     DYNAMIC_FEE_TRANSACTION_TYPE,
@@ -76,8 +57,13 @@ from eth.vm.forks.shanghai.transactions import (
     ShanghaiUnsignedLegacyTransaction,
 )
 
+from ..london.transactions import (
+    DynamicFeePayloadDecoder,
+    DynamicFeeTransaction,
+    UnsignedDynamicFeeTransaction,
+)
 from .constants import (
-    BLOB_TRANSACTION_TYPE,
+    BLOB_TX_TYPE,
 )
 from .receipts import (
     CancunReceiptBuilder,
@@ -106,13 +92,11 @@ class CancunUnsignedLegacyTransaction(ShanghaiUnsignedLegacyTransaction):
         )
 
 
-class UnsignedBlobTransaction(rlp.Serializable, UnsignedTypedTransactionAPI, ABC):
-    max_fee_per_gas: int
-    max_priority_fee_per_gas: int
-    blob_fee_per_gas: int
-    blob_versioned_hashes: Hash32
+class UnsignedBlobTransaction(UnsignedDynamicFeeTransaction):
+    max_fee_per_blob_gas: int
+    blob_versioned_hashes: Sequence[Hash32]
 
-    _type_id = BLOB_TRANSACTION_TYPE
+    _type_id = BLOB_TX_TYPE
     fields = [
         ("chain_id", big_endian_int),
         ("nonce", big_endian_int),
@@ -123,18 +107,9 @@ class UnsignedBlobTransaction(rlp.Serializable, UnsignedTypedTransactionAPI, ABC
         ("value", big_endian_int),
         ("data", binary),
         ("access_list", CountableList(AccountAccesses)),
-        ("blob_fee_per_gas", big_endian_int),
-        ("blob_versioned_hashes", binary),
+        ("max_fee_per_blob_gas", big_endian_int),
+        ("blob_versioned_hashes", CountableList(binary)),
     ]
-
-    @cached_property
-    def _type_byte(self) -> bytes:
-        return to_bytes(self._type_id)
-
-    def get_message_for_signing(self) -> bytes:
-        self.validate()
-        payload = rlp.encode(self)
-        return self._type_byte + payload
 
     def as_signed_transaction(self, private_key: PrivateKey) -> "TypedTransaction":
         # validate and get message for signing
@@ -152,7 +127,7 @@ class UnsignedBlobTransaction(rlp.Serializable, UnsignedTypedTransactionAPI, ABC
             self.value,
             self.data,
             self.access_list,
-            self.blob_fee_per_gas,
+            self.max_fee_per_blob_gas,
             self.blob_versioned_hashes,
             y_parity,
             r,
@@ -172,25 +147,23 @@ class UnsignedBlobTransaction(rlp.Serializable, UnsignedTypedTransactionAPI, ABC
         validate_uint256(self.value, title="Transaction.value")
         validate_is_bytes(self.data, title="Transaction.data")
         validate_is_transaction_access_list(self.access_list)
-        validate_uint256(self.blob_fee_per_gas, title="Transaction.blob_fee_per_gas")
-        validate_is_bytes(
-            self.blob_versioned_hashes,
-            size=32,
-            title="Transaction.blob_versioned_hashes",
+        validate_uint256(
+            self.max_fee_per_blob_gas, title="Transaction.max_fee_per_blob_gas"
         )
+        validate_is_list_like(
+            self.blob_versioned_hashes, title="Transaction.blob_versioned_hashes"
+        )
+        for blob_versioned_hash in self.blob_versioned_hashes:
+            validate_is_bytes(
+                blob_versioned_hash, title="Transaction.blob_versioned_hash", size=32
+            )
 
-    def get_intrinsic_gas(self) -> int:
-        return _get_txn_intrinsic_gas(self)
 
-    @property
-    def intrinsic_gas(self) -> int:
-        return self.get_intrinsic_gas()
+class BlobTransaction(DynamicFeeTransaction):
+    max_fee_per_blob_gas: int
+    blob_versioned_hashes: Sequence[Hash32]
 
-
-class BlobTransaction(
-    rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI, ABC
-):
-    _type_id = BLOB_TRANSACTION_TYPE
+    _type_id = BLOB_TX_TYPE
     fields = [
         ("chain_id", big_endian_int),
         ("nonce", big_endian_int),
@@ -201,22 +174,12 @@ class BlobTransaction(
         ("value", big_endian_int),
         ("data", binary),
         ("access_list", CountableList(AccountAccesses)),
-        ("blob_fee_per_gas", big_endian_int),
-        ("blob_versioned_hashes", binary),
+        ("max_fee_per_blob_gas", big_endian_int),
+        ("blob_versioned_hashes", CountableList(binary)),
         ("y_parity", big_endian_int),
         ("r", big_endian_int),
         ("s", big_endian_int),
     ]
-
-    @property
-    def gas_price(self) -> None:
-        raise AttributeError(
-            "Gas price is no longer available."
-            "See max_priority_fee_per_gas or max_fee_per_gas"
-        )
-
-    def get_sender(self) -> Address:
-        return extract_transaction_sender(self)
 
     def get_message_for_signing(self) -> bytes:
         unsigned = UnsignedBlobTransaction(
@@ -229,42 +192,11 @@ class BlobTransaction(
             self.value,
             self.data,
             self.access_list,
-            self.blob_fee_per_gas,
+            self.max_fee_per_blob_gas,
             self.blob_versioned_hashes,
         )
         payload = rlp.encode(unsigned)
         return self._type_byte + payload
-
-    def check_signature_validity(self) -> None:
-        validate_transaction_signature(self)
-
-    @cached_property
-    def _type_byte(self) -> bytes:
-        return to_bytes(self._type_id)
-
-    @cached_property
-    def hash(self) -> Hash32:
-        raise NotImplementedError("Call hash() on the TypedTransaction instead")
-
-    def get_intrinsic_gas(self) -> int:
-        return _get_txn_intrinsic_gas(self)
-
-    def encode(self) -> bytes:
-        return rlp.encode(self)
-
-    def make_receipt(
-        self,
-        status: bytes,
-        gas_used: int,
-        log_entries: Tuple[Tuple[bytes, Tuple[int, ...], bytes], ...],
-    ) -> ReceiptAPI:
-        logs = [Log(address, topics, data) for address, topics, data in log_entries]
-        # TypedTransaction is responsible for wrapping this into a TypedReceipt
-        return Receipt(
-            state_root=status,
-            gas_used=gas_used,
-            logs=logs,
-        )
 
 
 class BlobPayloadDecoder(TransactionDecoderAPI):
@@ -276,8 +208,8 @@ class BlobPayloadDecoder(TransactionDecoderAPI):
 class CancunTypedTransaction(TypedTransaction):
     decoders: Dict[int, Type[TransactionDecoderAPI]] = {
         ACCESS_LIST_TRANSACTION_TYPE: AccessListPayloadDecoder,
-        DYNAMIC_FEE_TRANSACTION_TYPE: BlobPayloadDecoder,
-        BLOB_TRANSACTION_TYPE: BlobPayloadDecoder,
+        DYNAMIC_FEE_TRANSACTION_TYPE: DynamicFeePayloadDecoder,
+        BLOB_TX_TYPE: BlobPayloadDecoder,
     }
     receipt_builder = CancunReceiptBuilder
 
@@ -300,7 +232,7 @@ class CancunTransactionBuilder(ShanghaiTransactionBuilder):
         data: bytes,
         access_list: Sequence[Tuple[Address, Sequence[int]]],
         max_fee_per_blob_gas: int,
-        blob_versioned_hashes: Hash32,
+        blob_versioned_hashes: Sequence[Hash32],
     ) -> UnsignedBlobTransaction:
         transaction = UnsignedBlobTransaction(
             chain_id,
@@ -330,7 +262,7 @@ class CancunTransactionBuilder(ShanghaiTransactionBuilder):
         data: bytes,
         access_list: Sequence[Tuple[Address, Sequence[int]]],
         max_fee_per_blob_gas: int,
-        blob_versioned_hashes: Hash32,
+        blob_versioned_hashes: Sequence[Hash32],
         y_parity: int,
         r: int,
         s: int,
@@ -351,4 +283,4 @@ class CancunTransactionBuilder(ShanghaiTransactionBuilder):
             r,
             s,
         )
-        return CancunTypedTransaction(BLOB_TRANSACTION_TYPE, transaction)
+        return CancunTypedTransaction(BLOB_TX_TYPE, transaction)

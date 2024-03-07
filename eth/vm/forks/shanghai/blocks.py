@@ -183,6 +183,14 @@ class ShanghaiBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
         return self.parent_hash == GENESIS_PARENT_HASH and self.block_number == 0
 
     @property
+    def blob_gas_used(self) -> int:
+        raise AttributeError("Blob gas used is not available until Cancun.")
+
+    @property
+    def excess_blob_gas(self) -> int:
+        raise AttributeError("Excess blob gas is not available until Cancun.")
+
+    @property
     def parent_beacon_block_root(self) -> Optional[Hash32]:
         raise AttributeError("Parent beacon block root is not available until Cancun.")
 

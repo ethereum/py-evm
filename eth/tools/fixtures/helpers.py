@@ -189,6 +189,15 @@ def chain_vm_configuration(
         raise ValueError(f"Network {network} does not match any known VM rules")
 
 
+NON_LEGACY_HEADER_FIELDS = [
+    "withdrawalsRoot",
+    "baseFeePerGas",
+    "blobGasUsed",
+    "excessBlobGas",
+    "parentBeaconBlockRoot",
+]
+
+
 def genesis_fields_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
     """
     Convert all genesis fields in a fixture to a dictionary of header fields and values.
@@ -211,10 +220,20 @@ def genesis_fields_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
         "mix_hash": header_fields["mixHash"],
         "nonce": header_fields["nonce"],
     }
+
+    fields = base_fields
     if "baseFeePerGas" in header_fields:
-        return assoc(base_fields, "base_fee_per_gas", header_fields["baseFeePerGas"])
-    else:
-        return base_fields
+        fields = assoc(fields, "base_fee_per_gas", header_fields["baseFeePerGas"])
+    if "blobGasUsed" in header_fields:
+        fields = assoc(fields, "blob_gas_used", header_fields["blobGasUsed"])
+    if "excessBlobGas" in header_fields:
+        fields = assoc(fields, "excess_blob_gas", header_fields["excessBlobGas"])
+    if "parentBeaconBlockRoot" in header_fields:
+        fields = assoc(
+            fields, "parent_beacon_block_root", header_fields["parentBeaconBlockRoot"]
+        )
+
+    return fields
 
 
 def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
