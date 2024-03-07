@@ -516,13 +516,18 @@ def normalize_signed_transaction(transaction: Dict[str, Any]) -> Dict[str, Any]:
                 "gasPrice": to_int(transaction["gasPrice"]),
                 "chainId": to_int(transaction["chainId"]),
             }
-        elif type_id == 2:
+        elif type_id in (2, 3):
             custom_fields = {
                 "type": type_id,
                 "chainId": to_int(transaction["chainId"]),
                 "maxFeePerGas": to_int(transaction["maxFeePerGas"]),
                 "maxPriorityFeePerGas": to_int(transaction["maxPriorityFeePerGas"]),
             }
+            if type_id == 3:
+                if "maxFeePerBlobGas" in transaction:
+                    custom_fields["maxFeePerBlobGas"] = to_int(
+                        transaction["maxFeePerBlobGas"]
+                    )
         else:
             raise ValidationError(f"Did not recognize transaction type {type_id}")
     else:
@@ -576,13 +581,20 @@ def normalize_block_header(header: Dict[str, Any]) -> Dict[str, Any]:
     }
     if "blocknumber" in header:
         normalized_header["blocknumber"] = to_int(header["blocknumber"])
+    if "withdrawalRoot" in header:
+        normalized_header["withdrawalRoot"] = decode_hex(header["withdrawalRoot"])
     if "baseFeePerGas" in header:
         normalized_header["baseFeePerGas"] = to_int(header["baseFeePerGas"])
-    if "chainname" in header:
-        normalized_header["chainname"] = header["chainname"]
-    if "chainnetwork" in header:
-        normalized_header["chainnetwork"] = header["chainnetwork"]
-    return normalized_header
+    if "blobGasUsed" in header:
+        normalized_header["blobGasUsed"] = to_int(header["blobGasUsed"])
+    if "excessBlobGas" in header:
+        normalized_header["excessBlobGas"] = to_int(header["excessBlobGas"])
+    if "parentBeaconBlockRoot" in header:
+        normalized_header["parentBeaconBlockRoot"] = decode_hex(
+            header["parentBeaconBlockRoot"]
+        )
+
+    return merge(header, normalized_header)
 
 
 def normalize_block(block: Dict[str, Any]) -> Dict[str, Any]:
