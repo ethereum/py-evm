@@ -1,3 +1,6 @@
+from eth._utils.address import (
+    force_bytes_to_address,
+)
 from eth.abc import (
     ComputationAPI,
 )
@@ -19,3 +22,10 @@ def tload(computation: ComputationAPI) -> None:
     slot = computation.stack_pop1_int()
     value = computation.state.get_transient_storage(address, slot)
     computation.stack_push_bytes(value)
+
+
+def selfdestruct_eip6780(computation: ComputationAPI) -> None:
+    force_bytes_to_address(computation.stack_pop1_bytes())
+    # computation.state.mark_account_for_deletion(beneficiary)
+    # computation.state.account_db.delete_account(beneficiary)
+    # computation.state.account_db.persist()

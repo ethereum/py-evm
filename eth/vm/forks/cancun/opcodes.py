@@ -17,8 +17,14 @@ from eth.vm import (
     mnemonics,
     opcode_values,
 )
+from eth.vm.forks.byzantium.opcodes import (
+    ensure_no_static,
+)
 from eth.vm.forks.shanghai.opcodes import (
     SHANGHAI_OPCODES,
+)
+from eth.vm.forks.tangerine_whistle.constants import (
+    GAS_SELFDESTRUCT_EIP150,
 )
 from eth.vm.logic import (
     memory,
@@ -32,13 +38,13 @@ from . import (
     logic as cancun_logic,
 )
 
-UPDATED_OPCODES: Dict[int, OpcodeAPI] = {}
-#     opcode_values.SELFDESTRUCT: as_opcode(
-#         logic_fn=ensure_no_static(logic.selfdestruct_eip2929),
-#         mnemonic=mnemonics.SELFDESTRUCT,
-#         gas_cost=GAS_SELFDESTRUCT_EIP150,
-#     ),
-# }
+UPDATED_OPCODES: Dict[int, OpcodeAPI] = {
+    opcode_values.SELFDESTRUCT: as_opcode(
+        logic_fn=ensure_no_static(cancun_logic.selfdestruct_eip6780),
+        mnemonic=mnemonics.SELFDESTRUCT,
+        gas_cost=GAS_SELFDESTRUCT_EIP150,
+    ),
+}
 
 NEW_OPCODES: Dict[int, OpcodeAPI] = {
     opcode_values.MCOPY: as_opcode(
