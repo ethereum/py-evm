@@ -88,7 +88,7 @@ class CancunBlockHeader(rlp.Serializable, BlockHeaderAPI, ABC):
         ("nonce", Binary(8, allow_empty=True)),
         ("base_fee_per_gas", big_endian_int),
         ("withdrawals_root", trie_root),
-        # Cancun-specific fields
+        # Cancun-specific fields:
         ("blob_gas_used", big_endian_int),
         ("excess_blob_gas", big_endian_int),
         ("parent_beacon_block_root", hash32),

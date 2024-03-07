@@ -19,6 +19,7 @@ from eth.abc import (
     SignedTransactionAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
+    TransactionFieldsAPI,
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -198,6 +199,10 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             self.vm_state.delete_account(account)
 
         return computation
+
+    def calc_data_fee(self, transaction: TransactionFieldsAPI) -> int:
+        # This is only relevant for the Cancun fork and later
+        pass
 
 
 class FrontierState(BaseState):

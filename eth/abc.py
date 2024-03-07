@@ -202,6 +202,22 @@ class BlockHeaderAPI(MiningHeaderAPI, BlockHeaderSedesAPI):
         """
         ...
 
+    @property
+    @abstractmethod
+    def blob_gas_used(self) -> int:
+        """
+        Return blob gas used.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def excess_blob_gas(self) -> int:
+        """
+        Return excess blob gas.
+        """
+        ...
+
 
 class LogAPI(ABC):
     """
@@ -419,16 +435,6 @@ class TransactionFieldsAPI(ABC):
         """
         Will default to gas_price if this is a pre-1559 transaction.
         """
-        ...
-
-    @property
-    @abstractmethod
-    def blob_fee_per_gas(self) -> int:
-        ...
-
-    @property
-    @abstractmethod
-    def blob_versioned_hashes(self) -> Hash32:
         ...
 
     @property
@@ -1601,6 +1607,14 @@ class TransactionContextAPI(ABC):
         """
         ...
 
+    @property
+    @abstractmethod
+    def blob_versioned_hashes(self) -> Sequence[Hash32]:
+        """
+        Return the blob versioned hashes of the transaction context.
+        """
+        ...
+
 
 class MemoryAPI(ABC):
     """
@@ -1946,6 +1960,22 @@ class ExecutionContextAPI(ABC):
     def base_fee_per_gas(self) -> Optional[int]:
         """
         Return the base fee per gas of the block
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def blob_gas_used(self) -> Optional[int]:
+        """
+        Return the blob gas used of the block
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def excess_blob_gas(self) -> Optional[int]:
+        """
+        Return the excess blob gas of the block
         """
         ...
 
@@ -2804,6 +2834,15 @@ class TransactionExecutorAPI(ABC):
         """
         ...
 
+    # -- post-cancun -- #
+
+    @abstractmethod
+    def calc_data_fee(self, transaction: TransactionFieldsAPI) -> int:
+        """
+        For Cancun and later, calculate the data fee for a transaction.
+        """
+        ...
+
 
 class ConfigurableAPI(ABC):
     """
@@ -3612,6 +3651,15 @@ class VirtualMachineAPI(ConfigurableAPI):
         This may have storage-related side-effects. For example, pre-Byzantium,
         the state root hash is included in the receipt, and so must be stored
         into the database.
+        """
+        ...
+
+    @abstractmethod
+    def increment_blob_gas_used(
+        self, old_header: BlockHeaderAPI, transaction: TransactionFieldsAPI
+    ) -> BlockHeaderAPI:
+        """
+        Update the header by incrementing the blob_gas_used for the transaction.
         """
         ...
 

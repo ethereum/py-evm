@@ -13,6 +13,7 @@ from eth.abc import (
     StateAPI,
     SignedTransactionAPI,
     ComputationAPI,
+    TransactionFieldsAPI,
 )
 from eth.constants import (
     BLOCK_REWARD,
@@ -95,6 +96,12 @@ class FrontierVM(VM):
             gas_used=receipt.gas_used,
             state_root=self.state.make_state_root(),
         )
+
+    def increment_blob_gas_used(
+        self, old_header: BlockHeaderAPI, transaction: TransactionFieldsAPI
+    ) -> BlockHeaderAPI:
+        # This is only relevant for the Cancun fork and later
+        pass
 
     @classmethod
     def calculate_net_gas_refund(cls, consumed_gas: int, gross_refund: int) -> int:

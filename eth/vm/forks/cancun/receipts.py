@@ -18,7 +18,7 @@ from ..london.receipts import (
     LondonTypedReceipt,
 )
 from .constants import (
-    BLOB_TRANSACTION_TYPE,
+    BLOB_TX_TYPE,
 )
 
 
@@ -27,7 +27,7 @@ class CancunTypedReceipt(LondonTypedReceipt):
         # mypy errors due to Receipt inheriting but not defining abstractmethods
         ACCESS_LIST_TRANSACTION_TYPE: Receipt,  # type: ignore
         DYNAMIC_FEE_TRANSACTION_TYPE: Receipt,  # type: ignore
-        BLOB_TRANSACTION_TYPE: Receipt,  # type: ignore
+        BLOB_TX_TYPE: Receipt,  # type: ignore
     }
 
 

@@ -21,10 +21,15 @@ from eth.vm.forks.shanghai.opcodes import (
     SHANGHAI_OPCODES,
 )
 from eth.vm.logic import (
+    context,
     memory,
 )
 from eth.vm.opcode import (
     as_opcode,
+)
+
+from . import (
+    constants as cancun_constants,
 )
 
 UPDATED_OPCODES: Dict[int, OpcodeAPI] = {}
@@ -34,6 +39,11 @@ NEW_OPCODES: Dict[int, OpcodeAPI] = {
         logic_fn=memory.mcopy,
         mnemonic=mnemonics.MCOPY,
         gas_cost=constants.GAS_VERYLOW,
+    ),
+    opcode_values.BLOBHASH: as_opcode(
+        logic_fn=context.blob_hash,
+        mnemonic=mnemonics.BLOBHASH,
+        gas_cost=cancun_constants.HASH_OPCODE_GAS,
     ),
 }
 

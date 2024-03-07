@@ -198,31 +198,24 @@ class VM(Configurable, VirtualMachineAPI):
         chain_context: ChainContextAPI,
     ) -> ExecutionContextAPI:
         fee_recipient = cls.consensus_class.get_fee_recipient(header)
-        try:
-            base_fee = header.base_fee_per_gas
-        except AttributeError:
-            return ExecutionContext(
-                coinbase=fee_recipient,
-                timestamp=header.timestamp,
-                block_number=header.block_number,
-                difficulty=header.difficulty,
-                mix_hash=header.mix_hash,
-                gas_limit=header.gas_limit,
-                prev_hashes=prev_hashes,
-                chain_id=chain_context.chain_id,
-            )
-        else:
-            return ExecutionContext(
-                coinbase=fee_recipient,
-                timestamp=header.timestamp,
-                block_number=header.block_number,
-                difficulty=header.difficulty,
-                mix_hash=header.mix_hash,
-                gas_limit=header.gas_limit,
-                prev_hashes=prev_hashes,
-                chain_id=chain_context.chain_id,
-                base_fee_per_gas=base_fee,
-            )
+
+        base_fee_per_gas = getattr(header, "base_fee_per_gas", None)
+        blob_gas_used = getattr(header, "blob_gas_used", None)
+        excess_blob_gas = getattr(header, "excess_blob_gas", None)
+
+        return ExecutionContext(
+            coinbase=fee_recipient,
+            timestamp=header.timestamp,
+            block_number=header.block_number,
+            difficulty=header.difficulty,
+            mix_hash=header.mix_hash,
+            gas_limit=header.gas_limit,
+            prev_hashes=prev_hashes,
+            chain_id=chain_context.chain_id,
+            base_fee_per_gas=base_fee_per_gas,
+            blob_gas_used=blob_gas_used,
+            excess_blob_gas=excess_blob_gas,
+        )
 
     def execute_bytecode(
         self,
@@ -291,6 +284,10 @@ class VM(Configurable, VirtualMachineAPI):
 
             result_header = self.add_receipt_to_header(previous_header, receipt)
             previous_header = result_header
+
+            result_header = self.increment_blob_gas_used(previous_header, transaction)
+            previous_header = result_header
+
             receipts.append(receipt)
             computations.append(computation)
 
