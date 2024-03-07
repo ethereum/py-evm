@@ -41,6 +41,7 @@ from eth.vm.forks import (
     ArrowGlacierVM,
     BerlinVM,
     ByzantiumVM,
+    CancunVM,
     FrontierVM,
     GrayGlacierVM,
     HomesteadVM,
@@ -127,6 +128,7 @@ MINING_MAINNET_VMS = (
 POS_MAINNET_VMS = (
     ParisVM,
     ShanghaiVM,
+    CancunVM,
 )
 
 MAINNET_VMS = MINING_MAINNET_VMS + POS_MAINNET_VMS

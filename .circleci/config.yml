@@ -387,6 +387,12 @@ jobs:
       - image: cimg/python:3.11
         environment:
           TOXENV: py311-native-blockchain-cancun_eip4844_7516
+  py311-native-blockchain-cancun_eip6780:
+    <<: *common
+    docker:
+      - image: cimg/python:3.11
+        environment:
+          TOXENV: py311-native-blockchain-cancun_eip6780
 
 
 workflows:
@@ -441,3 +447,4 @@ workflows:
       - py311-native-blockchain-cancun_eip5656
       - py311-native-blockchain-cancun_eip1153
       - py311-native-blockchain-cancun_eip4844_7516
+      - py311-native-blockchain-cancun_eip6780
