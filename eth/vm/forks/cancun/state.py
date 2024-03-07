@@ -1,4 +1,5 @@
 from typing import (
+    Any,
     Tuple,
     Type,
 )
@@ -9,6 +10,7 @@ from eth_typing import (
 )
 
 from eth.abc import (
+    ComputationAPI,
     TransactionExecutorAPI,
     TransientStorageAPI,
 )
@@ -31,7 +33,7 @@ from .computation import (
 
 
 class CancunTransactionExecutor(ShanghaiTransactionExecutor):
-    def build_computation(self, *args, **kwargs):
+    def build_computation(self, *args: Any, **kwargs: Any) -> ComputationAPI:
         self.vm_state.reset_transient_storage()
         return super().build_computation(*args, **kwargs)
 
