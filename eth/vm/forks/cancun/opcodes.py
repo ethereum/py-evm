@@ -22,7 +22,6 @@ from eth.vm.forks.shanghai.opcodes import (
 )
 from eth.vm.logic import (
     memory,
-    storage,
 )
 from eth.vm.opcode import (
     as_opcode,
@@ -30,6 +29,7 @@ from eth.vm.opcode import (
 
 from . import (
     constants as cancun_constants,
+    logic as cancun_logic,
 )
 
 UPDATED_OPCODES: Dict[int, OpcodeAPI] = {}
@@ -41,12 +41,12 @@ NEW_OPCODES: Dict[int, OpcodeAPI] = {
         gas_cost=constants.GAS_VERYLOW,
     ),
     opcode_values.TLOAD: as_opcode(
-        logic_fn=storage.tload,
+        logic_fn=cancun_logic.tload,
         mnemonic=mnemonics.TLOAD,
         gas_cost=cancun_constants.TLOAD_COST,
     ),
     opcode_values.TSTORE: as_opcode(
-        logic_fn=storage.tstore,
+        logic_fn=cancun_logic.tstore,
         mnemonic=mnemonics.TSTORE,
         gas_cost=cancun_constants.TSTORE_COST,
     ),
