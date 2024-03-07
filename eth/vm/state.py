@@ -209,7 +209,7 @@ class BaseState(Configurable, StateAPI):
     def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
         raise AttributeError("No transient_storage has been set for this State")
 
-    def reset_transient_storage(self):
+    def reset_transient_storage(self) -> None:
         raise AttributeError("No transient_storage has been set for this State")
 
     #
@@ -229,9 +229,6 @@ class BaseState(Configurable, StateAPI):
     def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
         _, account_snapshot = snapshot
         self._account_db.commit(account_snapshot)
-
-    def discard(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
-        pass
 
     def lock_changes(self) -> None:
         self._account_db.lock_changes()

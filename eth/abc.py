@@ -2454,27 +2454,29 @@ class TransientStorageAPI(ABC):
         """
         ...
 
-    def commit(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
+    @abstractmethod
+    def commit(self, snapshot: JournalDBCheckpoint) -> None:
         """
         Commit the given ``checkpoint``.
         """
         ...
 
-    def discard(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
+    @abstractmethod
+    def discard(self, snapshot: JournalDBCheckpoint) -> None:
         """
         Discard the given ``checkpoint``.
         """
         ...
 
     @abstractmethod
-    def get_transient_storage(self, address: Address, slot: int) -> int:
+    def get_transient_storage(self, address: Address, slot: int) -> bytes:
         """
         Return the transient storage for ``address`` at slot ``slot``.
         """
         ...
 
     @abstractmethod
-    def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
+    def set_transient_storage(self, address: Address, slot: int, value: bytes) -> None:
         """
         Return the transient storage for ``address`` at slot ``slot``.
         """

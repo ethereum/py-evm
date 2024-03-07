@@ -18,7 +18,7 @@ from eth.typing import (
 from eth.vm.forks.shanghai import (
     ShanghaiState,
 )
-from eth.vm.transient_mapping import (
+from eth.vm.transient_storage import (
     TransientStorage,
 )
 
@@ -53,10 +53,10 @@ class CancunState(ShanghaiState):
     def reset_transient_storage(self) -> None:
         self._transient_storage = self._transient_storage_class()
 
-    def get_transient_storage(self, address: Address, slot: int) -> int:
+    def get_transient_storage(self, address: Address, slot: int) -> bytes:
         return self.transient_storage.get_transient_storage(address, slot)
 
-    def set_transient_storage(self, address: Address, slot: int, value: int) -> None:
+    def set_transient_storage(self, address: Address, slot: int, value: bytes) -> None:
         return self.transient_storage.set_transient_storage(address, slot, value)
 
     def snapshot(self) -> Tuple[Hash32, JournalDBCheckpoint]:
@@ -69,7 +69,7 @@ class CancunState(ShanghaiState):
         _, checkpoint = snapshot
         self.transient_storage.commit(checkpoint)
 
-    def discard(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
-        super().discard(snapshot)
+    def revert(self, snapshot: Tuple[Hash32, JournalDBCheckpoint]) -> None:
+        super().revert(snapshot)
         _, checkpoint = snapshot
         self.transient_storage.discard(checkpoint)
