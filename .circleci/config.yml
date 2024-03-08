@@ -150,12 +150,12 @@ jobs:
       - image: cimg/python:3.11
         environment:
           TOXENV: py311-native-blockchain-london
-  py311-native-blockchain-merge:
+  py311-native-blockchain-paris:
     <<: *common
     docker:
       - image: cimg/python:3.11
         environment:
-          TOXENV: py311-native-blockchain-merge
+          TOXENV: py311-native-blockchain-paris
   py311-native-blockchain-petersburg:
     <<: *common
     docker:
@@ -375,7 +375,7 @@ workflows:
       - py311-native-blockchain-homestead
       - py311-native-blockchain-istanbul
       - py311-native-blockchain-london
-      - py311-native-blockchain-merge
+      - py311-native-blockchain-paris
       - py311-native-blockchain-petersburg
       - py311-native-blockchain-shanghai
       - py311-native-blockchain-spurious_dragon

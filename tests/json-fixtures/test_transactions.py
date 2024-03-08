@@ -128,8 +128,7 @@ def fixture_transaction_class(fixture_data):
         return LondonTransactionBuilder
     elif fork_name == ForkName.Metropolis:
         pytest.skip("Metropolis Transaction class has not been implemented")
-    elif fork_name == "Merge":
-        # EL fork name is Paris, `ethereum/tests` calls the Network "Merge"
+    elif fork_name == ForkName.Paris:
         return ParisTransactionBuilder
     elif fork_name == ForkName.Shanghai:
         return ShanghaiTransactionBuilder
