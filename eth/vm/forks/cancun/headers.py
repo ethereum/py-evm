@@ -4,7 +4,8 @@ from typing import (
 )
 
 from toolz import (
-    curry, merge,
+    curry,
+    merge,
 )
 
 from eth.abc import (
@@ -51,11 +52,14 @@ def create_cancun_header_from_parent(
     )
 
     # put new fields back in
-    all_fields = merge(shanghai_validated_header.as_dict(), {
-        "blob_gas_used": blob_gas_used,
-        "excess_blob_gas": excess_blob_gas,
-        "parent_beacon_block_root": parent_beacon_block_root,
-    })
+    all_fields = merge(
+        shanghai_validated_header.as_dict(),
+        {
+            "blob_gas_used": blob_gas_used,
+            "excess_blob_gas": excess_blob_gas,
+            "parent_beacon_block_root": parent_beacon_block_root,
+        },
+    )
 
     if parent_header is not None:
         all_fields["excess_blob_gas"] = calc_excess_blob_gas(parent_header)
