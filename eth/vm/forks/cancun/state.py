@@ -74,3 +74,10 @@ class CancunState(ShanghaiState):
                 len(transaction.blob_versioned_hashes) * GAS_PER_BLOB
             )
         return context
+
+    @property
+    def blob_base_fee(self) -> int:
+        excess_blob_gas = self.execution_context.excess_blob_gas
+        return fake_exponential(
+            MIN_BLOB_BASE_FEE, excess_blob_gas, BLOB_BASE_FEE_UPDATE_FRACTION
+        )

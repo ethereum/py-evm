@@ -41,3 +41,7 @@ def basefee(computation: ComputationAPI) -> None:
 
 def mixhash(computation: ComputationAPI) -> None:
     computation.stack_push_bytes(computation.state.mix_hash)
+
+
+def blob_base_fee(computation: ComputationAPI) -> None:
+    computation.stack_push_int(computation.state.blob_base_fee)

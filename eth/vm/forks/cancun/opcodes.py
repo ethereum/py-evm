@@ -21,6 +21,7 @@ from eth.vm.forks.shanghai.opcodes import (
     SHANGHAI_OPCODES,
 )
 from eth.vm.logic import (
+    block,
     context,
     memory,
 )
@@ -44,6 +45,11 @@ NEW_OPCODES: Dict[int, OpcodeAPI] = {
         logic_fn=context.blob_hash,
         mnemonic=mnemonics.BLOBHASH,
         gas_cost=cancun_constants.HASH_OPCODE_GAS,
+    ),
+    opcode_values.BLOBBASEFEE: as_opcode(
+        logic_fn=block.blob_base_fee,
+        mnemonic=mnemonics.BLOBBASEFEE,
+        gas_cost=cancun_constants.BASEFEE_OPCODE_GAS,
     ),
 }
 

@@ -2985,6 +2985,17 @@ class StateAPI(ConfigurableAPI):
         """
         ...
 
+    @property
+    @abstractmethod
+    def blob_base_fee(self) -> int:
+        """
+        Return the current ``blob_base_fee`` from the current :attr:`~execution_context`
+
+        Raises a ``NotImplementedError`` if called in an execution context
+        prior to the Cancun hard fork.
+        """
+        ...
+
     #
     # Access to account db
     #
