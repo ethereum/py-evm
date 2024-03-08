@@ -1,4 +1,5 @@
 import os
+import re
 from typing import (
     Any,
     Dict,
@@ -9,10 +10,10 @@ from typing import (
 )
 
 from eth_utils import (
+    ValidationError,
     to_normalized_address,
 )
 from eth_utils.toolz import (
-    assoc,
     first,
 )
 import rlp
@@ -189,51 +190,75 @@ def chain_vm_configuration(
         raise ValueError(f"Network {network} does not match any known VM rules")
 
 
-NON_LEGACY_HEADER_FIELDS = [
-    "withdrawalsRoot",
+LEGACY_HEADER_FIELDS = {
+    "hash",
+    "parentHash",
+    "uncleHash",
+    "coinbase",
+    "stateRoot",
+    "transactionsTrie",
+    "receiptTrie",
+    "bloom",
+    "difficulty",
+    "number",
+    "gasLimit",
+    "gasUsed",
+    "timestamp",
+    "extraData",
+    "mixHash",
+    "nonce",
+}
+NON_LEGACY_HEADER_FIELDS = {
     "baseFeePerGas",
+    "withdrawalsRoot",
     "blobGasUsed",
     "excessBlobGas",
     "parentBeaconBlockRoot",
-]
+}
+KNOWN_HEADER_FIELDS = LEGACY_HEADER_FIELDS | NON_LEGACY_HEADER_FIELDS
 
 
 def genesis_fields_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:
     """
     Convert all genesis fields in a fixture to a dictionary of header fields and values.
     """
-    header_fields = fixture["genesisBlockHeader"]
-    base_fields = {
-        "parent_hash": header_fields["parentHash"],
-        "uncles_hash": header_fields["uncleHash"],
-        "coinbase": header_fields["coinbase"],
-        "state_root": header_fields["stateRoot"],
-        "transaction_root": header_fields["transactionsTrie"],
-        "receipt_root": header_fields["receiptTrie"],
-        "bloom": header_fields["bloom"],
-        "difficulty": header_fields["difficulty"],
-        "block_number": header_fields["number"],
-        "gas_limit": header_fields["gasLimit"],
-        "gas_used": header_fields["gasUsed"],
-        "timestamp": header_fields["timestamp"],
-        "extra_data": header_fields["extraData"],
-        "mix_hash": header_fields["mixHash"],
-        "nonce": header_fields["nonce"],
+    header_fields_from_fixture = fixture["genesisBlockHeader"]
+    header_fields = {
+        "parent_hash": header_fields_from_fixture["parentHash"],
+        "uncles_hash": header_fields_from_fixture["uncleHash"],
+        "coinbase": header_fields_from_fixture["coinbase"],
+        "state_root": header_fields_from_fixture["stateRoot"],
+        "transaction_root": header_fields_from_fixture["transactionsTrie"],
+        "receipt_root": header_fields_from_fixture["receiptTrie"],
+        "bloom": header_fields_from_fixture["bloom"],
+        "difficulty": header_fields_from_fixture["difficulty"],
+        "block_number": header_fields_from_fixture["number"],
+        "gas_limit": header_fields_from_fixture["gasLimit"],
+        "gas_used": header_fields_from_fixture["gasUsed"],
+        "timestamp": header_fields_from_fixture["timestamp"],
+        "extra_data": header_fields_from_fixture["extraData"],
+        "mix_hash": header_fields_from_fixture["mixHash"],
+        "nonce": header_fields_from_fixture["nonce"],
     }
 
-    fields = base_fields
-    if "baseFeePerGas" in header_fields:
-        fields = assoc(fields, "base_fee_per_gas", header_fields["baseFeePerGas"])
-    if "blobGasUsed" in header_fields:
-        fields = assoc(fields, "blob_gas_used", header_fields["blobGasUsed"])
-    if "excessBlobGas" in header_fields:
-        fields = assoc(fields, "excess_blob_gas", header_fields["excessBlobGas"])
-    if "parentBeaconBlockRoot" in header_fields:
-        fields = assoc(
-            fields, "parent_beacon_block_root", header_fields["parentBeaconBlockRoot"]
+    for non_legacy_field in NON_LEGACY_HEADER_FIELDS:
+        if non_legacy_field in header_fields_from_fixture:
+            snake_cased_field = re.sub(r"([A-Z])", r"_\1", non_legacy_field).lower()
+            header_fields[snake_cased_field] = header_fields_from_fixture[
+                non_legacy_field
+            ]
+
+    unused_fields = set(header_fields_from_fixture.keys()) - KNOWN_HEADER_FIELDS
+    if unused_fields and len(header_fields_from_fixture) > len(KNOWN_HEADER_FIELDS):
+        # Update NON_LEGACY_HEADER_FIELDS above and make sure to check
+        # eth/tools/_utils/normalization.py to see if new fields need to be normalized
+        # as well.
+        raise ValidationError(
+            "There are more fields present in the block header than there are known "
+            f"fields for the header.  Unused fields: {unused_fields}."
         )
 
-    return fields
+    return header_fields
 
 
 def genesis_params_from_fixture(fixture: Dict[str, Any]) -> Dict[str, Any]:

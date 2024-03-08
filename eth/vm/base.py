@@ -393,7 +393,6 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         withdrawals = block.withdrawals if hasattr(block, "withdrawals") else None
-
         if withdrawals:
             # post-shanghai blocks
             self.apply_all_withdrawals(block.withdrawals)

@@ -581,10 +581,10 @@ def normalize_block_header(header: Dict[str, Any]) -> Dict[str, Any]:
     }
     if "blocknumber" in header:
         normalized_header["blocknumber"] = to_int(header["blocknumber"])
-    if "withdrawalRoot" in header:
-        normalized_header["withdrawalRoot"] = decode_hex(header["withdrawalRoot"])
     if "baseFeePerGas" in header:
         normalized_header["baseFeePerGas"] = to_int(header["baseFeePerGas"])
+    if "withdrawalsRoot" in header:
+        normalized_header["withdrawalsRoot"] = decode_hex(header["withdrawalsRoot"])
     if "blobGasUsed" in header:
         normalized_header["blobGasUsed"] = to_int(header["blobGasUsed"])
     if "excessBlobGas" in header:
