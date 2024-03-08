@@ -126,7 +126,7 @@ def chain_vm_configuration(
         return ((0, BerlinVM),)
     elif network == "London":
         return ((0, LondonVM),)
-    elif network == "Merge":
+    elif network == "Paris":
         return ((0, ParisVM),)
     elif network == "Shanghai":
         return ((0, ShanghaiVM),)
@@ -163,7 +163,7 @@ def chain_vm_configuration(
             (0, BerlinVM),
             (5, LondonVM),
         )
-    elif network == "ArrowGlacierToMergeAtDiffC0000":
+    elif network == "ArrowGlacierToParisAtDiffC0000":
         # Transition expected at 6 for all tests written thus far
         return (
             # These tests were written before Gray Glacier was a thing. Use
@@ -172,7 +172,7 @@ def chain_vm_configuration(
             (0, GrayGlacierVM),
             (6, ParisVM),
         )
-    elif network == "MergeToShanghaiAtTime15k":
+    elif network == "ParisToShanghaiAtTime15k":
         # Transition expected at 5 (timestamp==15000) for all tests written thus far
         return (
             (0, ParisVM),
