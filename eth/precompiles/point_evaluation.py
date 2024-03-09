@@ -1,7 +1,13 @@
 import hashlib
+import os
 
 from ckzg import (
     verify_kzg_proof,
+    load_trusted_setup,
+)
+
+from eth.exceptions import (
+    VMError,
 )
 from eth_typing import (
     Hash32,
@@ -17,12 +23,17 @@ from eth.vm.forks.cancun.constants import (
     VERSIONED_HASH_VERSION_KZG,
 )
 
+# load path from ../_utils/kzg_trusted_setup.txt
+TRUSTED_SETUP_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "_utils", "kzg_trusted_setup.txt"
+)
+
 
 def kzg_to_versioned_hash(commitment: bytes) -> Hash32:
     return VERSIONED_HASH_VERSION_KZG + hashlib.sha256(commitment).digest()[1:]
 
 
-def point_evaluation_precompile(computation: ComputationAPI) -> bytes:
+def point_evaluation_precompile(computation: ComputationAPI) -> ComputationAPI:
     """
     Verify p(z) = y given commitment that corresponds to the polynomial p(x) and a KZG
     proof. Also verify that the provided commitment matches the provided versioned_hash.
@@ -35,7 +46,11 @@ def point_evaluation_precompile(computation: ComputationAPI) -> bytes:
 
     # The data is encoded as follows: versioned_hash | z | y | commitment | proof
     # with z and y being padded 32 byte big endian values
-    assert len(input_) == 192
+    try:
+        assert len(input_) == 192
+    except AssertionError:
+        raise VMError("Point evaluation invalid input length.")
+
     versioned_hash = input_[:32]
     z = input_[32:64]
     y = input_[64:96]
@@ -43,10 +58,24 @@ def point_evaluation_precompile(computation: ComputationAPI) -> bytes:
     proof = input_[144:192]
 
     # Verify commitment matches versioned_hash
-    assert kzg_to_versioned_hash(commitment) == versioned_hash
+    try:
+        assert kzg_to_versioned_hash(commitment) == versioned_hash
+    except AssertionError:
+        raise VMError("Point evaluation commitment does not match versioned hash.")
 
     # Verify KZG proof with z and y in big endian format
-    assert verify_kzg_proof(commitment, z, y, proof)
+    try:
+        assert verify_kzg_proof(
+            commitment, z, y, proof, load_trusted_setup(TRUSTED_SETUP_PATH)
+        )
+    except (AssertionError, RuntimeError):
+        # RuntimeError is raised when the KZG proof verification fails within the C code
+        # from the method itself
+        raise VMError("Point evaluation KZG proof verification failed.")
 
     # Return FIELD_ELEMENTS_PER_BLOB and BLS_MODULUS as padded 32 byte big endian values
-    return FIELD_ELEMENTS_PER_BLOB.to_bytes(32, "big") + BLS_MODULUS.to_bytes(32, "big")
+    computation.output = FIELD_ELEMENTS_PER_BLOB.to_bytes(
+        32, "big"
+    ) + BLS_MODULUS.to_bytes(32, "big")
+
+    return computation
