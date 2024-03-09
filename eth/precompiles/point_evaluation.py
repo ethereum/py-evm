@@ -2,12 +2,8 @@ import hashlib
 import os
 
 from ckzg import (
-    verify_kzg_proof,
     load_trusted_setup,
-)
-
-from eth.exceptions import (
-    VMError,
+    verify_kzg_proof,
 )
 from eth_typing import (
     Hash32,
@@ -15,6 +11,9 @@ from eth_typing import (
 
 from eth.abc import (
     ComputationAPI,
+)
+from eth.exceptions import (
+    VMError,
 )
 from eth.vm.forks.cancun.constants import (
     BLS_MODULUS,
