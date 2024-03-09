@@ -1,8 +1,9 @@
 include LICENSE
 include README.md
 
-recursive-include tests *
+include eth/_utils/kzg_trusted_setup.txt
 
+recursive-include tests *
 global-include *.pyi
 
 recursive-exclude * __pycache__
