@@ -132,6 +132,8 @@ def fixture_transaction_class(fixture_data):
         return ParisTransactionBuilder
     elif fork_name == ForkName.Shanghai:
         return ShanghaiTransactionBuilder
+    elif fork_name == ForkName.Cancun:
+        pytest.skip("Cancun Transaction class has not been implemented")
     else:
         raise ValueError(f"Unknown Fork Name: {fork_name}")
 
