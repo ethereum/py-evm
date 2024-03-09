@@ -2,6 +2,10 @@ from typing import (
     Type,
 )
 
+from eth_utils import (
+    ValidationError,
+)
+
 from eth.abc import (
     ComputationAPI,
     SignedTransactionAPI,
@@ -22,8 +26,10 @@ from .computation import (
 )
 from .constants import (
     BLOB_BASE_FEE_UPDATE_FRACTION,
+    BLOB_TX_TYPE,
     GAS_PER_BLOB,
     MIN_BLOB_BASE_FEE,
+    VERSIONED_HASH_VERSION_KZG,
 )
 
 
@@ -81,3 +87,38 @@ class CancunState(ShanghaiState):
         return fake_exponential(
             MIN_BLOB_BASE_FEE, excess_blob_gas, BLOB_BASE_FEE_UPDATE_FRACTION
         )
+
+    def validate_transaction(self, transaction: SignedTransactionAPI) -> None:
+        super().validate_transaction(transaction)
+
+        # modify the check for sufficient balance
+        max_total_fee = transaction.gas * transaction.max_fee_per_gas
+        if transaction.type_id == BLOB_TX_TYPE:
+            max_total_fee += (
+                get_total_blob_gas(transaction) * transaction.max_fee_per_blob_gas
+            )
+        if self.get_balance(transaction.sender) < max_total_fee:
+            raise ValidationError("Sender has insufficient funds for blob fee.")
+
+        # add validity logic specific to blob txs
+        if transaction.type_id == BLOB_TX_TYPE:
+            # there must be at least one blob
+            if len(transaction.blob_versioned_hashes) == 0:
+                raise ValidationError(
+                    "Blob transaction must contain at least one blob."
+                )
+
+            # all versioned blob hashes must start with VERSIONED_HASH_VERSION_KZG
+            for h in transaction.blob_versioned_hashes:
+                if h[0].to_bytes() != VERSIONED_HASH_VERSION_KZG:
+                    raise ValidationError(
+                        "Blob versioned hash does not start with expected "
+                        f"KZG version: {VERSIONED_HASH_VERSION_KZG}"
+                    )
+
+            # ensure that the user was willing to at least pay the current
+            # blob base fee
+            if transaction.max_fee_per_blob_gas < self.blob_base_fee:
+                raise ValidationError(
+                    "Blob transaction must pay at least the current blob base fee."
+                )

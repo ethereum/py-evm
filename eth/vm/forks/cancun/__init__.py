@@ -21,6 +21,7 @@ from eth.vm.state import (
     BaseState,
 )
 from eth_utils import (
+    ValidationError,
     to_int,
 )
 
@@ -101,33 +102,16 @@ class CancunVM(ShanghaiVM):
         parent_header = get_block_header_by_hash(block.header.parent_hash, self.chaindb)
         assert block.header.excess_blob_gas == calc_excess_blob_gas(parent_header)
 
-        blob_gas_used = 0
-
-        for tx in block.transactions:
-            # modify the check for sufficient balance
-            max_total_fee = tx.gas * tx.max_fee_per_gas
-            if tx.type_id == BLOB_TX_TYPE:
-                max_total_fee += get_total_blob_gas(tx) * tx.max_fee_per_blob_gas
-            assert self.state.get_balance(tx.sender) >= max_total_fee
-
-            # add validity logic specific to blob txs
-            if tx.type_id == BLOB_TX_TYPE:
-                # there must be at least one blob
-                assert len(tx.blob_versioned_hashes) > 0
-
-                # all versioned blob hashes must start with VERSIONED_HASH_VERSION_KZG
-                for h in tx.blob_versioned_hashes:
-                    assert h[0].to_bytes() == VERSIONED_HASH_VERSION_KZG
-
-                # ensure that the user was willing to at least pay the current
-                # blob base fee
-
-                # keep track of total blob gas spent in the block
-                assert tx.max_fee_per_blob_gas >= self.state.blob_base_fee
-                blob_gas_used += get_total_blob_gas(tx)
+        blob_gas_used = sum(
+            get_total_blob_gas(tx)
+            for tx in block.transactions
+            if tx.type_id == BLOB_TX_TYPE
+        )
 
         # ensure the total blob gas spent is at most equal to the limit
-        assert blob_gas_used <= MAX_BLOB_GAS_PER_BLOCK
+        if blob_gas_used > MAX_BLOB_GAS_PER_BLOCK:
+            raise ValidationError("Block exceeded maximum blob gas limit.")
 
         # ensure blob_gas_used matches header
-        assert block.header.blob_gas_used == blob_gas_used
+        if block.header.blob_gas_used != blob_gas_used:
+            raise ValidationError("Block blob gas used does not match actual usage.")
