@@ -453,7 +453,7 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
 
     legacy_signed = BerlinLegacyTransaction
     legacy_unsigned = BerlinUnsignedLegacyTransaction
-    typed_transaction: type[TypedTransaction] = TypedTransaction
+    typed_transaction: Type[TypedTransaction] = TypedTransaction
 
     @classmethod
     def decode(cls, encoded: bytes) -> SignedTransactionAPI:

@@ -285,6 +285,7 @@ class VM(Configurable, VirtualMachineAPI):
             result_header = self.add_receipt_to_header(previous_header, receipt)
             previous_header = result_header
 
+            # cancun and beyond
             result_header = self.increment_blob_gas_used(previous_header, transaction)
             previous_header = result_header
 

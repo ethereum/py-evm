@@ -101,7 +101,7 @@ class FrontierVM(VM):
         self, old_header: BlockHeaderAPI, transaction: TransactionFieldsAPI
     ) -> BlockHeaderAPI:
         # This is only relevant for the Cancun fork and later
-        pass
+        return old_header
 
     @classmethod
     def calculate_net_gas_refund(cls, consumed_gas: int, gross_refund: int) -> int:
