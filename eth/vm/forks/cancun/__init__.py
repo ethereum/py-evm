@@ -100,6 +100,8 @@ class CancunVM(ShanghaiVM):
         parent_header = get_block_header_by_hash(block.header.parent_hash, self.chaindb)
         if block.header.excess_blob_gas != calc_excess_blob_gas(parent_header):
             raise ValidationError("Block excess blob gas was not updated correctly.")
+        elif block.header.excess_blob_gas < 0:
+            raise ValidationError("Block excess blob gas is negative.")
 
         blob_gas_used = sum(
             get_total_blob_gas(tx)
