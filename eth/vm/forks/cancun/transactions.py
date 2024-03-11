@@ -217,7 +217,7 @@ class CancunTypedTransaction(TypedTransaction):
 class CancunTransactionBuilder(ShanghaiTransactionBuilder):
     legacy_signed = CancunLegacyTransaction
     legacy_unsigned = CancunUnsignedLegacyTransaction
-    typed_transaction: type[TypedTransaction] = CancunTypedTransaction
+    typed_transaction: Type[TypedTransaction] = CancunTypedTransaction
 
     @classmethod
     def new_unsigned_blob_transaction(

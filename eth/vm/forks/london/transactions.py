@@ -270,7 +270,7 @@ class LondonTypedTransaction(TypedTransaction):
 class LondonTransactionBuilder(BerlinTransactionBuilder):
     legacy_signed = LondonLegacyTransaction
     legacy_unsigned = LondonUnsignedLegacyTransaction
-    typed_transaction: type[TypedTransaction] = LondonTypedTransaction
+    typed_transaction: Type[TypedTransaction] = LondonTypedTransaction
 
     @classmethod
     def new_unsigned_dynamic_fee_transaction(
