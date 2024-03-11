@@ -11,6 +11,7 @@ import pytest
 import rlp
 
 from eth.exceptions import (
+    InsufficientFunds,
     OutOfGas,
     UnrecognizedTransactionType,
 )
@@ -1256,6 +1257,7 @@ EXPECTED_BAD_BLOCK_EXCEPTIONS = (
     AssertionError,
     UnrecognizedTransactionType,
     OutOfGas,
+    InsufficientFunds,
 )
 
 

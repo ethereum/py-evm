@@ -2,9 +2,7 @@ from typing import (
     Type,
 )
 
-from eth._utils.db import (
-    get_block_header_by_hash,
-)
+from eth._utils.db import get_block_header_by_hash
 from eth.abc import (
     BlockAPI,
     BlockHeaderAPI,
@@ -62,15 +60,15 @@ class CancunVM(ShanghaiVM):
 
     @staticmethod
     def _get_total_blob_gas(transaction: TransactionFieldsAPI) -> int:
-        if hasattr(transaction, "blob_versioned_hashes"):
-            return GAS_PER_BLOB * len(transaction.blob_versioned_hashes)
-
-        return 0
+        return (
+            GAS_PER_BLOB * len(transaction.blob_versioned_hashes)
+            if hasattr(transaction, "blob_versioned_hashes")
+            else 0
+        )
 
     def increment_blob_gas_used(
         self, old_header: BlockHeaderAPI, transaction: TransactionFieldsAPI
     ) -> BlockHeaderAPI:
-        # This is only relevant for the Cancun fork and later
         return old_header.copy(
             blob_gas_used=old_header.blob_gas_used
             + self._get_total_blob_gas(transaction)
@@ -100,7 +98,8 @@ class CancunVM(ShanghaiVM):
 
         # check that the excess blob gas was updated correctly
         parent_header = get_block_header_by_hash(block.header.parent_hash, self.chaindb)
-        assert block.header.excess_blob_gas == calc_excess_blob_gas(parent_header)
+        if block.header.excess_blob_gas != calc_excess_blob_gas(parent_header):
+            raise ValidationError("Block excess blob gas was not updated correctly.")
 
         blob_gas_used = sum(
             get_total_blob_gas(tx)
