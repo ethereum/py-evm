@@ -34,7 +34,7 @@ class BaseTransactionContext(TransactionContextAPI):
         self._log_counter = itertools.count()
 
         # post-cancun
-        self._blob_versioned_hashes = blob_versioned_hashes
+        self._blob_versioned_hashes = blob_versioned_hashes or []
 
     def get_next_log_counter(self) -> int:
         return next(self._log_counter)
@@ -48,5 +48,5 @@ class BaseTransactionContext(TransactionContextAPI):
         return self._origin
 
     @property
-    def blob_versioned_hashes(self) -> Optional[Hash32]:
-        return self._blob_versioned_hashes
+    def blob_versioned_hashes(self) -> Sequence[Hash32]:
+        raise NotImplementedError("Not implemented until Cancun.")
