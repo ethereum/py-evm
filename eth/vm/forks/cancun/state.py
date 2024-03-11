@@ -4,17 +4,28 @@ from typing import (
 
 from eth_utils import (
     ValidationError,
+    encode_hex,
+    keccak,
 )
 
+from eth._utils.address import (
+    generate_contract_address,
+)
 from eth.abc import (
-    ComputationAPI,
+    MessageAPI,
     SignedTransactionAPI,
     StateAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
     TransactionFieldsAPI,
 )
+from eth.constants import (
+    CREATE_CONTRACT_ADDRESS,
+)
 
+from ...message import (
+    Message,
+)
 from ..shanghai import (
     ShanghaiState,
 )
@@ -30,6 +41,9 @@ from .constants import (
     GAS_PER_BLOB,
     MIN_BLOB_BASE_FEE,
     VERSIONED_HASH_VERSION_KZG,
+)
+from .transaction_context import (
+    CancunTransactionContext,
 )
 
 
@@ -55,30 +69,60 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
     def calc_data_fee(self, transaction: TransactionFieldsAPI) -> int:
         return get_total_blob_gas(transaction) * self.vm_state.blob_base_fee
 
-    def finalize_computation(
-        self, transaction: SignedTransactionAPI, computation: ComputationAPI
-    ) -> ComputationAPI:
-        computation = super().finalize_computation(transaction, computation)
+    def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
+        london_gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
+        cancun_data_fee = self.calc_data_fee(transaction)
+        self.vm_state.delta_balance(
+            transaction.sender, -1 * (london_gas_fee + cancun_data_fee)
+        )
 
-        data_fee = self.calc_data_fee(transaction)
-        computation.state.delta_balance(transaction.sender, -1 * data_fee)
+        self.vm_state.increment_nonce(transaction.sender)
+        message_gas = transaction.gas - transaction.intrinsic_gas
 
-        return computation
+        if transaction.to == CREATE_CONTRACT_ADDRESS:
+            contract_address = generate_contract_address(
+                transaction.sender,
+                self.vm_state.get_nonce(transaction.sender) - 1,
+            )
+            data = b""
+            code = transaction.data
+        else:
+            contract_address = None
+            data = transaction.data
+            code = self.vm_state.get_code(transaction.to)
+
+        self.vm_state.logger.debug2(
+            f"TRANSACTION: {repr(transaction)}; "
+            f"sender: {encode_hex(transaction.sender)} | "
+            f"to: {encode_hex(transaction.to)} | "
+            f"data-hash: {encode_hex(keccak(transaction.data))}"
+        )
+
+        message = Message(
+            gas=message_gas,
+            to=transaction.to,
+            sender=transaction.sender,
+            value=transaction.value,
+            data=data,
+            code=code,
+            create_address=contract_address,
+        )
+        return message
 
 
 class CancunState(ShanghaiState):
     computation_class = CancunComputation
+    transaction_context_class: Type[TransactionFieldsAPI] = CancunTransactionContext
     transaction_executor_class: Type[TransactionExecutorAPI] = CancunTransactionExecutor
 
     def get_transaction_context(
         self: StateAPI, transaction: SignedTransactionAPI
     ) -> TransactionContextAPI:
         context = super().get_transaction_context(transaction)
-
-        if hasattr(transaction, "blob_versioned_hashes"):
-            context.excess_blob_gas = (
-                len(transaction.blob_versioned_hashes) * GAS_PER_BLOB
-            )
+        if transaction.type_id == BLOB_TX_TYPE:
+            # if the transaction is a blob transaction, expose blob versioned hashes
+            # through the transaction context
+            context._blob_versioned_hashes = transaction.blob_versioned_hashes
         return context
 
     @property

@@ -228,11 +228,8 @@ def returndatacopy(computation: ComputationAPI) -> None:
 def blob_hash(computation: ComputationAPI) -> None:
     index = computation.stack_pop1_int()
     blob_versioned_hashes = computation.transaction_context.blob_versioned_hashes
-
-    if blob_versioned_hashes is None:
-        computation.stack_push_bytes(b"\x00" * 32)
-    else:
-        if index < len(blob_versioned_hashes):
-            computation.stack_push_bytes(blob_versioned_hashes[index])
-        else:
-            computation.stack_push_bytes(b"\x00" * 32)
+    (
+        computation.stack_push_bytes(blob_versioned_hashes[index])
+        if index < len(blob_versioned_hashes)
+        else computation.stack_push_bytes(b"\x00" * 32)
+    )
