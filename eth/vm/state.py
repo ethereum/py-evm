@@ -111,6 +111,12 @@ class BaseState(Configurable, StateAPI):
     def get_gas_price(self, transaction: SignedTransactionAPI) -> int:
         return transaction.gas_price
 
+    @property
+    def blob_base_fee(self) -> int:
+        raise NotImplementedError(
+            "Basefee opcode is not implemented prior to Cancun hard fork"
+        )
+
     #
     # Access to account db
     #
