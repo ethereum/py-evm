@@ -11,6 +11,9 @@ from toolz import (
 from eth.abc import (
     BlockHeaderAPI,
 )
+from eth.constants import (
+    BLANK_ROOT_HASH,
+)
 from eth.vm.forks.cancun.constants import (
     TARGET_BLOB_GAS_PER_BLOCK,
 )
@@ -30,11 +33,12 @@ def calc_excess_blob_gas(parent_header):
     ):
         return 0
     else:
-        return (
+        excess_blob_gas = (
             parent_header.excess_blob_gas
             + parent_header.blob_gas_used
             - TARGET_BLOB_GAS_PER_BLOCK
         )
+        return excess_blob_gas
 
 
 @curry
@@ -45,7 +49,9 @@ def create_cancun_header_from_parent(
     # remove new fields if present
     excess_blob_gas = header_params.pop("excess_blob_gas", 0)
     blob_gas_used = header_params.pop("blob_gas_used", 0)
-    parent_beacon_block_root = header_params.pop("parent_beacon_block_root", None)
+    parent_beacon_block_root = header_params.pop(
+        "parent_beacon_block_root", BLANK_ROOT_HASH
+    )
 
     shanghai_validated_header = create_shanghai_header_from_parent(
         parent_header, **header_params
