@@ -1178,12 +1178,6 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
         return pytest.mark.skip("Exploit tests are slow")
     elif fixture_path.startswith("bcForkStressTest/ForkStressTest.json"):
         return pytest.mark.skip("Fork stress tests are slow.")
-    elif "header_excess_blobs_delta_-3" in fixture_name:
-        # TODO: Investigate why this test freezes and neither passes nor fails
-        return pytest.mark.skip("Slow excess blob delta test")
-    elif "test_invalid_negative_excess_blob_gas" in fixture_name:
-        # TODO: Investigate why these tests freeze and neither pass nor fail
-        return pytest.mark.skip("Slow excess blob gas test")
     elif fixture_path == "bcWalletTest/walletReorganizeOwners.json":
         return pytest.mark.skip("Wallet owner reorganization tests are slow")
     elif fixture_id in INCORRECT_UPSTREAM_TESTS:
