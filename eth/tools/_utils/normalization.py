@@ -206,11 +206,9 @@ def state_definition_to_dict(state_definition: GeneralState) -> AccountState:
         state_dict = state_definition
     elif isinstance(state_definition, Iterable):
         state_dicts = [
-            (
-                assoc_in({}, state_item[:-1], state_item[-1])
-                if not isinstance(state_item, Mapping)
-                else state_item
-            )
+            assoc_in({}, state_item[:-1], state_item[-1])
+            if not isinstance(state_item, Mapping)
+            else state_item
             for state_item in state_definition
         ]
         if not is_cleanly_mergable(*state_dicts):

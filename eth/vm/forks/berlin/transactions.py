@@ -1,6 +1,3 @@
-from abc import (
-    ABC,
-)
 from typing import (
     Any,
     Dict,
@@ -52,7 +49,6 @@ from eth.abc import (
     TransactionBuilderAPI,
     TransactionDecoderAPI,
     UnsignedTransactionAPI,
-    UnsignedTypedTransactionAPI,
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -103,10 +99,10 @@ class BerlinLegacyTransaction(MuirGlacierTransaction):
 
 
 class BerlinUnsignedLegacyTransaction(MuirGlacierUnsignedTransaction):
-    def as_signed_transaction(self, private_key: PrivateKey) -> BerlinLegacyTransaction:
-        v, r, s = create_transaction_signature(
-            self, private_key, chain_id=self.chain_id
-        )
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> BerlinLegacyTransaction:
+        v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return BerlinLegacyTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,
@@ -127,8 +123,11 @@ class AccountAccesses(rlp.Serializable):
     ]
 
 
-class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTypedTransactionAPI, ABC):
+class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTransactionAPI):
     _type_id = ACCESS_LIST_TRANSACTION_TYPE
+
+    chain_id: int
+
     fields = [
         ("chain_id", big_endian_int),
         ("nonce", big_endian_int),
@@ -148,7 +147,9 @@ class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTypedTransactionAP
         payload = rlp.encode(self)
         return self._type_byte + payload
 
-    def as_signed_transaction(self, private_key: PrivateKey) -> "TypedTransaction":
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> "TypedTransaction":
         message = self.get_message_for_signing()
         signature = private_key.sign_msg(message)
         y_parity, r, s = signature.vrs
@@ -180,10 +181,10 @@ class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTypedTransactionAP
         validate_is_transaction_access_list(self.access_list)
 
     def gas_used_by(self, computation: ComputationAPI) -> int:
-        return _get_txn_intrinsic_gas(self) + computation.get_gas_used()
+        return self.intrinsic_gas + computation.get_gas_used()
 
     def get_intrinsic_gas(self) -> int:
-        return _get_txn_intrinsic_gas(self)
+        return _calculate_txn_intrinsic_gas_berlin(self)
 
     @property
     def intrinsic_gas(self) -> int:
@@ -200,7 +201,7 @@ class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTypedTransactionAP
 
 
 class AccessListTransaction(
-    rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI, ABC
+    rlp.Serializable, SignedTransactionMethods, SignedTransactionAPI
 ):
     _type_id = ACCESS_LIST_TRANSACTION_TYPE
     fields = [
@@ -246,7 +247,7 @@ class AccessListTransaction(
         raise NotImplementedError("Call hash() on the TypedTransaction instead")
 
     def get_intrinsic_gas(self) -> int:
-        return _get_txn_intrinsic_gas(self)
+        return _calculate_txn_intrinsic_gas_berlin(self)
 
     def encode(self) -> bytes:
         return rlp.encode(self)
@@ -274,6 +275,18 @@ class AccessListTransaction(
     def max_fee_per_gas(self) -> int:
         return self.gas_price
 
+    @property
+    def max_fee_per_blob_gas(self) -> int:
+        raise NotImplementedError(
+            "max_fee_per_blob_gas is not implemented until Cancun."
+        )
+
+    @property
+    def blob_versioned_hashes(self) -> Hash32:
+        raise NotImplementedError(
+            "blob_versioned_hashes is not implemented until Cancun."
+        )
+
 
 class AccessListPayloadDecoder(TransactionDecoderAPI):
     @classmethod
@@ -292,14 +305,7 @@ class TypedTransaction(
     }
     receipt_builder = BerlinReceiptBuilder
 
-    def __init__(
-        self,
-        type_id: int,
-        proxy_target: SignedTransactionAPI,
-        *args: Any,
-        **kwargs: Any,
-    ) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, type_id: int, proxy_target: SignedTransactionAPI) -> None:
         self.type_id = type_id
         self._inner = proxy_target
 
@@ -365,11 +371,15 @@ class TypedTransaction(
 
     @property
     def max_fee_per_blob_gas(self) -> int:
-        return self._inner.max_fee_per_blob_gas
+        raise NotImplementedError(
+            "max_fee_per_blob_gas is not implemented until Cancun."
+        )
 
     @property
     def blob_versioned_hashes(self) -> Hash32:
-        return self._inner.blob_versioned_hashes
+        raise NotImplementedError(
+            "blob_versioned_hashes is not implemented until Cancun."
+        )
 
     @property
     def gas(self) -> int:
@@ -565,8 +575,8 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
         return cls.typed_transaction(ACCESS_LIST_TRANSACTION_TYPE, transaction)
 
 
-def _get_txn_intrinsic_gas(
-    klass: Union[UnsignedTypedTransactionAPI, SignedTransactionAPI]
+def _calculate_txn_intrinsic_gas_berlin(
+    klass: Union[SignedTransactionAPI, UnsignedTransactionAPI]
 ) -> int:
     core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, klass)
 

@@ -31,11 +31,9 @@ class ConstantinopleTransaction(ByzantiumTransaction):
 
 class ConstantinopleUnsignedTransaction(ByzantiumUnsignedTransaction):
     def as_signed_transaction(
-        self, private_key: PrivateKey
+        self, private_key: PrivateKey, chain_id: int = None
     ) -> ConstantinopleTransaction:
-        v, r, s = create_transaction_signature(
-            self, private_key, chain_id=self.chain_id
-        )
+        v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return ConstantinopleTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,

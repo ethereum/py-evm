@@ -1,4 +1,5 @@
 from typing import (
+    TYPE_CHECKING,
     Type,
 )
 
@@ -19,7 +20,6 @@ from eth.abc import (
     SignedTransactionAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
-    TransactionFieldsAPI,
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -51,6 +51,11 @@ from .transaction_context import (
 from .validation import (
     validate_frontier_transaction,
 )
+
+if TYPE_CHECKING:
+    from eth.vm.forks.cancun.transactions import (
+        BlobTransaction,
+    )
 
 
 class FrontierTransactionExecutor(BaseTransactionExecutor):
@@ -200,7 +205,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         return computation
 
-    def calc_data_fee(self, transaction: TransactionFieldsAPI) -> int:
+    def calc_data_fee(self, transaction: "BlobTransaction") -> int:
         # This is only relevant for the Cancun fork and later
         pass
 
