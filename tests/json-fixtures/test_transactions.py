@@ -30,6 +30,9 @@ from eth.vm.forks.berlin.transactions import (
 from eth.vm.forks.byzantium.transactions import (
     ByzantiumTransaction,
 )
+from eth.vm.forks.cancun.transactions import (
+    CancunTransactionBuilder,
+)
 from eth.vm.forks.constantinople.transactions import (
     ConstantinopleTransaction,
 )
@@ -133,7 +136,7 @@ def fixture_transaction_class(fixture_data):
     elif fork_name == ForkName.Shanghai:
         return ShanghaiTransactionBuilder
     elif fork_name == ForkName.Cancun:
-        pytest.skip("Cancun Transaction class has not been implemented")
+        return CancunTransactionBuilder
     else:
         raise ValueError(f"Unknown Fork Name: {fork_name}")
 
