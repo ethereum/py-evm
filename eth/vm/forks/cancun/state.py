@@ -1,5 +1,6 @@
 from typing import (
     Type,
+    cast,
 )
 
 from eth_utils import (
@@ -45,6 +46,9 @@ from .constants import (
 from .transaction_context import (
     CancunTransactionContext,
 )
+from .transactions import (
+    BlobTransaction,
+)
 
 
 def fake_exponential(
@@ -61,19 +65,23 @@ def fake_exponential(
 
 
 def get_total_blob_gas(transaction: TransactionFieldsAPI) -> int:
-    if hasattr(transaction, "blob_versioned_hashes"):
-        return GAS_PER_BLOB * len(transaction.blob_versioned_hashes)
-
-    return 0
+    try:
+        return GAS_PER_BLOB * len(transaction.blob_versioned_hashes)  # type: ignore
+    except (AttributeError, NotImplementedError):
+        return 0
 
 
 class CancunTransactionExecutor(ShanghaiTransactionExecutor):
-    def calc_data_fee(self, transaction: TransactionFieldsAPI) -> int:
+    def calc_data_fee(self, transaction: BlobTransaction) -> int:
         return get_total_blob_gas(transaction) * self.vm_state.blob_base_fee
 
     def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
         london_gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
-        cancun_data_fee = self.calc_data_fee(transaction)
+        cancun_data_fee = (
+            self.calc_data_fee(cast(BlobTransaction, transaction))
+            if transaction.type_id == BLOB_TX_TYPE
+            else 0
+        )
         self.vm_state.delta_balance(
             transaction.sender, -1 * (london_gas_fee + cancun_data_fee)
         )
@@ -114,17 +122,17 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
 
 class CancunState(ShanghaiState):
     computation_class = CancunComputation
-    transaction_context_class: Type[TransactionFieldsAPI] = CancunTransactionContext
+    transaction_context_class: Type[TransactionContextAPI] = CancunTransactionContext
     transaction_executor_class: Type[TransactionExecutorAPI] = CancunTransactionExecutor
 
     def get_transaction_context(
         self: StateAPI, transaction: SignedTransactionAPI
     ) -> TransactionContextAPI:
-        context = super().get_transaction_context(transaction)
+        context = super().get_transaction_context(transaction)  # type: ignore
         if transaction.type_id == BLOB_TX_TYPE:
             # if the transaction is a blob transaction, expose blob versioned hashes
             # through the transaction context
-            context._blob_versioned_hashes = transaction.blob_versioned_hashes
+            context._blob_versioned_hashes = transaction.blob_versioned_hashes  # type: ignore  # noqa: E501
         return context
 
     @property
@@ -141,7 +149,7 @@ class CancunState(ShanghaiState):
         max_total_fee = transaction.gas * transaction.max_fee_per_gas
         if transaction.type_id == BLOB_TX_TYPE:
             max_total_fee += (
-                get_total_blob_gas(transaction) * transaction.max_fee_per_blob_gas
+                get_total_blob_gas(transaction) * transaction.max_fee_per_blob_gas  # type: ignore  # noqa: E501
             )
         if self.get_balance(transaction.sender) < max_total_fee:
             raise ValidationError("Sender has insufficient funds for blob fee.")
@@ -149,22 +157,22 @@ class CancunState(ShanghaiState):
         # add validity logic specific to blob txs
         if transaction.type_id == BLOB_TX_TYPE:
             # there must be at least one blob
-            if len(transaction.blob_versioned_hashes) == 0:
+            if len(transaction.blob_versioned_hashes) == 0:  # type: ignore  # noqa: E501
                 raise ValidationError(
                     "Blob transaction must contain at least one blob."
                 )
 
             # all versioned blob hashes must start with VERSIONED_HASH_VERSION_KZG
-            for h in transaction.blob_versioned_hashes:
+            for h in transaction.blob_versioned_hashes:  # type: ignore  # noqa: E501
                 if h[0].to_bytes() != VERSIONED_HASH_VERSION_KZG:
                     raise ValidationError(
                         "Blob versioned hash does not start with expected "
-                        f"KZG version: {VERSIONED_HASH_VERSION_KZG}"
+                        f"KZG version: {VERSIONED_HASH_VERSION_KZG!r}"
                     )
 
             # ensure that the user was willing to at least pay the current
             # blob base fee
-            if transaction.max_fee_per_blob_gas < self.blob_base_fee:
+            if transaction.max_fee_per_blob_gas < self.blob_base_fee:  # type: ignore  # noqa: E501
                 raise ValidationError(
                     "Blob transaction must pay at least the current blob base fee."
                 )

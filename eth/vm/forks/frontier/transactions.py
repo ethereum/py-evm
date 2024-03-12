@@ -2,6 +2,7 @@ from functools import (
     partial,
 )
 from typing import (
+    Sequence,
     Tuple,
 )
 
@@ -10,6 +11,7 @@ from eth_keys.datatypes import (
 )
 from eth_typing import (
     Address,
+    Hash32,
 )
 import rlp
 
@@ -52,7 +54,7 @@ from eth.validation import (
     validate_uint256,
 )
 
-FRONTIER_TX_GAS_SCHEDULE = IntrinsicGasSchedule(
+FRONTIER_TX_GAS_SCHEDULE: IntrinsicGasSchedule = IntrinsicGasSchedule(
     gas_tx=GAS_TX,
     gas_txcreate=0,
     gas_txdatazero=GAS_TXDATAZERO,
@@ -174,6 +176,18 @@ class FrontierTransaction(BaseTransaction):
     def max_fee_per_gas(self) -> int:
         return self.gas_price
 
+    @property
+    def max_fee_per_blob_gas(self) -> int:
+        raise NotImplementedError(
+            "max_fee_per_blob_gas is not implemented until Cancun."
+        )
+
+    @property
+    def blob_versioned_hashes(self) -> Sequence[Hash32]:
+        raise NotImplementedError(
+            "blob_versioned_hashes is not implemented until Cancun."
+        )
+
 
 class FrontierUnsignedTransaction(BaseUnsignedTransaction):
     def validate(self) -> None:
@@ -189,6 +203,7 @@ class FrontierUnsignedTransaction(BaseUnsignedTransaction):
     def as_signed_transaction(
         self,
         private_key: PrivateKey,
+        chain_id: int = None,  # unused until SpuriousDragon
     ) -> FrontierTransaction:
         v, r, s = create_transaction_signature(self, private_key)
         return FrontierTransaction(

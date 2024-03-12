@@ -11,6 +11,7 @@ from eth_typing import (
 import rlp
 
 from eth._utils.transactions import (
+    IntrinsicGasSchedule,
     calculate_intrinsic_gas,
     create_transaction_signature,
 )
@@ -26,7 +27,7 @@ from eth.vm.forks.frontier.transactions import (
     FrontierUnsignedTransaction,
 )
 
-HOMESTEAD_TX_GAS_SCHEDULE = FRONTIER_TX_GAS_SCHEDULE._replace(
+HOMESTEAD_TX_GAS_SCHEDULE: IntrinsicGasSchedule = FRONTIER_TX_GAS_SCHEDULE._replace(
     gas_txcreate=GAS_TXCREATE,
 )
 
@@ -74,6 +75,7 @@ class HomesteadUnsignedTransaction(FrontierUnsignedTransaction):
     def as_signed_transaction(
         self,
         private_key: PrivateKey,
+        chain_id: int = None,  # unused until SpuriousDragon
     ) -> HomesteadTransaction:
         v, r, s = create_transaction_signature(self, private_key)
         return HomesteadTransaction(

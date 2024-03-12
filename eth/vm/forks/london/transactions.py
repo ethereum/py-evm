@@ -35,6 +35,7 @@ from eth.abc import (
     ReceiptAPI,
     SignedTransactionAPI,
     TransactionDecoderAPI,
+    UnsignedTransactionAPI,
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -68,8 +69,7 @@ from eth.vm.forks.berlin.transactions import (
     BerlinTransactionBuilder,
     BerlinUnsignedLegacyTransaction,
     TypedTransaction,
-    UnsignedTypedTransactionAPI,
-    _get_txn_intrinsic_gas,
+    _calculate_txn_intrinsic_gas_berlin,
 )
 
 from .constants import (
@@ -85,10 +85,10 @@ class LondonLegacyTransaction(BerlinLegacyTransaction):
 
 
 class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
-    def as_signed_transaction(self, private_key: PrivateKey) -> LondonLegacyTransaction:
-        v, r, s = create_transaction_signature(
-            self, private_key, chain_id=self.chain_id
-        )
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> LondonLegacyTransaction:
+        v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return LondonLegacyTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,
@@ -102,11 +102,14 @@ class LondonUnsignedLegacyTransaction(BerlinUnsignedLegacyTransaction):
         )
 
 
-class UnsignedDynamicFeeTransaction(rlp.Serializable, UnsignedTypedTransactionAPI):
-    max_fee_per_gas: int
-    max_priority_fee_per_gas: int
-
+class UnsignedDynamicFeeTransaction(rlp.Serializable, UnsignedTransactionAPI):
     _type_id = DYNAMIC_FEE_TRANSACTION_TYPE
+
+    chain_id: int
+    max_priority_fee_per_gas: int
+    max_fee_per_gas: int
+    access_list: Sequence[Tuple[Address, Sequence[int]]]
+
     fields = [
         ("chain_id", big_endian_int),
         ("nonce", big_endian_int),
@@ -123,14 +126,13 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable, UnsignedTypedTransactionAP
     def _type_byte(self) -> bytes:
         return to_bytes(self._type_id)
 
-    def gas_used_by(self, computation: ComputationAPI) -> int:
-        return self.get_intrinsic_gas() + computation.get_gas_used()
-
     def get_message_for_signing(self) -> bytes:
         payload = rlp.encode(self)
         return self._type_byte + payload
 
-    def as_signed_transaction(self, private_key: PrivateKey) -> "TypedTransaction":
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> "TypedTransaction":
         message = self.get_message_for_signing()
         signature = private_key.sign_msg(message)
         y_parity, r, s = signature.vrs
@@ -165,16 +167,16 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable, UnsignedTypedTransactionAP
         validate_is_bytes(self.data, title="Transaction.data")
         validate_is_transaction_access_list(self.access_list)
 
+    def gas_used_by(self, computation: ComputationAPI) -> int:
+        return self.intrinsic_gas + computation.get_gas_used()
+
     def get_intrinsic_gas(self) -> int:
-        return _get_txn_intrinsic_gas(self)
+        # unchanged from Berlin
+        return _calculate_txn_intrinsic_gas_berlin(self)
 
     @property
     def intrinsic_gas(self) -> int:
         return self.get_intrinsic_gas()
-
-    @property
-    def access_list(self) -> Sequence[Tuple[Address, Sequence[int]]]:
-        return self.access_list
 
 
 class DynamicFeeTransaction(
@@ -201,6 +203,18 @@ class DynamicFeeTransaction(
         raise AttributeError(
             "Gas price is no longer available."
             "See max_priority_fee_per_gas or max_fee_per_gas"
+        )
+
+    @property
+    def max_fee_per_blob_gas(self) -> int:
+        raise NotImplementedError(
+            "max_fee_per_blob_gas is not implemented until Cancun."
+        )
+
+    @property
+    def blob_versioned_hashes(self) -> Hash32:
+        raise NotImplementedError(
+            "blob_versioned_hashes is not implemented until Cancun."
         )
 
     def get_sender(self) -> Address:
@@ -233,7 +247,8 @@ class DynamicFeeTransaction(
         raise NotImplementedError("Call hash() on the TypedTransaction instead")
 
     def get_intrinsic_gas(self) -> int:
-        return _get_txn_intrinsic_gas(self)
+        # unchanged from Berlin
+        return _calculate_txn_intrinsic_gas_berlin(self)
 
     def encode(self) -> bytes:
         return rlp.encode(self)
@@ -284,7 +299,7 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
         value: int,
         data: bytes,
         access_list: Sequence[Tuple[Address, Sequence[int]]],
-    ) -> UnsignedTypedTransactionAPI:
+    ) -> UnsignedDynamicFeeTransaction:
         transaction = UnsignedDynamicFeeTransaction(
             chain_id,
             nonce,

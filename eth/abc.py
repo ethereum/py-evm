@@ -3,6 +3,7 @@ from abc import (
     abstractmethod,
 )
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
@@ -52,6 +53,11 @@ from eth.typing import (
     JournalDBCheckpoint,
     VMConfiguration,
 )
+
+if TYPE_CHECKING:
+    from eth.vm.forks.cancun.transactions import (
+        BlobTransaction,
+    )
 
 T = TypeVar("T")
 
@@ -480,6 +486,16 @@ class TransactionFieldsAPI(ABC):
     def chain_id(self) -> Optional[int]:
         ...
 
+    @property
+    @abstractmethod
+    def max_fee_per_blob_gas(self) -> int:
+        ...
+
+    @property
+    @abstractmethod
+    def blob_versioned_hashes(self) -> Sequence[Hash32]:
+        ...
+
 
 class LegacyTransactionFieldsAPI(TransactionFieldsAPI):
     @property
@@ -510,25 +526,12 @@ class UnsignedTransactionAPI(BaseTransactionAPI):
     # API that must be implemented by all Transaction subclasses.
     #
     @abstractmethod
-    def as_signed_transaction(self, private_key: PrivateKey) -> "SignedTransactionAPI":
+    def as_signed_transaction(
+        self, private_key: PrivateKey, chain_id: int = None
+    ) -> "SignedTransactionAPI":
         """
         Return a version of this transaction which has been signed using the
         provided `private_key`
-        """
-        ...
-
-    # the chain_id must be defined similarly to `TransactionFieldsAPI` as @property
-    @property
-    def chain_id(self) -> Optional[int]:
-        return None
-
-
-class UnsignedTypedTransactionAPI(UnsignedTransactionAPI, BaseTransactionAPI):
-    @abstractmethod
-    def get_message_for_signing(self) -> bytes:
-        """
-        Return the bytestring that should be signed in order to create a signed
-        transaction.
         """
         ...
 
@@ -2837,7 +2840,7 @@ class TransactionExecutorAPI(ABC):
     # -- post-cancun -- #
 
     @abstractmethod
-    def calc_data_fee(self, transaction: TransactionFieldsAPI) -> int:
+    def calc_data_fee(self, transaction: "BlobTransaction") -> int:
         """
         For Cancun and later, calculate the data fee for a transaction.
         """
