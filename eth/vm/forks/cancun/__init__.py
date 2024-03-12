@@ -60,11 +60,10 @@ class CancunVM(ShanghaiVM):
 
     @staticmethod
     def _get_total_blob_gas(transaction: TransactionFieldsAPI) -> int:
-        return (
-            GAS_PER_BLOB * len(transaction.blob_versioned_hashes)
-            if hasattr(transaction, "blob_versioned_hashes")
-            else 0
-        )
+        try:
+            return GAS_PER_BLOB * len(transaction.blob_versioned_hashes)  # type: ignore
+        except (AttributeError, NotImplementedError):
+            return 0
 
     def increment_blob_gas_used(
         self, old_header: BlockHeaderAPI, transaction: TransactionFieldsAPI

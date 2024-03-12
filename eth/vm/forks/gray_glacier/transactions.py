@@ -22,13 +22,9 @@ class GrayGlacierLegacyTransaction(ArrowGlacierLegacyTransaction, ABC):
 
 class GrayGlacierUnsignedLegacyTransaction(ArrowGlacierUnsignedLegacyTransaction):
     def as_signed_transaction(
-        self, private_key: PrivateKey
+        self, private_key: PrivateKey, chain_id: int = None
     ) -> GrayGlacierLegacyTransaction:
-        v, r, s = create_transaction_signature(
-            self,
-            private_key,
-            chain_id=self.chain_id,
-        )
+        v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return GrayGlacierLegacyTransaction(
             nonce=self.nonce,
             gas_price=self.gas_price,

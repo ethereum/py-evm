@@ -22,7 +22,6 @@ from eth._utils.numeric import (
 from eth.abc import (
     SignedTransactionAPI,
     UnsignedTransactionAPI,
-    UnsignedTypedTransactionAPI,
 )
 from eth.constants import (
     CREATE_CONTRACT_ADDRESS,
@@ -118,7 +117,7 @@ class IntrinsicGasSchedule(NamedTuple):
 
 def calculate_intrinsic_gas(
     gas_schedule: IntrinsicGasSchedule,
-    transaction: Union[SignedTransactionAPI, UnsignedTypedTransactionAPI],
+    transaction: Union[SignedTransactionAPI, UnsignedTransactionAPI],
 ) -> int:
     num_zero_bytes = transaction.data.count(b"\x00")
     num_non_zero_bytes = len(transaction.data) - num_zero_bytes
