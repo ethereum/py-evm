@@ -9,7 +9,7 @@ from eth._utils.env import (
 
 def test_env_list_with_stock_usage(monkeypatch):
     """
-    Test that when the environment variable is present that is is split on
+    Test that when the environment variable is present that is split on
     commas (by default) and returned as a list.
     """
     monkeypatch.setenv("TEST_LIST_ENV_VARIABLE", "a,b,c")
