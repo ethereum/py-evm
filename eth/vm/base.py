@@ -200,7 +200,6 @@ class VM(Configurable, VirtualMachineAPI):
         fee_recipient = cls.consensus_class.get_fee_recipient(header)
 
         base_fee_per_gas = getattr(header, "base_fee_per_gas", None)
-        blob_gas_used = getattr(header, "blob_gas_used", None)
         excess_blob_gas = getattr(header, "excess_blob_gas", None)
 
         return ExecutionContext(
@@ -213,7 +212,6 @@ class VM(Configurable, VirtualMachineAPI):
             prev_hashes=prev_hashes,
             chain_id=chain_context.chain_id,
             base_fee_per_gas=base_fee_per_gas,
-            blob_gas_used=blob_gas_used,
             excess_blob_gas=excess_blob_gas,
         )
 

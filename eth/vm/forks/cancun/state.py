@@ -51,6 +51,10 @@ from .transactions import (
 )
 
 
+# ``max_iterations`` was added to prevent the exponential nature from running
+# indefinitely. Some ``ethereum/tests`` would hang forever on this calculation. We
+# should keep an eye on this function to see if this value is accurate enough for
+# the use case.
 def fake_exponential(
     factor: int, numerator: int, denominator: int, max_iterations: int = 10000
 ) -> int:
