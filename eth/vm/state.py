@@ -102,7 +102,7 @@ class BaseState(Configurable, StateAPI):
     @property
     def base_fee(self) -> int:
         raise NotImplementedError(
-            "Basefee opcode is not implemented prior to London hard fork"
+            "BASEFEE opcode is not implemented prior to London hard fork"
         )
 
     def get_tip(self, transaction: SignedTransactionAPI) -> int:
@@ -114,7 +114,7 @@ class BaseState(Configurable, StateAPI):
     @property
     def blob_base_fee(self) -> int:
         raise NotImplementedError(
-            "Basefee opcode is not implemented prior to Cancun hard fork"
+            "BLOBBASEFEE opcode is not implemented prior to Cancun hard fork"
         )
 
     #

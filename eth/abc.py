@@ -1968,14 +1968,6 @@ class ExecutionContextAPI(ABC):
 
     @property
     @abstractmethod
-    def blob_gas_used(self) -> Optional[int]:
-        """
-        Return the blob gas used of the block
-        """
-        ...
-
-    @property
-    @abstractmethod
     def excess_blob_gas(self) -> Optional[int]:
         """
         Return the excess blob gas of the block

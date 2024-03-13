@@ -27,7 +27,6 @@ class ExecutionContext(ExecutionContextAPI):
     _prev_hashes = None
     _chain_id = None
     _base_fee_per_gas = None
-    _blob_gas_used = None
     _excess_blob_gas = None
 
     def __init__(
@@ -41,7 +40,6 @@ class ExecutionContext(ExecutionContextAPI):
         prev_hashes: Iterable[Hash32],
         chain_id: int,
         base_fee_per_gas: Optional[int] = None,
-        blob_gas_used: Optional[int] = None,
         excess_blob_gas: Optional[int] = None,
     ) -> None:
         self._coinbase = coinbase
@@ -53,7 +51,6 @@ class ExecutionContext(ExecutionContextAPI):
         self._prev_hashes = CachedIterable(prev_hashes)
         self._chain_id = chain_id
         self._base_fee_per_gas = base_fee_per_gas
-        self._blob_gas_used = blob_gas_used
         self._excess_blob_gas = excess_blob_gas
 
     @property
@@ -97,16 +94,6 @@ class ExecutionContext(ExecutionContextAPI):
             )
         else:
             return self._base_fee_per_gas
-
-    @property
-    def blob_gas_used(self) -> int:
-        if self._blob_gas_used is None:
-            raise AttributeError(
-                f"This header at Block #{self.block_number} "
-                "does not have a blob gas used"
-            )
-        else:
-            return self._blob_gas_used
 
     @property
     def excess_blob_gas(self) -> int:
