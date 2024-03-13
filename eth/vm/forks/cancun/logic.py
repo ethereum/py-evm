@@ -11,6 +11,9 @@ from eth._utils.address import (
 from eth.abc import (
     ComputationAPI,
 )
+from eth.exceptions import (
+    Halt,
+)
 from eth.vm import (
     mnemonics,
 )
@@ -45,7 +48,7 @@ def selfdestruct_eip6780(computation: ComputationAPI) -> None:
     # breakpoint()
 
     # check if the transaction is the same as the one that created the contract
-    if computation.msg.is_create:
+    if computation.msg.storage_address in computation.contracts_created:
         # allow contract to selfdestruct
         selfdestruct_eip2929(computation)
     else:
@@ -87,3 +90,4 @@ def selfdestruct_eip6780(computation: ComputationAPI) -> None:
             f"SELFDESTRUCT: {encode_hex(computation.msg.storage_address)} "
             f"({local_balance}) -> {encode_hex(beneficiary)}"
         )
+        raise Halt("SELFDESTRUCT")
