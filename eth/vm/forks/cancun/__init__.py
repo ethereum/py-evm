@@ -2,7 +2,9 @@ from typing import (
     Type,
 )
 
-from eth._utils.db import get_block_header_by_hash
+from eth._utils.db import (
+    get_block_header_by_hash,
+)
 from eth.abc import (
     BlockAPI,
     BlockHeaderAPI,
@@ -58,19 +60,11 @@ class CancunVM(ShanghaiVM):
         create_cancun_header_from_parent()
     )
 
-    @staticmethod
-    def _get_total_blob_gas(transaction: TransactionFieldsAPI) -> int:
-        try:
-            return GAS_PER_BLOB * len(transaction.blob_versioned_hashes)  # type: ignore
-        except (AttributeError, NotImplementedError):
-            return 0
-
     def increment_blob_gas_used(
         self, old_header: BlockHeaderAPI, transaction: TransactionFieldsAPI
     ) -> BlockHeaderAPI:
         return old_header.copy(
-            blob_gas_used=old_header.blob_gas_used
-            + self._get_total_blob_gas(transaction)
+            blob_gas_used=old_header.blob_gas_used + get_total_blob_gas(transaction)
         )
 
     @classmethod

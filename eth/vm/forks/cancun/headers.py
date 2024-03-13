@@ -33,12 +33,11 @@ def calc_excess_blob_gas(parent_header: BlockHeaderAPI) -> int:
     ):
         return 0
     else:
-        excess_blob_gas = (
+        return (
             parent_header.excess_blob_gas
             + parent_header.blob_gas_used
             - TARGET_BLOB_GAS_PER_BLOCK
         )
-        return excess_blob_gas
 
 
 @curry
@@ -70,5 +69,4 @@ def create_cancun_header_from_parent(
     if parent_header is not None:
         all_fields["excess_blob_gas"] = calc_excess_blob_gas(parent_header)
 
-    new_header = CancunBlockHeader(**all_fields)
-    return new_header
+    return CancunBlockHeader(**all_fields)
