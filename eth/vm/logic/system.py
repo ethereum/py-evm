@@ -149,7 +149,7 @@ class Create(Opcode):
             computation.msg.storage_address,
             creation_nonce,
         )
-
+        computation.contracts_created.append(contract_address)
         return contract_address
 
     def get_stack_data(self, computation: ComputationAPI) -> CreateOpcodeStackData:
@@ -271,9 +271,11 @@ class Create2(CreateByzantium):
         computation: ComputationAPI,
     ) -> Address:
         computation.state.increment_nonce(computation.msg.storage_address)
-        return generate_safe_contract_address(
+        generated_address = generate_safe_contract_address(
             computation.msg.storage_address, stack_data.salt, call_data
         )
+        computation.contracts_created.append(generated_address)
+        return generated_address
 
     def apply_create_message(
         self,

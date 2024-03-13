@@ -1992,6 +1992,7 @@ class ComputationAPI(
     children: List["ComputationAPI"]
     return_data: bytes = b""
     accounts_to_delete: Dict[Address, Address]
+    contracts_created: List[Address] = []
 
     _memory: MemoryAPI
     _stack: StackAPI
