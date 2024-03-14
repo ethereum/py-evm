@@ -61,7 +61,7 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stAttackTest/ContractCreationSpam.json",
-        "ContractCreationSpam_d0g0v0_Merge",
+        "ContractCreationSpam_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stAttackTest/ContractCreationSpam.json",
@@ -85,7 +85,7 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stCallCreateCallCodeTest/Call1024PreCalls.json",
-        "Call1024PreCalls_d0g0v0_Merge",
+        "Call1024PreCalls_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stCallCreateCallCodeTest/Call1024PreCalls.json",
@@ -97,7 +97,7 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stCallCreateCallCodeTest/Call1024PreCalls.json",
-        "Call1024PreCalls_d0g1v0_Merge",
+        "Call1024PreCalls_d0g1v0_Paris",
     ),
     (
         "GeneralStateTests/stCallCreateCallCodeTest/Call1024PreCalls.json",
@@ -145,7 +145,7 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stCreate2/Create2Recursive.json",
-        "Create2Recursive_d0g0v0_Merge",
+        "Create2Recursive_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stCreate2/Create2Recursive.json",
@@ -165,11 +165,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stCreate2/Create2Recursive.json",
-        "Create2Recursive_d0g1v0_Merge",
+        "Create2Recursive_d0g1v0_Paris",
     ),
     (
         "GeneralStateTests/stCreate2/Create2Recursive.json",
         "Create2Recursive_d0g1v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stCreate2/Create2Recursive.json",
+        "Create2Recursive_d0g1v0_Cancun",
     ),
     (
         "GeneralStateTests/stDelegatecallTestHomestead/Call1024BalanceTooLow.json",
@@ -233,11 +237,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stRevertTest/LoopCallsThenRevert.json",
-        "LoopCallsThenRevert_d0g0v0_Merge",
+        "LoopCallsThenRevert_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stRevertTest/LoopCallsThenRevert.json",
         "LoopCallsThenRevert_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stRevertTest/LoopCallsThenRevert.json",
+        "LoopCallsThenRevert_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stRevertTest/LoopCallsThenRevert.json",
@@ -253,11 +261,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stRevertTest/LoopCallsThenRevert.json",
-        "LoopCallsThenRevert_d0g1v0_Merge",
+        "LoopCallsThenRevert_d0g1v0_Paris",
     ),
     (
         "GeneralStateTests/stRevertTest/LoopCallsThenRevert.json",
         "LoopCallsThenRevert_d0g1v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stRevertTest/LoopCallsThenRevert.json",
+        "LoopCallsThenRevert_d0g1v0_Cancun",
     ),
     (
         "GeneralStateTests/stShift/shiftCombinations.json",
@@ -301,11 +313,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call1MB1024Calldepth.json",
-        "static_Call1MB1024Calldepth_d1g0v0_Merge",
+        "static_Call1MB1024Calldepth_d1g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call1MB1024Calldepth.json",
         "static_Call1MB1024Calldepth_d1g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call1MB1024Calldepth.json",
+        "static_Call1MB1024Calldepth_d1g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000.json",
@@ -321,11 +337,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000.json",
-        "static_Call50000_d0g0v0_Merge",
+        "static_Call50000_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000.json",
         "static_Call50000_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000.json",
+        "static_Call50000_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000.json",
@@ -341,11 +361,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000.json",
-        "static_Call50000_d1g0v0_Merge",
+        "static_Call50000_d1g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000.json",
         "static_Call50000_d1g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000.json",
+        "static_Call50000_d1g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_ecrec.json",
@@ -361,11 +385,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_ecrec.json",
-        "static_Call50000_ecrec_d0g0v0_Merge",
+        "static_Call50000_ecrec_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_ecrec.json",
         "static_Call50000_ecrec_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000_ecrec.json",
+        "static_Call50000_ecrec_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_ecrec.json",
@@ -381,11 +409,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_ecrec.json",
-        "static_Call50000_ecrec_d1g0v0_Merge",
+        "static_Call50000_ecrec_d1g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_ecrec.json",
         "static_Call50000_ecrec_d1g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000_ecrec.json",
+        "static_Call50000_ecrec_d1g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity.json",
@@ -401,11 +433,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity.json",
-        "static_Call50000_identity_d0g0v0_Merge",
+        "static_Call50000_identity_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity.json",
         "static_Call50000_identity_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000_identity.json",
+        "static_Call50000_identity_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity.json",
@@ -421,11 +457,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity.json",
-        "static_Call50000_identity_d1g0v0_Merge",
+        "static_Call50000_identity_d1g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity.json",
         "static_Call50000_identity_d1g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000_identity.json",
+        "static_Call50000_identity_d1g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity2.json",
@@ -441,11 +481,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity2.json",
-        "static_Call50000_identity2_d0g0v0_Merge",
+        "static_Call50000_identity2_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity2.json",
         "static_Call50000_identity2_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000_identity2.json",
+        "static_Call50000_identity2_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity2.json",
@@ -461,11 +505,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity2.json",
-        "static_Call50000_identity2_d1g0v0_Merge",
+        "static_Call50000_identity2_d1g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_identity2.json",
         "static_Call50000_identity2_d1g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000_identity2.json",
+        "static_Call50000_identity2_d1g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_rip160.json",
@@ -481,11 +529,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_rip160.json",
-        "static_Call50000_rip160_d0g0v0_Merge",
+        "static_Call50000_rip160_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_rip160.json",
         "static_Call50000_rip160_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000_rip160.json",
+        "static_Call50000_rip160_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_rip160.json",
@@ -501,11 +553,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_rip160.json",
-        "static_Call50000_rip160_d1g0v0_Merge",
+        "static_Call50000_rip160_d1g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000_rip160.json",
         "static_Call50000_rip160_d1g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Call50000_rip160.json",
+        "static_Call50000_rip160_d1g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Call50000bytesContract50_1.json",
@@ -545,11 +601,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json",
-        "static_LoopCallsThenRevert_d0g0v0_Merge",
+        "static_LoopCallsThenRevert_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json",
         "static_LoopCallsThenRevert_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json",
+        "static_LoopCallsThenRevert_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json",
@@ -565,11 +625,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json",
-        "static_LoopCallsThenRevert_d0g1v0_Merge",
+        "static_LoopCallsThenRevert_d0g1v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json",
         "static_LoopCallsThenRevert_d0g1v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_LoopCallsThenRevert.json",
+        "static_LoopCallsThenRevert_d0g1v0_Cancun",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Return50000_2.json",
@@ -585,11 +649,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stStaticCall/static_Return50000_2.json",
-        "static_Return50000_2_d0g0v0_Merge",
+        "static_Return50000_2_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stStaticCall/static_Return50000_2.json",
         "static_Return50000_2_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stStaticCall/static_Return50000_2.json",
+        "static_Return50000_2_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stSystemOperationsTest/CallRecursiveBomb0_OOG_atMaxCallDepth.json",  # noqa: E501
@@ -609,11 +677,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stTimeConsuming/CALLBlake2f_MaxRounds.json",
-        "CALLBlake2f_MaxRounds_d0g0v0_Merge",
+        "CALLBlake2f_MaxRounds_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stTimeConsuming/CALLBlake2f_MaxRounds.json",
         "CALLBlake2f_MaxRounds_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stTimeConsuming/CALLBlake2f_MaxRounds.json",
+        "CALLBlake2f_MaxRounds_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json",
@@ -629,11 +701,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json",
-        "static_Call50000_sha256_d0g0v0_Merge",
+        "static_Call50000_sha256_d0g0v0_Paris",
     ),
     (
         "GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json",
         "static_Call50000_sha256_d0g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json",
+        "static_Call50000_sha256_d0g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json",
@@ -649,11 +725,15 @@ SLOWEST_TESTS = {
     ),
     (
         "GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json",
-        "static_Call50000_sha256_d1g0v0_Merge",
+        "static_Call50000_sha256_d1g0v0_Paris",
     ),
     (
         "GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json",
         "static_Call50000_sha256_d1g0v0_Shanghai",
+    ),
+    (
+        "GeneralStateTests/stTimeConsuming/static_Call50000_sha256.json",
+        "static_Call50000_sha256_d1g0v0_Cancun",
     ),
     (
         "GeneralStateTests/stZeroKnowledge/ecpairing_one_point_fail.json",
@@ -797,31 +877,33 @@ SLOWEST_TESTS = {
     ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d12g0v0_London"),
     ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d13g0v0_London"),
     ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d14g0v0_London"),
-    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d8g0v0_Merge"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d8g0v0_Paris"),
     ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d8g0v0_Shanghai"),
-    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d9g0v0_Merge"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d8g0v0_Cancun"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d9g0v0_Paris"),
     ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d9g0v0_Shanghai"),
-    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d10g0v0_Merge"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d9g0v0_Cancun"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d10g0v0_Paris"),
     (
         "GeneralStateTests/VMTests/vmPerformance/loopExp.json",
         "loopExp_d10g0v0_Shanghai",
     ),
-    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d11g0v0_Merge"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d11g0v0_Paris"),
     (
         "GeneralStateTests/VMTests/vmPerformance/loopExp.json",
         "loopExp_d11g0v0_Shanghai",
     ),
-    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d12g0v0_Merge"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d12g0v0_Paris"),
     (
         "GeneralStateTests/VMTests/vmPerformance/loopExp.json",
         "loopExp_d12g0v0_Shanghai",
     ),
-    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d13g0v0_Merge"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d13g0v0_Paris"),
     (
         "GeneralStateTests/VMTests/vmPerformance/loopExp.json",
         "loopExp_d13g0v0_Shanghai",
     ),
-    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d14g0v0_Merge"),
+    ("GeneralStateTests/VMTests/vmPerformance/loopExp.json", "loopExp_d14g0v0_Paris"),
     (
         "GeneralStateTests/VMTests/vmPerformance/loopExp.json",
         "loopExp_d14g0v0_Shanghai",
@@ -832,7 +914,7 @@ SLOWEST_TESTS = {
             f"loopMul_d{i}g0v0_{fork}",
         )
         for i in range(3)
-        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai"]
+        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai", "Cancun"]
     ),
     (
         "InvalidBlocks/bcForgedTest/bcForkBlockTest.json",
@@ -899,6 +981,7 @@ SLOWEST_TESTS = {
     ("ValidBlocks/VMTests/vmPerformance/loop-add-10M.json", "loop-add-10M_London"),
     ("ValidBlocks/VMTests/vmPerformance/loop-add-10M.json", "loop-add-10M_Paris"),
     ("ValidBlocks/VMTests/vmPerformance/loop-add-10M.json", "loop-add-10M_Shanghai"),
+    ("ValidBlocks/VMTests/vmPerformance/loop-add-10M.json", "loop-add-10M_Cancun"),
     (
         "ValidBlocks/VMTests/vmPerformance/loop-divadd-10M.json",
         "loop-divadd-10M_Istanbul",
@@ -915,6 +998,10 @@ SLOWEST_TESTS = {
     (
         "ValidBlocks/VMTests/vmPerformance/loop-divadd-10M.json",
         "loop-divadd-10M_Shanghai",
+    ),
+    (
+        "ValidBlocks/VMTests/vmPerformance/loop-divadd-10M.json",
+        "loop-divadd-10M_Cancun",
     ),
     (
         "ValidBlocks/VMTests/vmPerformance/loop-divadd-unr100-10M.json",
@@ -937,6 +1024,10 @@ SLOWEST_TESTS = {
         "loop-divadd-unr100-10M_Shanghai",
     ),
     (
+        "ValidBlocks/VMTests/vmPerformance/loop-divadd-unr100-10M.json",
+        "loop-divadd-unr100-10M_Cancun",
+    ),
+    (
         "ValidBlocks/VMTests/vmPerformance/loop-exp-16b-100k.json",
         "loop-exp-16b-100k_Istanbul",
     ),
@@ -957,6 +1048,10 @@ SLOWEST_TESTS = {
         "loop-exp-16b-100k_Shanghai",
     ),
     (
+        "ValidBlocks/VMTests/vmPerformance/loop-exp-16b-100k.json",
+        "loop-exp-16b-100k_Cancun",
+    ),
+    (
         "ValidBlocks/VMTests/vmPerformance/loop-exp-1b-1M.json",
         "loop-exp-1b-1M_Istanbul",
     ),
@@ -966,6 +1061,10 @@ SLOWEST_TESTS = {
     (
         "ValidBlocks/VMTests/vmPerformance/loop-exp-1b-1M.json",
         "loop-exp-1b-1M_Shanghai",
+    ),
+    (
+        "ValidBlocks/VMTests/vmPerformance/loop-exp-1b-1M.json",
+        "loop-exp-1b-1M_Cancun",
     ),
     (
         "ValidBlocks/VMTests/vmPerformance/loop-exp-32b-100k.json",
@@ -988,6 +1087,10 @@ SLOWEST_TESTS = {
         "loop-exp-32b-100k_Shanghai",
     ),
     (
+        "ValidBlocks/VMTests/vmPerformance/loop-exp-32b-100k.json",
+        "loop-exp-32b-100k_Cancun",
+    ),
+    (
         "ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json",
         "loop-exp-nop-1M_Istanbul",
     ),
@@ -1004,11 +1107,16 @@ SLOWEST_TESTS = {
         "ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json",
         "loop-exp-nop-1M_Shanghai",
     ),
+    (
+        "ValidBlocks/VMTests/vmPerformance/loop-exp-nop-1M.json",
+        "loop-exp-nop-1M_Cancun",
+    ),
     ("ValidBlocks/VMTests/vmPerformance/loop-mul.json", "loop-mul_Istanbul"),
     ("ValidBlocks/VMTests/vmPerformance/loop-mul.json", "loop-mul_Berlin"),
     ("ValidBlocks/VMTests/vmPerformance/loop-mul.json", "loop-mul_London"),
     ("ValidBlocks/VMTests/vmPerformance/loop-mul.json", "loop-mul_Paris"),
     ("ValidBlocks/VMTests/vmPerformance/loop-mul.json", "loop-mul_Shanghai"),
+    ("ValidBlocks/VMTests/vmPerformance/loop-mul.json", "loop-mul_Cancun"),
     (
         "ValidBlocks/VMTests/vmPerformance/loop-mulmod-2M.json",
         "loop-mulmod-2M_Istanbul",
@@ -1019,6 +1127,10 @@ SLOWEST_TESTS = {
     (
         "ValidBlocks/VMTests/vmPerformance/loop-mulmod-2M.json",
         "loop-mulmod-2M_Shanghai",
+    ),
+    (
+        "ValidBlocks/VMTests/vmPerformance/loop-mulmod-2M.json",
+        "loop-mulmod-2M_Cancun",
     ),
 }
 
@@ -1070,7 +1182,7 @@ INCORRECT_UPSTREAM_TESTS = {
             "GeneralStateTests/stRevertTest/RevertInCreateInInit_Paris.json",
             f"RevertInCreateInInit_Paris_d0g0v0_{fork}",
         )
-        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai"]
+        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai", "Cancun"]
     ),
     # The CREATE2 variant seems to have been derived from the one above - it, too,
     # has a "synthetic" state, on which py-evm flips.
@@ -1108,7 +1220,7 @@ INCORRECT_UPSTREAM_TESTS = {
             "GeneralStateTests/stCreate2/RevertInCreateInInitCreate2Paris.json",
             f"RevertInCreateInInitCreate2Paris_d0g0v0_{fork}",
         )
-        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai"]
+        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai", "Cancun"]
     ),
     # Four variants have been specifically added to test a collision type
     # like the above; therefore, they fail in the same manner.
@@ -1149,7 +1261,7 @@ INCORRECT_UPSTREAM_TESTS = {
             f"InitCollision_d{i}g0v0_{fork}",
         )
         for i in range(4)
-        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai"]
+        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai", "Cancun"]
     ),
     # TODO: Investigate if these are still unaddressed and supposed to be off or not
     *(
@@ -1158,7 +1270,7 @@ INCORRECT_UPSTREAM_TESTS = {
             f"InitCollisionParis_d{i}g0v0_{fork}",
         )
         for i in range(4)
-        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai"]
+        for fork in ["Istanbul", "Berlin", "London", "Paris", "Shanghai", "Cancun"]
     ),
 }
 
@@ -1303,7 +1415,16 @@ def test_blockchain_fixtures(fixture_data, fixture):
                 chain,
                 perform_validation=False,  # we manually validate below
             )
-            assert_imported_block_unchanged(original_block, executed_block)
+            try:
+                assert_imported_block_unchanged(original_block, executed_block)
+            except AssertionError as e:
+                # if only one error on state root, verify `postState` to try and
+                # pinpoint specific state issues and re-raise if that doesn't catch
+                # any errors
+                if all(substr in str(e) for substr in ("1 fields", "state_root")):
+                    verify_post_state(chain, fixture)
+                raise e
+
             chain.validate_block(original_block)
         else:
             try:
@@ -1313,7 +1434,10 @@ def test_blockchain_fixtures(fixture_data, fixture):
                 pass
             else:
                 raise AssertionError("Block should have caused a validation error")
+    verify_post_state(chain, fixture)
 
+
+def verify_post_state(chain, fixture):
     latest_block_hash = chain.get_canonical_block_by_number(
         chain.get_block().number - 1
     ).hash
