@@ -94,11 +94,7 @@ class CancunVM(ShanghaiVM):
         if block.header.excess_blob_gas != calc_excess_blob_gas(parent_header):
             raise ValidationError("Block excess blob gas was not updated correctly.")
 
-        blob_gas_used = sum(
-            get_total_blob_gas(tx)
-            for tx in block.transactions
-            if tx.type_id == BLOB_TX_TYPE
-        )
+        blob_gas_used = sum(get_total_blob_gas(tx) for tx in block.transactions)
 
         # ensure the total blob gas spent is at most equal to the limit
         if blob_gas_used > MAX_BLOB_GAS_PER_BLOCK:
