@@ -20,11 +20,11 @@ from eth.vm.transaction_context import (
 
 class DummyComputation(BaseComputation):
     @classmethod
-    def apply_message(cls, *args):
+    def apply_message(cls, *args, **kwargs):
         return cls(*args)
 
     @classmethod
-    def apply_create_message(cls, *args):
+    def apply_create_message(cls, *args, **kwargs):
         return cls(*args)
 
 

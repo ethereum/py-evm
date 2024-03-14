@@ -160,6 +160,7 @@ class BaseComputation(ComputationAPI, Configurable):
         state: StateAPI,
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
         raise NotImplementedError("Must be implemented by subclasses")
 
@@ -169,6 +170,7 @@ class BaseComputation(ComputationAPI, Configurable):
         state: StateAPI,
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
         raise NotImplementedError("Must be implemented by subclasses")
 
@@ -217,12 +219,14 @@ class BaseComputation(ComputationAPI, Configurable):
                 self.state,
                 child_msg,
                 self.transaction_context,
+                parent_computation=self,
             )
         else:
             child_computation = self.apply_message(
                 self.state,
                 child_msg,
                 self.transaction_context,
+                parent_computation=self,
             )
         return child_computation
 
@@ -325,19 +329,27 @@ class BaseComputation(ComputationAPI, Configurable):
         state: StateAPI,
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
         with cls(state, message, transaction_context) as computation:
-            # hand off current running total of contracts created by the computation
-            # to any child computations
-            computation.contracts_created = cls.contracts_created
+            if computation.is_origin_computation:
+                # If origin computation, reset contracts_created
+                computation.contracts_created = []
 
-            if message.is_create:
-                if computation.is_origin_computation:
+                if message.is_create:
                     # If computation is from a create transaction, consume initcode gas
                     # if >= Shanghai. CREATE and CREATE2 are handled in the opcode
                     # implementations.
                     cls.consume_initcode_gas_cost(computation)
 
+            if parent_computation is not None:
+                # If this is a child computation (has a parent computation), inherit the
+                # contracts_created
+                computation.contracts_created = parent_computation.contracts_created
+
+            if message.is_create:
+                # For all create messages, append the storage address to the
+                # contracts_created list
                 computation.contracts_created.append(message.storage_address)
 
             # Early exit on pre-compiles
@@ -358,8 +370,14 @@ class BaseComputation(ComputationAPI, Configurable):
                 if show_debug2:
                     # We dig into some internals for debug logs
                     base_comp = cast(BaseComputation, computation)
+
+                    try:
+                        mnemonic = opcode_fn.mnemonic
+                    except AttributeError:
+                        mnemonic = opcode_fn.__wrapped__.mnemonic  # type: ignore
+
                     computation.logger.debug2(
-                        f"OPCODE: 0x{opcode:x} ({opcode_fn.mnemonic}) | "
+                        f"OPCODE: 0x{opcode:x} ({mnemonic}) | "
                         f"pc: {max(0, computation.code.program_counter - 1)} | "
                         f"stack: {base_comp._stack}"
                     )
