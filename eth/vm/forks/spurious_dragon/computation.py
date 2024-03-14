@@ -1,3 +1,7 @@
+from typing import (
+    Optional,
+)
+
 from eth_hash.auto import (
     keccak,
 )
@@ -46,6 +50,7 @@ class SpuriousDragonComputation(HomesteadComputation):
         state: StateAPI,
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
         snapshot = state.snapshot()
 
@@ -54,7 +59,9 @@ class SpuriousDragonComputation(HomesteadComputation):
 
         cls.validate_create_message(message)
 
-        computation = cls.apply_message(state, message, transaction_context)
+        computation = cls.apply_message(
+            state, message, transaction_context, parent_computation=parent_computation
+        )
 
         if computation.is_error:
             state.revert(snapshot)

@@ -1,3 +1,7 @@
+from typing import (
+    Optional,
+)
+
 from eth_hash.auto import (
     keccak,
 )
@@ -41,6 +45,7 @@ class HomesteadComputation(FrontierComputation):
         state: StateAPI,
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
         snapshot = state.snapshot()
 

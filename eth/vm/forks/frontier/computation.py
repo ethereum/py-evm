@@ -1,3 +1,7 @@
+from typing import (
+    Optional,
+)
+
 from eth_hash.auto import (
     keccak,
 )
@@ -58,6 +62,7 @@ class FrontierComputation(BaseComputation):
         state: StateAPI,
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
         snapshot = state.snapshot()
 
@@ -86,6 +91,7 @@ class FrontierComputation(BaseComputation):
             state,
             message,
             transaction_context,
+            parent_computation=parent_computation,
         )
 
         if computation.is_error:
@@ -101,8 +107,11 @@ class FrontierComputation(BaseComputation):
         state: StateAPI,
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
-        computation = cls.apply_message(state, message, transaction_context)
+        computation = cls.apply_message(
+            state, message, transaction_context, parent_computation=parent_computation
+        )
 
         if computation.is_error:
             return computation

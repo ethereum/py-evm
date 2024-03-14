@@ -2346,6 +2346,7 @@ class ComputationAPI(
         state: "StateAPI",
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional["ComputationAPI"] = None,
     ) -> "ComputationAPI":
         """
         Execute a VM message. This is where the VM-specific call logic exists.
@@ -2359,6 +2360,7 @@ class ComputationAPI(
         state: "StateAPI",
         message: MessageAPI,
         transaction_context: TransactionContextAPI,
+        parent_computation: Optional["ComputationAPI"] = None,
     ) -> "ComputationAPI":
         """
         Execute a VM message to create a new contract. This is where the VM-specific
