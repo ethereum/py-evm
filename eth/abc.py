@@ -1991,7 +1991,8 @@ class ComputationAPI(
     code: CodeStreamAPI
     children: List["ComputationAPI"]
     return_data: bytes = b""
-    accounts_to_delete: Dict[Address, Address]
+    accounts_to_delete: List[Address]
+    beneficiaries: List[Address]
     contracts_created: List[Address] = []
 
     _memory: MemoryAPI
@@ -2302,9 +2303,17 @@ class ComputationAPI(
         ...
 
     @abstractmethod
-    def get_accounts_for_deletion(self) -> Tuple[Tuple[Address, Address], ...]:
+    def get_accounts_for_deletion(self) -> List[Address]:
         """
         Return a tuple of addresses that are registered for deletion.
+        """
+        ...
+
+    @abstractmethod
+    def get_self_destruct_beneficiaries(self) -> List[Address]:
+        """
+        Return a list of addresses that were beneficiaries of the self-destruct
+        opcode - whether or not the contract was self-destructed, post-Cancun.
         """
         ...
 

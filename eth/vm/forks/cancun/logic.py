@@ -84,6 +84,7 @@ def selfdestruct_eip6780(computation: ComputationAPI) -> None:
         contract_balance = computation.state.get_balance(contract_address)
         computation.state.delta_balance(beneficiary, contract_balance)
         computation.state.delta_balance(contract_address, -1 * contract_balance)
+        computation.beneficiaries.append(beneficiary)
 
         computation.logger.debug2(
             f"SELFDESTRUCT: {encode_hex(contract_address)} "
