@@ -118,7 +118,8 @@ class BaseComputation(ComputationAPI, Configurable):
     code: CodeStreamAPI = None
     children: List[ComputationAPI] = None
     return_data: bytes = b""
-    accounts_to_delete: Dict[Address, Address] = None
+    accounts_to_delete: List[Address] = None
+    beneficiaries: List[Address] = None
 
     _memory: MemoryAPI = None
     _stack: StackAPI = None
@@ -145,7 +146,8 @@ class BaseComputation(ComputationAPI, Configurable):
         self._gas_meter = self._configure_gas_meter()
 
         self.children = []
-        self.accounts_to_delete = {}
+        self.accounts_to_delete = []
+        self.beneficiaries = []
         self._stack = Stack()
         self._memory = Memory()
         self._log_entries = []
@@ -272,21 +274,42 @@ class BaseComputation(ComputationAPI, Configurable):
                 "Invariant.  Should be impossible for an account to be "
                 "registered for deletion multiple times"
             )
-        self.accounts_to_delete[self.msg.storage_address] = beneficiary
+        self.accounts_to_delete.append(self.msg.storage_address)
+        self.beneficiaries.append(beneficiary)
 
-    def get_accounts_for_deletion(self) -> Tuple[Tuple[Address, Address], ...]:
+    def get_accounts_for_deletion(self) -> List[Address]:
         # SELFDESTRUCT
 
         if self.is_error:
-            return ()
+            return []
         else:
-            return tuple(
-                dict(
+            # return accounts to delete from children and self
+            return list(
+                set(
                     itertools.chain(
-                        self.accounts_to_delete.items(),
                         *(child.get_accounts_for_deletion() for child in self.children),
+                        self.accounts_to_delete,
                     )
-                ).items()
+                )
+            )
+
+    def get_self_destruct_beneficiaries(self) -> List[Address]:
+        # SELFDESTRUCT
+
+        if self.is_error:
+            return []
+        else:
+            # return self-destruct beneficiaries from children and self
+            return list(
+                set(
+                    itertools.chain(
+                        *(
+                            child.get_self_destruct_beneficiaries()
+                            for child in self.children
+                        ),
+                        self.beneficiaries,
+                    )
+                )
             )
 
     # -- EVM logging -- #
