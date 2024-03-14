@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import os
+import subprocess
 import sys
 from pathlib import Path
-import subprocess
 
 
 def main():
@@ -11,7 +11,7 @@ def main():
     template_vars_file = template_dir / "template_vars.txt"
     fill_template_vars_script = template_dir / "fill_template_vars.py"
 
-    with open(template_vars_file, "r") as input_file:
+    with open(template_vars_file) as input_file:
         content_lines = input_file.readlines()
 
     process = subprocess.Popen(
@@ -36,4 +36,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (KeyboardInterrupt, SystemExit):
+        pass
