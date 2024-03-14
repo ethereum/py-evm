@@ -185,7 +185,7 @@ class CancunState(ShanghaiState):
         self: StateAPI, transaction: SignedTransactionAPI
     ) -> TransactionContextAPI:
         context = super().get_transaction_context(transaction)  # type: ignore
-        if transaction.type_id == BLOB_TX_TYPE:
+        if hasattr(transaction, "type_id") and transaction.type_id == BLOB_TX_TYPE:
             # if the transaction is a blob transaction, expose blob versioned hashes
             # through the transaction context
             context._blob_versioned_hashes = transaction.blob_versioned_hashes  # type: ignore  # noqa: E501
