@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 
 import os
-import sys
 import re
+import sys
 from pathlib import Path
 
 
-def _find_files(project_root):
-    path_exclude_pattern = r"\.git($|\/)|venv|_build"
-    file_exclude_pattern = r"fill_template_vars\.py|\.swp$"
+def _find_files(project_root: Path) -> list[str]:
+    PATH_EXCLUDE_PATTERN = r"\.git($|\/)|venv|_build"
+    FILE_EXCLUDE_PATTERN = r"fill_template_vars\.py|\.swp$"
+
     filepaths = []
-    for dir_path, _dir_names, file_names in os.walk(project_root):
-        if not re.search(path_exclude_pattern, dir_path):
+    for dir_path, _, file_names in os.walk(project_root):
+        if not re.search(PATH_EXCLUDE_PATTERN, dir_path):
             for file in file_names:
-                if not re.search(file_exclude_pattern, file):
+                if not re.search(FILE_EXCLUDE_PATTERN, file):
                     filepaths.append(str(Path(dir_path, file)))
 
     return filepaths
 
 
-def _replace(pattern, replacement, project_root):
+def _replace(pattern: str, replacement: str, project_root: Path):
     print(f"Replacing values: {pattern}")
     for file in _find_files(project_root):
         try:
