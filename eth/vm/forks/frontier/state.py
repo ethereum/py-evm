@@ -199,7 +199,7 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         self.vm_state.delta_balance(self.vm_state.coinbase, transaction_fee)
 
         # Process Self Destructs
-        for account, _ in computation.get_accounts_for_deletion():
+        for account in computation.get_accounts_for_deletion():
             self.vm_state.logger.debug2(f"DELETING ACCOUNT: {encode_hex(account)}")
             self.vm_state.delete_account(account)
 

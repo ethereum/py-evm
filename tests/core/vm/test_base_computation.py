@@ -145,17 +145,16 @@ def test_register_accounts_for_deletion(
     computation, canonical_address_a, canonical_address_b
 ):
     computation.register_account_for_deletion(canonical_address_a)
-    assert (
-        computation.accounts_to_delete[computation.msg.storage_address]
-        == canonical_address_a
-    )
+    assert computation.msg.storage_address in computation.accounts_to_delete
+    assert canonical_address_a in computation.beneficiaries
+
     # Another account can be registered for deletion
     computation.msg.storage_address = canonical_address_b
     computation.register_account_for_deletion(canonical_address_a)
 
 
 def test_get_accounts_for_deletion_starts_empty(computation):
-    assert computation.get_accounts_for_deletion() == ()
+    assert computation.get_accounts_for_deletion() == []
 
 
 def test_get_accounts_for_deletion_returns(
@@ -163,17 +162,17 @@ def test_get_accounts_for_deletion_returns(
 ):
     computation.register_account_for_deletion(canonical_address_a)
     # Get accounts for deletion returns the correct account
-    assert computation.get_accounts_for_deletion() == (
-        (canonical_address_a, canonical_address_a),
-    )
+    assert canonical_address_a in computation.get_accounts_for_deletion()
+    assert canonical_address_a in computation.get_self_destruct_beneficiaries()
+
     # Get accounts for deletion can return multiple accounts
     computation.msg.storage_address = canonical_address_b
     computation.register_account_for_deletion(canonical_address_b)
     accounts_for_deletion = sorted(
         computation.get_accounts_for_deletion(), key=lambda item: item[0]
     )
-    assert canonical_address_a == accounts_for_deletion[0][0]
-    assert canonical_address_b == accounts_for_deletion[1][0]
+    assert canonical_address_a == accounts_for_deletion[0]
+    assert canonical_address_b == accounts_for_deletion[1]
 
 
 def test_add_log_entry_starts_empty(computation):

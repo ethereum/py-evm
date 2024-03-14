@@ -40,7 +40,7 @@ def collect_touched_accounts(
     yield computation.state.coinbase
 
     # collect those explicitly marked for deletion ("beneficiary" is of SELFDESTRUCT)
-    for beneficiary in sorted(set(computation.accounts_to_delete.values())):
+    for beneficiary in sorted(computation.get_self_destruct_beneficiaries()):
         if computation.is_error or ancestor_had_error:
             # Special case to account for geth+parity bug
             # https://github.com/ethereum/EIPs/issues/716
