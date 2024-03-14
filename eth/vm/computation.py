@@ -242,6 +242,7 @@ class BaseComputation(ComputationAPI, Configurable):
                 self.return_data = b""
             else:
                 self.return_data = child_computation.output
+
         self.children.append(child_computation)
 
     # -- gas consumption -- #
@@ -326,11 +327,18 @@ class BaseComputation(ComputationAPI, Configurable):
         transaction_context: TransactionContextAPI,
     ) -> ComputationAPI:
         with cls(state, message, transaction_context) as computation:
-            if message.is_create and computation.is_origin_computation:
-                # If computation is from a create transaction, consume initcode gas if
-                # >= Shanghai. CREATE and CREATE2 are handled in the opcode
-                # implementations.
-                cls.consume_initcode_gas_cost(computation)
+            # hand off current running total of contracts created by the computation
+            # to any child computations
+            computation.contracts_created = cls.contracts_created
+
+            if message.is_create:
+                if computation.is_origin_computation:
+                    # If computation is from a create transaction, consume initcode gas
+                    # if >= Shanghai. CREATE and CREATE2 are handled in the opcode
+                    # implementations.
+                    cls.consume_initcode_gas_cost(computation)
+
+                computation.contracts_created.append(message.storage_address)
 
             # Early exit on pre-compiles
             precompile = computation.precompiles.get(message.code_address, NO_RESULT)
