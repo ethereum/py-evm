@@ -135,7 +135,7 @@ def transition_test_at_timestamp(
             return ((0, initial_vm),)
 
         raise ValidationError(
-            "Not a known transition test format - transition_block is ``None``."
+            "Not a known transition test format: transition_block==None."
         )
 
     return (
