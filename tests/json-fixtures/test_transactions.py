@@ -18,6 +18,7 @@ from eth.tools._utils.normalization import (
     normalize_transactiontest_fixture,
 )
 from eth.tools.fixtures import (
+    filter_fixtures,
     generate_fixture_tests,
     load_fixture,
 )
@@ -63,9 +64,7 @@ from eth.vm.forks.spurious_dragon.transactions import (
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-
-BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, "fixtures", "TransactionTests")
-
+ALL_FIXTURES_PATH = os.path.join(ROOT_PROJECT_DIR, "fixtures")
 
 # Fixtures have an `_info` key at their root which we need to skip over.
 FIXTURE_FORK_SKIPS = {"_info", "txbytes"}
@@ -80,16 +79,38 @@ def expand_fixtures_forks(all_fixtures):
     """
     for fixture_path, fixture_key in all_fixtures:
         fixture = load_fixture(fixture_path, fixture_key)
-        for fixture_fork, _ in fixture["result"].items():
-            if fixture_fork not in FIXTURE_FORK_SKIPS:
+
+        if "result" in fixture.keys():
+            # old transaction tests
+            for fixture_fork, _ in fixture["result"].items():
+                if fixture_fork not in FIXTURE_FORK_SKIPS:
+                    yield fixture_path, fixture_key, fixture_fork
+
+        else:
+            # txn tests from pyspec general state tests
+            for fixture_fork, _ in fixture["post"].items():
                 yield fixture_path, fixture_key, fixture_fork
+
+
+def ignore_non_txn_tests(fixture_path, _fixture_name):
+    txn_test_paths = [
+        "TransactionTests/",
+        "GeneralStateTests/Cancun/stEIP4844-blobtransactions",
+        "GeneralStateTests/Pyspecs/cancun/eip4844_blobs",
+        "EIPTests/StateTests/stExample/blobtxExample",
+    ]
+    return not any(fixture_path.startswith(path_start) for path_start in txn_test_paths)
 
 
 def pytest_generate_tests(metafunc):
     generate_fixture_tests(
         metafunc=metafunc,
-        base_fixture_path=BASE_FIXTURE_PATH,
-        preprocess_fn=expand_fixtures_forks,
+        base_fixture_path=ALL_FIXTURES_PATH,
+        filter_fn=filter_fixtures(
+            fixtures_base_dir=ALL_FIXTURES_PATH,
+            ignore_fn=ignore_non_txn_tests,
+        ),
+        postprocess_fn=expand_fixtures_forks,
     )
 
 
@@ -147,25 +168,35 @@ def test_transaction_fixtures(fixture, fixture_transaction_class):
     try:
         txn = TransactionClass.decode(fixture["txbytes"])
     except (rlp.DeserializationError, rlp.exceptions.DecodingError):
-        assert "hash" not in fixture, "Transaction was supposed to be valid"
+        assert (
+            "hash" not in fixture or "expectException" in fixture
+        ), "Transaction was supposed to be valid"
     except TypeError as err:
         # Ensure we are only letting type errors pass that are caused by
         # RLP elements that are lists when they shouldn't be lists
         # (see: /TransactionTests/ttWrongRLP/RLPElementIsListWhenItShouldntBe.json)
         assert err.args == ("'bytes' object cannot be interpreted as an integer",)
-        assert "hash" not in fixture, "Transaction was supposed to be valid"
+        assert (
+            "hash" not in fixture or "expectException" in fixture
+        ), "Transaction was supposed to be valid"
     # fixture normalization changes the fixture key from rlp to rlpHex
     except KeyError:
         assert fixture["rlpHex"]
-        assert "hash" not in fixture, "Transaction was supposed to be valid"
+        assert (
+            "hash" not in fixture or "expectException" in fixture
+        ), "Transaction was supposed to be valid"
     except ValidationError as err:
         err_matchers = ("Cannot build typed transaction with", ">= 0x80")
         assert all(_ in err.args[0] for _ in err_matchers)
-        assert "hash" not in fixture, "Transaction was supposed to be valid"
+        assert (
+            "hash" not in fixture or "expectException" in fixture
+        ), "Transaction was supposed to be valid"
     except UnrecognizedTransactionType as err:
         assert err.args[1] == "Unknown transaction type"
         assert hex(err.args[0]) not in VALID_TRANSACTION_TYPES
-        assert "hash" not in fixture, "Transaction was supposed to be valid"
+        assert (
+            "hash" not in fixture or "expectException" in fixture
+        ), "Transaction was supposed to be valid"
     else:
         # check parameter correctness
         try:

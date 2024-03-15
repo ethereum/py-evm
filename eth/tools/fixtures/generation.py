@@ -46,6 +46,7 @@ def generate_fixture_tests(
     base_fixture_path: str,
     filter_fn: Callable[..., Any] = identity,
     preprocess_fn: Callable[..., Any] = identity,
+    postprocess_fn: Callable[..., Any] = identity,
 ) -> None:
     """
     Helper function for use with `pytest_generate_tests` which will use the
@@ -58,6 +59,8 @@ def generate_fixture_tests(
     - `preprocess_fn` handles any preprocessing that should be done on the raw
        fixtures (such as expanding the statetest fixtures to be multiple tests for
        each fork.
+    - `postprocess_fn` handles any postprocessing that should be done on the fixtures
+       after they have been preprocessed (optional) and filtered (optional).
     """
     if "fixture_data" in metafunc.fixturenames:
         all_fixtures = find_fixtures(base_fixture_path)
@@ -67,6 +70,6 @@ def generate_fixture_tests(
                 f"Suspiciously found zero fixtures: {base_fixture_path}"
             )
 
-        filtered_fixtures = filter_fn(preprocess_fn(all_fixtures))
+        filtered_fixtures = postprocess_fn(filter_fn(preprocess_fn(all_fixtures)))
 
         metafunc.parametrize("fixture_data", filtered_fixtures, ids=idfn)
