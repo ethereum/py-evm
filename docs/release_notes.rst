@@ -3,6 +3,32 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.10.0-beta.1 (2024-03-15)
+----------------------------------
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+
+- Remove ``memory_read`` from ``ComputationAPI`` interface and ``Computation`` implementation. Use ``memory_read_bytes`` in its place for call data read. (`#2140 <https://github.com/ethereum/py-evm/issues/2140>`__)
+
+
+Features
+~~~~~~~~
+
+- Implement EIP-4788: Add ``parent_beacon_block_root`` to execution block headers. (`#2135 <https://github.com/ethereum/py-evm/issues/2135>`__)
+- Implement EIP-1153: Transient Storage. (`#2142 <https://github.com/ethereum/py-evm/issues/2142>`__)
+- Implement EIP-6780: Self-destruct only in same transaction. (`#2148 <https://github.com/ethereum/py-evm/issues/2148>`__)
+- Implement EIP-4844 and EIP-7516: Blob transactions, BLOBHASH opcode, BLOBBASEFEE opcode. (`#2151 <https://github.com/ethereum/py-evm/issues/2151>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Drop the concept of a mining header, post-merge. (`#2134 <https://github.com/ethereum/py-evm/issues/2134>`__)
+- Fix epub docs build issue, add pdf and epub docs builds to CI (`#2137 <https://github.com/ethereum/py-evm/issues/2137>`__)
+- Update *ethereum/tests* submodule to version ``v13.1``. (`#2149 <https://github.com/ethereum/py-evm/issues/2149>`__)
+
+
 py-evm v0.9.0-beta.1 (2024-02-05)
 ---------------------------------
 

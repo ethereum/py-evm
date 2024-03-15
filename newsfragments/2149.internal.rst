@@ -1,1 +1,0 @@
-Update *ethereum/tests* submodule to version ``v13.1``.

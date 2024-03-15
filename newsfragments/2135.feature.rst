@@ -1,1 +1,0 @@
-Implement EIP-4788: Add ``parent_beacon_block_root`` to execution block headers.
