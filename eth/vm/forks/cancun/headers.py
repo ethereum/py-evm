@@ -27,17 +27,21 @@ from .blocks import (
 
 
 def calc_excess_blob_gas(parent_header: BlockHeaderAPI) -> int:
-    if (
-        parent_header.excess_blob_gas + parent_header.blob_gas_used
-        < TARGET_BLOB_GAS_PER_BLOCK
-    ):
+    try:
+        if (
+            parent_header.excess_blob_gas + parent_header.blob_gas_used
+            < TARGET_BLOB_GAS_PER_BLOCK
+        ):
+            return 0
+        else:
+            return (
+                parent_header.excess_blob_gas
+                + parent_header.blob_gas_used
+                - TARGET_BLOB_GAS_PER_BLOCK
+            )
+    except AttributeError:
+        # parent is a non-Cancun header
         return 0
-    else:
-        return (
-            parent_header.excess_blob_gas
-            + parent_header.blob_gas_used
-            - TARGET_BLOB_GAS_PER_BLOCK
-        )
 
 
 @curry

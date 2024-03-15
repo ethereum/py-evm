@@ -102,6 +102,48 @@ def verify_state(expected_state: AccountState, state: StateAPI) -> None:
         )
 
 
+def _block_at_timestamp(fixture: Dict[str, Any], timestamp: int) -> int:
+    transition_block = None
+    for idx, block_fixture in enumerate(fixture["blocks"]):
+        if "expectException" in block_fixture:
+            if len(fixture["blocks"]) == idx + 1:
+                transition_block = idx + 1
+                break
+
+        elif block_fixture["blockHeader"]["timestamp"] >= timestamp:
+            transition_block = block_fixture["blockHeader"]["number"]
+            break
+
+    return transition_block
+
+
+def transition_test_at_timestamp(
+    fixture: Dict[str, Any],
+    initial_vm: Type[VirtualMachineAPI],
+    transition_vm: Type[VirtualMachineAPI],
+    timestamp: int,
+) -> Iterable[Tuple[int, Type[VirtualMachineAPI]]]:
+    transition_block = _block_at_timestamp(fixture, timestamp)
+    if transition_block is None:
+        # This should be a transition test for "before transition". It's a bit of a
+        # misnomer because it's not actually testing the transition, but it's
+        # the best we can do with the data we have.
+        if (
+            len(fixture["blocks"]) == 1
+            and fixture["blocks"][0]["blockHeader"]["timestamp"] < timestamp
+        ):
+            return ((0, initial_vm),)
+
+        raise ValidationError(
+            "Not a known transition test format - transition_block is ``None``."
+        )
+
+    return (
+        (0, initial_vm),
+        (transition_block, transition_vm),
+    )
+
+
 def chain_vm_configuration(
     fixture: Dict[str, Any]
 ) -> Iterable[Tuple[int, Type[VirtualMachineAPI]]]:
@@ -180,12 +222,9 @@ def chain_vm_configuration(
             (6, ParisVM),
         )
     elif network == "ParisToShanghaiAtTime15k":
-        # Transition expected at 5 (timestamp==15000) for all tests written thus far
-        return (
-            (0, ParisVM),
-            (5, ShanghaiVM),
-        )
-
+        return transition_test_at_timestamp(fixture, ParisVM, ShanghaiVM, 15000)
+    elif network == "ShanghaiToCancunAtTime15k":
+        return transition_test_at_timestamp(fixture, ShanghaiVM, CancunVM, 15000)
     else:
         raise ValueError(f"Network {network} does not match any known VM rules")
 
