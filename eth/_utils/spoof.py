@@ -19,6 +19,7 @@ from eth.constants import (
 )
 
 SPOOF_ATTRIBUTES_DEFAULTS = {
+    "type_id": None,
     "y_parity": DEFAULT_SPOOF_Y_PARITY,
     "r": DEFAULT_SPOOF_R,
     "s": DEFAULT_SPOOF_S,
@@ -46,8 +47,12 @@ class SpoofAttributes:
 
             overrides["sender"] = overrides["from_"]
             overrides["get_sender"] = lambda: overrides["from_"]
+
+            if hasattr(self.spoof_target, "_type_id"):
+                overrides["type_id"] = self.spoof_target._type_id
+
             for attr, value in SPOOF_ATTRIBUTES_DEFAULTS.items():
-                if not hasattr(spoof_target, attr):
+                if not hasattr(spoof_target, attr) and attr not in overrides:
                     overrides[attr] = value
 
     def __getattr__(self, attr: str) -> Any:

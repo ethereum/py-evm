@@ -542,18 +542,29 @@ def normalize_transactiontest_fixture(
 ) -> Dict[str, Any]:
     normalized_fixture = {}
 
-    fork_data = fixture["result"][fork]
+    if "result" in fixture:
+        # old transaction tests
+        fork_data = fixture["result"][fork]
+        if "sender" in fork_data:
+            normalized_fixture["sender"] = fork_data["sender"]
+
+        if "hash" in fork_data:
+            normalized_fixture["hash"] = fork_data["hash"]
+    else:
+        # transaction tests from pyspec general state tests
+        fork_data = fixture["post"][fork]
+        fixture = fork_data[0]
+        if "expectException" in fixture:
+            normalized_fixture["expectException"] = fixture["expectException"]
+        if "transaction" in fixture:
+            normalized_fixture["sender"] = fixture["transaction"]["sender"]
+        if "hash" in fixture:
+            normalized_fixture["hash"] = fixture["hash"]
 
     try:
         normalized_fixture["txbytes"] = decode_hex(fixture["txbytes"])
     except binascii.Error:
         normalized_fixture["rlpHex"] = fixture["txbytes"]
-
-    if "sender" in fork_data:
-        normalized_fixture["sender"] = fork_data["sender"]
-
-    if "hash" in fork_data:
-        normalized_fixture["hash"] = fork_data["hash"]
 
     return normalized_fixture
 

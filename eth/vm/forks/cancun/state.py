@@ -205,7 +205,7 @@ class CancunState(ShanghaiState):
         max_total_fee = transaction.gas * transaction.max_fee_per_gas
         if transaction.type_id == BLOB_TX_TYPE:
             max_total_fee += (
-                get_total_blob_gas(transaction) * transaction.max_fee_per_blob_gas  # type: ignore  # noqa: E501
+                get_total_blob_gas(transaction) * transaction.max_fee_per_blob_gas
             )
         if self.get_balance(transaction.sender) < max_total_fee:
             raise ValidationError("Sender has insufficient funds for blob fee.")
@@ -213,13 +213,13 @@ class CancunState(ShanghaiState):
         # add validity logic specific to blob txs
         if transaction.type_id == BLOB_TX_TYPE:
             # there must be at least one blob
-            if len(transaction.blob_versioned_hashes) == 0:  # type: ignore  # noqa: E501
+            if len(transaction.blob_versioned_hashes) == 0:
                 raise ValidationError(
                     "Blob transaction must contain at least one blob."
                 )
 
             # all versioned blob hashes must start with VERSIONED_HASH_VERSION_KZG
-            for h in transaction.blob_versioned_hashes:  # type: ignore  # noqa: E501
+            for h in transaction.blob_versioned_hashes:
                 if h[0].to_bytes() != VERSIONED_HASH_VERSION_KZG:
                     raise ValidationError(
                         "Blob versioned hash does not start with expected "
@@ -228,7 +228,7 @@ class CancunState(ShanghaiState):
 
             # ensure that the user was willing to at least pay the current
             # blob base fee
-            if transaction.max_fee_per_blob_gas < self.blob_base_fee:  # type: ignore  # noqa: E501
+            if transaction.max_fee_per_blob_gas < self.blob_base_fee:
                 raise ValidationError(
                     "Blob transaction must pay at least the current blob base fee."
                 )

@@ -43,8 +43,12 @@ def find_fixtures(fixtures_base_dir: str) -> Iterable[Tuple[str, str]]:
         with open(fixture_path) as fixture_file:
             fixtures = json.load(fixture_file)
 
-        for fixture_key in sorted(fixtures.keys()):
-            yield (fixture_path, fixture_key)
+        try:
+            for fixture_key in sorted(fixtures.keys()):
+                yield (fixture_path, fixture_key)
+        except AttributeError:
+            # If the fixture is not a dictionary, it's not a valid fixture file.
+            continue
 
 
 # we use an LRU cache on this function so that we can sort the tests such that
