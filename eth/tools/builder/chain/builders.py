@@ -164,6 +164,9 @@ def fork_at(
     * :func:`~eth.tools.builder.chain.london_at`
     * :func:`~eth.tools.builder.chain.arrow_glacier_at`
     * :func:`~eth.tools.builder.chain.gray_glacier_at`
+    * :func:`~eth.tools.builder.chain.paris_at`
+    * :func:`~eth.tools.builder.chain.shanghai_at`
+    * :func:`~eth.tools.builder.chain.cancun_at`
     * :func:`~eth.tools.builder.chain.latest_mainnet_at` - whatever latest mainnet VM is
     """
     if chain_class.vm_configuration is not None:
