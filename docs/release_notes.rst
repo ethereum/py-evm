@@ -3,6 +3,15 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.10.0-beta.2 (2024-03-15)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- bugfix: Address issues instantiating VM at Cancun transition. (`#2156 <https://github.com/ethereum/py-evm/issues/2156>`__)
+
+
 py-evm v0.10.0-beta.1 (2024-03-15)
 ----------------------------------
 
