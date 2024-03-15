@@ -1,0 +1,1 @@
+Use some general state tests for transaction tests since they have similar formats. This yielded a decent amount of new transaction tests.
