@@ -2529,6 +2529,13 @@ class TransientStorageAPI(ABC):
         ...
 
     @abstractmethod
+    def clear(self) -> None:
+        """
+        Clear the transient storage.
+        """
+        ...
+
+    @abstractmethod
     def get_transient_storage(self, address: Address, slot: int) -> bytes:
         """
         Return the transient storage for ``address`` at slot ``slot``.
@@ -3249,9 +3256,9 @@ class StateAPI(ConfigurableAPI):
         ...
 
     @abstractmethod
-    def reset_transient_storage(self) -> None:
+    def clear_transient_storage(self) -> None:
         """
-        Reset the transient storage.
+        Clear the transient storage. Should be done at the start of every transaction
         """
         ...
 

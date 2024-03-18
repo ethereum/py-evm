@@ -215,7 +215,7 @@ class BaseState(Configurable, StateAPI):
     def set_transient_storage(self, address: Address, slot: int, value: bytes) -> None:
         raise AttributeError("No transient_storage has been set for this State")
 
-    def reset_transient_storage(self) -> None:
+    def clear_transient_storage(self) -> None:
         raise AttributeError("No transient_storage has been set for this State")
 
     #

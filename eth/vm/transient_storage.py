@@ -55,3 +55,6 @@ class TransientStorage(TransientStorageAPI):
 
     def discard(self, checkpoint: JournalDBCheckpoint) -> None:
         self._db.discard(checkpoint)
+
+    def clear(self) -> None:
+        self._db.clear()
