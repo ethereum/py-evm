@@ -90,9 +90,10 @@ def get_total_blob_gas(transaction: TransactionFieldsAPI) -> int:
 
 
 class CancunTransactionExecutor(ShanghaiTransactionExecutor):
-    def build_computation(self, *args: Any, **kwargs: Any) -> ComputationAPI:
-        self.vm_state.reset_transient_storage()
-        return super().build_computation(*args, **kwargs)
+    def __call__(self, *args: Any, **kwargs: Any) -> ComputationAPI:
+        ret = super().__call__(*args, **kwargs)
+        self.vm_state.clear_transient_storage()
+        return ret
 
     def calc_data_fee(self, transaction: BlobTransaction) -> int:
         return get_total_blob_gas(transaction) * self.vm_state.blob_base_fee
@@ -153,12 +154,12 @@ class CancunState(ShanghaiState):
     @property
     def transient_storage(self) -> TransientStorageAPI:
         if self._transient_storage is None:
-            self.reset_transient_storage()
+            self._transient_storage = self._transient_storage_class()
 
         return self._transient_storage
 
-    def reset_transient_storage(self) -> None:
-        self._transient_storage = self._transient_storage_class()
+    def clear_transient_storage(self) -> None:
+        self.transient_storage.clear()
 
     def get_transient_storage(self, address: Address, slot: int) -> bytes:
         return self.transient_storage.get_transient_storage(address, slot)
