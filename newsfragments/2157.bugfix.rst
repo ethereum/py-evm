@@ -1,1 +1,0 @@
-bugfix: Ensure a ``type_id`` for  ``SpoofTransaction`` when unsigned -> signed spoofing. This defaults to ``None`` for legacy and uses the ``_type_id`` for unsigned typed txns.

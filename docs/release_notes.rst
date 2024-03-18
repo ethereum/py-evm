@@ -3,6 +3,21 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.10.0-beta.3 (2024-03-18)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- bugfix: Ensure a ``type_id`` for  ``SpoofTransaction`` when unsigned -> signed spoofing. This defaults to ``None`` for legacy and uses the ``_type_id`` for unsigned typed txns. (`#2157 <https://github.com/ethereum/py-evm/issues/2157>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Use some general state tests for transaction tests since they have similar formats. This yielded a decent amount of new transaction tests. (`#2157 <https://github.com/ethereum/py-evm/issues/2157>`__)
+
+
 py-evm v0.10.0-beta.2 (2024-03-15)
 ----------------------------------
 
