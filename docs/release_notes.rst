@@ -3,6 +3,15 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.10.0-beta.4 (2024-03-18)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Clear existing transient storage db instead of resetting and creating a new one (`#2159 <https://github.com/ethereum/py-evm/issues/2159>`__)
+
+
 py-evm v0.10.0-beta.3 (2024-03-18)
 ----------------------------------
 
