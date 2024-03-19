@@ -336,7 +336,7 @@ class JournalDB(BaseDB):
 
     Discarding a checkpoint throws away all changes that happened since that
     checkpoint.
-    Commiting a checkpoint simply removes the option of reverting back to it
+    Committing a checkpoint simply removes the option of reverting back to it
     later.
 
     Nothing is written to the underlying db until `persist()` is called.

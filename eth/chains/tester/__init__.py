@@ -143,7 +143,7 @@ class BaseMainnetTesterChain(Chain):
 class MainnetTesterChain(BaseMainnetTesterChain):
     """
     This class is intended to be used for in-memory test chains.  It
-    explicitely bypasses the proof of work validation to allow for instant
+    explicitly bypasses the proof of work validation to allow for instant
     block mining.
 
     It exposes one additional API `configure_forks` to allow for in-flight

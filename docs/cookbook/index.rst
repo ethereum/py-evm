@@ -54,7 +54,7 @@ Creating a chain with custom state
 ----------------------------------
 
 While the previous recipe demos how to create a chain from an existing genesis header, we can
-also create chains simply by specifing various genesis parameter as well as an optional genesis
+also create chains simply by specifying various genesis parameter as well as an optional genesis
 state.
 
 .. doctest::
