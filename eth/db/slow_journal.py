@@ -293,9 +293,9 @@ class JournalDB(BaseDB):
     changeset and assigns an id to it. The journal then keeps track of all changes
     that go into this changeset.
 
-    Discarding a changeset simply throws it away inculding all subsequent changesets
-    that may have followed. Commiting a changeset merges the given changeset and all
-    subsequent changesets into the previous changeset giving precidence to later
+    Discarding a changeset simply throws it away including all subsequent changesets
+    that may have followed. Committing a changeset merges the given changeset and all
+    subsequent changesets into the previous changeset giving precedence to later
     changesets in case of conflicting keys.
 
     Nothing is written to the underlying db until `persist()` is called.
@@ -410,7 +410,7 @@ class JournalDB(BaseDB):
     def commit(self, changeset_id: uuid.UUID) -> None:
         """
         Commits a given changeset. This merges the given changeset and all
-        subsequent changesets into the previous changeset giving precidence
+        subsequent changesets into the previous changeset giving precedence
         to later changesets in case of any conflicting keys.
         """
         self._validate_changeset(changeset_id)

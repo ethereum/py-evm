@@ -2814,7 +2814,7 @@ class AccountDatabaseAPI(ABC):
         This is an expensive operation, so should be called as little as possible.
         For example, pre-Byzantium, this is called after every transaction, because we
         need the state root in each receipt. Byzantium+, we only need state roots at
-        the end of the block, so we *only* call it right before persistance.
+        the end of the block, so we *only* call it right before persistence.
 
         :return: the new state root
         """
@@ -4360,7 +4360,7 @@ class ChainAPI(ConfigurableAPI):
         block the given transaction can be found in and at what index in the
         block transactions.
 
-        Raise ``TransactionNotFound`` if the transaction does not exist in the canoncial
+        Raise ``TransactionNotFound`` if the transaction does not exist in the canonical
         chain.
         """
 

@@ -112,7 +112,7 @@ class AtomicDBWriteBatch(BaseDB, AtomicWriteBatchAPI):
     def _exists(self, key: bytes) -> bool:
         if self._track_diff is None:
             raise ValidationError(
-                "Cannot test data existance from a write batch, out of context"
+                "Cannot test data existence from a write batch, out of context"
             )
 
         try:
