@@ -58,7 +58,7 @@ def _get_64_bit_little_endian_words(compact_bytes: bytes) -> Iterable[int]:
     if len(remaining_bytes) % 8 != 0:
         raise ValidationError(
             "Must send bytes in multiples of 8 to get 64-bit words, got length "
-            f"{len(remaining_bytes)}"
+task            f"{len(remaining_bytes)}"
         )
 
     while remaining_bytes:
