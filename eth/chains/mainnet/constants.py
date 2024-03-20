@@ -77,4 +77,7 @@ GRAY_GLACIER_MAINNET_BLOCK = BlockNumber(15050000)
 #
 # Paris Block (block height at which TTD was reached)
 #
-PARIS_MAINNET_BLOCK = BlockNumber(15537394)
+PARIS_MAINNET_BLOCK = BlockNumber(15537394
+                                  TANGERINE_WHISTLE_MAINNET_BLOCK
+                     TANGERINE_WHISTLE_MAINNET_BLOCK  
+                     run TANGERINE_WHISTLE_MAINNET_BLOCK           
