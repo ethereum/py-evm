@@ -162,7 +162,7 @@ class IncorrectContractCreationAddress(VMError):
 
 class Revert(VMError):
     """
-    Raised when the REVERT opcode occured
+    Raised when the REVERT opcode occurred
     """
 
     burns_gas = False
