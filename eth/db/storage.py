@@ -276,7 +276,7 @@ class AccountStorageDB(AccountStorageDatabaseAPI):
         Keys are stored as node hashes and rlp-encoded node values.
 
         _storage_lookup is itself a pair of databases: (BatchDB -> HexaryTrie),
-        writes to storage lookup *are* immeditaely applied to a trie, generating
+        writes to storage lookup *are* immediately applied to a trie, generating
         the appropriate trie nodes and root hash (via the HexaryTrie). The
         writes are *not* persisted to db, until _storage_lookup is explicitly instructed
         to, via :meth:`StorageLookup.commit_to`

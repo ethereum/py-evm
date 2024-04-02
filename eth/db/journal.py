@@ -60,7 +60,7 @@ get_next_checkpoint = cast(Callable[[], JournalDBCheckpoint], count().__next__)
 class Journal(BaseDB):
     """
     A Journal provides a mechanism to track a series of changes to a dict, by inserting
-    checkpoints, and committing to them or rolling back to them, and ultimitely
+    checkpoints, and committing to them or rolling back to them, and ultimately
     persisting the final changes.
 
     Internally, it keeps an ordered list of reversion changesets, used to roll back

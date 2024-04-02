@@ -175,7 +175,7 @@ def validate_unique(values: Iterable[Any], title: str = "Value") -> None:
             # filter to ones that occure > 1
             functoolz.partial(dicttoolz.valfilter, lambda v: v > 1),
             sorted,  # sort them
-            tuple,  # cast them to an immutiable form
+            tuple,  # cast them to an immutable form
         )
         raise ValidationError(
             f"{title} does not contain unique items.  Duplicates: "
