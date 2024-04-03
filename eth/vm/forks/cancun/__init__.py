@@ -101,5 +101,9 @@ class CancunVM(ShanghaiVM):
             raise ValidationError("Block exceeded maximum blob gas limit.")
 
         # ensure blob_gas_used matches header
-        if block.header.blob_gas_used != blob_gas_used:
-            raise ValidationError("Block blob gas used does not match actual usage.")
+        block_blob_gas_used = block.header.blob_gas_used
+        if block_blob_gas_used != blob_gas_used:
+            raise ValidationError(
+                f"Block blob gas used ({block_blob_gas_used}) does not match "
+                f"total blob gas used ({blob_gas_used})."
+            )

@@ -73,9 +73,6 @@ from eth.db.trie import (
 from eth.exceptions import (
     HeaderNotFound,
 )
-from eth.rlp.headers import (
-    BlockHeader,
-)
 from eth.rlp.sedes import (
     uint32,
 )
@@ -518,7 +515,7 @@ class VM(Configurable, VirtualMachineAPI):
             uncles = block.uncles
 
         provided_fields = set(kwargs.keys())
-        known_fields = set(BlockHeader._meta.field_names)
+        known_fields = set(self.get_header()._meta.field_names)  # type: ignore
         unknown_fields = provided_fields.difference(known_fields)
 
         if unknown_fields:
