@@ -53,9 +53,6 @@ from eth.vm.forks.london.blocks import (
     LondonBlockHeader,
 )
 
-from ..london.receipts import (
-    LondonReceiptBuilder,
-)
 from ..shanghai.blocks import (
     ShanghaiBackwardsHeader,
     ShanghaiBlock,
@@ -63,6 +60,9 @@ from ..shanghai.blocks import (
 )
 from ..shanghai.withdrawals import (
     Withdrawal,
+)
+from .receipts import (
+    CancunReceiptBuilder,
 )
 from .transactions import (
     CancunTransactionBuilder,
@@ -200,7 +200,7 @@ class CancunBackwardsHeader(ShanghaiBackwardsHeader):
 
 class CancunBlock(ShanghaiBlock):
     transaction_builder: Type[TransactionBuilderAPI] = CancunTransactionBuilder
-    receipt_builder: Type[ReceiptBuilderAPI] = LondonReceiptBuilder
+    receipt_builder: Type[ReceiptBuilderAPI] = CancunReceiptBuilder
     fields = [
         ("header", CancunBlockHeader),
         ("transactions", CountableList(transaction_builder)),
