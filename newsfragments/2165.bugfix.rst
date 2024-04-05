@@ -1,1 +1,0 @@
-Use the current VM's header class to check valid fields for ``vm.pack_block()``.

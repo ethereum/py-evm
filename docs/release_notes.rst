@@ -3,6 +3,16 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.10.0-beta.5 (2024-04-05)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Use the current VM's header class to check valid fields for ``vm.pack_block()``. (`#2165 <https://github.com/ethereum/py-evm/issues/2165>`__)
+- Properly configure the ``CancunBlock`` class to use the ``CancunReceiptBuilder``. (`#2166 <https://github.com/ethereum/py-evm/issues/2166>`__)
+
+
 py-evm v0.10.0-beta.4 (2024-03-18)
 ----------------------------------
 

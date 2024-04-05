@@ -1,1 +1,0 @@
-Properly configure the ``CancunBlock`` class to use the ``CancunReceiptBuilder``.
