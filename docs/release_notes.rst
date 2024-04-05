@@ -3,6 +3,16 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.10.0-beta.6 (2024-04-05)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Fix ``__getattr__()`` for ``KeyMapDB`` and thus allow it to be copied / deep copied. (`#2116 <https://github.com/ethereum/py-evm/issues/2116>`__)
+- ``integer.to_bytes()`` requires size and byteorder below py311 and our fixture tests only use py311. Compare the first byte of versioned hashes by indexing instead. (`#2168 <https://github.com/ethereum/py-evm/issues/2168>`__)
+
+
 py-evm v0.10.0-beta.5 (2024-04-05)
 ----------------------------------
 

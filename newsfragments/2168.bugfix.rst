@@ -1,1 +1,0 @@
-``integer.to_bytes()`` requires size and byteorder below py311 and our fixture tests only use py311. Compare the first byte of versioned hashes by indexing instead.
