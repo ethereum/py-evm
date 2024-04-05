@@ -221,7 +221,7 @@ class CancunState(ShanghaiState):
 
             # all versioned blob hashes must start with VERSIONED_HASH_VERSION_KZG
             for h in transaction.blob_versioned_hashes:
-                if h[0].to_bytes() != VERSIONED_HASH_VERSION_KZG:
+                if h[:1] != VERSIONED_HASH_VERSION_KZG:
                     raise ValidationError(
                         "Blob versioned hash does not start with expected "
                         f"KZG version: {VERSIONED_HASH_VERSION_KZG!r}"
