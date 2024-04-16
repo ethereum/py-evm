@@ -1,0 +1,1 @@
+Exclude `scripts` when building the wheel.
