@@ -3,6 +3,7 @@ include README.md
 
 include eth/_utils/kzg_trusted_setup.txt
 
+recursive-include scripts *
 recursive-include tests *
 global-include *.pyi
 
