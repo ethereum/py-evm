@@ -63,7 +63,7 @@ linux-docs: build-docs
 	xdg-open docs/_build/html/index.html
 
 package: clean
-	python setup.py sdist bdist_wheel
+	python -m build
 	python scripts/release/test_package.py
 
 notes:
@@ -87,11 +87,11 @@ release: check-bump clean
 	CURRENT_SIGN_SETTING=$(git config commit.gpgSign)
 	git config commit.gpgSign true
 	bumpversion $(bump)
+	python -m build
 	git push upstream && git push upstream --tags
-	python setup.py sdist bdist_wheel
 	twine upload dist/*
 	git config commit.gpgSign "$(CURRENT_SIGN_SETTING)"
 
 sdist: clean
-	python setup.py sdist bdist_wheel
+	python -m build
 	ls -l dist
