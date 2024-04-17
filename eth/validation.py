@@ -179,7 +179,7 @@ def validate_unique(values: Iterable[Any], title: str = "Value") -> None:
         )
         raise ValidationError(
             f"{title} does not contain unique items.  Duplicates: "
-            f"{', '.join((str(value) for value in duplicates))}"
+            f"{', '.join(str(value) for value in duplicates)}"
         )
 
 
