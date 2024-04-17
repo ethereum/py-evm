@@ -108,90 +108,90 @@ jobs:
         environment:
           TOXENV: docs
 
-  py311-native-blockchain-berlin:
+  py312-native-blockchain-berlin:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-berlin
-  py311-native-blockchain-byzantium:
+          TOXENV: py312-native-blockchain-berlin
+  py312-native-blockchain-byzantium:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-byzantium
-  py311-native-blockchain-cancun:
+          TOXENV: py312-native-blockchain-byzantium
+  py312-native-blockchain-cancun:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-cancun
-  py311-native-blockchain-constantinople:
+          TOXENV: py312-native-blockchain-cancun
+  py312-native-blockchain-constantinople:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-constantinople
-  py311-native-blockchain-frontier:
+          TOXENV: py312-native-blockchain-constantinople
+  py312-native-blockchain-frontier:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-frontier
-  py311-native-blockchain-homestead:
+          TOXENV: py312-native-blockchain-frontier
+  py312-native-blockchain-homestead:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-homestead
-  py311-native-blockchain-istanbul:
+          TOXENV: py312-native-blockchain-homestead
+  py312-native-blockchain-istanbul:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-istanbul
-  py311-native-blockchain-london:
+          TOXENV: py312-native-blockchain-istanbul
+  py312-native-blockchain-london:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-london
-  py311-native-blockchain-paris:
+          TOXENV: py312-native-blockchain-london
+  py312-native-blockchain-paris:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-paris
-  py311-native-blockchain-petersburg:
+          TOXENV: py312-native-blockchain-paris
+  py312-native-blockchain-petersburg:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-petersburg
-  py311-native-blockchain-shanghai:
+          TOXENV: py312-native-blockchain-petersburg
+  py312-native-blockchain-shanghai:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-shanghai
-  py311-native-blockchain-spurious_dragon:
+          TOXENV: py312-native-blockchain-shanghai
+  py312-native-blockchain-spurious_dragon:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-spurious_dragon
-  py311-native-blockchain-tangerine_whistle:
+          TOXENV: py312-native-blockchain-spurious_dragon
+  py312-native-blockchain-tangerine_whistle:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-tangerine_whistle
-  py311-native-blockchain-transition:
+          TOXENV: py312-native-blockchain-tangerine_whistle
+  py312-native-blockchain-transition:
     <<: *common
     docker:
-      - image: cimg/python:3.11
+      - image: cimg/python:3.12
         environment:
-          TOXENV: py311-native-blockchain-transition
+          TOXENV: py312-native-blockchain-transition
 
   py38-core:
     <<: *common
@@ -364,56 +364,106 @@ jobs:
       - image: cimg/python:3.11
         environment:
           TOXENV: py311-wheel
-  py311-wheel-windows:
+
+  py312-core:
+    <<: *common
+    docker:
+      - image: cimg/python:3.12
+        environment:
+          TOXENV: py312-core
+  py312-database:
+    <<: *common
+    docker:
+      - image: cimg/python:3.12
+        environment:
+          TOXENV: py312-database
+  py312-difficulty:
+    <<: *common
+    docker:
+      - image: cimg/python:3.12
+        environment:
+          TOXENV: py312-difficulty
+  py312-lint:
+    <<: *common
+    docker:
+      - image: cimg/python:3.12
+        environment:
+          TOXENV: py312-lint
+  py312-transactions:
+    <<: *common
+    docker:
+      - image: cimg/python:3.12
+        environment:
+          TOXENV: py312-transactions
+  py312-vm:
+    <<: *common
+    docker:
+      - image: cimg/python:3.12
+        environment:
+          TOXENV: py312-vm
+  py312-wheel:
+    <<: *common
+    docker:
+      - image: cimg/python:3.12
+        environment:
+          TOXENV: py312-wheel
+  py312-wheel-windows:
     <<: *windows_steps
     environment:
-      TOXENV: py311-wheel-windows
+      TOXENV: py312-wheel-windows
 
 workflows:
   version: 2
   test:
     jobs:
       - docs
-      - py311-native-blockchain-berlin
-      - py311-native-blockchain-byzantium
-      - py311-native-blockchain-cancun
-      - py311-native-blockchain-constantinople
-      - py311-native-blockchain-frontier
-      - py311-native-blockchain-homestead
-      - py311-native-blockchain-istanbul
-      - py311-native-blockchain-london
-      - py311-native-blockchain-paris
-      - py311-native-blockchain-petersburg
-      - py311-native-blockchain-shanghai
-      - py311-native-blockchain-spurious_dragon
-      - py311-native-blockchain-tangerine_whistle
-      - py311-native-blockchain-transition
+      - py312-native-blockchain-berlin
+      - py312-native-blockchain-byzantium
+      - py312-native-blockchain-cancun
+      - py312-native-blockchain-constantinople
+      - py312-native-blockchain-frontier
+      - py312-native-blockchain-homestead
+      - py312-native-blockchain-istanbul
+      - py312-native-blockchain-london
+      - py312-native-blockchain-paris
+      - py312-native-blockchain-petersburg
+      - py312-native-blockchain-shanghai
+      - py312-native-blockchain-spurious_dragon
+      - py312-native-blockchain-tangerine_whistle
+      - py312-native-blockchain-transition
       - py38-core
       - py39-core
       - py310-core
       - py311-core
+      - py312-core
       - py38-database
       - py39-database
       - py310-database
       - py311-database
+      - py312-database
       - py38-difficulty
       - py39-difficulty
       - py310-difficulty
       - py311-difficulty
+      - py312-difficulty
       - py38-lint
       - py39-lint
       - py310-lint
       - py311-lint
+      - py312-lint
       - py38-transactions
       - py39-transactions
       - py310-transactions
       - py311-transactions
+      - py312-transactions
       - py38-vm
       - py39-vm
       - py310-vm
       - py311-vm
+      - py312-vm
       - py38-wheel
       - py39-wheel
       - py310-wheel
       - py311-wheel
-      - py311-wheel-windows
+      - py312-wheel
+      - py312-wheel-windows
