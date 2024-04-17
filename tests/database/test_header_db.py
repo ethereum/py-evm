@@ -85,7 +85,7 @@ def mk_header_chain(base_header, length):
             timestamp=previous_header.timestamp + 1,
             gas_limit=previous_header.gas_limit,
             difficulty=previous_header.difficulty,
-            extra_data=keccak(random.randint(0, 1e18)),
+            extra_data=keccak(random.randint(0, 10**18)),
         )
         yield next_header
         previous_header = next_header
