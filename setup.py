@@ -47,7 +47,7 @@ extras_require = {
     ],
     "test": [
         "factory-boy>=3.0.0",
-        "hypothesis>=5,<6",
+        "hypothesis>=6,<7",
         "pytest>=7.0.0",
         "pytest-asyncio>=0.20.0",
         "pytest-cov>=4.0.0",

@@ -2,7 +2,9 @@ from eth_hash.auto import (
     keccak,
 )
 from hypothesis import (
+    HealthCheck,
     given,
+    settings,
     strategies as st,
 )
 import pytest
@@ -284,6 +286,7 @@ def test_chaindb_persist_header(chaindb, header):
 
 
 @given(seed=st.binary(min_size=32, max_size=32))
+@settings(suppress_health_check=(HealthCheck.function_scoped_fixture,))
 def test_chaindb_persist_header_unknown_parent(chaindb, header, seed):
     n_header = header.copy(parent_hash=keccak(seed))
     with pytest.raises(ParentNotFound):

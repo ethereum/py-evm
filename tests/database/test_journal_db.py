@@ -2,6 +2,7 @@ from eth_utils import (
     ValidationError,
 )
 from hypothesis import (
+    HealthCheck,
     given,
     settings,
     strategies as st,
@@ -470,6 +471,7 @@ DO_RECORD = object()
         max_size=10,
     ),
 )
+@settings(suppress_health_check=(HealthCheck.function_scoped_fixture,))
 def test_journal_db_diff_application_mimics_persist(journal_db, memory_db, actions):
     memory_db.kv_store.clear()  # hypothesis not resetting other test-scoped fixtures
     for action in actions:
