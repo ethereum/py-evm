@@ -1,0 +1,1 @@
+Remove scripts/__init__.py so that scripts doesn't get imported as a package. Also removes the scripts/ directory from the wheel.
