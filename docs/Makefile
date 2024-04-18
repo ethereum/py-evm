@@ -50,7 +50,8 @@ help:
 
 clean:
 	rm -rf $(BUILDDIR)/*
-	rm eth.* scripts.* tests.*
+	rm -rf scripts/
+	rm eth.* tests.*
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
