@@ -3,6 +3,29 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.10.1-beta.1 (2024-04-18)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Remove scripts/__init__.py so that scripts doesn't get imported as a package. Also removes the scripts/ directory from the wheel. (`#2172 <https://github.com/ethereum/py-evm/issues/2172>`__)
+
+
+Features
+~~~~~~~~
+
+- Add support for python 3.12. (`#2171 <https://github.com/ethereum/py-evm/issues/2171>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Exclude `scripts` when building the wheel. (`#2170 <https://github.com/ethereum/py-evm/issues/2170>`__)
+- Update link to the getting started guide in the README. (`#2173 <https://github.com/ethereum/py-evm/issues/2173>`__)
+- Remove scripts/ directory on doc build (`#2174 <https://github.com/ethereum/py-evm/issues/2174>`__)
+
+
 py-evm v0.10.0-beta.6 (2024-04-05)
 ----------------------------------
 

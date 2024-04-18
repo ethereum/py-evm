@@ -1,1 +1,0 @@
-Remove scripts/ directory on doc build
