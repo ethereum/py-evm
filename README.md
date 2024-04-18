@@ -37,7 +37,7 @@ In particular Py-EVM aims to:
 python -m pip install py-evm
 ```
 
-[Get started in 5 minutes](https://py-evm.readthedocs.io/en/latest/guides/quickstart.html)
+[Get started in 5 minutes](https://py-evm.readthedocs.io/en/latest/guides/building_an_app_that_uses_pyevm.html)
 
 ## Documentation
 
