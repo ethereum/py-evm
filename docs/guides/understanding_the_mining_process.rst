@@ -386,7 +386,8 @@ zero value transfer transaction.
   ...     block.number,
   ...     block.header.mining_hash,
   ...     block.header.difficulty,
-  ... )  # doctest: +SKIP (takes too long for doctest to process)
+  ... )  # doctest: +SKIP
+  ... # (takes too long for doctest to process)
 
   >>> chain.mine_block(mix_hash=mix_hash, nonce=nonce)  # doctest: +SKIP
   <ByzantiumBlock(#Block #1-0xe372..385c)>
