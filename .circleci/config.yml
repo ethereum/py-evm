@@ -120,7 +120,7 @@ docs: &docs
     - checkout
     - restore_cache:
         keys:
-          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+          - cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "Makefile" }}
     - run:
         name: install dependencies
         command: |
@@ -139,7 +139,8 @@ docs: &docs
           - .tox
           - ~/.cache/pip
           - ~/.local
-        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}
+          - /var/lib/dpkg/info
+        key: cache-v1-{{ arch }}-{{ .Environment.CIRCLE_JOB }}-{{ checksum "setup.py" }}-{{ checksum "tox.ini" }}-{{ checksum "Makefile" }}
 
 jobs:
   docs:
