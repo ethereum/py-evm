@@ -1,0 +1,1 @@
+Pin ckzg to ``>=2.0``; update the the trusted setup and how it is loaded.
