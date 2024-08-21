@@ -3,6 +3,21 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.10.1-beta.2 (2024-08-21)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Pin ckzg to ``>=2.0``; update the the trusted setup and how it is loaded. (`#2183 <https://github.com/ethereum/py-evm/issues/2183>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Ensure docs build on CI is running. (`#2175 <https://github.com/ethereum/py-evm/issues/2175>`__)
+
+
 py-evm v0.10.1-beta.1 (2024-04-18)
 ----------------------------------
 
