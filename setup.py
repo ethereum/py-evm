@@ -35,7 +35,7 @@ extras_require = {
         "py-ecc>=1.4.7",
         "rlp>=3.0.0",
         "trie>=2.0.0",
-        "ckzg>=0.4.3",
+        "ckzg>=2.0.0",
     ],
     # The eth-extra sections is for libraries that the evm does not
     # explicitly need to function and hence should not depend on.

@@ -65,7 +65,7 @@ def point_evaluation_precompile(computation: ComputationAPI) -> ComputationAPI:
     # Verify KZG proof with z and y in big endian format
     try:
         assert verify_kzg_proof(
-            commitment, z, y, proof, load_trusted_setup(TRUSTED_SETUP_PATH)
+            commitment, z, y, proof, load_trusted_setup(TRUSTED_SETUP_PATH, 0)
         )
     except (AssertionError, RuntimeError):
         # RuntimeError is raised when the KZG proof verification fails within the C code
