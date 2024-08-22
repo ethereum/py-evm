@@ -17,15 +17,18 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    ValidationError,
     encode_hex,
+    to_tuple,
+)
+import rlp
+from trie import (
+    HexaryTrie,
 )
 from trie.exceptions import (
     MissingTrieNode,
 )
 
-from eth._warnings import (
-    catch_and_ignore_import_warning,
-)
 from eth.abc import (
     AtomicDatabaseAPI,
     BlockAPI,
@@ -79,16 +82,6 @@ from eth.vm.forks.shanghai.withdrawals import (
 from eth.vm.header import (
     HeaderSedes,
 )
-
-with catch_and_ignore_import_warning():
-    from eth_utils import (
-        ValidationError,
-        to_tuple,
-    )
-    import rlp
-    from trie import (
-        HexaryTrie,
-    )
 
 
 class BlockDataKey(rlp.Serializable):

@@ -18,11 +18,18 @@ from eth_typing import (
     Hash32,
 )
 from eth_utils import (
+    ValidationError,
     encode_hex,
+    to_set,
 )
 from eth_utils.toolz import (
+    assoc,
+    compose,
     concatv,
+    groupby,
+    iterate,
     sliding_window,
+    take,
 )
 
 from eth._utils.datatypes import (
@@ -33,9 +40,6 @@ from eth._utils.db import (
 )
 from eth._utils.rlp import (
     validate_imported_block_unchanged,
-)
-from eth._warnings import (
-    catch_and_ignore_import_warning,
 )
 from eth.abc import (
     AtomicDatabaseAPI,
@@ -94,19 +98,6 @@ from eth.validation import (
 from eth.vm.chain_context import (
     ChainContext,
 )
-
-with catch_and_ignore_import_warning():
-    from eth_utils import (
-        ValidationError,
-        to_set,
-    )
-    from eth_utils.toolz import (
-        assoc,
-        compose,
-        groupby,
-        iterate,
-        take,
-    )
 
 
 class BaseChain(Configurable, ChainAPI):

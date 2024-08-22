@@ -8,16 +8,9 @@ from eth_typing import (
     BlockNumber,
     Hash32,
 )
-
-from eth._warnings import (
-    catch_and_ignore_import_warning,
+from eth_utils import (
+    denoms,
 )
-
-with catch_and_ignore_import_warning():
-    from eth_utils import (
-        denoms,
-    )
-
 
 ANY = "any"
 UINT256 = "uint256"

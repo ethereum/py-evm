@@ -1702,14 +1702,13 @@ def test_blake2b_f_compression(vm_class, input_hex, output_hex, expect_exception
 @pytest.mark.parametrize("vm_class", MAINNET_VMS[:13])  # vms up to Shanghai
 def test_selfdestruct_does_not_issue_deprecation_warning_pre_shanghai(vm_class):
     # assert no warning without selfdestruct
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
+    warnings.simplefilter("error")
 
-        run_computation(
-            setup_vm(vm_class),
-            CANONICAL_ADDRESS_B,
-            code=assemble(opcode_values.SELFDESTRUCT),
-        )
+    run_computation(
+        setup_vm(vm_class),
+        CANONICAL_ADDRESS_B,
+        code=assemble(opcode_values.SELFDESTRUCT),
+    )
 
 
 @pytest.mark.parametrize("vm_class", MAINNET_VMS[13:])  # vms Shanghai and later
@@ -1726,14 +1725,13 @@ def test_selfdestruct_issues_deprecation_warning_for_shanghai_and_later(vm_class
     )
 
     # assert no warning using every opcode except selfdestruct
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
+    warnings.simplefilter("error")
 
-        run_computation(
-            setup_vm(vm_class),
-            CANONICAL_ADDRESS_B,
-            code=code_without_self_destruct,
-        )
+    run_computation(
+        setup_vm(vm_class),
+        CANONICAL_ADDRESS_B,
+        code=code_without_self_destruct,
+    )
 
     # assert warning with just selfdestruct opcode
     with pytest.warns(DeprecationWarning):
