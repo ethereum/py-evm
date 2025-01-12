@@ -1,0 +1,6 @@
+Here are some useful resources and examples for creating GitHub Actions workflows:
+
+1. [Guides for GitHub Actions](https://docs.github.com/en/actions/guides) - This page offers various guides to help you build and test different types of projects using GitHub Actions.
+2. [Building and testing Python](https://docs.github.com/en/actions/use-cases-and-examples/building-and-testing/building-and-testing-python) - This guide specifically focuses on creating continuous integration (CI) workflows to build and test Python projects.
+
+You can use these resources to create workflows for the `py-evm` repository. If you need specific examples or further assistance, please let me know!
