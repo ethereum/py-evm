@@ -188,3 +188,10 @@ class ReservedBytesInCode(VMError):
     Raised when bytes for the code to be deployed are reserved
     for a particular reason.
     """
+
+
+class CodeNotEmpty(VMError):
+    """
+    Raised when the code at a certain address is expected to be
+    empty but it's not
+    """

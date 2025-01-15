@@ -437,6 +437,22 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
+    def max_fee_per_blob_gas(self) -> int:
+        """
+        Will raise :class:`AttributeError` if get or set on a pre-blob transaction.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def blob_versioned_hashes(self) -> Sequence[Hash32]:
+        """
+        Will raise :class:`AttributeError` if get or set on a pre-blob transaction.
+        """
+        ...
+
+    @property
+    @abstractmethod
     def max_priority_fee_per_gas(self) -> int:
         """
         Will default to gas_price if this is a pre-1559 transaction.
@@ -486,15 +502,15 @@ class TransactionFieldsAPI(ABC):
     def chain_id(self) -> Optional[int]:
         ...
 
-    @property
-    @abstractmethod
-    def max_fee_per_blob_gas(self) -> int:
-        ...
+    # @property
+    # @abstractmethod
+    # def max_fee_per_blob_gas(self) -> int:
+    #     ...
 
-    @property
-    @abstractmethod
-    def blob_versioned_hashes(self) -> Sequence[Hash32]:
-        ...
+    # @property
+    # @abstractmethod
+    # def blob_versioned_hashes(self) -> Sequence[Hash32]:
+    #     ...
 
 
 class LegacyTransactionFieldsAPI(TransactionFieldsAPI):
