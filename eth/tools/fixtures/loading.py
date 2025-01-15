@@ -16,7 +16,7 @@ from typing import (
 )
 
 from eth_utils import (
-    to_tuple,
+    to_list,
 )
 from eth_utils.toolz import (
     curry,
@@ -37,7 +37,7 @@ def find_fixture_files(fixtures_base_dir: str) -> Iterable[str]:
     return all_fixture_paths
 
 
-@to_tuple
+@to_list
 def find_fixtures(fixtures_base_dir: str) -> Iterable[Tuple[str, str]]:
     """
     Finds all of the (fixture_path, fixture_key) pairs for a given path under
@@ -86,7 +86,7 @@ def load_fixture(
 @curry
 def filter_fixtures(
     all_fixtures: Iterable[Any],
-    fixtures_base_dir: str,
+    fixtures_base_dirs: Dict[str, str],
     mark_fn: Callable[
         [str, str], Union[MarkDecorator, Collection[Union[MarkDecorator, Mark]], None]
     ] = None,
@@ -95,7 +95,8 @@ def filter_fixtures(
     """
     Helper function for filtering test fixtures.
 
-    - `fixtures_base_dir` should be the base dir that the fixtures were collected from.
+    - `fixtures_base_dirs` should a dict of keys "ethereum_tests" and "eest", pointing
+       to the respective base dirs that the respective fixtures were collected from.
     - `mark_fn` should be a func which either returns `None` or a `pytest.mark` object.
     - `ignore_fn` should be a function which returns `True` for any fixture
        which should be ignored.
@@ -104,6 +105,26 @@ def filter_fixtures(
 
     for fixture_data in all_fixtures:
         fixture_path = fixture_data[0]
+
+        if "Pyspecs" in fixture_path:
+            # Pyspecs tests should be covered by the EEST tests under a different path.
+            continue
+
+        # VM Tests
+        if any("snapshot" in k for k in fixtures_base_dirs.keys()):
+            if "/Constantinople" in fixture_path:
+                fixtures_base_dir = fixtures_base_dirs["constantinople_snapshot"]
+            # else:
+            #     fixtures_base_dir = fixtures_base_dirs["cancun_snapshot"]
+        else:
+            if any(
+                keyword in fixture_path
+                for keyword in ["blockchain_tests", "state_tests"]
+            ):
+                fixtures_base_dir = fixtures_base_dirs["eest"]
+            else:
+                fixtures_base_dir = fixtures_base_dirs["legacy_tests"]
+
         fixture_relpath = os.path.relpath(fixture_path, fixtures_base_dir)
 
         if ignore_fn:

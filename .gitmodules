@@ -1,3 +1,6 @@
 [submodule "fixtures"]
 	path = fixtures
 	url = https://github.com/ethereum/tests.git
+[submodule "fixtures_eest"]
+	path = fixtures_eest
+	url = https://github.com/fselmo/fixtures_eest.git

@@ -38,8 +38,12 @@ from eth.vm.header import (
 
 ROOT_PROJECT_DIR = Path(__file__).parents[3]
 
-
-BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, "fixtures", "BlockchainTests")
+# blockchain tests up to and including Cancun
+LEGACY_CANCUN_SNAPSHOT_TESTS = os.path.join(
+    ROOT_PROJECT_DIR, "fixtures", "LegacyTests", "Cancun", "BlockchainTests"
+)
+# eest blockchain tests. all new tests will be filled here
+EEST_TESTS = os.path.join(ROOT_PROJECT_DIR, "fixtures_eest", "blockchain_tests")
 
 
 # These are the slowest tests from the full blockchain test run. This list
@@ -1311,10 +1315,9 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
 
 def generate_ignore_fn_for_fork(passed_fork):
     if passed_fork:
-        passed_fork = passed_fork.lower()
 
-        def ignore_fn(fixture_path, fixture_key, fixture_fork):
-            return fixture_fork.lower() != passed_fork
+        def ignore_fn(_fixture_path, _fixture_key, fixture_fork):
+            return fixture_fork.lower() != passed_fork.lower()
 
         return ignore_fn
 
@@ -1330,10 +1333,16 @@ def pytest_generate_tests(metafunc):
     fork = metafunc.config.getoption("fork")
     generate_fixture_tests(
         metafunc=metafunc,
-        base_fixture_path=BASE_FIXTURE_PATH,
+        base_fixture_paths=[
+            LEGACY_CANCUN_SNAPSHOT_TESTS,
+            EEST_TESTS,
+        ],
         preprocess_fn=expand_fixtures_forks,
         filter_fn=filter_fixtures(
-            fixtures_base_dir=BASE_FIXTURE_PATH,
+            fixtures_base_dirs={
+                "legacy_tests": LEGACY_CANCUN_SNAPSHOT_TESTS,
+                "eest": EEST_TESTS,
+            },
             mark_fn=blockchain_fixture_mark_fn,
             ignore_fn=generate_ignore_fn_for_fork(fork),
         ),
