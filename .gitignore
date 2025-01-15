@@ -145,3 +145,6 @@ crashlytics-build.properties
 fabric.properties
 
 # END JetBrains section
+
+# fixtures_eest
+fixtures_eest/.meta
