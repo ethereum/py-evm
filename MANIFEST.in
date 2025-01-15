@@ -9,5 +9,6 @@ global-include *.pyi
 
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+recursive-exclude * Pyspecs
 prune .tox
 prune venv*
