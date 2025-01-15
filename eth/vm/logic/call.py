@@ -421,3 +421,41 @@ class CallByzantium(CallEIP161):
                 "Cannot modify state while inside of a STATICCALL context"
             )
         return call_params
+
+
+#
+# EIP-7702
+#
+class CallEIP7702(CallByzantium):
+    def get_call_params(self, computation: ComputationAPI) -> CallParams:
+        gas = computation.stack_pop1_int()
+        code = computation.stack_pop1_bytes()
+        if code[:3] == b"\xef\x01\x00":
+            code_address = force_bytes_to_address(code[3:])
+        else:
+            code_address = force_bytes_to_address(code)
+
+        (
+            value,
+            memory_input_start_position,
+            memory_input_size,
+            memory_output_start_position,
+            memory_output_size,
+        ) = computation.stack_pop_ints(5)
+
+        to = computation.msg.storage_address
+        sender = computation.msg.storage_address
+
+        return (
+            gas,
+            value,
+            to,
+            sender,
+            code_address,
+            memory_input_start_position,
+            memory_input_size,
+            memory_output_start_position,
+            memory_output_size,
+            True,  # should_transfer_value,
+            computation.msg.is_static,
+        )

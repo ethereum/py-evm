@@ -1,5 +1,8 @@
 import logging
 
+from typing import (
+    Optional,
+)
 from eth_typing import (
     Address,
 )
@@ -55,6 +58,7 @@ class Message(MessageAPI):
         code_address: Address = None,
         should_transfer_value: bool = True,
         is_static: bool = False,
+        authority: Optional[Address] = None,
     ) -> None:
         validate_uint256(gas, title="Message.gas")
         self.gas: int = gas
@@ -95,6 +99,9 @@ class Message(MessageAPI):
         validate_is_boolean(is_static, title="Message.is_static")
         self.is_static = is_static
 
+        validate_canonical_address(authority)
+        self.authority = authority
+
     @property
     def code_address(self) -> Address:
         if self._code_address is not None:
@@ -124,3 +131,41 @@ class Message(MessageAPI):
     @property
     def data_as_bytes(self) -> bytes:
         return bytes(self.data)
+
+
+class EIP7702Message(Message):
+    logger = logging.getLogger("eth.vm.message.EIP7702Message")
+
+    def __init__(
+        self,
+        gas: int,
+        to: Address,
+        sender: Address,
+        value: int,
+        data: BytesOrView,
+        code: bytes,
+        depth: int = 0,
+        create_address: Address = None,
+        code_address: Address = None,
+        should_transfer_value: bool = True,
+        is_static: bool = False,
+        authority: Optional[Address] = None,
+    ) -> None:
+        super().__init__(
+            gas,
+            to,
+            sender,
+            value,
+            data,
+            code,
+            depth,
+            create_address,
+            code_address,
+            should_transfer_value,
+            is_static,
+        )
+
+        validate_canonical_address(authority)
+        self.authority = authority
+
+    # do we need a getter/setter?
