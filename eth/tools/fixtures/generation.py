@@ -2,7 +2,8 @@ import hashlib
 from typing import (
     Any,
     Callable,
-    Iterable, Sequence,
+    Iterable,
+    Sequence,
 )
 
 from eth_utils.toolz import (
