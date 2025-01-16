@@ -99,6 +99,10 @@ def filter_fixtures(
     for fixture_data in all_fixtures:
         fixture_path = fixture_data[0]
 
+        if "Pyspecs" in fixture_path:
+            # Pyspecs tests should be covered by the EEST tests under a different path.
+            continue
+
         # VM Tests
         if any("snapshot" in k for k in fixtures_base_dirs.keys()):
             if "/Constantinople" in fixture_path:
