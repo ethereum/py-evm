@@ -3,6 +3,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    Sequence,
 )
 
 from eth_utils.toolz import (
@@ -43,7 +44,7 @@ def get_fixtures_file_hash(all_fixture_paths: Iterable[str]) -> str:
 @curry
 def generate_fixture_tests(
     metafunc: Any,
-    base_fixture_path: str,
+    base_fixture_paths: Sequence[str],
     filter_fn: Callable[..., Any] = identity,
     preprocess_fn: Callable[..., Any] = identity,
     postprocess_fn: Callable[..., Any] = identity,
@@ -63,7 +64,9 @@ def generate_fixture_tests(
        after they have been preprocessed (optional) and filtered (optional).
     """
     if "fixture_data" in metafunc.fixturenames:
-        all_fixtures = find_fixtures(base_fixture_path)
+        all_fixtures = []
+        for base_fixture_path in base_fixture_paths:
+            all_fixtures += find_fixtures(base_fixture_path)
 
         if not all_fixtures:
             raise AssertionError(
@@ -71,5 +74,4 @@ def generate_fixture_tests(
             )
 
         filtered_fixtures = postprocess_fn(filter_fn(preprocess_fn(all_fixtures)))
-
         metafunc.parametrize("fixture_data", filtered_fixtures, ids=idfn)
