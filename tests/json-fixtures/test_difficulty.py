@@ -41,9 +41,9 @@ BASE_FIXTURE_PATH = os.path.join(
 def pytest_generate_tests(metafunc):
     generate_fixture_tests(
         metafunc=metafunc,
-        base_fixture_path=BASE_FIXTURE_PATH,
+        base_fixture_paths=[BASE_FIXTURE_PATH],
         filter_fn=filter_fixtures(
-            fixtures_base_dir=BASE_FIXTURE_PATH,
+            fixtures_base_dirs={"ethereum_tests": BASE_FIXTURE_PATH},
         ),
     )
 
