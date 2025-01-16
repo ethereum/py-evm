@@ -49,11 +49,11 @@ UPDATED_OPCODES: Dict[int, OpcodeAPI] = {
         mnemonic=mnemonics.CALL,
         gas_cost=constants.GAS_NULL,
     )(),
-    # opcode_values.CALLCODE: logic.CallCodeEIP2929.configure(
-    #     __name__="opcode:CALLCODE",
-    #     mnemonic=mnemonics.CALLCODE,
-    #     gas_cost=constants.GAS_NULL,
-    # )(),
+    opcode_values.CALLCODE: logic.CallCodeEIP7702.configure(
+        __name__="opcode:CALLCODE",
+        mnemonic=mnemonics.CALLCODE,
+        gas_cost=constants.GAS_NULL,
+    )(),
     opcode_values.DELEGATECALL: logic.DelegateCallEIP7702.configure(
         __name__="opcode:DELEGATECALL",
         mnemonic=mnemonics.DELEGATECALL,
