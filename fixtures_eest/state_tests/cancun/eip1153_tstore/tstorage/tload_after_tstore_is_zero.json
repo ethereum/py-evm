@@ -1,0 +1,106 @@
+{
+    "tests/cancun/eip1153_tstore/test_tstorage.py::test_tload_after_tstore_is_zero[fork_Cancun-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6104d260015d6104d260045d6104d27001000000000000000000000000000000005d6104d27ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5d60005c60005560035c6003556fffffffffffffffffffffffffffffffff5c6fffffffffffffffffffffffffffffffff557ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd5c7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd5560025c60025560055c6005557001000000000000000000000000000000015c700100000000000000000000000000000001557fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5c7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55",
+                "storage": {
+                    "0x01": "0xffff",
+                    "0x04": "0xffff",
+                    "0x0100000000000000000000000000000000": "0xffff",
+                    "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe": "0xffff",
+                    "0x00": "0xffff",
+                    "0x03": "0xffff",
+                    "0xffffffffffffffffffffffffffffffff": "0xffff",
+                    "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd": "0xffff",
+                    "0x02": "0xffff",
+                    "0x05": "0xffff",
+                    "0x0100000000000000000000000000000001": "0xffff",
+                    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff": "0xffff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xd5c266e5bf965ec230eaccf3f8b598c7e4746ed6ddbc5c440aa45051ee2211a3",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a07b0cbd2d85800843e73b1a917828915aaaf49021e4c7896ecc4fcc460e070cf5a071bda31b1d867df266f75bd3fb2efd3ac4aef1b574d092593346940024f69c9a",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x6104d260015d6104d260045d6104d27001000000000000000000000000000000005d6104d27ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5d60005c60005560035c6003556fffffffffffffffffffffffffffffffff5c6fffffffffffffffffffffffffffffffff557ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd5c7ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffd5560025c60025560055c6005557001000000000000000000000000000000015c700100000000000000000000000000000001557fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5c7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff55",
+                            "storage": {
+                                "0x01": "0xffff",
+                                "0x04": "0xffff",
+                                "0x0100000000000000000000000000000000": "0xffff",
+                                "0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe": "0xffff"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9865fc",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x0247ce",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x2d79f0a20cc9c96bfd9d3d36dce25c50e7545640d0968a70408bf222b8788cca",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test that tload returns zero after tstore is called with zero.\n\n    Based on [ethereum/tests/.../03_tloadAfterStoreIs0Filler.yml](https://github.com/ethereum/tests/blob/9b00b68593f5869eb51a6659e1cc983e875e616b/src/EIPTestsFiller/StateTests/stEIP1153-transientStorage/03_tloadAfterStoreIs0Filler.yml)\",",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstorage.py#L142",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "6f0be621c76a05a7b3aaf0e9297afd425c26e9d0"
+        }
+    }
+}
