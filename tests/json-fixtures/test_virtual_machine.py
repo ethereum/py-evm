@@ -57,13 +57,22 @@ from eth.vm.transaction_context import (
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-BASE_FIXTURE_PATH = os.path.join(
+# up-to-Constantinople snapshot legacy VM tests
+LEGACY_CONSTANTINOPLE_SNAPSHOT_TESTS = os.path.join(
     ROOT_PROJECT_DIR,
     "fixtures",
     "LegacyTests",
     "Constantinople",
     "VMTests",
 )
+# TODO: Look into adding these tests? Though they seem to be covered by the state tests
+# CANCUN_VM_TESTS = os.path.join(
+#     "fixtures",
+#     "LegacyTests",
+#     "Cancun",
+#     "GeneralStateTests",
+#     "VMTests",
+# )
 
 
 def vm_fixture_mark_fn(fixture_path, fixture_name):
@@ -78,9 +87,15 @@ def vm_fixture_mark_fn(fixture_path, fixture_name):
 def pytest_generate_tests(metafunc):
     generate_fixture_tests(
         metafunc=metafunc,
-        base_fixture_path=BASE_FIXTURE_PATH,
+        base_fixture_paths=[
+            LEGACY_CONSTANTINOPLE_SNAPSHOT_TESTS,
+            # CANCUN_VM_TESTS,
+        ],
         filter_fn=filter_fixtures(
-            fixtures_base_dir=BASE_FIXTURE_PATH,
+            fixtures_base_dirs={
+                "constantinople_snapshot": LEGACY_CONSTANTINOPLE_SNAPSHOT_TESTS,
+                # "cancun_snapshot": CANCUN_VM_TESTS,
+            },
             mark_fn=vm_fixture_mark_fn,
         ),
     )
