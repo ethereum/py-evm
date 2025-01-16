@@ -64,8 +64,8 @@ from eth.vm.forks.spurious_dragon.transactions import (
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-LEGACY_FIXTURES = os.path.join(ROOT_PROJECT_DIR, "LegacyTests")
-EEST_FIXTURES = os.path.join(ROOT_PROJECT_DIR, "fixtures_EEST")
+LEGACY_CANCUN_SNAPSHOT_TESTS = os.path.join(ROOT_PROJECT_DIR, "LegacyTests", "Cancun")
+EEST_TESTS = os.path.join(ROOT_PROJECT_DIR, "fixtures_EEST")
 
 # Fixtures have an `_info` key at their root which we need to skip over.
 FIXTURE_FORK_SKIPS = {"_info", "txbytes"}
@@ -106,11 +106,11 @@ def ignore_non_txn_tests(fixture_path, _fixture_name):
 def pytest_generate_tests(metafunc):
     generate_fixture_tests(
         metafunc=metafunc,
-        base_fixture_paths=[LEGACY_FIXTURES, EEST_FIXTURES],
+        base_fixture_paths=[LEGACY_CANCUN_SNAPSHOT_TESTS, EEST_TESTS],
         filter_fn=filter_fixtures(
             fixtures_base_dirs={
-                "legacy_tests": LEGACY_FIXTURES,
-                "eest": EEST_FIXTURES,
+                "legacy_tests": LEGACY_CANCUN_SNAPSHOT_TESTS,
+                "eest": EEST_TESTS,
             },
             ignore_fn=ignore_non_txn_tests,
         ),

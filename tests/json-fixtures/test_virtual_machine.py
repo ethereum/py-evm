@@ -57,14 +57,6 @@ from eth.vm.transaction_context import (
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-# up-to-Constantinople snapshot legacy VM tests
-LEGACY_CONSTANTINOPLE_SNAPSHOT_TESTS = os.path.join(
-    ROOT_PROJECT_DIR,
-    "fixtures",
-    "LegacyTests",
-    "Constantinople",
-    "VMTests",
-)
 # up-to-Cancun snapshot legacy VM tests
 LEGACY_CANCUN_SNAPSHOT_TESTS = os.path.join(
     ROOT_PROJECT_DIR,
@@ -94,15 +86,11 @@ def pytest_generate_tests(metafunc):
     generate_fixture_tests(
         metafunc=metafunc,
         base_fixture_paths=[
-            LEGACY_CONSTANTINOPLE_SNAPSHOT_TESTS,
             LEGACY_CANCUN_SNAPSHOT_TESTS,
-            # CANCUN_VM_TESTS,
         ],
         filter_fn=filter_fixtures(
             fixtures_base_dirs={
-                "constantinople_snapshot": LEGACY_CONSTANTINOPLE_SNAPSHOT_TESTS,
                 "cancun_snapshot": LEGACY_CANCUN_SNAPSHOT_TESTS,
-                # "cancun": CANCUN_VM_TESTS,
             },
             mark_fn=vm_fixture_mark_fn,
         ),

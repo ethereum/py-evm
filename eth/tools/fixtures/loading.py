@@ -105,9 +105,7 @@ def filter_fixtures(
 
         # VM Tests
         if any("snapshot" in k for k in fixtures_base_dirs.keys()):
-            if "LegacyTests/Constantinople" in fixture_path:
-                fixtures_base_dir = fixtures_base_dirs["constantinople_snapshot"]
-            elif "LegacyTests/Cancun" in fixture_path:
+            if "LegacyTests/Cancun" in fixture_path:
                 fixtures_base_dir = fixtures_base_dirs["cancun_snapshot"]
             else:
                 fixtures_base_dir = fixtures_base_dirs["cancun"]
