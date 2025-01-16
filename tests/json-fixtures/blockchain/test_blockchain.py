@@ -1292,8 +1292,6 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
     # -- expected skips and failures -- #
     elif "bcExploitTest/" in fixture_path:
         return pytest.mark.skip("Exploit tests are slow")
-    elif "Pyspecs/" in fixture_path:
-        return pytest.mark.skip("Pyspecs tests should be covered by the EEST fixtures")
     elif fixture_path.startswith("bcForkStressTest/ForkStressTest.json"):
         return pytest.mark.skip("Fork stress tests are slow.")
     elif fixture_path == "bcWalletTest/walletReorganizeOwners.json":
