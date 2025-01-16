@@ -10,7 +10,7 @@ from typing import (
 )
 
 from eth_utils import (
-    to_tuple,
+    to_list,
 )
 from eth_utils.toolz import (
     curry,
@@ -31,7 +31,7 @@ def find_fixture_files(fixtures_base_dir: str) -> Iterable[str]:
     return all_fixture_paths
 
 
-@to_tuple
+@to_list
 def find_fixtures(fixtures_base_dir: str) -> Iterable[Tuple[str, str]]:
     """
     Finds all of the (fixture_path, fixture_key) pairs for a given path under
