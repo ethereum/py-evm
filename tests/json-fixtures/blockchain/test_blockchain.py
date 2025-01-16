@@ -40,6 +40,7 @@ ROOT_PROJECT_DIR = Path(__file__).parents[3]
 
 
 BASE_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, "fixtures", "BlockchainTests")
+BASE_EEST_FIXTURE_PATH = os.path.join(ROOT_PROJECT_DIR, "fixtures_EEST", "blockchain_tests")
 
 
 # These are the slowest tests from the full blockchain test run. This list
@@ -1288,6 +1289,8 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
     # -- expected skips and failures -- #
     elif "bcExploitTest/" in fixture_path:
         return pytest.mark.skip("Exploit tests are slow")
+    elif "Pyspecs/" in fixture_path:
+        return pytest.mark.skip("Pyspecs tests should be covered by the EEST fixtures")
     elif fixture_path.startswith("bcForkStressTest/ForkStressTest.json"):
         return pytest.mark.skip("Fork stress tests are slow.")
     elif fixture_path == "bcWalletTest/walletReorganizeOwners.json":
@@ -1330,7 +1333,7 @@ def pytest_generate_tests(metafunc):
     fork = metafunc.config.getoption("fork")
     generate_fixture_tests(
         metafunc=metafunc,
-        base_fixture_path=BASE_FIXTURE_PATH,
+        base_fixture_paths=[BASE_FIXTURE_PATH, BASE_EEST_FIXTURE_PATH],
         preprocess_fn=expand_fixtures_forks,
         filter_fn=filter_fixtures(
             fixtures_base_dir=BASE_FIXTURE_PATH,

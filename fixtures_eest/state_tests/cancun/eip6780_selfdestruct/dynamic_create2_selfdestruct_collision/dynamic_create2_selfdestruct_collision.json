@@ -1,0 +1,2447 @@
+{
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Paris-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_True-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Paris": [
+                {
+                    "hash": "0xa178ca3bcc6ae6c235505c80a4970126973deedda3233de6e17459b3ce0c849b",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee9938733a2",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x2775",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x0fd6e9",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x38e74ad8e5342a46879c401f97a17c1690765771bed5c1bfbf2c66ced01b144c",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Paris-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_True-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Paris": [
+                {
+                    "hash": "0xc4c2e73447a6ff822b27903a914878887dd4ae6bd13f870eaba22da05e554f71",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99389bff0",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x277e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x0f1338",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x89022b52b0f36d4e731cc873db92be77736595ddfe5763f3199b354ccd7cbf7c",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Paris-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_False-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Paris": [
+                {
+                    "hash": "0x93b96f3c9b71966969cbb483bb583d152c909fe9576b06c7e33f7ff1a43b5910",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99383c4d8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x65",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x2710",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x10de8c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x7779493c60ec60d3c8fd614aa89abece94c03d0a21292a8f24910d4344736fe7",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Paris-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_False-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Paris": [
+                {
+                    "hash": "0x7e5014bd4f655061cc7d01683f9ac4193f6c87437e7ba2772453e23769c976b1",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993865126",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x6e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x2710",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x101adb",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x711e502bb19c45f97fa1902df1ecf9ff1a8f58ce52480428ec2aade2767d0b0d",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Paris-state_test-call_create2_contract_in_between_False-call_create2_contract_at_the_end_True-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Paris": [
+                {
+                    "hash": "0xd268d2365c092332344caed71ed9ba7854811b8ae01f4459b018942df3744d5f",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99383c4d8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x64",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x2711",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x10de8c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa969fcfd3c0d2e11f803b0bfa5ccd796cb0a734d9b26b9e41a5ba3df15104959",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Paris-state_test-call_create2_contract_in_between_False-call_create2_contract_at_the_end_True-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Paris": [
+                {
+                    "hash": "0xac4063b51ea91d8e1db5fac74d9095bb9773b5ce40fb2cf4e570f1a2e0e1bcd0",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993865126",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x64",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x271a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x101adb",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x728ac8fc22560f791964937115d80f61a804024459924384875363c8e12c7168",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Shanghai-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_True-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0xa178ca3bcc6ae6c235505c80a4970126973deedda3233de6e17459b3ce0c849b",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee9938733a2",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x2775",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x0fd6e9",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x0cd50fa03954be163cb969c7ae906eaa8624c8edebabb2731d76e63d4cf23789",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Shanghai-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_True-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0x39e44f2b0bb4ddeda403047aad46851174935e305d68f365481e8b4b5f3af689",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99389bfc8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x277e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x0f1344",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x4a63e01490199b7e70337b6065376d61f6ef1b2821ea5756dd1ed65be4034e2b",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Shanghai-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_False-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0x93b96f3c9b71966969cbb483bb583d152c909fe9576b06c7e33f7ff1a43b5910",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99383c4d8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x65",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x2710",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x10de8c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x8586baba1f01f9497572666372e9ee44ad6b5d6d88e955b6800108213e5cf86f",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Shanghai-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_False-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0x00dd4e12b073faf90e9bfc450d4bcfebf6d869ef2e120b89df8654b5d8e6e362",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee9938650fe",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x6e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x2710",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x101ae7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x0832cb585af503eb4ed12f2d2316255eccfc8a14955252f1efd48a3f317ae0d4",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Shanghai-state_test-call_create2_contract_in_between_False-call_create2_contract_at_the_end_True-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0xd268d2365c092332344caed71ed9ba7854811b8ae01f4459b018942df3744d5f",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99383c4d8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x64",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x2711",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x10de8c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xac4839c81e12830491570f9e6be08d9aa9d45f437fbaaab57bd670b512b0c72f",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Shanghai-state_test-call_create2_contract_in_between_False-call_create2_contract_at_the_end_True-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0x85179a1cc8a3ce0a4a81ba2e51180c701a3407c8518c72617cca1e09b2b4eac2",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee9938650fe",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x64",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x271a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x101ae7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x08090043bfd5fea675afb6e6754d83ba015cbb33794391f4f6b95b7e1eaf746b",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Cancun-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_True-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x85777b9988f2a223866b1bf9f6e6ff2cd18817253d2707fa5243266c25fdfcc1",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee9938733a2",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x6103e8ff",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x2775",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x0fd6e9",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x207c5cad68eb68c23777366d895d226d769ece449a2f3d2c67a50f71e8024319",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Cancun-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_True-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x39e44f2b0bb4ddeda403047aad46851174935e305d68f365481e8b4b5f3af689",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99389bfc8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x277e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x0f1344",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x5e428425367fe67d24482a89e4df65aa622a50999a9d86eac1b9fa42f79c144a",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Cancun-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_False-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x2bae7a77dff5888ad7a49b9c609bf4904de6ae975751986ea9cf95427fdf0a3c",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99383c4d8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x6103e8ff",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x65",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x2710",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x10de8c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x47626a38a4155d9ea30a466d6b8bdf6d193de67910be523cc7e6b2908817ead2",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Cancun-state_test-call_create2_contract_in_between_True-call_create2_contract_at_the_end_False-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x00dd4e12b073faf90e9bfc450d4bcfebf6d869ef2e120b89df8654b5d8e6e362",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060647351bbeb887a2638ae37ce69027395957c396ee327620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127106000620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee9938650fe",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x6e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x2710",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x101ae7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x68f1feede5d883933faf255e864962f324f0b5c83c63ebe4690a84812e2e6a41",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Cancun-state_test-call_create2_contract_in_between_False-call_create2_contract_at_the_end_True-create2_dest_already_in_state_True]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                "nonce": "0x01",
+                "balance": "0x01",
+                "code": "0x6103e8ff",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x1871612c1ac9032ce6ece34af51575fbf2e4a6f41e70dd49d2f417c8e202e2b0",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee99383c4d8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x51bbeb887a2638ae37ce69027395957c396ee327": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x6103e8ff",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x0a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x64",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x2711",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x10de8c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa788909be673a213f9feaf8879f4635bc8bd05bd53e7a69b6cc6f049828bc661",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py::test_dynamic_create2_selfdestruct_collision[fork_Cancun-state_test-call_create2_contract_in_between_False-call_create2_contract_at_the_end_True-create2_dest_already_in_state_False]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0xff112233445566",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000000600": {
+                "nonce": "0x00",
+                "balance": "0x05f5e100",
+                "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                "storage": {
+                    "0x02": "0xff",
+                    "0x03": "0xff"
+                }
+            },
+            "0x0000000000000000000000000000000000000601": {
+                "nonce": "0x00",
+                "balance": "0x00",
+                "code": "0x366000600037600136600047f560005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000000512": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x6001600155",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000000600",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6001600155600060006000600060006105125af1610004600081601f8239f36103e8ff"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x85179a1cc8a3ce0a4a81ba2e51180c701a3407c8518c72617cca1e09b2b4eac2",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf883800a834c4b4094000000000000000000000000000000000000060080a36001600155600060006000600060006105125af1610004600081601f8239f36103e8ff1ca092acadcef8cd2689a1aa4223338053cbceb8d0731c76ee88af155892ef6022c3a02cb42a841b7c8ea04933a04ad33567a8892a84af401a78df4ee310c040141067",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000000600": {
+                            "nonce": "0x00",
+                            "balance": "0x05f5b59a",
+                            "code": "0x5b36600060003760206000366000600a610601620186a0f160005160025560006000600060006000610601620186a0f1600060006000600060646000620186a0f1366000600037602060003660006103e8610601620186a0f160005160035560006000600060006127107351bbeb887a2638ae37ce69027395957c396ee327620186a0f16001600455",
+                            "storage": {
+                                "0x02": "0x51bbeb887a2638ae37ce69027395957c396ee327",
+                                "0x04": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000000601": {
+                            "nonce": "0x03",
+                            "balance": "0x03e8",
+                            "code": "0x366000600037600136600047f560005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000512": {
+                            "nonce": "0x00",
+                            "balance": "0x6124fee993bc0000",
+                            "code": "0x6001600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee9938650fe",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x9b8ae25ffafea3c9b24ce2c762517bb116c5b5fe": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000000000": {
+                            "nonce": "0x00",
+                            "balance": "0x64",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x00000000000000000000000000000000000003e8": {
+                            "nonce": "0x00",
+                            "balance": "0x271a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x101ae7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x68f4084207eeb9bce0272b43513921b46ef753fdbdebefe754a5aa806a87b413",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Dynamic Create2->Suicide->Create2 collision scenario.\n\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then on a different call, in the same tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract   <=== Covered in this test\n            1) and create2 contract already in the state\n            2) and create2 contract is not in the state\n        b) on a different tx, attempt to recreate the contract\n    Perform a CREATE2, make sure that the initcode sets at least a couple of storage keys,\n    then in a different tx, perform a self-destruct.\n    Then:\n        a) on the same tx, attempt to recreate the contract\n        b) on a different tx, attempt to recreate the contract\n    Verify that the test case described\n    in https://wiki.hyperledger.org/pages/viewpage.action?pageId=117440824 is covered",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_dynamic_create2_selfdestruct_collision.py#L43",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    }
+}

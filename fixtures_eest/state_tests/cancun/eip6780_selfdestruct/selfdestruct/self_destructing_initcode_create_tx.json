@@ -1,0 +1,742 @@
+{
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode_create_tx[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_0-tx_value_0]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x600160005401600055611000ff600060005500"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0xb08f96e277ef1cd888534ff46e7dba770580273b4d19a923633ab6e8830e2cf8",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf85f800a8307a120808093600160005401600055611000ff60006000550025a0a1824a0eda037465c17d7de4f4735f9668908003c746966d583a350073d4a250a00fc7283cb0617d8db7b4944ade782a6cf82a6394b5503d1ad579a2234e98f57b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9357ce",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x03cc0f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x9ed6443e48fe344a5f100cee8fb26cf1410cfd4b55209a29c2ff7e6503e260b4",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Use a Create Transaction to execute a self-destructing initcode.\n\n    Behavior should be the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different transaction value amounts",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L465",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode_create_tx[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_0-tx_value_100000]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x0186a0"
+            ],
+            "data": [
+                "0x600160005401600055611000ff600060005500"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0xf4922dd21225b8cb1185b4abafb695ac55268faed41eccaaac0a4e40ad078d46",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf862800a8307a12080830186a093600160005401600055611000ff60006000550026a078e2a6545716e1104f42ea8d3e3e207b3ca8f507683f7f0551d8e15d16dc2bfda015082d33c78cc420f39c028d69e942b0ebf8cc9f44ccf6c9955f9594d7ddeb8e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91d12e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x0186a0",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x03cc0f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x5fe6cff738790aea3cc02bdb60907fda00335d4b431c1d4aef413972d70df2bf",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Use a Create Transaction to execute a self-destructing initcode.\n\n    Behavior should be the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different transaction value amounts",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L465",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode_create_tx[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_100000-tx_value_0]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            },
+            "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
+                "nonce": "0x00",
+                "balance": "0x0186a0",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x600160005401600055611000ff600060005500"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0xf101aa07110ad52be9bd8f0f779c2805e05ee90296f9c4f3fa5e9aa7214b1661",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf85f800a8307a120808093600160005401600055611000ff60006000550025a0a1824a0eda037465c17d7de4f4735f9668908003c746966d583a350073d4a250a00fc7283cb0617d8db7b4944ade782a6cf82a6394b5503d1ad579a2234e98f57b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9357ce",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x0186a0",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x03cc0f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x438a5251d03ebc9e5dc623b7c7c9c6e567316f4cb953e0c75e7dab807352ec8a",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Use a Create Transaction to execute a self-destructing initcode.\n\n    Behavior should be the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different transaction value amounts",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L465",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode_create_tx[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_100000-tx_value_100000]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            },
+            "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
+                "nonce": "0x00",
+                "balance": "0x0186a0",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x0186a0"
+            ],
+            "data": [
+                "0x600160005401600055611000ff600060005500"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Shanghai": [
+                {
+                    "hash": "0x2a063091f38081f43eef3e2781dbfea135c69bbbc5d8b04e70470e2713c8bde2",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf862800a8307a12080830186a093600160005401600055611000ff60006000550026a078e2a6545716e1104f42ea8d3e3e207b3ca8f507683f7f0551d8e15d16dc2bfda015082d33c78cc420f39c028d69e942b0ebf8cc9f44ccf6c9955f9594d7ddeb8e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91d12e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x030d40",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x03cc0f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa4bdc0201cfc777eb112a78a3cc784b74ddf575bc03f4209ec57c21677aa7e9d",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Use a Create Transaction to execute a self-destructing initcode.\n\n    Behavior should be the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different transaction value amounts",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L465",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode_create_tx[fork_Cancun-state_test-selfdestruct_contract_initial_balance_0-tx_value_0]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x600160005401600055611000ff600060005500"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xb08f96e277ef1cd888534ff46e7dba770580273b4d19a923633ab6e8830e2cf8",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf85f800a8307a120808093600160005401600055611000ff60006000550025a0a1824a0eda037465c17d7de4f4735f9668908003c746966d583a350073d4a250a00fc7283cb0617d8db7b4944ade782a6cf82a6394b5503d1ad579a2234e98f57b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9357ce",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x03cc0f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa58c17529d93c7a3335b5d39a901d0906665b9b0020f791fcae9a895c4d58eea",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Use a Create Transaction to execute a self-destructing initcode.\n\n    Behavior should be the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different transaction value amounts",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L465",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode_create_tx[fork_Cancun-state_test-selfdestruct_contract_initial_balance_0-tx_value_100000]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x0186a0"
+            ],
+            "data": [
+                "0x600160005401600055611000ff600060005500"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xf4922dd21225b8cb1185b4abafb695ac55268faed41eccaaac0a4e40ad078d46",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf862800a8307a12080830186a093600160005401600055611000ff60006000550026a078e2a6545716e1104f42ea8d3e3e207b3ca8f507683f7f0551d8e15d16dc2bfda015082d33c78cc420f39c028d69e942b0ebf8cc9f44ccf6c9955f9594d7ddeb8e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91d12e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x0186a0",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x03cc0f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x4227c996ad263e79cc67b8a6cc20bd0a3f69d95b9e5c441f9f2e6687c8d4f642",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Use a Create Transaction to execute a self-destructing initcode.\n\n    Behavior should be the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different transaction value amounts",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L465",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode_create_tx[fork_Cancun-state_test-selfdestruct_contract_initial_balance_100000-tx_value_0]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            },
+            "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
+                "nonce": "0x00",
+                "balance": "0x0186a0",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x600160005401600055611000ff600060005500"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xf101aa07110ad52be9bd8f0f779c2805e05ee90296f9c4f3fa5e9aa7214b1661",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf85f800a8307a120808093600160005401600055611000ff60006000550025a0a1824a0eda037465c17d7de4f4735f9668908003c746966d583a350073d4a250a00fc7283cb0617d8db7b4944ade782a6cf82a6394b5503d1ad579a2234e98f57b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9357ce",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x0186a0",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x03cc0f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x6a77f0e8fbb97b9c987168156543733e375db735c447c1143a81b7eb9eead81b",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Use a Create Transaction to execute a self-destructing initcode.\n\n    Behavior should be the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different transaction value amounts",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L465",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode_create_tx[fork_Cancun-state_test-selfdestruct_contract_initial_balance_100000-tx_value_100000]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            },
+            "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
+                "nonce": "0x00",
+                "balance": "0x0186a0",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x0186a0"
+            ],
+            "data": [
+                "0x600160005401600055611000ff600060005500"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x2a063091f38081f43eef3e2781dbfea135c69bbbc5d8b04e70470e2713c8bde2",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf862800a8307a12080830186a093600160005401600055611000ff60006000550026a078e2a6545716e1104f42ea8d3e3e207b3ca8f507683f7f0551d8e15d16dc2bfda015082d33c78cc420f39c028d69e942b0ebf8cc9f44ccf6c9955f9594d7ddeb8e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91d12e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x030d40",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x03cc0f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xf100bc32db22924ca6eb6a30851fe82d37d0be9a5b514efc8dcab022d58b7be7",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Use a Create Transaction to execute a self-destructing initcode.\n\n    Behavior should be the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different transaction value amounts",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L465",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    }
+}

@@ -97,7 +97,7 @@ os.system(f"git fetch && git checkout {args.branch} && git pull")
 fork_command = f"--fork={args.fork}" if args.fork else f"--until={args.until_fork}"
 
 # build fill command
-command = f'fill {fork_command} --output="{cwd}/fixtures_EEST"'
+command = f'fill {fork_command} --output="{cwd}/fixtures_eest"'
 if args.k_args:
     command += f" -k {args.k_args}"
 if args.num_processes:

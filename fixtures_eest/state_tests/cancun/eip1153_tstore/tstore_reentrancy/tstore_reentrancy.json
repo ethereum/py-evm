@@ -1,0 +1,2701 @@
+{
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_RETURN-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006000305af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x2c8a195ecefd3704d41260a63ce8f699c231bdf9b0117c2ca4e6449d2c97818c",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006000305af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x5a",
+                                "0x03": "0x01",
+                                "0x04": "0x0c",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b33678",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x02a2dc",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x339120f0bc24bb6697980fed4871ad7b9ce00b6ca101f0174ab1723a0100e9ac",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_RETURN-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006000305af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x14b0affe0e17d5e08a7cb94fec00c7be4e5c54f60f98224bd13affc28575004b",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006000305af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x5a",
+                                "0x03": "0x01",
+                                "0x04": "0x0c",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b33678",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x02a2dc",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xbbdbe5f92889f16e9f0eb70819b0e52b8a99e6097d228a3f519702d48638a540",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_RETURN-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x600160003514605e580157600260003514600858015760735801565b605060005d60005c600055600160005260ff6020526020602060206000305af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xcbdacd5e45f44d934e349d029103f31b528698c9f15181a86aa5fb87dd01ee9c",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x600160003514605e580157600260003514600858015760735801565b605060005d60005c600055600160005260ff6020526020602060206000305af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x5a",
+                                "0x03": "0x01",
+                                "0x04": "0x0c",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b33696",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x02a2d3",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x95ee069bf0a418c81c364908aff8ff41d9683c247dad2ff54adf4678dfdcaa30",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_RETURN-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x600160003514605e580157600260003514600858015760735801565b605060005d60005c600055600160005260ff6020526020602060206000305afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xf49e4156099d182e0da85cb100454e943f4ca10de537979e759a989a8bf54373",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x600160003514605e580157600260003514600858015760735801565b605060005d60005c600055600160005260ff6020526020602060206000305afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca299e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe226b7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xf787e8faf890ae6570ba97b83a2d0ce10bb5493fe822bb58f56d8302a602dd9c",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_REVERT-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006000305af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x161dff81a86687aa26c5d2a313c85cc53b95df9fbf9f8f390db4308e824ecf6d",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006000305af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b4ad78",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x02325c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x1926be19294307e5cf55db3c92a1377bc2068168d44b9ebdc66dbeeaad5855f6",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_REVERT-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006000305af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xf161b1b8ce24f158cd75a7e775127a9fb0909dbc092c99f1d02d1737a58c0405",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006000305af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b4ad78",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x02325c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xb4b1b986af0e090057d0a9bdc58d48246107cd6f4688e24af0f1988daa21f017",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_REVERT-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x600160003514605e580157600260003514600858015760735801565b605060005d60005c600055600160005260ff6020526020602060206000305af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x48e3f6f17e5d38be8ed7fd4fe1a92b4b16465f0d1b94003e8229010a0b6dc077",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x600160003514605e580157600260003514600858015760735801565b605060005d60005c600055600160005260ff6020526020602060206000305af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b4ad96",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x023253",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xb3f23e7a00be443b8ab020f2fd3ea741a5a4a12ffc8c97d85f2282d186a88954",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_REVERT-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x600160003514605e580157600260003514600858015760735801565b605060005d60005c600055600160005260ff6020526020602060206000305afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xf82a7b7c4052685c08737c24dfc2367e4c7511a2568630589d9f85aa070d5f93",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x600160003514605e580157600260003514600858015760735801565b605060005d60005c600055600160005260ff6020526020602060206000305afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca299e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe226b7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x41d63561c794d05c6ef4ab25a345b6f9d6979b77aea37ef50992f6b9a08ef2b9",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_OOG-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x60016000351460605801576002600035146008580157607d5801565b605060005d60005c600055600160005260ff60205260206020602060006000305af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x80e5a36b5db18fe3cf2437538228b49dbe43c2ae51df9d61f711bbe4463f8754",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x60016000351460605801576002600035146008580157607d5801565b605060005d60005c600055600160005260ff60205260206020602060006000305af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca299e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe226b7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x363f2eac648ca3544a84fb2c3c30b3992d7a8ef161aa9a5000bd824c9c9907cd",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_OOG-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x60016000351460605801576002600035146008580157607d5801565b605060005d60005c600055600160005260ff60205260206020602060006000305af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xbb9a47c1a2281ddb12bc0b74ae947c4a08afa854bf891f24758e465c28387f4c",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x60016000351460605801576002600035146008580157607d5801565b605060005d60005c600055600160005260ff60205260206020602060006000305af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca299e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe226b7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xfbb6c78314059041ffdb2e05327c027398a623b349e8b0b4c30c9e5b86819d5a",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_OOG-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x600160003514605e5801576002600035146008580157607b5801565b605060005d60005c600055600160005260ff6020526020602060206000305af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x68a82a1b1638f27598c061fd659348eeb857b796f293c552646dda7228b03c25",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x600160003514605e5801576002600035146008580157607b5801565b605060005d60005c600055600160005260ff6020526020602060206000305af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca299e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe226b7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x81940f36167649712d630edf4d4d2399352ffc3bac2dcb8435e8596789da5f89",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.REENTRANCY-call_return_OOG-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x600160003514605e5801576002600035146008580157607b5801565b605060005d60005c600055600160005260ff6020526020602060206000305afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x2705d0904b24b1f20f6e59a486ff2f334c7a12dc130a22048ed8ac79dac439f4",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x600160003514605e5801576002600035146008580157607b5801565b605060005d60005c600055600160005260ff6020526020602060206000305afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca299e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe226b7",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xdb1d2622bb6b9dca5262721054a172bac4745e0b58125767f2bd0713d192a023",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_RETURN-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146062580157600260003514600858015760775801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x55f502df7654f18ebe9809a0d3af33c86cf13c3a4c09214261e4164f6f65b9e2",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146062580157600260003514600858015760775801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x50",
+                                "0x03": "0x01",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b3917c",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x02878e",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xb7ef0183764b52c869f797b95a89364a1243847aa1531a415d7766e0bcabea68",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_RETURN-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146062580157600260003514600858015760775801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x7bad575f1f2b482715e79b0f0cb820e4fd6365a872a35609c3060ef75546cd55",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146062580157600260003514600858015760775801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x5a",
+                                "0x03": "0x01",
+                                "0x04": "0x0c",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b2d5fc",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x02bfce",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x799b4905d3abf45b4ec771d622dae39d83bf7c82e3de55bba4a99f1aeaf2e30b",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_RETURN-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006110005af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x36d6114a6e7fd478e3d4467098e0e6274cdfc0038bbf76f60ca77ed0b8f80881",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006110005af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x5a",
+                                "0x03": "0x01",
+                                "0x04": "0x0c",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b2d61a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x02bfc5",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x69697d8e853d941f5a54c03b8d946d62edf5ac0642a93535f7705d3d0c2e4f68",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_RETURN-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006110005afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x82d74fe958766f17ede476cd6708f56bdebf30b07340569404c5ab5d1d80ec9a",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000f3",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006110005afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000f360035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca2818",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe2272c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x679672facfb65bb18520d9b5cc88adddb2cea270541b76bb7ef76b02125ae02e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_REVERT-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146062580157600260003514600858015760775801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x10d74a3c202d88a7e07c567cd078a59b0f9c1307e7d79a42ddb79cc0faf427e8",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146062580157600260003514600858015760775801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b44cfc",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x024f4e",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x4e897d46d9d62946be5399b04bdcb167bf429540aea1a86eb08e80baa668c376",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_REVERT-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146062580157600260003514600858015760775801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x990a44245d7bc6ca0ec16d4d7f11235dd1ef8cc0a91a89cec62a64df5102a4f8",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146062580157600260003514600858015760775801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b44cfc",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x024f4e",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x7161aa803abcfd14f5184fdd81a07c38945ee3ddc1a3f8bac89af690dd2689b4",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_REVERT-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006110005af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x382eb619d44e346ac5db3cf71da2b998f947ce404592c1446947e3ac9f75e958",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006110005af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0x5a",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee993b44d1a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x024f45",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xecbda251fca6d0c39370b0eb80650a42174f20e73b942f6ea61f83e7115462de",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_REVERT-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006110005afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x67ca50064c92fb0bbacbed2e80494fac079ec01223e44669c722987fbf24ebf1",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c60005260206000fd",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x6001600035146060580157600260003514600858015760755801565b605060005d60005c600055600160005260ff60205260206020602060006110005afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560285801565b605960005d605a60005d600b60015d600c60015d60005c60005260206000fd60035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca2818",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe2272c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x71fe0a802ecfefa62299626517491df288e5b1e8d09080174b7927aa99c58982",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_OOG-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x60016000351460625801576002600035146008580157607f5801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x9c0bf96e6fd1b1b784d6c03b64881e3b7f9d80c070d96a91bb5a64b1923197d4",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x60016000351460625801576002600035146008580157607f5801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af160035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca280e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe2272f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xad82cead7ba7d53744850c5aaa1af0f1b81f0a7046fa2721de629d793992e284",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_OOG-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x60016000351460625801576002600035146008580157607f5801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x7892bbc76fdd7a56ab2534b79a8c9cde0e1560ef935101ce1c4288ce0d714ba8",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x60016000351460625801576002600035146008580157607f5801565b605060005d60005c600055600160005260ff602052602060206020600060006110005af260035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca280e",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe2272f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xb69b1e7a25c5631939f89b7ca153215692d59147e40f9f16f8d5de43aeb73d3b",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_OOG-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x60016000351460605801576002600035146008580157607d5801565b605060005d60005c600055600160005260ff60205260206020602060006110005af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xc0aaf681b96aecdfd36ad30377eb86089a5d8c402fce67225a58e76b04969068",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x60016000351460605801576002600035146008580157607d5801565b605060005d60005c600055600160005260ff60205260206020602060006110005af460035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca2818",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe2272c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x5710b9cac692ba297f3cfd32490c30a3356b1afc7912fa5502bb81ec87833912",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    },
+    "tests/cancun/eip1153_tstore/test_tstore_reentrancy.py::test_tstore_reentrancy[fork_Cancun-state_test-call_dest_type_CallDestType.EXTERNAL_CALL-call_return_OOG-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x0de0b6b3a7640000",
+                "code": "0x60016000351460605801576002600035146008580157607d5801565b605060005d60005c600055600160005260ff60205260206020602060006110005afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                "storage": {
+                    "0x00": "0xff",
+                    "0x01": "0xff",
+                    "0x02": "0xff",
+                    "0x03": "0xff",
+                    "0x04": "0xff",
+                    "0x05": "0xff",
+                    "0x06": "0xff"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x6124fee993bc0000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x4c4b40"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x9623d69dd8a790e307cab1315f2f244441f97d1ab9595cc080f1c9318e903863",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf880800a834c4b4094000000000000000000000000000000000000110080a0000000000000000000000000000000000000000000000000000000000000000226a00cf62bc3775f0ddf2fbee7e2bc3d52a45486990eb11a18ec2b3f535af2e0b8f8a03a79cd387cfcd19f37f30e13098815bb596835991fa1c849256f049259705c78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e800600020",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x0de0b6b3a7640000",
+                            "code": "0x60016000351460605801576002600035146008580157607d5801565b605060005d60005c600055600160005260ff60205260206020602060006110005afa60035560205160015560005c60025560015c600455603260005d60005c600555600160065560305801565b605960005d605a60005d600b60015d600c60015d60005c6000526000602064174876e80060002060035801565b",
+                            "storage": {
+                                "0x00": "0x50",
+                                "0x01": "0xff",
+                                "0x02": "0x50",
+                                "0x05": "0x32",
+                                "0x06": "0x01"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x6124fee990ca2818",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0xe2272c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x7e67c98404f58846a3a1a95474dd1171be7c1b9a6ebffcb09c0c94b7edf506aa",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (06_tstoreInReentrancyCallFiller.yml)\n    Reentrant calls access the same transient storage\n\n    (07_tloadAfterReentrancyStoreFiller.yml)\n    Successfully returned calls do not revert transient storage writes\n\n    (08_revertUndoesTransientStoreFiller.yml)\n    Revert undoes the transient storage writes from a call.\n\n    (09_revertUndoesAllFiller.yml)\n    Revert undoes all the transient storage writes to the same key from the failed call.\n\n    (11_tstoreDelegateCallFiller.yml)\n    delegatecall manipulates transient storage in the context of the current address.\n\n    (13_tloadStaticCallFiller.yml)\n    Transient storage cannot be manipulated in a static context, tstore reverts\n\n    (20_oogUndoesTransientStoreInCallFiller.yml)\n    Out of gas undoes the transient storage writes from a call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstore_reentrancy.py#L36",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+        }
+    }
+}
