@@ -64,7 +64,11 @@ from eth.vm.forks.spurious_dragon.transactions import (
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 
-ALL_FIXTURES_PATH = os.path.join(ROOT_PROJECT_DIR, "fixtures")
+# tests up to and including Cancun
+LEGACY_CANCUN_SNAPSHOT_TESTS = os.path.join(
+    ROOT_PROJECT_DIR, "fixtures", "LegacyTests", "Cancun"
+)
+EEST_TESTS = os.path.join(ROOT_PROJECT_DIR, "fixtures_EEST")
 
 # Fixtures have an `_info` key at their root which we need to skip over.
 FIXTURE_FORK_SKIPS = {"_info", "txbytes"}
@@ -86,8 +90,8 @@ def expand_fixtures_forks(all_fixtures):
                 if fixture_fork not in FIXTURE_FORK_SKIPS:
                     yield fixture_path, fixture_key, fixture_fork
 
-        else:
-            # txn tests from pyspec general state tests
+        elif "post" in fixture.keys():
+            # txn tests from EEST general state tests
             for fixture_fork, _ in fixture["post"].items():
                 yield fixture_path, fixture_key, fixture_fork
 
@@ -95,19 +99,24 @@ def expand_fixtures_forks(all_fixtures):
 def ignore_non_txn_tests(fixture_path, _fixture_name):
     txn_test_paths = [
         "TransactionTests/",
-        "GeneralStateTests/Cancun/stEIP4844-blobtransactions",
-        "GeneralStateTests/Pyspecs/cancun/eip4844_blobs",
-        "EIPTests/StateTests/stExample/blobtxExample",
+        "GeneralStateTests/",
+        "state_tests/",
     ]
-    return not any(fixture_path.startswith(path_start) for path_start in txn_test_paths)
+    return (
+        not any(fixture_path.startswith(path_start) for path_start in txn_test_paths)
+        or "Pyspecs" in fixture_path  # ignore PySpec tests, should test via EEST tests
+    )
 
 
 def pytest_generate_tests(metafunc):
     generate_fixture_tests(
         metafunc=metafunc,
-        base_fixture_path=ALL_FIXTURES_PATH,
+        base_fixture_paths=[LEGACY_CANCUN_SNAPSHOT_TESTS, EEST_TESTS],
         filter_fn=filter_fixtures(
-            fixtures_base_dir=ALL_FIXTURES_PATH,
+            fixtures_base_dirs={
+                "legacy_tests": LEGACY_CANCUN_SNAPSHOT_TESTS,
+                "eest": EEST_TESTS,
+            },
             ignore_fn=ignore_non_txn_tests,
         ),
         postprocess_fn=expand_fixtures_forks,
