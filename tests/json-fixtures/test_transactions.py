@@ -102,10 +102,7 @@ def ignore_non_txn_tests(fixture_path, _fixture_name):
         "GeneralStateTests/",
         "state_tests/",
     ]
-    return (
-        not any(fixture_path.startswith(path_start) for path_start in txn_test_paths)
-        or "Pyspecs" in fixture_path  # ignore PySpec tests, should test via EEST tests
-    )
+    return not any(fixture_path.startswith(path_start) for path_start in txn_test_paths)
 
 
 def pytest_generate_tests(metafunc):
