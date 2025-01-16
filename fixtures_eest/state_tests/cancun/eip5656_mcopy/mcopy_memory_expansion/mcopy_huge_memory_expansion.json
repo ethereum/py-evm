@@ -1,0 +1,2180 @@
+{
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--max_dest_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x36600060003760006000612015600155600160007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x707f82d74bd6511d601ccf6246723c6b8ebc3f873ab6f0f79b4e1f36980fc086",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x36600060003760006000612015600155600160007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa578586323845ce64c46c3f7d8d5087b1f5b90617d7ad66db2f823f37e2bd3c9",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--max_dest_minus_one_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x36600060003760006000612015600155600160007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xe7a7604246e6bf95d21d4f7777c6392c7d188af03063ba7caf4ad56073e076de",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x36600060003760006000612015600155600160007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x44b6cb79e0a18e5008fcb08823d0215981533b1caae09e271895cc57268b9189",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--half_max_dest_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x36600060003760006000612015600155600160007f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x458c66b9030f54cdc9750fd74c99e53c552f6adc688e119373c60d480493ce0f",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x36600060003760006000612015600155600160007f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xec58455b4837cc7e97bf06c742c36510e1d8d2c94af2e3ae984873e7aeefba81",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--max_src_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3660006000376000600061201560015560017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x3464e707d532a3aa41da2c7b1ae1e33ed74c2a99e81155f4f36ffcfe968aaba9",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x3660006000376000600061201560015560017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x9d9bc8b14a954deedce8c4119b3de949f29f27a6209333f9ed9263b869464c97",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--max_src_minus_one_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3660006000376000600061201560015560017ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe60005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x81f8747c581a9dc668e76d3e056d45de4c60ce8b9526c5f3eff4409adc8de0ba",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x3660006000376000600061201560015560017ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe60005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa0f61a47d934cffeb4913725530b4a7e9729a172fc12a0f2d450bc807e118ef3",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--half_max_src_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3660006000376000600061201560015560017f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x7760cf8fae55840574e1e41b03d4e47651631507d98c9aa810a59a3a4d4559ba",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x3660006000376000600061201560015560017f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x204051d07d1fe16e3551f654684b739f810b3dfe69c8b78896a0c73189f0c241",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--max_length_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x366000600037600060006120156001557fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600060005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x688426665c99a1f3c2d1675a4d4ee4c76e40abd2ba17ad7c1e76642b86246c3e",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x366000600037600060006120156001557fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600060005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x8deb2d247803c0e6962a670020cf1705f6607a3865b181a82a90119646ac5b63",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--max_length_minus_one_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x366000600037600060006120156001557ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe600060005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xe00642c5e2aca0157a0595c9c97ebc7bcb0d4daddf82368173b99d33168e520f",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x366000600037600060006120156001557ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe600060005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x232b670c9e7a1f6f74ac3865728df5155ce48c577b9b2f52a2b2b272094bcd3e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_existent_memory-successful_False--half_max_length_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x366000600037600060006120156001557f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600060005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfeff"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x213dfe2ef829d8ef94b285d5af7d0195fd7efa95068a28c34c1d301563e561cb",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90236018080078405f5e10094000000000000000000000000000000000000100080b90100000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9fa0a1a2a3a4a5a6a7a8a9aaabacadaeafb0b1b2b3b4b5b6b7b8b9babbbcbdbebfc0c1c2c3c4c5c6c7c8c9cacbcccdcecfd0d1d2d3d4d5d6d7d8d9dadbdcdddedfe0e1e2e3e4e5e6e7e8e9eaebecedeeeff0f1f2f3f4f5f6f7f8f9fafbfcfdfefff8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a07c3a2fb925e9ef8f8a72de4a878625742a4d19edb816df3f77176048e69edbcea06acbb6bd1fc3c0fca7c510a0cdf3d691005cbba6a2bd8e790125017d89c10dc5",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x366000600037600060006120156001557f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600060005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xc1c10d4ddd77599c1e05de5ac83c3b5fd4734f746d9686d0c3178f403075f5a3",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--max_dest_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x36600060003760006000612015600155600160007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x707f82d74bd6511d601ccf6246723c6b8ebc3f873ab6f0f79b4e1f36980fc086",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x36600060003760006000612015600155600160007fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x142f6e6a46c0d540c62f308c78e43a560c622f53c92db4825554f3b229b7a51c",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--max_dest_minus_one_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x36600060003760006000612015600155600160007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xe7a7604246e6bf95d21d4f7777c6392c7d188af03063ba7caf4ad56073e076de",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x36600060003760006000612015600155600160007ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe5ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xfd175c329055248a2d57add25604d1a052adfa2eecafa5f7b0100e3c0b265609",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--half_max_dest_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x36600060003760006000612015600155600160007f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x458c66b9030f54cdc9750fd74c99e53c552f6adc688e119373c60d480493ce0f",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x36600060003760006000612015600155600160007f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff5ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x01a6beddda3c920ce6b99ed3d262b1c9796bd9884c5ba973b7b2accf9b81ca44",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--max_src_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3660006000376000600061201560015560017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x3464e707d532a3aa41da2c7b1ae1e33ed74c2a99e81155f4f36ffcfe968aaba9",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x3660006000376000600061201560015560017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x75475db6ab254f755efd285a413d57613e81ff7f6125fcc3ab3236549a0d859c",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--max_src_minus_one_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3660006000376000600061201560015560017ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe60005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x81f8747c581a9dc668e76d3e056d45de4c60ce8b9526c5f3eff4409adc8de0ba",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x3660006000376000600061201560015560017ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe60005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xf55a16458a9c5228129b99bc493b23be663ac418f9fa1146c36e16e8f6d8f249",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--half_max_src_single_byte_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3660006000376000600061201560015560017f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x7760cf8fae55840574e1e41b03d4e47651631507d98c9aa810a59a3a4d4559ba",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x3660006000376000600061201560015560017f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff60005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xd0303ad004541f4449be5a7d51436ac95c80a606e88a5a9a9372112fdd4f488d",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--max_length_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x366000600037600060006120156001557fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600060005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x688426665c99a1f3c2d1675a4d4ee4c76e40abd2ba17ad7c1e76642b86246c3e",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x366000600037600060006120156001557fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600060005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xec55faf1cdf87fbf315e3b7e5ff5be89ebe7ec255635390a348128a3ecf412d1",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--max_length_minus_one_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x366000600037600060006120156001557ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe600060005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xe00642c5e2aca0157a0595c9c97ebc7bcb0d4daddf82368173b99d33168e520f",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x366000600037600060006120156001557ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe600060005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xafca6cb9d0598bb5c2dda6b0d85983b6168014b2425a019f99b4df3b1e1a0572",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    },
+    "tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py::test_mcopy_huge_memory_expansion[fork_Cancun-evm_code_type_LEGACY-state_test-from_empty_memory-successful_False--half_max_length_expansion]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x05f5e100",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x366000600037600060006120156001557f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600060005ef3",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x29b92700",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x05f5e100"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                [
+                    {
+                        "address": "0x0000000000000000000000000000000000000001",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000002",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000003",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000004",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000005",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000006",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000007",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000008",
+                        "storageKeys": []
+                    },
+                    {
+                        "address": "0x0000000000000000000000000000000000000009",
+                        "storageKeys": []
+                    }
+                ]
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x213dfe2ef829d8ef94b285d5af7d0195fd7efa95068a28c34c1d301563e561cb",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x02f90134018080078405f5e1009400000000000000000000000000000000000010008080f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a06ed1ceb805a5083cdc6180d59d0978e6b5dd6d778dd273ff44bcf73d1c80c791a0302a495f24004c6616d899f3808c1b2b383a71376fa40251dec9957e526a6e9b",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x366000600037600060006120156001557f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff600060005ef3",
+                            "storage": {}
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x1f39352f39f5eb888569766fc2529ae63b22a66cd6d391d31df9684a3a438990",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Perform MCOPY operations that expand the memory by huge amounts, and verify that it correctly\n    runs out of gas.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_memory_expansion.py#L235",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
+            "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
+        }
+    }
+}

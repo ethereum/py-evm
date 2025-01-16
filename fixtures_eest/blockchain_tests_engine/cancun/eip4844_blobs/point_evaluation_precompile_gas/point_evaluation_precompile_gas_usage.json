@@ -1,0 +1,2834 @@
+{
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-exact_gas-call_type_CALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0xb2b1a4f145c6f108fb63266c27488a5869e9609823191094bd5466d8b6410116",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x82097f0dcecac6227d58cb9dea2d55c2a0c6fe8ab4b68945f15d56eeefbcafba"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f15a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de91873c",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04576e",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xdc46f28f7b533d4ca84259f00dc13c0edd19e3804f45f9e2a7f0bc43209d61bc",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x82097f0dcecac6227d58cb9dea2d55c2a0c6fe8ab4b68945f15d56eeefbcafba",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0xa719fe280f92d101bb7d8f02ec92b4ef1cc65b0d029ca3af085808281b1e742b",
+                        "receiptsRoot": "0x4aeed8a416c7385ef965f7e828fd483248c57b4ede2a291d1e014e6f2a7492ab",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x1727a",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xdc46f28f7b533d4ca84259f00dc13c0edd19e3804f45f9e2a7f0bc43209d61bc",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x7e9e230cc08c4a1836ebf5f5508e9867fd1c06892d0e1ce68ff0b856f65bd960",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-exact_gas-call_type_DELEGATECALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0xf88b3bf0de9fd4d4bc0a1ac727adcfddcbebe8ee196b71278c2a81c97e68a4bf",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x363c93a2cb2a02aac263ba3582ce45220b057583562e07dbf4d40fd5adb5804b"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350f45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350f45a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de91875a",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045765",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x7c923fdb51bbab3535c1c1c2c7455d9fb6bd48fc6caa16f6fb2fedd2071f5559",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x363c93a2cb2a02aac263ba3582ce45220b057583562e07dbf4d40fd5adb5804b",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x75d2c613988867b4b23383008a184967a10f9749d30810ff83e06c822f1096c0",
+                        "receiptsRoot": "0xeae0973defd313fb9fc0aef95af3c74f9427b841ce1bd8d18fa0bc46b3709efa",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17277",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x7c923fdb51bbab3535c1c1c2c7455d9fb6bd48fc6caa16f6fb2fedd2071f5559",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x3cc3f7f38819eba4840636da49b75b11c620472808c4b69da6eccd77af6869e2",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-exact_gas-call_type_CALLCODE]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x45252044659f7ae50f9cb4c73e9e70eca58bf89469eced6bc0ce3830d744f259",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x924b905007f84d2e8769dce5e84d4742af05990f1de527d93c60175c2fd24a0d"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f25a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de91873c",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04576e",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xcea8b5e34a6bd40f693bd814529ca29b74dd0c2054a6e0e43988de34a75c9353",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x924b905007f84d2e8769dce5e84d4742af05990f1de527d93c60175c2fd24a0d",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x59b8945ba30808d37245725da0cc048de87c8953569a3bb2986bbb4209a3e484",
+                        "receiptsRoot": "0x4aeed8a416c7385ef965f7e828fd483248c57b4ede2a291d1e014e6f2a7492ab",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x1727a",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xcea8b5e34a6bd40f693bd814529ca29b74dd0c2054a6e0e43988de34a75c9353",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x93c89fee0dfb47ad8ca17220126eacd739314ca71f78e6041a094458d60f9c64",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-exact_gas-call_type_STATICCALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0xa50e721e0196eb399b3b4279ed1f81e0f6a48e2eb5cbdbf4e7b554d6a3e4ac34",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x4a9eb1965b0f5c9c1632c6e880acc15de2a71cc85338a8c895afe194dec24a62"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350fa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350fa5a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de91875a",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045765",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x5bf5c903602cbb6e8cbd7a2c156a9b5fdc374e1895e453031dfc321eca872533",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x4a9eb1965b0f5c9c1632c6e880acc15de2a71cc85338a8c895afe194dec24a62",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0xc2839d24c03ab536451d3931a8f361168649545e5413097f120a9d7d60c43d22",
+                        "receiptsRoot": "0xeae0973defd313fb9fc0aef95af3c74f9427b841ce1bd8d18fa0bc46b3709efa",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17277",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x5bf5c903602cbb6e8cbd7a2c156a9b5fdc374e1895e453031dfc321eca872533",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0xe34eca0f7ded81b87ffb93d7706d10ac6c41eda63e18819421b2921e16efac95",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-insufficient_gas-call_type_CALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x7069457de64043858c25b632aef40416bfd343f9a410dbd8dd256625eab1c6f1",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xddeb068f6b75662fe34ea86efd48d5b7073c38387f7b9836dc7bbb4c2bc27c5a"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff15a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc34f"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de918746",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04576b",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xe54ac67ff3fdaa6a5a42f75bf27092a10d9f97c10825fab759a136da83758c5e",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xddeb068f6b75662fe34ea86efd48d5b7073c38387f7b9836dc7bbb4c2bc27c5a",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x3ccf4a5dcb8aadc047cdb086578842cf5f4367a969311d552cd04aba3a31d5a6",
+                        "receiptsRoot": "0xa0692c0d334ed5d756b64b9d30d80ebc6bd6120fefb991ccf43400ce2c17eaa8",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17279",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xe54ac67ff3fdaa6a5a42f75bf27092a10d9f97c10825fab759a136da83758c5e",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0xaf83591e30028f5f79397f6b2c8ad4faf1382f813291085ad910645c4cb6a65f",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-insufficient_gas-call_type_DELEGATECALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x235f883cd3e95bb7ac2da86b4798714d5b68d4b21a0243c7bd1be2b901faf7d1",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xa78c8a75362201c2cad5f5a69b63aa0969441247b53e4bc36be28fb1ccf4dd89"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ff45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ff45a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc34f"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de918764",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045762",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xa8aded72c6f2786cb4cbac11235436cd9bd38401b65dd52a4e8b0d37d49b71fc",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xa78c8a75362201c2cad5f5a69b63aa0969441247b53e4bc36be28fb1ccf4dd89",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0xda33af6abbbd76bd6adda8f2f94a11ca8a9814975af94538deba7c20b62438db",
+                        "receiptsRoot": "0xfb9430cca676acd59c4d9159760e7fea2d96b5459732e6377726c0c7472af148",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17276",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xa8aded72c6f2786cb4cbac11235436cd9bd38401b65dd52a4e8b0d37d49b71fc",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0xb37f30e228507d2482b0a2900c35cbc64f366db4732853e0c1392dc6de72b6e9",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-insufficient_gas-call_type_CALLCODE]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x3235c163aef63e5891b8416f112f4fde577e3cade4b0f254e5769390815830e4",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xfc20d5fdd10e9e8c352073387106e978aab3c468425ac3b2ffcda3c043daed38"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff25a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc34f"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de918746",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04576b",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x49139566a466392a67962228a560e4098c88cc6624caf8323fd8cc787a97748a",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xfc20d5fdd10e9e8c352073387106e978aab3c468425ac3b2ffcda3c043daed38",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x113d7aed2f17fbbd001cb8822d78385740b286fb01b1f68836395dc175972b84",
+                        "receiptsRoot": "0xa0692c0d334ed5d756b64b9d30d80ebc6bd6120fefb991ccf43400ce2c17eaa8",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17279",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x49139566a466392a67962228a560e4098c88cc6624caf8323fd8cc787a97748a",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x3b2e51315182ddb77383619a9888429b43897f190878984298c971becb95345e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-insufficient_gas-call_type_STATICCALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x4d0dea55bd3a43b132be75eab0dd52a634f2d7d40217811eb8b2f8bcc9830acf",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xff9a6522674b60b818a225c162f6c9065953f5c1044089910d323a21f4506335"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ffa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ffa5a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc34f"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de918764",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045762",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x9f4699f3d9ed3e8f3e417aaabed857a73ca0c3d1ac276ce396af30c463ae1ae2",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xff9a6522674b60b818a225c162f6c9065953f5c1044089910d323a21f4506335",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x70966005c6c7f9d41262671b7b1bf0c67113b8b6e5602cd4e9a9d58f9246be8b",
+                        "receiptsRoot": "0xfb9430cca676acd59c4d9159760e7fea2d96b5459732e6377726c0c7472af148",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17276",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x9f4699f3d9ed3e8f3e417aaabed857a73ca0c3d1ac276ce396af30c463ae1ae2",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0xda9d3ce0f6a773bae3132f873fa599814c7de55477314eec416569792251957e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-extra_gas-call_type_CALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0xd5fbc566cc9b5eb449a9ed99ff78f6531e0e0e8d96183b8530a5d654778d84c4",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x3c3086d2eeeca30298a643284d7c63e56610445e70ab8e6257a8dabefcef4d23"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f15a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de91873c",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04576e",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x4f985527d8122c9abd7db0dc598bfd3d4d653d46c3b460041c7af0e073224c27",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x3c3086d2eeeca30298a643284d7c63e56610445e70ab8e6257a8dabefcef4d23",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x1859f6a5eabd12d4c44fb50a4add957f344c23e3c8af1566cde5a354e56a1dd7",
+                        "receiptsRoot": "0x4aeed8a416c7385ef965f7e828fd483248c57b4ede2a291d1e014e6f2a7492ab",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x1727a",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x4f985527d8122c9abd7db0dc598bfd3d4d653d46c3b460041c7af0e073224c27",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0xeb57f01da7a17dacd861b52c4973d4274c3c8921076e0b06f0392b318d005955",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-extra_gas-call_type_DELEGATECALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x1f48646a541b917343af20f80f2fd0a20cc43a16df30a34ae18144a76e7bab3f",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xe01f8480ed8bd9d6e982b156ed06a2177bb3a5cbf6d497a1ead7a89481e4b56f"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351f45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351f45a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de91875a",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045765",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x4de56fcf00f9454b39cbd8ec7e1a8f0b7a0bb5548846963ede67f1af8c66d66a",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xe01f8480ed8bd9d6e982b156ed06a2177bb3a5cbf6d497a1ead7a89481e4b56f",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x0176f90ab017f1dbe6c45b879ee22f8d44e9f8b88e954e2263eda874c9837b73",
+                        "receiptsRoot": "0xeae0973defd313fb9fc0aef95af3c74f9427b841ce1bd8d18fa0bc46b3709efa",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17277",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x4de56fcf00f9454b39cbd8ec7e1a8f0b7a0bb5548846963ede67f1af8c66d66a",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x6cacbe6f5ce06e7da23464620a06d786978ec176a14dc91841d98cf6f28fd500",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-extra_gas-call_type_CALLCODE]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x0bd2f100a10dc6410a075865ba76bb33f09dc8fa4fca322d006bc2c13eaa8c5d",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x1a7d557f656ca7e437f1c7e3b2b5e92289aaff4ec502ba349824d7f41bc5d9ee"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f25a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de91873c",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04576e",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xce9d56820c6527d0206b7768f18ac3adeb3634f88eb37ab30355c0fe2cff5ee5",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x1a7d557f656ca7e437f1c7e3b2b5e92289aaff4ec502ba349824d7f41bc5d9ee",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0xda5ba2610b5d0cd425dc516bd723b811dc5c236d7074825959a187fa08dd4c5f",
+                        "receiptsRoot": "0x4aeed8a416c7385ef965f7e828fd483248c57b4ede2a291d1e014e6f2a7492ab",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x1727a",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xce9d56820c6527d0206b7768f18ac3adeb3634f88eb37ab30355c0fe2cff5ee5",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x6baf967036ebc30a57aee446542049a7584fb1c2ac4bfdf70413b15c2b37725f",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_correct-extra_gas-call_type_STATICCALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x6e407429e81f1e0caff502baadaec7959f1f89fe2a8fd11d4f28417232e6e8fc",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x3c8817fcc651efb7bd92a73edbbe3099043e1113fa72ded276841c5d7eb5eda3"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351fa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351fa5a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de91875a",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045765",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x3ee42f9710972334734f4d6f8147f79e66c32cf3a0898382c941a2eac5dbc993",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x3c8817fcc651efb7bd92a73edbbe3099043e1113fa72ded276841c5d7eb5eda3",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x0a26bc8003f8b5cf6d9d76098284c0e8fedac459473c32ae98702d92a28bc04f",
+                        "receiptsRoot": "0xeae0973defd313fb9fc0aef95af3c74f9427b841ce1bd8d18fa0bc46b3709efa",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17277",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x3ee42f9710972334734f4d6f8147f79e66c32cf3a0898382c941a2eac5dbc993",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x11e1285dcd2ebc8380e33b7219752976e8f51c0878f7d012995a5200e234cf4a",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-exact_gas-call_type_CALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0xb2b1a4f145c6f108fb63266c27488a5869e9609823191094bd5466d8b6410116",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x82097f0dcecac6227d58cb9dea2d55c2a0c6fe8ab4b68945f15d56eeefbcafba"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f15a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186c4",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045792",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x658aa83cbbaf50760242abddd8d04f1e800bc1a1d3484c27fd2e7e0f1145d5ce",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x82097f0dcecac6227d58cb9dea2d55c2a0c6fe8ab4b68945f15d56eeefbcafba",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x5c0cd2c19506dfb2164ffd68cafca9cfa6816a11155942285f779589afe463d0",
+                        "receiptsRoot": "0x993a91440737c33951eafe817c50f75b8432385ef607538f42a923e66fcdf5dd",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17286",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x658aa83cbbaf50760242abddd8d04f1e800bc1a1d3484c27fd2e7e0f1145d5ce",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x67261913f2dd4e8a9d2462975fdac7f691e183c6d9f77f8be2fcd2fb04acb25c",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-exact_gas-call_type_DELEGATECALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0xf88b3bf0de9fd4d4bc0a1ac727adcfddcbebe8ee196b71278c2a81c97e68a4bf",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x363c93a2cb2a02aac263ba3582ce45220b057583562e07dbf4d40fd5adb5804b"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350f45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350f45a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186e2",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045789",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x8af20e1ca826989c9e27be9fc3f8440fd7f14a5b9aa6e20280a224d26ab9748c",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x363c93a2cb2a02aac263ba3582ce45220b057583562e07dbf4d40fd5adb5804b",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x01d10b2dba14326959c63f181a1a0a6450fde59d110889628f1ef4ff903a49c0",
+                        "receiptsRoot": "0x260a06a190a18bc039d614e804a0f1b6be125d17396f0e52aec96cc747ea2bb3",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17283",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x8af20e1ca826989c9e27be9fc3f8440fd7f14a5b9aa6e20280a224d26ab9748c",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x0a98df4d22f28ed5339804295c36904e580d6b37e6573803bcb9ea1fa98cbc4d",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-exact_gas-call_type_CALLCODE]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x45252044659f7ae50f9cb4c73e9e70eca58bf89469eced6bc0ce3830d744f259",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x924b905007f84d2e8769dce5e84d4742af05990f1de527d93c60175c2fd24a0d"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f25a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186c4",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045792",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xd179625d03e71f308679555ad7042898d8e6612700045d56c93d64fa16feaeab",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x924b905007f84d2e8769dce5e84d4742af05990f1de527d93c60175c2fd24a0d",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0xe0a8c3a80c41827f07402d77878ce1325974a5b6447014862f4a93f81ae78f19",
+                        "receiptsRoot": "0x993a91440737c33951eafe817c50f75b8432385ef607538f42a923e66fcdf5dd",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17286",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xd179625d03e71f308679555ad7042898d8e6612700045d56c93d64fa16feaeab",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x39e3ece5f1e14b2f270c7e79058e6120e1f29795411890a5b82623143661a59d",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-exact_gas-call_type_STATICCALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0xa50e721e0196eb399b3b4279ed1f81e0f6a48e2eb5cbdbf4e7b554d6a3e4ac34",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x4a9eb1965b0f5c9c1632c6e880acc15de2a71cc85338a8c895afe194dec24a62"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350fa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350fa5a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc350"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186e2",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045789",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x911c8d6e59977e99fd586435965a6d0f01945d8dba76aa5e80279ca9b38b1a87",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x4a9eb1965b0f5c9c1632c6e880acc15de2a71cc85338a8c895afe194dec24a62",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0xbac529e1569c94669b6d617ef0f5aba83c2dba0bd9adc1a410a37d4d2c0fa38f",
+                        "receiptsRoot": "0x260a06a190a18bc039d614e804a0f1b6be125d17396f0e52aec96cc747ea2bb3",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17283",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x911c8d6e59977e99fd586435965a6d0f01945d8dba76aa5e80279ca9b38b1a87",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x384d825387b4d3bb37dd39a2cdd97b5aa6904bda4315072a6f2b2f338a69132e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-insufficient_gas-call_type_CALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x7069457de64043858c25b632aef40416bfd343f9a410dbd8dd256625eab1c6f1",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xddeb068f6b75662fe34ea86efd48d5b7073c38387f7b9836dc7bbb4c2bc27c5a"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff15a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc34f"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186ce",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04578f",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xf8f9577d44736e243d85121a61e6a0ce1a83d95db984098c6159de39b7723ddf",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xddeb068f6b75662fe34ea86efd48d5b7073c38387f7b9836dc7bbb4c2bc27c5a",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x36163aed4325bacacf26b86c98db49b6a927920f659ff966dd9f27d7fda91001",
+                        "receiptsRoot": "0xbb0ff1cdd0533d33dc8eaa65c18df69268ad8fd1c39237d000b83455da167b1c",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17285",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xf8f9577d44736e243d85121a61e6a0ce1a83d95db984098c6159de39b7723ddf",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x723bed24cec2dea5509eececf9e82d2ca0a7e0ec0aec72cde420d9cc424bb53c",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-insufficient_gas-call_type_DELEGATECALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x235f883cd3e95bb7ac2da86b4798714d5b68d4b21a0243c7bd1be2b901faf7d1",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xa78c8a75362201c2cad5f5a69b63aa0969441247b53e4bc36be28fb1ccf4dd89"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ff45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ff45a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc34f"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186ec",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045786",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x602d54e0fa155aa159f7a28bd9dcf5c352d305997657f6cdeabfd7dd29217ea0",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xa78c8a75362201c2cad5f5a69b63aa0969441247b53e4bc36be28fb1ccf4dd89",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x33b35557a0968b3bffb4d2517d6200ae9d772b4ec16fdba29ae79649123a2cb8",
+                        "receiptsRoot": "0x391e31eea420236f5513c337f3791b16a451776653991ce9126d15d1b22b7c84",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17282",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x602d54e0fa155aa159f7a28bd9dcf5c352d305997657f6cdeabfd7dd29217ea0",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x06cab7bc78957dca09571a758440438198f603e28706a7555db6a996398ecf7d",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-insufficient_gas-call_type_CALLCODE]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x3235c163aef63e5891b8416f112f4fde577e3cade4b0f254e5769390815830e4",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xfc20d5fdd10e9e8c352073387106e978aab3c468425ac3b2ffcda3c043daed38"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff25a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc34f"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186ce",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04578f",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xe30c709de1e835c999c93f94aeedc899cf8bb176a100986b882b5693888df68e",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xfc20d5fdd10e9e8c352073387106e978aab3c468425ac3b2ffcda3c043daed38",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x9520f5d2d12b76802564394986aa9f64072376c4d6f4cc34d87b89652fd61ed9",
+                        "receiptsRoot": "0xbb0ff1cdd0533d33dc8eaa65c18df69268ad8fd1c39237d000b83455da167b1c",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17285",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xe30c709de1e835c999c93f94aeedc899cf8bb176a100986b882b5693888df68e",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x3d6e8d1a3323f40c16f41730268200877faea432a6a697b83dc22b78230aca79",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-insufficient_gas-call_type_STATICCALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x4d0dea55bd3a43b132be75eab0dd52a634f2d7d40217811eb8b2f8bcc9830acf",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xff9a6522674b60b818a225c162f6c9065953f5c1044089910d323a21f4506335"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ffa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ffa5a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc34f"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186ec",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045786",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xd86dcf31a1ba006f48c2b19568d764d51fc06c5f0b3443635916f1616bbebaf4",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xff9a6522674b60b818a225c162f6c9065953f5c1044089910d323a21f4506335",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x6b0737436d75632ce6724dd92fb0219be625279e0a409401d23999f8eab3e1ca",
+                        "receiptsRoot": "0x391e31eea420236f5513c337f3791b16a451776653991ce9126d15d1b22b7c84",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17282",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xd86dcf31a1ba006f48c2b19568d764d51fc06c5f0b3443635916f1616bbebaf4",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x910d83fac6834674ad2e8f7ae6341715c75e3b0f9acc2bbe93676d8028a113c2",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-extra_gas-call_type_CALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0xd5fbc566cc9b5eb449a9ed99ff78f6531e0e0e8d96183b8530a5d654778d84c4",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x3c3086d2eeeca30298a643284d7c63e56610445e70ab8e6257a8dabefcef4d23"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f15a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc351"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186ba",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045795",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x5f1aa486bd1e9c418a839da947ca06defe792caf9b9ac026dc781c6b2161f650",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x3c3086d2eeeca30298a643284d7c63e56610445e70ab8e6257a8dabefcef4d23",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x66fb55a04451bc8b48a3203ec742e16ddf0d16c64d08376deae08ea0840993f4",
+                        "receiptsRoot": "0x1e4113d418966b69139085aecfc6ff8ca671b6ad02976413bc1b9874bd368fed",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17287",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x5f1aa486bd1e9c418a839da947ca06defe792caf9b9ac026dc781c6b2161f650",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x2bd84f6bb7dd7e3613ab361f6944d20e7fc6ef77737a12d5dfa44c1d2a96ce9a",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-extra_gas-call_type_DELEGATECALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x1f48646a541b917343af20f80f2fd0a20cc43a16df30a34ae18144a76e7bab3f",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0xe01f8480ed8bd9d6e982b156ed06a2177bb3a5cbf6d497a1ead7a89481e4b56f"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351f45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351f45a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc351"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186d8",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04578c",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x899ce69110ee0877310fba54d52dfa02411bf0302212add87be8b0e309ca60c7",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0xe01f8480ed8bd9d6e982b156ed06a2177bb3a5cbf6d497a1ead7a89481e4b56f",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x9bb625c182deba0459e1ba3c04f8f0d4ec9c0378c8b122525386ebfefd2cbed0",
+                        "receiptsRoot": "0x5124bc67fcf0c4e5d02dbc52d5e9c4604238295715b053dafa1d25976f669a60",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17284",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x899ce69110ee0877310fba54d52dfa02411bf0302212add87be8b0e309ca60c7",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0xbf498d81d8cfc8f4983c6ce7460dfd638dbd4f7aacce7f55657ff3012cb9e34e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-extra_gas-call_type_CALLCODE]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x0bd2f100a10dc6410a075865ba76bb33f09dc8fa4fca322d006bc2c13eaa8c5d",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x1a7d557f656ca7e437f1c7e3b2b5e92289aaff4ec502ba349824d7f41bc5d9ee"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f25a9050900360a9900360005500",
+                "storage": {
+                    "0x00": "0xc351"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186ba",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x045795",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0xc42f90a8eda238a751902897a9150bd3c5881fcb80257c54eff9167723d81efc",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x1a7d557f656ca7e437f1c7e3b2b5e92289aaff4ec502ba349824d7f41bc5d9ee",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0xc926eab28b0177b92000d3681029f868052c8cca7573cddb8db544eec9d7438c",
+                        "receiptsRoot": "0x1e4113d418966b69139085aecfc6ff8ca671b6ad02976413bc1b9874bd368fed",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17287",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0xc42f90a8eda238a751902897a9150bd3c5881fcb80257c54eff9167723d81efc",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0xceea33739113101972a69c498d740bd22ab59bfcd4ef24af06d82e9333f8379e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-blockchain_test_engine-proof_incorrect-extra_gas-call_type_STATICCALL]": {
+        "network": "Cancun",
+        "genesisBlockHeader": {
+            "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "uncleHash": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+            "coinbase": "0x0000000000000000000000000000000000000000",
+            "stateRoot": "0x6e407429e81f1e0caff502baadaec7959f1f89fe2a8fd11d4f28417232e6e8fc",
+            "transactionsTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "receiptTrie": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "bloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "difficulty": "0x00",
+            "number": "0x00",
+            "gasLimit": "0x016345785d8a0000",
+            "gasUsed": "0x00",
+            "timestamp": "0x00",
+            "extraData": "0x00",
+            "mixHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "nonce": "0x0000000000000000",
+            "baseFeePerGas": "0x07",
+            "withdrawalsRoot": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "blobGasUsed": "0x00",
+            "excessBlobGas": "0x00",
+            "parentBeaconBlockRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "hash": "0x3c8817fcc651efb7bd92a73edbbe3099043e1113fa72ded276841c5d7eb5eda3"
+        },
+        "pre": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351fa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "postState": {
+            "0x000f3df6d732807ef1319fb7b8bb8522d0beac02": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x3373fffffffffffffffffffffffffffffffffffffffe14604d57602036146024575f5ffd5b5f35801560495762001fff810690815414603c575f5ffd5b62001fff01545f5260205ff35b5f5ffd5b62001fff42064281555f359062001fff015500",
+                "storage": {
+                    "0x03e8": "0x03e8"
+                }
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351fa5a9050900360a6900360005500",
+                "storage": {
+                    "0x00": "0xc351"
+                }
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x01",
+                "balance": "0x3635c9adc5de9186d8",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                "nonce": "0x00",
+                "balance": "0x04578c",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "lastblockhash": "0x8e2bfa9c55b3094d7b386607bd552907907a776256d0f03cd9eeab7fa95ebfdb",
+        "engineNewPayloads": [
+            {
+                "params": [
+                    {
+                        "parentHash": "0x3c8817fcc651efb7bd92a73edbbe3099043e1113fa72ded276841c5d7eb5eda3",
+                        "feeRecipient": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+                        "stateRoot": "0x7d37c00ee681566ad8f374991f707c47b9836779000c55c3c806b7d909bcf608",
+                        "receiptsRoot": "0x5124bc67fcf0c4e5d02dbc52d5e9c4604238295715b053dafa1d25976f669a60",
+                        "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+                        "blockNumber": "0x1",
+                        "gasLimit": "0x16345785d8a0000",
+                        "gasUsed": "0x17284",
+                        "timestamp": "0x3e8",
+                        "extraData": "0x00",
+                        "prevRandao": "0x0000000000000000000000000000000000000000000000000000000000000000",
+                        "baseFeePerGas": "0x7",
+                        "blobGasUsed": "0x0",
+                        "excessBlobGas": "0x0",
+                        "blockHash": "0x8e2bfa9c55b3094d7b386607bd552907907a776256d0f03cd9eeab7fa95ebfdb",
+                        "transactions": [
+                            "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e"
+                        ],
+                        "withdrawals": []
+                    },
+                    [],
+                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+                ],
+                "newPayloadVersion": "3",
+                "forkchoiceUpdatedVersion": "3"
+            }
+        ],
+        "_info": {
+            "hash": "0x130b78e5c3fd83eb8c4d53c4a7926a29e8e37268b05ba720216ff42048221a7b",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "blockchain_test_engine",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    }
+}

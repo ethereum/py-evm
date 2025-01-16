@@ -1,0 +1,2114 @@
+{
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-exact_gas-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x9028721a7be75b2afdb1a9b2b57b2ae9169811a862c9651090ba3a0837594d90",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c350f15a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91873c",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04576e",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xe79478f4b50d6afe7658c5976d48a2a71233fad31ded35ebac892b73d259f545",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-exact_gas-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350f45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x0350ee131bfe7bc0e50ec716b7c28d0c9cc79a33a46403615df671dff052f898",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c350f45a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91875a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045765",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x8fcc48923c9ff17740a8cfe66b996110fc0cedf83f1fdc1ae8392238b03375ef",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-exact_gas-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xc83937c962c429ec9bf32860a13bd2cb86101b9583f2d75da844623e1761d75c",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c350f25a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91873c",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04576e",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x9132489f3a58920b0de6a2e2f2a440f8f16e0d12fa57a2c3685545947af374bb",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-exact_gas-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350fa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xe4122adbc5c20e13bd710785fb56d0846e81ea587324d985a76141e78c33e939",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c350fa5a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91875a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045765",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xfee08607bfd38a294e9ade49262fd295fa723dd4a9cefdb93d1598189184da07",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-insufficient_gas-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xf0a68fbc6066731003554999ec2c6d71984840b48f1c60f4af660f37eb71c3f4",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c34ff15a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc34f"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de918746",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04576b",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa8ece0c26a237d60991905498f6da81cc46b6fca269b2dbb585c31b8caa9a7b9",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-insufficient_gas-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ff45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x84e50b8c12435bb25f9555d4769d68497cdc9fd58c146de7be68d844c99baa72",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c34ff45a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc34f"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de918764",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045762",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xef2a5d7979e7b17a8bdeeadafb0abd83222ce58afadffd7b3b1720b0f374627e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-insufficient_gas-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x891696791bc103428fbbbc516a737ba5e0c708b676d98873c01cc4f98ad17b21",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c34ff25a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc34f"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de918746",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04576b",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xe77b4d0c005b060fbcdb33757e0bcff0db3d61ddd294638970e5d215c432c09a",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-insufficient_gas-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ffa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xca1fdfbddef12c38e606e365cccff4292636620a8884dc4c5f74dbe9ec443247",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c34ffa5a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc34f"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de918764",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045762",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xaeb5f5cb99082e50a2d9ea8e47efed1fec3134cc2ca90c3aca11d5f0c6b7dbce",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-extra_gas-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x43c412a2d875fea71904b14cb5ecea940c3fb86d0d0e6fca4a06b1ee90d03afd",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c351f15a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91873c",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04576e",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa99c977b89530e4acff7310b9abab34eee0ab866d6750fccec9449f0a4d32333",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-extra_gas-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351f45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xacf5d8b4525ad399647cf1a3cd9df50cc70818b971146f229b23e15e8e2ff184",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c351f45a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91875a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045765",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x03acff9a3a35785eb4d6adf948c3155c8003d2aae4289fe63171c1a52a6cb36f",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-extra_gas-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x3ced202a26d10ae87690181760b97da1fa5208c753d0aba8adf5b2c12798f13d",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c351f25a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91873c",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04576e",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xcf5a1b1378a7da348c68d0c8d68121e8af49ea272f5e4ed1ea8f048af95dfb94",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_correct-extra_gas-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351fa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x93bc19184dcc47fccbb4209e5fc30534b7d64806e13ac2f50fe36ee7733e5a04",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000025a07bf36355ed07ad231792337e507289b6d2f2ce3574edb50f47bd88c61549e7c9a028376c01036948e9d6580201b96bc3e8210879078fd2b38914c1f568ca3271b6",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c351fa5a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de91875a",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045765",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x374541717f93938bc2114799885f7130c898f351b3efad97628acf2316ea1d16",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-exact_gas-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x001751af195208a69a1cc898c5fde59297c303c4377f66ae8b3dbbae303bd448",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c350f15a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186c4",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045792",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x5d75da9c34c3ce4f00ec3ff231e81bcb3263c946e85ea03b2fa8510f840f6642",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-exact_gas-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350f45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x854c805f5f6167c6a95b9c6fd0e22cc23effc47e5c51f2b98e9921abe34437f8",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c350f45a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186e2",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045789",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xbb85d5eb38bdaa4f2336d7f47158a3350145d060c96943e155acb756bb4597bb",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-exact_gas-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c350f25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xa0f6505bdeaaaeec2fc7c9b6b90a69fb9b371f81d7ad7094d7f7def06b10837d",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c350f25a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186c4",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045792",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x564b27f5a92ecf1cd8bc1d6742d9b7fc0db05bca0fd9f979bc873848c59ed5c2",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-exact_gas-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c350fa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x230c9eb69322b36098e562346134b7392bd7e8e81182bfc8aba8b052edc5fa33",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c350fa5a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc350"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186e2",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045789",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xc825a2f01ccfac601656439c5994165fc91e0089c151341baefeb4be61b1cc83",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-insufficient_gas-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x0c9a3c1f38d1531baf702911590654a55a4e523b7933f0e6bb8a35d91562bec9",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c34ff15a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc34f"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186ce",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04578f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x7e5195a5e024b42cb11b7eea483ed6df2bf6139a452d01be6dbeb2fbb68ead65",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-insufficient_gas-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ff45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xb0bd967a08baa9c71043f0fc30b964217f57c6adda9687fc8034f895c1971a22",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c34ff45a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc34f"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186ec",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045786",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x0876d82b7938d1e25aab051bf4a9617b26e8fbd9a9513f902406b7142fc1e0ac",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-insufficient_gas-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c34ff25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x6db1ce0eab3879e269ffe9b282408a4df939c22c87a0d95d154a50bec88a18b0",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c34ff25a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc34f"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186ce",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04578f",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x3085746ef2d23703692b3b72fc8c562a6ff167af9afa62f7c580264ae0931448",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-insufficient_gas-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c34ffa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xc2868792b4118e9a6196f4a6879616db2d503d82dad86d3c47465f8ce4c94a17",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c34ffa5a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc34f"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186ec",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045786",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xdc0a58b7047e7ac9faaf16d30a8f3139ce03e4f59d31fbe66dc7b8feef5261f7",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-extra_gas-call_type_CALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f15a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0x13fd80c583195c96513813523669f5e37f1a3e8f8e11775c02d349395338e34b",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c351f15a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc351"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186ba",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045795",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x0df66d3f02b0222dc856e9e7dd91ce7635eb18ca9a0c0c55da4da19a7b83d428",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-extra_gas-call_type_DELEGATECALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351f45a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xaf28345933e89d1a03e523de9234e39969bbf0e9fcbb20aeb810cb6ca5193171",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c351f45a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc351"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186d8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04578c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa47bedee4b91734fbae57519d114dcb3fe8355df7671bd1b0c93897ebacad768",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-extra_gas-call_type_CALLCODE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a366000600037600060003660006000600a61c351f25a9050900360a9900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xdfb633a568987633cecc9cdb7332e2d1beb2e774262a073f46a536e231dce878",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a366000600037600060003660006000600a61c351f25a9050900360a9900360005500",
+                            "storage": {
+                                "0x00": "0xc351"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186ba",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x045795",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0xa2a620eda935ec2fc4ad070348f8895c5d763a9a88315d96ecd4afb786e95415",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py::test_point_evaluation_precompile_gas_usage[fork_Cancun-state_test-proof_incorrect-extra_gas-call_type_STATICCALL]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a36600060003760006000366000600a61c351fa5a9050900360a6900360005500",
+                "storage": {}
+            },
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Cancun": [
+                {
+                    "hash": "0xc764288a15b20492aeac0343e45a7ce293ace1a836257918e7ef1c4b72978fbb",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf90121800a830f424094000000000000000000000000000000000000100080b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c4440145eb7004fe57383e6c88b99d839937fddf3f99279353aaf8d5c9a75f91ce33c620100000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000026a0af1694f7b1b72c8804aebd7b2172e214cb158521c144467871b7d68eb21ed21fa050b2966fe64b39e102dbcd32aad66085983d8fc4bc97dc6612e969609f58ea0e",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a36600060003760006000366000600a61c351fa5a9050900360a6900360005500",
+                            "storage": {
+                                "0x00": "0xc351"
+                            }
+                        },
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9186d8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x04578c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "_info": {
+            "hash": "0x3e5fdac2257f3192491a51a58087e596e83b7c430d02c11703db3ab1bf86b5b3",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "description": "Test function documentation:\n\n    Test point evaluation precompile gas usage under different call contexts and gas limits.\n\n    - Test using all call types (CALL, DELEGATECALL, CALLCODE, STATICCALL)\n    - Test using different gas limits (exact gas, insufficient gas, extra gas)\n    - Test using correct and incorrect proofs",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile_gas.py#L186",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+        }
+    }
+}
