@@ -1,5 +1,6 @@
 from typing import (
     Iterable,
+    cast,
 )
 
 from eth_keys import (
@@ -91,9 +92,12 @@ def get_block_signer(header: BlockHeaderAPI) -> Address:
 
     signature = keys.Signature(signature_bytes=signature_bytes)
 
-    return signature.recover_public_key_from_msg_hash(
-        signature_hash
-    ).to_canonical_address()
+    return cast(
+        Address,
+        signature.recover_public_key_from_msg_hash(
+            signature_hash
+        ).to_canonical_address(),
+    )
 
 
 def is_in_turn(signer: Address, snapshot: Snapshot, header: BlockHeaderAPI) -> bool:
