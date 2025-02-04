@@ -46,10 +46,6 @@ from eth.rlp.headers import (
 from eth.tools.builder.chain import (
     api,
 )
-from eth.tools.factories.transaction import (
-    new_access_list_transaction,
-    new_transaction,
-)
 from eth.tools.rlp import (
     assert_headers_eq,
 )
@@ -62,6 +58,10 @@ from eth.vm.forks.frontier.blocks import (
 )
 from eth.vm.forks.homestead.blocks import (
     HomesteadBlock,
+)
+from tests.tools.factories.transaction import (
+    new_access_list_transaction,
+    new_transaction,
 )
 
 A_ADDRESS = b"\xaa" * 20

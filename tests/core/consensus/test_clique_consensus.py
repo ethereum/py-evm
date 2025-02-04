@@ -37,17 +37,17 @@ from eth.constants import (
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.tools.factories.keys import (
-    PublicKeyFactory,
-)
-from eth.tools.factories.transaction import (
-    new_transaction,
-)
 from eth.vm.forks.istanbul import (
     IstanbulVM,
 )
 from eth.vm.forks.petersburg import (
     PetersburgVM,
+)
+from tests.tools.factories.keys import (
+    PublicKeyFactory,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 ALICE_PK = keys.PrivateKey(

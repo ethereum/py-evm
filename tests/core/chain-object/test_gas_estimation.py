@@ -6,9 +6,6 @@ from eth._utils.address import (
 from eth.estimators.gas import (
     binary_gas_search_1000_tolerance,
 )
-from eth.tools.factories.transaction import (
-    new_transaction,
-)
 from eth.vm.forks import (
     ArrowGlacierVM,
     BerlinVM,
@@ -25,6 +22,9 @@ from eth.vm.forks import (
 )
 from tests.core.helpers import (
     fill_block,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 ADDRESS_2 = b"\0" * 19 + b"\x02"

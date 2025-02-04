@@ -14,9 +14,6 @@ from eth.chains.base import (
 from eth.rlp.blocks import (
     BaseBlock,
 )
-from eth.tools.factories.transaction import (
-    new_transaction,
-)
 from scripts.benchmark._utils.address import (
     generate_random_address,
 )
@@ -31,6 +28,9 @@ from scripts.benchmark._utils.reporting import (
 )
 from scripts.benchmark._utils.shellart import (
     bold_yellow,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 from .base_benchmark import (

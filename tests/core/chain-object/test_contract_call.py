@@ -14,9 +14,6 @@ from eth.exceptions import (
     OutOfGas,
     Revert,
 )
-from eth.tools.factories.transaction import (
-    new_transaction,
-)
 from eth.vm.forks import (
     ArrowGlacierVM,
     BerlinVM,
@@ -31,6 +28,9 @@ from eth.vm.forks import (
     PetersburgVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 
