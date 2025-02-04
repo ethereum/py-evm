@@ -15,7 +15,9 @@ class POWMiningMixin(VirtualMachineAPI):
     """
 
     def finalize_block(self, block: BlockAPI) -> BlockAndMetaWitness:
-        block_result = super().finalize_block(block)
+        # type ignored because as a mixin, we expect to only use this with another
+        # class that properly implements finalize_block
+        block_result = super().finalize_block(block)  # type: ignore[safe-super]
         block = block_result.block
 
         nonce, mix_hash = pow.mine_pow_nonce(

@@ -1,5 +1,8 @@
 import hashlib
 import os
+from typing import (
+    cast,
+)
 
 from ckzg import (
     load_trusted_setup,
@@ -29,7 +32,9 @@ TRUSTED_SETUP_PATH = os.path.join(
 
 
 def kzg_to_versioned_hash(commitment: bytes) -> Hash32:
-    return VERSIONED_HASH_VERSION_KZG + hashlib.sha256(commitment).digest()[1:]
+    return cast(
+        Hash32, VERSIONED_HASH_VERSION_KZG + hashlib.sha256(commitment).digest()[1:]
+    )
 
 
 def point_evaluation_precompile(computation: ComputationAPI) -> ComputationAPI:

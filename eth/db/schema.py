@@ -20,7 +20,7 @@ class SchemaV1(SchemaAPI):
 
     @staticmethod
     def make_block_hash_to_score_lookup_key(block_hash: Hash32) -> bytes:
-        return f"block-hash-to-score:{block_hash}".encode()
+        return f"block-hash-to-score:{block_hash!r}".encode()
 
     @staticmethod
     def make_header_chain_gaps_lookup_key() -> bytes:
@@ -39,8 +39,8 @@ class SchemaV1(SchemaAPI):
 
     @staticmethod
     def make_transaction_hash_to_block_lookup_key(transaction_hash: Hash32) -> bytes:
-        return f"transaction-hash-to-block:{transaction_hash}".encode()
+        return f"transaction-hash-to-block:{transaction_hash!r}".encode()
 
     @staticmethod
     def make_withdrawal_hash_to_block_lookup_key(withdrawal_hash: Hash32) -> bytes:
-        return f"withdrawal-hash-to-block:{withdrawal_hash}".encode()
+        return f"withdrawal-hash-to-block:{withdrawal_hash!r}".encode()
