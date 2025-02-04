@@ -1,3 +1,4 @@
+import pytest
 from pathlib import (
     Path,
 )
@@ -11,7 +12,6 @@ from eth_utils import (
     to_tuple,
     to_wei,
 )
-import pytest
 import rlp
 
 from eth import (

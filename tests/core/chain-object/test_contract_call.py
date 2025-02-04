@@ -1,3 +1,5 @@
+import pytest
+
 from eth_utils import (
     decode_hex,
     function_signature_to_4byte_selector,
@@ -6,7 +8,6 @@ from eth_utils import (
 from eth_utils.toolz import (
     assoc,
 )
-import pytest
 
 from eth.exceptions import (
     InvalidInstruction,

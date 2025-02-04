@@ -1,3 +1,4 @@
+import pytest
 import itertools
 import sys
 
@@ -11,7 +12,6 @@ from hypothesis import (
     given,
     strategies as st,
 )
-import pytest
 
 from eth.tools._utils.slow_code_stream import (
     SlowCodeStream,

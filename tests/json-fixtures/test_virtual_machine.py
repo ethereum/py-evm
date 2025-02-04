@@ -1,3 +1,4 @@
+import pytest
 import os
 
 from eth_hash.auto import (
@@ -6,7 +7,6 @@ from eth_hash.auto import (
 from eth_utils import (
     to_bytes,
 )
-import pytest
 
 from eth.consensus import (
     ConsensusContext,

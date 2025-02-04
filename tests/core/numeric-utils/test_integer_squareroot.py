@@ -1,8 +1,9 @@
+import pytest
+
 from hypothesis import (
     given,
     strategies as st,
 )
-import pytest
 
 from eth._utils.numeric import (
     integer_squareroot,

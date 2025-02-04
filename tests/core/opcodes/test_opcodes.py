@@ -1,3 +1,4 @@
+import pytest
 import warnings
 
 from eth_utils import (
@@ -9,7 +10,6 @@ from eth_utils import (
     to_bytes,
     to_canonical_address,
 )
-import pytest
 
 from eth import (
     constants,

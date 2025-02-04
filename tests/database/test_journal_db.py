@@ -1,3 +1,5 @@
+import pytest
+
 from eth_utils import (
     ValidationError,
 )
@@ -12,7 +14,6 @@ from hypothesis.stateful import (
     RuleBasedStateMachine,
     rule,
 )
-import pytest
 
 from eth.db.backends.memory import (
     MemoryDB,

@@ -1,3 +1,4 @@
+import pytest
 import enum
 from functools import (
     partial,
@@ -22,7 +23,6 @@ from hypothesis import (
     settings,
     strategies as st,
 )
-import pytest
 
 from eth.constants import (
     GENESIS_BLOCK_NUMBER,
