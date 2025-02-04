@@ -30,14 +30,14 @@ from eth.consensus.noproof import (
 from eth.exceptions import (
     TransactionNotFound,
 )
-from eth.tools.factories.transaction import (
-    new_transaction,
-)
 from eth.vm.forks.frontier.blocks import (
     FrontierBlock,
 )
 from tests.core.fixtures import (
     valid_block_rlp,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 

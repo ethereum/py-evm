@@ -15,9 +15,6 @@ from eth.constants import (
 from eth.exceptions import (
     OutOfGas,
 )
-from eth.tools.factories.transaction import (
-    new_transaction,
-)
 from eth.vm import (
     opcode_values,
 )
@@ -29,6 +26,9 @@ from eth.vm.forks.spurious_dragon.constants import (
 )
 from eth.vm.message import (
     Message,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 

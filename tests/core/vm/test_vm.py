@@ -19,7 +19,7 @@ from eth.chains.mainnet import (
 from eth.tools.builder.chain import (
     api,
 )
-from eth.tools.factories.transaction import (
+from tests.tools.factories.transaction import (
     new_transaction,
 )
 

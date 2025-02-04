@@ -8,7 +8,7 @@ from eth_utils import (
 from eth.chains.base import (
     MiningChain,
 )
-from eth.tools.factories.transaction import (
+from tests.tools.factories.transaction import (
     new_transaction,
 )
 

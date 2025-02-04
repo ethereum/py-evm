@@ -25,7 +25,7 @@ from eth.tools.builder.chain import (
     spurious_dragon_at,
     tangerine_whistle_at,
 )
-from eth.tools.factories.transaction import (
+from tests.tools.factories.transaction import (
     new_dynamic_fee_transaction,
 )
 
