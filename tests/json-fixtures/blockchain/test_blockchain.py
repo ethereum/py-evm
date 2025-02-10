@@ -1,3 +1,4 @@
+import pytest
 import os
 from pathlib import (
     Path,
@@ -7,7 +8,6 @@ from eth_utils import (
     ValidationError,
     to_tuple,
 )
-import pytest
 import rlp
 
 from eth.exceptions import (

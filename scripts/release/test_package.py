@@ -8,7 +8,7 @@ from tempfile import (
 import venv
 
 
-def create_venv(parent_path):
+def create_venv(parent_path: Path) -> Path:
     venv_path = parent_path / "package-smoke-test"
     venv.create(venv_path, with_pip=True)
     subprocess.run(
@@ -17,7 +17,7 @@ def create_venv(parent_path):
     return venv_path
 
 
-def find_wheel(project_path):
+def find_wheel(project_path: Path) -> Path:
     wheels = list(project_path.glob("dist/*.whl"))
 
     if len(wheels) != 1:
@@ -29,7 +29,7 @@ def find_wheel(project_path):
     return wheels[0]
 
 
-def install_wheel(venv_path, wheel_path, extras=()):
+def install_wheel(venv_path: Path, wheel_path: Path, extras=()):
     if extras:
         extra_suffix = f"[{','.join(extras)}]"
     else:
@@ -41,7 +41,7 @@ def install_wheel(venv_path, wheel_path, extras=()):
     )
 
 
-def test_install_local_wheel():
+def test_install_local_wheel() -> None:
     with TemporaryDirectory() as tmpdir:
         venv_path = create_venv(Path(tmpdir))
         wheel_path = find_wheel(Path("."))

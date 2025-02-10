@@ -1,7 +1,8 @@
+import pytest
+
 from eth_utils import (
     ValidationError,
 )
-import pytest
 
 from eth.tools.factories.transaction import (
     new_transaction,

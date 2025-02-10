@@ -1,3 +1,4 @@
+import pytest
 import os
 
 from eth_typing.enums import (
@@ -6,7 +7,6 @@ from eth_typing.enums import (
 from eth_utils import (
     to_int,
 )
-import pytest
 
 from eth.constants import (
     EMPTY_UNCLE_HASH,

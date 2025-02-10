@@ -1,3 +1,5 @@
+import pytest
+
 from eth_utils import (
     ValidationError,
     to_tuple,
@@ -5,7 +7,6 @@ from eth_utils import (
 from eth_utils.toolz import (
     sliding_window,
 )
-import pytest
 
 from eth.chains.mainnet import (
     MainnetHomesteadVM,

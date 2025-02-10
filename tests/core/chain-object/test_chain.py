@@ -1,10 +1,11 @@
+import pytest
+
 from eth_utils import (
     decode_hex,
 )
 from eth_utils.toolz import (
     sliding_window,
 )
-import pytest
 import rlp
 
 from eth import (

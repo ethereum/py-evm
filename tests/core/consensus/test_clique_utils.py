@@ -1,3 +1,5 @@
+import pytest
+
 from eth_keys import (
     keys,
 )
@@ -7,7 +9,6 @@ from eth_typing import (
 from eth_utils import (
     decode_hex,
 )
-import pytest
 
 from eth.chains.goerli import (
     GOERLI_GENESIS_HEADER,

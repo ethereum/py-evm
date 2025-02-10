@@ -1,9 +1,10 @@
+import pytest
+
 from eth_utils import (
     hexstr_if_str,
     to_bytes,
     to_wei,
 )
-import pytest
 
 from eth._utils.address import (
     generate_contract_address,

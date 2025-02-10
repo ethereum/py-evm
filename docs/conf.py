@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+# py-evm documentation build configuration file, created by
+# sphinx-quickstart on Thu Oct 16 20:43:24 2014.
 #
 # This file is execfile()d with the current directory set to its
 # containing dir.
@@ -24,7 +24,7 @@ about_fields = [
 
 about = {}
 
-DIR = os.path.dirname("__file__")
+DIR = os.path.dirname(__file__)
 with open(os.path.join(DIR, "../setup.py"), "r") as f:
     for line in f:
         for field in about_fields:
@@ -137,6 +137,8 @@ htmlhelp_basename = "py-evmdocs"
 
 
 # -- Options for LaTeX output ---------------------------------------------
+
+latex_engine = "xelatex"
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').

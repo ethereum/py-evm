@@ -1,3 +1,4 @@
+import pytest
 import os
 
 from eth_typing.enums import (
@@ -8,7 +9,6 @@ from eth_utils import (
     is_same_address,
     to_tuple,
 )
-import pytest
 import rlp
 
 from eth.exceptions import (

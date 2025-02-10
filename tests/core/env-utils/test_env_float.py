@@ -1,6 +1,5 @@
-import os
-
 import pytest
+import os
 
 from eth._utils.env import (
     env_float,
