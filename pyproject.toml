@@ -128,7 +128,7 @@ name = "Removals"
 showcontent = true
 
 [tool.bumpversion]
-current_version = "0.10.1-beta.2"
+current_version = "0.11.0-beta.1"
 parse = """
     (?P<major>\\d+)
     \\.(?P<minor>\\d+)
