@@ -3,6 +3,28 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.11.0-beta.1 (2025-02-18)
+----------------------------------
+
+Breaking Changes
+~~~~~~~~~~~~~~~~
+
+- Adds running ``mypy`` locally with all deps installed, then updating typing as needed. Moves ``eth/tools/factories`` into ``tests`` as it is only ever used there. (`#2197 <https://github.com/ethereum/py-evm/issues/2197>`__)
+
+
+Features
+~~~~~~~~
+
+- Merge template, adding py313 support and replace ``bumpversion`` with ``bump-my-version``. (`#2198 <https://github.com/ethereum/py-evm/issues/2198>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Remove ``_warnings.py`` and all uses - related Cython issue is resolved (`#2184 <https://github.com/ethereum/py-evm/issues/2184>`__)
+- Update copyright year from 2023 to 2025 in LICENSE file. (`#2196 <https://github.com/ethereum/py-evm/issues/2196>`__)
+
+
 py-evm v0.10.1-beta.2 (2024-08-21)
 ----------------------------------
 

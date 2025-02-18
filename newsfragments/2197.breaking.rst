@@ -1,1 +1,0 @@
-Adds running ``mypy`` locally with all deps installed, then updating typing as needed. Moves ``eth/tools/factories`` into ``tests`` as it is only ever used there.
