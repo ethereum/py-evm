@@ -483,18 +483,17 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def chain_id(self) -> Optional[int]:
-        ...
+    def chain_id(self) -> Optional[int]: ...
 
-    @property
-    @abstractmethod
-    def max_fee_per_blob_gas(self) -> int:
-        ...
+    # @property
+    # @abstractmethod
+    # def max_fee_per_blob_gas(self) -> int:
+    #     ...
 
-    @property
-    @abstractmethod
-    def blob_versioned_hashes(self) -> Sequence[Hash32]:
-        ...
+    # @property
+    # @abstractmethod
+    # def blob_versioned_hashes(self) -> Sequence[Hash32]:
+    #     ...
 
 
 class LegacyTransactionFieldsAPI(TransactionFieldsAPI):

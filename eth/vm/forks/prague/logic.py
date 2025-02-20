@@ -10,7 +10,6 @@ from eth_typing import (
 )
 import rlp
 from rlp.sedes import (
-    address,
     big_endian_int,
 )
 
@@ -29,6 +28,9 @@ from eth.exceptions import (
 )
 from eth.precompiles.ecrecover import (
     ecrecover,
+)
+from eth.rlp.sedes import (
+    address,
 )
 from eth.vm import (
     mnemonics,
