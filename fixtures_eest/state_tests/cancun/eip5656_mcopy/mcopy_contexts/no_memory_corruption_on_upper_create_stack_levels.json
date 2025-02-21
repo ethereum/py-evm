@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip5656_mcopy/test_mcopy_contexts.py::test_no_memory_corruption_on_upper_create_stack_levels[fork_Cancun-state_test-call_opcode_CREATE]": {
+    "tests/cancun/eip5656_mcopy/test_mcopy_contexts.py::test_no_memory_corruption_on_upper_create_stack_levels[fork_Prague-state_test-call_opcode_CREATE]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -47,7 +47,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x6a8e4d6a7db571e5153ae99329457942fb501d505e1d05985fd4a60ca1fa00a9",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -129,17 +129,17 @@
             ]
         },
         "_info": {
-            "hash": "0x25741bbdb0d7a772e6526812ea714100332c6c7e54d2937768c7eaa22a662d63",
+            "hash": "0xd9ce0568857203ef4f25d9ed8c5bb15edd3ade04facfb0f3069f7eeb8b320ed9",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Perform a subcall with any of the following opcodes, which uses MCOPY during its execution,\n    and verify that the caller's memory is unaffected:\n      - `CREATE`\n      - `CREATE2`.\n\n    TODO: [EOF] Add EOFCREATE opcode",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_contexts.py#L185",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip5656_mcopy/test_mcopy_contexts.py#L185",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
             "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
         }
     },
-    "tests/cancun/eip5656_mcopy/test_mcopy_contexts.py::test_no_memory_corruption_on_upper_create_stack_levels[fork_Cancun-state_test-call_opcode_CREATE2]": {
+    "tests/cancun/eip5656_mcopy/test_mcopy_contexts.py::test_no_memory_corruption_on_upper_create_stack_levels[fork_Prague-state_test-call_opcode_CREATE2]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -187,7 +187,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x7ae242fcda90e4f56a894efc5ef5844910b6404b046762665a215bfeb294aace",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -269,11 +269,11 @@
             ]
         },
         "_info": {
-            "hash": "0x4a02fb6034f6c65bfaafbf59fb4d0f6724ac9b1434947beb9c96415da1f85ba7",
+            "hash": "0x6d39a011b30c67a2aaf1c90cfd8fd7011907416267cb4be2197bd2c2b2a0c4f2",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Perform a subcall with any of the following opcodes, which uses MCOPY during its execution,\n    and verify that the caller's memory is unaffected:\n      - `CREATE`\n      - `CREATE2`.\n\n    TODO: [EOF] Add EOFCREATE opcode",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip5656_mcopy/test_mcopy_contexts.py#L185",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip5656_mcopy/test_mcopy_contexts.py#L185",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5656.md",
             "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"

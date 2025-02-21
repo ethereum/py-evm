@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip1153_tstore/test_basic_tload.py::test_basic_tload_other_after_tstore[fork_Cancun-state_test]": {
+    "tests/cancun/eip1153_tstore/test_basic_tload.py::test_basic_tload_other_after_tstore[fork_Prague-state_test]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -43,7 +43,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x81d9c597df96c4588fb7a8c84454ebd874ac39bfc3dfeee8fe9f30fbc0cf0eec",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -79,11 +79,11 @@
             ]
         },
         "_info": {
-            "hash": "0x91307184ad5ba2c8ee3d559b957cb628e8c5bf038da7ff2ecace621e0c60770e",
+            "hash": "0x0b991da24446dc1d4e6cf599d8fe4aa2a0de97ff70d310f4f49c5f26b3dc3da3",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Ported .json vectors.\n\n    (03_tloadAfterStoreIs0Filler.yml)\n    Loading any other slot after storing to a slot returns 0.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_basic_tload.py#L116",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip1153_tstore/test_basic_tload.py#L116",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
             "reference-spec-version": "6f0be621c76a05a7b3aaf0e9297afd425c26e9d0"
