@@ -66,17 +66,14 @@ CallParams = Tuple[int, int, Address, Address, Address, int, int, int, int, bool
 def extcodesize_eip7702(computation: ComputationAPI) -> None:
     if computation.stack_pop1_bytes()[:2] == DELEGATION_DESIGNATION:
         address = force_bytes_to_address(computation.stack_pop1_bytes()[2:])
-        _consume_gas_for_account_load(computation, address, mnemonics.EXTCODEHASH)
-
-        code_size = len(DELEGATION_DESIGNATION)
-        computation.stack_push_int(code_size)
 
     else:
         address = force_bytes_to_address(computation.stack_pop1_bytes())
-        _consume_gas_for_account_load(computation, address, mnemonics.EXTCODEHASH)
 
-        code_size = len(computation.state.get_code(address))
-        computation.stack_push_int(code_size)
+    _consume_gas_for_account_load(computation, address, mnemonics.EXTCODEHASH)
+
+    code_size = len(computation.stack_pop1_bytes())
+    computation.stack_push_int(code_size)
 
 
 def extcodehash_eip7702(computation: ComputationAPI) -> None:
@@ -89,7 +86,13 @@ def extcodehash_eip7702(computation: ComputationAPI) -> None:
         address = force_bytes_to_address(computation.stack_pop1_bytes()[2:])
 
         _consume_gas_for_account_load(computation, address, mnemonics.EXTCODEHASH)
-        computation.stack_push_bytes(state.get_code_hash(DELEGATION_DESIGNATION))
+
+        if state.account_is_empty(address):
+            computation.stack_push_bytes(constants.NULL_BYTE)
+        else:
+            computation.stack_push_bytes(
+                state.get_code_hash(computation.stack_pop1_bytes())
+            )
 
     else:
         address = force_bytes_to_address(computation.stack_pop1_bytes())
@@ -131,7 +134,6 @@ def extcodecopy_eip7702(computation: ComputationAPI) -> None:
     if computation.stack_pop1_bytes()[:2] == DELEGATION_DESIGNATION:
         address, size = extcodecopy_execute_eip7702(computation)
         consume_extcodecopy_word_cost(computation, size)
-        # this address might need to be 0xef01
         _consume_gas_for_account_load(computation, address, mnemonics.EXTCODECOPY)
     else:
         address, size = extcodecopy_execute(computation)
