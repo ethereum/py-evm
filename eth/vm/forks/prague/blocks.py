@@ -13,7 +13,7 @@ from eth.abc import (
 from eth.rlp.headers import (
     BlockHeader,
 )
-from eth.vm.forks.cancun.block import (
+from eth.vm.forks.cancun.blocks import (
     CancunBlock,
 )
 
