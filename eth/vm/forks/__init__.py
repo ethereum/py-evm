@@ -46,5 +46,8 @@ from .shanghai import (
 from .cancun import (
     CancunVM,
 )
+from .prague import (
+    PragueVM,
+)
 
-LATEST_VM = CancunVM
+LATEST_VM = PragueVM
