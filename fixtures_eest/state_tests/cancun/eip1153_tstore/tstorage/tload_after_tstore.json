@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip1153_tstore/test_tstorage.py::test_tload_after_tstore[fork_Cancun-state_test]": {
+    "tests/cancun/eip1153_tstore/test_tstorage.py::test_tload_after_tstore[fork_Prague-state_test]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -47,7 +47,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x9c8163de53b709593213525989c065f9831b3c36e05e8d3dd5fd078bd3df4dec",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -86,11 +86,11 @@
             ]
         },
         "_info": {
-            "hash": "0x899023ce13b8fa3e6b0fc682f956546cef3603d45bb0c9fb44e1b182d19e9532",
+            "hash": "0xadc850a5a99db03bf5ad001592e380d75dc6e2a7c6a2e2f731f6f25506995e9a",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Loading after storing returns the stored value: TSTORE(x, y), TLOAD(x)\n    returns y.\n\n    Based on [ethereum/tests/.../02_tloadAfterTstoreFiller.yml](https://github.com/ethereum/tests/blob/9b00b68593f5869eb51a6659e1cc983e875e616b/src/EIPTestsFiller/StateTests/stEIP1153-transientStorage/02_tloadAfterTstoreFiller.yml)\",",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstorage.py#L67",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip1153_tstore/test_tstorage.py#L67",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
             "reference-spec-version": "6f0be621c76a05a7b3aaf0e9297afd425c26e9d0"

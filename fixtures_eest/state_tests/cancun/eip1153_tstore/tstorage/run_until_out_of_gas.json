@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip1153_tstore/test_tstorage.py::test_run_until_out_of_gas[fork_Cancun-state_test-tstore]": {
+    "tests/cancun/eip1153_tstore/test_tstorage.py::test_run_until_out_of_gas[fork_Prague-state_test-tstore]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -41,7 +41,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xe5bc9165ac94b299be92efc2b1b9a666ab906b135ce2dbaa26bbe3744b6be99a",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -75,17 +75,17 @@
             ]
         },
         "_info": {
-            "hash": "0xffe58cc7f60139e9c40e159e662e42ed7906a78f187d1e5392e1d62c1c8051c2",
+            "hash": "0x1e04ed18322d73d7b5f1a63984ca04cb0a30e1023d2f8be7b43ae8c792b9c929",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\nUse TSTORE over and over to different keys until we run out of gas.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstorage.py#L265",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip1153_tstore/test_tstorage.py#L265",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
             "reference-spec-version": "6f0be621c76a05a7b3aaf0e9297afd425c26e9d0"
         }
     },
-    "tests/cancun/eip1153_tstore/test_tstorage.py::test_run_until_out_of_gas[fork_Cancun-state_test-tstore_wide_address_space]": {
+    "tests/cancun/eip1153_tstore/test_tstorage.py::test_run_until_out_of_gas[fork_Prague-state_test-tstore_wide_address_space]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -127,7 +127,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x64366d09550d1ef1dca93c10b4a9569e10cef0b6e28f30efd6b4d1042ef3a48e",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -161,17 +161,17 @@
             ]
         },
         "_info": {
-            "hash": "0x8345193bcc36a20766ff217e656b7bad7051274aaf1a1a093a9673b3709555be",
+            "hash": "0xe608c4286f51b259080ca073dc1ff89cfdb9ec95211222f0e568ebc30f7ef68d",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\nUse TSTORE over and over to different keys until we run out of gas.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstorage.py#L265",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip1153_tstore/test_tstorage.py#L265",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
             "reference-spec-version": "6f0be621c76a05a7b3aaf0e9297afd425c26e9d0"
         }
     },
-    "tests/cancun/eip1153_tstore/test_tstorage.py::test_run_until_out_of_gas[fork_Cancun-state_test-tstore_tload]": {
+    "tests/cancun/eip1153_tstore/test_tstorage.py::test_run_until_out_of_gas[fork_Prague-state_test-tstore_tload]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -213,7 +213,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x653eda9cc346a4c7d44292a1b57ba20de3b2733d0fc0866a235ef950b7fb09fd",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -247,11 +247,11 @@
             ]
         },
         "_info": {
-            "hash": "0xe8eaca6a3707182d57f012d77a376b76b0067b15aaf1a2b3e9ab66430dc4becd",
+            "hash": "0x9e027a51433e0c1d155e05f1698a54fb85939d99601e7395049a146fea78f8f6",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\nUse TSTORE over and over to different keys until we run out of gas.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstorage.py#L265",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip1153_tstore/test_tstorage.py#L265",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
             "reference-spec-version": "6f0be621c76a05a7b3aaf0e9297afd425c26e9d0"

@@ -1,4 +1,8 @@
 import logging
+from typing import (
+    List,
+    Optional,
+)
 
 from eth_typing import (
     Address,
@@ -124,3 +128,38 @@ class Message(MessageAPI):
     @property
     def data_as_bytes(self) -> bytes:
         return bytes(self.data)
+
+
+class EIP7702Message(Message):
+    logger = logging.getLogger("eth.vm.message.EIP7702Message")
+
+    def __init__(
+        self,
+        gas: int,
+        to: Address,
+        sender: Address,
+        value: int,
+        data: BytesOrView,
+        code: bytes,
+        depth: int = 0,
+        create_address: Address = None,
+        code_address: Address = None,
+        should_transfer_value: bool = True,
+        is_static: bool = False,
+        authorizations: Optional[List[Address]] = None,
+    ) -> None:
+        super().__init__(
+            gas,
+            to,
+            sender,
+            value,
+            data,
+            code,
+            depth,
+            create_address,
+            code_address,
+            should_transfer_value,
+            is_static,
+        )
+
+        self.authorizations = authorizations

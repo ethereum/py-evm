@@ -55,6 +55,9 @@ from eth.vm.forks.paris.transactions import (
 from eth.vm.forks.petersburg.transactions import (
     PetersburgTransaction,
 )
+from eth.vm.forks.prague.transactions import (
+    PragueTransactionBuilder,
+)
 from eth.vm.forks.shanghai.transactions import (
     ShanghaiTransactionBuilder,
 )
@@ -164,6 +167,8 @@ def fixture_transaction_class(fixture_data):
         return ShanghaiTransactionBuilder
     elif fork_name == ForkName.Cancun:
         return CancunTransactionBuilder
+    elif fork_name == ForkName.Prague:
+        return PragueTransactionBuilder
     else:
         raise ValueError(f"Unknown Fork Name: {fork_name}")
 
