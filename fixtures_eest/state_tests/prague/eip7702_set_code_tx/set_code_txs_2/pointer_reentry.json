@@ -1,0 +1,155 @@
+{
+    "tests/prague/eip7702_set_code_tx/test_set_code_txs_2.py::test_pointer_reentry[fork_Prague-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x03e8",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60003560005260203560205260006000604060006000738a0a19589531694250d570040a0c4b74576919b862061a80f1",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x64",
+                "code": "0x600035600052602035602052600160005401600055600160015c0160015d60015c60015560006020511460615801576001602051146029580157600260205114600858015760645801565b32600355306002554760045533600555604e5801565b326002553060035547600455336005556002602052600060006040600060006000516207a120f160215801565b6001602052600060006040600060006110006207a120f10060035801565b",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x1e8480"
+            ],
+            "to": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x00000000000000000000000000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "accessLists": [
+                []
+            ],
+            "authorizationList": [
+                {
+                    "chainId": "0x00",
+                    "address": "0x0000000000000000000000000000000000001100",
+                    "nonce": "0x00",
+                    "v": "0x01",
+                    "r": "0xac427f776ac7ad34aafce7f63eceb1cde3eface529edeac41327496a0cdead7e",
+                    "s": "0x7571612216f35c4666ff4101d5ccf93fff270ced7d93664c4d7e8f5048a80198",
+                    "signer": "0x8a0a19589531694250d570040a0c4b74576919b8"
+                }
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x8742c084a953b7103244d8fab5fe7af7f92361b693a2f416be8dc56f6af50e3b",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x04f9010201808007831e8480948a0a19589531694250d570040a0c4b74576919b880b84000000000000000000000000000000000000000000000000000000000000011000000000000000000000000000000000000000000000000000000000000000000c0f85cf85a809400000000000000000000000000000000000011008001a0ac427f776ac7ad34aafce7f63eceb1cde3eface529edeac41327496a0cdead7ea07571612216f35c4666ff4101d5ccf93fff270ced7d93664c4d7e8f5048a8019801a0fadb3115480d3c5d19f18d409d33a24cf333e2eeec916749f8064b1fc94a6af7a051da7ffddc4220a1e8be9c514fa1e2e5b2a0e0dd5d531b2ccf3981f643efbdad",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de7f91c1",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x03e8",
+                            "code": "0xef01000000000000000000000000000000000000001100",
+                            "storage": {
+                                "0x00": "0x02",
+                                "0x01": "0x02",
+                                "0x02": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+                                "0x03": "0x8a0a19589531694250d570040a0c4b74576919b8",
+                                "0x04": "0x03e8",
+                                "0x05": "0x1000"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60003560005260203560205260006000604060006000738a0a19589531694250d570040a0c4b74576919b862061a80f1",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x64",
+                            "code": "0x600035600052602035602052600160005401600055600160015c0160015d60015c60015560006020511460615801576001602051146029580157600260205114600858015760645801565b32600355306002554760045533600555604e5801565b326002553060035547600455336005556002602052600060006040600060006000516207a120f160215801565b6001602052600060006040600060006110006207a120f10060035801565b",
+                            "storage": {
+                                "0x00": "0x01",
+                                "0x01": "0x01",
+                                "0x03": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+                                "0x02": "0x1100",
+                                "0x04": "0x64",
+                                "0x05": "0x8a0a19589531694250d570040a0c4b74576919b8"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xe0e5e9101c8d096899bc6d441e26f3bafd0d76d00de99fc030a5a10c8827f1a8",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Check operations when reenter the pointer again\n    TODO: feel free to extend the code checks under given scenarios in switch case.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_set_code_txs_2.py#L1111",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    }
+}

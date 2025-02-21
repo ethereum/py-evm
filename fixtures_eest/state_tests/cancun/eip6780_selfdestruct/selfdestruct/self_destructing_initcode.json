@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_0-call_times_0-create_opcode_CREATE]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Prague-state_test-selfdestruct_contract_initial_balance_0-call_times_0-create_opcode_CREATE2]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -7,117 +7,8 @@
             "currentTimestamp": "0x03e8",
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
-                }
-            },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Shanghai": [
-                {
-                    "hash": "0x7ba925b5c768b69b3ae648a836d233c2d4b60098aad2ba7963d2d5d6a3a76bc9",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf898800a8307a1208080b84b6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f325a0fcc6f9a7fcf93e431743d3de6cce41392ade2a4bd4cd754cf7e49a88db152b0ca078802189847959e356135385f99d89d78c020a0411fb8ba8ed6757a254c8b5e1",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de86c6e4",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0x64e2ebd6405af8cb348aec519084d3fff42ebba6",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x079122",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x05471254cf7306965068ab2720bfbf0de30959f32937ca1697a74e832653dc75",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_0-call_times_0-create_opcode_CREATE2]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -158,7 +49,7 @@
             "to": ""
         },
         "post": {
-            "Shanghai": [
+            "Prague": [
                 {
                     "hash": "0x90e3f141a60e039ecac3eb67c660542ba91e49225e6d6554a12af500a4011853",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -208,18 +99,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xd87d383455e8d73aa07b689f8cb3871f3293cc2d3c3814389ed85791bc25cc43",
+            "hash": "0x4d90729ce8857388ffe47edc3554e29390043d6f1066ad68088947c445e4dca8",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_0-call_times_1-create_opcode_CREATE]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Prague-state_test-selfdestruct_contract_initial_balance_0-call_times_0-create_opcode_CREATE]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -227,7 +138,8 @@
             "currentTimestamp": "0x03e8",
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -261,18 +173,18 @@
                 "0x00"
             ],
             "data": [
-                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f600255600060006000600060007364e2ebd6405af8cb348aec519084d3fff42ebba645f16003557364e2ebd6405af8cb348aec519084d3fff42ebba63160045560016020f3"
+                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f3"
             ],
             "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
             "to": ""
         },
         "post": {
-            "Shanghai": [
+            "Prague": [
                 {
-                    "hash": "0xef9989296b8082cee04ed47c09e6ec01c1333e9ff7e364554b31abf8ebb57695",
+                    "hash": "0x7ba925b5c768b69b3ae648a836d233c2d4b60098aad2ba7963d2d5d6a3a76bc9",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf8d5800a8307a1208080b8886013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f600255600060006000600060007364e2ebd6405af8cb348aec519084d3fff42ebba645f16003557364e2ebd6405af8cb348aec519084d3fff42ebba63160045560016020f325a0932836d4c0efa2fd58f39c003383d32d250dd0ce73203c6be027fd2f2668a9a4a00e44b8774a224819a896c8c955d3f681517cdac929b9899d2a6c1fb5fe439d28",
+                    "txbytes": "0xf898800a8307a1208080b84b6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f325a0fcc6f9a7fcf93e431743d3de6cce41392ade2a4bd4cd754cf7e49a88db152b0ca078802189847959e356135385f99d89d78c020a0411fb8ba8ed6757a254c8b5e1",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -281,7 +193,7 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x3635c9adc5de82e4ca",
+                            "balance": "0x3635c9adc5de86c6e4",
                             "code": "0x",
                             "storage": {}
                         },
@@ -305,13 +217,12 @@
                             "code": "0x00",
                             "storage": {
                                 "0x00": "0x64e2ebd6405af8cb348aec519084d3fff42ebba6",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-                                "0x03": "0x01"
+                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
                             }
                         },
                         "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
                             "nonce": "0x00",
-                            "balance": "0x08bb5d",
+                            "balance": "0x079122",
                             "code": "0x",
                             "storage": {}
                         }
@@ -319,18 +230,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xbef64c9f9b4b72b0953551a482732fd60c08cadb8a57f635273e392a3486237b",
+            "hash": "0x955efb942ea7b01f93514b96f7f843a8100ecf6d9d0f1d1d45fb611e6297edac",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_0-call_times_1-create_opcode_CREATE2]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Prague-state_test-selfdestruct_contract_initial_balance_0-call_times_1-create_opcode_CREATE2]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -338,7 +269,8 @@
             "currentTimestamp": "0x03e8",
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -379,7 +311,7 @@
             "to": ""
         },
         "post": {
-            "Shanghai": [
+            "Prague": [
                 {
                     "hash": "0x1aa2160b76bb5b3ae3ae5fcfa1df815d5bad920c18c991890eb0e0334ac02ac5",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -430,706 +362,38 @@
                 }
             ]
         },
-        "_info": {
-            "hash": "0xe2f05f9fb0faea169c6ea7b555ce69e44a9b87ad06ac79196b28adf29a161bd1",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_100000-call_times_0-create_opcode_CREATE]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
                 }
             },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
-            },
-            "0x64e2ebd6405af8cb348aec519084d3fff42ebba6": {
-                "nonce": "0x00",
-                "balance": "0x0186a0",
-                "code": "0x",
-                "storage": {}
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xecbbb367a79d3456e75a73122cbdfcfd6d37e527a538fda520563380dfab30b7",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
             }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Shanghai": [
-                {
-                    "hash": "0xe2e28dd94f04996a1b14712dd7314599dc89a3074f6c449fb6cbf2d064e07341",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf898800a8307a1208080b84b6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f325a0fcc6f9a7fcf93e431743d3de6cce41392ade2a4bd4cd754cf7e49a88db152b0ca078802189847959e356135385f99d89d78c020a0411fb8ba8ed6757a254c8b5e1",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de86c6e4",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x0186a0",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0x64e2ebd6405af8cb348aec519084d3fff42ebba6",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x079122",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0xa8e2ea6dc2101fdab8e9ce22d6a423048851f78b051237f6477fa49746b7d14d",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
         }
     },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_100000-call_times_0-create_opcode_CREATE2]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
-                }
-            },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
-            },
-            "0xedce294eb2e56331034f31b1cc9c48a30ffe77f1": {
-                "nonce": "0x00",
-                "balance": "0x0186a0",
-                "code": "0x",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c6000601360006000f560005573edce294eb2e56331034f31b1cc9c48a30ffe77f13b60015573edce294eb2e56331034f31b1cc9c48a30ffe77f13f60025560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Shanghai": [
-                {
-                    "hash": "0x7cd7d493016fac583af1d385efc78f7e377be9be50997c3be304eb4518f035dc",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf89a800a8307a1208080b84d6013600060006111003c6000601360006000f560005573edce294eb2e56331034f31b1cc9c48a30ffe77f13b60015573edce294eb2e56331034f31b1cc9c48a30ffe77f13f60025560016020f325a0cf31d5afd1d89bfdb51d8ee45f0637010729943fdeb85a18c4a5312b1d267d5aa00f220518c81c457c7267a257cce61f51c4a719614135e5c32f8b0c83f2cfc3fa",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de86c5c2",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x0186a0",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0xedce294eb2e56331034f31b1cc9c48a30ffe77f1",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x079179",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x011f8cf8fcae14601ea3c6c9578d47657ff56befc92c383d76f73194d371bf96",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_100000-call_times_1-create_opcode_CREATE]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
-                }
-            },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
-            },
-            "0x64e2ebd6405af8cb348aec519084d3fff42ebba6": {
-                "nonce": "0x00",
-                "balance": "0x0186a0",
-                "code": "0x",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f600255600060006000600060007364e2ebd6405af8cb348aec519084d3fff42ebba645f16003557364e2ebd6405af8cb348aec519084d3fff42ebba63160045560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Shanghai": [
-                {
-                    "hash": "0x8e4ab92e5521aa3ed680be01ef043095a95b5116a17bd98aec8928f2c9b8f186",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf8d5800a8307a1208080b8886013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f600255600060006000600060007364e2ebd6405af8cb348aec519084d3fff42ebba645f16003557364e2ebd6405af8cb348aec519084d3fff42ebba63160045560016020f325a0932836d4c0efa2fd58f39c003383d32d250dd0ce73203c6be027fd2f2668a9a4a00e44b8774a224819a896c8c955d3f681517cdac929b9899d2a6c1fb5fe439d28",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de82e4ca",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x0186a0",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0x64e2ebd6405af8cb348aec519084d3fff42ebba6",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-                                "0x03": "0x01"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x08bb5d",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x54d1351cabb5d250a733368c6795ecf38cc7040cfc0378164c7c785f59059498",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Shanghai-state_test-selfdestruct_contract_initial_balance_100000-call_times_1-create_opcode_CREATE2]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
-                }
-            },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
-            },
-            "0xedce294eb2e56331034f31b1cc9c48a30ffe77f1": {
-                "nonce": "0x00",
-                "balance": "0x0186a0",
-                "code": "0x",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c6000601360006000f560005573edce294eb2e56331034f31b1cc9c48a30ffe77f13b60015573edce294eb2e56331034f31b1cc9c48a30ffe77f13f6002556000600060006000600073edce294eb2e56331034f31b1cc9c48a30ffe77f145f160035573edce294eb2e56331034f31b1cc9c48a30ffe77f13160045560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Shanghai": [
-                {
-                    "hash": "0xba27d2742785538a10f04ec3cdb23c33bf384bebcfa5148aa63b18453bb94e43",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf8d7800a8307a1208080b88a6013600060006111003c6000601360006000f560005573edce294eb2e56331034f31b1cc9c48a30ffe77f13b60015573edce294eb2e56331034f31b1cc9c48a30ffe77f13f6002556000600060006000600073edce294eb2e56331034f31b1cc9c48a30ffe77f145f160035573edce294eb2e56331034f31b1cc9c48a30ffe77f13160045560016020f325a0e43e59249f1702fd26df9dddd3461161884fb393e793a1a6084a981dcfdfd4c9a044f994ded62d220259f0fea64cb96560db69e603c33be7568dc9e7fa6024007f",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de82e3a8",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x0186a0",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0xedce294eb2e56331034f31b1cc9c48a30ffe77f1",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-                                "0x03": "0x01"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x08bbb4",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x4807f2a66fe6b41d3d599eaae5724706c6261d8ced6eecee6d6ec8b50cf9b0cd",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Cancun-state_test-selfdestruct_contract_initial_balance_0-call_times_0-create_opcode_CREATE]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x00"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
-                }
-            },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Cancun": [
-                {
-                    "hash": "0x7ba925b5c768b69b3ae648a836d233c2d4b60098aad2ba7963d2d5d6a3a76bc9",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf898800a8307a1208080b84b6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f325a0fcc6f9a7fcf93e431743d3de6cce41392ade2a4bd4cd754cf7e49a88db152b0ca078802189847959e356135385f99d89d78c020a0411fb8ba8ed6757a254c8b5e1",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de86c6e4",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0x64e2ebd6405af8cb348aec519084d3fff42ebba6",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x079122",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x8262412ce79561d6b1abf925c1224969f6b2c5623fc263cd827a58145f165664",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Cancun-state_test-selfdestruct_contract_initial_balance_0-call_times_0-create_opcode_CREATE2]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x00"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
-                }
-            },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c6000601360006000f560005573edce294eb2e56331034f31b1cc9c48a30ffe77f13b60015573edce294eb2e56331034f31b1cc9c48a30ffe77f13f60025560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Cancun": [
-                {
-                    "hash": "0x90e3f141a60e039ecac3eb67c660542ba91e49225e6d6554a12af500a4011853",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf89a800a8307a1208080b84d6013600060006111003c6000601360006000f560005573edce294eb2e56331034f31b1cc9c48a30ffe77f13b60015573edce294eb2e56331034f31b1cc9c48a30ffe77f13f60025560016020f325a0cf31d5afd1d89bfdb51d8ee45f0637010729943fdeb85a18c4a5312b1d267d5aa00f220518c81c457c7267a257cce61f51c4a719614135e5c32f8b0c83f2cfc3fa",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de86c5c2",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0xedce294eb2e56331034f31b1cc9c48a30ffe77f1",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x079179",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0xc766009701451ce876ea064d75797ac82d84443f657c90b45a626a155ddf503d",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Cancun-state_test-selfdestruct_contract_initial_balance_0-call_times_1-create_opcode_CREATE]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Prague-state_test-selfdestruct_contract_initial_balance_0-call_times_1-create_opcode_CREATE]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -1179,7 +443,7 @@
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xef9989296b8082cee04ed47c09e6ec01c1333e9ff7e364554b31abf8ebb57695",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -1230,247 +494,38 @@
                 }
             ]
         },
-        "_info": {
-            "hash": "0x61ea83b21ee591805fb120bb2166e44cf3a6ed0ef779ba637f498a063c172d33",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Cancun-state_test-selfdestruct_contract_initial_balance_0-call_times_1-create_opcode_CREATE2]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x00"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
                 }
             },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x658734ae71a875b64f79787c7ba7bfe1efb4b7b2636fb4cfe0116b6faf4cd266",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
             }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c6000601360006000f560005573edce294eb2e56331034f31b1cc9c48a30ffe77f13b60015573edce294eb2e56331034f31b1cc9c48a30ffe77f13f6002556000600060006000600073edce294eb2e56331034f31b1cc9c48a30ffe77f145f160035573edce294eb2e56331034f31b1cc9c48a30ffe77f13160045560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Cancun": [
-                {
-                    "hash": "0x1aa2160b76bb5b3ae3ae5fcfa1df815d5bad920c18c991890eb0e0334ac02ac5",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf8d7800a8307a1208080b88a6013600060006111003c6000601360006000f560005573edce294eb2e56331034f31b1cc9c48a30ffe77f13b60015573edce294eb2e56331034f31b1cc9c48a30ffe77f13f6002556000600060006000600073edce294eb2e56331034f31b1cc9c48a30ffe77f145f160035573edce294eb2e56331034f31b1cc9c48a30ffe77f13160045560016020f325a0e43e59249f1702fd26df9dddd3461161884fb393e793a1a6084a981dcfdfd4c9a044f994ded62d220259f0fea64cb96560db69e603c33be7568dc9e7fa6024007f",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de82e3a8",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0xedce294eb2e56331034f31b1cc9c48a30ffe77f1",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-                                "0x03": "0x01"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x08bbb4",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x28c2aeaaa4ba24bf049add8a614a3bb5ca68c41bd93d39c5808937d66ce01c89",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
         }
     },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Cancun-state_test-selfdestruct_contract_initial_balance_100000-call_times_0-create_opcode_CREATE]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x00"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3635c9adc5dea00000",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x6000600055",
-                "storage": {
-                    "0x00": "0x01"
-                }
-            },
-            "0x0000000000000000000000000000000000001100": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600160005401600055611000ff600060005500",
-                "storage": {}
-            },
-            "0x64e2ebd6405af8cb348aec519084d3fff42ebba6": {
-                "nonce": "0x00",
-                "balance": "0x0186a0",
-                "code": "0x",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x0a",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "value": [
-                "0x00"
-            ],
-            "data": [
-                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f3"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
-            "to": ""
-        },
-        "post": {
-            "Cancun": [
-                {
-                    "hash": "0xe2e28dd94f04996a1b14712dd7314599dc89a3074f6c449fb6cbf2d064e07341",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf898800a8307a1208080b84b6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f325a0fcc6f9a7fcf93e431743d3de6cce41392ade2a4bd4cd754cf7e49a88db152b0ca078802189847959e356135385f99d89d78c020a0411fb8ba8ed6757a254c8b5e1",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x3635c9adc5de86c6e4",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x0186a0",
-                            "code": "0x6000600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
-                        },
-                        "0x0000000000000000000000000000000000001100": {
-                            "nonce": "0x01",
-                            "balance": "0x00",
-                            "code": "0x600160005401600055611000ff600060005500",
-                            "storage": {}
-                        },
-                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
-                            "nonce": "0x02",
-                            "balance": "0x00",
-                            "code": "0x00",
-                            "storage": {
-                                "0x00": "0x64e2ebd6405af8cb348aec519084d3fff42ebba6",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                            }
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x079122",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0xd8ecded8a07c597fdbf5380924db2c8415a904169459e91fb5133981c121ba26",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
-        }
-    },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Cancun-state_test-selfdestruct_contract_initial_balance_100000-call_times_0-create_opcode_CREATE2]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Prague-state_test-selfdestruct_contract_initial_balance_100000-call_times_0-create_opcode_CREATE2]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -1526,7 +581,7 @@
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x7cd7d493016fac583af1d385efc78f7e377be9be50997c3be304eb4518f035dc",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -1576,18 +631,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x53ee7a025bca948b45b317568fcf4aa6b741fd6aeedc02996fd6182642a2e398",
+            "hash": "0x95bd185a2826cf2d5f70c2355130c4135bbc3beba3772329ecb32e1057f339fa",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Cancun-state_test-selfdestruct_contract_initial_balance_100000-call_times_1-create_opcode_CREATE]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Prague-state_test-selfdestruct_contract_initial_balance_100000-call_times_0-create_opcode_CREATE]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -1636,18 +711,18 @@
                 "0x00"
             ],
             "data": [
-                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f600255600060006000600060007364e2ebd6405af8cb348aec519084d3fff42ebba645f16003557364e2ebd6405af8cb348aec519084d3fff42ebba63160045560016020f3"
+                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f3"
             ],
             "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0x8e4ab92e5521aa3ed680be01ef043095a95b5116a17bd98aec8928f2c9b8f186",
+                    "hash": "0xe2e28dd94f04996a1b14712dd7314599dc89a3074f6c449fb6cbf2d064e07341",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0xf8d5800a8307a1208080b8886013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f600255600060006000600060007364e2ebd6405af8cb348aec519084d3fff42ebba645f16003557364e2ebd6405af8cb348aec519084d3fff42ebba63160045560016020f325a0932836d4c0efa2fd58f39c003383d32d250dd0ce73203c6be027fd2f2668a9a4a00e44b8774a224819a896c8c955d3f681517cdac929b9899d2a6c1fb5fe439d28",
+                    "txbytes": "0xf898800a8307a1208080b84b6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f60025560016020f325a0fcc6f9a7fcf93e431743d3de6cce41392ade2a4bd4cd754cf7e49a88db152b0ca078802189847959e356135385f99d89d78c020a0411fb8ba8ed6757a254c8b5e1",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -1656,7 +731,7 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x3635c9adc5de82e4ca",
+                            "balance": "0x3635c9adc5de86c6e4",
                             "code": "0x",
                             "storage": {}
                         },
@@ -1680,13 +755,12 @@
                             "code": "0x00",
                             "storage": {
                                 "0x00": "0x64e2ebd6405af8cb348aec519084d3fff42ebba6",
-                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
-                                "0x03": "0x01"
+                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
                             }
                         },
                         "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
                             "nonce": "0x00",
-                            "balance": "0x08bb5d",
+                            "balance": "0x079122",
                             "code": "0x",
                             "storage": {}
                         }
@@ -1694,18 +768,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xd0b7cab8d73e62b0dea6448c154c03e69d05c02bc82863fdebca3c984dab6b80",
+            "hash": "0x6241b3fdc7dcb59050d68f8bd6747ce6fd63b691e5adf68b108fbe58d078c2d3",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Cancun-state_test-selfdestruct_contract_initial_balance_100000-call_times_1-create_opcode_CREATE2]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Prague-state_test-selfdestruct_contract_initial_balance_100000-call_times_1-create_opcode_CREATE2]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -1761,7 +855,7 @@
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xba27d2742785538a10f04ec3cdb23c33bf384bebcfa5148aa63b18453bb94e43",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -1812,15 +906,173 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xaca8a5f7936d1ab27cd8ba257ded4092e08db7ab239385893ff4046cd7be007d",
+            "hash": "0xc3d918ca1b413f1f0b548566ab5189f0a53a6534151f8f51978368e711156d0c",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
-            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct.py::test_self_destructing_initcode[fork_Prague-state_test-selfdestruct_contract_initial_balance_100000-call_times_1-create_opcode_CREATE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x6000600055",
+                "storage": {
+                    "0x00": "0x01"
+                }
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x600160005401600055611000ff600060005500",
+                "storage": {}
+            },
+            "0x64e2ebd6405af8cb348aec519084d3fff42ebba6": {
+                "nonce": "0x00",
+                "balance": "0x0186a0",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x6013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f600255600060006000600060007364e2ebd6405af8cb348aec519084d3fff42ebba645f16003557364e2ebd6405af8cb348aec519084d3fff42ebba63160045560016020f3"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8",
+            "to": ""
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x8e4ab92e5521aa3ed680be01ef043095a95b5116a17bd98aec8928f2c9b8f186",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf8d5800a8307a1208080b8886013600060006111003c601360006000f06000557364e2ebd6405af8cb348aec519084d3fff42ebba63b6001557364e2ebd6405af8cb348aec519084d3fff42ebba63f600255600060006000600060007364e2ebd6405af8cb348aec519084d3fff42ebba645f16003557364e2ebd6405af8cb348aec519084d3fff42ebba63160045560016020f325a0932836d4c0efa2fd58f39c003383d32d250dd0ce73203c6be027fd2f2668a9a4a00e44b8774a224819a896c8c955d3f681517cdac929b9899d2a6c1fb5fe439d28",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de82e4ca",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x0186a0",
+                            "code": "0x6000600055",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x600160005401600055611000ff600060005500",
+                            "storage": {}
+                        },
+                        "0x6295ee1b4f6dd65047762f924ecd367c17eabf8f": {
+                            "nonce": "0x02",
+                            "balance": "0x00",
+                            "code": "0x00",
+                            "storage": {
+                                "0x00": "0x64e2ebd6405af8cb348aec519084d3fff42ebba6",
+                                "0x02": "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+                                "0x03": "0x01"
+                            }
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x08bb5d",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xd4b7b3b3c86d8959e0afba03db84f0dfe64ca277a2c7a7c035a3affccc820e8f",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Test that a contract can self-destruct in its initcode.\n\n    Behavior is the same before and after EIP-6780.\n\n    Test using:\n        - Different initial balances for the self-destructing contract\n        - Different opcodes: CREATE, CREATE2\n        - Different number of calls to the self-destructing contract in the same tx",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip6780_selfdestruct/test_selfdestruct.py#L344",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
+            "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     }
 }

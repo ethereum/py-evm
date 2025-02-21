@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Cancun-state_test-correct_proof-exact_gas]": {
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Prague-state_test-correct_proof-exact_gas]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -13,14 +13,14 @@
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                 "nonce": "0x00",
-                "balance": "0x0de0b6b3a7640000",
+                "balance": "0x3635c9adc5dea00000",
                 "code": "0x",
                 "storage": {}
             }
         },
         "transaction": {
             "nonce": "0x00",
-            "gasPrice": "0x07",
+            "gasPrice": "0x0a",
             "gasLimit": [
                 "0x016fc4"
             ],
@@ -75,11 +75,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0xe7c6ba6a66f18af8b8fd6a196c8565f2b9099ab2a663f94a7fbb212ed92fd0c2",
+                    "hash": "0x9fdc4b571625632cfe6fe5484b0967b2caa4da45f5c8502e5f23cfa07d1a93e7",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f901f301800783016fc494000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a06a40866ed6e4c7752e284917891a16aa200e434d79eb6ade181cf5930a52fd05a01650cf2ae40cd3440eea8775784e7f2a3822627e0412ec494f645708a269205b",
+                    "txbytes": "0x01f901f301800a83016fc494000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a0e580b9ad798e06bb2ed5deea50e0d4c820579be6fd95e6c42f31f45be859da29a06c77112ba698bb6265ecbb540e42482542b7cf7fccf041cdfdfcbb82f4f18d95",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -88,7 +88,13 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x0de0b6b3a759f1a4",
+                            "balance": "0x3635c9adc5de91a258",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x044f4c",
                             "code": "0x",
                             "storage": {}
                         }
@@ -96,18 +102,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xf0e99a59677c7ab22991b274bda806610d608e6ef859fab389db8d0568b88f0a",
+            "hash": "0xbbfd9c0beabbcb43fe9d3ff90296432bb7541c63d44efa3ae1c8f96038de5d37",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calling the Point Evaluation Precompile directly as\n    transaction entry point, and measure the gas consumption.\n\n    - Using `gas_limit` with exact necessary gas, insufficient gas and extra gas.\n    - Using correct and incorrect proofs",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L502",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L503",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Cancun-state_test-correct_proof-extra_gas]": {
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Prague-state_test-correct_proof-extra_gas]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -121,14 +147,14 @@
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                 "nonce": "0x00",
-                "balance": "0x0de0b6b3a7640000",
+                "balance": "0x3635c9adc5dea00000",
                 "code": "0x",
                 "storage": {}
             }
         },
         "transaction": {
             "nonce": "0x00",
-            "gasPrice": "0x07",
+            "gasPrice": "0x0a",
             "gasLimit": [
                 "0x016fc5"
             ],
@@ -183,11 +209,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0xe7c6ba6a66f18af8b8fd6a196c8565f2b9099ab2a663f94a7fbb212ed92fd0c2",
+                    "hash": "0x9fdc4b571625632cfe6fe5484b0967b2caa4da45f5c8502e5f23cfa07d1a93e7",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f901f301800783016fc594000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a08ad401afb0d67fcca050ae37568a33f6169c5be67176f2f1e48ea7118ea1b36fa04e75bd001dcb5ede6d1e46447d6020126c7ca5d68bd529b2ca994e0f24c1c2a8",
+                    "txbytes": "0x01f901f301800a83016fc594000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a0cb676da903449d50db1532704c3b67f6e6cd60603e2c5643c5400c9c5e1670f0a0596dc865b2532de2d0dfb7778a244665f6ba9f6fad19e663b41f5ea491ba29f5",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -196,7 +222,13 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x0de0b6b3a759f1a4",
+                            "balance": "0x3635c9adc5de91a258",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x044f4c",
                             "code": "0x",
                             "storage": {}
                         }
@@ -204,18 +236,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x0ca500d1a2a41b62314a946894b7096a7bb3f2b29cb9aebed4c808e14c122bd1",
+            "hash": "0x9d1bdfe88b35e52d2ad0db42048e261152b767667c0db295ebdac6c0a345a857",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calling the Point Evaluation Precompile directly as\n    transaction entry point, and measure the gas consumption.\n\n    - Using `gas_limit` with exact necessary gas, insufficient gas and extra gas.\n    - Using correct and incorrect proofs",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L502",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L503",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Cancun-state_test-correct_proof-insufficient_gas]": {
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Prague-state_test-correct_proof-insufficient_gas]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -229,14 +281,14 @@
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                 "nonce": "0x00",
-                "balance": "0x0de0b6b3a7640000",
+                "balance": "0x3635c9adc5dea00000",
                 "code": "0x",
                 "storage": {}
             }
         },
         "transaction": {
             "nonce": "0x00",
-            "gasPrice": "0x07",
+            "gasPrice": "0x0a",
             "gasLimit": [
                 "0x016fc3"
             ],
@@ -291,11 +343,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0xf7c7704f02c35a7de432fd6e45407a5ecb38017c18e95a6368da58ed37e2f5ba",
+                    "hash": "0xac321875c0821d8d3d8ab22d3dad643e0ffe08e1f7d2f78df7b1b48b4ab86f31",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f901f301800783016fc394000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a03509d3035108c0bd5b6e33ef39f150b19bd26c064ae0ac372714dcbb84b45a4ea06faac0373e59b87001abd279ddae51eba7c2ae1c2e41779cf771a1e2ddc9a6b2",
+                    "txbytes": "0x01f901f301800a83016fc394000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a087232f9adf863f61dac457691381632e829c08469c596ff7fd4bee6b87d67b22a03d2e88034cfe4dffe7a47f74ed1ff7cf54b85bb21db206a78bd295d628b675f8",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -304,7 +356,13 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x0de0b6b3a759f1ab",
+                            "balance": "0x3635c9adc5de91a262",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x044f49",
                             "code": "0x",
                             "storage": {}
                         }
@@ -312,18 +370,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x09bc61738c00ac3ae96f74119e4cccf05fef98a3d6c84474e7b39d94f7bb8742",
+            "hash": "0xe3d2707478e1c15e316b98468e3d10cf16dc591dcfce17018f2184f2b88995bf",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calling the Point Evaluation Precompile directly as\n    transaction entry point, and measure the gas consumption.\n\n    - Using `gas_limit` with exact necessary gas, insufficient gas and extra gas.\n    - Using correct and incorrect proofs",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L502",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L503",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Cancun-state_test-incorrect_proof-exact_gas]": {
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Prague-state_test-incorrect_proof-exact_gas]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -337,14 +415,14 @@
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                 "nonce": "0x00",
-                "balance": "0x0de0b6b3a7640000",
+                "balance": "0x3635c9adc5dea00000",
                 "code": "0x",
                 "storage": {}
             }
         },
         "transaction": {
             "nonce": "0x00",
-            "gasPrice": "0x07",
+            "gasPrice": "0x0a",
             "gasLimit": [
                 "0x016fd0"
             ],
@@ -399,11 +477,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0x875e2d3b01a483576676ff8769ad255a87a06b20bd42b9ec6a64b34aab45b622",
+                    "hash": "0xa17ef5d4e517fc147545bbf360416def974718ecec6ffc0dd315d6b0b1eec078",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f901f301800783016fd094000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a0f92b5cd83e6f0db5d85ecbbb896c1d905d4486fd6a59e61317b6fa6740e43c54a00dc26f7275ca705675c05595c977ab8605699fdff93ccde5de22acf22c7c2211",
+                    "txbytes": "0x01f901f301800a83016fd094000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a01526b94e949d51da71fdd51b182ee2defca4200e98a12190d56f28fbbf9ae302a04c906992291f242bed050b4bb7fcd9c7fde35217a15d7e6dbf9c33c4813bb984",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -412,7 +490,13 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x0de0b6b3a759f150",
+                            "balance": "0x3635c9adc5de91a1e0",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x044f70",
                             "code": "0x",
                             "storage": {}
                         }
@@ -420,18 +504,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x62aa21c64558d3875cd44500832dc27c8d4a3dfc72cb37cce781dd08ca06b327",
+            "hash": "0x5fc9926772b121fed61931923f0e5a5de2a6124e54b89eea56f16abebcdcdb90",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calling the Point Evaluation Precompile directly as\n    transaction entry point, and measure the gas consumption.\n\n    - Using `gas_limit` with exact necessary gas, insufficient gas and extra gas.\n    - Using correct and incorrect proofs",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L502",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L503",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Cancun-state_test-incorrect_proof-extra_gas]": {
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Prague-state_test-incorrect_proof-extra_gas]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -445,14 +549,14 @@
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                 "nonce": "0x00",
-                "balance": "0x0de0b6b3a7640000",
+                "balance": "0x3635c9adc5dea00000",
                 "code": "0x",
                 "storage": {}
             }
         },
         "transaction": {
             "nonce": "0x00",
-            "gasPrice": "0x07",
+            "gasPrice": "0x0a",
             "gasLimit": [
                 "0x016fd1"
             ],
@@ -507,11 +611,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0x1b6c816ba71f290c545cd7ed8beac1b2ae04c2c5ce6826855d19ba2340c587d5",
+                    "hash": "0x4e11495abd32b3e77ca10a45fc40fb972c1dba82e017e1932f453469e8445809",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f901f301800783016fd194000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c080a0d7a83e9a18fbb696c71005083ab1e0b7f9b477697e89b1d490952da6b4fc0e07a029403ddd101abc1d9b544a7325ae8bffa600e3d1e001625acc8bb70ea5e8bc83",
+                    "txbytes": "0x01f901f301800a83016fd194000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a0a16cd0cfe543cd8ce86cc786ab1d164fe14d62e71143e43f3b917d2b3edb9282a03a0387d345025c99ed56877ac74630c95d8737b96d8d44e8404dba9e4748288a",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -520,7 +624,13 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x0de0b6b3a759f149",
+                            "balance": "0x3635c9adc5de91a1d6",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x044f73",
                             "code": "0x",
                             "storage": {}
                         }
@@ -528,18 +638,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x32f99d728e20e8f343caab0213e17c97d8c760ea6916fb3f3fd4cac5d83916f6",
+            "hash": "0x230612c23bbf7a375722c4bec47bdd3f8badda3d5dcace9fa864235b3d3464c2",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calling the Point Evaluation Precompile directly as\n    transaction entry point, and measure the gas consumption.\n\n    - Using `gas_limit` with exact necessary gas, insufficient gas and extra gas.\n    - Using correct and incorrect proofs",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L502",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L503",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Cancun-state_test-incorrect_proof-insufficient_gas]": {
+    "tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py::test_tx_entry_point[fork_Prague-state_test-incorrect_proof-insufficient_gas]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -553,14 +683,14 @@
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                 "nonce": "0x00",
-                "balance": "0x0de0b6b3a7640000",
+                "balance": "0x3635c9adc5dea00000",
                 "code": "0x",
                 "storage": {}
             }
         },
         "transaction": {
             "nonce": "0x00",
-            "gasPrice": "0x07",
+            "gasPrice": "0x0a",
             "gasLimit": [
                 "0x016fcf"
             ],
@@ -615,11 +745,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0x1834805d9d16965e08a44f131e21e488be39c87785859ae74094c821f1b12755",
+                    "hash": "0x0d4f691d7381877c1701f51b503f4cd9469283ee4f5071bcd298751d943d6765",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f901f301800783016fcf94000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a0c5a18c99e39c7458f9e4cdad3973e0ac9073ed132fd1e8961454721705cfaedea05873448d720d66de23671e3484f61fe9d4c15372b23f7b96c3ea8529a82ef439",
+                    "txbytes": "0x01f901f301800a83016fcf94000000000000000000000000000000000000000a80b8c0010657f37554c781402a22917dee2f75def7ab966d7b770905398eba3c444014623ce31cf9759a5c8daf3a357992f9f3dd7f9339d8998bc8e68373e54f00b75e0000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f8cfd6940000000000000000000000000000000000000001c0d6940000000000000000000000000000000000000002c0d6940000000000000000000000000000000000000003c0d6940000000000000000000000000000000000000004c0d6940000000000000000000000000000000000000005c0d6940000000000000000000000000000000000000006c0d6940000000000000000000000000000000000000007c0d6940000000000000000000000000000000000000008c0d6940000000000000000000000000000000000000009c001a051bb45d9a7452cd6c84dd64ea1d422bc6d812b43cd6b16441fff45ecac95069da06a7ba344e959c5a01cccbd34ba6039282e5eeb281af2d9df6abfeabe3582eab6",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -628,7 +758,13 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x0de0b6b3a759f157",
+                            "balance": "0x3635c9adc5de91a1ea",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x044f6d",
                             "code": "0x",
                             "storage": {}
                         }
@@ -636,15 +772,35 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x5c1ac4219930dc5917f36427f3a49e6a305f31aa932d7a7884436d93c4c9aa43",
+            "hash": "0xd90312e58d07becc9da37383ccd3b6d36531702caf0a6ff8eec31e6e6aa15cda",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calling the Point Evaluation Precompile directly as\n    transaction entry point, and measure the gas consumption.\n\n    - Using `gas_limit` with exact necessary gas, insufficient gas and extra gas.\n    - Using correct and incorrect proofs",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L502",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_point_evaluation_precompile.py#L503",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     }
 }
