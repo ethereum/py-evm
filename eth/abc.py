@@ -236,8 +236,7 @@ class LogAPI(ABC):
 
     @property
     @abstractmethod
-    def bloomables(self) -> Tuple[bytes, ...]:
-        ...
+    def bloomables(self) -> Tuple[bytes, ...]: ...
 
 
 class ReceiptAPI(ABC):
@@ -247,28 +246,23 @@ class ReceiptAPI(ABC):
 
     @property
     @abstractmethod
-    def state_root(self) -> bytes:
-        ...
+    def state_root(self) -> bytes: ...
 
     @property
     @abstractmethod
-    def gas_used(self) -> int:
-        ...
+    def gas_used(self) -> int: ...
 
     @property
     @abstractmethod
-    def bloom(self) -> int:
-        ...
+    def bloom(self) -> int: ...
 
     @property
     @abstractmethod
-    def logs(self) -> Sequence[LogAPI]:
-        ...
+    def logs(self) -> Sequence[LogAPI]: ...
 
     @property
     @abstractmethod
-    def bloom_filter(self) -> BloomFilter:
-        ...
+    def bloom_filter(self) -> BloomFilter: ...
 
     # We can remove this API and inherit from rlp.Serializable when it becomes typesafe
     def copy(self, *args: Any, **kwargs: Any) -> "ReceiptAPI":  # noqa: B027
@@ -416,8 +410,7 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def nonce(self) -> int:
-        ...
+    def nonce(self) -> int: ...
 
     @property
     @abstractmethod
@@ -445,33 +438,27 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def gas(self) -> int:
-        ...
+    def gas(self) -> int: ...
 
     @property
     @abstractmethod
-    def to(self) -> Address:
-        ...
+    def to(self) -> Address: ...
 
     @property
     @abstractmethod
-    def value(self) -> int:
-        ...
+    def value(self) -> int: ...
 
     @property
     @abstractmethod
-    def data(self) -> bytes:
-        ...
+    def data(self) -> bytes: ...
 
     @property
     @abstractmethod
-    def r(self) -> int:
-        ...
+    def r(self) -> int: ...
 
     @property
     @abstractmethod
-    def s(self) -> int:
-        ...
+    def s(self) -> int: ...
 
     @property
     @abstractmethod
@@ -483,7 +470,8 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def chain_id(self) -> Optional[int]: ...
+    def chain_id(self) -> Optional[int]:
+        ...
 
     # @property
     # @abstractmethod
@@ -643,8 +631,7 @@ class TransactionBuilderAPI(TransactionDecoderAPI):
 
 
 class SignedTransactionAPI(BaseTransactionAPI, TransactionFieldsAPI):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        ...
+    def __init__(self, *args: Any, **kwargs: Any) -> None: ...
 
     """
     A class representing a transaction that was signed with a private key.
@@ -855,8 +842,7 @@ class BlockAPI(ABC):
         withdrawals: Optional[
             Sequence[WithdrawalAPI]
         ] = None,  # only present post-Shanghai
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @classmethod
     @abstractmethod
@@ -929,22 +915,18 @@ class BlockAPI(ABC):
 class MetaWitnessAPI(ABC):
     @property
     @abstractmethod
-    def hashes(self) -> FrozenSet[Hash32]:
-        ...
+    def hashes(self) -> FrozenSet[Hash32]: ...
 
     @property
     @abstractmethod
-    def accounts_queried(self) -> FrozenSet[Address]:
-        ...
+    def accounts_queried(self) -> FrozenSet[Address]: ...
 
     @property
     @abstractmethod
-    def account_bytecodes_queried(self) -> FrozenSet[Address]:
-        ...
+    def account_bytecodes_queried(self) -> FrozenSet[Address]: ...
 
     @abstractmethod
-    def get_slots_queried(self, address: Address) -> FrozenSet[int]:
-        ...
+    def get_slots_queried(self, address: Address) -> FrozenSet[int]: ...
 
     @property
     @abstractmethod
@@ -1504,23 +1486,19 @@ class MessageAPI(ABC):
 
     @property
     @abstractmethod
-    def code_address(self) -> Address:
-        ...
+    def code_address(self) -> Address: ...
 
     @property
     @abstractmethod
-    def storage_address(self) -> Address:
-        ...
+    def storage_address(self) -> Address: ...
 
     @property
     @abstractmethod
-    def is_create(self) -> bool:
-        ...
+    def is_create(self) -> bool: ...
 
     @property
     @abstractmethod
-    def data_as_bytes(self) -> bytes:
-        ...
+    def data_as_bytes(self) -> bytes: ...
 
 
 class OpcodeAPI(ABC):
@@ -2901,8 +2879,7 @@ class ConfigurableAPI(ABC):
 
     @classmethod
     @abstractmethod
-    def configure(cls: Type[T], __name__: str = None, **overrides: Any) -> Type[T]:
-        ...
+    def configure(cls: Type[T], __name__: str = None, **overrides: Any) -> Type[T]: ...
 
 
 class StateAPI(ConfigurableAPI):
@@ -3402,11 +3379,9 @@ class StateAPI(ConfigurableAPI):
     #
     # Withdrawals
     #
-    def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:
-        ...
+    def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None: ...
 
-    def apply_all_withdrawals(self, withdrawals: Sequence[WithdrawalAPI]) -> None:
-        ...
+    def apply_all_withdrawals(self, withdrawals: Sequence[WithdrawalAPI]) -> None: ...
 
 
 class ConsensusContextAPI(ABC):
