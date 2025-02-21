@@ -1,0 +1,194 @@
+{
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_invalid_auth_signature[fork_Prague-transaction_test-non_zero_address-r=2**256]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE|TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE_S_TOO_HIGH"
+            }
+        },
+        "txbytes": "0x04f8a201808007830186a09400000000000000000000000000000000000000008080c0f83df83b019400000000000000000000000000000000000000018001a10100000000000000000000000000000000000000000000000000000000000000000101a0768939e8e124f17a69960acb9a6fd1baa8dd0e8112bc663048ac50eb0d9b125aa023cc4c734202200a8b192a9885d8b5fcb7eef7056f2055aa67133d77663fbd69",
+        "_info": {
+            "hash": "0xb1bcc166d42566ab36b0988fd2fb4e1e9ac1b2e246a94475716813d3253d4d8e",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction where one of the signature elements is out of range.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L48",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_invalid_auth_signature[fork_Prague-transaction_test-non_zero_address-s=2**256]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE|TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE_S_TOO_HIGH"
+            }
+        },
+        "txbytes": "0x04f8a201808007830186a09400000000000000000000000000000000000000008080c0f83df83b01940000000000000000000000000000000000000001800101a101000000000000000000000000000000000000000000000000000000000000000001a0b2f493029bc6037bede97ccf630be1a9b2ea2ee6d96cb76fd28a60786809a038a071782de45b185bb31937f8bb4f5a8bb3b30c014c314cac5f713ec8211cc85c89",
+        "_info": {
+            "hash": "0x7df36fddfa12e706f0b1cb8000cfc133731cb8454107a68b24c172158768db47",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction where one of the signature elements is out of range.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L48",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_invalid_auth_signature[fork_Prague-transaction_test-non_zero_address-v=2**8,r=s=2**256]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE|TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE_S_TOO_HIGH"
+            }
+        },
+        "txbytes": "0x04f8c501808007830186a09400000000000000000000000000000000000000008080c0f860f85e0194000000000000000000000000000000000000000180820100a1010000000000000000000000000000000000000000000000000000000000000000a101000000000000000000000000000000000000000000000000000000000000000001a036ec31299df4118be6e7d02bc407afe527a2b2a4b359f4432bcf23aa06222a70a00a9bba7b109ad95f4acffb931f443ebf958727de9de1d86c533224ee5acaf693",
+        "_info": {
+            "hash": "0x90cb96b9763b1aa11ae594dbfd7a325a2f0e7b90dfa9ab837892fefea12c0b42",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction where one of the signature elements is out of range.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L48",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_invalid_auth_signature[fork_Prague-transaction_test-non_zero_address-v=2**8]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE|TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE_S_TOO_HIGH"
+            }
+        },
+        "txbytes": "0x04f88101808007830186a09400000000000000000000000000000000000000008080c0dddc0194000000000000000000000000000000000000000180820100010101a0ea5513167ad4a05a5fcf629ca6f64737e80bbec8841d40a7d0a73aa43d26028ca02d0c5234f012f46657c8579d3069843ffcd79243cc48193da304b12b86119f7f",
+        "_info": {
+            "hash": "0x1a7fd0aeee4ea0e1c622ff7f40e50876a1a198203106a683f704a46a501be0d7",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction where one of the signature elements is out of range.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L48",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_invalid_auth_signature[fork_Prague-transaction_test-reset_delegation_address-r=2**256]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE|TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE_S_TOO_HIGH"
+            }
+        },
+        "txbytes": "0x04f8a201808007830186a09400000000000000000000000000000000000000008080c0f83df83b019400000000000000000000000000000000000000008001a10100000000000000000000000000000000000000000000000000000000000000000180a053ee9ece4eced8de83c8d41226b55df3d936cba6490cc76b03f32aebcdb8dd01a053eb82ab6beaad84c7b3eaeca6981977f36541fd05c87cea25938dc37c550bc8",
+        "_info": {
+            "hash": "0xa33521f2080d7842f6cfe2e9ccc0509b848f10ec191da8d291bd20ff93f9df10",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction where one of the signature elements is out of range.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L48",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_invalid_auth_signature[fork_Prague-transaction_test-reset_delegation_address-s=2**256]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE|TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE_S_TOO_HIGH"
+            }
+        },
+        "txbytes": "0x04f8a201808007830186a09400000000000000000000000000000000000000008080c0f83df83b01940000000000000000000000000000000000000000800101a101000000000000000000000000000000000000000000000000000000000000000080a0a7278af680e2e4e76fbe0f20e44bc3ba4a7d6021af86a82c8b04882fbf3e7b7ea058e5381d88cd628c34d01ddc276c56d0c17a62a2821a33e23d4b6511d1653e76",
+        "_info": {
+            "hash": "0x6ea2b593428d8738906669102fe27e3d7601fd078978ee5dbdb6da1ecf2ace68",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction where one of the signature elements is out of range.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L48",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_invalid_auth_signature[fork_Prague-transaction_test-reset_delegation_address-v=2**8,r=s=2**256]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE|TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE_S_TOO_HIGH"
+            }
+        },
+        "txbytes": "0x04f8c501808007830186a09400000000000000000000000000000000000000008080c0f860f85e0194000000000000000000000000000000000000000080820100a1010000000000000000000000000000000000000000000000000000000000000000a101000000000000000000000000000000000000000000000000000000000000000001a003a678f5d784b0c9ba71205e11eb0e8642447add4a44287584a2e2b63da32b1fa06913f4c34329f3bb526c3258a76efe7c0ca2ca8856a9407a5dfe0f2dbfd11444",
+        "_info": {
+            "hash": "0x90146cb401a5eb8329e77855505e63f84545a0bf8e640b3d9e2b0c50c21ee8d3",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction where one of the signature elements is out of range.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L48",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_invalid_auth_signature[fork_Prague-transaction_test-reset_delegation_address-v=2**8]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE|TransactionException.TYPE_4_INVALID_AUTHORITY_SIGNATURE_S_TOO_HIGH"
+            }
+        },
+        "txbytes": "0x04f88101808007830186a09400000000000000000000000000000000000000008080c0dddc0194000000000000000000000000000000000000000080820100010180a05645df87e3a6cc99eb5d63571cfd7aa4ed83d0ed5c24875bdc4a9265c7bfeb71a06df157c08f0efab5a8cc30e7ab87785acf3e160700f2cb9a6b82410551793662",
+        "_info": {
+            "hash": "0x812435ba7ff5b3fff73be2bacb5444329f88a557fd8bb80e54a85e80fb146762",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction where one of the signature elements is out of range.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L48",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    }
+}

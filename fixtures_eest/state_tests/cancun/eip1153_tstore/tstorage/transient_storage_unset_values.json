@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip1153_tstore/test_tstorage.py::test_transient_storage_unset_values[fork_Cancun-state_test]": {
+    "tests/cancun/eip1153_tstore/test_tstorage.py::test_transient_storage_unset_values[fork_Prague-state_test]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -47,7 +47,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x279e3bf2d03c837e9a61ab1ca23bd938ec83dd5e29bcd171e7ee2b44bd95fd97",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -80,15 +80,35 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x7fd0ca028e8e58ff5bb7dc41ce2e8c74ba5845f471a7d5b5dbf8b0db3f3f2466",
+            "hash": "0xe3528ebb9b7286d3272b33434085a9d8bae557d486e8e7556b1b2295e99d81e1",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test that tload returns zero for unset values. Loading an arbitrary value is\n    0 at beginning of transaction: TLOAD(x) is 0.\n\n    Based on [ethereum/tests/.../01_tloadBeginningTxnFiller.yml](https://github.com/ethereum/tests/blob/9b00b68593f5869eb51a6659e1cc983e875e616b/src/EIPTestsFiller/StateTests/stEIP1153-transientStorage/01_tloadBeginningTxnFiller.yml)\",",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip1153_tstore/test_tstorage.py#L34",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip1153_tstore/test_tstorage.py#L34",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1153.md",
-            "reference-spec-version": "6f0be621c76a05a7b3aaf0e9297afd425c26e9d0"
+            "reference-spec-version": "6f0be621c76a05a7b3aaf0e9297afd425c26e9d0",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     }
 }

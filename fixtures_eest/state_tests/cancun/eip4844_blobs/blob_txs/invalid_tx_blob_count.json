@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_invalid_tx_blob_count[fork_Cancun-too_few_blobs-state_test]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_invalid_tx_blob_count[fork_Prague-too_few_blobs-state_test]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -8,7 +8,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -41,7 +41,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x51f41d6ab2123b8c2bef303127d48c31e5b8ccee1bfde9f853f443fe9711c3fa",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -63,18 +63,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x7ee7281bc2b7dd36156fe37497b421290e8db0a8147132d7ade300fffaf24209",
+            "hash": "0xce8c11bc993719b35b99d42ba72bdc9034d9f42c4d0d325950567d677454bcff",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Reject blocks that include blob transactions with invalid blob counts.\n\n    - `blob count == 0` in type 3 transaction\n    - `blob count > MAX_BLOBS_PER_BLOCK` in type 3 transaction",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L865",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L866",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_invalid_tx_blob_count[fork_Cancun-too_many_blobs-state_test]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_invalid_tx_blob_count[fork_Prague-too_many_blobs-state_test]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -83,12 +103,12 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                 "nonce": "0x00",
-                "balance": "0x103e39",
+                "balance": "0x163e39",
                 "code": "0x",
                 "storage": {}
             }
@@ -118,17 +138,20 @@
                 "0x0100000000000000000000000000000000000000000000000000000000000003",
                 "0x0100000000000000000000000000000000000000000000000000000000000004",
                 "0x0100000000000000000000000000000000000000000000000000000000000005",
-                "0x0100000000000000000000000000000000000000000000000000000000000006"
+                "0x0100000000000000000000000000000000000000000000000000000000000006",
+                "0x0100000000000000000000000000000000000000000000000000000000000007",
+                "0x0100000000000000000000000000000000000000000000000000000000000008",
+                "0x0100000000000000000000000000000000000000000000000000000000000009"
             ],
             "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0xc5300c287b0a8d944f7623ad602b2b3f6ec4bb6ef682848b2cc7aeba3b908e68",
+                    "hash": "0xc2ccf03dfa5a87d48c1f4ecf459edfba7423043046d6c7a9d4f8fe14062869b1",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x03f9014c01808007825208948a0a19589531694250d570040a0c4b74576919b80180c001f8e7a00100000000000000000000000000000000000000000000000000000000000000a00100000000000000000000000000000000000000000000000000000000000001a00100000000000000000000000000000000000000000000000000000000000002a00100000000000000000000000000000000000000000000000000000000000003a00100000000000000000000000000000000000000000000000000000000000004a00100000000000000000000000000000000000000000000000000000000000005a0010000000000000000000000000000000000000000000000000000000000000601a02eda4743e1956071c638044e80c87b44638516eea4dac3d4850f648fb4bdf878a05eb65fcd3da7248a53f30844fb2e6f8d72fdfe717d9918493d555273a72524b1",
+                    "txbytes": "0x03f901b001808007825208948a0a19589531694250d570040a0c4b74576919b80180c001f9014aa00100000000000000000000000000000000000000000000000000000000000000a00100000000000000000000000000000000000000000000000000000000000001a00100000000000000000000000000000000000000000000000000000000000002a00100000000000000000000000000000000000000000000000000000000000003a00100000000000000000000000000000000000000000000000000000000000004a00100000000000000000000000000000000000000000000000000000000000005a00100000000000000000000000000000000000000000000000000000000000006a00100000000000000000000000000000000000000000000000000000000000007a00100000000000000000000000000000000000000000000000000000000000008a0010000000000000000000000000000000000000000000000000000000000000980a025b1e83ed3625b3bcf046ce97a5387bddafdfaafe521f51108e3c78a6fecc5b4a06e93f439320672f107fd1bd7e3da9e5690f4ee30160ee741a7eb653353042d70",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -137,7 +160,7 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x00",
-                            "balance": "0x103e39",
+                            "balance": "0x163e39",
                             "code": "0x",
                             "storage": {}
                         }
@@ -146,15 +169,35 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xf662e2eaa2cde206a3fa72a1138f7531ef4ec630b22d965e5499e4720b20f0a1",
+            "hash": "0x1b2925e80d2ee086bd2c7d7718fbc9109576e8cf818773b5e65349bffa72d8a9",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Reject blocks that include blob transactions with invalid blob counts.\n\n    - `blob count == 0` in type 3 transaction\n    - `blob count > MAX_BLOBS_PER_BLOCK` in type 3 transaction",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L865",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L866",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     }
 }

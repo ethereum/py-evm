@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-empty-opcode_CALLDATALOAD]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-empty-opcode_CALLDATACOPY]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -8,183 +8,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3767e1",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x600035600055",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "maxPriorityFeePerGas": "0x00",
-            "maxFeePerGas": "0x07",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "to": "0x0000000000000000000000000000000000001000",
-            "value": [
-                "0x01"
-            ],
-            "data": [
-                "0x"
-            ],
-            "accessLists": [
-                []
-            ],
-            "maxFeePerBlobGas": "0x01",
-            "blobVersionedHashes": [
-                "0x0100000000000000000000000000000000000000000000000000000000000000"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
-        },
-        "post": {
-            "Cancun": [
-                {
-                    "hash": "0x5e3e35e539074f04a3f2a8b22f7536e319103b38b12e5b46263d73a2f40cd1a0",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x03f886018080078307a1209400000000000000000000000000000000000010000180c001e1a0010000000000000000000000000000000000000000000000000000000000000001a05d260164f6c88b0679ed6f202155cac9cb5172df71ea31f31e0167b726b6f117a04f08a2e56842fe684e36ef8a173d2f80dc98d98699ad1531a8ab09936b01d678",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x32ed41",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x01",
-                            "code": "0x600035600055",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0xd6bf3e6a933e47e922dd6fce986c741a3638bb23263aa7b7ff08d0908a87a94f",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
-        }
-    },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-empty-opcode_CALLDATASIZE]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
-        },
-        "pre": {
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x3767e1",
-                "code": "0x",
-                "storage": {}
-            },
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x00",
-                "code": "0x36600055",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "maxPriorityFeePerGas": "0x00",
-            "maxFeePerGas": "0x07",
-            "gasLimit": [
-                "0x07a120"
-            ],
-            "to": "0x0000000000000000000000000000000000001000",
-            "value": [
-                "0x01"
-            ],
-            "data": [
-                "0x"
-            ],
-            "accessLists": [
-                []
-            ],
-            "maxFeePerBlobGas": "0x01",
-            "blobVersionedHashes": [
-                "0x0100000000000000000000000000000000000000000000000000000000000000"
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
-        },
-        "post": {
-            "Cancun": [
-                {
-                    "hash": "0x6887f2180da132659b43eb6985b37b5764976411711036705ea3e5d21ee5b47a",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x03f886018080078307a1209400000000000000000000000000000000000010000180c001e1a0010000000000000000000000000000000000000000000000000000000000000001a05d260164f6c88b0679ed6f202155cac9cb5172df71ea31f31e0167b726b6f117a04f08a2e56842fe684e36ef8a173d2f80dc98d98699ad1531a8ab09936b01d678",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x32ed5d",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x01",
-                            "code": "0x36600055",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x4e467fca6c8d2bea79debd9c72dba58954887e320773ba374a15ca7a29afc40f",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
-        }
-    },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-empty-opcode_CALLDATACOPY]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -225,7 +49,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x2ce59ee657e70175349652b8cb2c01f137cf0cef0b549b7fadb890bebd8c7311",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -252,18 +76,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xa4b275282a861c4d3a8c21dd140024ec485889f0b29cfabe43f2f47d2820c625",
+            "hash": "0x40e20f062071180b65800f306d5512314e960229ac8cd8a4ec676ea249be3d17",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-single_byte-opcode_CALLDATALOAD]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-empty-opcode_CALLDATALOAD]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -272,7 +116,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -300,7 +144,7 @@
                 "0x01"
             ],
             "data": [
-                "0x01"
+                "0x"
             ],
             "accessLists": [
                 []
@@ -313,11 +157,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0x7ea0bd747250e061f305823fdd7ac111bbbcdb0cb68eaec8b99b460a35b730ba",
+                    "hash": "0x5e3e35e539074f04a3f2a8b22f7536e319103b38b12e5b46263d73a2f40cd1a0",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x03f886018080078307a1209400000000000000000000000000000000000010000101c001e1a0010000000000000000000000000000000000000000000000000000000000000080a0b5efe950af07d8edd2e1730aa6e1a00ee3824b9d8e4c1e1a71e3671486d5c484a04d6dd4f87023b7f65251fe42d233a17f5857e7bc9e6b08dfdbda1d62f9e78447",
+                    "txbytes": "0x03f886018080078307a1209400000000000000000000000000000000000010000180c001e1a0010000000000000000000000000000000000000000000000000000000000000001a05d260164f6c88b0679ed6f202155cac9cb5172df71ea31f31e0167b726b6f117a04f08a2e56842fe684e36ef8a173d2f80dc98d98699ad1531a8ab09936b01d678",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -326,7 +170,7 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x30ccad",
+                            "balance": "0x32ed41",
                             "code": "0x",
                             "storage": {}
                         },
@@ -334,26 +178,44 @@
                             "nonce": "0x01",
                             "balance": "0x01",
                             "code": "0x600035600055",
-                            "storage": {
-                                "0x00": "0x0100000000000000000000000000000000000000000000000000000000000000"
-                            }
+                            "storage": {}
                         }
                     }
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x046a37507cbcf409c89d28e1289f7eab8bc82f8092a5c8a288583b76ff799c56",
+            "hash": "0xb1eb97c7cbb1dbd23d419b21f0b99461c8344f38770a1813c9c96900915fba10",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-single_byte-opcode_CALLDATASIZE]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-empty-opcode_CALLDATASIZE]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -362,7 +224,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -390,7 +252,7 @@
                 "0x01"
             ],
             "data": [
-                "0x01"
+                "0x"
             ],
             "accessLists": [
                 []
@@ -403,11 +265,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0x0c8597f26db77706193ec1fe7f4594a0b705f424a7bf514f5bd048727c506e1c",
+                    "hash": "0x6887f2180da132659b43eb6985b37b5764976411711036705ea3e5d21ee5b47a",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x03f886018080078307a1209400000000000000000000000000000000000010000101c001e1a0010000000000000000000000000000000000000000000000000000000000000080a0b5efe950af07d8edd2e1730aa6e1a00ee3824b9d8e4c1e1a71e3671486d5c484a04d6dd4f87023b7f65251fe42d233a17f5857e7bc9e6b08dfdbda1d62f9e78447",
+                    "txbytes": "0x03f886018080078307a1209400000000000000000000000000000000000010000180c001e1a0010000000000000000000000000000000000000000000000000000000000000001a05d260164f6c88b0679ed6f202155cac9cb5172df71ea31f31e0167b726b6f117a04f08a2e56842fe684e36ef8a173d2f80dc98d98699ad1531a8ab09936b01d678",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -416,7 +278,7 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x30ccc9",
+                            "balance": "0x32ed5d",
                             "code": "0x",
                             "storage": {}
                         },
@@ -424,26 +286,44 @@
                             "nonce": "0x01",
                             "balance": "0x01",
                             "code": "0x36600055",
-                            "storage": {
-                                "0x00": "0x01"
-                            }
+                            "storage": {}
                         }
                     }
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x542137d8a63f044d941043ecda674c723d5fc0a326a2ae10fc00264e2f73c312",
+            "hash": "0xaf591cd63814b48a4e02960c2bfed43c57e05e65ae10b63d6ad0649c5c1b39c6",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-single_byte-opcode_CALLDATACOPY]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-single_byte-opcode_CALLDATACOPY]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -452,7 +332,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -493,7 +373,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xd02da9c2dc31ce9b1bb753d72c6f8157093a18ba51c9b95b505104611f6bd645",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -522,18 +402,38 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x0f3331ba1f46817ef650483831fe4c8ec5855f182642ec485ee375805e9f6928",
+            "hash": "0xc6b9c44a202906e375c34e28376bb0c2a2df069e8f57ad6f81f6b5355f52cd6b",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-word-opcode_CALLDATALOAD]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-single_byte-opcode_CALLDATALOAD]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -542,7 +442,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -570,7 +470,7 @@
                 "0x01"
             ],
             "data": [
-                "0x0001000100010001000100010001000100010001000100010001000100010001"
+                "0x01"
             ],
             "accessLists": [
                 []
@@ -583,11 +483,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0x1ba838b89fe10638c4e338253df842519c5203b079223231c7e2d0cc9151da83",
+                    "hash": "0x7ea0bd747250e061f305823fdd7ac111bbbcdb0cb68eaec8b99b460a35b730ba",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x03f8a6018080078307a12094000000000000000000000000000000000000100001a00001000100010001000100010001000100010001000100010001000100010001c001e1a0010000000000000000000000000000000000000000000000000000000000000001a048a5c03a1116867028d61bf8bce61afaec2dd9b4fa59707d745d265dd53e5532a048fda052f173226929a2ba6c0fbadc3bc9749fc91abb1efb2d101010e286fa78",
+                    "txbytes": "0x03f886018080078307a1209400000000000000000000000000000000000010000101c001e1a0010000000000000000000000000000000000000000000000000000000000000080a0b5efe950af07d8edd2e1730aa6e1a00ee3824b9d8e4c1e1a71e3671486d5c484a04d6dd4f87023b7f65251fe42d233a17f5857e7bc9e6b08dfdbda1d62f9e78447",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -596,7 +496,7 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x30c45d",
+                            "balance": "0x30ccad",
                             "code": "0x",
                             "storage": {}
                         },
@@ -605,25 +505,45 @@
                             "balance": "0x01",
                             "code": "0x600035600055",
                             "storage": {
-                                "0x00": "0x01000100010001000100010001000100010001000100010001000100010001"
+                                "0x00": "0x0100000000000000000000000000000000000000000000000000000000000000"
                             }
                         }
                     }
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x441b94af0923e36e6f91c291bf1cf05a02d823ef9a997db2078b68384b39ca1c",
+            "hash": "0x458c2a6a22088e70cc89039222597922572ed70f5a95ff5f210d4775c128d73e",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-word-opcode_CALLDATASIZE]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-single_byte-opcode_CALLDATASIZE]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -632,7 +552,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -660,7 +580,7 @@
                 "0x01"
             ],
             "data": [
-                "0x0001000100010001000100010001000100010001000100010001000100010001"
+                "0x01"
             ],
             "accessLists": [
                 []
@@ -673,11 +593,11 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
-                    "hash": "0x9dd79630818e7e51ffc61b009db0eca040bf7ce3802c02124ce72d3006623c83",
+                    "hash": "0x0c8597f26db77706193ec1fe7f4594a0b705f424a7bf514f5bd048727c506e1c",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x03f8a6018080078307a12094000000000000000000000000000000000000100001a00001000100010001000100010001000100010001000100010001000100010001c001e1a0010000000000000000000000000000000000000000000000000000000000000001a048a5c03a1116867028d61bf8bce61afaec2dd9b4fa59707d745d265dd53e5532a048fda052f173226929a2ba6c0fbadc3bc9749fc91abb1efb2d101010e286fa78",
+                    "txbytes": "0x03f886018080078307a1209400000000000000000000000000000000000010000101c001e1a0010000000000000000000000000000000000000000000000000000000000000080a0b5efe950af07d8edd2e1730aa6e1a00ee3824b9d8e4c1e1a71e3671486d5c484a04d6dd4f87023b7f65251fe42d233a17f5857e7bc9e6b08dfdbda1d62f9e78447",
                     "indexes": {
                         "data": 0,
                         "gas": 0,
@@ -686,7 +606,7 @@
                     "state": {
                         "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
                             "nonce": "0x01",
-                            "balance": "0x30c479",
+                            "balance": "0x30ccc9",
                             "code": "0x",
                             "storage": {}
                         },
@@ -695,25 +615,45 @@
                             "balance": "0x01",
                             "code": "0x36600055",
                             "storage": {
-                                "0x00": "0x20"
+                                "0x00": "0x01"
                             }
                         }
                     }
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x74a0c10872076afa3096315213f5b838f70f8f338bfbe1094526137186cd8d70",
+            "hash": "0x963562f1cd858b409eb1b62141ab12d96462ad483b4917c49de1e9fbce28653e",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Cancun-state_test-tx_gas_500000-word-opcode_CALLDATACOPY]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-word-opcode_CALLDATACOPY]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -722,7 +662,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -763,7 +703,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xfff0e281215b2bfd09b3d5872686576322da68b1ae414bc605c417206a552474",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -792,15 +732,255 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xbab96709be40024871b97153d336f728b133da0d6f78a9410e1bfd17516e2489",
+            "hash": "0xefbb4259d4d5e7ab59511ad303bb38ff5c1d1cb7704d0e27dde0619367ed28a0",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1191",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
-            "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-word-opcode_CALLDATALOAD]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x080000"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3767e1",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x600035600055",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x01"
+            ],
+            "data": [
+                "0x0001000100010001000100010001000100010001000100010001000100010001"
+            ],
+            "accessLists": [
+                []
+            ],
+            "maxFeePerBlobGas": "0x01",
+            "blobVersionedHashes": [
+                "0x0100000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x1ba838b89fe10638c4e338253df842519c5203b079223231c7e2d0cc9151da83",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x03f8a6018080078307a12094000000000000000000000000000000000000100001a00001000100010001000100010001000100010001000100010001000100010001c001e1a0010000000000000000000000000000000000000000000000000000000000000001a048a5c03a1116867028d61bf8bce61afaec2dd9b4fa59707d745d265dd53e5532a048fda052f173226929a2ba6c0fbadc3bc9749fc91abb1efb2d101010e286fa78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x30c45d",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x01",
+                            "code": "0x600035600055",
+                            "storage": {
+                                "0x00": "0x01000100010001000100010001000100010001000100010001000100010001"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xf8fb95fef7051b83ff5aa6a43e4806d43c79d1ecc5e9d816a38e42a3e2d72599",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_calldata_opcodes[fork_Prague-state_test-tx_gas_500000-word-opcode_CALLDATASIZE]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x080000"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3767e1",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x36600055",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x07a120"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x01"
+            ],
+            "data": [
+                "0x0001000100010001000100010001000100010001000100010001000100010001"
+            ],
+            "accessLists": [
+                []
+            ],
+            "maxFeePerBlobGas": "0x01",
+            "blobVersionedHashes": [
+                "0x0100000000000000000000000000000000000000000000000000000000000000"
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x9dd79630818e7e51ffc61b009db0eca040bf7ce3802c02124ce72d3006623c83",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x03f8a6018080078307a12094000000000000000000000000000000000000100001a00001000100010001000100010001000100010001000100010001000100010001c001e1a0010000000000000000000000000000000000000000000000000000000000000001a048a5c03a1116867028d61bf8bce61afaec2dd9b4fa59707d745d265dd53e5532a048fda052f173226929a2ba6c0fbadc3bc9749fc91abb1efb2d101010e286fa78",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x30c479",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x01",
+                            "code": "0x36600055",
+                            "storage": {
+                                "0x00": "0x20"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x3b37ce9a8568f318eb3401fee68738491cd6a89d36e155bff7a958c87b942e3d",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Test calldata related opcodes to verify their behavior is not affected by blobs.\n\n    - CALLDATALOAD\n    - CALLDATASIZE\n    - CALLDATACOPY",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/cancun/eip4844_blobs/test_blob_txs.py#L1192",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
+            "reference-spec-version": "de2e4a46ad93fc04e6fe3174dc6e90a3307bdb5f",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     }
 }

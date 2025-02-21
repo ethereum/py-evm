@@ -1,0 +1,1912 @@
+{
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x1-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060015af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0xe5bb9d7498118ba94f7eca50a531fc40d5ef7d4cdeb765a079ded9207cc7d273",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060015af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9be1c8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x013c44",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xb072da75053a2285df21ef48d0ec5ba3421e8b5107e5aaf8ae41cc1a2dd9bd09",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x10-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060105af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x691bb2f8ad6246ee3b252526e89816c574898cb98126070953d916705c7339dd",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060105af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xf21f7b667a5da5c68250a433d7a4cda567d37578855ad3399b6e216cd80b3dde",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x11-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060115af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x80570d0bd2cd10354a3dbeb46a7d2559eec54a0046f8dcd05f9dbca4376e637d",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060115af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x89b458b4ee9d9309cd844420fb2584491d9ef99653d7c587c3a24f5d0e0a1561",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x12-precompile_exists_False-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060125af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x21a16c99ff972d12662a687405934da72d37feb4d1b06fa7d1f06c3fa4aea778",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060125af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {
+                                "0x00": "0x01"
+                            }
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9b39d0",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x016ea8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x6663a37010128f5dfe9bd412373e2cdf19f3e4c0e7e45213cae6baf13ec763d7",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x2-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060025af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0xbf9eb42f670b7a27a5fba0da907a6ddceba6222ae4eb093d218aa990ed72d757",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060025af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9c5428",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x0119f4",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xe40bae04857aeeeba55faafd52c1b807d34752b22e63d361d1eb5c5e133d9321",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x3-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060035af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x7d7815dcaa896bb914464078efd48c9ba201aa641a4042c25de2f45ad19da09c",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060035af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9c3ad8",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x01218c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x29e3be69c74b6caa8b4c2d21bf5e72d88d8c51a412560fd19db1853256d34a0d",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x4-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060045af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x58ec27d06717b9a9373b84e1c3f8db3b7385ad2abf134f3033460eafaadb492b",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060045af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9c5644",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x011952",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x4b54a1ea470c81833cf75bfe2b1626a4c9990516c3a69801d986cb58c559ab98",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x5-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060055af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0xee8a97f742399e8afe43b64752bdd48a3b91c5d0fe3c03fe1e01e67306119d1b",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060055af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9c4f28",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x011b74",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x63a0ee82e3bd39ba9fd3d582a690d14bf17fe873668670300205487753793761",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x6-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060065af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x93161e32d7a5f2959cda9741fd1536e1b38f74c8f59e1f1b649ef38a9078dabe",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060065af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9c511c",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x011ade",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xde396a04338e696bb767a36f71113e5693d394a2476f68caa94313c1a9f63205",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x7-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060075af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x5fc89ce625e715d4dbf5994cd2aa2a2e1166f612b8cd5e84c902eb34cbabcf55",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060075af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de9b6c98",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x015f6c",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0xda929591e41f6a8fd9e74f32855dedc816a422b4a5aef9ed447b6d357a0c89c3",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x8-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060085af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x762a8b27adf0a3f601bd55a47d141a78cbc054aa897751cfbb26eb8ac0c67460",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060085af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x4f9bff7d1b7f2de400f18cbbfaf3fa9d766ca8012386efdc1bf99e4f781a3fd0",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0x9-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a6000600060206000600060095af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0xa65e0ed0a4cf6cdc9ef37e55c189f13e9d94247224936e23e2f5226194faee44",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a6000600060206000600060095af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x2c367a772cca58295f32f6466ec3712e8636d2bbe0ac064ead05b7d8f1dd6a43",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0xa-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a60006000602060006000600a5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x35cf4f67b91780b5007c74a839ad498c91cfe2033f37ba7a10d581d119843494",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a60006000602060006000600a5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x64563bed9e8a46dfcbc322d63fc1ab5feadd534b9a9171992b1fc3d65c854808",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0xb-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a60006000602060006000600b5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x9e56548b27edb3e8e43f809f350700fc27cb7d6ae496f19ec2ee1473b1e35485",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a60006000602060006000600b5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x39d0cdc22a78991546af98835c48f9fdaf275c943762a76d52e8f006b9e7ec05",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0xc-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a60006000602060006000600c5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0xa4218e15970ac4090d483797f185ce5a716162d96dc5fb65cb84717ab7b51ffa",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a60006000602060006000600c5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x843a362836c5a3c8b4d9042a95b3c3cc26633c9daf163b461ebb6c9365514e87",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0xd-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a60006000602060006000600d5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0xc611dca8054a9627180574942ab763659b6b16155de96052aa389fffaee0c336",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a60006000602060006000600d5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x4a01abb44331119d25fbf19ca940feb64df68ae32d5b1e73f0c5cc764b3334bc",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0xe-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a60006000602060006000600e5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0xdc70e9e7b5e9cae96f8771f9bad40d3480326b371991bf3499f0cc58c953f8ba",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a60006000602060006000600e5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x3fd8c34e0a5559aa5f9ee5485250d82710ddaf6d9ee3d7067befefb72145da5f",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    },
+    "tests/frontier/precompiles/test_precompiles.py::test_precompiles[fork_Prague-address_0xf-precompile_exists_True-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x60006000525a60006000602060006000600f5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                "storage": {
+                    "0x00": "0xdeadbeef"
+                }
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "gasPrice": "0x0a",
+            "gasLimit": [
+                "0x0f4240"
+            ],
+            "to": "0x0000000000000000000000000000000000001000",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "sender": "0x8a0a19589531694250d570040a0c4b74576919b8",
+            "secretKey": "0x9e7645d0cfd9c3a04eb7a9db59a4eb7d359f2e75c9164a9d6b9a7d54e1b6a36f"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0x40c70308da58bc8e0fc130c6704b9dab77d7b3ef49fd6662361f2c5f06454853",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0xf860800a830f4240940000000000000000000000000000000000001000808026a0b40ebf5833618c93a48a79729e122ac82af3fed824fc1fe42a4ff7ddbd408cc4a05aceac157ca531fc1af242f6471a164f54c09172d2fed8b4b0f74402b49893bf",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x60006000525a60006000602060006000600f5af1505a90035a6000600060206000600073a94f5374fce5edbc8e2a8697c15331677e6ebf0b5af1505a900390031560005500",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de094f70",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
+                            "nonce": "0x00",
+                            "balance": "0x2d34f8",
+                            "code": "0x",
+                            "storage": {}
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x066d54416d072dfb41beed2aa70ca87553b5e753e30547645e59f46eaa9e5827",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    Tests the behavior of precompiled contracts in the Ethereum state test.\n\n    Args:\n        state_test (StateTestFiller): The state test filler object used to run the test.\n        address (str): The address of the precompiled contract to test.\n        precompile_exists (bool): A flag indicating whether the precompiled contract exists at the\n            given address.\n        pre (Alloc): The allocation object used to deploy the contract and set up the initial\n            state.\n\n    This test deploys a contract that performs two CALL operations to the specified address and a\n    fixed address (0x10000), measuring the gas used for each call. It then stores the difference\n    in gas usage in storage slot 0. The test verifies the expected storage value based on\n    whether the precompiled contract exists at the given address.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/precompiles/test_precompiles.py#L45",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    }
+}

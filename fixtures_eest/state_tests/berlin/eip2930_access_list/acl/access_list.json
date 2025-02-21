@@ -1,364 +1,5 @@
 {
-    "tests/berlin/eip2930_access_list/test_acl.py::test_access_list[fork_Berlin-state_test]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentDifficulty": "0x020000"
-        },
-        "pre": {
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x03",
-                "code": "0x5854505854",
-                "storage": {}
-            },
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x300000",
-                "code": "0x",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x07",
-            "gasLimit": [
-                "0x04ef00"
-            ],
-            "to": "0x0000000000000000000000000000000000001000",
-            "value": [
-                "0x01"
-            ],
-            "data": [
-                "0x"
-            ],
-            "accessLists": [
-                [
-                    {
-                        "address": "0x0000000000000000000000000000000000000000",
-                        "storageKeys": [
-                            "0x0000000000000000000000000000000000000000000000000000000000000000"
-                        ]
-                    }
-                ]
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
-        },
-        "post": {
-            "Berlin": [
-                {
-                    "hash": "0xe37a129451ac1b95298605dede1c5f13b5935f5d43cf652cdd396b0f041b4c6f",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f89b0180078304ef009400000000000000000000000000000000000010000180f838f7940000000000000000000000000000000000000000e1a0000000000000000000000000000000000000000000000000000000000000000080a081a25ffdb3797e6428f854c642e1884ee7b7be0c4ccbb7e989b70039b87e4450a02d25e40f45271d5f77735d06550dff43bf328190de034157cefec446855513d6",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x04",
-                            "code": "0x5854505854",
-                            "storage": {}
-                        },
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x2cd931",
-                            "code": "0x",
-                            "storage": {}
-                        },
-                        "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba": {
-                            "nonce": "0x00",
-                            "balance": "0x0326ce",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0xb8297abf0db1f5725532c4b15fed35b2cd627b055dc3362f9978b4d521a407a9",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\nTest type 1 transaction.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/berlin/eip2930_access_list/test_acl.py#L19",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2930.md",
-            "reference-spec-version": "c9db53a936c5c9cbe2db32ba0d1b86c4c6e73534"
-        }
-    },
-    "tests/berlin/eip2930_access_list/test_acl.py::test_access_list[fork_London-state_test]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentDifficulty": "0x020000",
-            "currentBaseFee": "0x07"
-        },
-        "pre": {
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x03",
-                "code": "0x5854505854",
-                "storage": {}
-            },
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x300000",
-                "code": "0x",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x07",
-            "gasLimit": [
-                "0x04ef00"
-            ],
-            "to": "0x0000000000000000000000000000000000001000",
-            "value": [
-                "0x01"
-            ],
-            "data": [
-                "0x"
-            ],
-            "accessLists": [
-                [
-                    {
-                        "address": "0x0000000000000000000000000000000000000000",
-                        "storageKeys": [
-                            "0x0000000000000000000000000000000000000000000000000000000000000000"
-                        ]
-                    }
-                ]
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
-        },
-        "post": {
-            "London": [
-                {
-                    "hash": "0xbba7329a789fb21eec852df40d72d9cdfdc51c993c77183b610e962210c819f6",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f89b0180078304ef009400000000000000000000000000000000000010000180f838f7940000000000000000000000000000000000000000e1a0000000000000000000000000000000000000000000000000000000000000000080a081a25ffdb3797e6428f854c642e1884ee7b7be0c4ccbb7e989b70039b87e4450a02d25e40f45271d5f77735d06550dff43bf328190de034157cefec446855513d6",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x04",
-                            "code": "0x5854505854",
-                            "storage": {}
-                        },
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x2cd931",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0xd24a8a260b66efa064e584b12b0251bb7ba9da7e727d3456919ef6b1df854f51",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\nTest type 1 transaction.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/berlin/eip2930_access_list/test_acl.py#L19",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2930.md",
-            "reference-spec-version": "c9db53a936c5c9cbe2db32ba0d1b86c4c6e73534"
-        }
-    },
-    "tests/berlin/eip2930_access_list/test_acl.py::test_access_list[fork_Paris-state_test]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
-        },
-        "pre": {
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x03",
-                "code": "0x5854505854",
-                "storage": {}
-            },
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x300000",
-                "code": "0x",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x07",
-            "gasLimit": [
-                "0x04ef00"
-            ],
-            "to": "0x0000000000000000000000000000000000001000",
-            "value": [
-                "0x01"
-            ],
-            "data": [
-                "0x"
-            ],
-            "accessLists": [
-                [
-                    {
-                        "address": "0x0000000000000000000000000000000000000000",
-                        "storageKeys": [
-                            "0x0000000000000000000000000000000000000000000000000000000000000000"
-                        ]
-                    }
-                ]
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
-        },
-        "post": {
-            "Paris": [
-                {
-                    "hash": "0xbba7329a789fb21eec852df40d72d9cdfdc51c993c77183b610e962210c819f6",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f89b0180078304ef009400000000000000000000000000000000000010000180f838f7940000000000000000000000000000000000000000e1a0000000000000000000000000000000000000000000000000000000000000000080a081a25ffdb3797e6428f854c642e1884ee7b7be0c4ccbb7e989b70039b87e4450a02d25e40f45271d5f77735d06550dff43bf328190de034157cefec446855513d6",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x04",
-                            "code": "0x5854505854",
-                            "storage": {}
-                        },
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x2cd931",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x3e397fe392b9a5615fbe93c88bab67c61e131e502f5bf6df791fc9f0d8202ea0",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\nTest type 1 transaction.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/berlin/eip2930_access_list/test_acl.py#L19",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2930.md",
-            "reference-spec-version": "c9db53a936c5c9cbe2db32ba0d1b86c4c6e73534"
-        }
-    },
-    "tests/berlin/eip2930_access_list/test_acl.py::test_access_list[fork_Shanghai-state_test]": {
-        "env": {
-            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
-            "currentGasLimit": "0x016345785d8a0000",
-            "currentNumber": "0x01",
-            "currentTimestamp": "0x03e8",
-            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
-            "currentDifficulty": "0x00",
-            "currentBaseFee": "0x07"
-        },
-        "pre": {
-            "0x0000000000000000000000000000000000001000": {
-                "nonce": "0x01",
-                "balance": "0x03",
-                "code": "0x5854505854",
-                "storage": {}
-            },
-            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                "nonce": "0x00",
-                "balance": "0x300000",
-                "code": "0x",
-                "storage": {}
-            }
-        },
-        "transaction": {
-            "nonce": "0x00",
-            "gasPrice": "0x07",
-            "gasLimit": [
-                "0x04ef00"
-            ],
-            "to": "0x0000000000000000000000000000000000001000",
-            "value": [
-                "0x01"
-            ],
-            "data": [
-                "0x"
-            ],
-            "accessLists": [
-                [
-                    {
-                        "address": "0x0000000000000000000000000000000000000000",
-                        "storageKeys": [
-                            "0x0000000000000000000000000000000000000000000000000000000000000000"
-                        ]
-                    }
-                ]
-            ],
-            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
-            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
-        },
-        "post": {
-            "Shanghai": [
-                {
-                    "hash": "0xbba7329a789fb21eec852df40d72d9cdfdc51c993c77183b610e962210c819f6",
-                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
-                    "txbytes": "0x01f89b0180078304ef009400000000000000000000000000000000000010000180f838f7940000000000000000000000000000000000000000e1a0000000000000000000000000000000000000000000000000000000000000000080a081a25ffdb3797e6428f854c642e1884ee7b7be0c4ccbb7e989b70039b87e4450a02d25e40f45271d5f77735d06550dff43bf328190de034157cefec446855513d6",
-                    "indexes": {
-                        "data": 0,
-                        "gas": 0,
-                        "value": 0
-                    },
-                    "state": {
-                        "0x0000000000000000000000000000000000001000": {
-                            "nonce": "0x01",
-                            "balance": "0x04",
-                            "code": "0x5854505854",
-                            "storage": {}
-                        },
-                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
-                            "nonce": "0x01",
-                            "balance": "0x2cd931",
-                            "code": "0x",
-                            "storage": {}
-                        }
-                    }
-                }
-            ]
-        },
-        "_info": {
-            "hash": "0x6d532a18aafc853b61849061d048a5daaff7260aa7987ffb04013a3edb9c7660",
-            "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
-            "description": "Test function documentation:\nTest type 1 transaction.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/berlin/eip2930_access_list/test_acl.py#L19",
-            "fixture_format": "state_test",
-            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2930.md",
-            "reference-spec-version": "c9db53a936c5c9cbe2db32ba0d1b86c4c6e73534"
-        }
-    },
-    "tests/berlin/eip2930_access_list/test_acl.py::test_access_list[fork_Cancun-state_test]": {
+    "tests/berlin/eip2930_access_list/test_acl.py::test_access_list[fork_Prague-state_test]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -410,7 +51,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xbba7329a789fb21eec852df40d72d9cdfdc51c993c77183b610e962210c819f6",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -437,15 +78,35 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0x59d7cb1302aa8258921aaed3cc718cdda596728496eb74d0d435226a19e569ac",
+            "hash": "0x6231a39b4c77f3ecec712dd0e124045ccf10e4ac2b9e8797a38b99341f47f1e9",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\nTest type 1 transaction.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/berlin/eip2930_access_list/test_acl.py#L19",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/berlin/eip2930_access_list/test_acl.py#L19",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-2930.md",
-            "reference-spec-version": "c9db53a936c5c9cbe2db32ba0d1b86c4c6e73534"
+            "reference-spec-version": "c9db53a936c5c9cbe2db32ba0d1b86c4c6e73534",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     }
 }

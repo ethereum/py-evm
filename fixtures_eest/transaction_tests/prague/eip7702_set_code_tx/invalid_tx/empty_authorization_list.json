@@ -1,0 +1,26 @@
+{
+    "tests/prague/eip7702_set_code_tx/test_invalid_tx.py::test_empty_authorization_list[fork_Prague-transaction_test]": {
+        "result": {
+            "Prague": {
+                "intrinsicGas": "0x00",
+                "exception": "TransactionException.TYPE_4_EMPTY_AUTHORIZATION_LIST"
+            }
+        },
+        "txbytes": "0x04f86401808007830186a09400000000000000000000000000000000000000008080c0c080a0d991c5c9b8eb612a8d32c370b3c995c7cbb4147e1667c9133eddfe9fc846d2d4a0789eb000ab233807e243fe49fb055d81c57b65d2a36b84e4f9d01b5a203989df",
+        "_info": {
+            "hash": "0x66df96fbce6cddf7a6975434aca9f349849a64d07ba0b0aebee4d4bc5d549d17",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\nTest sending a transaction with an empty authorization list.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_invalid_tx.py#L29",
+            "fixture_format": "transaction_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    }
+}

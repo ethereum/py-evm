@@ -6,6 +6,7 @@ repos:
     -   id: check-yaml
     -   id: check-toml
     -   id: end-of-file-fixer
+        exclude: fixtures_eest/
     -   id: trailing-whitespace
 -   repo: https://github.com/asottile/pyupgrade
     rev: v3.15.0
@@ -16,13 +17,14 @@ repos:
     rev: 23.9.1
     hooks:
     -   id: black
+        exclude: fixtures_eest/
 -   repo: https://github.com/PyCQA/flake8
     rev: 6.1.0
     hooks:
     -   id: flake8
         additional_dependencies:
         -   flake8-bugbear==23.9.16
-        exclude: setup.py
+        exclude: setup.py|scripts/
 -   repo: https://github.com/PyCQA/autoflake
     rev: v2.2.1
     hooks:

@@ -1,5 +1,5 @@
 {
-    "tests/frontier/opcodes/test_all_opcodes.py::test_cover_revert[fork_Cancun-state_test]": {
+    "tests/frontier/opcodes/test_all_opcodes.py::test_cover_revert[fork_Prague-state_test]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -35,7 +35,7 @@
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xacffbd1eaeab85a15f3dd0d8b5d465db8675148f8196d77f2e022d7670ae6412",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -62,13 +62,33 @@
                 }
             ]
         },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
         "_info": {
-            "hash": "0xc3d8af70e34037867e948bc4ace336769cea21f20a82dc68fb49b56de78b29f5",
+            "hash": "0x2ca74bf1307866b60ea9709177a07184fb9d9183ef2980effee3b93d51f57e9a",
             "comment": "`execution-spec-tests` generated test",
-            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
             "description": "Test function documentation:\nCover state revert from original tests for the coverage script.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/frontier/opcodes/test_all_opcodes.py#L95",
-            "fixture_format": "state_test"
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/frontier/opcodes/test_all_opcodes.py#L95",
+            "fixture_format": "state_test",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
         }
     }
 }

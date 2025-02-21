@@ -83,8 +83,15 @@ parser.add_argument(
     "-n",
     type=int,
     dest="num_processes",
-    default=1,
+    default=None,
     help="Number of processes to use to fill tests.",
+)
+parser.add_argument(
+    "-m",
+    type=str,
+    dest="m_args",
+    default="not slow",
+    help="`m` arg to pass through to EEST / pytest.",
 )
 
 args = parser.parse_args()
@@ -92,16 +99,21 @@ args = parser.parse_args()
 
 # change working directory to `execution-spec-tests` and fill tests
 os.chdir(args.execution_spec_tests_dir)
+
+# ``uv.lock`` is always altered locally but rarely committed by outside contributors
+# assume that it may have been altered and reset before attempting to ``checkout``
+os.system("git checkout uv.lock")
 os.system(f"git fetch && git checkout {args.branch} && git pull")
 
 fork_command = f"--fork={args.fork}" if args.fork else f"--until={args.until_fork}"
+m_command = f'-m "{args.m_args}"' if args.m_args else ""
 
 # build fill command
-command = f'uv run fill {fork_command} --output="{cwd}/fixtures_eest"'
+command = f'uv run fill {fork_command} {m_command} --output="{cwd}/fixtures_eest"'
 if args.k_args:
     command += f" -k {args.k_args}"
 if args.num_processes:
-    command += f" -n {args.num_processes} "
+    command += f" -n {args.num_processes}"
 
 # fill tests
 print(f"Running `{command}`")

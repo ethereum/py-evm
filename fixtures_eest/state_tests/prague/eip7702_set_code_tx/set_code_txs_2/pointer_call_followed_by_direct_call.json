@@ -1,0 +1,148 @@
+{
+    "tests/prague/eip7702_set_code_tx/test_set_code_txs_2.py::test_pointer_call_followed_by_direct_call[fork_Prague-state_test]": {
+        "env": {
+            "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
+            "currentGasLimit": "0x016345785d8a0000",
+            "currentNumber": "0x01",
+            "currentTimestamp": "0x03e8",
+            "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
+            "currentDifficulty": "0x00",
+            "currentBaseFee": "0x07",
+            "currentExcessBlobGas": "0x00"
+        },
+        "pre": {
+            "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                "nonce": "0x00",
+                "balance": "0x3635c9adc5dea00000",
+                "code": "0x",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001000": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x600160015401600155",
+                "storage": {}
+            },
+            "0x0000000000000000000000000000000000001100": {
+                "nonce": "0x01",
+                "balance": "0x00",
+                "code": "0x5a60006000600060006000738a0a19589531694250d570040a0c4b74576919b8620186a0f1505a90036000555a60006000600060006000611000620186a0f1505a9003600155",
+                "storage": {}
+            }
+        },
+        "transaction": {
+            "nonce": "0x00",
+            "maxPriorityFeePerGas": "0x00",
+            "maxFeePerGas": "0x07",
+            "gasLimit": [
+                "0x2dc6c0"
+            ],
+            "to": "0x0000000000000000000000000000000000001100",
+            "value": [
+                "0x00"
+            ],
+            "data": [
+                "0x"
+            ],
+            "accessLists": [
+                []
+            ],
+            "authorizationList": [
+                {
+                    "chainId": "0x00",
+                    "address": "0x0000000000000000000000000000000000001000",
+                    "nonce": "0x00",
+                    "v": "0x00",
+                    "r": "0xc975e08bd506eb09434c6162f16c4115224d6f7760fae99e3949798d8c2c1c35",
+                    "s": "0x2918292179188590f6f1508770cb45a305ac43d2465da14c64db52abafeb91e9",
+                    "signer": "0x8a0a19589531694250d570040a0c4b74576919b8"
+                }
+            ],
+            "sender": "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b",
+            "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
+        },
+        "post": {
+            "Prague": [
+                {
+                    "hash": "0xa5f632f469b7260e65db6ce31ee980bcc5f4cd0bfd8495ae410781dcc1c3c0b2",
+                    "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
+                    "txbytes": "0x04f8c101808007832dc6c09400000000000000000000000000000000000011008080c0f85cf85a809400000000000000000000000000000000000010008080a0c975e08bd506eb09434c6162f16c4115224d6f7760fae99e3949798d8c2c1c35a02918292179188590f6f1508770cb45a305ac43d2465da14c64db52abafeb91e901a07742c47953c6ce13f1a313e38676f7f45081afbca4426d25047335f47938820aa036db6cb8b4291370a4b0d9338ee4711f5ecac555435ec54d5925b4c1a1d901df",
+                    "indexes": {
+                        "data": 0,
+                        "gas": 0,
+                        "value": 0
+                    },
+                    "state": {
+                        "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5de92ab9c",
+                            "code": "0x",
+                            "storage": {}
+                        },
+                        "0x8a0a19589531694250d570040a0c4b74576919b8": {
+                            "nonce": "0x01",
+                            "balance": "0x3635c9adc5dea00000",
+                            "code": "0xef01000000000000000000000000000000000000001000",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000001000": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x600160015401600155",
+                            "storage": {
+                                "0x01": "0x01"
+                            }
+                        },
+                        "0x0000000000000000000000000000000000001100": {
+                            "nonce": "0x01",
+                            "balance": "0x00",
+                            "code": "0x5a60006000600060006000738a0a19589531694250d570040a0c4b74576919b8620186a0f1505a90036000555a60006000600060006000611000620186a0f1505a9003600155",
+                            "storage": {
+                                "0x00": "0x6105",
+                                "0x01": "0x56dd"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        "config": {
+            "blobSchedule": {
+                "Cancun": {
+                    "target": "0x03",
+                    "max": "0x06",
+                    "baseFeeUpdateFraction": "0x32f0ed"
+                },
+                "Prague": {
+                    "target": "0x06",
+                    "max": "0x09",
+                    "baseFeeUpdateFraction": "0x4c6964"
+                }
+            },
+            "chainid": "0x01"
+        },
+        "_info": {
+            "hash": "0x35a9f85d9bc70eb7f0b956de8704808f5902a942377c2801b875bd51c339b608",
+            "comment": "`execution-spec-tests` generated test",
+            "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.5",
+            "description": "Test function documentation:\n\n    If we first call by pointer then direct call, will the call/sload be hot\n    The direct call will warm because pointer access marks it warm\n    But the sload is still cold because\n    storage marked hot from pointer's account in a pointer call.",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/2c4d277d2fb7d97333c089b0718ac8d26a95d523/tests/prague/eip7702_set_code_tx/test_set_code_txs_2.py#L720",
+            "fixture_format": "state_test",
+            "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7702.md",
+            "reference-spec-version": "4334df83395693dc3f629bb43c18320d9e22e8c9",
+            "eels-resolution": {
+                "git-url": "https://github.com/ethereum/execution-specs.git",
+                "branch": "devnets/prague/6",
+                "commit": "a25a8ab3a2989b15baac19eb327325e442342a60"
+            }
+        }
+    }
+}
