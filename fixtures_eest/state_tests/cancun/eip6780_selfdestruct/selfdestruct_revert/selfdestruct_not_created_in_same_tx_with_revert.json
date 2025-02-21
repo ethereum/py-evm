@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py::test_selfdestruct_not_created_in_same_tx_with_revert[fork_Cancun-state_test-no_outer_selfdestruct]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py::test_selfdestruct_not_created_in_same_tx_with_revert[fork_Prague-state_test-no_outer_selfdestruct]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -47,7 +47,7 @@
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x14713ff55510404af33642d3977e1ff417644c30942e4ab5f63a7a66bbfcf387",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -97,17 +97,17 @@
             ]
         },
         "_info": {
-            "hash": "0x7cadfc312a96f780281fd6f59a51f345a1186690dce7fb7a73977c0193f96dba",
+            "hash": "0xa1a1b6e8d0079a90d65aa6a6de995e26021daa2a99562f21132411f7470c9f79",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Same test as selfdestruct_created_in_same_tx_with_revert except selfdestructable contract\n    is pre-existing.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py#L330",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py#L330",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
             "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
         }
     },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py::test_selfdestruct_not_created_in_same_tx_with_revert[fork_Cancun-state_test-outer_selfdestruct_before_inner_call]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py::test_selfdestruct_not_created_in_same_tx_with_revert[fork_Prague-state_test-outer_selfdestruct_before_inner_call]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -155,7 +155,7 @@
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x8cfa3fab585b93d9b70092dd9356d1840d72ea0d81f8daf187e553868fbacbed",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -212,17 +212,17 @@
             ]
         },
         "_info": {
-            "hash": "0x025a0818b939a982c821007395ad706ce671ffcb077a94f0d6a127a52babf8a3",
+            "hash": "0xe99f205a7b6d84953f3390e7e658a1ae73b52241e21e3f8a217e7bc1a7a4eeaf",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Same test as selfdestruct_created_in_same_tx_with_revert except selfdestructable contract\n    is pre-existing.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py#L330",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py#L330",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
             "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"
         }
     },
-    "tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py::test_selfdestruct_not_created_in_same_tx_with_revert[fork_Cancun-state_test-outer_selfdestruct_after_inner_call]": {
+    "tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py::test_selfdestruct_not_created_in_same_tx_with_revert[fork_Prague-state_test-outer_selfdestruct_after_inner_call]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -270,7 +270,7 @@
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x4bab965121106950377fe0b61f30411eb8b252a169a919ae0cb42c8dde1c4d36",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -327,11 +327,11 @@
             ]
         },
         "_info": {
-            "hash": "0x7d7c9b2a47aac1f409c4ff6a5bec1cf9037ed0fa018bb5f499a2f1066a990dc1",
+            "hash": "0x3d855dc45a61f5122dbea8984c2b643d364fb5f896e206149327fb17b9e99250",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Same test as selfdestruct_created_in_same_tx_with_revert except selfdestructable contract\n    is pre-existing.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py#L330",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip6780_selfdestruct/test_selfdestruct_revert.py#L330",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-6780.md",
             "reference-spec-version": "2f8299df31bb8173618901a03a8366a3183479b0"

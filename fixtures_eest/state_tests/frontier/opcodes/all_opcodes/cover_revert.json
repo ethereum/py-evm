@@ -1,5 +1,5 @@
 {
-    "tests/frontier/opcodes/test_all_opcodes.py::test_cover_revert[fork_Cancun-state_test]": {
+    "tests/frontier/opcodes/test_all_opcodes.py::test_cover_revert[fork_Prague-state_test]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -35,7 +35,7 @@
             "to": ""
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xacffbd1eaeab85a15f3dd0d8b5d465db8675148f8196d77f2e022d7670ae6412",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -63,11 +63,11 @@
             ]
         },
         "_info": {
-            "hash": "0xc3d8af70e34037867e948bc4ace336769cea21f20a82dc68fb49b56de78b29f5",
+            "hash": "0xdf4f02d6cb3197c548dd58ac2bbaf0eb3406ab45bda90e170042dcf8f41579d4",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\nCover state revert from original tests for the coverage script.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/frontier/opcodes/test_all_opcodes.py#L95",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/frontier/opcodes/test_all_opcodes.py#L95",
             "fixture_format": "state_test"
         }
     }

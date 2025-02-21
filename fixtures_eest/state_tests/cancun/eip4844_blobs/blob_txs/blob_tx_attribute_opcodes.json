@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_opcodes[fork_Cancun-state_test-tx_gas_500000-opcode_ORIGIN]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_opcodes[fork_Prague-state_test-tx_gas_500000-opcode_ORIGIN]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -8,7 +8,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -49,7 +49,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x3578e7f637c25ab556833b69e795099fecb5035a2ebbc5c1e270eaf747864ae0",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -79,17 +79,17 @@
             ]
         },
         "_info": {
-            "hash": "0xba3703c1e9e0a528af47b374eea8d11f8141029a1e802222cecf099be53e04d4",
+            "hash": "0x7009d07129517f194c27c1e713d1ef3c3cd80c8e5fce0dd74b5f237ee64ad125",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Test opcodes that read transaction attributes work properly for blob type transactions.\n\n    - ORIGIN\n    - CALLER",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1086",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip4844_blobs/test_blob_txs.py#L1086",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
             "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"
         }
     },
-    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_opcodes[fork_Cancun-state_test-tx_gas_500000-opcode_CALLER]": {
+    "tests/cancun/eip4844_blobs/test_blob_txs.py::test_blob_tx_attribute_opcodes[fork_Prague-state_test-tx_gas_500000-opcode_CALLER]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -98,7 +98,7 @@
             "currentRandom": "0x0000000000000000000000000000000000000000000000000000000000000000",
             "currentDifficulty": "0x00",
             "currentBaseFee": "0x07",
-            "currentExcessBlobGas": "0x0e0000"
+            "currentExcessBlobGas": "0x080000"
         },
         "pre": {
             "0xa94f5374fce5edbc8e2a8697c15331677e6ebf0b": {
@@ -139,7 +139,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x00dcf65de144a39ead8ac548fe2ecc8486bed76467d572072b04dc5a4bc76b2d",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -169,11 +169,11 @@
             ]
         },
         "_info": {
-            "hash": "0x1648b268dc93b07ae86720313e548daad4e517312b3b9ded6bae3d6882c93210",
+            "hash": "0xe4a7d18e5bd56939d4167b21e461f4a7539071e594b2629aae9c98e8c2b90c22",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\n\n    Test opcodes that read transaction attributes work properly for blob type transactions.\n\n    - ORIGIN\n    - CALLER",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip4844_blobs/test_blob_txs.py#L1086",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip4844_blobs/test_blob_txs.py#L1086",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md",
             "reference-spec-version": "f0eb6a364aaf5ccb43516fa2c269a54fb881ecfd"

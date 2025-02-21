@@ -1,5 +1,5 @@
 {
-    "tests/cancun/eip7516_blobgasfee/test_blobgasfee_opcode.py::test_blobbasefee_out_of_gas[fork_Cancun-state_test-enough_gas]": {
+    "tests/cancun/eip7516_blobgasfee/test_blobgasfee_opcode.py::test_blobbasefee_out_of_gas[fork_Prague-state_test-enough_gas]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -47,7 +47,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0xf5739bdaa1c9b2e3de295a498d42263909eaaeec98f10241653e3f054d4a0860",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -89,17 +89,17 @@
             ]
         },
         "_info": {
-            "hash": "0x26c2355d0df42545586333f659b761322fa76d58f45170d2a431e4671a4a90a8",
+            "hash": "0x21e9280f5848ffbbc4d3c84772fc3a98d3b63e45ca1604e7ac4f72d4e08cf6c9",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\nTests that the BLOBBASEFEE opcode fails with insufficient gas.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip7516_blobgasfee/test_blobgasfee_opcode.py#L116",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip7516_blobgasfee/test_blobgasfee_opcode.py#L116",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7516.md",
             "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
         }
     },
-    "tests/cancun/eip7516_blobgasfee/test_blobgasfee_opcode.py::test_blobbasefee_out_of_gas[fork_Cancun-state_test-out_of_gas]": {
+    "tests/cancun/eip7516_blobgasfee/test_blobgasfee_opcode.py::test_blobbasefee_out_of_gas[fork_Prague-state_test-out_of_gas]": {
         "env": {
             "currentCoinbase": "0x2adc25665018aa1fe0e6bc666dac8fc2697ff9ba",
             "currentGasLimit": "0x016345785d8a0000",
@@ -147,7 +147,7 @@
             "secretKey": "0x45a915e4d060149eb4365960e6a7a45f334393093061116b197e3240065ff2d8"
         },
         "post": {
-            "Cancun": [
+            "Prague": [
                 {
                     "hash": "0x06f43dee5c005577dbd1716f69749ecbc8f7268e9c058a4f03e8e3fb3056f087",
                     "logs": "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347",
@@ -187,11 +187,11 @@
             ]
         },
         "_info": {
-            "hash": "0x5995bbcd87c8c8bdda1ac5d677b1172f45b165ae4be22ed10d35fd77cc1ca58b",
+            "hash": "0x7c11a28ef4ea76db162b7c0bcc812bb51b9f855efe1215ab4677e28077be9334",
             "comment": "`execution-spec-tests` generated test",
             "filling-transition-tool": "ethereum-spec-evm-resolver 0.0.1",
             "description": "Test function documentation:\nTests that the BLOBBASEFEE opcode fails with insufficient gas.",
-            "url": "https://github.com/ethereum/execution-spec-tests/blob/8fbca341fb0f3eb3a08a296e8f8fa84f233f4faa/tests/cancun/eip7516_blobgasfee/test_blobgasfee_opcode.py#L116",
+            "url": "https://github.com/ethereum/execution-spec-tests/blob/4dafe6334e0e9dc8f1dd21d54fb38c4e2732331e/tests/cancun/eip7516_blobgasfee/test_blobgasfee_opcode.py#L116",
             "fixture_format": "state_test",
             "reference-spec": "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7516.md",
             "reference-spec-version": "2ade0452efe8124378f35284676ddfd16dd56ecd"
