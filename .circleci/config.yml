@@ -211,6 +211,12 @@ jobs:
       - image: cimg/python:3.13
         environment:
           TOXENV: py313-native-blockchain-petersburg
+  py313-native-blockchain-prague:
+    <<: *common
+    docker:
+      - image: cimg/python:3.13
+        environment:
+          TOXENV: py313-native-blockchain-prague
   py313-native-blockchain-shanghai:
     <<: *common
     docker:
@@ -542,6 +548,7 @@ define: &all_jobs
   - py313-native-blockchain-london
   - py313-native-blockchain-paris
   - py313-native-blockchain-petersburg
+  - py313-native-blockchain-prague
   - py313-native-blockchain-shanghai
   - py313-native-blockchain-spurious_dragon
   - py313-native-blockchain-tangerine_whistle
