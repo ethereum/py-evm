@@ -55,6 +55,7 @@ from eth.vm.forks import (
     LondonVM,
     ParisVM,
     PetersburgVM,
+    PragueVM,
     ShanghaiVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
@@ -176,6 +177,8 @@ def chain_vm_configuration(
         return ((0, ShanghaiVM),)
     elif network == "Cancun":
         return ((0, CancunVM),)
+    elif network == "Prague":
+        return ((0, PragueVM),)
 
     # -- transitions -- #
 
