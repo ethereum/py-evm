@@ -329,6 +329,14 @@ class VM(Configurable, VirtualMachineAPI):
                 self.state.delete_account(address)
 
     #
+    # Block requests
+    #
+    @staticmethod
+    def compute_requests_hash(block: BlockAPI) -> BlockAPI:
+        # Prague and beyond
+        return block
+
+    #
     # Importing blocks
     #
     def import_block(self, block: BlockAPI) -> BlockAndMetaWitness:
@@ -381,7 +389,7 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         # apply any block-related state processing
-        self.block_preprocessing(self._state, block.header)
+        self.block_preprocessing(self._state, block)
 
         # run all of the transactions.
         new_header, receipts, _ = self.apply_all_transactions(
@@ -401,10 +409,14 @@ class VM(Configurable, VirtualMachineAPI):
             withdrawals=withdrawals,
         )
 
+        # post-prague blocks
+        if hasattr(block.header, "requests_hash"):
+            filled_block = self.compute_requests_hash(filled_block)
+
         return self.mine_block(filled_block)
 
     @classmethod
-    def block_preprocessing(cls, state: StateAPI, header: BlockHeaderAPI) -> None:
+    def block_preprocessing(cls, state: StateAPI, block: BlockAPI) -> None:
         """
         Process any state changes before processing a block. Pre-processing does not
         become relevant until the Cancun network upgrade.
