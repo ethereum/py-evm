@@ -23,7 +23,8 @@ class PragueTransactionExecutor(CancunTransactionExecutor):
     def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
         if hasattr(transaction, "authorization_list"):
             message = super().build_evm_message(transaction)
-            message.authorizations = transaction.authorization_list
+            # TODO: 7702
+            # message.authorizations = transaction.authorization_list
             return message
         else:
             return super().build_evm_message(transaction)
