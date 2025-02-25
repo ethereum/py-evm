@@ -1,8 +1,8 @@
-from eth.vm.forks.cancun.blocks import (
-    CancunBackwardsHeader,
+from eth.vm.forks.prague.blocks import (
+    PragueBackwardsHeader,
 )
 
-HeaderSedes = CancunBackwardsHeader
+HeaderSedes = PragueBackwardsHeader
 """
 An RLP codec that can decode *all* known header types.
 

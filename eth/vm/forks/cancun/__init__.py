@@ -68,8 +68,9 @@ class CancunVM(ShanghaiVM):
         )
 
     @classmethod
-    def block_preprocessing(cls, state: StateAPI, header: BlockHeaderAPI) -> None:
-        super().block_preprocessing(state, header)
+    def block_preprocessing(cls, state: StateAPI, block: BlockAPI) -> None:
+        super().block_preprocessing(state, block)
+        header = block.header
 
         parent_beacon_root = header.parent_beacon_block_root
 
