@@ -184,7 +184,7 @@ class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTransactionAPI):
         return self.intrinsic_gas + computation.get_gas_used()
 
     def get_intrinsic_gas(self) -> int:
-        return _calculate_txn_intrinsic_gas_berlin(self)
+        return calculate_txn_intrinsic_gas_berlin(self)
 
     @property
     def intrinsic_gas(self) -> int:
@@ -247,7 +247,7 @@ class AccessListTransaction(
         raise NotImplementedError("Call hash() on the TypedTransaction instead")
 
     def get_intrinsic_gas(self) -> int:
-        return _calculate_txn_intrinsic_gas_berlin(self)
+        return calculate_txn_intrinsic_gas_berlin(self)
 
     def encode(self) -> bytes:
         return rlp.encode(self)
@@ -575,8 +575,8 @@ class BerlinTransactionBuilder(TransactionBuilderAPI):
         return cls.typed_transaction(ACCESS_LIST_TRANSACTION_TYPE, transaction)
 
 
-def _calculate_txn_intrinsic_gas_berlin(
-    klass: Union[SignedTransactionAPI, UnsignedTransactionAPI]
+def calculate_txn_intrinsic_gas_berlin(
+    klass: Union[SignedTransactionAPI, UnsignedTransactionAPI],
 ) -> int:
     core_gas = calculate_intrinsic_gas(ISTANBUL_TX_GAS_SCHEDULE, klass)
 

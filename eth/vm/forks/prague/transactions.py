@@ -3,6 +3,7 @@ from abc import (
 )
 from typing import (
     Dict,
+    Sequence,
     Tuple,
     Type,
 )
@@ -65,7 +66,7 @@ from eth.vm.forks.berlin.transactions import (
     AccessListPayloadDecoder,
     AccountAccesses,
     TypedTransaction,
-    _calculate_txn_intrinsic_gas_berlin,
+    calculate_txn_intrinsic_gas_berlin,
 )
 from eth.vm.forks.cancun.constants import (
     BLOB_TX_TYPE,
@@ -165,7 +166,7 @@ class SetCodeTransaction(
 
     def get_intrinsic_gas(self) -> int:
         # unchanged from Berlin
-        return _calculate_txn_intrinsic_gas_berlin(self)
+        return calculate_txn_intrinsic_gas_berlin(self)
 
     def encode(self) -> bytes:
         return rlp.encode(self)
@@ -234,6 +235,8 @@ class UnsignedSetCodeTransaction(rlp.Serializable, UnsignedTransactionAPI):
     _type_id = SET_CODE_TRANSACTION_TYPE
 
     chain_id: int
+    max_fee_per_gas: int
+    max_priority_fee_per_gas: int
 
     fields = [
         ("chain_id", big_endian_int),
@@ -305,7 +308,7 @@ class UnsignedSetCodeTransaction(rlp.Serializable, UnsignedTransactionAPI):
 
     def get_intrinsic_gas(self) -> int:
         # unchanged from Berlin
-        return _calculate_txn_intrinsic_gas_berlin(self)
+        return calculate_txn_intrinsic_gas_berlin(self)
 
     @property
     def intrinsic_gas(self) -> int:
@@ -326,6 +329,14 @@ class PragueTypedTransaction(TypedTransaction):
         BLOB_TX_TYPE: BlobPayloadDecoder,
     }
     receipt_builder = PragueReceiptBuilder
+
+    @property
+    def max_fee_per_blob_gas(self) -> int:
+        return self._inner.max_fee_per_blob_gas
+
+    @property
+    def blob_versioned_hashes(self) -> Sequence[Hash32]:
+        return self._inner.blob_versioned_hashes
 
 
 class PragueTransactionBuilder(CancunTransactionBuilder):
