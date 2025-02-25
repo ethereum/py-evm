@@ -43,7 +43,7 @@ LEGACY_CANCUN_SNAPSHOT_TESTS = os.path.join(
     ROOT_PROJECT_DIR, "fixtures", "LegacyTests", "Cancun", "BlockchainTests"
 )
 # eest blockchain tests. all new tests will be filled here
-EEST_TESTS = os.path.join(ROOT_PROJECT_DIR, "fixtures_EEST", "blockchain_tests")
+EEST_TESTS = os.path.join(ROOT_PROJECT_DIR, "fixtures_eest", "blockchain_tests")
 
 
 # These are the slowest tests from the full blockchain test run. This list
