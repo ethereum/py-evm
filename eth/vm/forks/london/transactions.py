@@ -69,7 +69,7 @@ from eth.vm.forks.berlin.transactions import (
     BerlinTransactionBuilder,
     BerlinUnsignedLegacyTransaction,
     TypedTransaction,
-    _calculate_txn_intrinsic_gas_berlin,
+    calculate_txn_intrinsic_gas_berlin,
 )
 
 from .constants import (
@@ -172,7 +172,7 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable, UnsignedTransactionAPI):
 
     def get_intrinsic_gas(self) -> int:
         # unchanged from Berlin
-        return _calculate_txn_intrinsic_gas_berlin(self)
+        return calculate_txn_intrinsic_gas_berlin(self)
 
     @property
     def intrinsic_gas(self) -> int:
@@ -248,7 +248,7 @@ class DynamicFeeTransaction(
 
     def get_intrinsic_gas(self) -> int:
         # unchanged from Berlin
-        return _calculate_txn_intrinsic_gas_berlin(self)
+        return calculate_txn_intrinsic_gas_berlin(self)
 
     def encode(self) -> bytes:
         return rlp.encode(self)
