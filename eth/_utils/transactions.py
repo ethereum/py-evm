@@ -129,5 +129,9 @@ def calculate_intrinsic_gas(
         gas_schedule.gas_tx
         + num_zero_bytes * gas_schedule.gas_txdatazero
         + num_non_zero_bytes * gas_schedule.gas_txdatanonzero
+        # Note: The per-word create cost is not included in the intrinsic gas
+        # calculation because the intrinsic cost is deducted from the transaction
+        # before computation. So this cost is therefore subtracted when the computation
+        # runs the appropriate opcode(s).
         + create_cost
     )
