@@ -45,6 +45,7 @@ class BaseBlock(Configurable, rlp.Serializable, BlockAPI):
                 transactions=transactions,
                 uncles=uncles,
             )
+        self.block_requests: Sequence[bytes] = []
 
     @classmethod
     def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:

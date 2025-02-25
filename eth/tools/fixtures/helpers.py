@@ -256,6 +256,7 @@ NON_LEGACY_HEADER_FIELDS = {
     "blobGasUsed",
     "excessBlobGas",
     "parentBeaconBlockRoot",
+    "requestsHash",
 }
 KNOWN_HEADER_FIELDS = LEGACY_HEADER_FIELDS | NON_LEGACY_HEADER_FIELDS
 

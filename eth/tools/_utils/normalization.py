@@ -602,6 +602,8 @@ def normalize_block_header(header: Dict[str, Any]) -> Dict[str, Any]:
         normalized_header["parentBeaconBlockRoot"] = decode_hex(
             header["parentBeaconBlockRoot"]
         )
+    if "requestsHash" in header:
+        normalized_header["requestsHash"] = decode_hex(header["requestsHash"])
 
     return merge(header, normalized_header)
 

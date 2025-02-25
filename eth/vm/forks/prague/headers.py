@@ -4,15 +4,22 @@ from typing import (
     Optional,
 )
 
-from toolz import (
+from eth_utils.toolz import (
     curry,
+    merge,
 )
 
 from eth.abc import (
     BlockHeaderAPI,
 )
-from eth.rlp.headers import (
-    BlockHeader,
+from eth.constants import (
+    EMPTY_SHA256,
+)
+from eth.vm.forks.cancun import (
+    create_cancun_header_from_parent,
+)
+from eth.vm.forks.prague.blocks import (
+    PragueBlockHeader,
 )
 
 
@@ -21,6 +28,14 @@ def create_prague_header_from_parent(
     parent_header: Optional[BlockHeaderAPI],
     **header_params: Any,
 ) -> BlockHeaderAPI:
-    all_fields: Dict[Any, Any] = {}
+    requests_hash = header_params.pop("requests_hash", EMPTY_SHA256)
 
-    return BlockHeader(**all_fields)
+    cancun_validated_header = create_cancun_header_from_parent(
+        parent_header, **header_params
+    )
+
+    all_fields: Dict[Any, Any] = merge(
+        cancun_validated_header.as_dict(), {"requests_hash": requests_hash}
+    )
+
+    return PragueBlockHeader(**all_fields)
