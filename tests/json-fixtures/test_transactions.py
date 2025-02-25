@@ -68,7 +68,7 @@ ROOT_PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 LEGACY_CANCUN_SNAPSHOT_TESTS = os.path.join(
     ROOT_PROJECT_DIR, "fixtures", "LegacyTests", "Cancun"
 )
-EEST_TESTS = os.path.join(ROOT_PROJECT_DIR, "fixtures_EEST")
+EEST_TESTS = os.path.join(ROOT_PROJECT_DIR, "fixtures_eest")
 
 # Fixtures have an `_info` key at their root which we need to skip over.
 FIXTURE_FORK_SKIPS = {"_info", "txbytes"}
