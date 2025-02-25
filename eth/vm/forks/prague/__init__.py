@@ -2,15 +2,6 @@ from typing import (
     Type,
 )
 
-from eth._utils.db import (
-    get_block_header_by_hash,
-)
-from eth.abc import (
-    BlockAPI,
-    BlockHeaderAPI,
-    StateAPI,
-    TransactionFieldsAPI,
-)
 from eth.rlp.blocks import (
     BaseBlock,
 )
@@ -19,10 +10,6 @@ from eth.vm.forks.cancun import (
 )
 from eth.vm.state import (
     BaseState,
-)
-from eth_utils import (
-    ValidationError,
-    to_int,
 )
 
 from .blocks import (
