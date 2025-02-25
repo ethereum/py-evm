@@ -31,7 +31,7 @@ common: &common
 
           EOF
     - run:
-        name: checkout fixtures submodule
+        name: checkout and update submodules
         command: git submodule update --init --recursive
     - run:
         name: merge pull request base
