@@ -2,9 +2,6 @@ from typing import (
     Tuple,
 )
 
-from eth_hash.auto import (
-    keccak,
-)
 from eth_typing import (
     Address,
 )
@@ -21,13 +18,6 @@ from eth._utils.address import (
 )
 from eth.abc import (
     ComputationAPI,
-)
-from eth.exceptions import (
-    CodeNotEmpty,
-    VMError,
-)
-from eth.precompiles.ecrecover import (
-    ecrecover,
 )
 from eth.rlp.sedes import (
     address,
@@ -55,9 +45,6 @@ from eth.vm.logic.context import (
 
 from .constants import (
     DELEGATION_DESIGNATION,
-    MAGIC,
-    PER_AUTH_BASE_COST,
-    PER_EMPTY_ACCOUNT_BASE_COST,
 )
 
 CallParams = Tuple[int, int, Address, Address, Address, int, int, int, int, bool, bool]
@@ -91,7 +78,7 @@ def extcodehash_eip7702(computation: ComputationAPI) -> None:
             computation.stack_push_bytes(constants.NULL_BYTE)
         else:
             computation.stack_push_bytes(
-                state.get_code_hash(computation.stack_pop1_bytes())
+                state.get_code_hash(Address(computation.stack_pop1_bytes()))
             )
 
     else:
@@ -151,66 +138,98 @@ class Authorization(rlp.Serializable):
         ("s", big_endian_int),
     )
 
+    def __init__(
+        self,
+        chain_id: int,
+        account: Address,
+        nonce: int,
+        y_parity: int,
+        r: int,
+        s: int,
+    ) -> None:
+        self.chain_id = chain_id
+        self.account = account
+        self.nonce = nonce
+        self.y_parity = y_parity
+        self.r = r
+        self.s = s
+        super().__init__(
+            chain_id=chain_id,
+            account=account,
+            nonce=nonce,
+            y_parity=y_parity,
+            r=r,
+            s=s,
+        )
+
 
 def _has_delegation_prefix(code: bytes) -> bool:
     return code[:3] == DELEGATION_DESIGNATION
 
 
 def process_authorization(auth: Authorization, computation: ComputationAPI) -> None:
-    try:
-        # kcTODO - verify chain id is 0 or current chain id
-        signed = Authorization(
-            auth.chain_id,
-            auth.address,
-            auth.nonce,
-            auth.y_parity,
-            auth.r,
-            auth.s,
-        )
-        # authority = ecrecover(keccak(
-        #     MAGIC || rlp([chain_id, address, nonce])), y_parity, r, s]
-        # ))
-        to_recover = MAGIC + rlp.encode(signed)
-        authority = ecrecover(keccak(to_recover))
-        computation.state.mark_address_warm(authority)
-        code = computation.state.get_code(authority)
-        if code != b"" or code[:3] != DELEGATION_DESIGNATION:
-            raise CodeNotEmpty(f"Code at address: {authority} was not empty")
-        if computation.state.get_nonce(authority) != auth.nonce:
-            raise VMError(
-                "The nonce of the authority address needs to match "
-                "the nonce passed in."
-            )
-
-        # Add PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST gas to the
-        # global counter if authority exists
-        if computation.state.account_exists(authority):
-            gas_fee = computation.msg.gas + (
-                PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST
-            )
-            computation.state.delta_balance(authority, -1 * gas_fee)
-        elif not computation.state.account_exists(authority):
-            # if authority is not in the trie, verify nonce == 0
-            if computation.state.get_nonce(authority) != 0:
-                raise VMError(f"Authority {authority} has a nonce")
-            gas_fee = computation.msg.gas + PER_EMPTY_ACCOUNT_BASE_COST
-            computation.state.delta_balance(authority, -1 * gas_fee)
-        computation.state.increment_nonce(authority)
-        if auth.address == constants.ZERO_ADDRESS:
-            computation.state.set_code(auth.address, constants.EMPTY_SHA3)
-
-        if _has_delegation_prefix(computation.state.get_code(code[3:])):
-            raise VMError("Can't recursively delegate code")
-
-        delegation = DELEGATION_DESIGNATION + auth.address
-        computation.state.set_code(authority, delegation)
-        computation.state.mark_address_warm(  # might belong in build_computation
-            auth.address
-        )
-    except VMError:
-        # if anything fails, stop processing immediately
-        # and move to the next auth. Gas rollback?
-        pass
+    pass
+    # TODO: 7702
+    # try:
+    #     # kcTODO - verify chain id is 0 or current chain id
+    #     signed = Authorization(
+    #         auth.chain_id,
+    #         auth.account,
+    #         auth.nonce,
+    #         auth.y_parity,
+    #         auth.r,
+    #         auth.s,
+    #     )
+    #     # authority = ecrecover(keccak(
+    #     #     MAGIC || rlp([chain_id, address, nonce])), y_parity, r, s]
+    #     # ))
+    #     to_recover = (
+    #         bytes(MAGIC) +
+    #         rlp.encode([signed.chain_id, signed.account, signed.nonce]) +
+    #         signed.y_parity.to_bytes(1, byteorder="big") +
+    #         signed.r.to_bytes(32, byteorder="big") +
+    #         signed.s.to_bytes(32, byteorder="big")
+    #     )
+    #     authority = Address(ecrecover(keccak(to_recover)).output)
+    #     computation.state.mark_address_warm(authority)
+    #     code = computation.state.get_code(authority)
+    #     if code != b"" or code[:3] != DELEGATION_DESIGNATION:
+    #         raise CodeNotEmpty(f"Code at address: {authority} was not empty")
+    #     if computation.state.get_nonce(authority) != auth.nonce:
+    #         raise VMError(
+    #             "The nonce of the authority address needs to match "
+    #             "the nonce passed in."
+    #         )
+    #
+    #     # Add PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST gas to the
+    #     # global counter if authority exists
+    #     if computation.state.account_exists(authority):
+    #         gas_fee = computation.msg.gas + (
+    #             PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST
+    #         )
+    #         computation.state.delta_balance(authority, -1 * gas_fee)
+    #     elif not computation.state.account_exists(authority):
+    #         # if authority is not in the trie, verify nonce == 0
+    #         if computation.state.get_nonce(authority) != 0:
+    #             raise VMError(f"Authority {authority} has a nonce")
+    #         gas_fee = computation.msg.gas + PER_EMPTY_ACCOUNT_BASE_COST
+    #         computation.state.delta_balance(authority, -1 * gas_fee)
+    #     computation.state.increment_nonce(authority)
+    #     if auth.address == constants.ZERO_ADDRESS:
+    #         computation.state.set_code(auth.address, constants.EMPTY_SHA3)
+    #
+    #     if _has_delegation_prefix(computation.state.get_code(code[3:])):
+    #         raise VMError("Can't recursively delegate code")
+    #
+    #     delegation = DELEGATION_DESIGNATION + auth.address
+    #     computation.state.set_code(authority, delegation)
+    #     computation.state.mark_address_warm(  # might belong in build_computation
+    #         auth.address
+    #     )
+    # except VMError:
+    #     # if anything fails, stop processing immediately
+    #     # and move to the next auth. Gas rollback?
+    #     pass
 
 
 #
