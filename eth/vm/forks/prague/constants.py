@@ -1,3 +1,7 @@
+from eth_typing import (
+    Address,
+)
+
 # EIP-7702 #
 SET_CODE_TRANSACTION_TYPE = 4
 MAGIC = 5
@@ -8,3 +12,10 @@ DELEGATION_DESIGNATION = b"\xef\x01\x00"
 # EIP-7623 #
 STANDARD_TOKEN_COST = 4
 TOTAL_COST_FLOOR_PER_TOKEN = 10
+
+# EIP-2935 #
+HISTORY_SERVE_WINDOW = 8191
+HISTORY_STORAGE_ADDRESS = Address(
+    b"\x00\x00\xf9\x08'\xf1\xc5:\x10\xcbz\x023[\x17S \x00)5"
+)
+HISTORY_STORAGE_CONTRACT_CODE = b"3s\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe\x14`FW` 6\x03`BW_5`\x01C\x03\x81\x11`BWa\x1f\xff\x81C\x03\x11`BWa\x1f\xff\x90\x06T_R` _\xf3[__\xfd[_5a\x1f\xff`\x01C\x03\x06U\x00"  # noqa: E501
