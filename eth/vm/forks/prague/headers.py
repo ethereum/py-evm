@@ -21,6 +21,23 @@ from eth.vm.forks.cancun import (
 from eth.vm.forks.prague.blocks import (
     PragueBlockHeader,
 )
+from eth.vm.forks.prague.constants import (
+    TARGET_BLOB_GAS_PER_BLOCK,
+)
+
+
+def calc_excess_blob_gas_prague(parent_header: BlockHeaderAPI) -> int:
+    if (
+        parent_header.excess_blob_gas + parent_header.blob_gas_used
+        < TARGET_BLOB_GAS_PER_BLOCK
+    ):
+        return 0
+    else:
+        return (
+            parent_header.excess_blob_gas
+            + parent_header.blob_gas_used
+            - TARGET_BLOB_GAS_PER_BLOCK
+        )
 
 
 @curry
@@ -37,5 +54,8 @@ def create_prague_header_from_parent(
     all_fields: Dict[Any, Any] = merge(
         cancun_validated_header.as_dict(), {"requests_hash": requests_hash}
     )
+
+    if parent_header is not None:
+        all_fields["excess_blob_gas"] = calc_excess_blob_gas_prague(parent_header)
 
     return PragueBlockHeader(**all_fields)
