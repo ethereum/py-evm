@@ -70,7 +70,7 @@ def generate_fixture_tests(
 
         if not all_fixtures:
             raise AssertionError(
-                f"Suspiciously found zero fixtures: {base_fixture_path}"
+                f"Suspiciously found zero fixtures: {base_fixture_paths}"
             )
 
         filtered_fixtures = postprocess_fn(filter_fn(preprocess_fn(all_fixtures)))

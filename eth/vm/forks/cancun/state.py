@@ -100,13 +100,13 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
 
     def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
         london_gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
-        cancun_data_fee = (
+        blob_data_fee = (
             self.calc_data_fee(cast(BlobTransaction, transaction))
             if transaction.type_id == BLOB_TX_TYPE
             else 0
         )
         self.vm_state.delta_balance(
-            transaction.sender, -1 * (london_gas_fee + cancun_data_fee)
+            transaction.sender, -1 * (london_gas_fee + blob_data_fee)
         )
 
         self.vm_state.increment_nonce(transaction.sender)
