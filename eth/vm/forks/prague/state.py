@@ -12,10 +12,15 @@ from eth.abc import (
 from eth.vm.forks.cancun import (
     CancunState,
 )
+from eth.vm.forks.cancun.constants import (
+    MIN_BLOB_BASE_FEE,
+)
 from eth.vm.forks.cancun.state import (
     CancunTransactionExecutor,
+    fake_exponential,
 )
 from eth.vm.forks.prague.constants import (
+    BLOB_BASE_FEE_UPDATE_FRACTION_PRAGUE,
     TOTAL_COST_FLOOR_PER_TOKEN,
 )
 
@@ -68,3 +73,12 @@ class PragueState(CancunState):
     computation_class = PragueComputation
     transaction_context_class: Type[TransactionContextAPI] = CancunTransactionContext
     transaction_executor_class: Type[TransactionExecutorAPI] = PragueTransactionExecutor
+
+    @property
+    def blob_base_fee(self) -> int:
+        excess_blob_gas = self.execution_context.excess_blob_gas
+        return fake_exponential(
+            MIN_BLOB_BASE_FEE,
+            excess_blob_gas,
+            BLOB_BASE_FEE_UPDATE_FRACTION_PRAGUE,
+        )

@@ -38,7 +38,7 @@ from .constants import (
     VERSIONED_HASH_VERSION_KZG,
 )
 from .headers import (
-    calc_excess_blob_gas,
+    calc_excess_blob_gas_cancun,
     create_cancun_header_from_parent,
 )
 from .state import (
@@ -67,21 +67,20 @@ class CancunVM(ShanghaiVM):
             blob_gas_used=old_header.blob_gas_used + get_total_blob_gas(transaction)
         )
 
-    @classmethod
-    def block_preprocessing(cls, state: StateAPI, block: BlockAPI) -> None:
-        super().block_preprocessing(state, block)
+    def block_preprocessing(self, block: BlockAPI) -> None:
+        super().block_preprocessing(block)
         header = block.header
 
         parent_beacon_root = header.parent_beacon_block_root
 
-        if state.get_code(BEACON_ROOTS_ADDRESS) == BEACON_ROOTS_CONTRACT_CODE:
+        if self.state.get_code(BEACON_ROOTS_ADDRESS) == BEACON_ROOTS_CONTRACT_CODE:
             # if the beacon roots contract exists, update the beacon roots
-            state.set_storage(
+            self.state.set_storage(
                 BEACON_ROOTS_ADDRESS,
                 header.timestamp % HISTORY_BUFFER_LENGTH,
                 header.timestamp,
             )
-            state.set_storage(
+            self.state.set_storage(
                 BEACON_ROOTS_ADDRESS,
                 header.timestamp % HISTORY_BUFFER_LENGTH + HISTORY_BUFFER_LENGTH,
                 to_int(parent_beacon_root),
@@ -89,18 +88,17 @@ class CancunVM(ShanghaiVM):
 
     def validate_block(self, block: BlockAPI) -> None:
         super().validate_block(block)
+        self.validate_block_blobs(block)
 
+    def validate_block_blobs(self, block: BlockAPI) -> None:
         # check that the excess blob gas was updated correctly
         parent_header = get_block_header_by_hash(block.header.parent_hash, self.chaindb)
-        if block.header.excess_blob_gas != calc_excess_blob_gas(parent_header):
+        if block.header.excess_blob_gas != calc_excess_blob_gas_cancun(parent_header):
             raise ValidationError("Block excess blob gas was not updated correctly.")
-
         blob_gas_used = sum(get_total_blob_gas(tx) for tx in block.transactions)
-
         # ensure the total blob gas spent is at most equal to the limit
         if blob_gas_used > MAX_BLOB_GAS_PER_BLOCK:
             raise ValidationError("Block exceeded maximum blob gas limit.")
-
         # ensure blob_gas_used matches header
         block_blob_gas_used = block.header.blob_gas_used
         if block_blob_gas_used != blob_gas_used:

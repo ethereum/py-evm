@@ -26,7 +26,7 @@ from .blocks import (
 )
 
 
-def calc_excess_blob_gas(parent_header: BlockHeaderAPI) -> int:
+def calc_excess_blob_gas_cancun(parent_header: BlockHeaderAPI) -> int:
     try:
         if (
             parent_header.excess_blob_gas + parent_header.blob_gas_used
@@ -71,6 +71,6 @@ def create_cancun_header_from_parent(
     )
 
     if parent_header is not None:
-        all_fields["excess_blob_gas"] = calc_excess_blob_gas(parent_header)
+        all_fields["excess_blob_gas"] = calc_excess_blob_gas_cancun(parent_header)
 
     return CancunBlockHeader(**all_fields)
