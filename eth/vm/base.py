@@ -389,7 +389,7 @@ class VM(Configurable, VirtualMachineAPI):
         )
 
         # apply any block-related state processing
-        self.block_preprocessing(self._state, block)
+        self.block_preprocessing(block)
 
         # run all of the transactions.
         new_header, receipts, _ = self.apply_all_transactions(
@@ -415,8 +415,7 @@ class VM(Configurable, VirtualMachineAPI):
 
         return self.mine_block(filled_block)
 
-    @classmethod
-    def block_preprocessing(cls, state: StateAPI, block: BlockAPI) -> None:
+    def block_preprocessing(self, block: BlockAPI) -> None:
         """
         Process any state changes before processing a block. Pre-processing does not
         become relevant until the Cancun network upgrade.
