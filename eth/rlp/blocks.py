@@ -1,4 +1,5 @@
 from typing import (
+    Sequence,
     Type,
 )
 
@@ -12,12 +13,38 @@ from eth._utils.datatypes import (
 )
 from eth.abc import (
     BlockAPI,
+    BlockHeaderAPI,
+    SignedTransactionAPI,
     TransactionBuilderAPI,
+    WithdrawalAPI,
 )
 
 
 class BaseBlock(Configurable, rlp.Serializable, BlockAPI):
     transaction_builder: Type[TransactionBuilderAPI] = None
+
+    def __init__(
+        self,
+        header: BlockHeaderAPI,
+        transactions: Sequence[SignedTransactionAPI] = None,
+        uncles: Sequence[BlockHeaderAPI] = None,
+        withdrawals: Sequence[WithdrawalAPI] = None,
+    ) -> None:
+        if withdrawals is not None:
+            rlp.Serializable.__init__(
+                self,
+                header=header,
+                transactions=transactions,
+                uncles=uncles,
+                withdrawals=withdrawals,
+            )
+        else:
+            rlp.Serializable.__init__(
+                self,
+                header=header,
+                transactions=transactions,
+                uncles=uncles,
+            )
 
     @classmethod
     def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:

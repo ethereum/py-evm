@@ -6,13 +6,7 @@ from eth_keys import (
 from eth_utils import (
     int_to_big_endian,
 )
-
-try:
-    import factory
-except ImportError:
-    raise ImportError(
-        "The p2p.tools.factories module requires the `factory_boy` library."
-    )
+import factory
 
 
 def _mk_private_key_bytes() -> bytes:

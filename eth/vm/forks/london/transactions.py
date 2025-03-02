@@ -212,7 +212,7 @@ class DynamicFeeTransaction(
         )
 
     @property
-    def blob_versioned_hashes(self) -> Hash32:
+    def blob_versioned_hashes(self) -> Sequence[Hash32]:
         raise NotImplementedError(
             "blob_versioned_hashes is not implemented until Cancun."
         )

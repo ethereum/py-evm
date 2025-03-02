@@ -1,7 +1,8 @@
+import pytest
+
 from eth_bloom import (
     BloomFilter,
 )
-import pytest
 
 from eth.abc import (
     ReceiptBuilderAPI,

@@ -1,6 +1,5 @@
-import enum
-
 import pytest
+import enum
 
 from eth.chains.tester import (
     _generate_vm_configuration,

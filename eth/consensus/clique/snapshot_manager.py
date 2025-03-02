@@ -48,7 +48,7 @@ from .exceptions import (
 
 
 def make_snapshot_lookup_key(block_hash: Hash32) -> bytes:
-    return f"block-hash-to-snapshot:{block_hash}".encode()
+    return f"block-hash-to-snapshot:{block_hash!r}".encode()
 
 
 class SnapshotManager:
@@ -123,11 +123,11 @@ class SnapshotManager:
                 if tally.votes > len(snapshot.signers) / 2:
                     if tally.action is VoteAction.NOMINATE:
                         snapshot.signers.append(header.coinbase)
-                        self.logger.debug(f"New signer added: {header.coinbase}")
+                        self.logger.debug(f"New signer added: {header.coinbase!r}")
                     else:
                         if header.coinbase in snapshot.signers:
                             snapshot.signers.remove(header.coinbase)
-                            self.logger.debug(f"Signer removed: {header.coinbase}")
+                            self.logger.debug(f"Signer removed: {header.coinbase!r}")
 
                     for vote in snapshot.votes.copy():
                         # Discard any pending votes *from* the added or removed member

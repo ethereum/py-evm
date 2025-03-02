@@ -1,7 +1,8 @@
+import pytest
+
 from eth_utils import (
     ValidationError,
 )
-import pytest
 
 from eth._utils.address import (
     force_bytes_to_address,
@@ -12,11 +13,11 @@ from eth.chains.base import (
 from eth.constants import (
     GAS_TX,
 )
-from eth.tools.factories.transaction import (
-    new_dynamic_fee_transaction,
-)
 from eth.vm.forks import (
     LondonVM,
+)
+from tests.tools.factories.transaction import (
+    new_dynamic_fee_transaction,
 )
 
 

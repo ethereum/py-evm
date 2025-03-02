@@ -1,8 +1,9 @@
+import pytest
+
 from eth_utils import (
     ValidationError,
     to_wei,
 )
-import pytest
 
 from eth.chains.base import (
     Chain,
@@ -24,7 +25,7 @@ from eth.tools.builder.chain import (
     mine_block,
     mine_blocks,
 )
-from eth.tools.factories.transaction import (
+from tests.tools.factories.transaction import (
     new_transaction,
 )
 

@@ -1,13 +1,14 @@
+import pytest
+
 from eth_utils import (
     ValidationError,
 )
-import pytest
 
-from eth.tools.factories.transaction import (
-    new_transaction,
-)
 from eth.vm.interrupt import (
     MissingAccountTrieNode,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 ADDRESS = b"\xaa" * 20

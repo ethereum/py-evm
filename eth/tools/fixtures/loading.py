@@ -1,12 +1,18 @@
+from pytest import (
+    Mark,
+    MarkDecorator,
+)
 import functools
 import json
 import os
 from typing import (
     Any,
     Callable,
+    Collection,
     Dict,
     Iterable,
     Tuple,
+    Union,
 )
 
 from eth_utils import (
@@ -81,7 +87,9 @@ def load_fixture(
 def filter_fixtures(
     all_fixtures: Iterable[Any],
     fixtures_base_dir: str,
-    mark_fn: Callable[[str, str], bool] = None,
+    mark_fn: Callable[
+        [str, str], Union[MarkDecorator, Collection[Union[MarkDecorator, Mark]], None]
+    ] = None,
     ignore_fn: Callable[..., bool] = None,
 ) -> Any:
     """

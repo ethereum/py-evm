@@ -1,8 +1,9 @@
+import pytest
+
 from eth_utils import (
     ValidationError,
     decode_hex,
 )
-import pytest
 import rlp
 
 from eth import (
@@ -18,7 +19,7 @@ from eth.chains.mainnet import (
 from eth.tools.builder.chain import (
     api,
 )
-from eth.tools.factories.transaction import (
+from tests.tools.factories.transaction import (
     new_transaction,
 )
 

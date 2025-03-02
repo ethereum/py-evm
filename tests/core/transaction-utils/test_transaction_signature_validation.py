@@ -1,3 +1,5 @@
+import pytest
+
 from eth_keys import (
     keys,
 )
@@ -6,7 +8,6 @@ from eth_utils import (
     is_same_address,
     to_canonical_address,
 )
-import pytest
 import rlp
 
 from eth._utils.transactions import (

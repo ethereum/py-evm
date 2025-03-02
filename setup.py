@@ -11,8 +11,9 @@ extras_require = {
     ],
     "dev": [
         "build>=0.9.0",
-        "bumpversion>=0.5.3",
+        "bump_my_version>=0.19.0",
         "ipython",
+        "mypy==1.10.0",
         "pre-commit>=3.4.0",
         "tox>=4.0.0",
         "twine",
@@ -21,9 +22,10 @@ extras_require = {
     "docs": [
         "py-evm>=0.8.0b1",
         "sphinx>=6.0.0",
+        "sphinx-autobuild>=2021.3.14",
         "sphinx_rtd_theme>=1.0.0",
         "sphinxcontrib-asyncio>=0.2.0",
-        "towncrier>=21,<22",
+        "towncrier>=24,<25",
     ],
     "eth": [
         "cached-property>=1.5.1",
@@ -71,8 +73,8 @@ with open("README.md") as readme_file:
 
 setup(
     name="py-evm",
-    # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version="0.10.1-beta.2",
+    # *IMPORTANT*: Don't manually change the version here. See Contributing docs for the release process.
+    version="0.11.0-beta.1",
     description="Python implementation of the Ethereum Virtual Machine",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -100,5 +102,6 @@ setup(
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
     ],
 )

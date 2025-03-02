@@ -24,9 +24,6 @@ from eth.constants import (
 from eth.rlp.blocks import (
     BaseBlock,
 )
-from eth.tools.factories.transaction import (
-    new_transaction,
-)
 from scripts.benchmark._utils.chain_plumbing import (
     FUNDED_ADDRESS,
     FUNDED_ADDRESS_PRIVATE_KEY,
@@ -37,6 +34,9 @@ from scripts.benchmark._utils.compile import (
 )
 from scripts.benchmark._utils.reporting import (
     DefaultStat,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 from .base_benchmark import (

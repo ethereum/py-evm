@@ -1,3 +1,5 @@
+import pytest
+
 from eth_utils import (
     decode_hex,
     function_signature_to_4byte_selector,
@@ -6,15 +8,11 @@ from eth_utils import (
 from eth_utils.toolz import (
     assoc,
 )
-import pytest
 
 from eth.exceptions import (
     InvalidInstruction,
     OutOfGas,
     Revert,
-)
-from eth.tools.factories.transaction import (
-    new_transaction,
 )
 from eth.vm.forks import (
     ArrowGlacierVM,
@@ -30,6 +28,9 @@ from eth.vm.forks import (
     PetersburgVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
+)
+from tests.tools.factories.transaction import (
+    new_transaction,
 )
 
 
