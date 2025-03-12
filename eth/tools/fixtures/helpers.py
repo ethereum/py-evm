@@ -228,6 +228,8 @@ def chain_vm_configuration(
         return transition_test_at_timestamp(fixture, ParisVM, ShanghaiVM, 15000)
     elif network == "ShanghaiToCancunAtTime15k":
         return transition_test_at_timestamp(fixture, ShanghaiVM, CancunVM, 15000)
+    elif network == "CancunToPragueAtTime15k":
+        return transition_test_at_timestamp(fixture, CancunVM, PragueVM, 15000)
     else:
         raise ValueError(f"Network {network} does not match any known VM rules")
 
