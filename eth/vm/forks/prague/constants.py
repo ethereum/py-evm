@@ -33,3 +33,10 @@ HISTORY_STORAGE_CONTRACT_CODE = b"3s\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff
 MAX_BLOB_GAS_PER_BLOCK = 1_179_648
 TARGET_BLOB_GAS_PER_BLOCK = 786_432
 BLOB_BASE_FEE_UPDATE_FRACTION_PRAGUE = 5_007_716
+
+# EIP-6110 #
+DEPOSIT_REQUEST_TYPE = b"\x00"
+DEPOSIT_CONTRACT_ADDRESS = (
+    b"\x00\x00\x00\x00!\x9a\xb5@5l\xbb\x83\x9c\xbe\x050=w\x05\xfa"  # noqa: E501
+)
+DEPOSIT_EVENT_SIGNATURE_HASH = b"d\x9b\xbcb\xd0\xe3\x13B\xaf\xeaN\\\xd8-@I\xe7\xe1\xee\x91/\xc0\x88\x9a\xa7\x90\x80;\xe3\x908\xc5"  # noqa: E501

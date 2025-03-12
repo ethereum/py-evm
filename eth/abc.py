@@ -859,7 +859,7 @@ class BlockAPI(ABC):
     transactions: Tuple[SignedTransactionAPI, ...]
     uncles: Tuple[BlockHeaderAPI, ...]
     withdrawals: Tuple[WithdrawalAPI, ...]
-    block_requests: Sequence[bytes]
+    block_requests: List[bytes]
 
     transaction_builder: Type[TransactionBuilderAPI] = None
     receipt_builder: Type[ReceiptBuilderAPI] = None

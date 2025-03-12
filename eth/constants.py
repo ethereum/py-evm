@@ -28,6 +28,7 @@ EMPTY_WORD = NULL_BYTE * 32
 UINT_160_CEILING = 2**160
 
 CREATE_CONTRACT_ADDRESS = Address(b"")
+SYSTEM_ADDRESS = b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe"  # noqa: E501
 ZERO_ADDRESS = Address(20 * b"\x00")
 ZERO_HASH32 = Hash32(32 * b"\x00")
 
