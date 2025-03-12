@@ -21,6 +21,8 @@ from eth.vm.forks.cancun.state import (
 )
 from eth.vm.forks.prague.constants import (
     BLOB_BASE_FEE_UPDATE_FRACTION_PRAGUE,
+    HISTORY_STORAGE_ADDRESS,
+    HISTORY_STORAGE_CONTRACT_CODE,
     TOTAL_COST_FLOOR_PER_TOKEN,
 )
 
@@ -73,6 +75,11 @@ class PragueState(CancunState):
     computation_class = PragueComputation
     transaction_context_class: Type[TransactionContextAPI] = CancunTransactionContext
     transaction_executor_class: Type[TransactionExecutorAPI] = PragueTransactionExecutor
+
+    def set_system_contracts(self) -> None:
+        super().set_system_contracts()
+        if not self.get_code(HISTORY_STORAGE_ADDRESS) != HISTORY_STORAGE_CONTRACT_CODE:
+            self.set_code(HISTORY_STORAGE_ADDRESS, HISTORY_STORAGE_CONTRACT_CODE)
 
     @property
     def blob_base_fee(self) -> int:
