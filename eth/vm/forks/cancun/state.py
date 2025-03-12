@@ -51,6 +51,8 @@ from .computation import (
     CancunComputation,
 )
 from .constants import (
+    BEACON_ROOTS_ADDRESS,
+    BEACON_ROOTS_CONTRACT_CODE,
     BLOB_BASE_FEE_UPDATE_FRACTION,
     BLOB_TX_TYPE,
     GAS_PER_BLOB,
@@ -150,6 +152,11 @@ class CancunState(ShanghaiState):
 
     _transient_storage_class: Type[TransientStorageAPI] = TransientStorage
     _transient_storage: TransientStorageAPI = None
+
+    def set_system_contracts(self) -> None:
+        super().set_system_contracts()
+        if not self.get_code(BEACON_ROOTS_ADDRESS) != BEACON_ROOTS_CONTRACT_CODE:
+            self.set_code(BEACON_ROOTS_ADDRESS, BEACON_ROOTS_CONTRACT_CODE)
 
     @property
     def transient_storage(self) -> TransientStorageAPI:

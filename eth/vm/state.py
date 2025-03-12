@@ -63,6 +63,7 @@ class BaseState(Configurable, StateAPI):
         self._db = db
         self.execution_context = execution_context
         self._account_db = self.get_account_db_class()(db, state_root)
+        self.set_system_contracts()
 
     #
     # Logging
@@ -325,7 +326,6 @@ class BaseState(Configurable, StateAPI):
     #
     # Withdrawals
     #
-
     def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:
         # withdrawals not implemented until the Shanghai hard fork
         pass
@@ -333,6 +333,15 @@ class BaseState(Configurable, StateAPI):
     def apply_all_withdrawals(self, withdrawals: Sequence[WithdrawalAPI]) -> None:
         # withdrawals not implemented until the Shanghai hard fork
         pass
+
+    #
+    # System Contracts
+    #
+    def set_system_contracts(self) -> None:
+        """
+        Set required contracts for the particular fork to the state. This method
+        should be called once at ``__init__()``. This is not relevant until Cancun.
+        """
 
 
 class BaseTransactionExecutor(TransactionExecutorAPI):
