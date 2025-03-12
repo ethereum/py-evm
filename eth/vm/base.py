@@ -409,17 +409,21 @@ class VM(Configurable, VirtualMachineAPI):
             withdrawals=withdrawals,
         )
 
-        # post-prague blocks
-        if hasattr(block.header, "requests_hash"):
-            filled_block = self.compute_requests_hash(filled_block)
-
-        return self.mine_block(filled_block)
+        processed_block = self.block_postprocessing(filled_block)
+        return self.mine_block(processed_block)
 
     def block_preprocessing(self, block: BlockAPI) -> None:
         """
         Process any state changes before processing a block. Pre-processing does not
         become relevant until the Cancun network upgrade.
         """
+
+    def block_postprocessing(self, block: BlockAPI) -> BlockAPI:
+        """
+        Process any changes after the block is filled. Post-processing does not become
+        relevant until the Prague network upgrade.
+        """
+        return block
 
     def mine_block(
         self, block: BlockAPI, *args: Any, **kwargs: Any
