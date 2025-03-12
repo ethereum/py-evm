@@ -2,7 +2,9 @@ from typing import (
     Type,
 )
 
-from eth._utils.calculations import fake_exponential
+from eth._utils.calculations import (
+    fake_exponential,
+)
 from eth.abc import (
     ComputationAPI,
     MessageAPI,
@@ -10,7 +12,6 @@ from eth.abc import (
     TransactionContextAPI,
     TransactionExecutorAPI,
 )
-from eth.exceptions import PyEVMError
 from eth.vm.forks.cancun import (
     CancunState,
 )

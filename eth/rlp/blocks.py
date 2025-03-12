@@ -1,4 +1,5 @@
 from typing import (
+    List,
     Sequence,
     Type,
 )
@@ -45,7 +46,7 @@ class BaseBlock(Configurable, rlp.Serializable, BlockAPI):
                 transactions=transactions,
                 uncles=uncles,
             )
-        self.block_requests: Sequence[bytes] = []
+        self.block_requests: List[bytes] = []
 
     @classmethod
     def get_transaction_builder(cls) -> Type[TransactionBuilderAPI]:

@@ -5,7 +5,6 @@ from typing import (
     cast,
 )
 
-from eth._utils.calculations import fake_exponential
 from eth_typing import (
     Address,
     Hash32,
@@ -18,6 +17,9 @@ from eth_utils import (
 
 from eth._utils.address import (
     generate_contract_address,
+)
+from eth._utils.calculations import (
+    fake_exponential,
 )
 from eth.abc import (
     ComputationAPI,
