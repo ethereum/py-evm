@@ -66,11 +66,14 @@ class PragueTransactionExecutor(CancunTransactionExecutor):
 
         eip7623_gas = GAS_TX + (TOTAL_COST_FLOOR_PER_TOKEN * tokens_in_calldata)
 
-        if total_gas_used < eip7623_gas:
-            # consume up to the data floor gas cost
-            computation.consume_gas(
-                eip7623_gas - total_gas_used, reason="EIP-7623 data floor gas cost"
-            )
+        data_floor_diff = eip7623_gas - total_gas_used
+        if data_floor_diff > 0:
+            if gas_refund >= data_floor_diff:
+                # pull gas out of refund to cover the data floor diff
+                computation.return_gas(data_floor_diff)
+                computation.refund_gas(-data_floor_diff)
+
+            computation.consume_gas(data_floor_diff, "EIP-7623 calldata gas floor")
 
     def finalize_computation(
         self, transaction: SignedTransactionAPI, computation: ComputationAPI
