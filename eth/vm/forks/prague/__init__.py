@@ -9,6 +9,10 @@ from eth._utils.db import (
 from eth.abc import (
     BlockAPI,
 )
+from eth.constants import (
+    SYSTEM_ADDRESS,
+    SYSTEM_MESSAGE_GAS,
+)
 from eth.rlp.blocks import (
     BaseBlock,
 )
@@ -24,6 +28,8 @@ from eth.vm.forks.prague.constants import (
     HISTORY_STORAGE_ADDRESS,
     HISTORY_STORAGE_CONTRACT_CODE,
     MAX_BLOB_GAS_PER_BLOCK,
+    WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS,
+    WITHDRAWAL_REQUEST_TYPE,
 )
 from eth.vm.state import (
     BaseState,
@@ -92,6 +98,30 @@ class PragueVM(CancunVM):
 
         block.block_requests.append(DEPOSIT_REQUEST_TYPE + deposit_request_data)
 
+    def process_withdrawal_request_data(self, block: BlockAPI) -> None:
+        if not self.state.get_code(WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS):
+            return
+
+        withdrawal_request_contract_code = self.state.get_code(
+            WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS
+        )
+        withdrawal_computation = self.execute_bytecode(
+            origin=SYSTEM_ADDRESS,
+            gas_price=0,
+            gas=SYSTEM_MESSAGE_GAS,
+            to=WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS,
+            sender=SYSTEM_ADDRESS,
+            value=0,
+            data=b"",
+            code=withdrawal_request_contract_code,
+            code_address=WITHDRAWAL_REQUEST_PREDEPLOY_ADDRESS,
+        )
+
+        if len(withdrawal_computation.output) > 0:
+            block.block_requests.append(
+                WITHDRAWAL_REQUEST_TYPE + withdrawal_computation.output
+            )
+
     @staticmethod
     def compute_requests_hash(block: BlockAPI) -> BlockAPI:
         m = sha256()
@@ -105,6 +135,7 @@ class PragueVM(CancunVM):
     def block_postprocessing(self, block: BlockAPI) -> BlockAPI:
         super().block_postprocessing(block)
         self.process_deposit_request_data(block)  # type 0 block requests
+        self.process_withdrawal_request_data(block)  # type 1 block requests
         processed_block = self.compute_requests_hash(block)
         return processed_block
 

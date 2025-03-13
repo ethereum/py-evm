@@ -28,7 +28,9 @@ EMPTY_WORD = NULL_BYTE * 32
 UINT_160_CEILING = 2**160
 
 CREATE_CONTRACT_ADDRESS = Address(b"")
-SYSTEM_ADDRESS = b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe"  # noqa: E501
+SYSTEM_ADDRESS = Address(
+    b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xfe"
+)
 ZERO_ADDRESS = Address(20 * b"\x00")
 ZERO_HASH32 = Hash32(32 * b"\x00")
 
@@ -87,7 +89,6 @@ GAS_CODEDEPOSIT = 200
 
 GAS_MEMORY_QUADRATIC_DENOMINATOR = 512
 
-
 #
 # Pre-compile contract gas costs
 #
@@ -119,6 +120,8 @@ GAS_LIMIT_MAXIMUM = 2**63 - 1
 
 GAS_LIMIT_USAGE_ADJUSTMENT_NUMERATOR = 3
 GAS_LIMIT_USAGE_ADJUSTMENT_DENOMINATOR = 2
+
+SYSTEM_MESSAGE_GAS = 30_000_000
 
 
 #
