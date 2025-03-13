@@ -21,6 +21,8 @@ from eth.vm.forks.cancun import (
     get_total_blob_gas,
 )
 from eth.vm.forks.prague.constants import (
+    CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS,
+    CONSOLIDATION_REQUEST_TYPE,
     DEPOSIT_CONTRACT_ADDRESS,
     DEPOSIT_EVENT_SIGNATURE_HASH,
     DEPOSIT_REQUEST_TYPE,
@@ -122,6 +124,30 @@ class PragueVM(CancunVM):
                 WITHDRAWAL_REQUEST_TYPE + withdrawal_computation.output
             )
 
+    def process_consolidation_request_data(self, block: BlockAPI) -> None:
+        if not self.state.get_code(CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS):
+            return
+
+        consolidation_request_contract_code = self.state.get_code(
+            CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS
+        )
+        consolidation_computation = self.execute_bytecode(
+            origin=SYSTEM_ADDRESS,
+            gas_price=0,
+            gas=SYSTEM_MESSAGE_GAS,
+            to=CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS,
+            sender=SYSTEM_ADDRESS,
+            value=0,
+            data=b"",
+            code=consolidation_request_contract_code,
+            code_address=CONSOLIDATION_REQUEST_PREDEPLOY_ADDRESS,
+        )
+
+        if len(consolidation_computation.output) > 0:
+            block.block_requests.append(
+                CONSOLIDATION_REQUEST_TYPE + consolidation_computation.output
+            )
+
     @staticmethod
     def compute_requests_hash(block: BlockAPI) -> BlockAPI:
         m = sha256()
@@ -136,6 +162,7 @@ class PragueVM(CancunVM):
         super().block_postprocessing(block)
         self.process_deposit_request_data(block)  # type 0 block requests
         self.process_withdrawal_request_data(block)  # type 1 block requests
+        self.process_consolidation_request_data(block)  # type 2 block requests
         processed_block = self.compute_requests_hash(block)
         return processed_block
 
