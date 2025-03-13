@@ -12,6 +12,9 @@ from eth.abc import (
     TransactionContextAPI,
     TransactionExecutorAPI,
 )
+from eth.constants import (
+    GAS_TX,
+)
 from eth.vm.forks.cancun import (
     CancunState,
 )
@@ -25,6 +28,7 @@ from eth.vm.forks.prague.constants import (
     BLOB_BASE_FEE_UPDATE_FRACTION_PRAGUE,
     HISTORY_STORAGE_ADDRESS,
     HISTORY_STORAGE_CONTRACT_CODE,
+    STANDARD_TOKEN_COST,
     TOTAL_COST_FLOOR_PER_TOKEN,
 )
 
@@ -58,13 +62,15 @@ class PragueTransactionExecutor(CancunTransactionExecutor):
 
         zeros_in_data = transaction.data.count(b"\x00")
         non_zeros_in_data = len(transaction.data) - zeros_in_data
-        tokens_in_calldata = zeros_in_data + (non_zeros_in_data * 4)
+        tokens_in_calldata = zeros_in_data + (non_zeros_in_data * STANDARD_TOKEN_COST)
 
-        eip7623_gas = 21000 + TOTAL_COST_FLOOR_PER_TOKEN * tokens_in_calldata
+        eip7623_gas = GAS_TX + (TOTAL_COST_FLOOR_PER_TOKEN * tokens_in_calldata)
 
         if total_gas_used < eip7623_gas:
             # consume up to the data floor gas cost
-            computation.consume_gas(eip7623_gas - total_gas_used, reason="EIP-7623")
+            computation.consume_gas(
+                eip7623_gas - total_gas_used, reason="EIP-7623 data floor gas cost"
+            )
 
     def finalize_computation(
         self, transaction: SignedTransactionAPI, computation: ComputationAPI
