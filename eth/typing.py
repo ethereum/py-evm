@@ -46,6 +46,15 @@ AccountState = Dict[Address, AccountDetails]
 AccountDiff = Iterable[Tuple[Address, str, Union[int, bytes], Union[int, bytes]]]
 
 
+class Authorization:
+    chain_id: int
+    account: Address
+    nonce: int
+    y_parity: int
+    r: int
+    s: int
+
+
 class Block(TypedDict, total=False):
     header: "BlockHeaderAPI"
     transactions: Sequence["SignedTransactionAPI"]
