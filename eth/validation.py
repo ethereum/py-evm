@@ -56,7 +56,7 @@ def validate_is_bytes_or_view(value: BytesOrView, title: str = "Value") -> None:
 
 def validate_is_integer(value: Union[int, bool], title: str = "Value") -> None:
     if not isinstance(value, int) or isinstance(value, bool):
-        raise ValidationError(f"{title} must be a an integer.  Got: {type(value)}")
+        raise ValidationError(f"{title} must be an integer.  Got: {type(value)}")
 
 
 def validate_length(value: Sequence[Any], length: int, title: str = "Value") -> None:
@@ -266,4 +266,13 @@ def validate_header_params_for_configuration(header_params: Dict[str, Any]) -> N
             f"({', '.join(tuple(sorted(ALLOWED_HEADER_FIELDS)))}). "
             f"The provided fields ({', '.join(tuple(sorted(extra_fields)))}) "
             "are not supported"
+        )
+
+
+def validate_chain_id_is_current_or_zero(chain_id: int, expected_chain_id: int) -> None:
+    if chain_id != expected_chain_id and chain_id != 0:
+        raise ValidationError(
+            "The chain_id field must be 0 or the current chain id. "
+            f"The current chain_id is: {expected_chain_id}. The chain_id "
+            f"that got passed in is: {chain_id}"
         )

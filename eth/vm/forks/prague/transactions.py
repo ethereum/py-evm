@@ -54,6 +54,7 @@ from eth.rlp.transactions import (
 )
 from eth.validation import (
     validate_canonical_address,
+    validate_chain_id_is_current_or_zero,
     validate_is_list_like,
     validate_is_transaction_access_list,
     validate_uint64,
@@ -85,6 +86,7 @@ from eth.vm.forks.london.transactions import (
 )
 
 from .constants import (
+    PER_EMPTY_ACCOUNT_BASE_COST,
     SET_CODE_TRANSACTION_TYPE,
 )
 from .receipts import (
@@ -165,8 +167,13 @@ class SetCodeTransaction(
         raise NotImplementedError("Call hash() on the TypedTransaction instead")
 
     def get_intrinsic_gas(self) -> int:
-        # unchanged from Berlin
-        return calculate_txn_intrinsic_gas_berlin(self)
+        gas = calculate_txn_intrinsic_gas_berlin(self)
+        if self.authorization_list:
+            authorization_list_gas = PER_EMPTY_ACCOUNT_BASE_COST * len(
+                self.authorization_list
+            )
+            gas += authorization_list_gas
+        return gas
 
     def encode(self) -> bytes:
         return rlp.encode(self)
@@ -180,11 +187,18 @@ class SetCodeTransaction(
         logs = [Log(address, topics, data) for address, topics, data in log_entries]
         # TypedTransaction is responsible for wrapping this into a TypedReceipt
         return Receipt(
-            # is this right: state_root=status?
             state_root=status,
             gas_used=gas_used,
             logs=logs,
         )
+
+    @property
+    def max_fee_per_blob_gas(self) -> int:
+        return self._inner.max_fee_per_blob_gas
+
+    @property
+    def blob_versioned_hashes(self) -> Sequence[Hash32]:
+        return self._inner.blob_versioned_hashes
 
 
 class PragueUnsignedLegacyTransaction(CancunUnsignedLegacyTransaction):
@@ -194,7 +208,8 @@ class PragueUnsignedLegacyTransaction(CancunUnsignedLegacyTransaction):
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return PragueLegacyTransaction(
             nonce=self.nonce,
-            gas_price=self.gas_price,
+            max_fee_per_gas=self.max_fee_per_gas,
+            max_priority_fee_per_gas=self.max_priority_fee_per_gas,
             gas=self.gas,
             to=self.to,
             value=self.value,
@@ -218,9 +233,9 @@ class PragueUnsignedLegacyTransaction(CancunUnsignedLegacyTransaction):
         validate_uint64(self.nonce, title="Transaction.nonce")
         validate_canonical_address(self.to, title="Transaction.to")
         # this y_parity value should actually be uint8, but we don't have one of those
-        validate_uint64(self.y_parity, title="Transaction.nonce")
-        validate_uint256(self.r, title="Transaction.nonce")
-        validate_uint256(self.s, title="Transaction.nonce")
+        validate_uint64(self.y_parity, title="Transaction.y_parity")
+        validate_uint256(self.r, title="Transaction.r")
+        validate_uint256(self.s, title="Transaction.s")
         validate_is_transaction_access_list(self.access_list)
         validate_is_list_like(
             self.authorization_list, title="Transaction.authorization_list"
@@ -237,6 +252,8 @@ class UnsignedSetCodeTransaction(rlp.Serializable, UnsignedTransactionAPI):
     chain_id: int
     max_fee_per_gas: int
     max_priority_fee_per_gas: int
+    access_list: Sequence[Tuple[Address, Sequence[int]]]
+    authorization_list: Sequence[Authorization]
 
     fields = [
         ("chain_id", big_endian_int),
@@ -291,15 +308,15 @@ class UnsignedSetCodeTransaction(rlp.Serializable, UnsignedTransactionAPI):
         validate_uint64(self.nonce, title="Transaction.nonce")
         validate_canonical_address(self.to, title="Transaction.to")
         # this y_parity value should actually be uint8, but we don't have one of those
-        validate_uint64(self.y_parity, title="Transaction.nonce")
-        validate_uint256(self.r, title="Transaction.nonce")
-        validate_uint256(self.s, title="Transaction.nonce")
+        validate_uint64(self.y_parity, title="Transaction.y_parity")
+        validate_uint256(self.r, title="Transaction.r")
+        validate_uint256(self.s, title="Transaction.s")
         validate_is_transaction_access_list(self.access_list)
         validate_is_list_like(
             self.authorization_list, title="Transaction.authorization_list"
         )
         for auth in self.authorization_list:
-            # TODO - validate chain id is either 0 or current chain id
+            validate_chain_id_is_current_or_zero(auth.chain_id, self.chain_id)
             # is Authorization.nonce the right title?
             validate_uint64(auth.nonce, title="Authorization.nonce")
 
@@ -307,8 +324,11 @@ class UnsignedSetCodeTransaction(rlp.Serializable, UnsignedTransactionAPI):
         return self.intrinsic_gas + computation.get_gas_used()
 
     def get_intrinsic_gas(self) -> int:
-        # unchanged from Berlin
-        return calculate_txn_intrinsic_gas_berlin(self)
+        berlin_gas = calculate_txn_intrinsic_gas_berlin(self)
+        authorization_list_gas = PER_EMPTY_ACCOUNT_BASE_COST * len(
+            self.authorization_list
+        )
+        return berlin_gas + authorization_list_gas
 
     @property
     def intrinsic_gas(self) -> int:
@@ -329,6 +349,10 @@ class PragueTypedTransaction(TypedTransaction):
         BLOB_TX_TYPE: BlobPayloadDecoder,
     }
     receipt_builder = PragueReceiptBuilder
+
+    @property
+    def authorization_list(self) -> Sequence[Tuple[int, Address, int, int, int]]:
+        return self._inner.authorization_list
 
     @property
     def max_fee_per_blob_gas(self) -> int:
