@@ -1,8 +1,4 @@
 import logging
-from typing import (
-    List,
-    Optional,
-)
 
 from eth_typing import (
     Address,
@@ -42,6 +38,7 @@ class Message(MessageAPI):
         "should_transfer_value",
         "is_static",
         "_storage_address",
+        "_is_delegation",
     ]
 
     logger = logging.getLogger("eth.vm.message.Message")
@@ -59,6 +56,7 @@ class Message(MessageAPI):
         code_address: Address = None,
         should_transfer_value: bool = True,
         is_static: bool = False,
+        is_delegation: bool = False,
     ) -> None:
         validate_uint256(gas, title="Message.gas")
         self.gas: int = gas
@@ -99,6 +97,9 @@ class Message(MessageAPI):
         validate_is_boolean(is_static, title="Message.is_static")
         self.is_static = is_static
 
+        validate_is_boolean(is_delegation, title="Message.is_delegation")
+        self._is_delegation = is_delegation
+
     @property
     def code_address(self) -> Address:
         if self._code_address is not None:
@@ -129,37 +130,10 @@ class Message(MessageAPI):
     def data_as_bytes(self) -> bytes:
         return bytes(self.data)
 
+    @property
+    def is_delegation(self) -> bool:
+        return self._is_delegation
 
-class EIP7702Message(Message):
-    logger = logging.getLogger("eth.vm.message.EIP7702Message")
-
-    def __init__(
-        self,
-        gas: int,
-        to: Address,
-        sender: Address,
-        value: int,
-        data: BytesOrView,
-        code: bytes,
-        depth: int = 0,
-        create_address: Address = None,
-        code_address: Address = None,
-        should_transfer_value: bool = True,
-        is_static: bool = False,
-        authorizations: Optional[List[Address]] = None,
-    ) -> None:
-        super().__init__(
-            gas,
-            to,
-            sender,
-            value,
-            data,
-            code,
-            depth,
-            create_address,
-            code_address,
-            should_transfer_value,
-            is_static,
-        )
-
-        self.authorizations = authorizations
+    @is_delegation.setter
+    def is_delegation(self, value: bool) -> None:
+        self._is_delegation = value

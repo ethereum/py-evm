@@ -526,6 +526,12 @@ def normalize_signed_transaction(transaction: Dict[str, Any]) -> Dict[str, Any]:
                     custom_fields["maxFeePerBlobGas"] = to_int(
                         transaction["maxFeePerBlobGas"]
                     )
+        elif type_id in (4,):
+            custom_fields = {
+                "type": type_id,
+                "chainId": to_int(transaction["chainId"]),
+                "authorization_list": transaction["authorizationList"],
+            }
         else:
             raise ValidationError(f"Did not recognize transaction type {type_id}")
     else:

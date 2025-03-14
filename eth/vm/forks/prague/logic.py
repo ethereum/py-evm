@@ -26,21 +26,18 @@ from eth.vm import (
     mnemonics,
 )
 from eth.vm.forks.berlin.logic import (
+    CallCodeEIP2929,
+    CallEIP2929,
+    DelegateCallEIP2929,
+    LoadFeeByCacheWarmth,
+    StaticCallEIP2929,
     _consume_gas_for_account_load,
-)
-from eth.vm.forks.cancun.computation import (
-    CANCUN_PRECOMPILES,
 )
 from eth.vm.logic.call import (
     BaseCall,
-    CallByzantium,
-    CallCodeEIP150,
-    DelegateCall,
-    StaticCall,
 )
 from eth.vm.logic.context import (
     consume_extcodecopy_word_cost,
-    extcodecopy_execute,
 )
 
 from .constants import (
@@ -51,15 +48,15 @@ CallParams = Tuple[int, int, Address, Address, Address, int, int, int, int, bool
 
 
 def extcodesize_eip7702(computation: ComputationAPI) -> None:
-    if computation.stack_pop1_bytes()[:2] == DELEGATION_DESIGNATION:
-        address = force_bytes_to_address(computation.stack_pop1_bytes()[2:])
-
+    first_bytestring = computation.stack_pop1_bytes()
+    if first_bytestring[:3] == DELEGATION_DESIGNATION:
+        address = force_bytes_to_address(first_bytestring[3:])
     else:
-        address = force_bytes_to_address(computation.stack_pop1_bytes())
+        address = force_bytes_to_address(first_bytestring)
 
     _consume_gas_for_account_load(computation, address, mnemonics.EXTCODEHASH)
 
-    code_size = len(computation.stack_pop1_bytes())
+    code_size = len(first_bytestring)
     computation.stack_push_int(code_size)
 
 
@@ -69,20 +66,19 @@ def extcodehash_eip7702(computation: ComputationAPI) -> None:
     EIP: https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1052.md
     """
     state = computation.state
-    if computation.stack_pop1_bytes()[:2] == DELEGATION_DESIGNATION:
-        address = force_bytes_to_address(computation.stack_pop1_bytes()[2:])
+    first_bytestring = computation.stack_pop1_bytes()
+    if first_bytestring[:3] == DELEGATION_DESIGNATION:
+        address = force_bytes_to_address(first_bytestring[3:])
 
         _consume_gas_for_account_load(computation, address, mnemonics.EXTCODEHASH)
 
         if state.account_is_empty(address):
             computation.stack_push_bytes(constants.NULL_BYTE)
         else:
-            computation.stack_push_bytes(
-                state.get_code_hash(Address(computation.stack_pop1_bytes()))
-            )
+            computation.stack_push_bytes(state.get_code_hash(Address(first_bytestring)))
 
     else:
-        address = force_bytes_to_address(computation.stack_pop1_bytes())
+        address = force_bytes_to_address(first_bytestring)
 
         _consume_gas_for_account_load(computation, address, mnemonics.EXTCODEHASH)
 
@@ -92,13 +88,14 @@ def extcodehash_eip7702(computation: ComputationAPI) -> None:
             computation.stack_push_bytes(state.get_code_hash(address))
 
 
-def extcodecopy_execute_eip7702(computation: ComputationAPI) -> Tuple[Address, int]:
+def extcodecopy_execute_eip7702(
+    computation: ComputationAPI, account: Address
+) -> Tuple[Address, int]:
     """
     Runs the logical component of extcodecopy, without charging gas.
 
     :return (target_address, copy_size): useful for the caller to determine gas costs
     """
-    account = force_bytes_to_address(computation.stack_pop1_bytes()[2:])
     (
         mem_start_position,
         code_start_position,
@@ -118,12 +115,15 @@ def extcodecopy_execute_eip7702(computation: ComputationAPI) -> Tuple[Address, i
 
 
 def extcodecopy_eip7702(computation: ComputationAPI) -> None:
-    if computation.stack_pop1_bytes()[:2] == DELEGATION_DESIGNATION:
-        address, size = extcodecopy_execute_eip7702(computation)
+    first_bytestring = computation.stack_pop1_bytes()
+    if first_bytestring[:3] == DELEGATION_DESIGNATION:
+        account = force_bytes_to_address(first_bytestring[3:])
+        address, size = extcodecopy_execute_eip7702(computation, account)
         consume_extcodecopy_word_cost(computation, size)
         _consume_gas_for_account_load(computation, address, mnemonics.EXTCODECOPY)
     else:
-        address, size = extcodecopy_execute(computation)
+        account = force_bytes_to_address(first_bytestring)
+        address, size = extcodecopy_execute_eip7702(computation, account)
         consume_extcodecopy_word_cost(computation, size)
         _consume_gas_for_account_load(computation, address, mnemonics.EXTCODECOPY)
 
@@ -147,12 +147,6 @@ class Authorization(rlp.Serializable):
         r: int,
         s: int,
     ) -> None:
-        self.chain_id = chain_id
-        self.account = account
-        self.nonce = nonce
-        self.y_parity = y_parity
-        self.r = r
-        self.s = s
         super().__init__(
             chain_id=chain_id,
             account=account,
@@ -167,75 +161,10 @@ def _has_delegation_prefix(code: bytes) -> bool:
     return code[:3] == DELEGATION_DESIGNATION
 
 
-def process_authorization(auth: Authorization, computation: ComputationAPI) -> None:
-    pass
-    # TODO: 7702
-    # try:
-    #     # kcTODO - verify chain id is 0 or current chain id
-    #     signed = Authorization(
-    #         auth.chain_id,
-    #         auth.account,
-    #         auth.nonce,
-    #         auth.y_parity,
-    #         auth.r,
-    #         auth.s,
-    #     )
-    #     # authority = ecrecover(keccak(
-    #     #     MAGIC || rlp([chain_id, address, nonce])), y_parity, r, s]
-    #     # ))
-    #     to_recover = (
-    #         bytes(MAGIC) +
-    #         rlp.encode([signed.chain_id, signed.account, signed.nonce]) +
-    #         signed.y_parity.to_bytes(1, byteorder="big") +
-    #         signed.r.to_bytes(32, byteorder="big") +
-    #         signed.s.to_bytes(32, byteorder="big")
-    #     )
-    #     authority = Address(ecrecover(keccak(to_recover)).output)
-    #     computation.state.mark_address_warm(authority)
-    #     code = computation.state.get_code(authority)
-    #     if code != b"" or code[:3] != DELEGATION_DESIGNATION:
-    #         raise CodeNotEmpty(f"Code at address: {authority} was not empty")
-    #     if computation.state.get_nonce(authority) != auth.nonce:
-    #         raise VMError(
-    #             "The nonce of the authority address needs to match "
-    #             "the nonce passed in."
-    #         )
-    #
-    #     # Add PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST gas to the
-    #     # global counter if authority exists
-    #     if computation.state.account_exists(authority):
-    #         gas_fee = computation.msg.gas + (
-    #             PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST
-    #         )
-    #         computation.state.delta_balance(authority, -1 * gas_fee)
-    #     elif not computation.state.account_exists(authority):
-    #         # if authority is not in the trie, verify nonce == 0
-    #         if computation.state.get_nonce(authority) != 0:
-    #             raise VMError(f"Authority {authority} has a nonce")
-    #         gas_fee = computation.msg.gas + PER_EMPTY_ACCOUNT_BASE_COST
-    #         computation.state.delta_balance(authority, -1 * gas_fee)
-    #     computation.state.increment_nonce(authority)
-    #     if auth.address == constants.ZERO_ADDRESS:
-    #         computation.state.set_code(auth.address, constants.EMPTY_SHA3)
-    #
-    #     if _has_delegation_prefix(computation.state.get_code(code[3:])):
-    #         raise VMError("Can't recursively delegate code")
-    #
-    #     delegation = DELEGATION_DESIGNATION + auth.address
-    #     computation.state.set_code(authority, delegation)
-    #     computation.state.mark_address_warm(  # might belong in build_computation
-    #         auth.address
-    #     )
-    # except VMError:
-    #     # if anything fails, stop processing immediately
-    #     # and move to the next auth. Gas rollback?
-    #     pass
-
-
 #
 # EIP-7702
 #
-class BaseCallEIP7702(BaseCall):
+class BaseCallEIP7702(LoadFeeByCacheWarmth, BaseCall):
     def call_eip_7702(self, computation: ComputationAPI) -> None:
         computation.consume_gas(
             self.gas_cost,
@@ -254,6 +183,7 @@ class BaseCallEIP7702(BaseCall):
             memory_output_size,
             should_transfer_value,
             is_static,
+            is_delegation,
         ) = self.get_call_params(computation)
 
         computation.extend_memory(memory_input_start_position, memory_input_size)
@@ -309,19 +239,17 @@ class BaseCallEIP7702(BaseCall):
             computation.return_gas(child_msg_gas)
             computation.stack_push_int(0)
         else:
-            if code_address:
-                if code_address in CANCUN_PRECOMPILES.keys():
+            if is_delegation:
+                if code_address in computation.precompiles:
                     code = b""
                 else:
                     code = computation.state.get_code(code_address)
+
+                delegation_fee = self.get_account_load_fee(computation, code_address)
+                if delegation_fee > 0:
+                    computation.consume_gas(delegation_fee, reason="delegation fee")
             else:
                 code = computation.state.get_code(to)
-
-            computation.state.mark_address_warm(to)
-
-            if hasattr(computation.msg, "authorizations"):
-                for auth in computation.msg.authorizations:
-                    process_authorization(auth, computation)
 
             child_msg_kwargs = {
                 "gas": child_msg_gas,
@@ -332,7 +260,9 @@ class BaseCallEIP7702(BaseCall):
                 "code_address": code_address,
                 "should_transfer_value": should_transfer_value,
                 "is_static": is_static,
+                "is_delegation": is_delegation,
             }
+
             if sender is not None:
                 child_msg_kwargs["sender"] = sender
 
@@ -360,14 +290,18 @@ class BaseCallEIP7702(BaseCall):
                 computation.return_gas(child_computation.get_gas_remaining())
 
 
-class CallEIP7702(CallByzantium, BaseCallEIP7702):
+class CallEIP7702(CallEIP2929, BaseCallEIP7702):
     def get_call_params(self, computation: ComputationAPI) -> CallParams:
+        # print("******************* callEIP7702 *********************")
         gas = computation.stack_pop1_int()
-        code = computation.stack_pop1_bytes()
+        address = force_bytes_to_address(computation.stack_pop1_bytes())
+        code = computation.state.get_code(address)
         if code[:3] == DELEGATION_DESIGNATION:
             code_address = force_bytes_to_address(code[3:])
+            is_delegation = True
         else:
-            code_address = force_bytes_to_address(code)
+            code_address = address
+            is_delegation = False
 
         (
             value,
@@ -392,20 +326,25 @@ class CallEIP7702(CallByzantium, BaseCallEIP7702):
             memory_output_size,
             True,  # should_transfer_value,
             computation.msg.is_static,
+            is_delegation,
         )
 
     def __call__(self, computation: ComputationAPI) -> None:
         self.call_eip_7702(computation)
 
 
-class CallCodeEIP7702(CallCodeEIP150, BaseCallEIP7702):
+class CallCodeEIP7702(CallCodeEIP2929, BaseCallEIP7702):
     def get_call_params(self, computation: ComputationAPI) -> CallParams:
+        print("******************* CallCodeEIP7702 *********************")
         gas = computation.stack_pop1_int()
-        code = computation.stack_pop1_bytes()
+        address = force_bytes_to_address(computation.stack_pop1_bytes())
+        code = computation.state.get_code(address)
         if code[:3] == DELEGATION_DESIGNATION:
             code_address = force_bytes_to_address(code[3:])
+            is_delegation = True
         else:
-            code_address = force_bytes_to_address(code)
+            code_address = address
+            is_delegation = False
 
         (
             value,
@@ -430,20 +369,25 @@ class CallCodeEIP7702(CallCodeEIP150, BaseCallEIP7702):
             memory_output_size,
             True,  # should_transfer_value,
             computation.msg.is_static,
+            is_delegation,
         )
 
     def __call__(self, computation: ComputationAPI) -> None:
         self.call_eip_7702(computation)
 
 
-class DelegateCallEIP7702(DelegateCall, BaseCallEIP7702):
+class DelegateCallEIP7702(DelegateCallEIP2929, BaseCallEIP7702):
     def get_call_params(self, computation: ComputationAPI) -> CallParams:
+        print("******************* DelegateCallEIP7702 *********************")
         gas = computation.stack_pop1_int()
-        code = computation.stack_pop1_bytes()
+        address = force_bytes_to_address(computation.stack_pop1_bytes())
+        code = computation.state.get_code(address)
         if code[:3] == DELEGATION_DESIGNATION:
             code_address = force_bytes_to_address(code[3:])
+            is_delegation = True
         else:
-            code_address = force_bytes_to_address(code)
+            code_address = address
+            is_delegation = False
 
         (
             memory_input_start_position,
@@ -468,22 +412,25 @@ class DelegateCallEIP7702(DelegateCall, BaseCallEIP7702):
             memory_output_size,
             False,  # should_transfer_value,
             computation.msg.is_static,
+            is_delegation,
         )
 
     def __call__(self, computation: ComputationAPI) -> None:
         self.call_eip_7702(computation)
 
 
-class StaticCallEIP7702(StaticCall, BaseCallEIP7702):
+class StaticCallEIP7702(StaticCallEIP2929, BaseCallEIP7702):
     def get_call_params(self, computation: ComputationAPI) -> CallParams:
+        print("******************* StaticCallEIP7702 *********************")
         gas = computation.stack_pop1_int()
-        to = computation.msg.storage_address
-        # code_address = force_bytes_to_address(computation.stack_pop1_bytes())
-        code = computation.stack_pop1_bytes()
+        address = force_bytes_to_address(computation.stack_pop1_bytes())
+        code = computation.state.get_code(address)
         if code[:3] == DELEGATION_DESIGNATION:
-            code_address = force_bytes_to_address(code[3:])
+            to = force_bytes_to_address(code[3:])
+            is_delegation = True
         else:
-            code_address = None
+            to = address
+            is_delegation = False
 
         (
             memory_input_start_position,
@@ -497,13 +444,14 @@ class StaticCallEIP7702(StaticCall, BaseCallEIP7702):
             0,  # value
             to,
             None,  # sender
-            code_address,
+            None,  # code_address
             memory_input_start_position,
             memory_input_size,
             memory_output_start_position,
             memory_output_size,
             False,  # should_transfer_value,
             True,  # is_static
+            is_delegation,
         )
 
     def __call__(self, computation: ComputationAPI) -> None:

@@ -409,6 +409,15 @@ class BaseTransactionAPI(ABC):
         ...
 
 
+#     @property
+#     @abstractmethod
+#     def authorization_list(self) -> Sequence[Tuple[int, Address, int, int, int]]:
+#         """
+#         A list of authorizations
+#         """
+#         ...
+
+
 class TransactionFieldsAPI(ABC):
     """
     A class to define all common transaction fields.
@@ -499,18 +508,7 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def chain_id(self) -> Optional[int]:
-        ...
-
-    # @property
-    # @abstractmethod
-    # def max_fee_per_blob_gas(self) -> int:
-    #     ...
-
-    # @property
-    # @abstractmethod
-    # def blob_versioned_hashes(self) -> Sequence[Hash32]:
-    #     ...
+    def chain_id(self) -> Optional[int]: ...
 
 
 class LegacyTransactionFieldsAPI(TransactionFieldsAPI):
@@ -1634,6 +1632,10 @@ class TransactionContextAPI(ABC):
         Return the blob versioned hashes of the transaction context.
         """
         ...
+
+    @property
+    @abstractmethod
+    def authorization_list(self) -> Sequence[Tuple[int, Address, int, int, int]]: ...
 
 
 class MemoryAPI(ABC):

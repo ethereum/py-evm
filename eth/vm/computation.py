@@ -378,13 +378,16 @@ class BaseComputation(ComputationAPI, Configurable):
             # Early exit on pre-compiles
             precompile = computation.precompiles.get(message.code_address, NO_RESULT)
             if precompile is not NO_RESULT:
-                precompile(computation)
+                if not message.is_delegation:
+                    precompile(computation)
                 return computation
 
             show_debug2 = computation.logger.show_debug2
 
             opcode_lookup = computation.opcodes
             for opcode in computation.code:
+                # if computation.code[0] == 239:
+                #     continue
                 try:
                     opcode_fn = opcode_lookup[opcode]
                 except KeyError:
