@@ -1,23 +1,16 @@
 from typing import (
+    Optional,
+    Tuple,
     Type,
 )
 
 from eth_keys import (
     keys,
 )
-from eth_keys.exceptions import (
-    BadSignature,
-)
 from eth_typing import (
     Address,
 )
-from eth_utils.exceptions import (
-    ValidationError,
-)
 import rlp
-from rlp.sedes import (
-    big_endian_int,
-)
 
 from eth import (
     constants,
@@ -25,24 +18,17 @@ from eth import (
 from eth._utils.address import (
     force_bytes_to_address,
 )
-
+from eth._utils.state import (
+    code_is_delegation_designation,
+)
 from eth.abc import (
     ComputationAPI,
-    MessageAPI,
     SignedTransactionAPI,
-    StateAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
 )
 from eth.constants import (
     GAS_TX,
-)
-from eth.exceptions import (
-    CodeNotEmpty,
-    VMError,
-)
-from eth.rlp.sedes import (
-    address,
 )
 from eth.vm.forks.cancun import (
     CancunState,
@@ -56,9 +42,10 @@ from eth.vm.forks.cancun.state import (
 )
 from eth.vm.forks.prague.constants import (
     BLOB_BASE_FEE_UPDATE_FRACTION_PRAGUE,
-    DELEGATION_DESIGNATION,
+    DELEGATION_DESIGNATION_PREFIX,
     HISTORY_STORAGE_ADDRESS,
     HISTORY_STORAGE_CONTRACT_CODE,
+    MAGIC,
     PER_AUTH_BASE_COST,
     PER_EMPTY_ACCOUNT_BASE_COST,
     SET_CODE_TRANSACTION_TYPE,
@@ -72,39 +59,6 @@ from .computation import (
 from .transaction_context import (
     PragueTransactionContext,
 )
-
-
-class Authorization(rlp.Serializable):
-    fields = (
-        ("chain_id", big_endian_int),
-        ("account", address),
-        ("nonce", big_endian_int),
-        ("y_parity", big_endian_int),
-        ("r", big_endian_int),
-        ("s", big_endian_int),
-    )
-
-    def __init__(
-        self,
-        chain_id: int,
-        account: Address,
-        nonce: int,
-        y_parity: int,
-        r: int,
-        s: int,
-    ) -> None:
-        super().__init__(
-            chain_id=chain_id,
-            account=account,
-            nonce=nonce,
-            y_parity=y_parity,
-            r=r,
-            s=s,
-        )
-
-
-def _has_delegation_prefix(code: bytes) -> bool:
-    return code[:3] == DELEGATION_DESIGNATION
 
 
 class PragueTransactionExecutor(CancunTransactionExecutor):
@@ -133,21 +87,30 @@ class PragueTransactionExecutor(CancunTransactionExecutor):
 
             computation.consume_gas(data_floor_diff, "EIP-7623 calldata gas floor")
 
-    def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
-        msg = super().build_evm_message(transaction)
-        is_delegation = hasattr(transaction, "authorization_list")
-        msg.is_delegation = is_delegation
-        return msg
+    def calculate_message_refunds(self, transaction: SignedTransactionAPI) -> int:
+        message_refunds = super().calculate_message_refunds(transaction)
+        if transaction.type_id == SET_CODE_TRANSACTION_TYPE:
+            authorizations_refund = self.vm_state.process_set_code_authorizations(
+                transaction
+            )
+            message_refunds += authorizations_refund
+        return message_refunds
 
-    def build_computation(
-        self, message: MessageAPI, transaction: SignedTransactionAPI
-    ) -> ComputationAPI:
-        if hasattr(transaction, "authorization_list"):
-            for auth in transaction.authorization_list:
-                self.vm_state.process_authorization(
-                    auth, self.vm_state.get_computation(message, self)
-                )
-        return super().build_computation(message, transaction)
+    def get_code_at_address(
+        self, code_address: Address
+    ) -> Tuple[bytes, Optional[Address]]:
+        """
+        Get the code at the given address. If the code is a delegation designation,
+        return the code at the delegation address instead and return the
+        delegation address.
+        """
+        code = self.vm_state.get_code(code_address)
+        if code_is_delegation_designation(code):
+            delegation_address = force_bytes_to_address(code[3:])
+            self.vm_state.mark_address_warm(delegation_address)
+            return self.vm_state.get_code(delegation_address), delegation_address
+
+        return code, None
 
     def finalize_computation(
         self, transaction: SignedTransactionAPI, computation: ComputationAPI
@@ -166,19 +129,6 @@ class PragueState(CancunState):
         if not self.get_code(HISTORY_STORAGE_ADDRESS) != HISTORY_STORAGE_CONTRACT_CODE:
             self.set_code(HISTORY_STORAGE_ADDRESS, HISTORY_STORAGE_CONTRACT_CODE)
 
-    def get_transaction_context(
-        self: StateAPI, transaction: SignedTransactionAPI
-    ) -> TransactionContextAPI:
-        context = super().get_transaction_context(transaction)  # type: ignore
-        if (
-            hasattr(transaction, "type_id")
-            and transaction.type_id == SET_CODE_TRANSACTION_TYPE
-        ):
-            # if the transaction is a set code transaction, expose authorization lists
-            # through the transaction context
-            context._authorization_list = transaction.authorization_list
-        return context
-
     @property
     def blob_base_fee(self) -> int:
         excess_blob_gas = self.execution_context.excess_blob_gas
@@ -188,68 +138,57 @@ class PragueState(CancunState):
             BLOB_BASE_FEE_UPDATE_FRACTION_PRAGUE,
         )
 
-    def process_authorization(
-        self, auth: Authorization, computation: ComputationAPI
-    ) -> None:
-        try:
-            # 1. verify chain_id is 0 or chain's current id
-            chain_id_current_or_zero = (
-                auth.chain_id == self.execution_context.chain_id or auth.chain_id == 0
-            )
-            if not chain_id_current_or_zero:
-                raise VMError("chain id must match current chain id or be 0")
-            # authority = ecrecover(keccak(
-            #     MAGIC || rlp([chain_id, address, nonce])), y_parity, r, s]
-            # ))
-            magic = b"\x05"
-            encoded = rlp.encode([auth.chain_id, auth.account, auth.nonce])
-            message = magic + encoded
-            vrs = (auth.y_parity, auth.r, auth.s)
-            signature = keys.Signature(vrs=vrs)
-            public_key = signature.recover_public_key_from_msg(message)
-            authority = Address(public_key.to_canonical_address())
-            # 4. Add authority to accessed addresses
-            self.mark_address_warm(authority)
+    def process_set_code_authorizations(self, transaction: SignedTransactionAPI) -> int:
+        authorizations_refund = 0
+        for auth in transaction.authorization_list:
+            try:
+                # (1, 2, 3).
+                # - verify chain_id is 0 or chain's current id
+                # - verify nonce < 2**64 - 1
+                # - verify s <= secp256k1n/2
+                auth.validate(self.execution_context.chain_id)
 
-            code = self.get_code(authority)
-            # 5. verify the code is either empty or already delegated
-            if code != b"" and not _has_delegation_prefix(code):
-                raise CodeNotEmpty(
-                    f"Code at address: {authority!r} was not empty and not delegated"
-                )
+                # 3. authority = ecrecover(msg, y_parity, r, s)
+                encoded = rlp.encode([auth.chain_id, auth.address, auth.nonce])
+                msg = MAGIC + encoded
+                signature = keys.Signature(vrs=(auth.y_parity, auth.r, auth.s))
+                public_key = signature.recover_public_key_from_msg(msg)
+                authority = Address(public_key.to_canonical_address())
 
-            # 6. Verify the nonce of authority is equal to nonce. if authority is not
-            #    in the trie, verify nonce == 0
-            # 7. Add PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST gas to the
-            #    global refund counter if authority exists
-            if self.account_exists(authority):
-                if self.get_nonce(authority) != auth.nonce:
-                    print("authority nonce: ", self.get_nonce(authority))
-                    print("auth.nonce: ", auth.nonce)
-                    raise VMError(
-                        "The nonce of the authority address needs to match "
-                        "the nonce passed in."
+                # 4. add authority to accessed addresses
+                self.mark_address_warm(authority)
+
+                # 5. verify the code is either empty or already delegated
+                code = self.get_code(authority)
+                if code != b"" and not code_is_delegation_designation(code):
+                    continue
+
+                # 6. verify the nonce of authority is equal to nonce
+                if self.account_exists(authority):
+                    if self.get_nonce(authority) != auth.nonce:
+                        continue
+
+                    # 7. add refund to the global counter
+                    refund = PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST
+                    authorizations_refund += refund
+                else:
+                    # 6. if authority is not in the trie, verify ``auth.nonce==0``
+                    if auth.nonce != 0:
+                        continue
+
+                # 8. set the code of authority to be the delegation designation
+                if auth.address == constants.ZERO_ADDRESS:
+                    self.delete_code(authority)  # special case @ zero address
+                else:
+                    self.set_code(
+                        authority, DELEGATION_DESIGNATION_PREFIX + auth.address
                     )
-                refund = PER_EMPTY_ACCOUNT_BASE_COST - PER_AUTH_BASE_COST
-                computation.refund_gas(refund)
-            elif not self.account_exists(authority):
-                # if authority is not in the trie, verify nonce == 0
-                if self.get_nonce(authority) != 0:
-                    raise VMError(f"Authority {authority!r} has a nonce")
 
-            # 8. Set the code of authority to be delegation
-            if auth.account == constants.ZERO_ADDRESS:
-                self.set_code(authority, constants.EMPTY_SHA3)
-            delegation = DELEGATION_DESIGNATION + auth.account
-            self.set_code(authority, delegation)
+                # 9. increment authority nonce
+                self.increment_nonce(authority)
+            except Exception as e:
+                # with any exception, continue to the next authorization and log
+                if self.logger.show_debug2:
+                    self.logger.debug2("Invalid authorization: %s", e)
 
-            if _has_delegation_prefix(self.get_code(force_bytes_to_address(code[3:]))):
-                raise VMError("Can't recursively delegate code")
-
-            # 9. Increase nonce of authority by 1
-            self.increment_nonce(authority)
-        except (VMError, BadSignature, ValidationError) as e:
-            # if anything fails, stop processing immediately
-            # and move to the next auth. Gas rollback?
-            print("there was an error!!", e)
-            # pass
+        return authorizations_refund

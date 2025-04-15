@@ -20,30 +20,12 @@ from eth.vm import (
 from eth.vm.forks.cancun.opcodes import (
     CANCUN_OPCODES,
 )
-from eth.vm.opcode import (
-    as_opcode,
-)
 
 from . import (
     logic as prague_logic,
 )
 
 UPDATED_OPCODES: Dict[int, OpcodeAPI] = {
-    opcode_values.EXTCODESIZE: as_opcode(
-        gas_cost=constants.GAS_NULL,
-        logic_fn=prague_logic.extcodesize_eip7702,
-        mnemonic=mnemonics.EXTCODESIZE,
-    ),
-    opcode_values.EXTCODEHASH: as_opcode(
-        gas_cost=constants.GAS_NULL,
-        logic_fn=prague_logic.extcodehash_eip7702,
-        mnemonic=mnemonics.EXTCODEHASH,
-    ),
-    opcode_values.EXTCODECOPY: as_opcode(
-        gas_cost=constants.GAS_NULL,
-        logic_fn=prague_logic.extcodecopy_eip7702,
-        mnemonic=mnemonics.EXTCODECOPY,
-    ),
     opcode_values.CALL: prague_logic.CallEIP7702.configure(
         __name__="opcode:CALL",
         mnemonic=mnemonics.CALL,
@@ -65,10 +47,8 @@ UPDATED_OPCODES: Dict[int, OpcodeAPI] = {
         gas_cost=constants.GAS_NULL,
     )(),
 }
-NEW_OPCODES: Dict[int, OpcodeAPI] = {}
 
 PRAGUE_OPCODES: Dict[int, OpcodeAPI] = merge(
     copy.deepcopy(CANCUN_OPCODES),
     UPDATED_OPCODES,
-    NEW_OPCODES,
 )

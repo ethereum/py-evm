@@ -288,6 +288,8 @@ class AccountDB(AccountDatabaseAPI):
 
     def set_nonce(self, address: Address, nonce: int) -> None:
         validate_canonical_address(address, title="Storage Address")
+        # we can skip the check for ``<2**64 - 1`` here (``validate_nonce``) since we
+        # should allow the nonce to be set to 2**64-1
         validate_uint64(nonce, title="Nonce")
 
         account = self._get_account(address)

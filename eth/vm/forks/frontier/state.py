@@ -209,6 +209,10 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         # This is only relevant for the Cancun fork and later
         pass
 
+    def process_set_code_authorizations(self, transaction: SignedTransactionAPI) -> int:
+        # This is only relevant for the Prague fork and later
+        pass
+
 
 class FrontierState(BaseState):
     computation_class: Type[ComputationAPI] = FrontierComputation

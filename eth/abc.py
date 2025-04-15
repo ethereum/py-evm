@@ -409,13 +409,29 @@ class BaseTransactionAPI(ABC):
         ...
 
 
-#     @property
-#     @abstractmethod
-#     def authorization_list(self) -> Sequence[Tuple[int, Address, int, int, int]]:
-#         """
-#         A list of authorizations
-#         """
-#         ...
+class SetCodeAuthorizationAPI(ABC):
+    chain_id: int
+    address: Address
+    nonce: int
+    y_parity: int
+    r: int
+    s: int
+
+    @abstractmethod
+    def validate_for_transaction(self) -> None:
+        """
+        Validate authorization at the transaction level. This checks bounds on the
+        field types and, if any are invalid, will invalidate the whole transaction.
+        """
+        ...
+
+    @abstractmethod
+    def validate(self, chain_id: int) -> None:
+        """
+        Validate the authorization based on the EVM rules for EIP-7702. Failing this
+        check only invalidates the authorization, not the transaction.
+        """
+        ...
 
 
 class TransactionFieldsAPI(ABC):
@@ -446,6 +462,14 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
+    def max_priority_fee_per_gas(self) -> int:
+        """
+        Will default to gas_price if this is a pre-1559 transaction.
+        """
+        ...
+
+    @property
+    @abstractmethod
     def max_fee_per_blob_gas(self) -> int:
         """
         Will raise :class:`AttributeError` if get or set on a pre-blob transaction.
@@ -462,9 +486,9 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def max_priority_fee_per_gas(self) -> int:
+    def authorization_list(self) -> Sequence[SetCodeAuthorizationAPI]:
         """
-        Will default to gas_price if this is a pre-1559 transaction.
+        A list of authorizations
         """
         ...
 
@@ -508,7 +532,8 @@ class TransactionFieldsAPI(ABC):
 
     @property
     @abstractmethod
-    def chain_id(self) -> Optional[int]: ...
+    def chain_id(self) -> Optional[int]:
+        ...
 
 
 class LegacyTransactionFieldsAPI(TransactionFieldsAPI):
@@ -1498,11 +1523,13 @@ class MessageAPI(ABC):
     depth: int
     gas: int
     is_static: bool
+    is_delegation: bool
     sender: Address
     should_transfer_value: bool
     _storage_address: Address
     to: Address
     value: int
+    refunds: int
 
     __slots__ = [
         "code",
@@ -1512,10 +1539,12 @@ class MessageAPI(ABC):
         "depth",
         "gas",
         "is_static",
+        "is_delegation",
         "sender",
         "should_transfer_value",
         "_storage_address" "to",
         "value",
+        "refunds",
     ]
 
     @property
@@ -1635,7 +1664,8 @@ class TransactionContextAPI(ABC):
 
     @property
     @abstractmethod
-    def authorization_list(self) -> Sequence[Tuple[int, Address, int, int, int]]: ...
+    def authorization_list(self) -> Sequence[SetCodeAuthorizationAPI]:
+        ...
 
 
 class MemoryAPI(ABC):
@@ -3426,6 +3456,13 @@ class StateAPI(ConfigurableAPI):
         ...
 
     def apply_all_withdrawals(self, withdrawals: Sequence[WithdrawalAPI]) -> None:
+        ...
+
+    # set code authorizations
+    def process_set_code_authorizations(self, transaction: SignedTransactionAPI) -> int:
+        """
+        Process the given set code authorizations and return the message gas refund.
+        """
         ...
 
 

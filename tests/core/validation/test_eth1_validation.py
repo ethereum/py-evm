@@ -417,6 +417,7 @@ def test_validate_is_transaction_access_list(value, is_valid):
         (1, True),
         (SECPK1_N - 1, True),
         (SECPK1_N, False),
+        (SECPK1_N + 1, False),
     ),
 )
 def test_validate_lt_secpk1n(value, is_valid):
@@ -434,7 +435,8 @@ def test_validate_lt_secpk1n(value, is_valid):
         (0, True),
         (1, True),
         (SECPK1_N // 2 - 1, True),
-        (SECPK1_N // 2, False),
+        (SECPK1_N // 2, True),
+        (SECPK1_N // 2 + 1, False),
     ),
 )
 def test_validate_lt_secpk1n2(value, is_valid):

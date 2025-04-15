@@ -193,5 +193,5 @@ class ReservedBytesInCode(VMError):
 class CodeNotEmpty(VMError):
     """
     Raised when the code at a certain address is expected to be
-    empty but it's not
+    empty but it's not.
     """
