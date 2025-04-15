@@ -159,7 +159,6 @@ class PragueVM(CancunVM):
         return block.copy(header=updated_header)
 
     def block_postprocessing(self, block: BlockAPI) -> BlockAPI:
-        super().block_postprocessing(block)
         self.process_deposit_request_data(block)  # type 0 block requests
         self.process_withdrawal_request_data(block)  # type 1 block requests
         self.process_consolidation_request_data(block)  # type 2 block requests

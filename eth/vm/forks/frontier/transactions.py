@@ -25,6 +25,7 @@ from eth._utils.transactions import (
 )
 from eth.abc import (
     ReceiptAPI,
+    SetCodeAuthorizationAPI,
     SignedTransactionAPI,
 )
 from eth.constants import (
@@ -50,7 +51,7 @@ from eth.validation import (
     validate_is_integer,
     validate_lt_secpk1n,
     validate_lte,
-    validate_uint64,
+    validate_nonce,
     validate_uint256,
 )
 
@@ -79,7 +80,7 @@ class FrontierTransaction(BaseTransaction):
         return V_OFFSET + 1
 
     def validate(self) -> None:
-        validate_uint64(self.nonce, title="Transaction.nonce")
+        validate_nonce(self.nonce)
         validate_uint256(self.gas_price, title="Transaction.gas_price")
         validate_uint256(self.gas, title="Transaction.gas")
         if self.to != CREATE_CONTRACT_ADDRESS:
@@ -188,10 +189,14 @@ class FrontierTransaction(BaseTransaction):
             "blob_versioned_hashes is not implemented until Cancun."
         )
 
+    @property
+    def authorization_list(self) -> Sequence[SetCodeAuthorizationAPI]:
+        raise NotImplementedError("authorization_list is not implemented until Prague.")
+
 
 class FrontierUnsignedTransaction(BaseUnsignedTransaction):
     def validate(self) -> None:
-        validate_uint64(self.nonce, title="Transaction.nonce")
+        validate_nonce(self.nonce)
         validate_is_integer(self.gas_price, title="Transaction.gas_price")
         validate_uint256(self.gas, title="Transaction.gas")
         if self.to != CREATE_CONTRACT_ADDRESS:

@@ -3,6 +3,7 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    Union,
 )
 
 from cached_property import (
@@ -33,6 +34,7 @@ from eth._utils.transactions import (
 from eth.abc import (
     ComputationAPI,
     ReceiptAPI,
+    SetCodeAuthorizationAPI,
     SignedTransactionAPI,
     TransactionDecoderAPI,
     UnsignedTransactionAPI,
@@ -56,7 +58,8 @@ from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
     validate_is_transaction_access_list,
-    validate_uint64,
+    validate_nonce,
+    validate_uint8,
     validate_uint256,
 )
 from eth.vm.forks.berlin.constants import (
@@ -154,18 +157,7 @@ class UnsignedDynamicFeeTransaction(rlp.Serializable, UnsignedTransactionAPI):
         return LondonTypedTransaction(self._type_id, signed_transaction)
 
     def validate(self) -> None:
-        validate_uint256(self.chain_id, title="Transaction.chain_id")
-        validate_uint64(self.nonce, title="Transaction.nonce")
-        validate_uint256(self.max_fee_per_gas, title="Transaction.max_fee_per_gas")
-        validate_uint256(
-            self.max_priority_fee_per_gas, title="Transaction.max_priority_fee_per_gas"
-        )
-        validate_uint256(self.gas, title="Transaction.gas")
-        if self.to != CREATE_CONTRACT_ADDRESS:
-            validate_canonical_address(self.to, title="Transaction.to")
-        validate_uint256(self.value, title="Transaction.value")
-        validate_is_bytes(self.data, title="Transaction.data")
-        validate_is_transaction_access_list(self.access_list)
+        validate_dynamic_fee_tx(self)
 
     def gas_used_by(self, computation: ComputationAPI) -> int:
         return self.intrinsic_gas + computation.get_gas_used()
@@ -217,6 +209,10 @@ class DynamicFeeTransaction(
             "blob_versioned_hashes is not implemented until Cancun."
         )
 
+    @property
+    def authorization_list(self) -> Sequence[SetCodeAuthorizationAPI]:
+        raise NotImplementedError("authorization_list is not implemented until Prague.")
+
     def get_sender(self) -> Address:
         return extract_transaction_sender(self)
 
@@ -237,6 +233,9 @@ class DynamicFeeTransaction(
 
     def check_signature_validity(self) -> None:
         validate_transaction_signature(self)
+
+    def validate(self) -> None:
+        validate_dynamic_fee_tx(self)
 
     @cached_property
     def _type_byte(self) -> bytes:
@@ -344,3 +343,25 @@ class LondonTransactionBuilder(BerlinTransactionBuilder):
             s,
         )
         return LondonTypedTransaction(DYNAMIC_FEE_TRANSACTION_TYPE, transaction)
+
+
+def validate_dynamic_fee_tx(
+    tx: Union[UnsignedDynamicFeeTransaction, DynamicFeeTransaction],
+) -> None:
+    validate_uint256(tx.chain_id, title="Transaction.chain_id")
+    validate_nonce(tx.nonce)
+    validate_uint256(tx.max_fee_per_gas, title="Transaction.max_fee_per_gas")
+    validate_uint256(
+        tx.max_priority_fee_per_gas, title="Transaction.max_priority_fee_per_gas"
+    )
+    validate_uint256(tx.gas, title="Transaction.gas")
+    if tx.to != CREATE_CONTRACT_ADDRESS:
+        validate_canonical_address(tx.to, title="Transaction.to")
+    validate_uint256(tx.value, title="Transaction.value")
+    validate_is_bytes(tx.data, title="Transaction.data")
+    validate_is_transaction_access_list(tx.access_list)
+
+    if isinstance(tx, DynamicFeeTransaction):
+        validate_uint8(tx.y_parity, title="Transaction.y_parity")
+        validate_uint256(tx.r, title="Transaction.r")
+        validate_uint256(tx.s, title="Transaction.s")
