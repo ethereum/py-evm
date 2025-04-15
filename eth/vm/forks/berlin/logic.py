@@ -1,3 +1,7 @@
+from abc import (
+    ABC,
+)
+
 from eth_typing import (
     Address,
 )
@@ -13,6 +17,7 @@ from eth._utils.address import (
 )
 from eth.abc import (
     ComputationAPI,
+    OpcodeAPI,
 )
 from eth.vm import (
     mnemonics,
@@ -166,29 +171,40 @@ def sstore_eip2929_generic(
 sstore_eip2929 = sstore_eip2929_generic(GAS_SCHEDULE_EIP2929)
 
 
-class LoadFeeByCacheWarmth:
-    def get_account_load_fee(
+class ConsumeGasByAccountWarmth(OpcodeAPI, ABC):
+    def consume_account_load_gas(
         self,
         computation: ComputationAPI,
-        code_address: Address,
-    ) -> int:
-        was_cold = _mark_address_warm(computation, code_address)
-        return _account_load_cost(was_cold)
+        code_source: Address,
+    ) -> None:
+        was_cold = _mark_address_warm(computation, code_source)
+        load_account_fee = _account_load_cost(was_cold)
+
+        if load_account_fee > 0:
+            computation.consume_gas(
+                load_account_fee,
+                reason=f"{self.mnemonic} charges implicit account load for reading code",  # noqa: E501
+            )
+            if computation.logger.show_debug2:
+                computation.logger.debug2(
+                    f"{self.mnemonic} is charged {load_account_fee} for invoking "
+                    f"code at account 0x{code_source.hex()}"
+                )
 
 
-class CallEIP2929(LoadFeeByCacheWarmth, CallByzantium):
+class CallEIP2929(ConsumeGasByAccountWarmth, CallByzantium):
     pass
 
 
-class CallCodeEIP2929(LoadFeeByCacheWarmth, CallCodeEIP150):
+class CallCodeEIP2929(ConsumeGasByAccountWarmth, CallCodeEIP150):
     pass
 
 
-class DelegateCallEIP2929(LoadFeeByCacheWarmth, DelegateCallEIP150):
+class DelegateCallEIP2929(ConsumeGasByAccountWarmth, DelegateCallEIP150):
     pass
 
 
-class StaticCallEIP2929(LoadFeeByCacheWarmth, StaticCall):
+class StaticCallEIP2929(ConsumeGasByAccountWarmth, StaticCall):
     pass
 
 

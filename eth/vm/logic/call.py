@@ -3,6 +3,7 @@ from abc import (
     abstractmethod,
 )
 from typing import (
+    Optional,
     Tuple,
 )
 
@@ -27,7 +28,19 @@ from eth.vm.opcode import (
     Opcode,
 )
 
-CallParams = Tuple[int, int, Address, Address, Address, int, int, int, int, bool, bool]
+CallParams = Tuple[
+    int,
+    int,
+    Address,
+    Optional[Address],
+    Optional[Address],
+    int,
+    int,
+    int,
+    int,
+    bool,
+    bool,
+]
 
 
 class BaseCall(Opcode, ABC):
@@ -49,23 +62,18 @@ class BaseCall(Opcode, ABC):
         child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
         return child_msg_gas, total_fee
 
-    def get_account_load_fee(
+    def consume_account_load_gas(
         self,
         computation: ComputationAPI,
         code_address: Address,
-    ) -> int:
+    ) -> None:
         """
-        Return the gas cost for implicitly loading the account needed to access
+        Consume the gas cost for implicitly loading the account needed to access
         the bytecode.
         """
-        return 0
 
     def __call__(self, computation: ComputationAPI) -> None:
-        computation.consume_gas(
-            self.gas_cost,
-            reason=self.mnemonic,
-        )
-
+        computation.consume_gas(self.gas_cost, reason=self.mnemonic)
         (
             gas,
             value,
@@ -87,24 +95,9 @@ class BaseCall(Opcode, ABC):
             memory_input_start_position, memory_input_size
         )
 
-        #
         # Message gas allocation and fees
-        #
-        if code_address:
-            code_source = code_address
-        else:
-            code_source = to
-        load_account_fee = self.get_account_load_fee(computation, code_source)
-        if load_account_fee > 0:
-            computation.consume_gas(
-                load_account_fee,
-                reason=f"{self.mnemonic} charges implicit account load for reading code",  # noqa: E501
-            )
-            if self.logger.show_debug2:
-                self.logger.debug2(
-                    f"{self.mnemonic} is charged {load_account_fee} for invoking "
-                    f"code at account 0x{code_source.hex()}"
-                )
+        code_source = code_address if code_address else to
+        code, delegation_address = self.get_code_at_address(computation, code_source)
 
         # This must be computed *after* the load account fee is charged, so
         # that the 63/64ths rule is applied against the reduced remaining gas.
@@ -134,27 +127,22 @@ class BaseCall(Opcode, ABC):
             computation.return_gas(child_msg_gas)
             computation.stack_push_int(0)
         else:
-            if code_address:
-                code = computation.state.get_code(code_address)
-            else:
-                code = computation.state.get_code(to)
-
             child_msg_kwargs = {
                 "gas": child_msg_gas,
                 "value": value,
                 "to": to,
                 "data": call_data,
                 "code": code,
-                "code_address": code_address,
+                "code_address": delegation_address or code_address,
                 "should_transfer_value": should_transfer_value,
                 "is_static": is_static,
+                "is_delegation": delegation_address is not None,
             }
             if sender is not None:
                 child_msg_kwargs["sender"] = sender
 
             # TODO: after upgrade to py3.6, use a TypedDict and try again
             child_msg = computation.prepare_child_message(**child_msg_kwargs)  # type: ignore  # noqa: E501
-
             child_computation = computation.apply_child_computation(child_msg)
 
             if child_computation.is_error:
@@ -175,6 +163,16 @@ class BaseCall(Opcode, ABC):
             if child_computation.should_return_gas:
                 computation.return_gas(child_computation.get_gas_remaining())
 
+    def get_code_at_address(
+        self, computation: ComputationAPI, code_source: Address
+    ) -> Tuple[bytes, Optional[Address]]:
+        """
+        Gets code at address, consumes relevant account load fees, and returns
+        (code, delegation_address)
+        """
+        self.consume_account_load_gas(computation, code_source)
+        return computation.state.get_code(code_source), None
+
 
 class Call(BaseCall):
     def compute_msg_extra_gas(
@@ -189,7 +187,6 @@ class Call(BaseCall):
     def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         to = force_bytes_to_address(computation.stack_pop1_bytes())
-
         (
             value,
             memory_input_start_position,
@@ -222,7 +219,6 @@ class CallCode(BaseCall):
     def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         code_address = force_bytes_to_address(computation.stack_pop1_bytes())
-
         (
             value,
             memory_input_start_position,
@@ -389,7 +385,6 @@ class StaticCall(CallEIP161):
     def get_call_params(self, computation: ComputationAPI) -> CallParams:
         gas = computation.stack_pop1_int()
         to = force_bytes_to_address(computation.stack_pop1_bytes())
-
         (
             memory_input_start_position,
             memory_input_size,

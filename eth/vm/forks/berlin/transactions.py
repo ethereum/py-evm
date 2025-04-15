@@ -45,6 +45,7 @@ from eth.abc import (
     ComputationAPI,
     DecodedZeroOrOneLayerRLP,
     ReceiptAPI,
+    SetCodeAuthorizationAPI,
     SignedTransactionAPI,
     TransactionBuilderAPI,
     TransactionDecoderAPI,
@@ -72,7 +73,7 @@ from eth.validation import (
     validate_canonical_address,
     validate_is_bytes,
     validate_is_transaction_access_list,
-    validate_uint64,
+    validate_nonce,
     validate_uint256,
 )
 from eth.vm.forks.istanbul.transactions import (
@@ -171,7 +172,7 @@ class UnsignedAccessListTransaction(rlp.Serializable, UnsignedTransactionAPI):
 
     def validate(self) -> None:
         validate_uint256(self.chain_id, title="Transaction.chain_id")
-        validate_uint64(self.nonce, title="Transaction.nonce")
+        validate_nonce(self.nonce)
         validate_uint256(self.gas_price, title="Transaction.gas_price")
         validate_uint256(self.gas, title="Transaction.gas")
         if self.to != CREATE_CONTRACT_ADDRESS:
@@ -287,6 +288,10 @@ class AccessListTransaction(
             "blob_versioned_hashes is not implemented until Cancun."
         )
 
+    @property
+    def authorization_list(self) -> Sequence[SetCodeAuthorizationAPI]:
+        raise NotImplementedError("authorization_list is not implemented until Prague.")
+
 
 class AccessListPayloadDecoder(TransactionDecoderAPI):
     @classmethod
@@ -371,15 +376,15 @@ class TypedTransaction(
 
     @property
     def max_fee_per_blob_gas(self) -> int:
-        raise NotImplementedError(
-            "max_fee_per_blob_gas is not implemented until Cancun."
-        )
+        return self._inner.max_fee_per_gas
 
     @property
     def blob_versioned_hashes(self) -> Sequence[Hash32]:
-        raise NotImplementedError(
-            "blob_versioned_hashes is not implemented until Cancun."
-        )
+        return self._inner.blob_versioned_hashes
+
+    @property
+    def authorization_list(self) -> Sequence[SetCodeAuthorizationAPI]:
+        return self._inner.authorization_list
 
     @property
     def gas(self) -> int:
@@ -421,6 +426,9 @@ class TypedTransaction(
 
     def check_signature_validity(self) -> None:
         self._inner.check_signature_validity()
+
+    def validate(self) -> None:
+        self._inner.validate()
 
     @cached_property
     def hash(self) -> Hash32:

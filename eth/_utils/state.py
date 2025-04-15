@@ -6,6 +6,9 @@ from eth.typing import (
     AccountDiff,
     AccountState,
 )
+from eth.vm.forks.prague.constants import (
+    DELEGATION_DESIGNATION_PREFIX,
+)
 from eth.vm.state import (
     BaseState,
 )
@@ -38,3 +41,10 @@ def diff_state(expected_state: AccountState, state: BaseState) -> AccountDiff:
                     actual_storage_value,
                     expected_storage_value,
                 )
+
+
+def code_is_delegation_designation(code: bytes) -> bool:
+    """
+    Check if code loaded from the state is a delegation designation.
+    """
+    return len(code) == 23 and code[:3] == DELEGATION_DESIGNATION_PREFIX

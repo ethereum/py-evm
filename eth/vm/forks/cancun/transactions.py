@@ -36,6 +36,7 @@ from eth._utils.transactions import (
 from eth.abc import (
     ComputationAPI,
     ReceiptAPI,
+    SetCodeAuthorizationAPI,
     SignedTransactionAPI,
     TransactionDecoderAPI,
     UnsignedTransactionAPI,
@@ -57,7 +58,7 @@ from eth.validation import (
     validate_is_bytes,
     validate_is_list_like,
     validate_is_transaction_access_list,
-    validate_uint64,
+    validate_nonce,
     validate_uint256,
 )
 from eth.vm.forks.berlin.constants import (
@@ -163,7 +164,7 @@ class UnsignedBlobTransaction(rlp.Serializable, UnsignedTransactionAPI):
 
     def validate(self) -> None:
         validate_uint256(self.chain_id, title="Transaction.chain_id")
-        validate_uint64(self.nonce, title="Transaction.nonce")
+        validate_nonce(self.nonce)
         validate_uint256(self.max_fee_per_gas, title="Transaction.max_fee_per_gas")
         validate_uint256(
             self.max_priority_fee_per_gas, title="Transaction.max_priority_fee_per_gas"
@@ -229,6 +230,10 @@ class BlobTransaction(rlp.Serializable, SignedTransactionMethods, SignedTransact
             "Gas price is no longer available."
             "See max_priority_fee_per_gas or max_fee_per_gas"
         )
+
+    @property
+    def authorization_list(self) -> Sequence[SetCodeAuthorizationAPI]:
+        raise NotImplementedError("authorization_list is not implemented until Prague.")
 
     def get_sender(self) -> Address:
         return extract_transaction_sender(self)
@@ -296,14 +301,6 @@ class CancunTypedTransaction(TypedTransaction):
         BLOB_TX_TYPE: BlobPayloadDecoder,
     }
     receipt_builder = CancunReceiptBuilder
-
-    @property
-    def max_fee_per_blob_gas(self) -> int:
-        return self._inner.max_fee_per_blob_gas
-
-    @property
-    def blob_versioned_hashes(self) -> Sequence[Hash32]:
-        return self._inner.blob_versioned_hashes
 
 
 class CancunTransactionBuilder(ShanghaiTransactionBuilder):

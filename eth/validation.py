@@ -32,6 +32,7 @@ from eth.abc import (
 )
 from eth.constants import (
     SECPK1_N,
+    UINT_8_MAX,
     UINT_64_MAX,
     UINT_256_MAX,
 )
@@ -129,6 +130,15 @@ def validate_word(value: Hash32, title: str = "Value") -> None:
         )
 
 
+def validate_uint8(value: int, title: str = "Value") -> None:
+    if not isinstance(value, int) or isinstance(value, bool):
+        raise ValidationError(f"{title} must be an integer: Got: {type(value)}")
+    if value < 0:
+        raise ValidationError(f"{title} cannot be negative: Got: {value}")
+    if value > UINT_8_MAX:
+        raise ValidationError(f"{title} exceeds maximum uint8 size.  Got: {value}")
+
+
 def validate_uint64(value: int, title: str = "Value") -> None:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValidationError(f"{title} must be an integer: Got: {type(value)}")
@@ -164,7 +174,7 @@ def validate_stack_bytes(value: bytes) -> None:
 
 
 validate_lt_secpk1n = functools.partial(validate_lte, maximum=SECPK1_N - 1)
-validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2 - 1)
+validate_lt_secpk1n2 = functools.partial(validate_lte, maximum=SECPK1_N // 2)
 
 
 def validate_unique(values: Iterable[Any], title: str = "Value") -> None:
@@ -205,9 +215,13 @@ def validate_is_transaction_access_list(
 def validate_is_list_like(
     obj: Sequence[Any],
     title: str = "Value",
+    raise_if_empty: bool = False,
 ) -> None:
     if not is_list_like(obj):
         raise ValidationError(f"{title} is not list like: {repr(obj)}")
+
+    if raise_if_empty and len(obj) == 0:
+        raise ValidationError(f"{title} cannot empty")
 
 
 def validate_block_number(block_number: int, title: str = "Block Number") -> None:
@@ -240,6 +254,12 @@ def validate_gas_limit(gas_limit: int, parent_gas_limit: int) -> None:
         raise ValidationError(
             f"The gas limit {gas_limit} is too high. It must be at most {high_bound}"
         )
+
+
+def validate_nonce(nonce: int) -> None:
+    validate_uint64(nonce, title="Nonce")
+    if nonce >= UINT_64_MAX:
+        raise ValidationError(f"Nonce must be less than 2^64-1, got {nonce}")
 
 
 ALLOWED_HEADER_FIELDS = {

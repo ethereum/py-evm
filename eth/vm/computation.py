@@ -254,7 +254,8 @@ class BaseComputation(ComputationAPI, Configurable):
     # -- gas consumption -- #
     def get_gas_refund(self) -> int:
         if self.is_error:
-            return 0
+            # return only the message refunds if the computation is an error
+            return self.msg.refunds
         else:
             return self._gas_meter.gas_refunded + sum(
                 c.get_gas_refund() for c in self.children
@@ -355,6 +356,9 @@ class BaseComputation(ComputationAPI, Configurable):
         parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
         with cls(state, message, transaction_context) as computation:
+            # inherit the global refund counter from the message
+            computation.refund_gas(message.refunds)
+
             if computation.is_origin_computation:
                 # If origin computation, reset contracts_created
                 computation.contracts_created = []
@@ -386,8 +390,6 @@ class BaseComputation(ComputationAPI, Configurable):
 
             opcode_lookup = computation.opcodes
             for opcode in computation.code:
-                # if computation.code[0] == 239:
-                #     continue
                 try:
                     opcode_fn = opcode_lookup[opcode]
                 except KeyError:

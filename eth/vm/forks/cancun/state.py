@@ -1,5 +1,6 @@
 from typing import (
     Any,
+    Optional,
     Tuple,
     Type,
     cast,
@@ -87,6 +88,7 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
         return get_total_blob_gas(transaction) * self.vm_state.blob_base_fee
 
     def build_evm_message(self, transaction: SignedTransactionAPI) -> MessageAPI:
+        # deduct from sender's balance
         london_gas_fee = transaction.gas * self.vm_state.get_gas_price(transaction)
         blob_data_fee = (
             self.calc_data_fee(cast(BlobTransaction, transaction))
@@ -97,7 +99,11 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
             transaction.sender, -1 * (london_gas_fee + blob_data_fee)
         )
 
+        # increment sender nonce
         self.vm_state.increment_nonce(transaction.sender)
+
+        refunds = self.calculate_message_refunds(transaction)
+
         message_gas = transaction.gas - transaction.intrinsic_gas
 
         if transaction.to == CREATE_CONTRACT_ADDRESS:
@@ -107,16 +113,20 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
             )
             data = b""
             code = transaction.data
+            is_delegation = False
         else:
             contract_address = None
             data = transaction.data
-            code = self.vm_state.get_code(transaction.to)
+            code, delegation_address = self.get_code_at_address(transaction.to)
+            is_delegation = delegation_address is not None
 
         self.vm_state.logger.debug2(
             f"TRANSACTION: {repr(transaction)}; "
             f"sender: {encode_hex(transaction.sender)} | "
             f"to: {encode_hex(transaction.to)} | "
-            f"data-hash: {encode_hex(keccak(transaction.data))}"
+            f"data-hash: {encode_hex(keccak(transaction.data))} | "
+            f"gas: {transaction.gas} | "
+            f"code: {encode_hex(code)} | "
         )
 
         message = Message(
@@ -127,8 +137,26 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
             data=data,
             code=code,
             create_address=contract_address,
+            refunds=refunds,
+            is_delegation=is_delegation,
         )
         return message
+
+    def calculate_message_refunds(self, transaction: SignedTransactionAPI) -> int:
+        """
+        Calculate any initial refunds from message pre-processing. This becomes relevant
+        in Prague.
+        """
+        return 0
+
+    def get_code_at_address(
+        self, code_address: Address
+    ) -> Tuple[bytes, Optional[Address]]:
+        """
+        Return the code at the given address and a delegation address if the code is a
+        delegation designation. Returns ``None`` until Prague.
+        """
+        return self.vm_state.get_code(code_address), None
 
 
 class CancunState(ShanghaiState):
