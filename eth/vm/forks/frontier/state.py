@@ -1,5 +1,4 @@
 from typing import (
-    TYPE_CHECKING,
     Type,
 )
 
@@ -51,11 +50,6 @@ from .transaction_context import (
 from .validation import (
     validate_frontier_transaction,
 )
-
-if TYPE_CHECKING:
-    from eth.vm.forks.cancun.transactions import (
-        BlobTransaction,
-    )
 
 
 class FrontierTransactionExecutor(BaseTransactionExecutor):
@@ -174,8 +168,16 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
         gas_remaining = computation.get_gas_remaining()
         gas_used = transaction.gas - gas_remaining
         gas_refund = self.calculate_gas_refund(computation, gas_used)
-        gas_refund_amount = (gas_refund + gas_remaining) * transaction_context.gas_price
 
+        computation.data_floor_gas = self.calc_data_floor_gas(
+            transaction,
+            gas_used,
+            gas_refund,
+        )
+
+        gas_refund_amount = (
+            gas_refund + gas_remaining - computation.data_floor_gas
+        ) * transaction_context.gas_price
         if gas_refund_amount:
             self.vm_state.logger.debug2(
                 f"TRANSACTION REFUND: {gas_refund_amount} -> "
@@ -184,7 +186,9 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
             self.vm_state.delta_balance(computation.msg.sender, gas_refund_amount)
 
         # Beneficiary Fees
-        gas_used = transaction.gas - gas_remaining - gas_refund
+        gas_used = (
+            transaction.gas - gas_remaining - gas_refund + computation.data_floor_gas
+        )
         transaction_fee = gas_used * self.vm_state.get_tip(transaction)
 
         # EIP-161:
@@ -205,13 +209,12 @@ class FrontierTransactionExecutor(BaseTransactionExecutor):
 
         return computation
 
-    def calc_data_fee(self, transaction: "BlobTransaction") -> int:
-        # This is only relevant for the Cancun fork and later
-        pass
-
-    def process_set_code_authorizations(self, transaction: SignedTransactionAPI) -> int:
+    @staticmethod
+    def calc_data_floor_gas(
+        transaction: SignedTransactionAPI, gas_used: int, gas_refund: int
+    ) -> int:
         # This is only relevant for the Prague fork and later
-        pass
+        return 0
 
 
 class FrontierState(BaseState):

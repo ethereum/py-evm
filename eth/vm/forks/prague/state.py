@@ -22,7 +22,6 @@ from eth._utils.state import (
     code_is_delegation_designation,
 )
 from eth.abc import (
-    ComputationAPI,
     SignedTransactionAPI,
     TransactionContextAPI,
     TransactionExecutorAPI,
@@ -62,39 +61,14 @@ from .transaction_context import (
 
 
 class PragueTransactionExecutor(CancunTransactionExecutor):
-    def validate_eip7623_calldata_cost(
-        self,
-        transaction: SignedTransactionAPI,
-        computation: ComputationAPI,
-    ) -> None:
-        gas_remaining = computation.get_gas_remaining()
-        gas_used = transaction.gas - gas_remaining
-        gas_refund = self.calculate_gas_refund(computation, gas_used)
-        total_gas_used = transaction.gas - gas_remaining - gas_refund
-
-        zeros_in_data = transaction.data.count(b"\x00")
-        non_zeros_in_data = len(transaction.data) - zeros_in_data
-        tokens_in_calldata = zeros_in_data + (non_zeros_in_data * STANDARD_TOKEN_COST)
-
-        eip7623_gas = GAS_TX + (TOTAL_COST_FLOOR_PER_TOKEN * tokens_in_calldata)
-
-        data_floor_diff = eip7623_gas - total_gas_used
-        if data_floor_diff > 0:
-            if gas_refund >= data_floor_diff:
-                # pull gas out of refund to cover the data floor diff
-                computation.return_gas(data_floor_diff)
-                computation.refund_gas(-data_floor_diff)
-
-            computation.consume_gas(data_floor_diff, "EIP-7623 calldata gas floor")
-
-    def calculate_message_refunds(self, transaction: SignedTransactionAPI) -> int:
-        message_refunds = super().calculate_message_refunds(transaction)
+    def calc_message_refund(self, transaction: SignedTransactionAPI) -> int:
+        message_refund = super().calc_message_refund(transaction)
         if transaction.type_id == SET_CODE_TRANSACTION_TYPE:
             authorizations_refund = self.vm_state.process_set_code_authorizations(
                 transaction
             )
-            message_refunds += authorizations_refund
-        return message_refunds
+            message_refund += authorizations_refund
+        return message_refund
 
     def get_code_at_address(
         self, code_address: Address
@@ -112,11 +86,22 @@ class PragueTransactionExecutor(CancunTransactionExecutor):
 
         return code, None
 
-    def finalize_computation(
-        self, transaction: SignedTransactionAPI, computation: ComputationAPI
-    ) -> ComputationAPI:
-        self.validate_eip7623_calldata_cost(transaction, computation)
-        return super().finalize_computation(transaction, computation)
+    @staticmethod
+    def calc_data_floor_gas(
+        transaction: SignedTransactionAPI,
+        gas_used: int,
+        gas_refund: int,
+    ) -> int:
+        # eip7623 data floor cost
+        zeros_in_data = transaction.data.count(b"\x00")
+        non_zeros_in_data = len(transaction.data) - zeros_in_data
+        tokens_in_calldata = zeros_in_data + (non_zeros_in_data * STANDARD_TOKEN_COST)
+
+        eip7623_gas = GAS_TX + (TOTAL_COST_FLOOR_PER_TOKEN * tokens_in_calldata)
+        data_floor_diff = eip7623_gas - (gas_used - gas_refund)
+
+        # return any extra gas needed to reach the floor cost
+        return max(data_floor_diff, 0)
 
 
 class PragueState(CancunState):
