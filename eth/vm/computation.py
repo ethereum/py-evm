@@ -151,6 +151,7 @@ class BaseComputation(ComputationAPI, Configurable):
         self._stack = Stack()
         self._memory = Memory()
         self._log_entries = []
+        self.data_floor_cost = 0
 
     def _configure_gas_meter(self) -> GasMeter:
         return GasMeter(self.msg.gas)
@@ -254,11 +255,13 @@ class BaseComputation(ComputationAPI, Configurable):
     # -- gas consumption -- #
     def get_gas_refund(self) -> int:
         if self.is_error:
-            # return only the message refunds if the computation is an error
-            return self.msg.refunds
+            # if computation is an error, return only the refund from message processing
+            return self.msg.refund
         else:
-            return self._gas_meter.gas_refunded + sum(
-                c.get_gas_refund() for c in self.children
+            return (
+                self.msg.refund
+                + self._gas_meter.gas_refunded
+                + sum(c.get_gas_refund() for c in self.children)
             )
 
     # -- account management -- #
@@ -356,9 +359,6 @@ class BaseComputation(ComputationAPI, Configurable):
         parent_computation: Optional[ComputationAPI] = None,
     ) -> ComputationAPI:
         with cls(state, message, transaction_context) as computation:
-            # inherit the global refund counter from the message
-            computation.refund_gas(message.refunds)
-
             if computation.is_origin_computation:
                 # If origin computation, reset contracts_created
                 computation.contracts_created = []

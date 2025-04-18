@@ -55,9 +55,7 @@ from eth.typing import (
 )
 
 if TYPE_CHECKING:
-    from eth.vm.forks.cancun.transactions import (
-        BlobTransaction,
-    )
+    pass
 
 T = TypeVar("T")
 
@@ -1529,7 +1527,7 @@ class MessageAPI(ABC):
     _storage_address: Address
     to: Address
     value: int
-    refunds: int
+    refund: int
 
     __slots__ = [
         "code",
@@ -1544,7 +1542,7 @@ class MessageAPI(ABC):
         "should_transfer_value",
         "_storage_address" "to",
         "value",
-        "refunds",
+        "refund",
     ]
 
     @property
@@ -2043,6 +2041,7 @@ class ComputationAPI(
     accounts_to_delete: List[Address]
     beneficiaries: List[Address]
     contracts_created: List[Address] = []
+    data_floor_gas: int = 0
 
     _memory: MemoryAPI
     _stack: StackAPI
@@ -2931,15 +2930,6 @@ class TransactionExecutorAPI(ABC):
     ) -> "ComputationAPI":
         """
         Finalize the ``transaction``.
-        """
-        ...
-
-    # -- post-cancun -- #
-
-    @abstractmethod
-    def calc_data_fee(self, transaction: "BlobTransaction") -> int:
-        """
-        For Cancun and later, calculate the data fee for a transaction.
         """
         ...
 

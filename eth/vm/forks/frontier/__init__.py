@@ -113,7 +113,7 @@ class FrontierVM(VM):
         cls, transaction: SignedTransactionAPI, computation: ComputationAPI
     ) -> int:
         gas_remaining = computation.get_gas_remaining()
-        consumed_gas = transaction.gas - gas_remaining
+        consumed_gas = transaction.gas - gas_remaining + computation.data_floor_gas
 
         gross_refund = computation.get_gas_refund()
         net_refund = cls.calculate_net_gas_refund(consumed_gas, gross_refund)

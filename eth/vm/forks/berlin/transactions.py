@@ -376,7 +376,7 @@ class TypedTransaction(
 
     @property
     def max_fee_per_blob_gas(self) -> int:
-        return self._inner.max_fee_per_gas
+        return self._inner.max_fee_per_blob_gas
 
     @property
     def blob_versioned_hashes(self) -> Sequence[Hash32]:
