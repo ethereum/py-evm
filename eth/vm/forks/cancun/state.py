@@ -102,8 +102,7 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
         # increment sender nonce
         self.vm_state.increment_nonce(transaction.sender)
 
-        refunds = self.calculate_message_refunds(transaction)
-
+        msg_refund = self.calc_message_refund(transaction)
         message_gas = transaction.gas - transaction.intrinsic_gas
 
         if transaction.to == CREATE_CONTRACT_ADDRESS:
@@ -137,12 +136,12 @@ class CancunTransactionExecutor(ShanghaiTransactionExecutor):
             data=data,
             code=code,
             create_address=contract_address,
-            refunds=refunds,
+            refund=msg_refund,
             is_delegation=is_delegation,
         )
         return message
 
-    def calculate_message_refunds(self, transaction: SignedTransactionAPI) -> int:
+    def calc_message_refund(self, transaction: SignedTransactionAPI) -> int:
         """
         Calculate any initial refunds from message pre-processing. This becomes relevant
         in Prague.
