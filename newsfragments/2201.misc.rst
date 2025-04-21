@@ -1,1 +1,0 @@
-Add ``fselmo/fixtures_eest`` as a submodule to the repository for the EEST test fixtures. This is likely temporary until there is an official filled tests source for EEST.
