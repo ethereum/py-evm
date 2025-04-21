@@ -1,3 +1,6 @@
+from abc import (
+    ABC,
+)
 from typing import (
     Optional,
     Tuple,
@@ -17,18 +20,16 @@ from eth.abc import (
     ComputationAPI,
 )
 from eth.vm.forks.berlin.logic import (
+    BaseCallEIP2929,
     CallCodeEIP2929,
     CallEIP2929,
     DelegateCallEIP2929,
     StaticCallEIP2929,
 )
-from eth.vm.logic.call import (
-    BaseCall,
-)
 
 
 # -- EIP-7702 -- #
-class BaseCallEIP7702(BaseCall):
+class BaseCallEIP7702(BaseCallEIP2929, ABC):
     def get_code_at_address(
         self, computation: ComputationAPI, code_source: Address
     ) -> Tuple[bytes, Optional[Address]]:

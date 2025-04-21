@@ -62,16 +62,6 @@ class BaseCall(Opcode, ABC):
         child_msg_gas = gas + (constants.GAS_CALLSTIPEND if value else 0)
         return child_msg_gas, total_fee
 
-    def consume_account_load_gas(
-        self,
-        computation: ComputationAPI,
-        code_address: Address,
-    ) -> None:
-        """
-        Consume the gas cost for implicitly loading the account needed to access
-        the bytecode.
-        """
-
     def __call__(self, computation: ComputationAPI) -> None:
         computation.consume_gas(self.gas_cost, reason=self.mnemonic)
         (
@@ -167,10 +157,9 @@ class BaseCall(Opcode, ABC):
         self, computation: ComputationAPI, code_source: Address
     ) -> Tuple[bytes, Optional[Address]]:
         """
-        Gets code at address, consumes relevant account load fees, and returns
-        (code, delegation_address)
+        Gets code at address and returns (code, delegation_address).
+        Note, delegation address is not relevant until Prague.
         """
-        self.consume_account_load_gas(computation, code_source)
         return computation.state.get_code(code_source), None
 
 
