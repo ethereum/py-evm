@@ -285,9 +285,7 @@ class BaseState(Configurable, StateAPI):
             )
         return cls.transaction_context_class
 
-    #
     # Execution
-    #
     def get_transaction_executor(self) -> TransactionExecutorAPI:
         return self.transaction_executor_class(self)
 
@@ -323,9 +321,7 @@ class BaseState(Configurable, StateAPI):
             origin=transaction.sender,
         )
 
-    #
     # Withdrawals
-    #
     def apply_withdrawal(self, withdrawal: WithdrawalAPI) -> None:
         # withdrawals not implemented until the Shanghai hard fork
         pass
@@ -334,9 +330,7 @@ class BaseState(Configurable, StateAPI):
         # withdrawals not implemented until the Shanghai hard fork
         pass
 
-    #
     # System Contracts
-    #
     def set_system_contracts(self) -> None:
         """
         Set required contracts for the particular fork to the state. This method
