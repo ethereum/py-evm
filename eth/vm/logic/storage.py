@@ -122,10 +122,8 @@ def net_sstore(gas_schedule: NetSStoreGasSchedule, computation: ComputationAPI) 
 
             if original_value == value:
                 if original_value == 0:
-                    # adds 19800 to refund counter
                     gas_refund += gas_schedule.sstore_set_gas - gas_schedule.sload_gas
                 else:
-                    # adds 4800 to refund counter
                     gas_refund += gas_schedule.sstore_reset_gas - gas_schedule.sload_gas
 
     computation.consume_gas(

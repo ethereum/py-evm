@@ -1,6 +1,10 @@
 from abc import (
     ABC,
 )
+from typing import (
+    Optional,
+    Tuple,
+)
 
 from eth_typing import (
     Address,
@@ -171,7 +175,17 @@ def sstore_eip2929_generic(
 sstore_eip2929 = sstore_eip2929_generic(GAS_SCHEDULE_EIP2929)
 
 
-class ConsumeGasByAccountWarmth(OpcodeAPI, ABC):
+class BaseCallEIP2929(OpcodeAPI, ABC):
+    def get_code_at_address(
+        self, computation: ComputationAPI, code_source: Address
+    ) -> Tuple[bytes, Optional[Address]]:
+        """
+        Gets code at address, consumes relevant account load fees, and returns
+        (code, delegation_address)
+        """
+        self.consume_account_load_gas(computation, code_source)
+        return computation.state.get_code(code_source), None
+
     def consume_account_load_gas(
         self,
         computation: ComputationAPI,
@@ -192,19 +206,19 @@ class ConsumeGasByAccountWarmth(OpcodeAPI, ABC):
                 )
 
 
-class CallEIP2929(ConsumeGasByAccountWarmth, CallByzantium):
+class CallEIP2929(BaseCallEIP2929, CallByzantium):
     pass
 
 
-class CallCodeEIP2929(ConsumeGasByAccountWarmth, CallCodeEIP150):
+class CallCodeEIP2929(BaseCallEIP2929, CallCodeEIP150):
     pass
 
 
-class DelegateCallEIP2929(ConsumeGasByAccountWarmth, DelegateCallEIP150):
+class DelegateCallEIP2929(BaseCallEIP2929, DelegateCallEIP150):
     pass
 
 
-class StaticCallEIP2929(ConsumeGasByAccountWarmth, StaticCall):
+class StaticCallEIP2929(BaseCallEIP2929, StaticCall):
     pass
 
 

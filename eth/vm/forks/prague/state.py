@@ -23,7 +23,6 @@ from eth._utils.state import (
 )
 from eth.abc import (
     SignedTransactionAPI,
-    TransactionContextAPI,
     TransactionExecutorAPI,
 )
 from eth.constants import (
@@ -54,9 +53,6 @@ from eth.vm.forks.prague.constants import (
 
 from .computation import (
     PragueComputation,
-)
-from .transaction_context import (
-    PragueTransactionContext,
 )
 
 
@@ -106,7 +102,6 @@ class PragueTransactionExecutor(CancunTransactionExecutor):
 
 class PragueState(CancunState):
     computation_class = PragueComputation
-    transaction_context_class: Type[TransactionContextAPI] = PragueTransactionContext
     transaction_executor_class: Type[TransactionExecutorAPI] = PragueTransactionExecutor
 
     def set_system_contracts(self) -> None:
