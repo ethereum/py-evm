@@ -3,7 +3,6 @@ from abc import (
     abstractmethod,
 )
 from typing import (
-    TYPE_CHECKING,
     Any,
     Callable,
     ClassVar,
@@ -53,9 +52,6 @@ from eth.typing import (
     JournalDBCheckpoint,
     VMConfiguration,
 )
-
-if TYPE_CHECKING:
-    pass
 
 T = TypeVar("T")
 

@@ -301,9 +301,7 @@ class VM(Configurable, VirtualMachineAPI):
 
         return result_header, receipts_tuple, computations_tuple
 
-    #
     # Withdrawals
-    #
     def apply_withdrawal(
         self,
         withdrawal: WithdrawalAPI,
@@ -328,17 +326,13 @@ class VM(Configurable, VirtualMachineAPI):
             if self.state.account_is_empty(address):
                 self.state.delete_account(address)
 
-    #
     # Block requests
-    #
     @staticmethod
     def compute_requests_hash(block: BlockAPI) -> BlockAPI:
         # Prague and beyond
         return block
 
-    #
     # Importing blocks
-    #
     def import_block(self, block: BlockAPI) -> BlockAndMetaWitness:
         if self.get_block().number != block.number:
             raise ValidationError(
