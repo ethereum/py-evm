@@ -3,6 +3,33 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.12.0-beta.1 (2025-04-21)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Implement EIP-7685, add support for block requests and extend prague block headers with ``requests_hash``. (`#2202 <https://github.com/ethereum/py-evm/issues/2202>`__)
+- Implement EIPs for Prague hard fork:
+
+    - EIP-7623: Increase calldata cost
+    - EIP-2935: Store historical block hashes in state
+    - EIP-7691: Blob throughput increase
+    - EIP-2537: Precompiles for BLS12-381 curve operations (`#2204 <https://github.com/ethereum/py-evm/issues/2204>`__)
+- Set fork-specific contracts if code at address not present + implement EIPs for Prague hard fork:
+
+    - EIP-6110: Validator deposit block requests
+    - EIP-7002: Withdrawal block requests
+    - EIP-7251: Consolidation block requests (`#2205 <https://github.com/ethereum/py-evm/issues/2205>`__)
+- Implement EIP-7702: Set code transaction (`#2206 <https://github.com/ethereum/py-evm/issues/2206>`__)
+
+
+Internal Changes - For py-evm Contributors
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Update ``ethereum/tests`` test fixture and introduce ``fixtures_eest`` submodule for testing against the EEST test suite. (`#2208 <https://github.com/ethereum/py-evm/issues/2208>`__)
+
+
 py-evm v0.11.0-beta.1 (2025-02-18)
 ----------------------------------
 

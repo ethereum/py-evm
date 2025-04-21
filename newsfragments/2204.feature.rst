@@ -1,6 +1,0 @@
-Implement EIPs for Prague hard fork:
-
-  - EIP-7623: Increase calldata cost
-  - EIP-2935: Store historical block hashes in state
-  - EIP-7691: Blob throughput increase
-  - EIP-2537: Precompiles for BLS12-381 curve operations

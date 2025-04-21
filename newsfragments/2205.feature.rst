@@ -1,5 +1,0 @@
-Set fork-specific contracts if code at address not present + implement EIPs for Prague hard fork:
-
-  - EIP-6110: Validator deposit block requests
-  - EIP-7002: Withdrawal block requests
-  - EIP-7251: Consolidation block requests

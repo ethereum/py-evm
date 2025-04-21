@@ -1,1 +1,0 @@
-Update ``ethereum/tests`` test fixture and introduce ``fixtures_eest`` submodule for testing against the EEST test suite.
