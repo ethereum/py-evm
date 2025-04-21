@@ -85,6 +85,7 @@ from eth.vm.forks import (
     MuirGlacierVM,
     ParisVM,
     PetersburgVM,
+    PragueVM,
     ShanghaiVM,
     SpuriousDragonVM,
     TangerineWhistleVM,
@@ -270,8 +271,9 @@ gray_glacier_at = fork_at(GrayGlacierVM)
 paris_at = fork_at(ParisVM)
 shanghai_at = fork_at(ShanghaiVM)
 cancun_at = fork_at(CancunVM)
+prague_at = fork_at(PragueVM)
 
-latest_mainnet_at = cancun_at
+latest_mainnet_at = prague_at
 
 GENESIS_DEFAULTS = cast(
     Tuple[Tuple[str, Union[BlockNumber, int, None, bytes, Address, Hash32]], ...],

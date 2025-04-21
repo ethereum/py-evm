@@ -1,0 +1,1 @@
+Use correct fields in ``PragueUnsignedLegacyTransaction.as_signed_transaction()``.

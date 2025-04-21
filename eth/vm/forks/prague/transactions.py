@@ -113,8 +113,7 @@ class PragueUnsignedLegacyTransaction(CancunUnsignedLegacyTransaction):
         v, r, s = create_transaction_signature(self, private_key, chain_id=chain_id)
         return PragueLegacyTransaction(
             nonce=self.nonce,
-            max_fee_per_gas=self.max_fee_per_gas,
-            max_priority_fee_per_gas=self.max_priority_fee_per_gas,
+            gas_price=self.gas_price,
             gas=self.gas,
             to=self.to,
             value=self.value,
