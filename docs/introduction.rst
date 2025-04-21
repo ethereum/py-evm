@@ -2,7 +2,7 @@ Introduction
 ============
 
 
-Py-EVM is a new implementation of the Ethereum Virtual Machine (EVM) written in Python.
+Py-EVM is an implementation of the Ethereum Virtual Machine (EVM) written in Python.
 
 If none of this makes sense to you yet we recommend to checkout the
 `Ethereum <https://ethereum.org>`_ website as well as a
