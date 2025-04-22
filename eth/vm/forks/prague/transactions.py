@@ -436,7 +436,7 @@ class PragueTransactionBuilder(CancunTransactionBuilder):
         )
 
     @classmethod
-    def new_signed_set_code_transaction(
+    def new_set_code_transaction(
         cls,
         chain_id: int,
         nonce: int,
@@ -447,17 +447,27 @@ class PragueTransactionBuilder(CancunTransactionBuilder):
         value: int,
         data: bytes,
         access_list: Sequence[Tuple[Address, Sequence[int]]],
-        authorization_list: Sequence[Authorization],
-    ) -> SetCodeTransaction:
-        return SetCodeTransaction(
+        authorization_list: Sequence[Union[AuthorizationDict, Authorization]],
+        y_parity: int,
+        r: int,
+        s: int,
+    ) -> PragueTypedTransaction:
+        transaction = SetCodeTransaction(
             chain_id=chain_id,
             nonce=nonce,
-            gas=gas,
             max_priority_fee_per_gas=max_priority_fee_per_gas,
             max_fee_per_gas=max_fee_per_gas,
+            gas=gas,
             to=to,
             value=value,
             data=data,
             access_list=access_list,
-            authorization_list=authorization_list,
+            authorization_list=[
+                Authorization(**auth) if isinstance(auth, dict) else auth
+                for auth in authorization_list
+            ],
+            y_parity=y_parity,
+            r=r,
+            s=s,
         )
+        return PragueTypedTransaction(SET_CODE_TRANSACTION_TYPE, transaction)
