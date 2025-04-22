@@ -1319,12 +1319,16 @@ def blockchain_fixture_mark_fn(fixture_path, fixture_name, fixture_fork):
         return pytest.mark.skip("EIP-86 not supported.")
 
     elif (
-        "set_code_to_non_empty_storage" in fixture_name
-        and "from_state_test" not in fixture_name
+        "modified_withdrawal_contract" in fixture_name
+        or "modified_consolidation_contract" in fixture_name
+        or "deploy_after_fork" in fixture_name  # transition tests
     ):
-        # TODO: These 2 tests are for some reason expecting a different address for the
-        #  history storage contract. Check in future if these got fixed.
-        return pytest.mark.skip("Dirty state, invalid test.")
+        return pytest.mark.skip(
+            # these tests are meant for clients to make sure they deal with contract
+            # issues appropriately on the network
+            "Missing withdrawal / consolidation contracts seem a bit meaningless in "
+            "the context of py-evm and should be deployed if they are being tested."
+        )
 
 
 def generate_ignore_fn_for_fork(passed_fork):
