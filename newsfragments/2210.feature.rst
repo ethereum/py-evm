@@ -1,0 +1,1 @@
+Allow authorizations to be dicts when creating a new ``UnsignedSetCodeTransaction`` via ``PragueTransactionBuilder.new_unsigned_set_code_transaction()``.
