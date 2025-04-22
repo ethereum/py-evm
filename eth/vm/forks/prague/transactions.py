@@ -6,6 +6,8 @@ from typing import (
     Sequence,
     Tuple,
     Type,
+    TypedDict,
+    Union,
 )
 
 from cached_property import (
@@ -389,6 +391,15 @@ class PragueTypedTransaction(TypedTransaction):
         return self._inner.blob_versioned_hashes
 
 
+class AuthorizationDict(TypedDict):
+    chain_id: int
+    address: Address
+    nonce: int
+    y_parity: int
+    r: int
+    s: int
+
+
 class PragueTransactionBuilder(CancunTransactionBuilder):
     legacy_signed = PragueLegacyTransaction
     legacy_unsigned = PragueUnsignedLegacyTransaction
@@ -406,7 +417,7 @@ class PragueTransactionBuilder(CancunTransactionBuilder):
         value: int,
         data: bytes,
         access_list: Sequence[Tuple[Address, Sequence[int]]],
-        authorization_list: Sequence[Authorization],
+        authorization_list: Sequence[Union[Authorization, AuthorizationDict]],
     ) -> UnsignedSetCodeTransaction:
         return UnsignedSetCodeTransaction(
             chain_id=chain_id,
@@ -418,7 +429,10 @@ class PragueTransactionBuilder(CancunTransactionBuilder):
             value=value,
             data=data,
             access_list=access_list,
-            authorization_list=authorization_list,
+            authorization_list=[
+                Authorization(**auth) if isinstance(auth, dict) else auth
+                for auth in authorization_list
+            ],
         )
 
     @classmethod
