@@ -14,17 +14,12 @@ Goals
 
 The main focus is to enrich the Ethereum ecosystem with a Python implementation that:
 
-* Supports Ethereum 1.0 as well as 2.0 / Serenity
+* Supports the current state of the Ethereum protocol
 * Is well documented
 * Is easy to understand
 * Has clear APIs
-* Runs fast and resource friendly
-* Is highly flexible to support:
+* Runs fast and is resource friendly
 
-  * Public chains
-  * Private chains
-  * Consortium chains
-  * Advanced research
 
 Usage
 -----
