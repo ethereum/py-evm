@@ -1,0 +1,1 @@
+Handle the case where the parent header of a Prague header does not have the ``excess_blob_gas`` property for calculation.
