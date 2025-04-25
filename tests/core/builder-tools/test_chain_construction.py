@@ -117,10 +117,8 @@ def test_chain_builder_construct_chain_vm_configuration_multiple_forks():
         (shanghai_at, ShanghaiVM),
         (cancun_at, CancunVM),
         (prague_at, PragueVM),
-        (
-            latest_mainnet_at,
-            PragueVM,
-        ),  # this will change whenever the next upgrade is locked
+        # this will change whenever the next upgrade is locked
+        (latest_mainnet_at, PragueVM),
     ),
 )
 def test_chain_builder_construct_chain_fork_specific_helpers(fork_fn, vm_class):
