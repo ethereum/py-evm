@@ -15,6 +15,7 @@ Bugfixes
 Features
 ~~~~~~~~
 
+- Add Shanghai mainnet block number to mainnet constants. (`#2126 <https://github.com/ethereum/py-evm/issues/2126>`__)
 - Add Cancun mainnet block number to mainnet constants. (`#2212 <https://github.com/ethereum/py-evm/issues/2212>`__)
 
 
