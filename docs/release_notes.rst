@@ -3,6 +3,21 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.12.0-beta.3 (2025-04-25)
+----------------------------------
+
+Bugfixes
+~~~~~~~~
+
+- Handle the case where the parent header of a Prague header does not have the ``excess_blob_gas`` property for calculation. (`#2212 <https://github.com/ethereum/py-evm/issues/2212>`__)
+
+
+Features
+~~~~~~~~
+
+- Add Cancun mainnet block number to mainnet constants. (`#2212 <https://github.com/ethereum/py-evm/issues/2212>`__)
+
+
 py-evm v0.12.0-beta.2 (2025-04-23)
 ----------------------------------
 
