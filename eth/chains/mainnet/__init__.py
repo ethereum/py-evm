@@ -28,6 +28,7 @@ from .constants import (
     DAO_FORK_MAINNET_BLOCK,
     SHANGHAI_MAINNET_BLOCK,
     CANCUN_MAINNET_BLOCK,
+    PRAGUE_MAINNET_BLOCK,
 )
 from eth import constants as eth_constants
 
@@ -115,6 +116,7 @@ MAINNET_FORK_BLOCKS = (
     PARIS_MAINNET_BLOCK,
     SHANGHAI_MAINNET_BLOCK,
     CANCUN_MAINNET_BLOCK,
+    PRAGUE_MAINNET_BLOCK,
 )
 MINING_MAINNET_VMS = (
     FrontierVM,
