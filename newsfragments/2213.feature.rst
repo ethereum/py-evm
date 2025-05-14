@@ -1,1 +1,0 @@
-Add ``PRAGUE_MAINNET_BLOCK`` now that it is known, post Prague activation on mainnet.

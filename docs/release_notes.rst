@@ -3,6 +3,15 @@ Release Notes
 
 .. towncrier release notes start
 
+py-evm v0.12.1-beta.1 (2025-05-14)
+----------------------------------
+
+Features
+~~~~~~~~
+
+- Add ``PRAGUE_MAINNET_BLOCK`` now that it is known, post Prague activation on mainnet. (`#2213 <https://github.com/ethereum/py-evm/issues/2213>`__)
+
+
 py-evm v0.12.0-beta.3 (2025-04-25)
 ----------------------------------
 
