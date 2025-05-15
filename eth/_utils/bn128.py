@@ -26,6 +26,8 @@ def validate_point(x: int, y: int) -> Tuple[bn128.FQ, bn128.FQ, bn128.FQ]:
         p1 = (FQ(x), FQ(y), FQ(1))
         if not bn128.is_on_curve(p1, bn128.b):
             raise ValidationError("Point is not on the curve")
+        if bn128.multiply(p1, bn128.curve_order)[-1] != FQ.zero():
+            raise ValidationError("Point is not in correct subgroup")
     else:
         p1 = (FQ(1), FQ(1), FQ(0))
 

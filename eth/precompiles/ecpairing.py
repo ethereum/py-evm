@@ -99,7 +99,7 @@ def _process_point(data_buffer: bytes, exponent: int) -> bn128.FQP:
             raise ValidationError("point is not on curve")
 
     if bn128.multiply(p2, bn128.curve_order)[-1] != bn128.FQ2.zero():
-        raise ValidationError("TODO: what case is this?????")
+        raise ValidationError("Point is not in correct subgroup")
 
     return exponent * bn128.pairing(
         FQP_point_to_FQ2_point(p2), p1, final_exponentiate=False
