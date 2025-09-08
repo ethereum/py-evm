@@ -1,10 +1,8 @@
-This repository has been archived, and is now read-only. For a Python implementation of the EVM, check out the [execution-specs](https://github.com/ethereum/execution-specs) repo. 
-
+> [!caution]
+> This repository has been archived, and is now read-only. For a Python implementation of the EVM, check out the [execution-specs](https://github.com/ethereum/execution-specs) repo.
 
 # Python Implementation of the Ethereum protocol
 
-[![Join the conversation on Discord](https://img.shields.io/discord/809793915578089484?color=blue&label=chat&logo=discord&logoColor=white)](https://discord.gg/GHryRvPB84)
-[![Build Status](https://circleci.com/gh/ethereum/py-evm.svg?style=shield)](https://circleci.com/gh/ethereum/py-evm)
 [![PyPI version](https://badge.fury.io/py/py-evm.svg)](https://badge.fury.io/py/py-evm)
 [![Python versions](https://img.shields.io/pypi/pyversions/py-evm.svg)](https://pypi.python.org/pypi/py-evm)
 [![Docs build](https://readthedocs.org/projects/py-evm/badge/?version=latest)](https://py-evm.readthedocs.io/en/latest/?badge=latest)
