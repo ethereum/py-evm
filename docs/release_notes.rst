@@ -1,6 +1,10 @@
 Release Notes
 =============
 
+.. warning::
+
+   Py-EVM has been archived, and is now read-only. The last supported fork is Prague.
+
 .. towncrier release notes start
 
 py-evm v0.12.1-beta.1 (2025-05-14)

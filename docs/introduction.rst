@@ -1,6 +1,10 @@
 Introduction
 ============
 
+.. warning::
+
+   Py-EVM has been archived, and is now read-only. The last supported fork is Prague.
+
 
 Py-EVM is an implementation of the Ethereum Virtual Machine (EVM) written in Python.
 
