@@ -531,7 +531,7 @@ jobs:
       - <<: *install-pyenv-step
       - run:
           name: set minor version
-          command: echo "export MINOR_VERSION='3.13'" >> $BASH_ENV
+          command: echo "export MINOR_VERSION='3.13.3'" >> $BASH_ENV
       - <<: *install-latest-python-step
       - <<: *run-tox-step
       - <<: *save-cache-step
